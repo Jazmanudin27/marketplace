@@ -51,15 +51,14 @@ class ShopeeService
         $path = '/api/v2/auth/token/get';
         $timestamp = time();
 
-        $sign = $this->signTokenRequest($path, $timestamp, $code, $shopId);
+        // ✅ SIGN HARUS BASIC SAJA
+        $sign = $this->signBaseRequest($path, $timestamp);
 
-        $queryString = http_build_query([
+        $url = $this->baseUrl . $path . '?' . http_build_query([
             'partner_id' => $this->partnerId,
             'timestamp' => $timestamp,
             'sign' => $sign,
         ]);
-
-        $url = $this->baseUrl . $path . '?' . $queryString;
 
         $response = Http::asJson()->post($url, [
             'code' => $code,
