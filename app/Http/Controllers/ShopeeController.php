@@ -15,37 +15,13 @@ class ShopeeController extends Controller
     {
     }
 
-    // =========================================================================
-    // STEP 1: Redirect user → halaman otorisasi Shopee
-    // =========================================================================
 
-    /**
-     * Redirect ke halaman login Shopee untuk otorisasi.
-     * URL: GET /shopee/authorize
-     */
     public function authorize()
     {
-        // Simpan tenant_id di session agar bisa digunakan saat callback
-        session(['shopee_oauth_tenant_id' => Auth::user()->tenant_id]);
-
-        $authUrl = $this->shopee->getAuthorizationUrl();
-
-        Log::info('Shopee OAuth: Redirecting to authorization URL', [
-            'tenant_id' => Auth::user()->tenant_id,
-            'url' => $authUrl,
-        ]);
-
-        return redirect()->away($authUrl);
+        dd(Auth::user());
     }
 
-    // =========================================================================
-    // STEP 2: Shopee redirect balik ke sini dengan code & shop_id
-    // =========================================================================
 
-    /**
-     * Callback URL yang dipanggil Shopee setelah user authorize.
-     * URL: GET /shopee/callback?code=XXX&shop_id=YYY
-     */
     public function callback(Request $request)
     {
         // Validasi parameter dari Shopee
@@ -132,14 +108,6 @@ class ShopeeController extends Controller
         }
     }
 
-    // =========================================================================
-    // Refresh Token Manual (opsional, biasanya dijalankan via Queue/Scheduler)
-    // =========================================================================
-
-    /**
-     * Refresh token untuk toko Shopee tertentu.
-     * URL: POST /shopee/refresh/{store}
-     */
     public function refreshToken(Store $store)
     {
         abort_unless($store->tenant_id === Auth::user()->tenant_id, 403);
