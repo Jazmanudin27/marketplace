@@ -1,0 +1,11 @@
+// ERP Marketplace - Main JS
+// Auto-dismiss alerts after 4 seconds
+document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('.alert').forEach(el => {
+        setTimeout(() => {
+            el.style.transition = 'opacity 0.5s';
+            el.style.opacity = '0';
+            setTimeout(() => el.remove(), 500);
+        }, 4000);
+    });
+});
