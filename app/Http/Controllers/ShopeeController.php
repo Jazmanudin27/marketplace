@@ -11,14 +11,27 @@ use Illuminate\Support\Facades\Log;
 
 class ShopeeController extends Controller
 {
-    public function __construct(private ShopeeService $shopee)
-    {
-    }
 
+    protected ShopeeService $shopee;
+
+    public function __construct(ShopeeService $shopee)
+    {
+        $this->shopee = $shopee;
+    }
 
     public function authorize()
     {
-        dd(Auth::user());
+        // Simpan tenant_id di session agar bisa digunakan saat callback
+        session(['shopee_oauth_tenant_id' => Auth::user()->tenant_id]);
+
+        $authUrl = $this->shopee->getAuthorizationUrl();
+
+        Log::info('Shopee OAuth: Redirecting to authorization URL', [
+            'tenant_id' => Auth::user()->tenant_id,
+            'url' => $authUrl,
+        ]);
+
+        return redirect()->away($authUrl);
     }
 
 
