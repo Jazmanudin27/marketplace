@@ -50,9 +50,9 @@ class ShopeeService
     {
         $path = '/api/v2/auth/token/get';
         $timestamp = time();
-        $sign = $this->signBaseRequest($path, $timestamp);
 
-        // Query string — auth params
+        $sign = $this->signTokenRequest($path, $timestamp, $code, $shopId);
+
         $queryString = http_build_query([
             'partner_id' => $this->partnerId,
             'timestamp' => $timestamp,
@@ -61,41 +61,13 @@ class ShopeeService
 
         $url = $this->baseUrl . $path . '?' . $queryString;
 
-        Log::info('[Shopee] getAccessToken request', [
-            'url' => $url,
-            'base_string' => $this->partnerId . $path . $timestamp,
-            'sign' => $sign,
-            'code' => $code,
-            'shop_id' => $shopId,
-        ]);
-
-        // POST body — data spesifik endpoint
         $response = Http::asJson()->post($url, [
             'code' => $code,
             'shop_id' => $shopId,
             'partner_id' => $this->partnerId,
         ]);
 
-        Log::info('[Shopee] getAccessToken response', [
-            'status' => $response->status(),
-            'body' => $response->body(),
-        ]);
-
-        if ($response->failed()) {
-            throw new \RuntimeException(
-                'Gagal mendapatkan access token dari Shopee (HTTP ' . $response->status() . '): ' . $response->body()
-            );
-        }
-
-        $data = $response->json();
-
-        if (!empty($data['error']) && $data['error'] !== '') {
-            throw new \RuntimeException(
-                'Shopee API error [' . $data['error'] . ']: ' . ($data['message'] ?? 'Unknown error')
-            );
-        }
-
-        return $data;
+        return $response->json();
     }
 
     public function refreshAccessToken(string $refreshToken, int $shopId): array
@@ -182,7 +154,11 @@ class ShopeeService
             'sign' => $sign,
         ];
     }
-
+    private function signTokenRequest(string $path, int $timestamp, string $code, int $shopId): string
+    {
+        $base = $this->partnerId . $path . $timestamp . $code . $shopId;
+        return hash_hmac('sha256', $base, $this->partnerKey);
+    }
     private function signBaseRequest(string $path, int $timestamp): string
     {
         $base = $this->partnerId . $path . $timestamp;
