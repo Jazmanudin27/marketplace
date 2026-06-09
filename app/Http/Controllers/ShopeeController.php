@@ -21,15 +21,14 @@ class ShopeeController extends Controller
 
     public function authorize()
     {
-        dd("test");
-        // session(['shopee_oauth_tenant_id' => Auth::user()->tenant_id]);
-        // $authUrl = $this->shopee->getAuthorizationUrl();
-        // Log::info('Shopee OAuth: Redirecting to authorization URL', [
-        //     'tenant_id' => Auth::user()->tenant_id,
-        //     'url' => $authUrl,
-        // ]);
+        session(['shopee_oauth_tenant_id' => Auth::user()->tenant_id]);
+        $authUrl = $this->shopee->getAuthorizationUrl();
+        Log::info('Shopee OAuth: Redirecting to authorization URL', [
+            'tenant_id' => Auth::user()->tenant_id,
+            'url' => $authUrl,
+        ]);
 
-        // return redirect()->away($authUrl);
+        return redirect()->away($authUrl);
     }
 
 

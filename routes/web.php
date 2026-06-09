@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Route;
 // Auth Routes (hanya untuk guest)
 // =========================================================================
 Route::middleware('guest')->group(function () {
-    Route::get('/', fn () => redirect()->route('login'));
+    Route::get('/', fn() => redirect()->route('login'));
     Route::get('/login', [LoginController::class, 'showLogin'])->name('login');
     Route::post('/login', [LoginController::class, 'login'])->name('login.post');
 });
@@ -27,9 +27,9 @@ Route::get('/shopee/callback', [ShopeeController::class, 'callback'])->name('sho
 Route::get('/shopee/debug-sign', function () {
     $shopee = app(\App\Services\ShopeeService::class);
     return response()->json([
-        'auth_partner'  => $shopee->debugSign('/api/v2/shop/auth_partner'),
-        'token_get'     => $shopee->debugSign('/api/v2/auth/token/get'),
-        'auth_url'      => $shopee->getAuthorizationUrl(),
+        'auth_partner' => $shopee->debugSign('/api/v2/shop/auth_partner'),
+        'token_get' => $shopee->debugSign('/api/v2/auth/token/get'),
+        'auth_url' => $shopee->getAuthorizationUrl(),
     ]);
 })->middleware('auth');
 
