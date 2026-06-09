@@ -12,9 +12,9 @@ return [
     |
     */
 
-    'partner_id'   => env('SHOPEE_PARTNER_ID'),
-    'partner_key'  => env('SHOPEE_PARTNER_KEY'),
-    'base_url'     => env('SHOPEE_BASE_URL', 'https://partner.test-stable.shopeemobile.com'),
-    'redirect_url' => env('SHOPEE_REDIRECT_URL'),
+    'partner_id' => trim(env('SHOPEE_PARTNER_ID', '')),
+    'partner_key' => trim(env('SHOPEE_PARTNER_KEY', '')),
+    'base_url' => trim(env('SHOPEE_BASE_URL', 'https://partner.test-stable.shopeemobile.com')),
+    'redirect_url' => trim(env('SHOPEE_REDIRECT_URL', '')),
 
 ];
