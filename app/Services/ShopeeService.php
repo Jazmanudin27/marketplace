@@ -21,30 +21,8 @@ class ShopeeService
     }
     public function getAuthorizationUrl(): string
     {
-        $path = '/api/v2/shop/auth_partner';
-        $timestamp = time();
-        $sign = $this->signBaseRequest($path, $timestamp);
+        dd('masuk getAuthorizationUrl');
 
-        $params = http_build_query([
-            'partner_id' => $this->partnerId,
-            'timestamp' => $timestamp,
-            'sign' => $sign,
-            'redirect' => $this->redirectUrl,
-        ]);
-
-        $url = $this->baseUrl . $path . '?' . $params;
-
-        dd([
-            'partner_id' => $this->partnerId,
-            'partner_key' => $this->partnerKey ?? null,
-            'base_url' => $this->baseUrl,
-            'redirect_url' => $this->redirectUrl,
-            'timestamp' => $timestamp,
-            'sign' => $sign,
-            'url' => $url,
-        ]);
-
-        return $url;
     }
 
     public function getAccessToken(string $code, int $shopId): array
