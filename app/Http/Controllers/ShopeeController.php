@@ -21,11 +21,9 @@ class ShopeeController extends Controller
 
     public function authorize()
     {
-        // Simpan tenant_id di session agar bisa digunakan saat callback
+        dd("test");
         session(['shopee_oauth_tenant_id' => Auth::user()->tenant_id]);
-
         $authUrl = $this->shopee->getAuthorizationUrl();
-
         Log::info('Shopee OAuth: Redirecting to authorization URL', [
             'tenant_id' => Auth::user()->tenant_id,
             'url' => $authUrl,
