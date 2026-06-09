@@ -34,11 +34,12 @@ class ShopeeService
 
         $url = $this->baseUrl . $path . '?' . $params;
 
-        Log::info('[Shopee] Authorization URL generated', [
+        dd([
             'partner_id' => $this->partnerId,
+            'partner_key' => $this->partnerKey ?? null,
+            'base_url' => $this->baseUrl,
+            'redirect_url' => $this->redirectUrl,
             'timestamp' => $timestamp,
-            'path' => $path,
-            'base_string' => $this->partnerId . $path . $timestamp,
             'sign' => $sign,
             'url' => $url,
         ]);
