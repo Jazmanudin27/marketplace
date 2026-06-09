@@ -12,10 +12,12 @@ class MarketplaceProduct extends Model
         'store_id',
         'master_product_id',
         'marketplace_product_id',
+        'marketplace_variant_id',
         'marketplace_sku',
         'name',
         'price',
         'stock',
+        'image_url',
         'sync_stock',
         'last_synced_at',
     ];

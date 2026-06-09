@@ -4,20 +4,28 @@
 @section('content')
 <div class="dashboard-card">
     <div class="card-header-line">
-        <h3><i class="fas fa-shopping-bag"></i> Semua Pesanan</h3>
+        <h3><i class="fas fa-shopping-cart"></i> Semua Pesanan</h3>
+        <form action="{{ route('orders.sync') }}" method="POST" style="margin: 0;">
+            @csrf
+            <button type="submit" class="btn-primary-sm" style="background:var(--primary);"><i class="fas fa-sync"></i> Tarik Pesanan Terbaru</button>
+        </form>
     </div>
     <div class="table-wrapper">
         <table class="data-table">
             <thead>
                 <tr>
-                    <th>Invoice</th><th>Pembeli</th><th>Toko</th><th>Channel</th>
+                    <th>Invoice / ID</th><th>Pembeli</th><th>Toko</th><th>Channel</th>
                     <th>Total</th><th>Kurir</th><th>Tanggal</th><th>Status</th>
                 </tr>
             </thead>
             <tbody>
                 @forelse($orders as $order)
                 <tr>
-                    <td class="mono">{{ $order->invoice_number ?? $order->order_marketplace_id }}</td>
+                    <td class="mono">
+                        <a href="{{ route('orders.show', $order) }}" style="color:var(--primary); font-weight:bold; text-decoration:none;">
+                            {{ $order->invoice_number ?? $order->order_marketplace_id }}
+                        </a>
+                    </td>
                     <td>{{ $order->buyer_name ?? '-' }}</td>
                     <td>{{ $order->store->store_name }}</td>
                     <td><span class="channel-tag channel-{{ $order->store->channel->code }}">{{ $order->store->channel->name }}</span></td>

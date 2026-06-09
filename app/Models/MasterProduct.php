@@ -12,16 +12,28 @@ class MasterProduct extends Model
         'tenant_id',
         'sku',
         'name',
+        'description',
+        'weight',
         'image_url',
         'price',
         'cost_price',
         'stock',
         'min_stock',
         'unit',
-        'category',
-        'brand',
+        'category_id',
+        'brand_id',
         'is_active',
     ];
+
+    public function category()
+    {
+        return $this->belongsTo(Category::class);
+    }
+
+    public function brand()
+    {
+        return $this->belongsTo(Brand::class);
+    }
 
     protected $casts = [
         'price'     => 'decimal:2',

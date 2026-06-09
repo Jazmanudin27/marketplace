@@ -27,6 +27,24 @@
             <div class="store-stat" style="margin-top:0.4rem;">
                 <i class="fas fa-id-card"></i> ID: {{ $store->marketplace_store_id }}
             </div>
+            
+            @if($store->status === 'connected')
+            <div style="margin-top: 1rem; border-top: 1px solid #eee; padding-top: 1rem; display: flex; gap: 0.5rem;">
+                <form action="{{ route('shopee.sync_products', $store->id) }}" method="POST" style="flex: 1;">
+                    @csrf
+                    <button type="submit" class="btn-primary-sm" style="width: 100%; display: flex; justify-content: center; align-items: center; gap: 0.5rem;" onclick="this.innerHTML='<i class=\'fas fa-spinner fa-spin\'></i> Menarik...'; this.disabled=true; this.form.submit();">
+                        <i class="fas fa-box-open"></i> Tarik Produk
+                    </button>
+                </form>
+
+                <form action="{{ route('shopee.sync_orders', $store->id) }}" method="POST" style="flex: 1;">
+                    @csrf
+                    <button type="submit" class="btn-primary-sm" style="width: 100%; display: flex; justify-content: center; align-items: center; gap: 0.5rem; background: #4CAF50; border-color: #4CAF50;" onclick="this.innerHTML='<i class=\'fas fa-spinner fa-spin\'></i> Menarik...'; this.disabled=true; this.form.submit();">
+                        <i class="fas fa-shopping-bag"></i> Tarik Pesanan
+                    </button>
+                </form>
+            </div>
+            @endif
         </div>
         @empty
         <div class="empty-state">

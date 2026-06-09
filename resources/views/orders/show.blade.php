@@ -14,7 +14,17 @@
         <div class="dashboard-card">
             <div class="card-header-line">
                 <h3><i class="fas fa-receipt"></i> {{ $order->invoice_number ?? $order->order_marketplace_id }}</h3>
-                <span class="badge badge-{{ $order->status_badge }}">{{ str_replace('_', ' ', $order->order_status) }}</span>
+                <div style="display:flex; gap:0.5rem; align-items:center;">
+                    <span class="badge badge-{{ $order->status_badge }}">{{ str_replace('_', ' ', $order->order_status) }}</span>
+                    @if(!in_array($order->order_status, ['SHIPPED', 'CANCELLED', 'DELIVERED']))
+                    <form action="{{ route('orders.process', $order->id) }}" method="POST" style="margin:0;">
+                        @csrf
+                        <button type="submit" class="btn-primary-sm" style="background:#4CAF50; border-color:#4CAF50;" onclick="this.innerHTML='<i class=\'fas fa-spinner fa-spin\'></i> Memproses...'; this.disabled=true; this.form.submit();">
+                            <i class="fas fa-truck-loading"></i> Proses Pesanan
+                        </button>
+                    </form>
+                    @endif
+                </div>
             </div>
 
             <div class="detail-row">
