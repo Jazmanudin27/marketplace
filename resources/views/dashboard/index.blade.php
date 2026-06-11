@@ -41,6 +41,16 @@
     </div>
 </div>
 
+{{-- REVENUE CHART --}}
+<div class="dashboard-card mb-4 mt-4">
+    <div class="card-header-line">
+        <h3><i class="fas fa-chart-area"></i> Grafik Pendapatan (30 Hari Terakhir)</h3>
+    </div>
+    <div style="position: relative; height:300px; width:100%">
+        <canvas id="revenueChart"></canvas>
+    </div>
+</div>
+
 {{-- CHANNEL OVERVIEW --}}
 <div class="section-title">
     <i class="fas fa-plug"></i> Status Toko Marketplace
@@ -155,4 +165,121 @@
     </div>
 </div>
 
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const ctx = document.getElementById('revenueChart').getContext('2d');
+    
+    // Gradient fill for Net Profit
+    let gradientNet = ctx.createLinearGradient(0, 0, 0, 300);
+    gradientNet.addColorStop(0, 'rgba(76, 175, 80, 0.4)');
+    gradientNet.addColorStop(1, 'rgba(76, 175, 80, 0.0)');
+
+    // Gradient fill for Gross Revenue
+    let gradientGross = ctx.createLinearGradient(0, 0, 0, 300);
+    gradientGross.addColorStop(0, 'rgba(108, 99, 255, 0.4)');
+    gradientGross.addColorStop(1, 'rgba(108, 99, 255, 0.0)');
+
+    const revenueChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: @json($chartDates),
+            datasets: [
+                {
+                    label: 'Keuntungan Bersih (Escrow)',
+                    data: @json($chartNet),
+                    borderColor: '#4CAF50',
+                    backgroundColor: gradientNet,
+                    borderWidth: 3,
+                    pointBackgroundColor: '#ffffff',
+                    pointBorderColor: '#4CAF50',
+                    pointRadius: 4,
+                    pointHoverRadius: 6,
+                    fill: true,
+                    tension: 0.4,
+                    yAxisID: 'y'
+                },
+                {
+                    label: 'Total Penjualan (Kotor)',
+                    data: @json($chartGross),
+                    borderColor: '#6c63ff',
+                    backgroundColor: gradientGross,
+                    borderWidth: 2,
+                    borderDash: [5, 5],
+                    pointBackgroundColor: '#ffffff',
+                    pointBorderColor: '#6c63ff',
+                    pointRadius: 3,
+                    pointHoverRadius: 5,
+                    fill: true,
+                    tension: 0.4,
+                    yAxisID: 'y'
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+                mode: 'index',
+                intersect: false,
+            },
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top',
+                    labels: {
+                        color: 'rgba(255, 255, 255, 0.7)'
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            let label = context.dataset.label || '';
+                            if (label) {
+                                label += ': ';
+                            }
+                            if (context.parsed.y !== null) {
+                                label += new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(context.parsed.y);
+                            }
+                            return label;
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        color: 'rgba(255, 255, 255, 0.05)',
+                        drawBorder: false,
+                    },
+                    ticks: {
+                        color: 'rgba(255, 255, 255, 0.5)',
+                        callback: function(value, index, values) {
+                            if (value >= 1000000) {
+                                return 'Rp ' + (value / 1000000) + ' Jt';
+                            } else if (value >= 1000) {
+                                return 'Rp ' + (value / 1000) + ' Rb';
+                            }
+                            return 'Rp ' + value;
+                        }
+                    }
+                },
+                x: {
+                    grid: {
+                        display: false,
+                        drawBorder: false,
+                    },
+                    ticks: {
+                        color: 'rgba(255, 255, 255, 0.5)',
+                        maxTicksLimit: 10
+                    }
+                }
+            }
+        }
+    });
+});
+</script>
 @endsection

@@ -43,6 +43,16 @@ class MarketplaceProductController extends Controller
             return back()->with('error', 'Produk ini sudah ditautkan ke Master Product.');
         }
 
+        if ($product->marketplace_sku) {
+            $existingMaster = MasterProduct::where('tenant_id', Auth::user()->tenant_id)
+                                ->where('sku', $product->marketplace_sku)
+                                ->first();
+            
+            if ($existingMaster) {
+                return back()->with('error', "Gagal! SKU '{$product->marketplace_sku}' sudah terdaftar di Master Produk ('{$existingMaster->name}'). Silakan gunakan tombol 'Tautkan' ke produk tersebut agar tidak terjadi duplikat.");
+            }
+        }
+
         try {
             DB::transaction(function () use ($product) {
                 // Buat Master Product baru berdasarkan data dari MarketplaceProduct
@@ -52,6 +62,7 @@ class MarketplaceProductController extends Controller
                     'name' => $product->name,
                     'price' => $product->price,
                     'stock' => $product->stock,
+                    'image_url' => $product->image_url,
                     'is_active' => true,
                 ]);
 
@@ -81,6 +92,10 @@ class MarketplaceProductController extends Controller
         $product->update([
             'master_product_id' => $master->id,
         ]);
+
+        if (empty($master->image_url) && !empty($product->image_url)) {
+            $master->update(['image_url' => $product->image_url]);
+        }
 
         return back()->with('success', "Produk marketplace '{$product->name}' berhasil ditautkan ke Master '{$master->name}'.");
     }

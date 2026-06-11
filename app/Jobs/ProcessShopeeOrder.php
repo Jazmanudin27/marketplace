@@ -33,30 +33,63 @@ class ProcessShopeeOrder implements ShouldQueue
             $store = $this->order->store;
 
             // 1. Arrange Shipment (Drop-off)
-            $shipResponse = $shopeeService->shipOrder(
-                $store->access_token,
-                $store->marketplace_shop_id,
-                $this->order->order_marketplace_id
-            );
-
-            Log::info('[Shopee] Arrange shipment successful', ['response' => $shipResponse]);
+            try {
+                $shipResponse = $shopeeService->shipOrder(
+                    $store->access_token,
+                    (int) $store->marketplace_store_id,
+                    $this->order->order_marketplace_id
+                );
+                Log::info('[Shopee] Arrange shipment successful', ['response' => $shipResponse]);
+            } catch (\Exception $e) {
+                if (str_contains($e->getMessage(), 'package_already_shipped') || str_contains(strtolower($e->getMessage()), 'already been shipped')) {
+                    Log::info('[Shopee] Package already shipped on Shopee. Proceeding to fetch tracking.');
+                } else {
+                    throw $e;
+                }
+            }
 
             // 2. Fetch tracking number
             $trackingResponse = $shopeeService->getTrackingNumber(
                 $store->access_token,
-                $store->marketplace_shop_id,
+                (int) $store->marketplace_store_id,
                 $this->order->order_marketplace_id
             );
 
-            $trackingNo = $trackingResponse['tracking_number'] ?? null;
+            $trackingNo = !empty($trackingResponse['tracking_number']) ? $trackingResponse['tracking_number'] : null;
 
-            // 3. Update Order Status locally
+            if (!$trackingNo) {
+                // Fallback: coba ambil dari order detail (package_number) jika tracking_number kosong (terutama di Sandbox)
+                $detailData = $shopeeService->getOrderDetail(
+                    $store->access_token,
+                    (int) $store->marketplace_store_id,
+                    [$this->order->order_marketplace_id]
+                );
+                $shopeeOrder = $detailData['order_list'][0] ?? [];
+                $trackingNo = current($shopeeOrder['package_list'] ?? [])['tracking_number'] 
+                            ?? current($shopeeOrder['package_list'] ?? [])['package_number'] 
+                            ?? null;
+            }
+
+            // 3. Deduct local stock automatically (hanya jika belum diproses sebelumnya)
+            if ($this->order->order_status !== Order::STATUS_SHIPPED && $this->order->order_status !== Order::STATUS_DELIVERED) {
+                foreach ($this->order->items as $item) {
+                    if ($item->masterProduct) {
+                        $item->masterProduct->recordStockMovement(
+                            $item->quantity, 
+                            'out', 
+                            'Sales - Shopee Order #' . $this->order->order_marketplace_id
+                        );
+                    }
+                }
+            }
+
+            // 4. Update Order Status locally
             $this->order->update([
                 'order_status' => Order::STATUS_SHIPPED,
                 'tracking_number' => $trackingNo ?? $this->order->tracking_number,
             ]);
 
-            Log::info('[Shopee] Order processed and shipped', ['tracking_no' => $trackingNo]);
+            Log::info('[Shopee] Order processed, shipped, and stock deducted', ['tracking_no' => $trackingNo]);
 
         } catch (\Exception $e) {
             Log::error('[Shopee] Failed to process order: ' . $e->getMessage());

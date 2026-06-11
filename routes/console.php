@@ -10,3 +10,9 @@ Artisan::command('inspire', function () {
 use Illuminate\Support\Facades\Schedule;
 
 Schedule::command('shopee:refresh-tokens')->everyFifteenMinutes();
+Schedule::command('shopee:sync-orders')->everyFifteenMinutes();
+Schedule::command('shopee:sync-returns')->everyFifteenMinutes();
+
+// Sinkronisasi chat masuk dari marketplace setiap 5 menit
+Schedule::job(new \App\Jobs\PullChatsFromShopee())->everyFiveMinutes();
+Schedule::job(new \App\Jobs\PullChatsFromTiktok())->everyFiveMinutes();

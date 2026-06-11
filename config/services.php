@@ -35,4 +35,10 @@ return [
         ],
     ],
 
+    'tiktok' => [
+        'app_key' => env('TIKTOK_APP_KEY'),
+        'app_secret' => env('TIKTOK_APP_SECRET'),
+        'redirect_uri' => env('TIKTOK_REDIRECT_URI'),
+    ],
+
 ];

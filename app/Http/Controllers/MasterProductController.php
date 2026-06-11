@@ -3,18 +3,62 @@
 namespace App\Http\Controllers;
 
 use App\Models\MasterProduct;
+use App\Models\CategoryMapping;
+use App\Models\BrandMapping;
+use App\Models\PublicationLog;
+use App\Jobs\PublishProductToMarketplace;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use App\Services\ShopeeService;
+use App\Services\TiktokService;
 
 class MasterProductController extends Controller
 {
     public function index()
     {
-        $products = MasterProduct::where('tenant_id', Auth::user()->tenant_id)
+        $tenantId = Auth::user()->tenant_id;
+
+        // Auto-recovery: reset job yang stuck > 3 menit ke status failed
+        PublicationLog::where('tenant_id', $tenantId)
+            ->where('status', 'processing')
+            ->where('updated_at', '<', now()->subMinutes(3))
+            ->update([
+                'status'        => 'failed',
+                'error_message' => 'Job timeout: Queue worker berhenti tak terduga. Klik Retry untuk coba ulang.',
+            ]);
+
+        $products = MasterProduct::with(['marketplaceProducts.store.channel', 'category', 'brand'])
+            ->where('tenant_id', $tenantId)
             ->orderBy('name')
             ->paginate(25);
 
-        return view('products.index', compact('products'));
+        $connectedStoresCount = \App\Models\Store::where('tenant_id', $tenantId)
+            ->where('status', 'connected')
+            ->count();
+
+        $publicationLogs = PublicationLog::with(['masterProduct', 'store.channel'])
+            ->where('tenant_id', $tenantId)
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        $categoryMappings = CategoryMapping::with(['category', 'store.channel'])
+            ->where('tenant_id', $tenantId)
+            ->get();
+
+        $brandMappings = collect();
+
+        $brands = \App\Models\Brand::where('tenant_id', $tenantId)->orderBy('name')->get();
+        $stores = \App\Models\Store::with('channel')->where('tenant_id', $tenantId)->where('status', 'connected')->get();
+
+        return view('products.index', compact(
+            'products',
+            'connectedStoresCount',
+            'publicationLogs',
+            'categoryMappings',
+            'brandMappings',
+            'brands',
+            'stores'
+        ));
     }
 
     public function create()
@@ -27,17 +71,58 @@ class MasterProductController extends Controller
 
     public function store(Request $request)
     {
-        $data = $request->validate([
-            'sku'        => 'required|string|max:100|unique:master_products,sku',
-            'name'       => 'required|string|max:255',
-            'price'      => 'required|numeric|min:0',
-            'cost_price' => 'nullable|numeric|min:0',
-            'stock'      => 'required|integer|min:0',
-            'min_stock'  => 'nullable|integer|min:0',
-            'unit'       => 'nullable|string|max:50',
-            'category_id'=> 'nullable|exists:categories,id',
-            'brand_id'   => 'nullable|exists:brands,id',
+        $request->validate([
+            'image_file' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
         ]);
+
+        $data = $request->validate([
+            'sku'         => 'nullable|string|max:100|unique:master_products,sku',
+            'name'        => 'required|string|min:30|max:255',
+            'price'       => 'required|numeric|min:0',
+            'cost_price'  => 'nullable|numeric|min:0',
+            'stock'       => 'required|integer|min:0',
+            'min_stock'   => 'nullable|integer|min:0',
+            'unit'        => 'nullable|string|max:50',
+            'category_id' => 'nullable|exists:categories,id',
+            'brand_id'    => 'nullable|exists:brands,id',
+            'description' => 'nullable|string',
+            'weight'      => 'nullable|numeric|min:0',
+            'length'      => 'nullable|numeric|min:0',
+            'width'       => 'nullable|numeric|min:0',
+            'height'      => 'nullable|numeric|min:0',
+            'image_url'   => 'nullable|string|max:1000',
+        ]);
+
+        // Handle file upload — takes priority over URL
+        if ($request->hasFile('image_file') && $request->file('image_file')->isValid()) {
+            $path = $request->file('image_file')->store('products', 'public');
+            $data['image_url'] = \Illuminate\Support\Facades\Storage::url($path);
+        }
+
+        if (empty($data['sku'])) {
+            $dateStr = date('Ymd');
+            $prefix = 'SKU-' . $dateStr . '-';
+            
+            $lastProduct = MasterProduct::where('sku', 'like', $prefix . '%')
+                ->orderBy('sku', 'desc')
+                ->first();
+                
+            if ($lastProduct) {
+                $lastNumber = (int) substr($lastProduct->sku, strlen($prefix));
+                $newNumber = $lastNumber + 1;
+            } else {
+                $newNumber = 1;
+            }
+            
+            $skuCandidate = $prefix . str_pad($newNumber, 4, '0', STR_PAD_LEFT);
+            
+            while (MasterProduct::where('sku', $skuCandidate)->exists()) {
+                $newNumber++;
+                $skuCandidate = $prefix . str_pad($newNumber, 4, '0', STR_PAD_LEFT);
+            }
+            
+            $data['sku'] = $skuCandidate;
+        }
 
         $data['tenant_id'] = Auth::user()->tenant_id;
 
@@ -57,24 +142,52 @@ class MasterProductController extends Controller
     public function update(Request $request, MasterProduct $product)
     {
         abort_unless($product->tenant_id === Auth::user()->tenant_id, 403);
-        $data = $request->validate([
-            'sku'        => 'nullable|string|max:100|unique:master_products,sku,' . $product->id,
-            'name'       => 'required|string|max:255',
-            'price'      => 'required|numeric|min:0',
-            'cost_price' => 'nullable|numeric|min:0',
-            'stock'      => 'required|integer|min:0',
-            'min_stock'  => 'nullable|integer|min:0',
-            'unit'       => 'nullable|string|max:50',
-            'category_id'=> 'nullable|exists:categories,id',
-            'brand_id'   => 'nullable|exists:brands,id',
+
+        $request->validate([
+            'image_file' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
         ]);
+
+        $data = $request->validate([
+            'sku'         => 'nullable|string|max:100|unique:master_products,sku,' . $product->id,
+            'name'        => 'required|string|min:30|max:255',
+            'price'       => 'required|numeric|min:0',
+            'cost_price'  => 'nullable|numeric|min:0',
+            'stock'       => 'required|integer|min:0',
+            'min_stock'   => 'nullable|integer|min:0',
+            'unit'        => 'nullable|string|max:50',
+            'category_id' => 'nullable|exists:categories,id',
+            'brand_id'    => 'nullable|exists:brands,id',
+            'description' => 'nullable|string',
+            'weight'      => 'nullable|numeric|min:0',
+            'length'      => 'nullable|numeric|min:0',
+            'width'       => 'nullable|numeric|min:0',
+            'height'      => 'nullable|numeric|min:0',
+            'image_url'   => 'nullable|string|max:1000',
+        ]);
+
+        // Handle file upload — takes priority over URL
+        if ($request->hasFile('image_file') && $request->file('image_file')->isValid()) {
+            // Delete old uploaded file if it was locally stored
+            if ($product->image_url && str_starts_with($product->image_url, '/storage/products/')) {
+                $oldPath = 'products/' . basename($product->image_url);
+                \Illuminate\Support\Facades\Storage::disk('public')->delete($oldPath);
+            }
+            $path = $request->file('image_file')->store('products', 'public');
+            $data['image_url'] = \Illuminate\Support\Facades\Storage::url($path);
+        }
+
+        // Prevent direct stock updates if mapped to marketplace
+        if ($product->marketplaceProducts()->exists()) {
+            unset($data['stock']);
+        }
+
         $oldStock = $product->stock;
         $oldPrice = $product->price;
         $oldName = $product->name;
         
         $product->update($data);
         
-        if ($oldStock !== (int)$data['stock']) {
+        if (isset($data['stock']) && $oldStock !== (int)$data['stock']) {
             \App\Jobs\PushStockToMarketplaces::dispatch($product->id, (int)$data['stock']);
         }
 
@@ -96,5 +209,386 @@ class MasterProductController extends Controller
         abort_unless($product->tenant_id === Auth::user()->tenant_id, 403);
         $product->delete();
         return redirect()->route('products.index')->with('success', 'Produk berhasil dihapus.');
+    }
+
+    public function publish(MasterProduct $product)
+    {
+        abort_unless($product->tenant_id === Auth::user()->tenant_id, 403);
+
+        $stores = \App\Models\Store::with('channel')
+            ->where('tenant_id', Auth::user()->tenant_id)
+            ->where('status', 'connected')
+            ->get();
+
+        $mappedStoreIds = $product->marketplaceProducts->pluck('store_id')->toArray();
+
+        // Get store IDs that are currently being published (pending/processing)
+        $processingStoreIds = PublicationLog::where('master_product_id', $product->id)
+            ->where('tenant_id', Auth::user()->tenant_id)
+            ->whereIn('status', ['pending', 'processing'])
+            ->pluck('store_id')
+            ->toArray();
+
+        $fallbackImageUrl = $product->image_url;
+        if (empty($fallbackImageUrl)) {
+            $linkedWithImage = \App\Models\MarketplaceProduct::where('master_product_id', $product->id)
+                ->whereNotNull('image_url')
+                ->where('image_url', '!=', '')
+                ->first();
+            if ($linkedWithImage) {
+                $fallbackImageUrl = $linkedWithImage->image_url;
+            }
+        }
+
+        // Fetch pre-existing category mappings for this product's category
+        $categoryMappings = [];
+        if ($product->category_id) {
+            $categoryMappings = CategoryMapping::where('category_id', $product->category_id)
+                ->where('tenant_id', Auth::user()->tenant_id)
+                ->get()
+                ->keyBy('store_id')
+                ->toArray();
+        }
+
+        return view('products.publish', compact('product', 'stores', 'mappedStoreIds', 'processingStoreIds', 'fallbackImageUrl', 'categoryMappings'));
+    }
+
+    public function storePublish(Request $request, MasterProduct $product)
+    {
+        abort_unless($product->tenant_id === Auth::user()->tenant_id, 403);
+
+        $request->validate([
+            'stores' => 'required|array',
+            'stores.*' => 'exists:stores,id',
+            'categories' => 'required|array',
+            'category_names' => 'required|array',
+            'save_mapping' => 'nullable|array',
+        ]);
+
+        $selectedStoreIds = $request->input('stores');
+        $categories = $request->input('categories');
+        $categoryNames = $request->input('category_names');
+        $saveMapping = $request->input('save_mapping', []);
+
+        // Check if weight is filled
+        if (empty($product->weight) || $product->weight <= 0) {
+            return back()->withErrors(['error' => 'Berat produk harus lebih besar dari 0 kg untuk di-upload ke marketplace. Silakan edit produk terlebih dahulu.']);
+        }
+
+        $queuedCount = 0;
+        foreach ($selectedStoreIds as $storeId) {
+            $store = \App\Models\Store::find($storeId);
+            if (!$store || $store->tenant_id !== Auth::user()->tenant_id) {
+                continue;
+            }
+
+            // Check if already mapped
+            $exists = \App\Models\MarketplaceProduct::where('store_id', $store->id)
+                ->where('master_product_id', $product->id)
+                ->exists();
+            if ($exists) {
+                continue;
+            }
+
+            // Check if currently being published (pending or processing)
+            $isProcessing = PublicationLog::where('store_id', $store->id)
+                ->where('master_product_id', $product->id)
+                ->whereIn('status', ['pending', 'processing'])
+                ->exists();
+            if ($isProcessing) {
+                continue;
+            }
+
+            $catId = $categories[$storeId] ?? null;
+            $catName = $categoryNames[$storeId] ?? 'Unknown Category';
+            if (empty($catId)) {
+                continue;
+            }
+
+            // Save mapping if requested and product has category
+            if ($product->category_id && !empty($saveMapping[$storeId])) {
+                CategoryMapping::updateOrCreate([
+                    'tenant_id' => Auth::user()->tenant_id,
+                    'category_id' => $product->category_id,
+                    'store_id' => $storeId,
+                ], [
+                    'marketplace_category_id' => $catId,
+                    'marketplace_category_name' => $catName,
+                ]);
+            }
+
+            // Create or update background job log entry
+            $log = PublicationLog::updateOrCreate([
+                'tenant_id' => Auth::user()->tenant_id,
+                'master_product_id' => $product->id,
+                'store_id' => $storeId,
+            ], [
+                'status' => 'pending',
+                'category_id' => $catId,
+                'category_name' => $catName,
+                'error_message' => null,
+                'marketplace_product_id' => null,
+            ]);
+
+            // Dispatch job
+            PublishProductToMarketplace::dispatch($log->id);
+            $queuedCount++;
+        }
+
+        if ($queuedCount > 0) {
+            return redirect()->route('products.index')->with('success', "$queuedCount produk berhasil dikirim ke antrean publikasi latar belakang. Silakan pantau perkembangannya pada tab \"Riwayat Publikasi\".");
+        }
+
+        return back()->withErrors(['error' => 'Tidak ada toko baru yang dipilih untuk dipublikasikan.']);
+    }
+
+    public function retryPublish($logId)
+    {
+        $log = PublicationLog::findOrFail($logId);
+        abort_unless($log->tenant_id === Auth::user()->tenant_id, 403);
+
+        $log->update([
+            'status' => 'pending',
+            'error_message' => null
+        ]);
+
+        PublishProductToMarketplace::dispatch($log->id);
+
+        return back()->with('success', 'Percobaan ulang publikasi telah dikirim ke antrean.');
+    }
+
+    public function storeBrandMapping(Request $request)
+    {
+        $request->validate([
+            'brand_id' => 'required|exists:brands,id',
+            'store_id' => 'required|exists:stores,id',
+            'marketplace_brand_id' => 'required|string|max:100',
+            'marketplace_brand_name' => 'nullable|string|max:255',
+        ]);
+
+        $store = \App\Models\Store::findOrFail($request->store_id);
+        abort_unless($store->tenant_id === Auth::user()->tenant_id, 403);
+
+        BrandMapping::updateOrCreate([
+            'tenant_id' => Auth::user()->tenant_id,
+            'brand_id' => $request->brand_id,
+            'store_id' => $request->store_id,
+        ], [
+            'marketplace_brand_id' => $request->marketplace_brand_id,
+            'marketplace_brand_name' => $request->marketplace_brand_name ?: 'Custom Brand',
+        ]);
+
+        return back()->with('success', 'Pemetaan merk berhasil disimpan.');
+    }
+
+    public function destroyCategoryMapping($id)
+    {
+        $mapping = CategoryMapping::findOrFail($id);
+        abort_unless($mapping->tenant_id === Auth::user()->tenant_id, 403);
+
+        $mapping->delete();
+        return back()->with('success', 'Pemetaan kategori berhasil dihapus.');
+    }
+
+    public function destroyBrandMapping($id)
+    {
+        $mapping = BrandMapping::findOrFail($id);
+        abort_unless($mapping->tenant_id === Auth::user()->tenant_id, 403);
+
+        $mapping->delete();
+        return back()->with('success', 'Pemetaan merk berhasil dihapus.');
+    }
+
+    /**
+     * AJAX: Ambil daftar kategori Shopee dan kembalikan sebagai JSON.
+     * Akan mencoba semua toko Shopee aktif milik tenant hingga berhasil.
+     */
+    public function shopeeCategories(\Illuminate\Http\Request $request): \Illuminate\Http\JsonResponse
+    {
+        try {
+            $tenantId = \Illuminate\Support\Facades\Auth::user()->tenant_id;
+
+            $shopeeChannel = \App\Models\Channel::where('code', 'shopee')->first();
+            if (!$shopeeChannel) {
+                return response()->json(['success' => false, 'message' => 'Channel Shopee tidak ditemukan.'], 404);
+            }
+
+            // Ambil semua toko Shopee milik tenant — urutkan: token belum expired duluan
+            $stores = \App\Models\Store::where('tenant_id', $tenantId)
+                ->where('channel_id', $shopeeChannel->id)
+                ->whereNotNull('access_token')
+                ->orderByRaw('CASE WHEN token_expires_at IS NULL OR token_expires_at > NOW() THEN 0 ELSE 1 END')
+                ->get();
+
+            if ($stores->isEmpty()) {
+                return response()->json(['success' => false, 'message' => 'Tidak ada toko Shopee aktif. Silakan hubungkan toko Shopee terlebih dahulu.'], 404);
+            }
+
+            $shopee     = app(\App\Services\ShopeeService::class);
+            $lastError  = 'Semua toko Shopee gagal memuat kategori.';
+            $allCategories = null;
+            $usedStore  = null;
+
+            foreach ($stores as $store) {
+                $shopId      = (int) $store->marketplace_store_id;
+                $accessToken = $store->getAttributes()['access_token'];
+
+                // Coba refresh jika token sudah expired
+                if ($store->isTokenExpired() && !empty($store->getAttributes()['refresh_token'])) {
+                    try {
+                        $refreshed = $shopee->refreshAccessToken($store->getAttributes()['refresh_token'], $shopId);
+                        $store->update([
+                            'access_token'     => $refreshed['access_token'],
+                            'refresh_token'    => $refreshed['refresh_token'] ?? $store->getAttributes()['refresh_token'],
+                            'token_expires_at' => now()->addSeconds($refreshed['expire_in'] ?? 14400),
+                        ]);
+                        $accessToken = $refreshed['access_token'];
+                    } catch (\Throwable $refreshErr) {
+                        \Illuminate\Support\Facades\Log::warning("[shopeeCategories] Refresh token gagal untuk store {$store->id}: " . $refreshErr->getMessage());
+                        $lastError = 'Token expired dan gagal refresh: ' . $refreshErr->getMessage();
+                        continue; // Coba toko berikutnya
+                    }
+                }
+
+                // Hapus cache lama
+                \Illuminate\Support\Facades\Cache::forget("shopee_categories_{$shopId}_id");
+
+                try {
+                    $allCategories = $shopee->getCategoryTree($accessToken, $shopId, 'id');
+                    $usedStore     = $store;
+                    break; // Berhasil — keluar dari loop
+                } catch (\Throwable $apiErr) {
+                    \Illuminate\Support\Facades\Log::warning("[shopeeCategories] API error untuk store {$store->id}: " . $apiErr->getMessage());
+                    $lastError = $apiErr->getMessage();
+                    continue; // Coba toko berikutnya
+                }
+            }
+
+            if ($allCategories === null) {
+                return response()->json(['success' => false, 'message' => $lastError], 500);
+            }
+
+            // Bangun path lengkap untuk setiap leaf category
+            $leafCategories = array_filter($allCategories, fn($cat) => !($cat['has_children'] ?? false));
+
+            $categoryMap = [];
+            $parentMap   = [];
+            foreach ($allCategories as $cat) {
+                $id = $cat['category_id'];
+                $categoryMap[$id] = $cat['display_category_name'] ?? '';
+                $parentMap[$id]   = $cat['parent_category_id'] ?? 0;
+            }
+
+            $result = [];
+            foreach ($leafCategories as $cat) {
+                $path     = [];
+                $parentId = $cat['parent_category_id'] ?? 0;
+
+                $visited = [];
+                while ($parentId && !in_array($parentId, $visited) && isset($categoryMap[$parentId])) {
+                    $visited[]  = $parentId;
+                    array_unshift($path, $categoryMap[$parentId]);
+                    $parentId = $parentMap[$parentId] ?? 0;
+                }
+
+                $path[]   = $cat['display_category_name'] ?? '';
+                $result[] = [
+                    'id'   => $cat['category_id'],
+                    'name' => implode(' > ', $path),
+                ];
+            }
+
+            usort($result, fn($a, $b) => strcmp($a['name'], $b['name']));
+
+            return response()->json([
+                'success' => true,
+                'data'    => $result,
+                'total'   => count($result),
+            ])->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
+              ->header('Pragma', 'no-cache')
+              ->header('Expires', 'Sat, 26 Jul 1997 05:00:00 GMT');
+
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('shopeeCategories error: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
+    }
+
+    public function tiktokCategories()
+    {
+        try {
+            $store = \App\Models\Store::whereHas('channel', function ($q) {
+                $q->where('code', 'tiktok');
+            })->where('tenant_id', \Illuminate\Support\Facades\Auth::user()->tenant_id)
+              ->whereNotNull('access_token')
+              ->first();
+
+            if (!$store) {
+                return response()->json(['success' => false, 'message' => 'Toko TikTok tidak ditemukan.'], 404);
+            }
+
+            $tiktokService = app(\App\Services\TiktokService::class);
+            $rawCategories = $tiktokService->getCategories($store->access_token, $store->shop_cipher);
+            
+            $officialCategories = array_map(function($c) {
+                return [
+                    'category_id' => (int) $c['id'],
+                    'parent_category_id' => (int) $c['parent_id'],
+                    'display_category_name' => $c['local_name'],
+                    'has_children' => !$c['is_leaf'],
+                    'permission_statuses' => $c['permission_statuses'] ?? []
+                ];
+            }, $rawCategories);
+
+            $categoryMap = [];
+            $parentMap   = [];
+            foreach ($officialCategories as $cat) {
+                $id = $cat['category_id'];
+                $categoryMap[$id] = $cat['display_category_name'] ?? '';
+                $parentMap[$id]   = $cat['parent_category_id'] ?? 0;
+            }
+
+            $leafCategories = array_filter($officialCategories, function($cat) {
+                if ($cat['has_children'] ?? false) {
+                    return false;
+                }
+                return in_array('AVAILABLE', $cat['permission_statuses'] ?? []);
+            });
+
+            $result = [];
+            foreach ($leafCategories as $cat) {
+                $path     = [];
+                $parentId = $cat['parent_category_id'] ?? 0;
+
+                $visited = [];
+                while ($parentId && !in_array($parentId, $visited) && isset($categoryMap[$parentId])) {
+                    $visited[]  = $parentId;
+                    array_unshift($path, $categoryMap[$parentId]);
+                    $parentId = $parentMap[$parentId] ?? 0;
+                }
+
+                $leafName = $cat['display_category_name'] ?? '';
+                $path[]   = $leafName;
+                $fullPath = implode(' > ', $path);
+
+                $result[] = [
+                    'id'   => $cat['category_id'],
+                    'name' => $fullPath,
+                ];
+            }
+
+            usort($result, fn($a, $b) => strcmp($a['name'], $b['name']));
+
+            return response()->json([
+                'success' => true,
+                'data' => $result,
+                'total' => count($result)
+            ])->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
+              ->header('Pragma', 'no-cache')
+              ->header('Expires', 'Sat, 26 Jul 1997 05:00:00 GMT');
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('tiktokCategories error: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
     }
 }

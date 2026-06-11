@@ -314,16 +314,46 @@ class ShopeeService
         return $data['response'] ?? [];
     }
 
+    public function getEscrowDetail(string $accessToken, int $shopId, string $orderSn): array
+    {
+        $path = '/api/v2/payment/get_escrow_detail';
+        $timestamp = time();
+        $sign = $this->signShopRequest($path, $timestamp, $accessToken, $shopId);
+
+        $queryParams = [
+            'partner_id' => $this->partnerId,
+            'timestamp' => $timestamp,
+            'sign' => $sign,
+            'access_token' => $accessToken,
+            'shop_id' => $shopId,
+            'order_sn' => $orderSn,
+        ];
+
+        $response = Http::get($this->baseUrl . $path . '?' . http_build_query($queryParams));
+
+        if ($response->failed()) {
+            throw new \RuntimeException('Gagal ambil escrow detail pesanan Shopee: ' . $response->body());
+        }
+
+        $data = $response->json();
+
+        if (!empty($data['error']) && $data['error'] !== '') {
+            throw new \RuntimeException('Shopee API Error [' . $data['error'] . ']: ' . ($data['message'] ?? ''));
+        }
+
+        return $data['response'] ?? [];
+    }
+
     public function updateStock(string $accessToken, int $shopId, int $itemId, int $stock, ?string $variantId = null): array
     {
         $modelId = $variantId ? (int) $variantId : 0;
-        
+
         // Cek model untuk mendapatkan location_id
         $modelsData = $this->getModelList($accessToken, $shopId, $itemId);
         $models = $modelsData['model'] ?? [];
-        
+
         $locationId = 'IDZ'; // default fallback
-        
+
         if ($modelId > 0) {
             foreach ($models as $m) {
                 if ($m['model_id'] == $modelId) {
@@ -369,6 +399,45 @@ class ShopeeService
 
         if ($response->failed()) {
             throw new \RuntimeException('Gagal update stok Shopee: ' . $response->body());
+        }
+
+        $data = $response->json();
+
+        if (!empty($data['error']) && $data['error'] !== '') {
+            throw new \RuntimeException('Shopee API Error [' . $data['error'] . ']: ' . ($data['message'] ?? ''));
+        }
+
+        return $data['response'] ?? [];
+    }
+
+    public function updatePrice(string $accessToken, int $shopId, int $itemId, float $price, ?string $variantId = null): array
+    {
+        $path = '/api/v2/product/update_price';
+        $timestamp = time();
+        $sign = $this->signShopRequest($path, $timestamp, $accessToken, $shopId);
+
+        $priceList = [
+            [
+                'model_id' => $variantId ? (int) $variantId : 0,
+                'original_price' => $price
+            ]
+        ];
+
+        $queryParams = [
+            'partner_id' => $this->partnerId,
+            'timestamp' => $timestamp,
+            'sign' => $sign,
+            'access_token' => $accessToken,
+            'shop_id' => $shopId,
+        ];
+
+        $response = Http::post($this->baseUrl . $path . '?' . http_build_query($queryParams), [
+            'item_id' => $itemId,
+            'price_list' => $priceList
+        ]);
+
+        if ($response->failed()) {
+            throw new \RuntimeException('Gagal update harga Shopee: ' . $response->body());
         }
 
         $data = $response->json();
@@ -445,6 +514,332 @@ class ShopeeService
         return $data['response'] ?? [];
     }
 
+    public function getReturnList(string $accessToken, int $shopId, int $pageNo = 0, int $pageSize = 50, int $timeFrom = 0, int $timeTo = 0): array
+    {
+        $path = '/api/v2/returns/get_return_list';
+        $timestamp = time();
+        $sign = $this->signShopRequest($path, $timestamp, $accessToken, $shopId);
+
+        $params = [
+            'partner_id' => $this->partnerId,
+            'timestamp' => $timestamp,
+            'sign' => $sign,
+            'access_token' => $accessToken,
+            'shop_id' => $shopId,
+            'page_no' => $pageNo,
+            'page_size' => $pageSize,
+        ];
+
+        if ($timeFrom > 0 && $timeTo > 0) {
+            $params['create_time_from'] = $timeFrom;
+            $params['create_time_to'] = $timeTo;
+        }
+
+        $response = Http::get($this->baseUrl . $path, $params);
+
+        if ($response->failed()) {
+            throw new \RuntimeException('Gagal ambil daftar retur Shopee: ' . $response->body());
+        }
+
+        $data = $response->json();
+
+        if (!empty($data['error']) && $data['error'] !== '') {
+            throw new \RuntimeException('Shopee API Error [' . $data['error'] . ']: ' . ($data['message'] ?? ''));
+        }
+
+        return $data['response'] ?? [];
+    }
+
+    public function getReturnDetail(string $accessToken, int $shopId, string $returnSn): array
+    {
+        $path = '/api/v2/returns/get_return_detail';
+        $timestamp = time();
+        $sign = $this->signShopRequest($path, $timestamp, $accessToken, $shopId);
+
+        $response = Http::get($this->baseUrl . $path, [
+            'partner_id' => $this->partnerId,
+            'timestamp' => $timestamp,
+            'sign' => $sign,
+            'access_token' => $accessToken,
+            'shop_id' => $shopId,
+            'return_sn' => $returnSn,
+        ]);
+
+        if ($response->failed()) {
+            throw new \RuntimeException('Gagal ambil detail retur Shopee: ' . $response->body());
+        }
+
+        $data = $response->json();
+
+        if (!empty($data['error']) && $data['error'] !== '') {
+            throw new \RuntimeException('Shopee API Error [' . $data['error'] . ']: ' . ($data['message'] ?? ''));
+        }
+
+        return $data['response'] ?? [];
+    }
+
+    public function getChannelList(string $accessToken, int $shopId): array
+    {
+        $path = '/api/v2/logistics/get_channel_list';
+        $timestamp = time();
+        $sign = $this->signShopRequest($path, $timestamp, $accessToken, $shopId);
+
+        $queryParams = [
+            'partner_id' => $this->partnerId,
+            'timestamp' => $timestamp,
+            'sign' => $sign,
+            'access_token' => $accessToken,
+            'shop_id' => $shopId,
+        ];
+
+        $response = Http::get($this->baseUrl . $path, $queryParams);
+
+        if ($response->failed()) {
+            throw new \RuntimeException('Gagal mengambil daftar jasa kirim Shopee: ' . $response->body());
+        }
+
+        $data = $response->json();
+
+        if (!empty($data['error']) && $data['error'] !== '') {
+            throw new \RuntimeException('Shopee API Error [' . $data['error'] . ']: ' . ($data['message'] ?? ''));
+        }
+
+        return $data['response']['logistics_channel_list'] ?? [];
+    }
+
+    public function uploadImage(string $accessToken, int $shopId, string $imagePath): array
+    {
+        $path = '/api/v2/media_space/upload_image';
+        $timestamp = time();
+        $sign = $this->signShopRequest($path, $timestamp, $accessToken, $shopId);
+
+        $queryParams = [
+            'partner_id' => $this->partnerId,
+            'timestamp' => $timestamp,
+            'sign' => $sign,
+            'access_token' => $accessToken,
+            'shop_id' => $shopId,
+        ];
+
+        $response = Http::asMultipart()
+            ->attach('image', file_get_contents($imagePath), basename($imagePath))
+            ->post($this->baseUrl . $path . '?' . http_build_query($queryParams), [
+                'scene' => 'normal'
+            ]);
+
+        if ($response->failed()) {
+            throw new \RuntimeException('Gagal upload gambar ke Shopee: ' . $response->body());
+        }
+
+        $data = $response->json();
+
+        if (!empty($data['error']) && $data['error'] !== '') {
+            throw new \RuntimeException('Shopee API Error [' . $data['error'] . ']: ' . ($data['message'] ?? ''));
+        }
+
+        return $data['response'] ?? [];
+    }
+
+    public function addItem(string $accessToken, int $shopId, array $itemData): array
+    {
+        $path = '/api/v2/product/add_item';
+        $timestamp = time();
+        $sign = $this->signShopRequest($path, $timestamp, $accessToken, $shopId);
+
+        $queryParams = [
+            'partner_id' => $this->partnerId,
+            'timestamp' => $timestamp,
+            'sign' => $sign,
+            'access_token' => $accessToken,
+            'shop_id' => $shopId,
+        ];
+
+        $response = Http::asJson()->post($this->baseUrl . $path . '?' . http_build_query($queryParams), $itemData);
+
+        Log::info('[Shopee] addItem response', [
+            'status' => $response->status(),
+            'body' => $response->body(),
+        ]);
+
+        if ($response->failed()) {
+            throw new \RuntimeException('Gagal menambahkan produk ke Shopee: ' . $response->body());
+        }
+
+        $data = $response->json();
+
+        if (!empty($data['error']) && $data['error'] !== '') {
+            $msg = 'Shopee API Error [' . $data['error'] . ']: ' . ($data['message'] ?? '');
+            if (!empty($data['debug_message'])) {
+                $msg .= ' | DEBUG: ' . $data['debug_message'];
+            }
+            throw new \RuntimeException($msg);
+        }
+
+        return $data['response'] ?? [];
+    }
+
+    // =========================================================================
+    // Shopee Sellerchat API
+    // =========================================================================
+
+    /**
+     * Ambil daftar percakapan dari Shopee Sellerchat.
+     * GET /api/v2/sellerchat/get_conversation_list
+     */
+    public function getChatConversationList(string $accessToken, int $shopId, int $pageSize = 25, string $nextCursor = ''): array
+    {
+        $path = '/api/v2/sellerchat/get_conversation_list';
+        $timestamp = time();
+        $sign = $this->signShopRequest($path, $timestamp, $accessToken, $shopId);
+
+        $params = [
+            'partner_id'   => $this->partnerId,
+            'timestamp'    => $timestamp,
+            'sign'         => $sign,
+            'access_token' => $accessToken,
+            'shop_id'      => $shopId,
+            'page_size'    => $pageSize,
+            'filter'       => 'all',
+        ];
+
+        if ($nextCursor !== '') {
+            $params['next_cursor'] = $nextCursor;
+        }
+
+        $response = Http::timeout(30)->get($this->baseUrl . $path, $params);
+
+        if ($response->failed()) {
+            throw new \RuntimeException('Gagal ambil daftar chat Shopee: ' . $response->body());
+        }
+
+        $data = $response->json();
+
+        if (!empty($data['error']) && $data['error'] !== '' && $data['error'] !== 'OK') {
+            throw new \RuntimeException('Shopee Chat API Error [' . $data['error'] . ']: ' . ($data['message'] ?? ''));
+        }
+
+        return $data['response'] ?? [];
+    }
+
+    /**
+     * Ambil daftar pesan dalam satu percakapan.
+     * GET /api/v2/sellerchat/get_message
+     */
+    public function getChatMessages(string $accessToken, int $shopId, string $conversationId, int $pageSize = 25, string $nextCursor = ''): array
+    {
+        $path = '/api/v2/sellerchat/get_message';
+        $timestamp = time();
+        $sign = $this->signShopRequest($path, $timestamp, $accessToken, $shopId);
+
+        $params = [
+            'partner_id'      => $this->partnerId,
+            'timestamp'       => $timestamp,
+            'sign'            => $sign,
+            'access_token'    => $accessToken,
+            'shop_id'         => $shopId,
+            'conversation_id' => $conversationId,
+            'page_size'       => $pageSize,
+        ];
+
+        if ($nextCursor !== '') {
+            $params['next_cursor'] = $nextCursor;
+        }
+
+        $response = Http::timeout(30)->get($this->baseUrl . $path, $params);
+
+        if ($response->failed()) {
+            throw new \RuntimeException('Gagal ambil pesan chat Shopee: ' . $response->body());
+        }
+
+        $data = $response->json();
+
+        if (!empty($data['error']) && $data['error'] !== '' && $data['error'] !== 'OK') {
+            throw new \RuntimeException('Shopee Chat API Error [' . $data['error'] . ']: ' . ($data['message'] ?? ''));
+        }
+
+        return $data['response'] ?? [];
+    }
+
+    /**
+     * Kirim pesan balasan ke buyer di Shopee.
+     * POST /api/v2/sellerchat/send_message
+     */
+    public function sendChatMessage(string $accessToken, int $shopId, string $conversationId, string $messageText): array
+    {
+        $path = '/api/v2/sellerchat/send_message';
+        $timestamp = time();
+        $sign = $this->signShopRequest($path, $timestamp, $accessToken, $shopId);
+
+        $queryParams = [
+            'partner_id'   => $this->partnerId,
+            'timestamp'    => $timestamp,
+            'sign'         => $sign,
+            'access_token' => $accessToken,
+            'shop_id'      => $shopId,
+        ];
+
+        $body = [
+            'toId'    => $conversationId,
+            'content' => [
+                'text' => $messageText,
+            ],
+            'message_type' => 'text',
+        ];
+
+        $response = Http::asJson()
+            ->timeout(30)
+            ->post($this->baseUrl . $path . '?' . http_build_query($queryParams), $body);
+
+        Log::info('[Shopee] sendChatMessage response', [
+            'status'          => $response->status(),
+            'body'            => $response->body(),
+            'conversation_id' => $conversationId,
+        ]);
+
+        if ($response->failed()) {
+            throw new \RuntimeException('Gagal mengirim pesan Shopee: ' . $response->body());
+        }
+
+        $data = $response->json();
+
+        if (!empty($data['error']) && $data['error'] !== '' && $data['error'] !== 'OK') {
+            throw new \RuntimeException('Shopee Chat Send Error [' . $data['error'] . ']: ' . ($data['message'] ?? ''));
+        }
+
+        return $data['response'] ?? [];
+    }
+
+    /**
+     * Tandai percakapan sudah dibaca.
+     * POST /api/v2/sellerchat/read_conversation
+     */
+    public function readChatConversation(string $accessToken, int $shopId, string $conversationId): array
+    {
+        $path = '/api/v2/sellerchat/read_conversation';
+        $timestamp = time();
+        $sign = $this->signShopRequest($path, $timestamp, $accessToken, $shopId);
+
+        $queryParams = [
+            'partner_id'   => $this->partnerId,
+            'timestamp'    => $timestamp,
+            'sign'         => $sign,
+            'access_token' => $accessToken,
+            'shop_id'      => $shopId,
+        ];
+
+        $body = ['conversation_id' => $conversationId];
+
+        $response = Http::asJson()
+            ->timeout(30)
+            ->post($this->baseUrl . $path . '?' . http_build_query($queryParams), $body);
+
+        if ($response->failed()) {
+            Log::warning('[Shopee] readChatConversation failed', ['body' => $response->body()]);
+        }
+
+        return $response->json() ?? [];
+    }
+
     public function debugSign(string $path): array
     {
         $timestamp = time();
@@ -472,5 +867,79 @@ class ShopeeService
         return hash_hmac('sha256', $baseString, $this->partnerKey);
     }
 
+    /**
+     * Ambil daftar kategori produk Shopee.
+     * Endpoint get_category memerlukan shop-level signature (access_token + shop_id).
+     *
+     * @param  string  $accessToken  Access token toko
+     * @param  int     $shopId       Shop ID marketplace_store_id dari model Store
+     * @param  string  $language     Bahasa respons: 'id' untuk Bahasa Indonesia
+     * @return array   Array kategori flat dari Shopee
+     */
+    public function getCategoryTree(string $accessToken, int $shopId, string $language = 'id'): array
+    {
+        // Cache kategori selama 1 jam untuk menghindari repeated API call
+        $cacheKey = "shopee_categories_{$shopId}_{$language}";
+
+        return \Illuminate\Support\Facades\Cache::remember($cacheKey, now()->addHour(), function () use ($accessToken, $shopId, $language) {
+            $path = '/api/v2/product/get_category';
+            $timestamp = time();
+            $sign = $this->signShopRequest($path, $timestamp, $accessToken, $shopId);
+
+            $queryParams = [
+                'partner_id' => $this->partnerId,
+                'timestamp' => $timestamp,
+                'sign' => $sign,
+                'access_token' => $accessToken,
+                'shop_id' => $shopId,
+                'language' => $language,
+            ];
+
+            $response = Http::timeout(30)->get($this->baseUrl . $path, $queryParams);
+
+            if ($response->failed()) {
+                throw new \RuntimeException('Gagal mengambil kategori Shopee: ' . $response->body());
+            }
+
+            $data = $response->json();
+
+            if (($data['error'] ?? '') !== '' && ($data['error'] ?? 'OK') !== 'OK') {
+                throw new \RuntimeException('Shopee error mengambil kategori: ' . ($data['message'] ?? 'Unknown'));
+            }
+
+            return $data['response']['category_list'] ?? [];
+        });
+    }
+
+    public function getCategoryAttributes(string $accessToken, int $shopId, int $categoryId): array
+    {
+        $path = '/api/v2/product/get_attribute_tree';
+        $timestamp = time();
+        $sign = $this->signShopRequest($path, $timestamp, $accessToken, $shopId);
+
+        $queryParams = [
+            'partner_id' => $this->partnerId,
+            'timestamp' => $timestamp,
+            'sign' => $sign,
+            'access_token' => $accessToken,
+            'shop_id' => $shopId,
+            'language' => 'id',
+            'category_id_list' => $categoryId,
+        ];
+
+        $response = Http::timeout(30)->get($this->baseUrl . $path, $queryParams);
+
+        if ($response->failed()) {
+            throw new \RuntimeException('Gagal mengambil atribut kategori Shopee: ' . $response->body());
+        }
+
+        $data = $response->json();
+
+        if (($data['error'] ?? '') !== '' && ($data['error'] ?? 'OK') !== 'OK') {
+            throw new \RuntimeException('Shopee error mengambil atribut kategori: ' . ($data['message'] ?? 'Unknown'));
+        }
+
+        return $data['response']['list'][0]['attribute_tree'] ?? [];
+    }
 
 }

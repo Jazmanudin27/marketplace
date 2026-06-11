@@ -1,0 +1,58 @@
+@extends('layouts.app')
+@section('title', 'Laporan Rekap Persediaan')
+@section('page-title', 'Laporan Rekap Persediaan')
+
+@section('content')
+    <div class="row justify-content-start">
+        <div class="col-md-6">
+            <div class="dashboard-card">
+                <div class="card-header-line">
+                    <h3><i class="fas fa-th-list"></i> Filter Rekap Persediaan</h3>
+                </div>
+
+                <form action="{{ route('reports.summary.print') }}" method="GET" target="_blank">
+                    <div class="mb-3">
+                        <label class="form-label text-muted" style="font-size:0.85rem;">Kategori</label>
+                        <select name="category_id" class="form-select">
+                            <option value="">Semua Kategori</option>
+                            @foreach ($categories as $category)
+                                <option value="{{ $category->id }}">{{ $category->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label text-muted" style="font-size:0.85rem;">Merk</label>
+                        <select name="brand_id" class="form-select">
+                            <option value="">Semua Merk</option>
+                            @foreach ($brands as $brand)
+                                <option value="{{ $brand->id }}">{{ $brand->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-4">
+                            <label class="form-label text-muted" style="font-size:0.85rem;">Dari Tanggal</label>
+                            <input type="date" name="start_date" class="form-input"
+                                style="background-color: var(--bg-card); color: var(--text-primary); border-color: var(--border);">
+                        </div>
+
+                        <div class="col-md-6 mb-4">
+                            <label class="form-label text-muted" style="font-size:0.85rem;">Sampai Tanggal</label>
+                            <input type="date" name="end_date" class="form-input"
+                                style="background-color: var(--bg-card); color: var(--text-primary); border-color: var(--border);">
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-end">
+                        <button type="submit" class="btn-primary-sm"
+                            style="background:var(--primary); font-size:1rem; padding: 0.5rem 1.5rem;">
+                            <i class="fas fa-print"></i> Cetak Rekap Persediaan
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+@endsection

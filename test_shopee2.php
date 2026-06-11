@@ -1,34 +1,42 @@
 <?php
 require 'vendor/autoload.php';
+$app = require_once __DIR__.'/bootstrap/app.php';
+$app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
 
-$partnerId = 1235283;
-$partnerKey = '63674f556f474374636c63496f4e7176706a577468616e61494946685741';
-$baseUrl = 'https://partner.test-stable.shopeemobile.com';
-$path = '/api/v2/auth/token/get';
-$timestamp = time();
-
-$base = $partnerId . $path . $timestamp;
-$sign = hash_hmac('sha256', $base, $partnerKey);
-
-$queryString = http_build_query([
-    'partner_id' => $partnerId,
-    'timestamp' => $timestamp,
-    'sign' => $sign,
-]);
-$url = $baseUrl . $path . '?' . $queryString;
-
-$client = new GuzzleHttp\Client();
+$shopeeService = app(\App\Services\ShopeeService::class);
+// Get token from DB
+$store = \App\Models\Store::first();
 try {
-    $response = $client->post($url, [
-        'json' => [
-            'code' => 'dummy_code',
-            'shop_id' => 123,
-            'partner_id' => $partnerId,
-        ]
+    $path = '/api/v2/product/get_attributes';
+    $timestamp = time();
+    $sign = $shopeeService->signShopRequest($path, $timestamp, $store->access_token, $store->marketplace_store_id);
+
+    $response = \Illuminate\Support\Facades\Http::get(config('shopee.base_url') . $path, [
+        'partner_id' => config('shopee.partner_id'),
+        'timestamp' => $timestamp,
+        'sign' => $sign,
+        'access_token' => $store->access_token,
+        'shop_id' => $store->marketplace_store_id,
+        'language' => 'id',
+        'category_id' => 100013 // Sample cat id
     ]);
-    echo $response->getBody();
-} catch (\GuzzleHttp\Exception\ClientException $e) {
-    echo $e->getResponse()->getBody();
-} catch (\Exception $e) {
-    echo $e->getMessage();
-}
+    echo "get_attributes: " . $response->body() . "\n";
+} catch (\Exception $e) {}
+
+try {
+    $path = '/api/v2/product/get_attribute';
+    // wait, is it get_attributes or get_attribute ? let's try get_attribute
+    $timestamp = time();
+    $sign = $shopeeService->signShopRequest($path, $timestamp, $store->access_token, $store->marketplace_store_id);
+
+    $response = \Illuminate\Support\Facades\Http::get(config('shopee.base_url') . $path, [
+        'partner_id' => config('shopee.partner_id'),
+        'timestamp' => $timestamp,
+        'sign' => $sign,
+        'access_token' => $store->access_token,
+        'shop_id' => $store->marketplace_store_id,
+        'language' => 'id',
+        'category_id' => 100013 // Sample cat id
+    ]);
+    echo "get_attribute: " . $response->body() . "\n";
+} catch (\Exception $e) {}

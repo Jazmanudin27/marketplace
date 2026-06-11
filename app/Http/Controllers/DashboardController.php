@@ -53,9 +53,34 @@ class DashboardController extends Controller
                        ->withCount('orders')
                        ->get();
 
+        // Data Grafik 30 Hari Terakhir
+        $thirtyDaysAgo = \Carbon\Carbon::now()->subDays(29)->startOfDay();
+        $dailyData = Order::where('tenant_id', $tenant->id)
+            ->where('order_date', '>=', $thirtyDaysAgo)
+            ->where('order_status', '!=', Order::STATUS_CANCELLED)
+            ->selectRaw('DATE(order_date) as date, SUM(total_amount) as gross_total, SUM(net_amount) as net_total')
+            ->groupBy('date')
+            ->orderBy('date', 'asc')
+            ->get()
+            ->keyBy('date')
+            ->toArray();
+
+        // Isi tanggal yang kosong
+        $chartDates = [];
+        $chartGross = [];
+        $chartNet = [];
+        for ($i = 0; $i < 30; $i++) {
+            $dateObj = \Carbon\Carbon::now()->subDays(29 - $i);
+            $dateString = $dateObj->format('Y-m-d');
+            $chartDates[] = $dateObj->format('d M');
+            $chartGross[] = $dailyData[$dateString]['gross_total'] ?? 0;
+            $chartNet[] = $dailyData[$dateString]['net_total'] ?? 0;
+        }
+
         return view('dashboard.index', compact(
             'totalStores', 'totalProducts', 'todayOrders', 'todayRevenue',
-            'monthRevenue', 'pendingOrders', 'recentOrders', 'lowStockProducts', 'stores'
+            'monthRevenue', 'pendingOrders', 'recentOrders', 'lowStockProducts', 'stores',
+            'chartDates', 'chartGross', 'chartNet'
         ));
     }
 }

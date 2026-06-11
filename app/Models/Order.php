@@ -11,6 +11,7 @@ class Order extends Model
     protected $fillable = [
         'tenant_id',
         'store_id',
+        'customer_id',
         'order_marketplace_id',
         'invoice_number',
         'order_status',
@@ -29,6 +30,7 @@ class Order extends Model
 
     protected $casts = [
         'order_date'       => 'datetime',
+        'financial_breakdown' => 'array',
         'total_amount'     => 'decimal:2',
         'shipping_fee'     => 'decimal:2',
         'discount_amount'  => 'decimal:2',
@@ -52,6 +54,11 @@ class Order extends Model
     public function store(): BelongsTo
     {
         return $this->belongsTo(Store::class);
+    }
+
+    public function customer(): BelongsTo
+    {
+        return $this->belongsTo(Customer::class);
     }
 
     public function items(): HasMany

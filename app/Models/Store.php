@@ -13,6 +13,7 @@ class Store extends Model
         'channel_id',
         'store_name',
         'marketplace_store_id',
+        'shop_cipher',
         'access_token',
         'refresh_token',
         'token_expires_at',

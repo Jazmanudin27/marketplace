@@ -45,7 +45,7 @@ class PullOrdersFromShopee implements ShouldQueue
             while ($hasMore) {
                 $response = $shopeeService->getOrderList(
                     $this->store->access_token,
-                    $this->store->marketplace_shop_id,
+                    (int) $this->store->marketplace_store_id,
                     $this->timeFrom,
                     $this->timeTo,
                     'create_time',
@@ -74,7 +74,7 @@ class PullOrdersFromShopee implements ShouldQueue
             foreach ($chunks as $chunk) {
                 $detailsResponse = $shopeeService->getOrderDetail(
                     $this->store->access_token,
-                    $this->store->marketplace_shop_id,
+                    (int) $this->store->marketplace_store_id,
                     $chunk
                 );
 
@@ -97,6 +97,43 @@ class PullOrdersFromShopee implements ShouldQueue
 
     private function saveOrder(array $shopeeOrder)
     {
+        $username = $shopeeOrder['buyer_username'] ?? 'Buyer';
+        $customer = \App\Models\Customer::firstOrCreate(
+            [
+                'tenant_id' => $this->store->tenant_id,
+                'marketplace_username' => $username,
+            ],
+            [
+                'name' => $username,
+                'phone' => $shopeeOrder['recipient_address']['phone'] ?? null,
+                'address' => $shopeeOrder['recipient_address']['full_address'] ?? null,
+            ]
+        );
+
+        // Fetch Escrow Detail if order is COMPLETED
+        $financialBreakdown = null;
+        if ($shopeeOrder['order_status'] === 'COMPLETED') {
+            try {
+                $shopeeService = app(\App\Services\ShopeeService::class);
+                $escrowResponse = $shopeeService->getEscrowDetail(
+                    $this->store->access_token,
+                    (int) $this->store->marketplace_store_id,
+                    $shopeeOrder['order_sn']
+                );
+                
+                if (!empty($escrowResponse['order_income'])) {
+                    $financialBreakdown = $escrowResponse['order_income'];
+                    // We can refine net_amount, shipping_fee, marketplace_fee based on escrow
+                    $shopeeOrder['escrow_amount'] = $financialBreakdown['escrow_amount'] ?? $shopeeOrder['escrow_amount'] ?? 0;
+                    $shopeeOrder['seller_discount_amount'] = $financialBreakdown['seller_discount'] ?? $shopeeOrder['seller_discount_amount'] ?? 0;
+                    $actualShipping = $financialBreakdown['actual_shipping_fee'] ?? 0;
+                    $shopeeOrder['actual_shipping_fee'] = $actualShipping;
+                }
+            } catch (\Exception $e) {
+                Log::warning('[Shopee] Failed to fetch escrow detail for ' . $shopeeOrder['order_sn'] . ': ' . $e->getMessage());
+            }
+        }
+
         $order = Order::updateOrCreate(
             [
                 'tenant_id' => $this->store->tenant_id,
@@ -104,33 +141,45 @@ class PullOrdersFromShopee implements ShouldQueue
                 'order_marketplace_id' => $shopeeOrder['order_sn'],
             ],
             [
+                'customer_id' => $customer->id,
                 'order_status' => $shopeeOrder['order_status'],
                 'buyer_name' => $shopeeOrder['buyer_username'] ?? 'Buyer', // fallback if username not provided
                 'buyer_phone' => $shopeeOrder['recipient_address']['phone'] ?? null,
                 'shipping_address' => $shopeeOrder['recipient_address']['full_address'] ?? null,
                 'total_amount' => $shopeeOrder['total_amount'] ?? 0,
                 'shipping_fee' => $shopeeOrder['actual_shipping_fee'] ?? $shopeeOrder['estimated_shipping_fee'] ?? 0,
+                'discount_amount' => $shopeeOrder['seller_discount_amount'] ?? 0,
+                'net_amount' => $shopeeOrder['escrow_amount'] ?? 0,
+                'marketplace_fee' => ($shopeeOrder['total_amount'] ?? 0) - ($shopeeOrder['escrow_amount'] ?? 0) - ($shopeeOrder['actual_shipping_fee'] ?? $shopeeOrder['estimated_shipping_fee'] ?? 0), // Rough estimation or exact
                 'courier' => $shopeeOrder['shipping_carrier'] ?? null,
-                'tracking_number' => current($shopeeOrder['package_list'] ?? [])['tracking_number'] ?? null,
+                'tracking_number' => current($shopeeOrder['package_list'] ?? [])['tracking_number'] ?? current($shopeeOrder['package_list'] ?? [])['package_number'] ?? null,
                 'order_date' => date('Y-m-d H:i:s', $shopeeOrder['create_time'] ?? time()),
+                'financial_breakdown' => $financialBreakdown,
             ]
         );
 
         // Save Items
         if (!empty($shopeeOrder['item_list'])) {
             foreach ($shopeeOrder['item_list'] as $item) {
+                $marketplaceProduct = \App\Models\MarketplaceProduct::where('store_id', $this->store->id)
+                    ->where('marketplace_product_id', (string) $item['item_id'])
+                    ->first();
+
+                $price = $item['model_discounted_price'] ?? $item['model_original_price'] ?? 0;
+                $qty = $item['model_quantity_purchased'] ?? 1;
+
                 OrderItem::updateOrCreate(
                     [
                         'order_id' => $order->id,
-                        'marketplace_item_id' => $item['item_id'],
-                        'marketplace_model_id' => $item['model_id'] ?? 0,
+                        'sku' => $item['model_sku'] ?: ($item['item_sku'] ?? null),
                     ],
                     [
-                        'product_name' => $item['item_name'],
-                        'variation_name' => $item['model_name'] ?? null,
-                        'quantity' => $item['model_quantity_purchased'] ?? 1,
-                        'price' => $item['model_discounted_price'] > 0 ? $item['model_discounted_price'] : $item['model_original_price'],
-                        'subtotal' => ($item['model_discounted_price'] > 0 ? $item['model_discounted_price'] : $item['model_original_price']) * ($item['model_quantity_purchased'] ?? 1),
+                        'marketplace_product_id' => $marketplaceProduct ? $marketplaceProduct->id : null,
+                        'master_product_id' => $marketplaceProduct ? $marketplaceProduct->master_product_id : null,
+                        'product_name' => $item['item_name'] . (!empty($item['model_name']) ? ' - ' . $item['model_name'] : ''),
+                        'price' => $price,
+                        'quantity' => $qty,
+                        'total_price' => $price * $qty,
                     ]
                 );
             }

@@ -17,15 +17,15 @@ class PushPriceToMarketplaces implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     protected $masterProductId;
-    protected $price;
+    protected $newPrice;
 
     /**
      * Create a new job instance.
      */
-    public function __construct(int $masterProductId, float $price)
+    public function __construct(int $masterProductId, float $newPrice)
     {
         $this->masterProductId = $masterProductId;
-        $this->price = $price;
+        $this->newPrice = $newPrice;
     }
 
     /**
@@ -34,48 +34,48 @@ class PushPriceToMarketplaces implements ShouldQueue
     public function handle(ShopeeService $shopeeService): void
     {
         $masterProduct = MasterProduct::find($this->masterProductId);
-        if (!$masterProduct) {
-            return;
-        }
+        if (!$masterProduct) return;
 
-        // Get all marketplace products mapped to this master product
-        $marketplaceProducts = MarketplaceProduct::where('master_product_id', $this->masterProductId)
-            ->where('sync_stock', true)
-            ->with('store.channel')
+        // Cari semua marketplace product yang sinkronisasi harga aktif
+        $marketplaceProducts = MarketplaceProduct::with('store.channel')
+            ->where('master_product_id', $this->masterProductId)
             ->get();
 
-        foreach ($marketplaceProducts as $mpProduct) {
+        foreach ($marketplaceProducts as $mp) {
             try {
-                $store = $mpProduct->store;
-
-                if (!$store || $store->status !== 'connected') {
+                if ($mp->store->status !== 'connected' || empty($mp->store->access_token)) {
                     continue;
                 }
 
-                if ($store->channel->code === 'shopee') {
+                if ($mp->store->channel->code === 'shopee') {
                     $shopeeService->updatePrice(
-                        $store->access_token,
-                        (int) $store->marketplace_store_id,
-                        (int) $mpProduct->marketplace_product_id,
-                        $this->price,
-                        $mpProduct->marketplace_variant_id
+                        $mp->store->access_token,
+                        (int) $mp->store->marketplace_store_id,
+                        (int) $mp->marketplace_product_id,
+                        $this->newPrice,
+                        $mp->marketplace_variant_id
                     );
-
-                    // Update local marketplace_products table price
-                    $mpProduct->update([
-                        'price' => $this->price,
-                        'last_synced_at' => now(),
-                    ]);
-                    
-                    Log::info("Berhasil push harga ke Shopee untuk item {$mpProduct->marketplace_product_id}");
+                    Log::info("[Shopee] Berhasil update harga untuk MP Product ID: {$mp->id} menjadi {$this->newPrice}");
+                } elseif ($mp->store->channel->code === 'tiktok') {
+                    $tiktokService = app(\App\Services\TiktokService::class);
+                    $tiktokService->updatePrice(
+                        $mp->store->access_token,
+                        $mp->store->shop_cipher,
+                        $mp->marketplace_product_id,
+                        $mp->marketplace_variant_id,
+                        $this->newPrice
+                    );
+                    Log::info("[TikTok] Berhasil update harga untuk MP Product ID: {$mp->id} menjadi {$this->newPrice}");
                 }
-                
-                // Tambahkan kondisi untuk Tokopedia/Lazada di sini nanti...
-                
-            } catch (\Exception $e) {
-                Log::error("Gagal push harga untuk marketplace product ID {$mpProduct->id}", [
-                    'error' => $e->getMessage()
+
+                // Update local price in marketplace_products table
+                $mp->update([
+                    'price' => $this->newPrice,
+                    'last_synced_at' => now()
                 ]);
+
+            } catch (\Exception $e) {
+                Log::error("[Marketplace] Gagal update harga untuk MP Product ID: {$mp->id}. Error: " . $e->getMessage());
             }
         }
     }
