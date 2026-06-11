@@ -238,4 +238,111 @@ class ReportController extends Controller
 
         return view('reports.print_summary', compact('reportData', 'startDate', 'endDate'));
     }
+
+    public function inventoryAnalytics(Request $request)
+    {
+        $tenantId = Auth::user()->tenant_id;
+
+        // Filter parameters
+        $deadstockDays  = (int) $request->get('deadstock_days', 90);
+        $targetCoverage = (int) $request->get('target_coverage', 30);
+
+        // Fetch all tenant products
+        $products = MasterProduct::where('tenant_id', $tenantId)->get();
+
+        $thirtyDaysAgo = now()->subDays(30);
+
+        // 1. Fetch total sales in last 30 days for each product (excluding cancelled orders)
+        $salesLast30Days = \App\Models\OrderItem::whereHas('order', function($q) use ($tenantId, $thirtyDaysAgo) {
+                $q->where('tenant_id', $tenantId)
+                  ->whereNotIn('order_status', [\App\Models\Order::STATUS_CANCELLED])
+                  ->where('order_date', '>=', $thirtyDaysAgo);
+            })
+            ->select('master_product_id', \DB::raw('SUM(quantity) as total_qty'))
+            ->groupBy('master_product_id')
+            ->pluck('total_qty', 'master_product_id')
+            ->toArray();
+
+        // 2. Fetch latest sale date for each product (excluding cancelled orders)
+        $lastSales = \App\Models\OrderItem::whereHas('order', function($q) use ($tenantId) {
+                $q->where('tenant_id', $tenantId)
+                  ->whereNotIn('order_status', [\App\Models\Order::STATUS_CANCELLED]);
+            })
+            ->join('orders', 'order_items.order_id', '=', 'orders.id')
+            ->select('order_items.master_product_id', \DB::raw('MAX(orders.order_date) as last_sale_date'))
+            ->groupBy('order_items.master_product_id')
+            ->pluck('last_sale_date', 'order_items.master_product_id')
+            ->toArray();
+
+        $processedProducts = [];
+        $totalDeadstockItems = 0;
+        $totalDeadstockValue = 0.0;
+        $totalReorderAlerts = 0;
+
+        foreach ($products as $product) {
+            $sold30 = (int) ($salesLast30Days[$product->id] ?? 0);
+            $runRate = $sold30 / 30.0;
+
+            // Last sale date fallback to product creation date
+            $lastSaleDateStr = $lastSales[$product->id] ?? null;
+            $lastSaleDate = $lastSaleDateStr ? \Carbon\Carbon::parse($lastSaleDateStr) : $product->created_at;
+            $daysSinceLastSale = (int) abs(now()->diffInDays($lastSaleDate));
+
+            $daysOfCover = $runRate > 0 ? ($product->stock / $runRate) : PHP_INT_MAX;
+            $recommendedQty = max(0, (int) ceil(($runRate * $targetCoverage) - $product->stock));
+
+            $isDeadstock = $product->stock > 0 && $daysSinceLastSale >= $deadstockDays;
+
+            if ($isDeadstock) {
+                $totalDeadstockItems++;
+                $totalDeadstockValue += ($product->stock * (float)($product->cost_price ?: 0.0));
+            }
+
+            $isLowStock = $product->stock <= $product->min_stock;
+            $isRunOutSoon = $runRate > 0 && $daysOfCover <= 7;
+            $isOutOfStockWithDemand = $product->stock == 0 && $sold30 > 0;
+
+            if ($isLowStock || $isRunOutSoon || $isOutOfStockWithDemand) {
+                $totalReorderAlerts++;
+            }
+
+            $processedProducts[] = [
+                'id'                  => $product->id,
+                'sku'                 => $product->sku,
+                'name'                => $product->name,
+                'stock'               => $product->stock,
+                'min_stock'           => $product->min_stock,
+                'cost_price'          => (float)($product->cost_price ?: 0.0),
+                'price'               => (float)($product->price ?: 0.0),
+                'sold_30'             => $sold30,
+                'run_rate'            => $runRate,
+                'last_sale_date'      => $lastSaleDate,
+                'days_since_last_sale'=> $daysSinceLastSale,
+                'days_of_cover'       => $daysOfCover,
+                'recommended_qty'     => $recommendedQty,
+                'is_deadstock'        => $isDeadstock,
+            ];
+        }
+
+        // Collection 1: Deadstock Products (stock > 0 AND days since last sale >= filter)
+        $deadstockProducts = collect($processedProducts)
+            ->filter(fn($p) => $p['is_deadstock'])
+            ->sortByDesc('days_since_last_sale')
+            ->values();
+
+        // Collection 2: Forecast & Restock (sort by days of cover ascending, so items running out first show up first)
+        $forecastProducts = collect($processedProducts)
+            ->sortBy('days_of_cover')
+            ->values();
+
+        return view('reports.analytics', compact(
+            'deadstockProducts',
+            'forecastProducts',
+            'deadstockDays',
+            'targetCoverage',
+            'totalDeadstockItems',
+            'totalDeadstockValue',
+            'totalReorderAlerts'
+        ));
+    }
 }

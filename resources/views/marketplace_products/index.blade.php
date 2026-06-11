@@ -57,13 +57,27 @@
                     </td>
                     <td>
                         <div style="font-size: 1.1rem; font-weight: 600;">{{ $product->stock }}</div>
+                        @if($product->master_product_id && $product->sync_stock && $product->safety_stock > 0)
+                            <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">
+                                (Master: {{ $product->masterProduct->stock }} - Safety: {{ $product->safety_stock }})
+                            </div>
+                        @endif
                     </td>
                     <td>
                         @if($product->master_product_id)
-                            <div style="color: #2E7D32; font-size: 0.85rem;">
+                            <div style="color: var(--success); font-size: 0.85rem;">
                                 <i class="fas fa-link"></i> Tertaut ke:<br>
-                                <strong style="color: #333;">{{ $product->masterProduct->name }}</strong>
+                                <strong style="color: var(--text-primary);">{{ $product->masterProduct->name }}</strong>
                             </div>
+                            @if($product->sync_stock)
+                                <div style="margin-top: 0.3rem; color: var(--primary); font-size: 0.8rem; font-weight: 500;">
+                                    <i class="fas fa-sync-alt"></i> Sync Aktif (Safety: {{ $product->safety_stock }})
+                                </div>
+                            @else
+                                <div style="margin-top: 0.3rem; color: var(--text-muted); font-size: 0.8rem;">
+                                    <i class="fas fa-sync-alt-slash"></i> Sync Mati
+                                </div>
+                            @endif
                         @else
                             <div style="color: #F57C00; font-size: 0.85rem;">
                                 <i class="fas fa-unlink"></i> Belum ditautkan
@@ -86,6 +100,14 @@
                                     <i class="fas fa-link"></i> Tautkan...
                                 </button>
                                 
+                                <!-- Salin ke Toko Lain (Auto-promote + publish) -->
+                                <form action="{{ route('marketplace_products.clone_and_publish', $product->id) }}" method="POST">
+                                    @csrf
+                                    <button type="submit" class="btn-primary-sm" style="width: 100%; text-align: center; background: #4f46e5; border: none; color: white; padding: 6px; border-radius: 4px; cursor: pointer;">
+                                        <i class="fas fa-copy"></i> Salin ke Toko Lain
+                                    </button>
+                                </form>
+                                
                                 <form id="link-form-{{ $product->id }}" action="{{ route('marketplace_products.link', $product->id) }}" method="POST" style="display: none; background: #f9f9f9; padding: 10px; border: 1px solid #ddd; border-radius: 4px; margin-top: 5px;">
                                     @csrf
                                     <select name="master_product_id" style="width: 100%; padding: 6px; margin-bottom: 8px; border: 1px solid #ccc; border-radius: 4px;" required>
@@ -101,9 +123,64 @@
                                 </form>
                             </div>
                         @else
-                            <button disabled style="background: #e0e0e0; border: none; color: #888; padding: 6px 12px; border-radius: 4px; cursor: not-allowed; width: 100%;">
-                                <i class="fas fa-check"></i> Selesai
-                            </button>
+                            <div style="display: flex; gap: 0.5rem; flex-direction: column;">
+                                <button type="button" class="btn-primary-sm" style="width: 100%; text-align: center; background: rgba(108, 99, 255, 0.15); border: 1px solid var(--primary); color: var(--text-primary); padding: 6px; border-radius: 4px; cursor: pointer;" data-bs-toggle="modal" data-bs-target="#settingsModal-{{ $product->id }}">
+                                    <i class="fas fa-cog"></i> Pengaturan Stok
+                                </button>
+                                <a href="{{ route('products.publish', $product->master_product_id) }}" class="btn-primary-sm" style="width: 100%; text-align: center; background: #6366f1; border: none; color: white; padding: 6px; border-radius: 4px; text-decoration: none; display: block;">
+                                    <i class="fas fa-copy"></i> Salin ke Toko Lain
+                                </a>
+                            </div>
+
+                            <!-- Modal Pengaturan Stok -->
+                            <div class="modal fade" id="settingsModal-{{ $product->id }}" tabindex="-1" aria-labelledby="settingsModalLabel-{{ $product->id }}" aria-hidden="true">
+                                <div class="modal-dialog modal-dialog-centered">
+                                    <div class="modal-content" style="background: var(--bg-card); border: 1px solid var(--border); text-align: left;">
+                                        <div class="modal-header" style="border-bottom: 1px solid var(--border);">
+                                            <h5 class="modal-title" id="settingsModalLabel-{{ $product->id }}" style="color: var(--text-primary);">
+                                                <i class="fas fa-cog text-primary me-2"></i> Pengaturan Stok: {{ $product->name }}
+                                            </h5>
+                                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        </div>
+                                        <form action="{{ route('marketplace_products.update_settings', $product->id) }}" method="POST">
+                                            @csrf
+                                            @method('PUT')
+                                            <div class="modal-body">
+                                                <div class="mb-4">
+                                                    <label class="form-label d-block fw-bold mb-2" style="color: var(--text-secondary);">Sinkronisasi Stok</label>
+                                                    <div class="form-check form-switch">
+                                                        <input class="form-check-input" type="checkbox" name="sync_stock" id="syncStock-{{ $product->id }}" value="1" {{ $product->sync_stock ? 'checked' : '' }} style="cursor: pointer;">
+                                                        <label class="form-check-label text-light" for="syncStock-{{ $product->id }}" style="cursor: pointer;">
+                                                            Otomatis sinkronkan stok dari Master Product
+                                                        </label>
+                                                    </div>
+                                                    <div class="form-text mt-1" style="font-size: 0.8rem; color: var(--text-muted);">
+                                                        Jika dinonaktifkan, perubahan stok Master Product tidak akan didorong ke marketplace ini.
+                                                    </div>
+                                                </div>
+                                                
+                                                <div class="mb-3">
+                                                    <label for="safetyStock-{{ $product->id }}" class="form-label fw-bold mb-2" style="color: var(--text-secondary);">Stok Pengaman (Safety Stock)</label>
+                                                    <div class="input-group">
+                                                        <span class="input-group-text" style="background: var(--bg-card2); border: 1px solid var(--border); color: var(--text-secondary);">
+                                                            <i class="fas fa-shield-alt"></i>
+                                                        </span>
+                                                        <input type="number" class="form-control" name="safety_stock" id="safetyStock-{{ $product->id }}" min="0" value="{{ $product->safety_stock ?? 0 }}" required style="background: var(--bg); color: var(--text-primary); border: 1px solid var(--border);">
+                                                    </div>
+                                                    <div class="form-text mt-2" style="font-size: 0.8rem; color: var(--text-muted);">
+                                                        Jumlah stok yang ditahan sebagai pengaman di gudang lokal.<br>
+                                                        Stok yang dikirim ke toko = <strong>Stok Master ({{ $product->masterProduct->stock }}) - Stok Pengaman</strong>.
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="modal-footer" style="border-top: 1px solid var(--border);">
+                                                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal" style="background: #334155; border: none; padding: 6px 12px;">Batal</button>
+                                                <button type="submit" class="btn btn-primary btn-sm" style="background: var(--primary); border: none; padding: 6px 12px;">Simpan Pengaturan</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
                         @endif
                     </td>
                 </tr>

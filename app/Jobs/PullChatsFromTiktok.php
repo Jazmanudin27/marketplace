@@ -27,7 +27,8 @@ class PullChatsFromTiktok implements ShouldQueue
     public function handle(TiktokService $tiktok): void
     {
         $query = Store::with('channel')
-            ->whereHas('channel', fn ($q) => $q->where('code', 'tiktok'))
+            ->whereHas('channel', fn($q) => $q->where('code', 'tiktok'))
+            ->where('status', 'connected')
             ->whereNotNull('access_token');
 
         if ($this->storeId) {
@@ -53,19 +54,20 @@ class PullChatsFromTiktok implements ShouldQueue
     private function pullForStore(TiktokService $tiktok, Store $store): void
     {
         $accessToken = $store->access_token;
-        $shopCipher  = $store->shop_cipher ?? '';
+        $shopCipher = $store->shop_cipher ?? '';
 
         if (!$accessToken || !$shopCipher) {
             Log::warning('[PullChatsFromTiktok] Toko tidak memiliki access_token atau shop_cipher', ['store_id' => $store->id]);
             return;
         }
 
-        $response      = $tiktok->getChatConversationList($accessToken, $shopCipher, 20);
+        $response = $tiktok->getChatConversationList($accessToken, $shopCipher, 20);
         $conversations = $response['conversations'] ?? [];
 
         foreach ($conversations as $conv) {
             $conversationId = (string) ($conv['id'] ?? '');
-            if (!$conversationId) continue;
+            if (!$conversationId)
+                continue;
 
             $buyerName = $conv['participant_list'][0]['name'] ?? 'Buyer TikTok';
             $buyerAvatar = $conv['participant_list'][0]['avatar'] ?? null;
@@ -73,15 +75,15 @@ class PullChatsFromTiktok implements ShouldQueue
             $dbConv = ChatConversation::updateOrCreate(
                 ['store_id' => $store->id, 'platform_conversation_id' => $conversationId],
                 [
-                    'tenant_id'            => $store->tenant_id,
-                    'buyer_name'           => $buyerName,
-                    'buyer_avatar_url'     => $buyerAvatar,
-                    'status'               => 'open',
-                    'last_message_at'      => isset($conv['latest_message_time'])
+                    'tenant_id' => $store->tenant_id,
+                    'buyer_name' => $buyerName,
+                    'buyer_avatar_url' => $buyerAvatar,
+                    'status' => 'open',
+                    'last_message_at' => isset($conv['latest_message_time'])
                         ? \Carbon\Carbon::createFromTimestamp($conv['latest_message_time'])
                         : null,
                     'last_message_preview' => $conv['latest_message']['content'] ?? null,
-                    'metadata'             => $conv,
+                    'metadata' => $conv,
                 ]
             );
 
@@ -90,7 +92,7 @@ class PullChatsFromTiktok implements ShouldQueue
 
         Log::info('[PullChatsFromTiktok] Selesai pull chat', [
             'store_id' => $store->id,
-            'total'    => count($conversations),
+            'total' => count($conversations),
         ]);
     }
 
@@ -102,15 +104,17 @@ class PullChatsFromTiktok implements ShouldQueue
 
             foreach ($messages as $msg) {
                 $platformMsgId = (string) ($msg['id'] ?? '');
-                if (!$platformMsgId) continue;
+                if (!$platformMsgId)
+                    continue;
 
-                if (ChatMessage::where('platform_message_id', $platformMsgId)->exists()) continue;
+                if (ChatMessage::where('platform_message_id', $platformMsgId)->exists())
+                    continue;
 
                 $senderType = $msg['type'] ?? 'BUYER';
                 $senderRole = str_contains(strtolower($senderType), 'seller') ? 'seller' : 'buyer';
-                $direction  = $senderRole === 'seller' ? 'outbound' : 'inbound';
-                $msgType    = strtolower($msg['message_type'] ?? 'TEXT');
-                $body       = null;
+                $direction = $senderRole === 'seller' ? 'outbound' : 'inbound';
+                $msgType = strtolower($msg['message_type'] ?? 'TEXT');
+                $body = null;
 
                 if ($msgType === 'text' || $msgType === 'TEXT') {
                     $body = $msg['content']['text'] ?? null;
@@ -121,23 +125,23 @@ class PullChatsFromTiktok implements ShouldQueue
                     : now();
 
                 ChatMessage::create([
-                    'tenant_id'            => $store->tenant_id,
+                    'tenant_id' => $store->tenant_id,
                     'chat_conversation_id' => $conv->id,
-                    'platform_message_id'  => $platformMsgId,
-                    'direction'            => $direction,
-                    'sender_role'          => $senderRole,
-                    'message_type'         => $msgType,
-                    'body'                 => $body,
-                    'media_url'            => $msg['content']['url'] ?? null,
-                    'delivery_status'      => 'delivered',
-                    'sent_at'              => $sentAt,
-                    'payload'              => $msg,
+                    'platform_message_id' => $platformMsgId,
+                    'direction' => $direction,
+                    'sender_role' => $senderRole,
+                    'message_type' => $msgType,
+                    'body' => $body,
+                    'media_url' => $msg['content']['url'] ?? null,
+                    'delivery_status' => 'delivered',
+                    'sent_at' => $sentAt,
+                    'payload' => $msg,
                 ]);
             }
         } catch (\Throwable $e) {
             Log::warning('[PullChatsFromTiktok] Gagal pull pesan', [
                 'conversation_id' => $conv->id,
-                'error'           => $e->getMessage(),
+                'error' => $e->getMessage(),
             ]);
         }
     }

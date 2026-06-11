@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Order;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 class OrderController extends Controller
 {
@@ -48,15 +49,17 @@ class OrderController extends Controller
         
         if ($store->channel->code === 'shopee') {
             try {
+                $accessToken = $store->getValidAccessToken();
+                
                 $shopeeService->shipOrder(
-                    $store->access_token,
+                    $accessToken,
                     (int) $store->marketplace_store_id,
                     $order->order_marketplace_id
                 );
                 
                 try {
                     $trackRes = $shopeeService->getTrackingNumber(
-                        $store->access_token,
+                        $accessToken,
                         (int) $store->marketplace_store_id,
                         $order->order_marketplace_id
                     );
@@ -64,13 +67,40 @@ class OrderController extends Controller
                         $order->tracking_number = $trackRes['tracking_number'];
                     }
                 } catch (\Exception $e) {
-                    // Ignore
+                    // Ignore tracking fetch error
                 }
                 
                 $order->order_status = Order::STATUS_SHIPPED;
                 $order->save();
+
+                // ✅ Kirim notifikasi otomatis ke pembeli via Shopee Chat
+                try {
+                    $resi = $order->tracking_number ?? 'belum tersedia';
+                    $msg = "Halo {$order->buyer_name}! 👋\n\n"
+                        . "Pesanan Anda *#{$order->invoice_number}* sudah kami kirimkan!\n"
+                        . "📦 Kurir: {$order->courier}\n"
+                        . "🔖 No. Resi: {$resi}\n\n"
+                        . "Anda bisa melacak paket Anda melalui aplikasi Shopee. Terima kasih sudah berbelanja! 🙏";
+
+                    // Cari conversation berdasarkan buyer (jika ada relasi chat)
+                    $conversation = \App\Models\ChatConversation::where('store_id', $store->id)
+                        ->where('buyer_username', $order->buyer_name)
+                        ->latest()
+                        ->first();
+
+                    if ($conversation) {
+                        $shopeeService->sendChatMessage(
+                            $store->access_token,
+                            (int) $store->marketplace_store_id,
+                            $conversation->conversation_id,
+                            $msg
+                        );
+                    }
+                } catch (\Exception $e) {
+                    Log::warning('[Order] Gagal kirim notifikasi chat ke pembeli: ' . $e->getMessage());
+                }
                 
-                return back()->with('success', 'Pesanan berhasil diproses pengirimannya (Drop-off sukses) ke Shopee.');
+                return back()->with('success', 'Pesanan berhasil diproses pengirimannya ke Shopee. Notifikasi dikirim ke pembeli.');
             } catch (\Exception $e) {
                 return back()->with('error', 'Gagal memproses pengiriman Shopee: ' . $e->getMessage());
             }
@@ -120,7 +150,6 @@ class OrderController extends Controller
             }
         } elseif ($store->channel->code === 'tiktok') {
             try {
-                // Di TikTok, biasanya dokumen pengiriman bisa dipanggil setelah status shipped.
                 $response = $tiktokService->getShippingDocument(
                     $store->access_token,
                     $store->marketplace_store_id,
@@ -138,6 +167,39 @@ class OrderController extends Controller
         }
 
         return back()->with('error', 'Channel tidak didukung.');
+    }
+
+    /**
+     * Ambil detail tracking resi secara real-time dari Shopee API (AJAX/JSON).
+     */
+    public function trackingDetail(Order $order, \App\Services\ShopeeService $shopeeService)
+    {
+        abort_unless($order->tenant_id === Auth::user()->tenant_id, 403);
+
+        $store = $order->store;
+
+        if ($store->channel->code !== 'shopee') {
+            return response()->json(['error' => 'Tracking detail hanya tersedia untuk pesanan Shopee.'], 422);
+        }
+
+        if (empty($order->order_marketplace_id)) {
+            return response()->json(['error' => 'ID marketplace pesanan tidak ditemukan.'], 422);
+        }
+
+        try {
+            $trackingData = $shopeeService->getTrackingInfo(
+                $store->access_token,
+                (int) $store->marketplace_store_id,
+                $order->order_marketplace_id
+            );
+
+            return response()->json([
+                'success'       => true,
+                'tracking_info' => $trackingData,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
     }
 
     public function sync(Request $request)
@@ -186,9 +248,6 @@ class OrderController extends Controller
                 if (!empty($response['doc_url'])) {
                     return redirect($response['doc_url']);
                 }
-            } elseif ($store->channel->code === 'shopee') {
-                // Untuk Shopee bisa ditambahkan jika ada fungsi getShippingDocument
-                // $response = $shopeeService->getShippingDocumentUrl(...);
             }
         } catch (\Exception $e) {
             // Jika error, gunakan invoice standar lokal

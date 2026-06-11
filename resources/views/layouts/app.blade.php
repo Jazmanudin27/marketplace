@@ -107,7 +107,7 @@
                 <div class="tenant-avatar">{{ strtoupper(substr(Auth::user()->tenant->name, 0, 1)) }}</div>
                 <div class="tenant-info">
                     <div class="tenant-name">{{ Auth::user()->tenant->name }}</div>
-                    <div class="tenant-role">{{ ucfirst(Auth::user()->role) }}</div>
+                    <div class="tenant-role">{{ Auth::user()->roles->first() ? ucfirst(Auth::user()->roles->first()->name) : ucfirst(Auth::user()->role) }}</div>
                 </div>
             </div>
 
@@ -126,11 +126,21 @@
                         request()->routeIs('incoming_goods.*') ||
                         request()->routeIs('orders.*') ||
                         request()->routeIs('returns.*') ||
-                        request()->routeIs('chats.*');
+                        request()->routeIs('chats.*') ||
+                        request()->routeIs('offline_sales.*') ||
+                        request()->routeIs('fulfillment.*');
 
                     $isInventoryActive = request()->routeIs('inventory.*') || request()->routeIs('stock_opnames.*');
 
                     $isReportActive = request()->routeIs('reports.*');
+
+                    $isFinanceActive =
+                        request()->routeIs('finance.profit_loss') ||
+                        request()->routeIs('finance.incomes.*') ||
+                        request()->routeIs('finance.expenses.*') ||
+                        request()->routeIs('finance.transfers.*') ||
+                        request()->routeIs('finance.reconciliation') ||
+                        request()->routeIs('profit.*');
                 @endphp
 
                 {{-- UTAMA --}}
@@ -142,137 +152,194 @@
                     <span>Dashboard</span>
                 </a>
 
-                {{-- MASTER DATA (Admin only) --}}
-                @if (in_array(Auth::user()->role, ['admin']))
+                {{-- MASTER DATA (Admin / Users with master permissions) --}}
+                @if (auth()->user()->role === 'admin' || auth()->user()->hasAnyPermission(['manage-categories', 'manage-brands', 'manage-suppliers', 'manage-employees', 'manage-customers', 'manage-users', 'manage-products', 'manage-stores']))
                     <div class="nav-section-title mt-2">MASTER</div>
 
                     {{-- Master Data Dropdown --}}
-                    <div onclick="toggleDropdown('collapseMasterData', this)" role="button"
-                        aria-controls="collapseMasterData" class="nav-item {{ $isMasterDataActive ? '' : 'collapsed' }}"
-                        aria-expanded="{{ $isMasterDataActive ? 'true' : 'false' }}" style="cursor: pointer;">
-                        <i class="fas fa-database"></i>
-                        <span>Master Data</span>
-                        <i class="fas fa-chevron-down ms-auto"
-                            style="font-size: 0.75rem; transition: transform 0.2s;"></i>
-                    </div>
-                    <div class="collapse {{ $isMasterDataActive ? 'show' : '' }}" id="collapseMasterData">
-                        <div class="ps-3 pe-2 pb-1">
-                            <a href="{{ route('categories.index') }}"
-                                class="nav-item {{ request()->routeIs('categories.*') ? 'active' : '' }}">
-                                <i class="fas fa-folder"></i>
-                                <span>Kategori</span>
-                            </a>
-                            <a href="{{ route('brands.index') }}"
-                                class="nav-item {{ request()->routeIs('brands.*') ? 'active' : '' }}">
-                                <i class="fas fa-tags"></i>
-                                <span>Merk</span>
-                            </a>
-                            <a href="{{ route('suppliers.index') }}"
-                                class="nav-item {{ request()->routeIs('suppliers.*') ? 'active' : '' }}">
-                                <i class="fas fa-truck"></i>
-                                <span>Supplier</span>
-                            </a>
-                            <a href="{{ route('employees.index') }}"
-                                class="nav-item {{ request()->routeIs('employees.*') ? 'active' : '' }}">
-                                <i class="fas fa-id-card"></i>
-                                <span>Karyawan</span>
-                            </a>
-                            <a href="{{ route('customers.index') }}"
-                                class="nav-item {{ request()->routeIs('customers.*') ? 'active' : '' }}">
-                                <i class="fas fa-users"></i>
-                                <span>Pelanggan</span>
-                            </a>
-                            <a href="{{ route('users.index') }}"
-                                class="nav-item {{ request()->routeIs('users.*') ? 'active' : '' }}">
-                                <i class="fas fa-user-shield"></i>
-                                <span>Pengguna</span>
-                            </a>
+                    @if (auth()->user()->role === 'admin' || auth()->user()->hasAnyPermission(['manage-categories', 'manage-brands', 'manage-suppliers', 'manage-employees', 'manage-customers', 'manage-users']))
+                        <div onclick="toggleDropdown('collapseMasterData', this)" role="button"
+                            aria-controls="collapseMasterData" class="nav-item {{ $isMasterDataActive ? '' : 'collapsed' }}"
+                            aria-expanded="{{ $isMasterDataActive ? 'true' : 'false' }}" style="cursor: pointer;">
+                            <i class="fas fa-database"></i>
+                            <span>Master Data</span>
+                            <i class="fas fa-chevron-down ms-auto"
+                                style="font-size: 0.75rem; transition: transform 0.2s;"></i>
                         </div>
-                    </div>
+                        <div class="collapse {{ $isMasterDataActive ? 'show' : '' }}" id="collapseMasterData">
+                            <div class="ps-3 pe-2 pb-1">
+                                @can('manage-categories')
+                                    <a href="{{ route('categories.index') }}"
+                                        class="nav-item {{ request()->routeIs('categories.*') ? 'active' : '' }}">
+                                        <i class="fas fa-folder"></i>
+                                        <span>Kategori</span>
+                                    </a>
+                                @endcan
+                                @can('manage-brands')
+                                    <a href="{{ route('brands.index') }}"
+                                        class="nav-item {{ request()->routeIs('brands.*') ? 'active' : '' }}">
+                                        <i class="fas fa-tags"></i>
+                                        <span>Merk</span>
+                                    </a>
+                                @endcan
+                                @can('manage-suppliers')
+                                    <a href="{{ route('suppliers.index') }}"
+                                        class="nav-item {{ request()->routeIs('suppliers.*') ? 'active' : '' }}">
+                                        <i class="fas fa-truck"></i>
+                                        <span>Supplier</span>
+                                    </a>
+                                @endcan
+                                @can('manage-employees')
+                                    <a href="{{ route('employees.index') }}"
+                                        class="nav-item {{ request()->routeIs('employees.*') ? 'active' : '' }}">
+                                        <i class="fas fa-id-card"></i>
+                                        <span>Karyawan</span>
+                                    </a>
+                                @endcan
+                                @can('manage-customers')
+                                    <a href="{{ route('customers.index') }}"
+                                        class="nav-item {{ request()->routeIs('customers.*') ? 'active' : '' }}">
+                                        <i class="fas fa-users"></i>
+                                        <span>Pelanggan</span>
+                                    </a>
+                                @endcan
+                                @can('manage-users')
+                                    <a href="{{ route('users.index') }}"
+                                        class="nav-item {{ request()->routeIs('users.*') ? 'active' : '' }}">
+                                        <i class="fas fa-user-shield"></i>
+                                        <span>Pengguna</span>
+                                    </a>
+                                    <a href="{{ route('roles.index') }}"
+                                        class="nav-item {{ request()->routeIs('roles.*') ? 'active' : '' }}">
+                                        <i class="fas fa-user-lock"></i>
+                                        <span>Hak Akses</span>
+                                    </a>
+                                @endcan
+                            </div>
+                        </div>
+                    @endif
 
                     {{-- Master Produk --}}
-                    <a href="{{ route('products.index') }}"
-                        class="nav-item {{ request()->routeIs('products.*') ? 'active' : '' }}">
-                        <i class="fas fa-box-open"></i>
-                        <span>Master Produk</span>
-                    </a>
+                    @can('manage-products')
+                        <a href="{{ route('products.index') }}"
+                            class="nav-item {{ request()->routeIs('products.*') ? 'active' : '' }}">
+                            <i class="fas fa-box-open"></i>
+                            <span>Master Produk</span>
+                        </a>
 
-                    {{-- Marketplace Produk --}}
-                    <a href="{{ route('marketplace_products.index') }}"
-                        class="nav-item {{ request()->routeIs('marketplace_products.*') ? 'active' : '' }}">
-                        <i class="fas fa-store"></i>
-                        <span>Marketplace Produk</span>
-                    </a>
+                        {{-- Marketplace Produk --}}
+                        <a href="{{ route('marketplace_products.index') }}"
+                            class="nav-item {{ request()->routeIs('marketplace_products.*') ? 'active' : '' }}">
+                            <i class="fas fa-store"></i>
+                            <span>Marketplace Produk</span>
+                        </a>
+                    @endcan
                 @endif
 
-                {{-- TRANSAKSI (Admin + Warehouse) --}}
-                @if (in_array(Auth::user()->role, ['admin', 'warehouse']))
+                {{-- TRANSAKSI (Admin + Warehouse / Users with transaction permissions) --}}
+                @if (auth()->user()->role === 'admin' || auth()->user()->hasAnyPermission(['manage-incoming-goods', 'manage-orders', 'manage-fulfillment', 'manage-returns', 'manage-offline-sales', 'manage-chats', 'manage-inventory']))
                     <div class="nav-section-title mt-2">TRANSAKSI</div>
 
-                    <div onclick="toggleDropdown('collapseTransaksi', this)" role="button"
-                        aria-controls="collapseTransaksi" class="nav-item {{ $isTransaksiActive ? '' : 'collapsed' }}"
-                        aria-expanded="{{ $isTransaksiActive ? 'true' : 'false' }}" style="cursor: pointer;">
-                        <i class="fas fa-receipt"></i>
-                        <span>Transaksi</span>
-                        <i class="fas fa-chevron-down ms-auto"
-                            style="font-size: 0.75rem; transition: transform 0.2s;"></i>
-                    </div>
-                    <div class="collapse {{ $isTransaksiActive ? 'show' : '' }}" id="collapseTransaksi">
-                        <div class="ps-3 pe-2 pb-1">
-                            <a href="{{ route('incoming_goods.index') }}"
-                                class="nav-item {{ request()->routeIs('incoming_goods.*') ? 'active' : '' }}">
-                                <i class="fas fa-truck-loading"></i>
-                                <span>Barang Masuk</span>
-                            </a>
-                            <a href="{{ route('orders.index') }}"
-                                class="nav-item {{ request()->routeIs('orders.*') ? 'active' : '' }}">
-                                <i class="fas fa-shopping-cart"></i>
-                                <span>Pesanan Masuk</span>
-                                @if (isset($pendingOrdersCount) && $pendingOrdersCount > 0)
-                                    <span class="nav-badge">{{ $pendingOrdersCount }}</span>
-                                @endif
-                            </a>
-                            <a href="{{ route('returns.index') }}"
-                                class="nav-item {{ request()->routeIs('returns.*') ? 'active' : '' }}">
-                                <i class="fas fa-undo-alt"></i>
-                                <span>Pesanan Retur</span>
-                            </a>
-                            <a href="{{ route('chats.index') }}"
-                                class="nav-item {{ request()->routeIs('chats.*') ? 'active' : '' }}">
-                                <i class="fas fa-comments"></i>
-                                <span>Inbox Chat</span>
-                            </a>
+                    @if (auth()->user()->role === 'admin' || auth()->user()->hasAnyPermission(['manage-incoming-goods', 'manage-orders', 'manage-fulfillment', 'manage-returns', 'manage-offline-sales', 'manage-chats']))
+                        <div onclick="toggleDropdown('collapseTransaksi', this)" role="button"
+                            aria-controls="collapseTransaksi" class="nav-item {{ $isTransaksiActive ? '' : 'collapsed' }}"
+                            aria-expanded="{{ $isTransaksiActive ? 'true' : 'false' }}" style="cursor: pointer;">
+                            <i class="fas fa-receipt"></i>
+                            <span>Transaksi</span>
+                            <i class="fas fa-chevron-down ms-auto"
+                                style="font-size: 0.75rem; transition: transform 0.2s;"></i>
                         </div>
-                    </div>
+                        <div class="collapse {{ $isTransaksiActive ? 'show' : '' }}" id="collapseTransaksi">
+                            <div class="ps-3 pe-2 pb-1">
+                                @can('manage-incoming-goods')
+                                    <a href="{{ route('incoming_goods.index') }}"
+                                        class="nav-item {{ request()->routeIs('incoming_goods.*') ? 'active' : '' }}">
+                                        <i class="fas fa-truck-loading"></i>
+                                        <span>Barang Masuk</span>
+                                    </a>
+                                @endcan
+                                @can('manage-orders')
+                                    <a href="{{ route('orders.index') }}"
+                                        class="nav-item {{ request()->routeIs('orders.*') ? 'active' : '' }}">
+                                        <i class="fas fa-shopping-cart"></i>
+                                        <span>Pesanan Masuk</span>
+                                        @if (isset($pendingOrdersCount) && $pendingOrdersCount > 0)
+                                            <span class="nav-badge">{{ $pendingOrdersCount }}</span>
+                                        @endif
+                                    </a>
+                                @endcan
+                                @can('manage-fulfillment')
+                                    <a href="{{ route('fulfillment.index') }}"
+                                        class="nav-item {{ request()->routeIs('fulfillment.*') ? 'active' : '' }}">
+                                        <i class="fas fa-barcode"></i>
+                                        <span>Kemas Pesanan (Scan)</span>
+                                    </a>
+                                @endcan
+                                @can('manage-returns')
+                                    <a href="{{ route('returns.index') }}"
+                                        class="nav-item {{ request()->routeIs('returns.*') ? 'active' : '' }}">
+                                        <i class="fas fa-undo-alt"></i>
+                                        <span>Pesanan Retur</span>
+                                    </a>
+                                @endcan
+                                @can('manage-offline-sales')
+                                    <a href="{{ route('offline_sales.index') }}"
+                                        class="nav-item {{ request()->routeIs('offline_sales.*') ? 'active' : '' }}">
+                                        <i class="fas fa-store-slash"></i>
+                                        <span>Penjualan Offline</span>
+                                    </a>
+                                @endcan
+                                @can('manage-chats')
+                                    <a href="{{ route('chats.index') }}"
+                                        class="nav-item {{ request()->routeIs('chats.*') ? 'active' : '' }}">
+                                        <i class="fas fa-comments"></i>
+                                        <span>Inbox Chat</span>
+                                    </a>
+                                @endcan
+                            </div>
+                        </div>
+                    @endif
 
                     {{-- Inventory Stok Dropdown --}}
-                    <div onclick="toggleDropdown('collapseInventory', this)" role="button"
-                        aria-controls="collapseInventory"
-                        class="nav-item {{ $isInventoryActive ? '' : 'collapsed' }}"
-                        aria-expanded="{{ $isInventoryActive ? 'true' : 'false' }}" style="cursor: pointer;">
-                        <i class="fas fa-boxes"></i>
-                        <span>Inventory Stok</span>
-                        <i class="fas fa-chevron-down ms-auto"
-                            style="font-size: 0.75rem; transition: transform 0.2s;"></i>
-                    </div>
-                    <div class="collapse {{ $isInventoryActive ? 'show' : '' }}" id="collapseInventory">
-                        <div class="ps-3 pe-2 pb-1">
-                            <a href="{{ route('inventory.index') }}"
-                                class="nav-item {{ request()->routeIs('inventory.index') || request()->routeIs('inventory.ledger') ? 'active' : '' }}">
-                                <i class="fas fa-warehouse"></i>
-                                <span>Stok Gudang</span>
-                            </a>
-                            <a href="{{ route('stock_opnames.index') }}"
-                                class="nav-item {{ request()->routeIs('stock_opnames.*') ? 'active' : '' }}">
-                                <i class="fas fa-clipboard-check"></i>
-                                <span>Opname Stok</span>
-                            </a>
+                    @if (auth()->user()->role === 'admin' || auth()->user()->hasPermissionTo('manage-inventory'))
+                        @php
+                            $lowStockCount = \App\Models\MasterProduct::where('tenant_id', Auth::user()->tenant_id)
+                                ->whereColumn('stock', '<=', 'min_stock')
+                                ->where('is_active', true)
+                                ->count();
+                        @endphp
+                        <div onclick="toggleDropdown('collapseInventory', this)" role="button"
+                            aria-controls="collapseInventory"
+                            class="nav-item {{ $isInventoryActive ? '' : 'collapsed' }}"
+                            aria-expanded="{{ $isInventoryActive ? 'true' : 'false' }}" style="cursor: pointer;">
+                            <i class="fas fa-boxes"></i>
+                            <span>Inventory Stok</span>
+                            @if ($lowStockCount > 0)
+                                <span class="nav-badge" style="background:#ef4444;">{{ $lowStockCount }}</span>
+                            @endif
+                            <i class="fas fa-chevron-down ms-auto"
+                                style="font-size: 0.75rem; transition: transform 0.2s;"></i>
                         </div>
-                    </div>
+
+                        <div class="collapse {{ $isInventoryActive ? 'show' : '' }}" id="collapseInventory">
+                            <div class="ps-3 pe-2 pb-1">
+                                <a href="{{ route('inventory.index') }}"
+                                    class="nav-item {{ request()->routeIs('inventory.index') || request()->routeIs('inventory.ledger') ? 'active' : '' }}">
+                                    <i class="fas fa-warehouse"></i>
+                                    <span>Stok Gudang</span>
+                                </a>
+                                <a href="{{ route('stock_opnames.index') }}"
+                                    class="nav-item {{ request()->routeIs('stock_opnames.*') ? 'active' : '' }}">
+                                    <i class="fas fa-clipboard-check"></i>
+                                    <span>Opname Stok</span>
+                                </a>
+                            </div>
+                        </div>
+                    @endif
                 @endif
 
-                {{-- LAPORAN (Admin + Finance) --}}
-                @if (in_array(Auth::user()->role, ['admin', 'finance']))
+                {{-- LAPORAN (Admin + Warehouse / Users with report permissions) --}}
+                @if (auth()->user()->role === 'admin' || auth()->user()->hasPermissionTo('view-warehouse-reports'))
                     <div class="nav-section-title mt-2">LAPORAN</div>
 
                     <div onclick="toggleDropdown('collapseReports', this)" role="button"
@@ -285,38 +352,97 @@
                     </div>
                     <div class="collapse {{ $isReportActive ? 'show' : '' }}" id="collapseReports">
                         <div class="ps-3 pe-2 pb-1">
+                            <a href="{{ route('reports.summary') }}"
+                                class="nav-item {{ request()->routeIs('reports.summary*') ? 'active' : '' }}">
+                                <i class="fas fa-th-list"></i>
+                                <span>Rekap Persediaan</span>
+                            </a>
                             <a href="{{ route('reports.stock') }}"
                                 class="nav-item {{ request()->routeIs('reports.stock*') ? 'active' : '' }}">
                                 <i class="fas fa-file-invoice"></i>
                                 <span>Stok Barang</span>
-                            </a>
-                            <a href="{{ route('reports.opname') }}"
-                                class="nav-item {{ request()->routeIs('reports.opname*') ? 'active' : '' }}">
-                                <i class="fas fa-clipboard-check"></i>
-                                <span>Riwayat Opname</span>
                             </a>
                             <a href="{{ route('reports.ledger') }}"
                                 class="nav-item {{ request()->routeIs('reports.ledger*') ? 'active' : '' }}">
                                 <i class="fas fa-history"></i>
                                 <span>Kartu Stok</span>
                             </a>
-                            <a href="{{ route('reports.summary') }}"
-                                class="nav-item {{ request()->routeIs('reports.summary*') ? 'active' : '' }}">
-                                <i class="fas fa-th-list"></i>
-                                <span>Rekap Persediaan</span>
+                            <a href="{{ route('reports.opname') }}"
+                                class="nav-item {{ request()->routeIs('reports.opname*') ? 'active' : '' }}">
+                                <i class="fas fa-clipboard-check"></i>
+                                <span>Riwayat Opname</span>
+                            </a>
+                            <a href="{{ route('reports.analytics') }}"
+                                class="nav-item {{ request()->routeIs('reports.analytics*') ? 'active' : '' }}">
+                                <i class="fas fa-brain"></i>
+                                <span>Analitik Inventori</span>
                             </a>
                         </div>
                     </div>
                 @endif
 
-                {{-- INTEGRASI (Admin only) --}}
-                @if (in_array(Auth::user()->role, ['admin']))
+                {{-- KEUANGAN (Admin + Finance / Users with finance permissions) --}}
+                @if (auth()->user()->role === 'admin' || auth()->user()->hasAnyPermission(['view-financial-reports', 'manage-finance']))
+                    <div class="nav-section-title mt-2">KEUANGAN</div>
+
+                    <div onclick="toggleDropdown('collapseFinance', this)" role="button"
+                        aria-controls="collapseFinance" class="nav-item {{ $isFinanceActive ? '' : 'collapsed' }}"
+                        aria-expanded="{{ $isFinanceActive ? 'true' : 'false' }}" style="cursor: pointer;">
+                        <i class="fas fa-wallet"></i>
+                        <span>Pengelolaan Keuangan</span>
+                        <i class="fas fa-chevron-down ms-auto"
+                            style="font-size: 0.75rem; transition: transform 0.2s;"></i>
+                    </div>
+                    <div class="collapse {{ $isFinanceActive ? 'show' : '' }}" id="collapseFinance">
+                        <div class="ps-3 pe-2 pb-1">
+                            @can('view-financial-reports')
+                                <a href="{{ route('finance.profit_loss') }}"
+                                    class="nav-item {{ request()->routeIs('finance.profit_loss') ? 'active' : '' }}">
+                                    <i class="fas fa-file-invoice-dollar"></i>
+                                    <span>Laporan Laba Rugi</span>
+                                </a>
+                                <a href="{{ route('profit.index') }}"
+                                    class="nav-item {{ request()->routeIs('profit.*') ? 'active' : '' }}">
+                                    <i class="fas fa-chart-line"></i>
+                                    <span>Laporan Profit / Pesanan</span>
+                                </a>
+                            @endcan
+                            @can('manage-finance')
+                                <a href="{{ route('finance.reconciliation') }}"
+                                    class="nav-item {{ request()->routeIs('finance.reconciliation') ? 'active' : '' }}">
+                                    <i class="fas fa-balance-scale"></i>
+                                    <span>Rekonsiliasi Keuangan</span>
+                                </a>
+                                <a href="{{ route('finance.incomes.index') }}"
+                                    class="nav-item {{ request()->routeIs('finance.incomes.*') ? 'active' : '' }}">
+                                    <i class="fas fa-arrow-up"></i>
+                                    <span>Pemasukan Lain</span>
+                                </a>
+                                <a href="{{ route('finance.expenses.index') }}"
+                                    class="nav-item {{ request()->routeIs('finance.expenses.*') ? 'active' : '' }}">
+                                    <i class="fas fa-arrow-down"></i>
+                                    <span>Pengeluaran & Biaya</span>
+                                </a>
+                                <a href="{{ route('finance.transfers.index') }}"
+                                    class="nav-item {{ request()->routeIs('finance.transfers.*') ? 'active' : '' }}">
+                                    <i class="fas fa-exchange-alt"></i>
+                                    <span>Transfer Dana</span>
+                                </a>
+                            @endcan
+                        </div>
+                    </div>
+                @endif
+
+                {{-- INTEGRASI (Admin / Users with store permissions) --}}
+                @if (auth()->user()->role === 'admin' || auth()->user()->hasPermissionTo('manage-stores'))
                     <div class="nav-section-title mt-2">INTEGRASI</div>
-                    <a href="{{ route('stores.index') }}"
-                        class="nav-item {{ request()->routeIs('stores.*') ? 'active' : '' }}">
-                        <i class="fas fa-plug"></i>
-                        <span>Kelola Toko</span>
-                    </a>
+                    @can('manage-stores')
+                        <a href="{{ route('stores.index') }}"
+                            class="nav-item {{ request()->routeIs('stores.*') ? 'active' : '' }}">
+                            <i class="fas fa-plug"></i>
+                            <span>Kelola Toko</span>
+                        </a>
+                    @endcan
                 @endif
 
             </nav>

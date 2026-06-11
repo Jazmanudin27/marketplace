@@ -840,6 +840,145 @@ class ShopeeService
         return $response->json() ?? [];
     }
 
+    /**
+     * Ambil detail tracking resi pengiriman dari Shopee.
+     * GET /api/v2/logistics/get_tracking_info
+     */
+    public function getTrackingInfo(string $accessToken, int $shopId, string $orderSn): array
+    {
+        $path = '/api/v2/logistics/get_tracking_info';
+        $timestamp = time();
+        $sign = $this->signShopRequest($path, $timestamp, $accessToken, $shopId);
+
+        $response = Http::get($this->baseUrl . $path, [
+            'partner_id'   => $this->partnerId,
+            'timestamp'    => $timestamp,
+            'sign'         => $sign,
+            'access_token' => $accessToken,
+            'shop_id'      => $shopId,
+            'order_sn'     => $orderSn,
+        ]);
+
+        if ($response->failed()) {
+            throw new \RuntimeException('Gagal ambil info tracking Shopee: ' . $response->body());
+        }
+
+        $data = $response->json();
+
+        if (!empty($data['error']) && $data['error'] !== '' && $data['error'] !== 'OK') {
+            throw new \RuntimeException('Shopee Tracking API Error [' . $data['error'] . ']: ' . ($data['message'] ?? ''));
+        }
+
+        return $data['response'] ?? [];
+    }
+
+    /**
+     * Buat voucher di Shopee.
+     * POST /api/v2/voucher/add_voucher
+     */
+    public function createVoucher(string $accessToken, int $shopId, array $voucherData): array
+    {
+        $path = '/api/v2/voucher/add_voucher';
+        $timestamp = time();
+        $sign = $this->signShopRequest($path, $timestamp, $accessToken, $shopId);
+
+        $queryParams = [
+            'partner_id'   => $this->partnerId,
+            'timestamp'    => $timestamp,
+            'sign'         => $sign,
+            'access_token' => $accessToken,
+            'shop_id'      => $shopId,
+        ];
+
+        $response = Http::asJson()->post($this->baseUrl . $path . '?' . http_build_query($queryParams), $voucherData);
+
+        Log::info('[Shopee] createVoucher response', [
+            'status' => $response->status(),
+            'body'   => $response->body(),
+        ]);
+
+        if ($response->failed()) {
+            throw new \RuntimeException('Gagal membuat voucher Shopee: ' . $response->body());
+        }
+
+        $data = $response->json();
+
+        if (!empty($data['error']) && $data['error'] !== '' && $data['error'] !== 'OK') {
+            throw new \RuntimeException('Shopee Voucher API Error [' . $data['error'] . ']: ' . ($data['message'] ?? ''));
+        }
+
+        return $data['response'] ?? [];
+    }
+
+    /**
+     * Ambil daftar voucher dari Shopee.
+     * GET /api/v2/voucher/get_voucher_list
+     */
+    public function getVoucherList(string $accessToken, int $shopId, int $pageNo = 0, int $pageSize = 20, string $status = 'all'): array
+    {
+        $path = '/api/v2/voucher/get_voucher_list';
+        $timestamp = time();
+        $sign = $this->signShopRequest($path, $timestamp, $accessToken, $shopId);
+
+        $response = Http::get($this->baseUrl . $path, [
+            'partner_id'   => $this->partnerId,
+            'timestamp'    => $timestamp,
+            'sign'         => $sign,
+            'access_token' => $accessToken,
+            'shop_id'      => $shopId,
+            'page_no'      => $pageNo,
+            'page_size'    => $pageSize,
+            'status'       => $status,
+        ]);
+
+        if ($response->failed()) {
+            throw new \RuntimeException('Gagal ambil daftar voucher Shopee: ' . $response->body());
+        }
+
+        $data = $response->json();
+
+        if (!empty($data['error']) && $data['error'] !== '' && $data['error'] !== 'OK') {
+            throw new \RuntimeException('Shopee Voucher API Error [' . $data['error'] . ']: ' . ($data['message'] ?? ''));
+        }
+
+        return $data['response'] ?? [];
+    }
+
+    /**
+     * Akhiri / nonaktifkan voucher di Shopee.
+     * POST /api/v2/voucher/end_voucher
+     */
+    public function endVoucher(string $accessToken, int $shopId, int $voucherId): array
+    {
+        $path = '/api/v2/voucher/end_voucher';
+        $timestamp = time();
+        $sign = $this->signShopRequest($path, $timestamp, $accessToken, $shopId);
+
+        $queryParams = [
+            'partner_id'   => $this->partnerId,
+            'timestamp'    => $timestamp,
+            'sign'         => $sign,
+            'access_token' => $accessToken,
+            'shop_id'      => $shopId,
+        ];
+
+        $response = Http::asJson()->post($this->baseUrl . $path . '?' . http_build_query($queryParams), [
+            'voucher_id' => $voucherId,
+        ]);
+
+        if ($response->failed()) {
+            throw new \RuntimeException('Gagal mengakhiri voucher Shopee: ' . $response->body());
+        }
+
+        $data = $response->json();
+
+        if (!empty($data['error']) && $data['error'] !== '' && $data['error'] !== 'OK') {
+            throw new \RuntimeException('Shopee Voucher API Error [' . $data['error'] . ']: ' . ($data['message'] ?? ''));
+        }
+
+        return $data['response'] ?? [];
+    }
+
     public function debugSign(string $path): array
     {
         $timestamp = time();

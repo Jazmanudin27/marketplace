@@ -52,22 +52,25 @@ class PushStockToMarketplaces implements ShouldQueue
                     continue;
                 }
 
+                $safetyStock = (int) ($mpProduct->safety_stock ?? 0);
+                $pushedStock = max(0, $masterProduct->stock - $safetyStock);
+
                 if ($store->channel->code === 'shopee') {
                     $shopeeService->updateStock(
                         $store->access_token,
                         (int) $store->marketplace_store_id,
                         (int) $mpProduct->marketplace_product_id,
-                        $this->newStock,
+                        $pushedStock,
                         $mpProduct->marketplace_variant_id
                     );
 
                     // Update local marketplace_products table stock
                     $mpProduct->update([
-                        'stock' => $this->newStock,
+                        'stock' => $pushedStock,
                         'last_synced_at' => now(),
                     ]);
                     
-                    Log::info("Berhasil push stok ke Shopee untuk item {$mpProduct->marketplace_product_id}");
+                    Log::info("Berhasil push stok ke Shopee untuk item {$mpProduct->marketplace_product_id} (Stok master: {$masterProduct->stock}, Safety: {$safetyStock}, Pushed: {$pushedStock})");
                 } elseif ($store->channel->code === 'tiktok') {
                     $tiktokService = app(\App\Services\TiktokService::class);
                     $tiktokService->updateStock(
@@ -75,16 +78,16 @@ class PushStockToMarketplaces implements ShouldQueue
                         $store->shop_cipher,
                         $mpProduct->marketplace_product_id,
                         $mpProduct->marketplace_variant_id,
-                        $this->newStock
+                        $pushedStock
                     );
 
                     // Update local marketplace_products table stock
                     $mpProduct->update([
-                        'stock' => $this->newStock,
+                        'stock' => $pushedStock,
                         'last_synced_at' => now(),
                     ]);
                     
-                    Log::info("Berhasil push stok ke TikTok untuk item {$mpProduct->marketplace_product_id}");
+                    Log::info("Berhasil push stok ke TikTok untuk item {$mpProduct->marketplace_product_id} (Stok master: {$masterProduct->stock}, Safety: {$safetyStock}, Pushed: {$pushedStock})");
                 }
                 
                 // Tambahkan kondisi untuk Tokopedia/Lazada di sini nanti...

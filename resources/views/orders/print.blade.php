@@ -232,69 +232,141 @@
 
 <body onload="initPrint()">
 
+    @php
+        // 1. Parse Tujuan City
+        $tujuan = 'KOTA TUJUAN';
+        if ($order->shipping_address) {
+            if (preg_match('/(?:KOTA|KABUPATEN|KAB\.)\s+([^,]+)/i', $order->shipping_address, $matches)) {
+                $tujuan = strtoupper($matches[0]);
+            } else {
+                $addressParts = array_map('trim', explode(',', $order->shipping_address));
+                if (count($addressParts) > 1) {
+                    $foundCity = false;
+                    for ($i = count($addressParts) - 1; $i >= 0; $i--) {
+                        if (preg_match('/\b\d{5}\b/', $addressParts[$i])) {
+                            if (isset($addressParts[$i - 1])) {
+                                $tujuan = strtoupper($addressParts[$i - 1]);
+                                $foundCity = true;
+                                break;
+                            }
+                        }
+                    }
+                    if (!$foundCity) {
+                        $tujuan = strtoupper($addressParts[count($addressParts) - 2] ?? $addressParts[0]);
+                    }
+                }
+            }
+        }
+
+        // 2. Parse Sort Code / Postal Code
+        $postalCode = '';
+        if ($order->shipping_address && preg_match('/\b\d{5}\b/', $order->shipping_address, $matches)) {
+            $postalCode = $matches[0];
+        }
+        $sortCode = $postalCode ? 'SUB' . $postalCode : 'SUB10028';
+
+        // 3. Service Type (REG, HEM, CAR)
+        $serviceType = 'REG';
+        $courierLower = strtolower($order->courier);
+        if (strpos($courierLower, 'hemat') !== false || strpos($courierLower, 'economy') !== false) {
+            $serviceType = 'HEM';
+        } elseif (strpos($courierLower, 'cargo') !== false || strpos($courierLower, 'trucking') !== false) {
+            $serviceType = 'CAR';
+        }
+
+        // 4. Calculate total weight in grams
+        $totalWeight = 0;
+        foreach ($order->items as $item) {
+            $weight = $item->masterProduct->weight ?? 1; // default 1 kg
+            $totalWeight += $weight * $item->quantity;
+        }
+        $totalWeightGram = $totalWeight * 1000;
+
+        // 5. COD check
+        $isCod = false;
+        if ($order->financial_breakdown && isset($order->financial_breakdown['payment_method'])) {
+            $isCod = stripos($order->financial_breakdown['payment_method'], 'cod') !== false;
+        }
+    @endphp
+
     <div class="waybill">
         <!-- HEADER -->
         <div class="header">
             <div class="header-logo">
-                <svg viewBox="0 0 24 24">
-                    <path
-                        d="M16.2 3.8l-1.3-1.6c-.2-.2-.5-.3-.8-.3H9.9c-.3 0-.6.1-.8.3L7.8 3.8h8.4zM22.5 6H1.5c-.5 0-.8.4-.8.8l1.6 13.9c.1.6.6 1.1 1.2 1.1h17.1c.6 0 1.1-.5 1.2-1.1L23.3 6.8c0-.4-.4-.8-.8-.8zm-10.5 12c-2.8 0-4.8-1.2-4.8-1.2l.7-1.4s1.6 1 4 1c1.5 0 2.2-.6 2.2-1.4 0-.8-.7-1.1-2.1-1.6-1.9-.6-3.2-1.6-3.2-3.3 0-2 1.7-3.4 4.3-3.4 2.5 0 4.1 1 4.1 1l-.7 1.5s-1.4-.8-3.4-.8c-1.2 0-2 .5-2 1.2 0 .7.6 1 2 1.4 2 .6 3.4 1.5 3.4 3.4-.1 2.2-1.9 3.6-4.5 3.6z"
-                        fill="#EE4D2D" />
-                </svg>
-                Shopee
+                @if ($order->store->channel->code === 'shopee')
+                    <svg viewBox="0 0 24 24">
+                        <path
+                            d="M16.2 3.8l-1.3-1.6c-.2-.2-.5-.3-.8-.3H9.9c-.3 0-.6.1-.8.3L7.8 3.8h8.4zM22.5 6H1.5c-.5 0-.8.4-.8.8l1.6 13.9c.1.6.6 1.1 1.2 1.1h17.1c.6 0 1.1-.5 1.2-1.1L23.3 6.8c0-.4-.4-.8-.8-.8zm-10.5 12c-2.8 0-4.8-1.2-4.8-1.2l.7-1.4s1.6 1 4 1c1.5 0 2.2-.6 2.2-1.4 0-.8-.7-1.1-2.1-1.6-1.9-.6-3.2-1.6-3.2-3.3 0-2 1.7-3.4 4.3-3.4 2.5 0 4.1 1 4.1 1l-.7 1.5s-1.4-.8-3.4-.8c-1.2 0-2 .5-2 1.2 0 .7.6 1 2 1.4 2 .6 3.4 1.5 3.4 3.4-.1 2.2-1.9 3.6-4.5 3.6z"
+                            fill="#EE4D2D" />
+                    </svg>
+                    Shopee
+                @elseif($order->store->channel->code === 'tiktok')
+                    <i class="fab fa-tiktok" style="font-size: 20px; color: #000; margin-right: 4px;"></i>
+                    TikTok
+                @else
+                    <i class="fas fa-store" style="font-size: 18px; color: #000; margin-right: 4px;"></i>
+                    {{ $order->store->channel->name }}
+                @endif
             </div>
             <div class="header-barcode">
                 @if ($order->tracking_number)
                     <svg id="barcode"></svg>
+                @else
+                    <div style="font-size: 8px; font-weight: bold; border: 1px dashed #000; padding: 4px 0;">BELUM ADA RESI</div>
                 @endif
             </div>
             <div class="header-courier">
-                {{ $order->courier ?? 'Standard' }}
+                {{ $order->courier ?? 'REGULER' }}
             </div>
         </div>
 
         <div class="resi-text">
-            No.Resi {{ $order->tracking_number ?? 'BELUM ADA RESI' }}
+            No.Resi {{ $order->tracking_number ?? 'Belum ada resi' }}
         </div>
 
         <div class="divider"></div>
 
         <div class="main-content">
             <div class="info-grid">
-                <div class="order-no">No. Pesanan: <span
-                        class="fw-bold">{{ $order->order_marketplace_id ?? $order->invoice_number }}</span></div>
+                <div class="order-no">No. Pesanan: <span class="fw-bold">{{ $order->order_marketplace_id }}</span></div>
 
                 <div class="info-row">
                     <div class="info-label">Asal</div>
                     <div class="info-value">
-                        {{ strtoupper($order->store->city ?? 'KOTA JAKARTA') }}
+                        {{ $order->store->city ?? 'KOTA JAKARTA' }}
                     </div>
                 </div>
 
                 <div class="info-row">
                     <div class="info-label">Tujuan</div>
                     <div class="info-value">
-                        {{ strtoupper(explode(',', $order->shipping_address)[3] ?? 'KOTA TUJUAN') }}
+                        {{ $tujuan }}
                     </div>
                 </div>
 
                 <div class="info-row">
                     <div class="info-label">Total COD</div>
-                    <div class="info-value">Rp{{ number_format(0, 0, ',', '.') }}</div>
+                    <div class="info-value">
+                        @if ($isCod)
+                            Rp {{ number_format($order->total_amount, 0, ',', '.') }}
+                        @else
+                            Rp0
+                        @endif
+                    </div>
                 </div>
 
                 <div class="info-row">
                     <div class="info-label">Biaya</div>
                     <div class="info-value">
-                        Asuransi: <br>
-                        Biaya kirim: {{ number_format($order->shipping_fee, 0, ',', '') }}
+                        Asuransi: -<br>
+                        Biaya kirim: {{ number_format($order->shipping_fee, 0, ',', '.') }}
                     </div>
                 </div>
 
                 <div class="info-row">
                     <div class="info-label">Penerima</div>
                     <div class="info-value">
-                        <span class="fw-bold">{{ $order->buyer_name }}</span>, {{ $order->buyer_phone }}<br>
+                        <span class="fw-bold">{{ $order->buyer_name }}</span>, {{ $order->buyer_phone ?? '-' }}<br>
                         {{ $order->shipping_address }}
                     </div>
                 </div>
@@ -302,22 +374,27 @@
                 <div class="info-row">
                     <div class="info-label">Pengirim</div>
                     <div class="info-value">
-                        <span class="fw-bold">{{ $order->store->store_name }}</span>,
-                        {{ $order->store->phone ?? '-' }}
+                        <span class="fw-bold">{{ $order->store->store_name }}</span>
                     </div>
                 </div>
 
                 <div class="info-row">
                     <div class="info-label">Total Berat</div>
-                    <div class="info-value">1000 gr</div>
+                    <div class="info-value">{{ number_format($totalWeightGram) }} gr</div>
                 </div>
             </div>
 
             <div class="qr-section">
-                <div class="sort-code">SUB10028</div>
+                <div class="sort-code">{{ $sortCode }}</div>
                 <div class="qr-container" id="qrcode"></div>
-                <div class="box-text">NON-COD</div>
-                <div class="service-type">REG</div>
+                <div class="box-text">
+                    @if ($isCod)
+                        COD
+                    @else
+                        NON-COD
+                    @endif
+                </div>
+                <div class="service-type">{{ $serviceType }}</div>
             </div>
         </div>
 
@@ -327,8 +404,7 @@
 
         <div class="product-header">
             <div>DAFTAR PRODUK</div>
-            <div style="font-weight: normal; color: #666;">NO.PESANAN <span class="fw-bold"
-                    style="color: #000;">{{ $order->order_marketplace_id ?? $order->invoice_number }}</span></div>
+            <div style="font-weight: normal; color: #666;">NO.PESANAN <span class="fw-bold" style="color: #000;">{{ $order->order_marketplace_id }}</span></div>
         </div>
 
         <table class="product-table">
@@ -342,9 +418,9 @@
                 </tr>
             </thead>
             <tbody>
-                @foreach ($order->items as $index => $item)
+                @foreach ($order->items as $itemIndex => $item)
                     <tr>
-                        <td>{{ $index + 1 }}</td>
+                        <td>{{ $itemIndex + 1 }}</td>
                         <td>{{ $item->product_name }}</td>
                         <td>{{ $item->sku ?? '-' }}</td>
                         <td>-</td>
@@ -354,7 +430,7 @@
             </tbody>
         </table>
 
-        <div class="note">KOMENTAR PEMBELI:</div>
+        <div class="note">KOMENTAR PEMBELI: -</div>
     </div>
 
     <script>

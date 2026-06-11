@@ -11,6 +11,7 @@ class StoreController extends Controller
 {
     public function index()
     {
+        Channel::ensureChannelsExist();
         $stores = Store::with('channel')
             ->where('tenant_id', Auth::user()->tenant_id)
             ->get();
@@ -20,6 +21,7 @@ class StoreController extends Controller
 
     public function create()
     {
+        Channel::ensureChannelsExist();
         $channels = Channel::where('status', true)->get();
         return view('stores.create', compact('channels'));
     }
@@ -43,6 +45,7 @@ class StoreController extends Controller
     public function edit(Store $store)
     {
         abort_unless($store->tenant_id === Auth::user()->tenant_id, 403);
+        Channel::ensureChannelsExist();
         $channels = Channel::where('status', true)->get();
         return view('stores.edit', compact('store', 'channels'));
     }

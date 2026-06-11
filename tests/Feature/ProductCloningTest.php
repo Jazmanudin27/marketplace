@@ -1,0 +1,184 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Models\Channel;
+use App\Models\MarketplaceProduct;
+use App\Models\MasterProduct;
+use App\Models\Store;
+use App\Models\Tenant;
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
+
+class ProductCloningTest extends TestCase
+{
+    use RefreshDatabase;
+
+    protected Tenant $tenant;
+    protected User $user;
+    protected Channel $channel;
+    protected Store $store;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->tenant = Tenant::create([
+            'name'   => 'Cloning Tenant',
+            'status' => 'active',
+        ]);
+
+        $this->user = User::create([
+            'tenant_id' => $this->tenant->id,
+            'name'      => 'Admin User',
+            'email'     => 'admin@cloningtest.com',
+            'password'  => bcrypt('password'),
+            'role'      => 'admin',
+        ]);
+
+        $this->channel = Channel::create([
+            'name' => 'Shopee',
+            'code' => 'shopee',
+        ]);
+
+        $this->store = Store::create([
+            'tenant_id'           => $this->tenant->id,
+            'channel_id'          => $this->channel->id,
+            'store_name'          => 'Toko Cloning Test',
+            'marketplace_store_id'=> 'SHOPEE_CLONE_001',
+            'status'              => 'connected',
+        ]);
+    }
+
+    public function test_clone_and_publish_redirects_if_already_mapped(): void
+    {
+        $master = MasterProduct::create([
+            'tenant_id'  => $this->tenant->id,
+            'sku'        => 'SKU-EXISTING',
+            'name'       => 'Master Product Existing',
+            'price'      => 100000,
+            'stock'      => 10,
+            'is_active'  => true,
+        ]);
+
+        $mp = MarketplaceProduct::create([
+            'store_id' => $this->store->id,
+            'master_product_id' => $master->id,
+            'marketplace_product_id' => 'MP-111',
+            'marketplace_sku' => 'SKU-EXISTING',
+            'name' => 'Marketplace Product Name',
+            'price' => 100000,
+            'stock' => 10,
+        ]);
+
+        $this->actingAs($this->user);
+
+        $response = $this->post(route('marketplace_products.clone_and_publish', $mp->id));
+
+        $response->assertRedirect(route('products.publish', $master->id));
+    }
+
+    public function test_clone_and_publish_auto_links_if_sku_already_exists_in_master(): void
+    {
+        $master = MasterProduct::create([
+            'tenant_id'  => $this->tenant->id,
+            'sku'        => 'SKU-MATCH',
+            'name'       => 'Master Product Match',
+            'price'      => 120000,
+            'stock'      => 20,
+            'is_active'  => true,
+        ]);
+
+        $mp = MarketplaceProduct::create([
+            'store_id' => $this->store->id,
+            'master_product_id' => null,
+            'marketplace_product_id' => 'MP-222',
+            'marketplace_sku' => 'SKU-MATCH',
+            'name' => 'Marketplace Product Name Unmapped',
+            'price' => 120000,
+            'stock' => 20,
+        ]);
+
+        $this->actingAs($this->user);
+
+        $response = $this->post(route('marketplace_products.clone_and_publish', $mp->id));
+
+        $response->assertRedirect(route('products.publish', $master->id));
+
+        $mp->refresh();
+        $this->assertEquals($master->id, $mp->master_product_id);
+    }
+
+    public function test_clone_and_publish_creates_master_product_and_redirects(): void
+    {
+        $mp = MarketplaceProduct::create([
+            'store_id' => $this->store->id,
+            'master_product_id' => null,
+            'marketplace_product_id' => 'MP-333',
+            'marketplace_sku' => 'SKU-NEW-CLONE',
+            'name' => 'Marketplace Product Sneaker Premium',
+            'price' => 150000,
+            'stock' => 5,
+            'image_url' => 'http://example.com/sneaker.jpg',
+        ]);
+
+        $this->actingAs($this->user);
+
+        $response = $this->post(route('marketplace_products.clone_and_publish', $mp->id));
+
+        // Harus membuat MasterProduct baru
+        $newMaster = MasterProduct::where('sku', 'SKU-NEW-CLONE')->first();
+        $this->assertNotNull($newMaster);
+        $this->assertEquals('Marketplace Product Sneaker Premium', $newMaster->name);
+        $this->assertEquals(150000, (float)$newMaster->price);
+        $this->assertEquals(5, $newMaster->stock);
+        $this->assertEquals('http://example.com/sneaker.jpg', $newMaster->image_url);
+        $this->assertEquals(0.1, $newMaster->weight);
+
+        $response->assertRedirect(route('products.publish', $newMaster->id));
+
+        $mp->refresh();
+        $this->assertEquals($newMaster->id, $mp->master_product_id);
+    }
+
+    public function test_clone_button_and_form_visible_on_marketplace_products_page(): void
+    {
+        $master = MasterProduct::create([
+            'tenant_id'  => $this->tenant->id,
+            'sku'        => 'SKU-MAP',
+            'name'       => 'Master Product For Mapped',
+            'price'      => 100000,
+            'stock'      => 10,
+            'is_active'  => true,
+        ]);
+
+        $mpMapped = MarketplaceProduct::create([
+            'store_id' => $this->store->id,
+            'master_product_id' => $master->id,
+            'marketplace_product_id' => 'MP-MAP',
+            'marketplace_sku' => 'SKU-MAP',
+            'name' => 'Mapped Product',
+            'price' => 100000,
+            'stock' => 5,
+        ]);
+
+        $mpUnmapped = MarketplaceProduct::create([
+            'store_id' => $this->store->id,
+            'master_product_id' => null,
+            'marketplace_product_id' => 'MP-UNMAP',
+            'marketplace_sku' => 'SKU-UNMAP',
+            'name' => 'Unmapped Product',
+            'price' => 100000,
+            'stock' => 5,
+        ]);
+
+        $this->actingAs($this->user);
+
+        $response = $this->get(route('marketplace_products.index'));
+
+        $response->assertStatus(200);
+        // Harus ada tombol / link salin ke toko lain
+        $response->assertSee('Salin ke Toko Lain');
+    }
+}

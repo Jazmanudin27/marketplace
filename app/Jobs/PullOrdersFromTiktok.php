@@ -171,20 +171,30 @@ class PullOrdersFromTiktok implements ShouldQueue
                                               ->first();
             }
 
+            // Snapshot HPP dari MasterProduct saat pesanan dibuat
+            $costPrice = $masterProduct ? (float) $masterProduct->cost_price : 0;
+            $qty = $item['quantity'] ?? 1;
+
             OrderItem::updateOrCreate(
                 [
-                    'order_id' => $order->id,
-                    'marketplace_item_id' => $item['product_id'],
+                    'order_id'              => $order->id,
+                    'marketplace_item_id'   => $item['product_id'],
                 ],
                 [
                     'master_product_id' => $masterProduct ? $masterProduct->id : null,
-                    'product_name' => $item['product_name'] ?? 'Unknown Item',
-                    'sku' => $item['seller_sku'] ?? null,
-                    'quantity' => $item['quantity'] ?? 1,
-                    'price' => $item['sku_original_price'] ?? $item['sku_sale_price'] ?? 0,
-                    'total_price' => ($item['sku_sale_price'] ?? 0) * ($item['quantity'] ?? 1),
+                    'product_name'      => $item['product_name'] ?? 'Unknown Item',
+                    'sku'               => $item['seller_sku'] ?? null,
+                    'quantity'          => $qty,
+                    'price'             => $item['sku_original_price'] ?? $item['sku_sale_price'] ?? 0,
+                    'total_price'       => ($item['sku_sale_price'] ?? 0) * $qty,
+                    'cost_price'        => $costPrice,
+                    'hpp_subtotal'      => $costPrice * $qty,
                 ]
             );
         }
+
+
+        // Process stock deduction or return
+        $order->processStockDeduction();
     }
 }

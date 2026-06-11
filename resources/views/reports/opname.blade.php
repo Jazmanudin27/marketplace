@@ -13,7 +13,7 @@
                 <form action="{{ route('reports.opname.print') }}" method="GET" target="_blank">
                     <div class="mb-3">
                         <label class="form-label text-muted" style="font-size:0.85rem;">Kategori Barang</label>
-                        <select name="category_id" class="form-select">
+                        <select name="category_id" class="form-select form-select-sm form-select-dark">
                             <option value="">Semua Kategori</option>
                             @foreach ($categories as $category)
                                 <option value="{{ $category->id }}">{{ $category->name }}</option>
@@ -24,21 +24,18 @@
                     <div class="row">
                         <div class="col-md-6 mb-4">
                             <label class="form-label text-muted" style="font-size:0.85rem;">Dari Tanggal</label>
-                            <input type="date" name="start_date" class="form-input"
-                                style="background-color: var(--bg-card); color: var(--text-primary); border-color: var(--border);">
+                            <input type="date" name="start_date" class="form-control form-control-sm form-control-dark">
                         </div>
 
                         <div class="col-md-6 mb-4">
                             <label class="form-label text-muted" style="font-size:0.85rem;">Sampai Tanggal</label>
-                            <input type="date" name="end_date" class="form-input"
-                                style="background-color: var(--bg-card); color: var(--text-primary); border-color: var(--border);">
+                            <input type="date" name="end_date" class="form-control form-control-sm form-control-dark">
                         </div>
                     </div>
 
                     <div class="d-flex justify-content-end">
-                        <button type="submit" class="btn-primary-sm"
-                            style="background:var(--primary); font-size:1rem; padding: 0.5rem 1.5rem;">
-                            <i class="fas fa-print"></i> Cetak Laporan
+                        <button type="submit" class="btn btn-sm btn-primary">
+                            <i class="fas fa-print me-1"></i> Cetak Laporan
                         </button>
                     </div>
                 </form>

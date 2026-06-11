@@ -73,6 +73,7 @@ class ShopeeController extends Controller
             $storeName = $shopInfo['shop_name'] ?? ('Shopee Toko ' . $shopId);
 
             // STEP 2c: Cari channel Shopee
+            Channel::ensureChannelsExist();
             $channel = Channel::where('code', 'shopee')->firstOrFail();
 
             // STEP 2d: Simpan / update store di database

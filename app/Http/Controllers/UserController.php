@@ -14,7 +14,8 @@ class UserController extends Controller
     {
         $tenantId = Auth::user()->tenant_id;
         $users = User::where('tenant_id', $tenantId)->get();
-        return view('users.index', compact('users'));
+        $roles = \Spatie\Permission\Models\Role::where('tenant_id', $tenantId)->get();
+        return view('users.index', compact('users', 'roles'));
     }
 
     public function store(Request $request)
@@ -30,16 +31,21 @@ class UserController extends Controller
                 }),
             ],
             'password' => 'required|string|min:8',
-            'role' => 'required|in:admin,warehouse,finance',
+            'role_id' => 'required|exists:roles,id',
         ]);
 
-        User::create([
+        $role = \Spatie\Permission\Models\Role::where('tenant_id', $tenantId)->findOrFail($request->role_id);
+
+        $user = User::create([
             'tenant_id' => $tenantId,
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
-            'role' => $request->role,
+            'role' => $role->name,
         ]);
+
+        setPermissionsTeamId($tenantId);
+        $user->assignRole($role);
 
         return back()->with('success', 'Karyawan berhasil ditambahkan.');
     }
@@ -56,18 +62,23 @@ class UserController extends Controller
                     return $query->where('tenant_id', $user->tenant_id);
                 }),
             ],
-            'role' => 'required|in:admin,warehouse,finance',
+            'role_id' => 'required|exists:roles,id',
         ]);
+
+        $role = \Spatie\Permission\Models\Role::where('tenant_id', $user->tenant_id)->findOrFail($request->role_id);
 
         $user->name = $request->name;
         $user->email = $request->email;
-        $user->role = $request->role;
+        $user->role = $role->name;
         
         if ($request->filled('password')) {
             $user->password = Hash::make($request->password);
         }
 
         $user->save();
+
+        setPermissionsTeamId($user->tenant_id);
+        $user->syncRoles([$role]);
 
         return back()->with('success', 'Data Karyawan berhasil diperbarui.');
     }

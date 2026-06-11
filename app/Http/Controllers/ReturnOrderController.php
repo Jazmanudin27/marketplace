@@ -47,7 +47,7 @@ class ReturnOrderController extends Controller
         return back()->with('success', 'Berhasil menarik data retur terbaru dari Marketplace.');
     }
 
-    public function restock(ReturnOrder $returnOrder)
+    public function restock(Request $request, ReturnOrder $returnOrder)
     {
         abort_unless($returnOrder->tenant_id === Auth::user()->tenant_id, 403);
 
@@ -55,23 +55,40 @@ class ReturnOrderController extends Controller
             return back()->with('error', 'Barang retur ini sudah dikembalikan ke stok gudang sebelumnya.');
         }
 
-        // Kembalikan setiap item ke stok
-        foreach ($returnOrder->items as $rItem) {
-            $masterProduct = $rItem->orderItem->marketplaceProduct->masterProduct ?? null;
-            if ($masterProduct) {
-                // Catat pergerakan masuk (restock)
-                $masterProduct->recordStockMovement(
-                    $rItem->quantity,
-                    'in',
-                    'Terima Retur: ' . $returnOrder->return_sn,
-                    Auth::id()
-                );
+        $request->validate([
+            'inspection_status' => 'required|in:GOOD,DEFECTIVE',
+            'inspection_notes' => 'nullable|string',
+        ]);
+
+        $status = $request->input('inspection_status');
+        $notes = $request->input('inspection_notes');
+
+        if ($status === 'GOOD') {
+            // Kembalikan setiap item ke stok
+            foreach ($returnOrder->items as $rItem) {
+                $masterProduct = $rItem->orderItem->marketplaceProduct->masterProduct ?? null;
+                if ($masterProduct) {
+                    // Catat pergerakan masuk (restock)
+                    $masterProduct->recordStockMovement(
+                        $rItem->quantity,
+                        'in',
+                        'Terima Retur (Layak Jual): ' . $returnOrder->return_sn . ($notes ? ' - ' . $notes : ''),
+                        Auth::id()
+                    );
+                }
             }
+            $message = 'Barang retur berhasil diterima (Layak Jual) dan stok gudang otomatis bertambah.';
+        } else {
+            $message = 'Barang retur berhasil diproses sebagai (Rusak/Defective). Stok gudang tidak bertambah.';
         }
 
-        // Tandai sudah restocked
-        $returnOrder->update(['is_restocked' => true]);
+        // Tandai sudah restocked / diproses beserta hasil inspeksi
+        $returnOrder->update([
+            'is_restocked' => true,
+            'inspection_status' => $status,
+            'inspection_notes' => $notes,
+        ]);
 
-        return back()->with('success', 'Barang retur berhasil diterima dan stok gudang otomatis bertambah.');
+        return back()->with('success', $message);
     }
 }

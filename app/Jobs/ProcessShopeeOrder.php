@@ -31,11 +31,12 @@ class ProcessShopeeOrder implements ShouldQueue
 
         try {
             $store = $this->order->store;
+            $accessToken = $store->getValidAccessToken();
 
             // 1. Arrange Shipment (Drop-off)
             try {
                 $shipResponse = $shopeeService->shipOrder(
-                    $store->access_token,
+                    $accessToken,
                     (int) $store->marketplace_store_id,
                     $this->order->order_marketplace_id
                 );
@@ -50,7 +51,7 @@ class ProcessShopeeOrder implements ShouldQueue
 
             // 2. Fetch tracking number
             $trackingResponse = $shopeeService->getTrackingNumber(
-                $store->access_token,
+                $accessToken,
                 (int) $store->marketplace_store_id,
                 $this->order->order_marketplace_id
             );
@@ -60,7 +61,7 @@ class ProcessShopeeOrder implements ShouldQueue
             if (!$trackingNo) {
                 // Fallback: coba ambil dari order detail (package_number) jika tracking_number kosong (terutama di Sandbox)
                 $detailData = $shopeeService->getOrderDetail(
-                    $store->access_token,
+                    $accessToken,
                     (int) $store->marketplace_store_id,
                     [$this->order->order_marketplace_id]
                 );
@@ -71,17 +72,7 @@ class ProcessShopeeOrder implements ShouldQueue
             }
 
             // 3. Deduct local stock automatically (hanya jika belum diproses sebelumnya)
-            if ($this->order->order_status !== Order::STATUS_SHIPPED && $this->order->order_status !== Order::STATUS_DELIVERED) {
-                foreach ($this->order->items as $item) {
-                    if ($item->masterProduct) {
-                        $item->masterProduct->recordStockMovement(
-                            $item->quantity, 
-                            'out', 
-                            'Sales - Shopee Order #' . $this->order->order_marketplace_id
-                        );
-                    }
-                }
-            }
+            $this->order->processStockDeduction();
 
             // 4. Update Order Status locally
             $this->order->update([

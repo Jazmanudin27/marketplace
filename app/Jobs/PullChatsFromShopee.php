@@ -28,6 +28,7 @@ class PullChatsFromShopee implements ShouldQueue
     {
         $query = Store::with('channel')
             ->whereHas('channel', fn ($q) => $q->where('code', 'shopee'))
+            ->where('status', 'connected')
             ->whereNotNull('access_token');
 
         if ($this->storeId) {
@@ -52,7 +53,7 @@ class PullChatsFromShopee implements ShouldQueue
 
     private function pullForStore(ShopeeService $shopee, Store $store): void
     {
-        $accessToken = $store->access_token;
+        $accessToken = $store->getValidAccessToken();
         $shopId      = (int) $store->marketplace_store_id;
 
         if (!$accessToken || !$shopId) {

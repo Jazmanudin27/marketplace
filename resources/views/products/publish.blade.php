@@ -505,10 +505,26 @@
 
                 const $searchInput = $('#cat_search_' + storeId);
                 const $dropdown = $('#cat_dropdown_' + storeId);
+                const $clearBtn = $('#cat_clear_' + storeId);
                 let debounceTimer = null;
+
+                $clearBtn.on('click', function() {
+                    $searchInput.val('').focus();
+                    $clearBtn.hide();
+                    if (categoriesCache[channel]) {
+                        renderDropdown($dropdown, [], '', channel);
+                    }
+                    $dropdown.hide();
+                });
 
                 $searchInput.on('focus', function() {
                     $dropdown.show();
+                    const val = $(this).val();
+                    if (val) {
+                        $clearBtn.show();
+                    } else {
+                        $clearBtn.hide();
+                    }
                     if (!categoriesCache[channel]) {
                         $dropdown.html(
                             '<div class="cat-loading"><i class="fas fa-spinner fa-spin me-2"></i> Memuat kategori...</div>'
@@ -532,6 +548,11 @@
                 $searchInput.on('input', function() {
                     clearTimeout(debounceTimer);
                     const val = $(this).val();
+                    if (val) {
+                        $clearBtn.show();
+                    } else {
+                        $clearBtn.hide();
+                    }
                     debounceTimer = setTimeout(function() {
                         if (!categoriesCache[channel]) return;
                         $dropdown.show();

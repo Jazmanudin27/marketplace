@@ -15,6 +15,8 @@ class ReturnOrder extends Model
         'status',
         'refund_amount',
         'is_restocked',
+        'inspection_status',
+        'inspection_notes',
     ];
 
     protected $casts = [

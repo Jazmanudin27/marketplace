@@ -17,11 +17,15 @@ class OrderItem extends Model
         'price',
         'quantity',
         'total_price',
+        'cost_price',
+        'hpp_subtotal',
     ];
 
     protected $casts = [
-        'price' => 'decimal:2',
-        'total_price' => 'decimal:2',
+        'price'         => 'decimal:2',
+        'total_price'   => 'decimal:2',
+        'cost_price'    => 'decimal:2',
+        'hpp_subtotal'  => 'decimal:2',
     ];
 
     public function order(): BelongsTo

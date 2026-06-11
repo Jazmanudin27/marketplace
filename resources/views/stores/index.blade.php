@@ -3,6 +3,20 @@
 @section('page-title', 'Kelola Toko Marketplace')
 @section('content')
     <div class="container-fluid">
+        @php
+            $hasExpiredStores = $stores->contains('status', 'expired');
+        @endphp
+
+        @if ($hasExpiredStores)
+            <div class="alert alert-warning border-0 shadow-sm d-flex align-items-center gap-3 p-3 mb-4" role="alert" style="background-color: rgba(245, 158, 11, 0.12); border-left: 4px solid #f59e0b !important;">
+                <i class="fas fa-exclamation-triangle fs-4 text-warning"></i>
+                <div>
+                    <h6 class="alert-heading fw-bold mb-1 text-warning">Koneksi Toko Kedaluwarsa!</h6>
+                    <p class="mb-0 small text-muted">Ada toko terhubung yang membutuhkan tindakan Anda. Token integrasi toko tersebut telah kedaluwarsa (expired) atau koneksinya terputus dari pihak marketplace. Harap klik <strong>Hubungkan Ulang</strong> pada toko tersebut agar sinkronisasi produk, pesanan, dan chat kembali berjalan normal.</p>
+                </div>
+            </div>
+        @endif
+
         <div class="card shadow-sm border-0 mb-4">
             <div class="card-header border-bottom-0 p-4 d-flex justify-content-between align-items-center">
                 <h5 class="mb-0 fw-bold"><i class="fas fa-plug text-primary me-2"></i> Toko Terhubung</h5>
@@ -39,10 +53,21 @@
                                             @endif
                                             <h6 class="mb-0 fw-bold">{{ $store->channel->name }}</h6>
                                         </div>
-                                        <span
-                                            class="badge rounded-pill {{ $store->status === 'connected' ? 'bg-success' : 'bg-danger' }}">
-                                            {{ $store->status === 'connected' ? 'Terhubung' : 'Terputus' }}
-                                        </span>
+                                        <div class="d-flex align-items-center gap-2">
+                                            @if ($store->status === 'connected')
+                                                <span class="badge rounded-pill bg-success">Terhubung</span>
+                                            @elseif ($store->status === 'expired')
+                                                <span class="badge rounded-pill bg-warning text-dark" title="Token kedaluwarsa & gagal refresh otomatis">
+                                                    <i class="fas fa-exclamation-triangle me-1"></i>Expired
+                                                </span>
+                                            @else
+                                                <span class="badge rounded-pill bg-danger">Terputus</span>
+                                            @endif
+                                            
+                                            <a href="{{ route('stores.edit', $store->id) }}" class="text-muted text-decoration-none" title="Pengaturan Toko">
+                                                <i class="fas fa-cog"></i>
+                                            </a>
+                                        </div>
                                     </div>
 
                                     <h5 class="card-title fw-bold mb-1">{{ $store->store_name }}</h5>
@@ -92,6 +117,21 @@
                                                         <i class="fas fa-shopping-bag"></i> Tarik Pesanan
                                                     </button>
                                                 </form>
+                                            @endif
+                                        </div>
+                                    @endif
+
+                                    @if ($store->status === 'expired')
+                                        <hr class="text-muted">
+                                        <div class="mt-3">
+                                            @if ($store->channel->code === 'shopee')
+                                                <a href="{{ route('shopee.authorize') }}" class="btn btn-warning btn-sm w-100 text-dark fw-bold d-flex justify-content-center align-items-center gap-2 shadow-sm">
+                                                    <i class="fas fa-plug"></i> Hubungkan Ulang (Reconnect)
+                                                </a>
+                                            @elseif ($store->channel->code === 'tiktok')
+                                                <a href="{{ route('tiktok.auth') }}" class="btn btn-warning btn-sm w-100 text-dark fw-bold d-flex justify-content-center align-items-center gap-2 shadow-sm">
+                                                    <i class="fas fa-plug"></i> Hubungkan Ulang (Reconnect)
+                                                </a>
                                             @endif
                                         </div>
                                     @endif

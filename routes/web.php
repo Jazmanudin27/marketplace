@@ -15,6 +15,7 @@ use App\Http\Controllers\TiktokController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\OrderController;
+use App\Http\Controllers\OrderPrintController;
 use App\Http\Controllers\IncomingGoodController;
 use App\Http\Controllers\StockOpnameController;
 use App\Http\Controllers\InventoryController;
@@ -22,6 +23,15 @@ use App\Http\Controllers\MarketplaceProductController;
 use App\Http\Controllers\ChatController;
 use App\Http\Controllers\ReturnOrderController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\ReconciliationController;
+use App\Http\Controllers\VoucherController;
+use App\Http\Controllers\FulfillmentController;
+use App\Http\Controllers\ProfitController;
+use App\Http\Controllers\OfflineSaleController;
+use App\Http\Controllers\ExpenseController;
+use App\Http\Controllers\IncomeController;
+use App\Http\Controllers\FundTransferController;
+use App\Http\Controllers\FinancialReportController;
 
 
 // =========================================================================
@@ -38,7 +48,6 @@ Route::middleware('guest')->group(function () {
 // =========================================================================
 Route::post('/api/webhooks/shopee', [WebhookController::class, 'shopee'])->name('webhooks.shopee');
 Route::post('/api/webhooks/tiktok', [WebhookController::class, 'tiktok'])->name('webhooks.tiktok');
-
 
 // =========================================================================
 // Shopee OAuth Callback
@@ -63,7 +72,6 @@ Route::get('/shopee/debug-sign', function () {
     ]);
 })->middleware('auth');
 
-
 // =========================================================================
 // Routes yang memerlukan login
 // =========================================================================
@@ -71,37 +79,56 @@ Route::middleware('auth')->group(function () {
 
     Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 
-    // Master Data (Admin Only)
-    Route::middleware('role:admin')->group(function () {
+    // =========================================================================
+    // Master Data & Pengaturan Hak Akses
+    // =========================================================================
+
+    // Categories
+    Route::middleware('permission:manage-categories')->group(function () {
         Route::get('/categories', [CategoryController::class, 'index'])->name('categories.index');
         Route::get('/categories/create', [CategoryController::class, 'create'])->name('categories.create');
         Route::post('/categories', [CategoryController::class, 'store'])->name('categories.store');
         Route::get('/categories/{category}/edit', [CategoryController::class, 'edit'])->name('categories.edit');
         Route::put('/categories/{category}', [CategoryController::class, 'update'])->name('categories.update');
         Route::delete('/categories/{category}', [CategoryController::class, 'destroy'])->name('categories.destroy');
+    });
 
+    // Brands
+    Route::middleware('permission:manage-brands')->group(function () {
         Route::get('/brands', [BrandController::class, 'index'])->name('brands.index');
         Route::post('/brands', [BrandController::class, 'store'])->name('brands.store');
         Route::put('/brands/{brand}', [BrandController::class, 'update'])->name('brands.update');
         Route::delete('/brands/{brand}', [BrandController::class, 'destroy'])->name('brands.destroy');
+    });
 
+    // Suppliers
+    Route::middleware('permission:manage-suppliers')->group(function () {
         Route::get('/suppliers', [SupplierController::class, 'index'])->name('suppliers.index');
         Route::get('/suppliers/create', [SupplierController::class, 'create'])->name('suppliers.create');
         Route::post('/suppliers', [SupplierController::class, 'store'])->name('suppliers.store');
         Route::get('/suppliers/{supplier}/edit', [SupplierController::class, 'edit'])->name('suppliers.edit');
         Route::put('/suppliers/{supplier}', [SupplierController::class, 'update'])->name('suppliers.update');
         Route::delete('/suppliers/{supplier}', [SupplierController::class, 'destroy'])->name('suppliers.destroy');
+    });
 
-        // Employees Routes
+    // Employees
+    Route::middleware('permission:manage-employees')->group(function () {
         Route::resource('employees', EmployeeController::class)->except(['create', 'show', 'edit']);
+    });
 
-        // Users Routes
+    // Users & Roles (Hak Akses)
+    Route::middleware('permission:manage-users')->group(function () {
         Route::resource('users', UserController::class)->except(['create', 'show', 'edit']);
+        Route::resource('roles', RoleController::class)->except(['create', 'show', 'edit']);
+    });
 
-        // Customers (Pelanggan)
+    // Customers (Pelanggan)
+    Route::middleware('permission:manage-customers')->group(function () {
         Route::resource('customers', CustomerController::class)->only(['index', 'show', 'update']);
+    });
 
-        // Stores Routes
+    // Stores (Toko)
+    Route::middleware('permission:manage-stores')->group(function () {
         Route::get('/stores/create', [StoreController::class, 'create'])->name('stores.create');
         Route::post('/stores', [StoreController::class, 'store'])->name('stores.store');
         Route::get('/stores/{store}/edit', [StoreController::class, 'edit'])->name('stores.edit');
@@ -129,8 +156,13 @@ Route::middleware('auth')->group(function () {
         })->name('tiktok.sync_products');
     });
 
-    // Inventory & Orders (Warehouse & Admin)
-    Route::middleware('role:admin,warehouse')->group(function () {
+
+    // =========================================================================
+    // Produk & Inventory (Warehouse & Admin)
+    // =========================================================================
+
+    // Master Produk & Mapping Marketplace
+    Route::middleware('permission:manage-products')->group(function () {
         Route::get('/products', [MasterProductController::class, 'index'])->name('products.index');
         Route::get('/products/create', [MasterProductController::class, 'create'])->name('products.create');
         Route::post('/products', [MasterProductController::class, 'store'])->name('products.store');
@@ -146,19 +178,44 @@ Route::middleware('auth')->group(function () {
         Route::delete('/products/mappings/category/{mapping}', [MasterProductController::class, 'destroyCategoryMapping'])->name('products.mappings.category.destroy');
         Route::delete('/products/mappings/brand/{mapping}', [MasterProductController::class, 'destroyBrandMapping'])->name('products.mappings.brand.destroy');
 
+        Route::get('/marketplace-products', [MarketplaceProductController::class, 'index'])->name('marketplace_products.index');
+        Route::post('/marketplace-products/{product}/promote', [MarketplaceProductController::class, 'promote'])->name('marketplace_products.promote');
+        Route::post('/marketplace-products/{product}/link', [MarketplaceProductController::class, 'link'])->name('marketplace_products.link');
+        Route::put('/marketplace-products/{product}/update-settings', [MarketplaceProductController::class, 'updateSettings'])->name('marketplace_products.update_settings');
+        Route::post('/marketplace-products/{product}/clone-and-publish', [MarketplaceProductController::class, 'cloneAndPublish'])->name('marketplace_products.clone_and_publish');
+    });
 
+    // Orders (Pesanan Masuk)
+    Route::middleware('permission:manage-orders')->group(function () {
         Route::get('/orders', [OrderController::class, 'index'])->name('orders.index');
         Route::post('/orders/sync', [OrderController::class, 'sync'])->name('orders.sync');
+        Route::post('/orders/mass-print', [OrderPrintController::class, 'massPrint'])->name('orders.mass_print');
         Route::get('/orders/{order}', [OrderController::class, 'show'])->name('orders.show');
         Route::post('/orders/{order}/process', [OrderController::class, 'process'])->name('orders.process');
         Route::post('/orders/{order}/ship', [OrderController::class, 'ship'])->name('orders.ship');
         Route::post('/orders/{order}/tracking', [OrderController::class, 'fetchTracking'])->name('orders.tracking');
+        Route::get('/orders/{order}/tracking-detail', [OrderController::class, 'trackingDetail'])->name('orders.tracking.detail');
         Route::get('/orders/{order}/print', [OrderController::class, 'print'])->name('orders.print');
+    });
+
+    // Fulfillment (Kemas Pesanan)
+    Route::middleware('permission:manage-fulfillment')->group(function () {
+        Route::get('/fulfillment', [FulfillmentController::class, 'index'])->name('fulfillment.index');
+        Route::get('/fulfillment/scan', [FulfillmentController::class, 'scanPage'])->name('fulfillment.scan_page');
+        Route::get('/fulfillment/order/{identifier}', [FulfillmentController::class, 'getOrderDetails'])->name('fulfillment.order_details');
+        Route::post('/fulfillment/order/{order}/complete', [FulfillmentController::class, 'completePack'])->name('fulfillment.complete_pack');
+    });
+
+    // Inbox Chat
+    Route::middleware('permission:manage-chats')->group(function () {
         Route::get('/chats', [ChatController::class, 'index'])->name('chats.index');
         Route::get('/chats/{chatConversation}', [ChatController::class, 'show'])->name('chats.show');
         Route::post('/chats/{chatConversation}/reply', [ChatController::class, 'reply'])->name('chats.reply');
         Route::post('/chats/sync', [ChatController::class, 'sync'])->name('chats.sync');
+    });
 
+    // Inventory & Stock
+    Route::middleware('permission:manage-inventory')->group(function () {
         Route::get('/inventory', [InventoryController::class, 'index'])->name('inventory.index');
         Route::get('/incoming-goods', [IncomingGoodController::class, 'index'])->name('incoming_goods.index');
         Route::get('/incoming-goods/create', [IncomingGoodController::class, 'create'])->name('incoming_goods.create');
@@ -168,20 +225,30 @@ Route::middleware('auth')->group(function () {
         Route::post('/stock-opnames', [StockOpnameController::class, 'store'])->name('stock_opnames.store');
         Route::get('/inventory/{product}/ledger', [InventoryController::class, 'ledger'])->name('inventory.ledger');
         Route::post('/inventory/{product}/adjust', [InventoryController::class, 'adjust'])->name('inventory.adjust');
+    });
 
-        // Produk Marketplace (Mapping)
-        Route::get('/marketplace-products', [MarketplaceProductController::class, 'index'])->name('marketplace_products.index');
-        Route::post('/marketplace-products/{product}/promote', [MarketplaceProductController::class, 'promote'])->name('marketplace_products.promote');
-        Route::post('/marketplace-products/{product}/link', [MarketplaceProductController::class, 'link'])->name('marketplace_products.link');
-
-        // Pesanan Retur
+    // Pesanan Retur
+    Route::middleware('permission:manage-returns')->group(function () {
         Route::get('/returns', [ReturnOrderController::class, 'index'])->name('returns.index');
         Route::post('/returns/sync', [ReturnOrderController::class, 'sync'])->name('returns.sync');
         Route::post('/returns/{returnOrder}/restock', [ReturnOrderController::class, 'restock'])->name('returns.restock');
     });
 
-    // Finance & Admin (Reports)
-    Route::middleware('role:admin,finance')->group(function () {
+    // Penjualan Offline (Manual Order)
+    Route::middleware('permission:manage-offline-sales')->group(function () {
+        Route::get('/offline-sales', [OfflineSaleController::class, 'index'])->name('offline_sales.index');
+        Route::get('/offline-sales/create', [OfflineSaleController::class, 'create'])->name('offline_sales.create');
+        Route::post('/offline-sales', [OfflineSaleController::class, 'store'])->name('offline_sales.store');
+        Route::get('/offline-sales/{offlineSale}', [OfflineSaleController::class, 'show'])->name('offline_sales.show');
+        Route::post('/offline-sales/{offlineSale}/complete', [OfflineSaleController::class, 'complete'])->name('offline_sales.complete');
+        Route::post('/offline-sales/{offlineSale}/cancel', [OfflineSaleController::class, 'cancel'])->name('offline_sales.cancel');
+        Route::get('/offline-sales/{offlineSale}/print', [OfflineSaleController::class, 'printReceipt'])->name('offline_sales.print');
+    });
+
+    // =========================================================================
+    // Laporan Gudang (Admin & Finance / Warehouse)
+    // =========================================================================
+    Route::middleware('permission:view-warehouse-reports')->group(function () {
         Route::get('/reports/summary', [ReportController::class, 'summaryReport'])->name('reports.summary');
         Route::get('/reports/summary/print', [ReportController::class, 'printSummaryReport'])->name('reports.summary.print');
         Route::get('/reports/stock', [ReportController::class, 'stockReport'])->name('reports.stock');
@@ -190,7 +257,56 @@ Route::middleware('auth')->group(function () {
         Route::get('/reports/ledger/print', [ReportController::class, 'printLedgerReport'])->name('reports.ledger.print');
         Route::get('/reports/opname', [ReportController::class, 'opnameReport'])->name('reports.opname');
         Route::get('/reports/opname/print', [ReportController::class, 'printOpnameReport'])->name('reports.opname.print');
+        Route::get('/reports/analytics', [ReportController::class, 'inventoryAnalytics'])->name('reports.analytics');
     });
+
+    // =========================================================================
+    // Keuangan (Finance & Admin)
+    // =========================================================================
+
+    // Laporan Profit & Laba Rugi
+    Route::middleware('permission:view-financial-reports')->group(function () {
+        Route::get('/profit', [ProfitController::class, 'index'])->name('profit.index');
+        Route::get('/finance/profit-loss', [FinancialReportController::class, 'profitLoss'])->name('finance.profit_loss');
+    });
+
+    // Manajemen Transaksi Keuangan
+    Route::middleware('permission:manage-finance')->group(function () {
+        Route::get('/reconciliation', [ReconciliationController::class, 'index'])->name('finance.reconciliation');
+
+        // CRUD Incomes (Pemasukan Lain-lain)
+        Route::resource('finance/incomes', IncomeController::class)->except(['create', 'show', 'edit'])->names([
+            'index' => 'finance.incomes.index',
+            'store' => 'finance.incomes.store',
+            'update' => 'finance.incomes.update',
+            'destroy' => 'finance.incomes.destroy',
+        ]);
+
+        // CRUD Expenses (Pengeluaran)
+        Route::resource('finance/expenses', ExpenseController::class)->except(['create', 'show', 'edit'])->names([
+            'index' => 'finance.expenses.index',
+            'store' => 'finance.expenses.store',
+            'update' => 'finance.expenses.update',
+            'destroy' => 'finance.expenses.destroy',
+        ]);
+
+        // CRUD Fund Transfers (Transfer Dana)
+        Route::resource('finance/transfers', FundTransferController::class)->except(['create', 'show', 'edit'])->names([
+            'index' => 'finance.transfers.index',
+            'store' => 'finance.transfers.store',
+            'update' => 'finance.transfers.update',
+            'destroy' => 'finance.transfers.destroy',
+        ]);
+    });
+
+    // Route untuk menjalankan migrasi via browser (Bypass permission check, diproteksi role === admin kustom)
+    Route::get('/finance/run-migrations', function () {
+        if (auth()->user()->role !== 'admin' && !auth()->user()->hasRole('admin')) {
+            abort(403, 'Hanya Administrator yang dapat menjalankan migrasi database.');
+        }
+        \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
+        return '<pre>' . \Illuminate\Support\Facades\Artisan::output() . '</pre><br><a href="' . route('dashboard') . '">Kembali ke Dashboard</a>';
+    })->name('finance.run_migrations');
 
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');

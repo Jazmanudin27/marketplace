@@ -28,19 +28,24 @@
                                 <td>{{ $u->name }}</td>
                                 <td>{{ $u->email }}</td>
                                 <td>
-                                    @if ($u->role === 'admin')
-                                        <span class="badge bg-primary">Admin (Owner)</span>
-                                    @elseif($u->role === 'warehouse')
-                                        <span class="badge bg-warning text-dark">Staf Gudang</span>
-                                    @elseif($u->role === 'finance')
-                                        <span class="badge bg-success">Staf Keuangan</span>
+                                    @if ($u->roles->first())
+                                        @php $roleName = $u->roles->first()->name; @endphp
+                                        @if ($roleName === 'admin')
+                                            <span class="badge bg-primary">Admin (Owner)</span>
+                                        @elseif($roleName === 'warehouse')
+                                            <span class="badge bg-warning text-dark">Staf Gudang</span>
+                                        @elseif($roleName === 'finance')
+                                            <span class="badge bg-success">Staf Keuangan</span>
+                                        @else
+                                            <span class="badge bg-secondary text-capitalize">{{ $roleName }}</span>
+                                        @endif
                                     @else
-                                        <span class="badge bg-secondary">{{ $u->role }}</span>
+                                        <span class="badge bg-secondary text-muted">Belum ada role</span>
                                     @endif
                                 </td>
                                 <td>
                                     <button class="btn btn-sm btn-info text-white"
-                                        onclick="editUser({{ $u->id }}, '{{ addslashes($u->name) }}', '{{ addslashes($u->email) }}', '{{ $u->role }}')">
+                                        onclick="editUser({{ $u->id }}, '{{ addslashes($u->name) }}', '{{ addslashes($u->email) }}', '{{ $u->roles->first() ? $u->roles->first()->id : '' }}')">
                                         <i class="fas fa-edit"></i>
                                     </button>
                                     @if ($u->id !== Auth::id())
@@ -91,11 +96,13 @@
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Role / Posisi</label>
-                            <select name="role" id="role" class="form-select form-control" required
+                            <select name="role_id" id="role" class="form-select form-control" required
                                 style="background:var(--bg-app); color:var(--text-primary); border-color:var(--border);">
-                                <option value="warehouse">Staf Gudang (Hanya Inventory & Pesanan)</option>
-                                <option value="finance">Staf Keuangan (Hanya Laporan Keuangan)</option>
-                                <option value="admin">Admin (Akses Penuh)</option>
+                                @foreach($roles as $role)
+                                    <option value="{{ $role->id }}">
+                                        {{ $role->name === 'admin' ? 'Admin (Akses Penuh)' : ($role->name === 'warehouse' ? 'Staf Gudang (Hanya Inventory & Pesanan)' : ($role->name === 'finance' ? 'Staf Keuangan (Hanya Laporan Keuangan)' : ucfirst($role->name))) }}
+                                    </option>
+                                @endforeach
                             </select>
                         </div>
                     </div>
@@ -118,6 +125,7 @@
                 document.getElementById('name').value = name;
                 document.getElementById('email').value = email;
                 document.getElementById('role').value = role;
+                $('#role').trigger('change');
 
                 document.getElementById('password').required = false;
                 document.getElementById('pwdHint').innerText = '(Kosongkan jika tidak ingin mengubah password)';
@@ -133,7 +141,9 @@
 
                 document.getElementById('name').value = '';
                 document.getElementById('email').value = '';
-                document.getElementById('role').value = 'warehouse';
+                document.getElementById('role').value = '{{ $roles->where("name", "warehouse")->first()->id ?? ($roles->first()->id ?? "") }}';
+                // Trigger Select2 update
+                $('#role').trigger('change');
 
                 document.getElementById('password').required = true;
                 document.getElementById('pwdHint').innerText = '';

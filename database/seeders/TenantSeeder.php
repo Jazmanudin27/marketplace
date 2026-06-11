@@ -7,6 +7,8 @@ use App\Models\MasterProduct;
 use App\Models\Store;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Models\Category;
+use App\Models\Brand;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
@@ -22,12 +24,29 @@ class TenantSeeder extends Seeder
             'status' => 'active',
         ]);
 
+        // Users for Tenant A
         User::create([
             'tenant_id' => $tenantA->id,
             'name'      => 'Admin Perusahaan A',
             'email'     => 'admin@perusahaan-a.com',
             'password'  => Hash::make('password'),
             'role'      => 'admin',
+        ]);
+
+        User::create([
+            'tenant_id' => $tenantA->id,
+            'name'      => 'Staff Gudang Perusahaan A',
+            'email'     => 'warehouse@perusahaan-a.com',
+            'password'  => Hash::make('password'),
+            'role'      => 'warehouse',
+        ]);
+
+        User::create([
+            'tenant_id' => $tenantA->id,
+            'name'      => 'Finance Perusahaan A',
+            'email'     => 'finance@perusahaan-a.com',
+            'password'  => Hash::make('password'),
+            'role'      => 'finance',
         ]);
 
         $shopee   = Channel::where('code', 'shopee')->first();
@@ -56,11 +75,27 @@ class TenantSeeder extends Seeder
             ]);
         }
 
+        // Categories & Brands for Perusahaan A
+        $catFashion = Category::create([
+            'tenant_id' => $tenantA->id,
+            'name'      => 'Fashion',
+        ]);
+
+        $brandX = Brand::create([
+            'tenant_id' => $tenantA->id,
+            'name'      => 'BrandX',
+        ]);
+
+        $brandY = Brand::create([
+            'tenant_id' => $tenantA->id,
+            'name'      => 'BrandY',
+        ]);
+
         // Produk Master Perusahaan A
         $products = [
-            ['sku' => 'SKU-A-001', 'name' => 'Sepatu Sneakers Premium', 'price' => 350000, 'cost_price' => 180000, 'stock' => 150, 'category' => 'Fashion', 'brand' => 'BrandX'],
-            ['sku' => 'SKU-A-002', 'name' => 'Tas Ransel Outdoor',      'price' => 250000, 'cost_price' => 120000, 'stock' => 80,  'category' => 'Fashion', 'brand' => 'BrandX'],
-            ['sku' => 'SKU-A-003', 'name' => 'Topi Baseball Polos',     'price' => 85000,  'cost_price' => 35000,  'stock' => 200, 'category' => 'Fashion', 'brand' => 'BrandY'],
+            ['sku' => 'SKU-A-001', 'name' => 'Sepatu Sneakers Premium', 'price' => 350000, 'cost_price' => 180000, 'stock' => 150, 'category_id' => $catFashion->id, 'brand_id' => $brandX->id],
+            ['sku' => 'SKU-A-002', 'name' => 'Tas Ransel Outdoor',      'price' => 250000, 'cost_price' => 120000, 'stock' => 80,  'category_id' => $catFashion->id, 'brand_id' => $brandX->id],
+            ['sku' => 'SKU-A-003', 'name' => 'Topi Baseball Polos',     'price' => 85000,  'cost_price' => 35000,  'stock' => 200, 'category_id' => $catFashion->id, 'brand_id' => $brandY->id],
         ];
 
         foreach ($products as $p) {
@@ -75,12 +110,29 @@ class TenantSeeder extends Seeder
             'status' => 'active',
         ]);
 
+        // Users for Tenant B
         User::create([
             'tenant_id' => $tenantB->id,
             'name'      => 'Admin Perusahaan B',
             'email'     => 'admin@perusahaan-b.com',
             'password'  => Hash::make('password'),
             'role'      => 'admin',
+        ]);
+
+        User::create([
+            'tenant_id' => $tenantB->id,
+            'name'      => 'Staff Gudang Perusahaan B',
+            'email'     => 'warehouse@perusahaan-b.com',
+            'password'  => Hash::make('password'),
+            'role'      => 'warehouse',
+        ]);
+
+        User::create([
+            'tenant_id' => $tenantB->id,
+            'name'      => 'Finance Perusahaan B',
+            'email'     => 'finance@perusahaan-b.com',
+            'password'  => Hash::make('password'),
+            'role'      => 'finance',
         ]);
 
         // 2 Toko Tokopedia Perusahaan B

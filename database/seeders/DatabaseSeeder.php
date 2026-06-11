@@ -11,6 +11,7 @@ class DatabaseSeeder extends Seeder
         $this->call([
             ChannelSeeder::class, // Harus pertama (channels dibutuhkan oleh TenantSeeder)
             TenantSeeder::class,
+            RolePermissionSeeder::class,
         ]);
     }
 }

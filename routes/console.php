@@ -16,3 +16,6 @@ Schedule::command('shopee:sync-returns')->everyFifteenMinutes();
 // Sinkronisasi chat masuk dari marketplace setiap 5 menit
 Schedule::job(new \App\Jobs\PullChatsFromShopee())->everyFiveMinutes();
 Schedule::job(new \App\Jobs\PullChatsFromTiktok())->everyFiveMinutes();
+
+// Cek stok menipis setiap hari jam 08:00
+Schedule::command('stock:check-low')->dailyAt('08:00')->withoutOverlapping();

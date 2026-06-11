@@ -73,6 +73,7 @@ class TiktokController extends Controller
             $shopName = $shop['name'] ?? 'TikTok Shop ' . substr($openId, 0, 5);
             $shopCipher = $shop['cipher'];
 
+            Channel::ensureChannelsExist();
             $channel = Channel::where('code', 'tiktok')->first();
             if (!$channel) {
                 $channel = Channel::create([

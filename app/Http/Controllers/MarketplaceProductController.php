@@ -99,4 +99,83 @@ class MarketplaceProductController extends Controller
 
         return back()->with('success', "Produk marketplace '{$product->name}' berhasil ditautkan ke Master '{$master->name}'.");
     }
+
+    public function updateSettings(Request $request, MarketplaceProduct $product)
+    {
+        abort_unless($product->store->tenant_id === Auth::user()->tenant_id, 403);
+
+        $data = $request->validate([
+            'safety_stock' => 'required|integer|min:0',
+        ]);
+
+        $syncStock = $request->boolean('sync_stock');
+
+        $product->update([
+            'sync_stock' => $syncStock,
+            'safety_stock' => $data['safety_stock'],
+        ]);
+
+        if ($syncStock && $product->master_product_id) {
+            \App\Jobs\PushStockToMarketplaces::dispatch($product->master_product_id, $product->masterProduct->stock);
+        }
+
+        return back()->with('success', "Pengaturan sinkronisasi untuk produk '{$product->name}' berhasil diperbarui.");
+    }
+
+    public function cloneAndPublish(MarketplaceProduct $product)
+    {
+        abort_unless($product->store->tenant_id === Auth::user()->tenant_id, 403);
+
+        // Jika sudah tertaut ke master product, langsung arahkan ke halaman publish
+        if ($product->master_product_id) {
+            return redirect()->route('products.publish', $product->master_product_id);
+        }
+
+        // Cek jika SKU sudah ada di master
+        if ($product->marketplace_sku) {
+            $existingMaster = MasterProduct::where('tenant_id', Auth::user()->tenant_id)
+                                ->where('sku', $product->marketplace_sku)
+                                ->first();
+            
+            if ($existingMaster) {
+                // Tautkan otomatis ke master yang sudah ada
+                $product->update(['master_product_id' => $existingMaster->id]);
+                return redirect()->route('products.publish', $existingMaster->id)
+                    ->with('success', "Produk marketplace otomatis ditautkan ke Master Produk '{$existingMaster->name}' yang memiliki SKU yang sama.");
+            }
+        }
+
+        try {
+            $master = DB::transaction(function () use ($product) {
+                // Buat Master Product baru berdasarkan data dari MarketplaceProduct
+                $newMaster = MasterProduct::create([
+                    'tenant_id'   => Auth::user()->tenant_id,
+                    'sku'         => $product->marketplace_sku ?: ('SKU-' . time() . '-' . rand(100, 999)),
+                    'name'        => $product->name,
+                    'price'       => $product->price,
+                    'stock'       => $product->stock,
+                    'image_url'   => $product->image_url,
+                    'is_active'   => true,
+                    // Default values for standard dimensions/weight to prevent publish errors
+                    'weight'      => 0.1, 
+                    'length'      => 10,
+                    'width'       => 10,
+                    'height'      => 10,
+                ]);
+
+                // Update marketplace product agar tertaut ke master yang baru
+                $product->update([
+                    'master_product_id' => $newMaster->id,
+                ]);
+
+                return $newMaster;
+            });
+
+            return redirect()->route('products.publish', $master->id)
+                ->with('success', "Master produk baru '{$master->name}' berhasil dibuat dari produk marketplace. Sekarang pilih toko tujuan untuk menduplikat.");
+
+        } catch (\Exception $e) {
+            return back()->with('error', 'Gagal memproses kloning produk: ' . $e->getMessage());
+        }
+    }
 }

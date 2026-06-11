@@ -408,6 +408,7 @@ class MasterProductController extends Controller
         try {
             $tenantId = \Illuminate\Support\Facades\Auth::user()->tenant_id;
 
+            \App\Models\Channel::ensureChannelsExist();
             $shopeeChannel = \App\Models\Channel::where('code', 'shopee')->first();
             if (!$shopeeChannel) {
                 return response()->json(['success' => false, 'message' => 'Channel Shopee tidak ditemukan.'], 404);

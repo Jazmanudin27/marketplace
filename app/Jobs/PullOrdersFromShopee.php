@@ -44,7 +44,7 @@ class PullOrdersFromShopee implements ShouldQueue
             // 1. Fetch Order List
             while ($hasMore) {
                 $response = $shopeeService->getOrderList(
-                    $this->store->access_token,
+                    $this->store->getValidAccessToken(),
                     (int) $this->store->marketplace_store_id,
                     $this->timeFrom,
                     $this->timeTo,
@@ -73,7 +73,7 @@ class PullOrdersFromShopee implements ShouldQueue
             $chunks = array_chunk($allOrderSn, 50);
             foreach ($chunks as $chunk) {
                 $detailsResponse = $shopeeService->getOrderDetail(
-                    $this->store->access_token,
+                    $this->store->getValidAccessToken(),
                     (int) $this->store->marketplace_store_id,
                     $chunk
                 );
@@ -116,7 +116,7 @@ class PullOrdersFromShopee implements ShouldQueue
             try {
                 $shopeeService = app(\App\Services\ShopeeService::class);
                 $escrowResponse = $shopeeService->getEscrowDetail(
-                    $this->store->access_token,
+                    $this->store->getValidAccessToken(),
                     (int) $this->store->marketplace_store_id,
                     $shopeeOrder['order_sn']
                 );
@@ -168,6 +168,14 @@ class PullOrdersFromShopee implements ShouldQueue
                 $price = $item['model_discounted_price'] ?? $item['model_original_price'] ?? 0;
                 $qty = $item['model_quantity_purchased'] ?? 1;
 
+                // Snapshot HPP dari MasterProduct saat pesanan dibuat
+                $masterProductId = $marketplaceProduct ? $marketplaceProduct->master_product_id : null;
+                $costPrice = 0;
+                if ($masterProductId) {
+                    $mp = \App\Models\MasterProduct::find($masterProductId);
+                    $costPrice = $mp ? (float) $mp->cost_price : 0;
+                }
+
                 OrderItem::updateOrCreate(
                     [
                         'order_id' => $order->id,
@@ -175,14 +183,20 @@ class PullOrdersFromShopee implements ShouldQueue
                     ],
                     [
                         'marketplace_product_id' => $marketplaceProduct ? $marketplaceProduct->id : null,
-                        'master_product_id' => $marketplaceProduct ? $marketplaceProduct->master_product_id : null,
-                        'product_name' => $item['item_name'] . (!empty($item['model_name']) ? ' - ' . $item['model_name'] : ''),
-                        'price' => $price,
-                        'quantity' => $qty,
-                        'total_price' => $price * $qty,
+                        'master_product_id'      => $masterProductId,
+                        'product_name'           => $item['item_name'] . (!empty($item['model_name']) ? ' - ' . $item['model_name'] : ''),
+                        'price'                  => $price,
+                        'quantity'               => $qty,
+                        'total_price'            => $price * $qty,
+                        'cost_price'             => $costPrice,
+                        'hpp_subtotal'           => $costPrice * $qty,
                     ]
                 );
             }
         }
+
+
+        // Process stock deduction or return
+        $order->processStockDeduction();
     }
 }
