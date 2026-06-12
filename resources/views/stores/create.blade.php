@@ -42,23 +42,24 @@
                 </a>
             </div>
 
-            {{-- TOKOPEDIA — Coming Soon --}}
-            <div class="connect-card connect-card-disabled">
+            {{-- TOKOPEDIA --}}
+            <div class="connect-card connect-card-tokopedia">
                 <div class="connect-card-left">
                     <div class="connect-platform-icon connect-tokopedia">
                         <i class="fas fa-store"></i>
                     </div>
                     <div class="connect-info">
                         <div class="connect-name">Tokopedia</div>
-                        <div class="connect-desc">Integrasi Tokopedia API sedang dalam pengembangan.</div>
+                        <div class="connect-desc">Hubungkan toko Tokopedia Anda via Client Credentials.</div>
                         <div class="connect-badges">
-                            <span class="connect-badge badge-coming"><i class="fas fa-clock"></i> Coming Soon</span>
+                            <span class="connect-badge badge-auto"><i class="fas fa-bolt"></i> Otomatis</span>
+                            <span class="connect-badge badge-secure"><i class="fas fa-shield-alt"></i> OAuth 2.0</span>
                         </div>
                     </div>
                 </div>
-                <button class="btn-connect btn-connect-disabled" disabled>
-                    <i class="fas fa-lock"></i> Segera Hadir
-                </button>
+                <a href="{{ route('tokopedia.connect') }}" class="btn-connect btn-connect-tokopedia" id="btn-tokopedia-connect">
+                    <i class="fas fa-plug"></i> Hubungkan Tokopedia
+                </a>
             </div>
 
             {{-- TIKTOK SHOP --}}
@@ -141,6 +142,10 @@
 
         .connect-card-shopee:hover {
             border-color: rgba(238, 77, 45, 0.4) !important;
+        }
+
+        .connect-card-tokopedia:hover {
+            border-color: rgba(3, 172, 14, 0.4) !important;
         }
 
         .connect-card-disabled {
@@ -287,6 +292,21 @@
         }
 
         .btn-connect-tiktok:active {
+            transform: translateY(0);
+        }
+
+        .btn-connect-tokopedia {
+            background: linear-gradient(135deg, #03AC0E, #028A0B);
+            color: white;
+            box-shadow: 0 4px 16px rgba(3, 172, 14, 0.3);
+        }
+
+        .btn-connect-tokopedia:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(3, 172, 14, 0.45);
+        }
+
+        .btn-connect-tokopedia:active {
             transform: translateY(0);
         }
 

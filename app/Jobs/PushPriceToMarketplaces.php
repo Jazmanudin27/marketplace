@@ -66,6 +66,16 @@ class PushPriceToMarketplaces implements ShouldQueue
                         $this->newPrice
                     );
                     Log::info("[TikTok] Berhasil update harga untuk MP Product ID: {$mp->id} menjadi {$this->newPrice}");
+                } elseif ($mp->store->channel->code === 'tokopedia') {
+                    $tokopediaService = app(\App\Services\TokopediaService::class);
+                    $tokopediaService->updatePrice(
+                        $mp->store->access_token,
+                        $mp->store->marketplace_store_id,
+                        $mp->marketplace_product_id,
+                        $mp->marketplace_variant_id,
+                        $this->newPrice
+                    );
+                    Log::info("[Tokopedia] Berhasil update harga untuk MP Product ID: {$mp->id} menjadi {$this->newPrice}");
                 }
 
                 // Update local price in marketplace_products table

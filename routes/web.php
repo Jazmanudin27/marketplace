@@ -12,6 +12,7 @@ use App\Http\Controllers\CustomerController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\WebhookController;
 use App\Http\Controllers\TiktokController;
+use App\Http\Controllers\TokopediaController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\OrderController;
@@ -154,6 +155,12 @@ Route::middleware('auth')->group(function () {
             \App\Jobs\PullProductsFromTiktok::dispatch($store);
             return back()->with('success', 'Sinkronisasi produk TikTok sedang berjalan di latar belakang.');
         })->name('tiktok.sync_products');
+
+        // Tokopedia Routes
+        Route::get('/tokopedia/connect', [TokopediaController::class, 'connectForm'])->name('tokopedia.connect');
+        Route::post('/tokopedia/connect', [TokopediaController::class, 'connect'])->name('tokopedia.connect.post');
+        Route::post('/tokopedia/{store}/sync-products', [TokopediaController::class, 'syncProducts'])->name('tokopedia.sync_products');
+        Route::post('/tokopedia/{store}/sync-orders', [TokopediaController::class, 'syncOrders'])->name('tokopedia.sync_orders');
     });
 
 

@@ -88,9 +88,24 @@ class PushStockToMarketplaces implements ShouldQueue
                     ]);
                     
                     Log::info("Berhasil push stok ke TikTok untuk item {$mpProduct->marketplace_product_id} (Stok master: {$masterProduct->stock}, Safety: {$safetyStock}, Pushed: {$pushedStock})");
+                } elseif ($store->channel->code === 'tokopedia') {
+                    $tokopediaService = app(\App\Services\TokopediaService::class);
+                    $tokopediaService->updateStock(
+                        $store->access_token,
+                        $store->marketplace_store_id,
+                        $mpProduct->marketplace_product_id,
+                        $mpProduct->marketplace_variant_id,
+                        $pushedStock
+                    );
+
+                    // Update local marketplace_products table stock
+                    $mpProduct->update([
+                        'stock' => $pushedStock,
+                        'last_synced_at' => now(),
+                    ]);
+                    
+                    Log::info("Berhasil push stok ke Tokopedia untuk item {$mpProduct->marketplace_product_id} (Stok master: {$masterProduct->stock}, Safety: {$safetyStock}, Pushed: {$pushedStock})");
                 }
-                
-                // Tambahkan kondisi untuk Tokopedia/Lazada di sini nanti...
                 
             } catch (\Exception $e) {
                 Log::error("Gagal push stok untuk marketplace product ID {$mpProduct->id}", [

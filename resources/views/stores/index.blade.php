@@ -117,6 +117,25 @@
                                                         <i class="fas fa-shopping-bag"></i> Tarik Pesanan
                                                     </button>
                                                 </form>
+                                            @elseif($store->channel->code === 'tokopedia')
+                                                <form action="{{ route('tokopedia.sync_products', $store->id) }}"
+                                                    method="POST" class="flex-fill">
+                                                    @csrf
+                                                    <button type="submit"
+                                                        class="btn btn-success btn-sm w-100 d-flex justify-content-center align-items-center gap-2"
+                                                        onclick="this.innerHTML='<i class=\'fas fa-spinner fa-spin\'></i> Menunggu...'; this.disabled=true; this.form.submit();">
+                                                        <i class="fas fa-box-open"></i> Tarik Produk
+                                                    </button>
+                                                </form>
+                                                <form action="{{ route('tokopedia.sync_orders', $store->id) }}" method="POST"
+                                                    class="flex-fill">
+                                                    @csrf
+                                                    <button type="submit"
+                                                        class="btn btn-primary btn-sm w-100 d-flex justify-content-center align-items-center gap-2"
+                                                        onclick="this.innerHTML='<i class=\'fas fa-spinner fa-spin\'></i> Menunggu...'; this.disabled=true; this.form.submit();">
+                                                        <i class="fas fa-shopping-bag"></i> Tarik Pesanan
+                                                    </button>
+                                                </form>
                                             @endif
                                         </div>
                                     @endif
@@ -130,6 +149,10 @@
                                                 </a>
                                             @elseif ($store->channel->code === 'tiktok')
                                                 <a href="{{ route('tiktok.auth') }}" class="btn btn-warning btn-sm w-100 text-dark fw-bold d-flex justify-content-center align-items-center gap-2 shadow-sm">
+                                                    <i class="fas fa-plug"></i> Hubungkan Ulang (Reconnect)
+                                                </a>
+                                            @elseif ($store->channel->code === 'tokopedia')
+                                                <a href="{{ route('tokopedia.connect') }}" class="btn btn-warning btn-sm w-100 text-dark fw-bold d-flex justify-content-center align-items-center gap-2 shadow-sm">
                                                     <i class="fas fa-plug"></i> Hubungkan Ulang (Reconnect)
                                                 </a>
                                             @endif
