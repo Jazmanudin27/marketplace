@@ -39,9 +39,12 @@ class PullOrdersFromTiktok implements ShouldQueue
 
         try {
             $accessToken = $this->store->access_token;
-            // Di TikTok, marketplace_store_id seringkali disimpan sebagai open_id atau cipher
-            // Asumsikan marketplace_store_id adalah cipher atau id toko
-            $shopCipher = $this->store->marketplace_store_id;
+            $shopCipher = $this->store->shop_cipher;
+
+            if (empty($shopCipher)) {
+                Log::warning("[TikTok] shop_cipher kosong untuk toko {$this->store->store_name}.");
+                return;
+            }
 
             $cursor = '';
             $orderIds = [];
@@ -153,40 +156,49 @@ class PullOrdersFromTiktok implements ShouldQueue
         );
 
         // Process Items
-        $itemList = $tiktokOrder['item_list'] ?? [];
+        $itemList = $tiktokOrder['line_items'] ?? $tiktokOrder['item_list'] ?? [];
         foreach ($itemList as $item) {
             $masterProduct = null;
-            if (isset($item['sku_id'])) {
-                $mapping = \App\Models\MarketplaceProduct::where('marketplace_variant_id', $item['sku_id'])
-                            ->orWhere('marketplace_product_id', $item['product_id'])
+            $skuId = $item['sku_id'] ?? null;
+            $productId = $item['product_id'] ?? $item['id'] ?? null;
+            $sellerSku = $item['seller_sku'] ?? $item['sku'] ?? null;
+
+            if ($skuId) {
+                $mapping = \App\Models\MarketplaceProduct::where('marketplace_variant_id', $skuId)
+                            ->orWhere('marketplace_product_id', $productId)
                             ->first();
                 if ($mapping) {
                     $masterProduct = $mapping->masterProduct;
                 }
             }
 
-            if (!$masterProduct && isset($item['seller_sku'])) {
+            if (!$masterProduct && $sellerSku) {
                 $masterProduct = MasterProduct::where('tenant_id', $this->store->tenant_id)
-                                              ->where('sku', $item['seller_sku'])
+                                              ->where('sku', $sellerSku)
                                               ->first();
             }
 
             // Snapshot HPP dari MasterProduct saat pesanan dibuat
             $costPrice = $masterProduct ? (float) $masterProduct->cost_price : 0;
             $qty = $item['quantity'] ?? 1;
+            
+            // Standardisasi harga
+            $price = $item['sku_sale_price'] ?? $item['price'] ?? $item['sku_original_price'] ?? 0;
+            // Jika price berupa string (misal "150000.00"), cast ke float
+            $price = (float) $price;
 
             OrderItem::updateOrCreate(
                 [
                     'order_id'              => $order->id,
-                    'marketplace_item_id'   => $item['product_id'],
+                    'marketplace_item_id'   => $productId,
                 ],
                 [
                     'master_product_id' => $masterProduct ? $masterProduct->id : null,
                     'product_name'      => $item['product_name'] ?? 'Unknown Item',
-                    'sku'               => $item['seller_sku'] ?? null,
+                    'sku'               => $sellerSku,
                     'quantity'          => $qty,
-                    'price'             => $item['sku_original_price'] ?? $item['sku_sale_price'] ?? 0,
-                    'total_price'       => ($item['sku_sale_price'] ?? 0) * $qty,
+                    'price'             => $price,
+                    'total_price'       => $price * $qty,
                     'cost_price'        => $costPrice,
                     'hpp_subtotal'      => $costPrice * $qty,
                 ]

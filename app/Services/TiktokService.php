@@ -149,11 +149,11 @@ class TiktokService
     }
 
     /**
-     * Mendapatkan daftar order berdasarkan rentang waktu
+     * Mendapatkan daftar order berdasarkan rentang waktu (API v202309)
      */
     public function getOrderList(string $accessToken, string $shopCipher, int $createTimeFrom, int $createTimeTo, string $cursor = '')
     {
-        $path = '/api/v2/order/search';
+        $path = '/order/202309/orders/search';
         
         $body = [
             'create_time_ge' => $createTimeFrom,
@@ -162,7 +162,8 @@ class TiktokService
         ];
 
         if ($cursor) {
-            $body['cursor'] = $cursor;
+            // Parameter pagination di v202309 menggunakan page_token
+            $body['page_token'] = $cursor;
         }
 
         $bodyJson = json_encode($body);
@@ -188,36 +189,42 @@ class TiktokService
             throw new \RuntimeException('TikTok API Error: ' . ($data['message'] ?? 'Unknown Error'));
         }
 
-        return $data['data'] ?? [];
+        $result = $data['data'] ?? [];
+
+        // Standarisasi field pagination agar kompatibel dengan PullOrdersFromTiktok
+        if (isset($result['next_page_token'])) {
+            $result['next_cursor'] = $result['next_page_token'];
+            $result['more'] = !empty($result['next_page_token']);
+        } else {
+            $result['next_cursor'] = '';
+            $result['more'] = false;
+        }
+
+        return $result;
     }
 
     /**
-     * Mendapatkan detail dari banyak order sekaligus
+     * Mendapatkan detail dari banyak order sekaligus (API v202309 - GET Method)
      */
     public function getOrderDetail(string $accessToken, string $shopCipher, array $orderIdList)
     {
-        $path = '/api/v2/order/detail';
+        $path = '/order/202309/orders';
         
-        $body = [
-            'order_id_list' => $orderIdList
-        ];
-
-        $bodyJson = json_encode($body);
-
         $queryParams = [
             'app_key' => $this->appKey,
             'timestamp' => time(),
             'shop_cipher' => $shopCipher,
+            'ids' => implode(',', $orderIdList),
         ];
 
-        $sign = $this->generateSignature($path, $queryParams, $bodyJson);
+        // signature generateSignature untuk GET (body kosong)
+        $sign = $this->generateSignature($path, $queryParams);
         $queryParams['sign'] = $sign;
         $queryParams['access_token'] = $accessToken;
 
         $response = Http::withHeaders([
             'x-tts-access-token' => $accessToken,
-            'Content-Type' => 'application/json',
-        ])->post($this->baseUrl . $path . '?' . http_build_query($queryParams), $body);
+        ])->get($this->baseUrl . $path, $queryParams);
 
         $data = $response->json();
         
@@ -225,7 +232,12 @@ class TiktokService
             throw new \RuntimeException('TikTok API Error: ' . ($data['message'] ?? 'Unknown Error'));
         }
 
-        return $data['data'] ?? [];
+        $result = $data['data'] ?? [];
+
+        // Standarisasi response order_list agar kompatibel dengan pemanggil (PullOrdersFromTiktok)
+        return [
+            'order_list' => $result['orders'] ?? []
+        ];
     }
     /**
      * Mendapatkan daftar produk dari TikTok Shop
