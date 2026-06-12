@@ -117,11 +117,22 @@ class PullOrdersFromTiktok implements ShouldQueue
             'CANCELLED' => 'CANCELLED',
         ];
 
-        $erpStatus = $statusMapping[$tiktokOrder['order_status']] ?? $tiktokOrder['order_status'];
+        // Dapatkan status secara aman dengan fallback
+        $rawStatus = $tiktokOrder['order_status'] ?? $tiktokOrder['status'] ?? 'UNPAID';
+        $erpStatus = $statusMapping[$rawStatus] ?? $rawStatus;
 
-        // Customer
-        $buyerPhone = $tiktokOrder['recipient_address']['phone_number'] ?? null;
-        $buyerName = $tiktokOrder['recipient_address']['name'] ?? 'Buyer TikTok';
+        // Dapatkan Order ID secara aman dengan fallback
+        $orderMarketplaceId = $tiktokOrder['order_id'] ?? $tiktokOrder['id'] ?? null;
+        if (empty($orderMarketplaceId)) {
+            Log::warning('[TikTok] Gagal memproses pesanan karena order_id kosong', $tiktokOrder);
+            return;
+        }
+
+        // Customer & Alamat secara aman dengan fallback
+        $recipient = $tiktokOrder['recipient_address'] ?? [];
+        $buyerPhone = $recipient['phone'] ?? $recipient['phone_number'] ?? null;
+        $buyerName = $recipient['name'] ?? $recipient['recipient_name'] ?? 'Buyer TikTok';
+        $buyerAddress = $recipient['full_address'] ?? $recipient['address_line1'] ?? null;
 
         $customer = Customer::firstOrCreate(
             [
@@ -131,32 +142,42 @@ class PullOrdersFromTiktok implements ShouldQueue
             [
                 'name' => $buyerName,
                 'email' => null,
-                'address' => $tiktokOrder['recipient_address']['full_address'] ?? null,
+                'address' => $buyerAddress,
             ]
         );
 
-        $paymentInfo = $tiktokOrder['payment_info'] ?? [];
+        $paymentInfo = $tiktokOrder['payment_info'] ?? $tiktokOrder['payment'] ?? [];
+        
+        $totalAmount = $paymentInfo['total_amount'] ?? $paymentInfo['total'] ?? 0;
+        $shippingFee = $paymentInfo['shipping_fee'] ?? $paymentInfo['shipping_amount'] ?? 0;
+        $discountAmount = $paymentInfo['seller_discount'] ?? $paymentInfo['discount_amount'] ?? 0;
+        $netAmount = $paymentInfo['sub_total'] ?? $paymentInfo['original_amount'] ?? 0;
+        $marketplaceFee = $paymentInfo['platform_discount'] ?? 0;
+
+        $courier = $tiktokOrder['shipping_provider'] ?? $tiktokOrder['shipping_provider_name'] ?? null;
+        $trackingNumber = $tiktokOrder['tracking_number'] ?? $tiktokOrder['tracking_no'] ?? null;
+        $createTime = $tiktokOrder['create_time'] ?? $tiktokOrder['create_time_ge'] ?? time();
 
         $order = Order::updateOrCreate(
             [
                 'tenant_id' => $this->store->tenant_id,
                 'store_id' => $this->store->id,
-                'order_marketplace_id' => $tiktokOrder['order_id'],
+                'order_marketplace_id' => $orderMarketplaceId,
             ],
             [
                 'customer_id' => $customer->id,
                 'order_status' => $erpStatus,
                 'buyer_name' => $buyerName,
                 'buyer_phone' => $buyerPhone,
-                'shipping_address' => $tiktokOrder['recipient_address']['full_address'] ?? null,
-                'total_amount' => $paymentInfo['total_amount'] ?? 0,
-                'shipping_fee' => $paymentInfo['shipping_fee'] ?? 0,
-                'discount_amount' => $paymentInfo['seller_discount'] ?? 0,
-                'net_amount' => $paymentInfo['sub_total'] ?? 0, // Simplified for now
-                'marketplace_fee' => $paymentInfo['platform_discount'] ?? 0,
-                'courier' => $tiktokOrder['shipping_provider'] ?? null,
-                'tracking_number' => $tiktokOrder['tracking_number'] ?? null,
-                'order_date' => date('Y-m-d H:i:s', $tiktokOrder['create_time'] ?? time()),
+                'shipping_address' => $buyerAddress,
+                'total_amount' => $totalAmount,
+                'shipping_fee' => $shippingFee,
+                'discount_amount' => $discountAmount,
+                'net_amount' => $netAmount,
+                'marketplace_fee' => $marketplaceFee,
+                'courier' => $courier,
+                'tracking_number' => $trackingNumber,
+                'order_date' => date('Y-m-d H:i:s', $createTime),
             ]
         );
 
