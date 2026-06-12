@@ -27,17 +27,17 @@ class WebhookController extends Controller
         // ---------------------------------------------------------------
         $partnerKey = env('SHOPEE_PARTNER_KEY');
         if ($partnerKey) {
-            $rawBody   = $request->getContent();
-            $fullUrl   = $request->fullUrl();
-            $baseStr   = $fullUrl . '|' . $rawBody;
+            $rawBody = $request->getContent();
+            $fullUrl = $request->fullUrl();
+            $baseStr = $fullUrl . '|' . $rawBody;
             $signature = $request->header('Authorization') ?? '';
-            $expected  = hash_hmac('sha256', $baseStr, $partnerKey);
+            $expected = hash_hmac('sha256', $baseStr, $partnerKey);
 
             if (!hash_equals($expected, $signature)) {
                 Log::warning('[Webhook] Shopee signature mismatch — request ditolak', [
                     'expected' => $expected,
                     'received' => $signature,
-                    'url'      => $fullUrl,
+                    'url' => $fullUrl,
                 ]);
                 return response()->json(['message' => 'unauthorized'], 401);
             }
@@ -49,7 +49,7 @@ class WebhookController extends Controller
 
         // Shopee sends order updates with code = 3 (bisa berupa string atau integer)
         if (isset($data['code']) && $data['code'] == 3) {
-            $shopId  = $data['shop_id'] ?? null;
+            $shopId = $data['shop_id'] ?? null;
             $orderSn = $data['data']['ordersn'] ?? null;
 
             if ($shopId && $orderSn) {
@@ -64,7 +64,7 @@ class WebhookController extends Controller
                     Log::info("[Webhook] Triggering sync for Store: {$store->name}, Order: {$orderSn}");
 
                     $timeFrom = now()->subDays(3)->timestamp;
-                    $timeTo   = now()->timestamp;
+                    $timeTo = now()->timestamp;
 
                     PullOrdersFromShopee::dispatch($store, $timeFrom, $timeTo);
                     Log::info("[Webhook] Job PullOrdersFromShopee dispatched untuk store {$store->name}");
