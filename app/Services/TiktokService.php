@@ -158,13 +158,7 @@ class TiktokService
         $body = [
             'create_time_ge' => $createTimeFrom,
             'create_time_lt' => $createTimeTo,
-            'page_size' => 50,
         ];
-
-        if ($cursor) {
-            // Parameter pagination di v202309 menggunakan page_token
-            $body['page_token'] = $cursor;
-        }
 
         $bodyJson = json_encode($body);
 
@@ -172,7 +166,13 @@ class TiktokService
             'app_key' => $this->appKey,
             'timestamp' => time(),
             'shop_cipher' => $shopCipher,
+            'page_size' => 50,
         ];
+
+        if ($cursor) {
+            // Parameter pagination di v202309 ditaruh di query string
+            $queryParams['page_token'] = $cursor;
+        }
 
         $sign = $this->generateSignature($path, $queryParams, $bodyJson);
         $queryParams['sign'] = $sign;
