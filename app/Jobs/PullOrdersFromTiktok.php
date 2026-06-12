@@ -61,7 +61,10 @@ class PullOrdersFromTiktok implements ShouldQueue
                 $orders = $response['orders'] ?? [];
                 
                 foreach ($orders as $o) {
-                    $orderIds[] = $o['order_id'];
+                    $id = $o['id'] ?? $o['order_id'] ?? null;
+                    if ($id) {
+                        $orderIds[] = $id;
+                    }
                 }
 
                 $cursor = $response['next_cursor'] ?? '';
