@@ -102,6 +102,8 @@ class PullOrdersFromTiktok implements ShouldQueue
 
     protected function processOrder(array $tiktokOrder)
     {
+        Log::info('[TikTok Debug] order keys: ' . json_encode(array_keys($tiktokOrder)) . ' | full data: ' . json_encode($tiktokOrder));
+
         // Standarisasi Status
         // TikTok: UNPAID, AWAITING_SHIPMENT, AWAITING_COLLECTION, IN_TRANSIT, DELIVERED, COMPLETED, CANCELLED
         $statusMapping = [
