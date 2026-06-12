@@ -189,12 +189,14 @@ class PullOrdersFromTiktok implements ShouldQueue
             $productId = $item['product_id'] ?? $item['id'] ?? null;
             $sellerSku = $item['seller_sku'] ?? $item['sku'] ?? null;
 
+            $marketplaceProductId = null;
             if ($skuId) {
                 $mapping = \App\Models\MarketplaceProduct::where('marketplace_variant_id', $skuId)
                             ->orWhere('marketplace_product_id', $productId)
                             ->first();
                 if ($mapping) {
                     $masterProduct = $mapping->masterProduct;
+                    $marketplaceProductId = $mapping->id;
                 }
             }
 
@@ -215,18 +217,18 @@ class PullOrdersFromTiktok implements ShouldQueue
 
             OrderItem::updateOrCreate(
                 [
-                    'order_id'              => $order->id,
-                    'marketplace_item_id'   => $productId,
+                    'order_id' => $order->id,
+                    'sku'      => $sellerSku ?: $productId, // fallback ke product ID jika SKU kosong agar unik
                 ],
                 [
-                    'master_product_id' => $masterProduct ? $masterProduct->id : null,
-                    'product_name'      => $item['product_name'] ?? 'Unknown Item',
-                    'sku'               => $sellerSku,
-                    'quantity'          => $qty,
-                    'price'             => $price,
-                    'total_price'       => $price * $qty,
-                    'cost_price'        => $costPrice,
-                    'hpp_subtotal'      => $costPrice * $qty,
+                    'marketplace_product_id' => $marketplaceProductId,
+                    'master_product_id'      => $masterProduct ? $masterProduct->id : null,
+                    'product_name'           => $item['product_name'] ?? 'Unknown Item',
+                    'price'                  => $price,
+                    'quantity'               => $qty,
+                    'total_price'            => $price * $qty,
+                    'cost_price'             => $costPrice,
+                    'hpp_subtotal'           => $costPrice * $qty,
                 ]
             );
         }
