@@ -19,31 +19,58 @@ class WebhookController extends Controller
     {
         Log::info('[Webhook] Received Shopee push notification', $request->all());
 
-        // Validasi payload dan partner ID
+        // ---------------------------------------------------------------
+        // Validasi HMAC Signature dari Shopee
+        // Base string: URL + "|" + raw_body
+        // Secret key : SHOPEE_PARTNER_KEY
+        // Dokumentasi: https://open.shopee.com/documents/v2/OpenAPI_BestPractice
+        // ---------------------------------------------------------------
+        $partnerKey = env('SHOPEE_PARTNER_KEY');
+        if ($partnerKey) {
+            $rawBody   = $request->getContent();
+            $fullUrl   = $request->fullUrl();
+            $baseStr   = $fullUrl . '|' . $rawBody;
+            $signature = $request->header('Authorization') ?? '';
+            $expected  = hash_hmac('sha256', $baseStr, $partnerKey);
+
+            if (!hash_equals($expected, $signature)) {
+                Log::warning('[Webhook] Shopee signature mismatch — request ditolak', [
+                    'expected' => $expected,
+                    'received' => $signature,
+                    'url'      => $fullUrl,
+                ]);
+                return response()->json(['message' => 'unauthorized'], 401);
+            }
+        }
+
         $data = $request->json()->all();
 
-        // Shopee sends order updates with code = 3
-        if (isset($data['code']) && $data['code'] === 3) {
-            $shopId = $data['shop_id'] ?? null;
+        Log::info('[Webhook] Shopee payload decoded', ['code' => $data['code'] ?? null, 'shop_id' => $data['shop_id'] ?? null]);
+
+        // Shopee sends order updates with code = 3 (bisa berupa string atau integer)
+        if (isset($data['code']) && $data['code'] == 3) {
+            $shopId  = $data['shop_id'] ?? null;
             $orderSn = $data['data']['ordersn'] ?? null;
 
             if ($shopId && $orderSn) {
                 // Cari toko kita yang memiliki shop_id (marketplace_store_id) ini
                 $store = Store::where('marketplace_store_id', (string) $shopId)->first();
 
-                if ($store && $store->status === 'connected') {
+                if (!$store) {
+                    Log::warning("[Webhook] Tidak ada Store dengan marketplace_store_id: {$shopId}");
+                } elseif ($store->status !== 'connected') {
+                    Log::warning("[Webhook] Store {$store->name} tidak berstatus connected (status: {$store->status})");
+                } else {
                     Log::info("[Webhook] Triggering sync for Store: {$store->name}, Order: {$orderSn}");
 
-                    // Kita bisa langsung dispatch PullOrdersFromShopee untuk order tersebut.
-                    // Karena PullOrdersFromShopee biasanya menerima time range, 
-                    // kita bisa menarik pesanan 1 hari kebelakang sampai sekarang.
-                    // Atau kita bisa melakukan logic khusus untuk order ini saja jika kita buat method-nya.
-                    // Untuk saat ini, mari trigger sinkronisasi 3 hari terakhir (cukup ringan)
                     $timeFrom = now()->subDays(3)->timestamp;
-                    $timeTo = now()->timestamp;
+                    $timeTo   = now()->timestamp;
 
                     PullOrdersFromShopee::dispatch($store, $timeFrom, $timeTo);
+                    Log::info("[Webhook] Job PullOrdersFromShopee dispatched untuk store {$store->name}");
                 }
+            } else {
+                Log::warning('[Webhook] Shopee code=3 tapi shop_id atau ordersn kosong', $data);
             }
         }
 

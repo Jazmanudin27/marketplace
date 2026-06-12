@@ -42,7 +42,7 @@ class TiktokController extends Controller
         try {
             $code = $request->query('code');
             $stateRaw = $request->query('state');
-            
+
             if (!$code) {
                 return redirect()->route('stores.index')->with('error', 'Otorisasi TikTok dibatalkan.');
             }
