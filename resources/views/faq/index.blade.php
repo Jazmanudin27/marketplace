@@ -261,6 +261,21 @@
             --cat-color-rgb: 132, 146, 166;
         }
 
+        .cat-laporan {
+            --cat-color: #3B82F6;
+            --cat-color-rgb: 59, 130, 246;
+        }
+
+        .cat-voucher {
+            --cat-color: #F59E0B;
+            --cat-color-rgb: 245, 158, 11;
+        }
+
+        .cat-pengaturan {
+            --cat-color: #10B981;
+            --cat-color-rgb: 16, 185, 129;
+        }
+
         .cat-icon-wrap {
             width: 42px;
             height: 42px;
@@ -886,6 +901,33 @@
                     </div>
                     <span class="cat-badge" id="badge-akses">7</span>
                 </button>
+
+                <button class="category-nav-card cat-laporan" data-category="laporan">
+                    <div class="cat-icon-wrap"><i class="fas fa-chart-pie"></i></div>
+                    <div class="cat-info">
+                        <h4>Laporan & Analitik</h4>
+                        <p>Turnover & Prediksi Stok</p>
+                    </div>
+                    <span class="cat-badge" id="badge-laporan">5</span>
+                </button>
+
+                <button class="category-nav-card cat-voucher" data-category="voucher">
+                    <div class="cat-icon-wrap"><i class="fas fa-ticket-alt"></i></div>
+                    <div class="cat-info">
+                        <h4>Voucher & Promosi</h4>
+                        <p>Campaign & Subsidi Diskon</p>
+                    </div>
+                    <span class="cat-badge" id="badge-voucher">5</span>
+                </button>
+
+                <button class="category-nav-card cat-pengaturan" data-category="pengaturan">
+                    <div class="cat-icon-wrap"><i class="fas fa-cog"></i></div>
+                    <div class="cat-info">
+                        <h4>Setelan & Kurir</h4>
+                        <p>Tenant & Ekspedisi Logistik</p>
+                    </div>
+                    <span class="cat-badge" id="badge-pengaturan">5</span>
+                </button>
             </div>
 
             <!-- Content Area -->
@@ -948,7 +990,8 @@
                                 <h5>Sinkronisasi Data Otomatis <span class="flow-badge">Alur Selesai</span></h5>
                                 <p>Setelah disetujui, Anda dialihkan kembali ke ERP. Status toko Anda akan berubah menjadi
                                     <strong style="color:var(--success);">Aktif</strong> dan ERP akan otomatis mengimpor
-                                    data awal.</p>
+                                    data awal.
+                                </p>
                             </div>
                         </div>
                     </div>
@@ -1230,7 +1273,8 @@
                                 <h5>Opname Stok (Penyesuaian Fisik) <span class="flow-badge">Alur Selesai</span></h5>
                                 <p>Jika terjadi selisih stok sistem vs fisik gudang, buat dokumen penyesuaian di menu
                                     <strong>Opname Stok</strong>. Masukkan kuantitas riil fisik, sistem akan mencatat
-                                    selisih rugi/lebihnya.</p>
+                                    selisih rugi/lebihnya.
+                                </p>
                             </div>
                         </div>
                     </div>
@@ -1391,7 +1435,8 @@
                                 <h5>Menerima Chat Pelanggan</h5>
                                 <p>Setiap pesan baru dari pembeli di Shopee atau TikTok Shop otomatis disinkronkan ke menu
                                     <strong>Inbox Chat</strong> dalam hitungan detik tanpa perlu membuka web seller-center
-                                    terpisah.</p>
+                                    terpisah.
+                                </p>
                             </div>
                         </div>
                         <div class="timeline-item">
@@ -1654,6 +1699,225 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- ==================== LAPORAN & ANALITIK GUDANG ==================== -->
+                <div class="content-card cat-laporan" data-category="laporan">
+                    <div class="content-header">
+                        <div class="content-header-icon"><i class="fas fa-chart-pie"></i></div>
+                        <div class="content-header-title">
+                            <h3>Laporan Gudang & Analitik Inventori</h3>
+                            <p>Memantau perputaran stok barang, laporan opname, serta estimasi kapan stok akan habis</p>
+                        </div>
+                        <div class="content-header-meta">
+                            <div>Estimasi baca: 3 mnt</div>
+                            <div>Terakhir update: 15 Juni 2026</div>
+                        </div>
+                    </div>
+
+                    <div class="section-title-wrap">
+                        <i class="fas fa-project-diagram"></i>
+                        <h4>Alur Kerja Laporan & Analitik</h4>
+                    </div>
+
+                    <div class="workflow-timeline">
+                        <div class="timeline-item">
+                            <div class="timeline-number">1</div>
+                            <div class="timeline-content">
+                                <h5>Akses Menu Analitik Inventori</h5>
+                                <p>Buka halaman <strong>Analitik Inventori</strong> di bawah menu LAPORAN untuk memuat dasbor grafik laju stok Anda.</p>
+                            </div>
+                        </div>
+                        <div class="timeline-item">
+                            <div class="timeline-number">2</div>
+                            <div class="timeline-content">
+                                <h5>Evaluasi Estimasi Habis Stok (Stock-out Forecast)</h5>
+                                <p>Sistem otomatis menghitung kecepatan penjualan rata-rata produk harian untuk memprediksi sisa hari sebelum stok fisik Anda habis total.</p>
+                            </div>
+                        </div>
+                        <div class="timeline-item">
+                            <div class="timeline-number">3</div>
+                            <div class="timeline-content">
+                                <h5>Ekspor Rekap Persediaan <span class="flow-badge">Alur Selesai</span></h5>
+                                <p>Masuk ke menu <strong>Rekap Persediaan</strong> atau <strong>Stok Barang</strong>, pilih filter rentang tanggal, lalu klik tombol <strong>Ekspor PDF / Excel</strong> untuk mencetak data mutasi gudang.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="section-title-wrap mt-4">
+                        <i class="fas fa-question-circle"></i>
+                        <h4>Pertanyaan Populer (FAQ)</h4>
+                    </div>
+
+                    <div class="faq-accordion">
+                        <div class="accordion-item">
+                            <button class="accordion-trigger">Bagaimana sistem menghitung prediksi sisa hari stok (stock-out)? <i class="fas fa-chevron-down"></i></button>
+                            <div class="accordion-content">
+                                Sistem ERP Marketplace memantau laju penjualan rata-rata produk (*Sales Velocity*) selama 7, 30, dan 90 hari terakhir. Nilai rata-rata tersebut digunakan untuk membagi jumlah stok master aktif saat ini guna menghasilkan estimasi jumlah hari yang tersisa sebelum barang habis.
+                            </div>
+                        </div>
+                        <div class="accordion-item">
+                            <button class="accordion-trigger">Apakah laporan gudang dapat difilter berdasarkan channel toko tertentu? <i class="fas fa-chevron-down"></i></button>
+                            <div class="accordion-content">
+                                Ya. Di dalam modul laporan rekap persediaan, Anda dapat memilih filter "Channel Toko" (seperti Shopee atau TikTok Shop) untuk melihat kontribusi penjualan masing-masing toko terhadap pengurangan stok master gudang pusat Anda.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="feedback-widget">
+                        <div class="feedback-question">Apakah panduan kategori ini membantu Anda?</div>
+                        <div class="feedback-btns">
+                            <button class="feedback-btn yes"><i class="far fa-thumbs-up"></i> Ya, membantu</button>
+                            <button class="feedback-btn no"><i class="far fa-thumbs-down"></i> Kurang membantu</button>
+                        </div>
+                        <div class="feedback-response"></div>
+                    </div>
+                </div>
+
+                <!-- ==================== VOUCHER & PROMOSI ==================== -->
+                <div class="content-card cat-voucher" data-category="voucher">
+                    <div class="content-header">
+                        <div class="content-header-icon"><i class="fas fa-ticket-alt"></i></div>
+                        <div class="content-header-title">
+                            <h3>Promosi & Voucher Marketplace</h3>
+                            <p>Mengelola kampanye diskon, coret harga, serta rekonsiliasi subsidi voucher belanja</p>
+                        </div>
+                        <div class="content-header-meta">
+                            <div>Estimasi baca: 3 mnt</div>
+                            <div>Terakhir update: 15 Juni 2026</div>
+                        </div>
+                    </div>
+
+                    <div class="section-title-wrap">
+                        <i class="fas fa-project-diagram"></i>
+                        <h4>Alur Kerja Voucher & Promosi</h4>
+                    </div>
+
+                    <div class="workflow-timeline">
+                        <div class="timeline-item">
+                            <div class="timeline-number">1</div>
+                            <div class="timeline-content">
+                                <h5>Buka Menu Voucher & Promosi</h5>
+                                <p>Pilih menu <strong>Voucher / Promosi</strong> di panel MASTER atau TRANSAKSI untuk membuka dashboard promosi gabungan.</p>
+                            </div>
+                        </div>
+                        <div class="timeline-item">
+                            <div class="timeline-number">2</div>
+                            <div class="timeline-content">
+                                <h5>Tarik Data Campaign Aktif</h5>
+                                <p>Klik <strong>Tarik Promosi Terbaru</strong> untuk mengimpor promo coret harga atau kode voucher diskon yang sedang berjalan di Shopee dan TikTok Shop.</p>
+                            </div>
+                        </div>
+                        <div class="timeline-item">
+                            <div class="timeline-number">3</div>
+                            <div class="timeline-content">
+                                <h5>Mapping Subsidi Diskon <span class="flow-badge">Alur Selesai</span></h5>
+                                <p>Sistem secara otomatis membaca rincian order untuk memisahkan nominal diskon yang dipotong: apakah ditanggung penuh oleh seller atau disubsidi oleh pihak platform marketplace.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="section-title-wrap mt-4">
+                        <i class="fas fa-question-circle"></i>
+                        <h4>Pertanyaan Populer (FAQ)</h4>
+                    </div>
+
+                    <div class="faq-accordion">
+                        <div class="accordion-item">
+                            <button class="accordion-trigger">Bagaimana sistem mencatat voucher subsidi diskon dari marketplace? <i class="fas fa-chevron-down"></i></button>
+                            <div class="accordion-content">
+                                Potongan belanja dari voucher subsidi (misal diskon potongan TikTok Shop) tidak akan mengurangi omset bersih toko Anda. Nilai diskon tersebut akan dicatat oleh ERP sebagai piutang platform dan ditambahkan kembali sebagai penerimaan ketika rekonsiliasi dana selesai ditarik ke bank.
+                            </div>
+                        </div>
+                        <div class="accordion-item">
+                            <button class="accordion-trigger">Apakah kita bisa membuat promosi coret harga langsung dari dasbor ERP? <i class="fas fa-chevron-down"></i></button>
+                            <div class="accordion-content">
+                                Untuk menjaga kestabilan promosi dan kepatuhan terhadap API, pembuatan diskon coret harga disarankan tetap dikonfigurasi melalui seller center masing-masing marketplace. Sistem ERP akan secara otomatis menarik data promosi tersebut untuk sinkronisasi pesanan.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="feedback-widget">
+                        <div class="feedback-question">Apakah panduan kategori ini membantu Anda?</div>
+                        <div class="feedback-btns">
+                            <button class="feedback-btn yes"><i class="far fa-thumbs-up"></i> Ya, membantu</button>
+                            <button class="feedback-btn no"><i class="far fa-thumbs-down"></i> Kurang membantu</button>
+                        </div>
+                        <div class="feedback-response"></div>
+                    </div>
+                </div>
+
+                <!-- ==================== SETELAN & KURIR ==================== -->
+                <div class="content-card cat-pengaturan" data-category="pengaturan">
+                    <div class="content-header">
+                        <div class="content-header-icon"><i class="fas fa-cog"></i></div>
+                        <div class="content-header-title">
+                            <h3>Pengaturan Tenant, Profil, & Logistik Ekspedisi</h3>
+                            <p>Konfigurasi profil usaha, alamat gudang fisik utama, ekspedisi kurir, dan printer thermal</p>
+                        </div>
+                        <div class="content-header-meta">
+                            <div>Estimasi baca: 3 mnt</div>
+                            <div>Terakhir update: 15 Juni 2026</div>
+                        </div>
+                    </div>
+
+                    <div class="section-title-wrap">
+                        <i class="fas fa-project-diagram"></i>
+                        <h4>Alur Konfigurasi Awal</h4>
+                    </div>
+
+                    <div class="workflow-timeline">
+                        <div class="timeline-item">
+                            <div class="timeline-number">1</div>
+                            <div class="timeline-content">
+                                <h5>Buka Menu Pengaturan Sistem</h5>
+                                <p>Klik menu <strong>Pengaturan</strong> di dashboard untuk membuka setelan profil tenant (alamat perusahaan, info kontak, logo, dll).</p>
+                            </div>
+                        </div>
+                        <div class="timeline-item">
+                            <div class="timeline-number">2</div>
+                            <div class="timeline-content">
+                                <h5>Aktifkan Ekspedisi & Kurir (Shipments)</h5>
+                                <p>Buka sub-menu <strong>Logistik / Ekspedisi</strong> untuk mencentang jenis ekspedisi yang didukung oleh gudang Anda (J&T, JNE, SiCepat, Shopee Express, GoSend, dll).</p>
+                            </div>
+                        </div>
+                        <div class="timeline-item">
+                            <div class="timeline-number">3</div>
+                            <div class="timeline-content">
+                                <h5>Konfigurasi Printer Thermal & Webhook <span class="flow-badge">Alur Selesai</span></h5>
+                                <p>Setel format kertas struk belanja / label resi (seperti format kertas A6 thermal) dan pasang webhook URL notifikasi logistik untuk update resi otomatis.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="section-title-wrap mt-4">
+                        <i class="fas fa-question-circle"></i>
+                        <h4>Pertanyaan Populer (FAQ)</h4>
+                    </div>
+
+                    <div class="faq-accordion">
+                        <div class="accordion-item">
+                            <button class="accordion-trigger">Bagaimana cara mengubah profil alamat gudang fisik utama? <i class="fas fa-chevron-down"></i></button>
+                            <div class="accordion-content">
+                                Masuk ke menu <strong>Pengaturan -> Alamat Gudang</strong>, klik Edit, isi titik koordinat serta alamat lengkap. Alamat gudang ini digunakan sebagai acuan titik pick-up kurir logistik dan perhitungan tarif ongkir pada POS Kasir Offline.
+                            </div>
+                        </div>
+                        <div class="accordion-item">
+                            <button class="accordion-trigger">Mengapa ekspedisi pengiriman tertentu tidak muncul saat proses booking kurir? <i class="fas fa-chevron-down"></i></button>
+                            <div class="accordion-content">
+                                Pastikan ekspedisi tersebut telah diaktifkan di setelan pengiriman pada toko seller center marketplace resmi Anda (misal seller center Shopee). Setelah itu, lakukan refresh logistik di ERP untuk memuat ulang daftar opsi kurir yang valid.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="feedback-widget">
+                        <div class="feedback-question">Apakah panduan kategori ini membantu Anda?</div>
+                        <div class="feedback-btns">
+                            <button class="feedback-btn yes"><i class="far fa-thumbs-up"></i> Ya, membantu</button>
+                            <button class="feedback-btn no"><i class="far fa-thumbs-down"></i> Kurang membantu</button>
+                        </div>
+                        <div class="feedback-response"></div>
+                    </div>
+                </div>
             </div>
 
             <!-- Extra Help Desk Cards -->
@@ -1752,17 +2016,17 @@
                                 // Close other active items within the same card first (optional, for accordion effect)
                                 const parentCard = this.closest('.content-card');
                                 parentCard.querySelectorAll('.accordion-item.active').forEach(
-                                activeItem => {
-                                    const activeContent = activeItem.querySelector(
-                                        '.accordion-content');
-                                    if (activeContent.style.maxHeight === 'none') {
-                                        activeContent.style.maxHeight = activeContent.scrollHeight +
-                                            "px";
-                                        void activeContent.offsetHeight;
-                                    }
-                                    activeItem.classList.remove('active');
-                                    activeContent.style.maxHeight = null;
-                                });
+                                    activeItem => {
+                                        const activeContent = activeItem.querySelector(
+                                            '.accordion-content');
+                                        if (activeContent.style.maxHeight === 'none') {
+                                            activeContent.style.maxHeight = activeContent.scrollHeight +
+                                                "px";
+                                            void activeContent.offsetHeight;
+                                        }
+                                        activeItem.classList.remove('active');
+                                        activeContent.style.maxHeight = null;
+                                    });
 
                                 item.classList.add('active');
                                 content.style.maxHeight = content.scrollHeight + "px";
@@ -1866,6 +2130,9 @@
                             document.getElementById('badge-chat').innerText = '6';
                             document.getElementById('badge-pos').innerText = '7';
                             document.getElementById('badge-akses').innerText = '7';
+                            document.getElementById('badge-laporan').innerText = '5';
+                            document.getElementById('badge-voucher').innerText = '5';
+                            document.getElementById('badge-pengaturan').innerText = '5';
 
                             // Collapse all accordions
                             document.querySelectorAll('.accordion-item').forEach(item => {
