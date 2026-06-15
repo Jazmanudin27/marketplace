@@ -445,6 +445,14 @@
                     @endcan
                 @endif
 
+                {{-- BANTUAN --}}
+                <div class="nav-section-title mt-2">BANTUAN</div>
+                <a href="{{ route('faq.index') }}"
+                    class="nav-item {{ request()->routeIs('faq.*') ? 'active' : '' }}">
+                    <i class="fas fa-question-circle"></i>
+                    <span>Panduan & FAQ</span>
+                </a>
+
             </nav>
 
             <div class="sidebar-footer">

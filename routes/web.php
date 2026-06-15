@@ -305,4 +305,7 @@ Route::middleware('auth')->group(function () {
 
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+    // FAQ & Tutorials
+    Route::get('/faq', [\App\Http\Controllers\FaqController::class, 'index'])->name('faq.index');
 });
