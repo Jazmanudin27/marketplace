@@ -18,6 +18,7 @@ class Store extends Model
         'refresh_token',
         'token_expires_at',
         'status',
+        'shipping_handover_method',
     ];
 
     protected $hidden = [

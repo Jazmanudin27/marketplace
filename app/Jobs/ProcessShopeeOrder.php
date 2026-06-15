@@ -32,13 +32,15 @@ class ProcessShopeeOrder implements ShouldQueue
         try {
             $store = $this->order->store;
             $accessToken = $store->getValidAccessToken();
+            $handoverMethod = $store->shipping_handover_method ?? 'DROP_OFF';
 
-            // 1. Arrange Shipment (Drop-off)
+            // 1. Arrange Shipment (Drop-off/Pickup)
             try {
                 $shipResponse = $shopeeService->shipOrder(
                     $accessToken,
                     (int) $store->marketplace_store_id,
-                    $this->order->order_marketplace_id
+                    $this->order->order_marketplace_id,
+                    $handoverMethod
                 );
                 Log::info('[Shopee] Arrange shipment successful', ['response' => $shipResponse]);
             } catch (\Exception $e) {

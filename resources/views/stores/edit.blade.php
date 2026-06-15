@@ -65,6 +65,26 @@
                             <div class="invalid-feedback d-block">{{ $message }}</div>
                         @enderror
                     </div>
+
+                    <div class="mb-4">
+                        <label for="shipping_handover_method" class="form-label text-muted">Metode Penyerahan Kurir <span
+                                class="text-danger">*</span></label>
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-text"
+                                style="background-color: var(--bg-card); border-color: var(--border); color: var(--text-muted);"><i
+                                    class="fas fa-truck-loading"></i></span>
+                            <select id="shipping_handover_method" name="shipping_handover_method"
+                                class="form-select form-select-sm form-select-dark @error('shipping_handover_method') is-invalid @enderror">
+                                <option value="DROP_OFF"
+                                    {{ old('shipping_handover_method', $store->shipping_handover_method) === 'DROP_OFF' ? 'selected' : '' }}>Drop-off (Antar ke Cabang)</option>
+                                <option value="PICK_UP"
+                                    {{ old('shipping_handover_method', $store->shipping_handover_method) === 'PICK_UP' ? 'selected' : '' }}>Pickup (Dijemput Kurir)</option>
+                            </select>
+                        </div>
+                        @error('shipping_handover_method')
+                            <div class="invalid-feedback d-block">{{ $message }}</div>
+                        @enderror
+                    </div>
                 </form>
 
                 <hr style="border-color: var(--border);" class="my-4">

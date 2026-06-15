@@ -56,6 +56,7 @@ class StoreController extends Controller
         $data = $request->validate([
             'store_name' => 'required|string|max:255',
             'status'     => 'required|in:connected,disconnected',
+            'shipping_handover_method' => 'required|in:DROP_OFF,PICK_UP',
         ]);
         $store->update($data);
         return redirect()->route('stores.index')->with('success', 'Toko berhasil diperbarui.');

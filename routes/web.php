@@ -308,4 +308,14 @@ Route::middleware('auth')->group(function () {
 
     // FAQ & Tutorials
     Route::get('/faq', [\App\Http\Controllers\FaqController::class, 'index'])->name('faq.index');
+
+    // FAQ CRUD Management (Admin Only)
+    Route::get('/faq/manage', [\App\Http\Controllers\FaqManagementController::class, 'manage'])->name('faq.manage');
+    Route::post('/faq/categories', [\App\Http\Controllers\FaqManagementController::class, 'storeCategory'])->name('faq.categories.store');
+    Route::put('/faq/categories/{category}', [\App\Http\Controllers\FaqManagementController::class, 'updateCategory'])->name('faq.categories.update');
+    Route::delete('/faq/categories/{category}', [\App\Http\Controllers\FaqManagementController::class, 'destroyCategory'])->name('faq.categories.destroy');
+    Route::post('/faq/items', [\App\Http\Controllers\FaqManagementController::class, 'storeItem'])->name('faq.items.store');
+    Route::put('/faq/items/{item}', [\App\Http\Controllers\FaqManagementController::class, 'updateItem'])->name('faq.items.update');
+    Route::delete('/faq/items/{item}', [\App\Http\Controllers\FaqManagementController::class, 'destroyItem'])->name('faq.items.destroy');
 });
+

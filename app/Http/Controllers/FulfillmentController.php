@@ -134,6 +134,7 @@ class FulfillmentController extends Controller
 
         if ($autoShip) {
             $store = $order->store;
+            $handoverMethod = $store->shipping_handover_method ?? 'DROP_OFF';
             try {
                 if ($store->channel->code === 'shopee') {
                     $shopeeService = app(\App\Services\ShopeeService::class);
@@ -143,7 +144,8 @@ class FulfillmentController extends Controller
                         $shopeeService->shipOrder(
                             $accessToken,
                             (int) $store->marketplace_store_id,
-                            $order->order_marketplace_id
+                            $order->order_marketplace_id,
+                            $handoverMethod
                         );
                     } catch (\Exception $e) {
                         if (str_contains($e->getMessage(), 'invalid_access_token') || str_contains($e->getMessage(), 'invalid_acceess_token')) {
@@ -152,7 +154,8 @@ class FulfillmentController extends Controller
                             $shopeeService->shipOrder(
                                 $accessToken,
                                 (int) $store->marketplace_store_id,
-                                $order->order_marketplace_id
+                                $order->order_marketplace_id,
+                                $handoverMethod
                             );
                         } else {
                             throw $e;
@@ -182,7 +185,8 @@ class FulfillmentController extends Controller
                     $tiktokService->shipOrder(
                         $store->access_token,
                         $store->marketplace_store_id,
-                        $order->order_marketplace_id
+                        $order->order_marketplace_id,
+                        $handoverMethod
                     );
 
                     $order->order_status = Order::STATUS_SHIPPED;

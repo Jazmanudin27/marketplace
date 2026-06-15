@@ -40,6 +40,9 @@ class FulfillmentTest extends TestCase
             'role' => 'warehouse',
         ]);
 
+        $this->seed(\Database\Seeders\RolePermissionSeeder::class);
+        setPermissionsTeamId($this->tenant->id);
+
         $this->channel = Channel::create([
             'name' => 'Shopee',
             'code' => 'shopee',

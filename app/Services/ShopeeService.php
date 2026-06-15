@@ -449,21 +449,109 @@ class ShopeeService
         return $data['response'] ?? [];
     }
 
-    public function shipOrder(string $accessToken, int $shopId, string $orderSn): array
+    public function getShippingParameter(string $accessToken, int $shopId, string $orderSn): array
+    {
+        $path = '/api/v2/logistics/get_shipping_parameter';
+        $timestamp = time();
+        $sign = $this->signShopRequest($path, $timestamp, $accessToken, $shopId);
+
+        $response = Http::get($this->baseUrl . $path, [
+            'partner_id' => $this->partnerId,
+            'timestamp' => $timestamp,
+            'sign' => $sign,
+            'access_token' => $accessToken,
+            'shop_id' => $shopId,
+            'order_sn' => $orderSn,
+        ]);
+
+        if ($response->failed()) {
+            throw new \RuntimeException('Gagal mengambil parameter pengiriman Shopee: ' . $response->body());
+        }
+
+        $data = $response->json();
+
+        if (!empty($data['error']) && $data['error'] !== '') {
+            throw new \RuntimeException('Shopee API Error [' . $data['error'] . ']: ' . ($data['message'] ?? ''));
+        }
+
+        return $data['response'] ?? [];
+    }
+
+    public function shipOrder(string $accessToken, int $shopId, string $orderSn, string $handoverMethod = 'DROP_OFF'): array
     {
         $path = '/api/v2/logistics/ship_order';
         $timestamp = time();
         $sign = $this->signShopRequest($path, $timestamp, $accessToken, $shopId);
 
-        // Opsi Drop-off untuk mempermudah (Sandbox)
-        $body = [
-            'order_sn' => $orderSn,
-            'dropoff' => [
-                'branch_id' => 0, // Sandbox usually accepts 0 or default values if required
-                'sender_real_name' => 'Sender',
-                'tracking_no' => '' // For non-integrated, but leave empty string or omit for integrated
-            ]
-        ];
+        if ($handoverMethod === 'PICK_UP') {
+            try {
+                $shippingParams = $this->getShippingParameter($accessToken, $shopId, $orderSn);
+                $pickupInfo = $shippingParams['pickup'] ?? [];
+                
+                $addressId = null;
+                $addressList = $pickupInfo['address_list'] ?? [];
+                if (!empty($addressList)) {
+                    foreach ($addressList as $addr) {
+                        if (isset($addr['address_type']) && is_array($addr['address_type']) && in_array('DEFAULT_ADDRESS', $addr['address_type'])) {
+                            $addressId = $addr['address_id'];
+                            break;
+                        }
+                    }
+                    if (!$addressId) {
+                        $addressId = $addressList[0]['address_id'] ?? null;
+                    }
+                }
+                
+                $pickupTimeId = null;
+                $timeList = $pickupInfo['pickup_time_id_list'] ?? [];
+                if (!empty($timeList)) {
+                    $pickupTimeId = $timeList[0]['pickup_time_id'] ?? null;
+                }
+
+                if ($addressId !== null && $pickupTimeId !== null) {
+                    $body = [
+                        'order_sn' => $orderSn,
+                        'pickup' => [
+                            'address_id' => (int) $addressId,
+                            'pickup_time_id' => (string) $pickupTimeId,
+                        ]
+                    ];
+                } else {
+                    Log::warning("[Shopee] Pickup parameters incomplete for order {$orderSn}. Falling back to Drop-off.", [
+                        'address_id' => $addressId,
+                        'pickup_time_id' => $pickupTimeId
+                    ]);
+                    $body = [
+                        'order_sn' => $orderSn,
+                        'dropoff' => [
+                            'branch_id' => 0,
+                            'sender_real_name' => 'Sender',
+                            'tracking_no' => ''
+                        ]
+                    ];
+                }
+            } catch (\Throwable $e) {
+                Log::warning("[Shopee] Failed to fetch pickup parameters for order {$orderSn}: " . $e->getMessage() . ". Falling back to Drop-off.");
+                $body = [
+                    'order_sn' => $orderSn,
+                    'dropoff' => [
+                        'branch_id' => 0,
+                        'sender_real_name' => 'Sender',
+                        'tracking_no' => ''
+                    ]
+                ];
+            }
+        } else {
+            // DROP_OFF
+            $body = [
+                'order_sn' => $orderSn,
+                'dropoff' => [
+                    'branch_id' => 0,
+                    'sender_real_name' => 'Sender',
+                    'tracking_no' => ''
+                ]
+            ];
+        }
 
         $response = Http::post($this->baseUrl . $path . '?' . http_build_query([
             'partner_id' => $this->partnerId,

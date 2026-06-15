@@ -46,6 +46,7 @@ class OrderController extends Controller
         abort_unless($order->tenant_id === Auth::user()->tenant_id, 403);
         
         $store = $order->store;
+        $handoverMethod = $store->shipping_handover_method ?? 'DROP_OFF';
         
         if ($store->channel->code === 'shopee') {
             try {
@@ -54,7 +55,8 @@ class OrderController extends Controller
                 $shopeeService->shipOrder(
                     $accessToken,
                     (int) $store->marketplace_store_id,
-                    $order->order_marketplace_id
+                    $order->order_marketplace_id,
+                    $handoverMethod
                 );
                 
                 try {
@@ -109,13 +111,14 @@ class OrderController extends Controller
                 $tiktokService->shipOrder(
                     $store->access_token,
                     $store->marketplace_store_id,
-                    $order->order_marketplace_id
+                    $order->order_marketplace_id,
+                    $handoverMethod
                 );
                 
                 $order->order_status = Order::STATUS_SHIPPED;
                 $order->save();
                 
-                return back()->with('success', 'Pesanan berhasil diproses pengirimannya (Drop-off sukses) ke TikTok.');
+                return back()->with('success', 'Pesanan berhasil diproses pengirimannya ke TikTok (' . ($handoverMethod === 'PICK_UP' ? 'Pickup' : 'Drop-off') . ' sukses).');
             } catch (\Exception $e) {
                 return back()->with('error', 'Gagal memproses pengiriman TikTok: ' . $e->getMessage());
             }
