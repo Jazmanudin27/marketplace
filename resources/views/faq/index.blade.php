@@ -1724,21 +1724,25 @@
                             <div class="timeline-number">1</div>
                             <div class="timeline-content">
                                 <h5>Akses Menu Analitik Inventori</h5>
-                                <p>Buka halaman <strong>Analitik Inventori</strong> di bawah menu LAPORAN untuk memuat dasbor grafik laju stok Anda.</p>
+                                <p>Buka halaman <strong>Analitik Inventori</strong> di bawah menu LAPORAN untuk memuat
+                                    dasbor grafik laju stok Anda.</p>
                             </div>
                         </div>
                         <div class="timeline-item">
                             <div class="timeline-number">2</div>
                             <div class="timeline-content">
                                 <h5>Evaluasi Estimasi Habis Stok (Stock-out Forecast)</h5>
-                                <p>Sistem otomatis menghitung kecepatan penjualan rata-rata produk harian untuk memprediksi sisa hari sebelum stok fisik Anda habis total.</p>
+                                <p>Sistem otomatis menghitung kecepatan penjualan rata-rata produk harian untuk memprediksi
+                                    sisa hari sebelum stok fisik Anda habis total.</p>
                             </div>
                         </div>
                         <div class="timeline-item">
                             <div class="timeline-number">3</div>
                             <div class="timeline-content">
                                 <h5>Ekspor Rekap Persediaan <span class="flow-badge">Alur Selesai</span></h5>
-                                <p>Masuk ke menu <strong>Rekap Persediaan</strong> atau <strong>Stok Barang</strong>, pilih filter rentang tanggal, lalu klik tombol <strong>Ekspor PDF / Excel</strong> untuk mencetak data mutasi gudang.</p>
+                                <p>Masuk ke menu <strong>Rekap Persediaan</strong> atau <strong>Stok Barang</strong>, pilih
+                                    filter rentang tanggal, lalu klik tombol <strong>Ekspor PDF / Excel</strong> untuk
+                                    mencetak data mutasi gudang.</p>
                             </div>
                         </div>
                     </div>
@@ -1750,15 +1754,22 @@
 
                     <div class="faq-accordion">
                         <div class="accordion-item">
-                            <button class="accordion-trigger">Bagaimana sistem menghitung prediksi sisa hari stok (stock-out)? <i class="fas fa-chevron-down"></i></button>
+                            <button class="accordion-trigger">Bagaimana sistem menghitung prediksi sisa hari stok
+                                (stock-out)? <i class="fas fa-chevron-down"></i></button>
                             <div class="accordion-content">
-                                Sistem ERP Marketplace memantau laju penjualan rata-rata produk (*Sales Velocity*) selama 7, 30, dan 90 hari terakhir. Nilai rata-rata tersebut digunakan untuk membagi jumlah stok master aktif saat ini guna menghasilkan estimasi jumlah hari yang tersisa sebelum barang habis.
+                                Sistem ERP Marketplace memantau laju penjualan rata-rata produk (*Sales Velocity*) selama 7,
+                                30, dan 90 hari terakhir. Nilai rata-rata tersebut digunakan untuk membagi jumlah stok
+                                master aktif saat ini guna menghasilkan estimasi jumlah hari yang tersisa sebelum barang
+                                habis.
                             </div>
                         </div>
                         <div class="accordion-item">
-                            <button class="accordion-trigger">Apakah laporan gudang dapat difilter berdasarkan channel toko tertentu? <i class="fas fa-chevron-down"></i></button>
+                            <button class="accordion-trigger">Apakah laporan gudang dapat difilter berdasarkan channel toko
+                                tertentu? <i class="fas fa-chevron-down"></i></button>
                             <div class="accordion-content">
-                                Ya. Di dalam modul laporan rekap persediaan, Anda dapat memilih filter "Channel Toko" (seperti Shopee atau TikTok Shop) untuk melihat kontribusi penjualan masing-masing toko terhadap pengurangan stok master gudang pusat Anda.
+                                Ya. Di dalam modul laporan rekap persediaan, Anda dapat memilih filter "Channel Toko"
+                                (seperti Shopee atau TikTok Shop) untuk melihat kontribusi penjualan masing-masing toko
+                                terhadap pengurangan stok master gudang pusat Anda.
                             </div>
                         </div>
                     </div>
@@ -1797,21 +1808,25 @@
                             <div class="timeline-number">1</div>
                             <div class="timeline-content">
                                 <h5>Buka Menu Voucher & Promosi</h5>
-                                <p>Pilih menu <strong>Voucher / Promosi</strong> di panel MASTER atau TRANSAKSI untuk membuka dashboard promosi gabungan.</p>
+                                <p>Pilih menu <strong>Voucher / Promosi</strong> di panel MASTER atau TRANSAKSI untuk
+                                    membuka dashboard promosi gabungan.</p>
                             </div>
                         </div>
                         <div class="timeline-item">
                             <div class="timeline-number">2</div>
                             <div class="timeline-content">
                                 <h5>Tarik Data Campaign Aktif</h5>
-                                <p>Klik <strong>Tarik Promosi Terbaru</strong> untuk mengimpor promo coret harga atau kode voucher diskon yang sedang berjalan di Shopee dan TikTok Shop.</p>
+                                <p>Klik <strong>Tarik Promosi Terbaru</strong> untuk mengimpor promo coret harga atau kode
+                                    voucher diskon yang sedang berjalan di Shopee dan TikTok Shop.</p>
                             </div>
                         </div>
                         <div class="timeline-item">
                             <div class="timeline-number">3</div>
                             <div class="timeline-content">
                                 <h5>Mapping Subsidi Diskon <span class="flow-badge">Alur Selesai</span></h5>
-                                <p>Sistem secara otomatis membaca rincian order untuk memisahkan nominal diskon yang dipotong: apakah ditanggung penuh oleh seller atau disubsidi oleh pihak platform marketplace.</p>
+                                <p>Sistem secara otomatis membaca rincian order untuk memisahkan nominal diskon yang
+                                    dipotong: apakah ditanggung penuh oleh seller atau disubsidi oleh pihak platform
+                                    marketplace.</p>
                             </div>
                         </div>
                     </div>
@@ -1823,15 +1838,22 @@
 
                     <div class="faq-accordion">
                         <div class="accordion-item">
-                            <button class="accordion-trigger">Bagaimana sistem mencatat voucher subsidi diskon dari marketplace? <i class="fas fa-chevron-down"></i></button>
+                            <button class="accordion-trigger">Bagaimana sistem mencatat voucher subsidi diskon dari
+                                marketplace? <i class="fas fa-chevron-down"></i></button>
                             <div class="accordion-content">
-                                Potongan belanja dari voucher subsidi (misal diskon potongan TikTok Shop) tidak akan mengurangi omset bersih toko Anda. Nilai diskon tersebut akan dicatat oleh ERP sebagai piutang platform dan ditambahkan kembali sebagai penerimaan ketika rekonsiliasi dana selesai ditarik ke bank.
+                                Potongan belanja dari voucher subsidi (misal diskon potongan TikTok Shop) tidak akan
+                                mengurangi omset bersih toko Anda. Nilai diskon tersebut akan dicatat oleh ERP sebagai
+                                piutang platform dan ditambahkan kembali sebagai penerimaan ketika rekonsiliasi dana selesai
+                                ditarik ke bank.
                             </div>
                         </div>
                         <div class="accordion-item">
-                            <button class="accordion-trigger">Apakah kita bisa membuat promosi coret harga langsung dari dasbor ERP? <i class="fas fa-chevron-down"></i></button>
+                            <button class="accordion-trigger">Apakah kita bisa membuat promosi coret harga langsung dari
+                                dasbor ERP? <i class="fas fa-chevron-down"></i></button>
                             <div class="accordion-content">
-                                Untuk menjaga kestabilan promosi dan kepatuhan terhadap API, pembuatan diskon coret harga disarankan tetap dikonfigurasi melalui seller center masing-masing marketplace. Sistem ERP akan secara otomatis menarik data promosi tersebut untuk sinkronisasi pesanan.
+                                Untuk menjaga kestabilan promosi dan kepatuhan terhadap API, pembuatan diskon coret harga
+                                disarankan tetap dikonfigurasi melalui seller center masing-masing marketplace. Sistem ERP
+                                akan secara otomatis menarik data promosi tersebut untuk sinkronisasi pesanan.
                             </div>
                         </div>
                     </div>
@@ -1870,21 +1892,24 @@
                             <div class="timeline-number">1</div>
                             <div class="timeline-content">
                                 <h5>Buka Menu Pengaturan Sistem</h5>
-                                <p>Klik menu <strong>Pengaturan</strong> di dashboard untuk membuka setelan profil tenant (alamat perusahaan, info kontak, logo, dll).</p>
+                                <p>Klik menu <strong>Pengaturan</strong> di dashboard untuk membuka setelan profil tenant
+                                    (alamat perusahaan, info kontak, logo, dll).</p>
                             </div>
                         </div>
                         <div class="timeline-item">
                             <div class="timeline-number">2</div>
                             <div class="timeline-content">
                                 <h5>Aktifkan Ekspedisi & Kurir (Shipments)</h5>
-                                <p>Buka sub-menu <strong>Logistik / Ekspedisi</strong> untuk mencentang jenis ekspedisi yang didukung oleh gudang Anda (J&T, JNE, SiCepat, Shopee Express, GoSend, dll).</p>
+                                <p>Buka sub-menu <strong>Logistik / Ekspedisi</strong> untuk mencentang jenis ekspedisi yang
+                                    didukung oleh gudang Anda (J&T, JNE, SiCepat, Shopee Express, GoSend, dll).</p>
                             </div>
                         </div>
                         <div class="timeline-item">
                             <div class="timeline-number">3</div>
                             <div class="timeline-content">
                                 <h5>Konfigurasi Printer Thermal & Webhook <span class="flow-badge">Alur Selesai</span></h5>
-                                <p>Setel format kertas struk belanja / label resi (seperti format kertas A6 thermal) dan pasang webhook URL notifikasi logistik untuk update resi otomatis.</p>
+                                <p>Setel format kertas struk belanja / label resi (seperti format kertas A6 thermal) dan
+                                    pasang webhook URL notifikasi logistik untuk update resi otomatis.</p>
                             </div>
                         </div>
                     </div>
@@ -1896,15 +1921,100 @@
 
                     <div class="faq-accordion">
                         <div class="accordion-item">
-                            <button class="accordion-trigger">Bagaimana cara mengubah profil alamat gudang fisik utama? <i class="fas fa-chevron-down"></i></button>
+                            <button class="accordion-trigger">Bagaimana cara mengubah profil alamat gudang fisik utama? <i
+                                    class="fas fa-chevron-down"></i></button>
                             <div class="accordion-content">
-                                Masuk ke menu <strong>Pengaturan -> Alamat Gudang</strong>, klik Edit, isi titik koordinat serta alamat lengkap. Alamat gudang ini digunakan sebagai acuan titik pick-up kurir logistik dan perhitungan tarif ongkir pada POS Kasir Offline.
+                                Masuk ke menu <strong>Pengaturan -> Alamat Gudang</strong>, klik Edit, isi titik koordinat
+                                serta alamat lengkap. Alamat gudang ini digunakan sebagai acuan titik pick-up kurir logistik
+                                dan perhitungan tarif ongkir pada POS Kasir Offline.
                             </div>
                         </div>
                         <div class="accordion-item">
-                            <button class="accordion-trigger">Mengapa ekspedisi pengiriman tertentu tidak muncul saat proses booking kurir? <i class="fas fa-chevron-down"></i></button>
+                            <button class="accordion-trigger">Mengapa ekspedisi pengiriman tertentu tidak muncul saat
+                                proses booking kurir? <i class="fas fa-chevron-down"></i></button>
                             <div class="accordion-content">
-                                Pastikan ekspedisi tersebut telah diaktifkan di setelan pengiriman pada toko seller center marketplace resmi Anda (misal seller center Shopee). Setelah itu, lakukan refresh logistik di ERP untuk memuat ulang daftar opsi kurir yang valid.
+                                Pastikan ekspedisi tersebut telah diaktifkan di setelan pengiriman pada toko seller center
+                                marketplace resmi Anda (misal seller center Shopee). Setelah itu, lakukan refresh logistik
+                                di ERP untuk memuat ulang daftar opsi kurir yang valid.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="feedback-widget">
+                        <div class="feedback-question">Apakah panduan kategori ini membantu Anda?</div>
+                        <div class="feedback-btns">
+                            <button class="feedback-btn yes"><i class="far fa-thumbs-up"></i> Ya, membantu</button>
+                            <button class="feedback-btn no"><i class="far fa-thumbs-down"></i> Kurang membantu</button>
+                        </div>
+                        <div class="feedback-response"></div>
+                    </div>
+                </div>
+
+                <!-- ==================== HAK AKSES & KARYAWAN ==================== -->
+                <div class="content-card cat-akses" data-category="akses">
+                    <div class="content-header">
+                        <div class="content-header-icon"><i class="fas fa-user-shield"></i></div>
+                        <div class="content-header-title">
+                            <h3>Karyawan & Hak Akses (Multi-User)</h3>
+                            <p>Mengelola peran kustom karyawan dan membatasi izin akses menu demi keamanan database ERP</p>
+                        </div>
+                        <div class="content-header-meta">
+                            <div>Estimasi baca: 3 mnt</div>
+                            <div>Terakhir update: 15 Juni 2026</div>
+                        </div>
+                    </div>
+
+                    <div class="section-title-wrap">
+                        <i class="fas fa-project-diagram"></i>
+                        <h4>Alur Kerja Manajemen Karyawan</h4>
+                    </div>
+
+                    <div class="workflow-timeline">
+                        <div class="timeline-item">
+                            <div class="timeline-number">1</div>
+                            <div class="timeline-content">
+                                <h5>Buat Peran / Role Kustom</h5>
+                                <p>Masuk ke menu <strong>Hak Akses</strong>, lalu buat nama role baru sesuai kebutuhan operasional (misal: "Kasir Toko", "Staff Gudang Packing", "Akuntan Keuangan").</p>
+                            </div>
+                        </div>
+                        <div class="timeline-item">
+                            <div class="timeline-number">2</div>
+                            <div class="timeline-content">
+                                <h5>Pemberian Izin Menu (Permissions)</h5>
+                                <p>Centang checkbox menu dan tombol aksi yang boleh diakses oleh role tersebut. Semisal, sembunyikan menu Keuangan dari staff gudang.</p>
+                            </div>
+                        </div>
+                        <div class="timeline-item">
+                            <div class="timeline-number">3</div>
+                            <div class="timeline-content">
+                                <h5>Tambahkan Data Karyawan & Tautkan Role <span class="flow-badge">Alur Selesai</span></h5>
+                                <p>Pergi ke menu <strong>Karyawan -> Tambah Karyawan</strong>, isi identitas email/username dan kaitkan dengan Role yang telah Anda buat sebelumnya. Karyawan siap login dengan hak akses terbatas.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="section-title-wrap mt-4">
+                        <i class="fas fa-question-circle"></i>
+                        <h4>Pertanyaan Populer (FAQ)</h4>
+                    </div>
+
+                    <div class="faq-accordion">
+                        <div class="accordion-item">
+                            <button class="accordion-trigger">Apakah staff gudang bisa mengakses laporan keuntungan jika tidak diizinkan? <i class="fas fa-chevron-down"></i></button>
+                            <div class="accordion-content">
+                                Tidak. Jika izin menu keuangan tidak dicentang untuk role staff gudang, seluruh menu Laporan Laba Rugi, Rekonsiliasi, dan Kartu Stok nominal keuangan akan secara otomatis disembunyikan sepenuhnya dari dasbor mereka ketika login.
+                            </div>
+                        </div>
+                        <div class="accordion-item">
+                            <button class="accordion-trigger">Bagaimana jika akun karyawan terkunci atau lupa password? <i class="fas fa-chevron-down"></i></button>
+                            <div class="accordion-content">
+                                Sebagai Tenant Owner atau Admin Utama, Anda dapat mereset kata sandi karyawan secara manual melalui menu <strong>Master -> Pengguna -> Edit Pengguna -> Ganti Password</strong>.
+                            </div>
+                        </div>
+                        <div class="accordion-item">
+                            <button class="accordion-trigger">Apa perbedaan Tenant Owner dengan Role Admin? <i class="fas fa-chevron-down"></i></button>
+                            <div class="accordion-content">
+                                Tenant Owner memiliki wewenang penuh atas kepemilikan langganan ERP, pembayaran paket, dan penghapusan database keseluruhan, sedangkan Role Admin hanya bertugas mengelola operasional sistem harian tanpa memiliki akses ke setelan billing/langganan.
                             </div>
                         </div>
                     </div>
