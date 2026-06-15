@@ -152,7 +152,7 @@
                                                     <i class="fas fa-plug"></i> Hubungkan Ulang (Reconnect)
                                                 </a>
                                             @elseif ($store->channel->code === 'tokopedia')
-                                                <a href="{{ route('tokopedia.connect') }}" class="btn btn-warning btn-sm w-100 text-dark fw-bold d-flex justify-content-center align-items-center gap-2 shadow-sm">
+                                                <a href="{{ route('tiktok.auth', ['channel' => 'tokopedia']) }}" class="btn btn-warning btn-sm w-100 text-dark fw-bold d-flex justify-content-center align-items-center gap-2 shadow-sm">
                                                     <i class="fas fa-plug"></i> Hubungkan Ulang (Reconnect)
                                                 </a>
                                             @endif

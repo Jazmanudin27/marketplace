@@ -43,11 +43,11 @@ class TokopediaService
             return 'dummy_tokopedia_access_token_12345';
         }
 
-        $url = 'https://accounts.tokopedia.net/token?grant_type=client_credentials';
-        
+        $url = 'https://accounts.tokopedia.com/token?grant_type=client_credentials';
+
         $response = Http::withHeaders([
             'Authorization' => 'Basic ' . base64_encode($this->clientId . ':' . $this->clientSecret),
-            'Content-Type'  => 'application/x-www-form-urlencoded',
+            'Content-Type' => 'application/x-www-form-urlencoded',
         ])->post($url);
 
         if ($response->failed()) {
@@ -104,7 +104,7 @@ class TokopediaService
         $url = "{$this->baseUrl}/inventory/v1/fs/{$this->fsId}/product/info";
         $response = Http::withToken($accessToken)->get($url, [
             'shop_id' => $shopId,
-            'limit'   => 50,
+            'limit' => 50,
         ]);
 
         if ($response->failed()) {
@@ -147,10 +147,10 @@ class TokopediaService
         // Real API Call
         $url = "{$this->baseUrl}/v1/order/list";
         $response = Http::withToken($accessToken)->get($url, [
-            'shop_id'   => $shopId,
+            'shop_id' => $shopId,
             'from_date' => date('Y-m-d', $timeFrom),
-            'to_date'   => date('Y-m-d', $timeTo),
-            'fs_id'     => $this->fsId,
+            'to_date' => date('Y-m-d', $timeTo),
+            'fs_id' => $this->fsId,
         ]);
 
         if ($response->failed()) {
@@ -177,10 +177,10 @@ class TokopediaService
     {
         if ($this->isSimulated($shopId)) {
             $masterProducts = \App\Models\MasterProduct::where('tenant_id', $tenantId)->get();
-            
+
             $buyerNames = ['Budi Santoso', 'Siti Rahma', 'Joko Susilo', 'Ahmad Dani'];
             $couriers = ['JNE REG', 'SiCepat Halu', 'J&T Express', 'Anteraja Regular'];
-            
+
             // Pilih produk secara acak dari database jika ada
             $items = [];
             $totalAmount = 0;
@@ -191,21 +191,21 @@ class TokopediaService
                     $qty = rand(1, 2);
                     $price = (float) $sp->price;
                     $items[] = [
-                        'product_id'   => 'tokped-prod-' . $sp->id,
+                        'product_id' => 'tokped-prod-' . $sp->id,
                         'product_name' => '[Tokopedia] ' . $sp->name,
-                        'sku'          => $sp->sku,
-                        'price'        => $price,
-                        'quantity'     => $qty,
+                        'sku' => $sp->sku,
+                        'price' => $price,
+                        'quantity' => $qty,
                     ];
                     $totalAmount += $price * $qty;
                 }
             } else {
                 $items[] = [
-                    'product_id'   => 'tokped-prod-111',
+                    'product_id' => 'tokped-prod-111',
                     'product_name' => 'Tokopedia Kemeja Flanel Premium',
-                    'sku'          => 'TSHIRT-FLANEL',
-                    'price'        => 125000.00,
-                    'quantity'     => 1,
+                    'sku' => 'TSHIRT-FLANEL',
+                    'price' => 125000.00,
+                    'quantity' => 1,
                 ];
                 $totalAmount = 125000.00;
             }
@@ -215,21 +215,21 @@ class TokopediaService
             $totalAmount += $shippingFee - $discount;
 
             return [
-                'order_id'         => $orderId,
-                'invoice_number'   => 'INV/' . date('Ymd') . '/XXI/' . rand(100000, 999999),
-                'order_status'     => 'READY_TO_SHIP', // READY_TO_SHIP, SHIPPED, DELIVERED, CANCELLED
-                'buyer_name'       => $buyerNames[array_rand($buyerNames)],
-                'buyer_phone'      => '0812' . rand(10000000, 99999999),
+                'order_id' => $orderId,
+                'invoice_number' => 'INV/' . date('Ymd') . '/XXI/' . rand(100000, 999999),
+                'order_status' => 'READY_TO_SHIP', // READY_TO_SHIP, SHIPPED, DELIVERED, CANCELLED
+                'buyer_name' => $buyerNames[array_rand($buyerNames)],
+                'buyer_phone' => '0812' . rand(10000000, 99999999),
                 'shipping_address' => 'Jl. Jend. Sudirman No. ' . rand(1, 100) . ', Jakarta Pusat, DKI Jakarta 10210',
-                'total_amount'     => $totalAmount,
-                'shipping_fee'     => $shippingFee,
-                'discount_amount'  => $discount,
-                'marketplace_fee'  => $totalAmount * 0.05, // 5% commision
-                'net_amount'       => $totalAmount - ($totalAmount * 0.05) - $shippingFee,
-                'courier'          => $couriers[array_rand($couriers)],
-                'tracking_number'  => 'TKP' . rand(100000000, 999999999),
-                'create_time'      => time() - rand(3600, 86400),
-                'items'            => $items,
+                'total_amount' => $totalAmount,
+                'shipping_fee' => $shippingFee,
+                'discount_amount' => $discount,
+                'marketplace_fee' => $totalAmount * 0.05, // 5% commision
+                'net_amount' => $totalAmount - ($totalAmount * 0.05) - $shippingFee,
+                'courier' => $couriers[array_rand($couriers)],
+                'tracking_number' => 'TKP' . rand(100000000, 999999999),
+                'create_time' => time() - rand(3600, 86400),
+                'items' => $items,
             ];
         }
 
@@ -237,7 +237,7 @@ class TokopediaService
         $url = "{$this->baseUrl}/v1/order/detail";
         $response = Http::withToken($accessToken)->get($url, [
             'order_id' => $orderId,
-            'fs_id'    => $this->fsId,
+            'fs_id' => $this->fsId,
         ]);
 
         if ($response->failed()) {
@@ -265,30 +265,30 @@ class TokopediaService
         $products = $o['products'] ?? [];
         foreach ($products as $p) {
             $items[] = [
-                'product_id'   => (string) ($p['product_id'] ?? ''),
+                'product_id' => (string) ($p['product_id'] ?? ''),
                 'product_name' => $p['product_name'] ?? 'Unknown Item',
-                'sku'          => $p['sku'] ?? null,
-                'price'        => (float) ($p['product_price'] ?? 0),
-                'quantity'     => (int) ($p['quantity'] ?? 1),
+                'sku' => $p['sku'] ?? null,
+                'price' => (float) ($p['product_price'] ?? 0),
+                'quantity' => (int) ($p['quantity'] ?? 1),
             ];
         }
 
         return [
-            'order_id'         => (string) ($o['order_id'] ?? $orderId),
-            'invoice_number'   => $o['invoice_number'] ?? null,
-            'order_status'     => $erpStatus,
-            'buyer_name'       => $o['recipient']['name'] ?? 'Buyer Tokopedia',
-            'buyer_phone'      => $o['recipient']['phone'] ?? null,
+            'order_id' => (string) ($o['order_id'] ?? $orderId),
+            'invoice_number' => $o['invoice_number'] ?? null,
+            'order_status' => $erpStatus,
+            'buyer_name' => $o['recipient']['name'] ?? 'Buyer Tokopedia',
+            'buyer_phone' => $o['recipient']['phone'] ?? null,
             'shipping_address' => $o['recipient']['address']['address_full'] ?? null,
-            'total_amount'     => (float) ($o['amt']['total'] ?? 0),
-            'shipping_fee'     => (float) ($o['amt']['shipping'] ?? 0),
-            'discount_amount'  => (float) ($o['amt']['discount'] ?? 0),
-            'marketplace_fee'  => (float) ($o['amt']['marketplace_fee'] ?? 0),
-            'net_amount'       => (float) ($o['amt']['net_amount'] ?? 0),
-            'courier'          => $o['logistic']['shipping_agency'] ?? null,
-            'tracking_number'  => $o['logistic']['awb'] ?? null,
-            'create_time'      => strtotime($o['payment_date'] ?? $o['create_time'] ?? 'now'),
-            'items'            => $items,
+            'total_amount' => (float) ($o['amt']['total'] ?? 0),
+            'shipping_fee' => (float) ($o['amt']['shipping'] ?? 0),
+            'discount_amount' => (float) ($o['amt']['discount'] ?? 0),
+            'marketplace_fee' => (float) ($o['amt']['marketplace_fee'] ?? 0),
+            'net_amount' => (float) ($o['amt']['net_amount'] ?? 0),
+            'courier' => $o['logistic']['shipping_agency'] ?? null,
+            'tracking_number' => $o['logistic']['awb'] ?? null,
+            'create_time' => strtotime($o['payment_date'] ?? $o['create_time'] ?? 'now'),
+            'items' => $items,
         ];
     }
 
@@ -303,13 +303,13 @@ class TokopediaService
         }
 
         $url = "{$this->baseUrl}/inventory/v1/fs/{$this->fsId}/stock/update";
-        
+
         $body = [
             'shop_id' => $shopId,
             'products' => [
                 [
                     'product_id' => $productId,
-                    'stock'      => $stock,
+                    'stock' => $stock,
                 ]
             ]
         ];
@@ -336,13 +336,13 @@ class TokopediaService
         }
 
         $url = "{$this->baseUrl}/inventory/v1/fs/{$this->fsId}/price/update";
-        
+
         $body = [
             'shop_id' => $shopId,
             'products' => [
                 [
                     'product_id' => $productId,
-                    'price'      => (int) $price,
+                    'price' => (int) $price,
                 ]
             ]
         ];

@@ -65,7 +65,7 @@
                 </table>
             </form>
         </div>
-        <div style="margin-top:1rem;">{{ $orders->links() }}</div>
+        <div style="margin-top:1rem;">{{ $orders->links('pagination::bootstrap-5') }}</div>
     </div>
 
     <script>

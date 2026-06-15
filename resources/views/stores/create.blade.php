@@ -50,14 +50,15 @@
                     </div>
                     <div class="connect-info">
                         <div class="connect-name">Tokopedia</div>
-                        <div class="connect-desc">Hubungkan toko Tokopedia Anda via Client Credentials.</div>
+                        <div class="connect-desc">Hubungkan toko Tokopedia Anda. Kini menggunakan TikTok Shop OAuth (platform sudah merger).</div>
                         <div class="connect-badges">
                             <span class="connect-badge badge-auto"><i class="fas fa-bolt"></i> Otomatis</span>
                             <span class="connect-badge badge-secure"><i class="fas fa-shield-alt"></i> OAuth 2.0</span>
+                            <span class="connect-badge badge-tiktok"><i class="fab fa-tiktok"></i> Via TikTok OAuth</span>
                         </div>
                     </div>
                 </div>
-                <a href="{{ route('tokopedia.connect') }}" class="btn-connect btn-connect-tokopedia" id="btn-tokopedia-connect">
+                <a href="{{ route('tiktok.auth', ['channel' => 'tokopedia']) }}" class="btn-connect btn-connect-tokopedia" id="btn-tokopedia-connect">
                     <i class="fas fa-plug"></i> Hubungkan Tokopedia
                 </a>
             </div>
@@ -240,6 +241,12 @@
             background: rgba(245, 158, 11, 0.12);
             color: var(--warning);
             border: 1px solid rgba(245, 158, 11, 0.25);
+        }
+
+        .badge-tiktok {
+            background: rgba(0, 0, 0, 0.12);
+            color: var(--text-primary);
+            border: 1px solid rgba(255, 255, 255, 0.15);
         }
 
         .badge-coming {

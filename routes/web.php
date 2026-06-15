@@ -12,7 +12,6 @@ use App\Http\Controllers\CustomerController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\WebhookController;
 use App\Http\Controllers\TiktokController;
-use App\Http\Controllers\TokopediaController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\OrderController;
@@ -140,27 +139,16 @@ Route::middleware('auth')->group(function () {
         Route::post('/shopee/{store}/sync-products', [ShopeeController::class, 'syncProducts'])->name('shopee.sync_products');
         Route::post('/shopee/{store}/sync-orders', [ShopeeController::class, 'syncOrders'])->name('shopee.sync_orders');
 
-        Route::post('/tiktok/{store}/sync-orders', function (\App\Models\Store $store) {
-            if ($store->channel->code !== 'tiktok')
-                abort(404);
-            $timeFrom = now()->subDays(30)->timestamp;
-            $timeTo = now()->timestamp;
-            \App\Jobs\PullOrdersFromTiktok::dispatch($store, $timeFrom, $timeTo);
-            return back()->with('success', 'Sinkronisasi pesanan TikTok sedang berjalan di latar belakang.');
-        })->name('tiktok.sync_orders');
+        // TikTok Shop sync routes (via controller)
+        Route::post('/tiktok/{store}/sync-orders', [TiktokController::class, 'syncOrders'])->name('tiktok.sync_orders');
+        Route::post('/tiktok/{store}/sync-products', [TiktokController::class, 'syncProducts'])->name('tiktok.sync_products');
 
-        Route::post('/tiktok/{store}/sync-products', function (\App\Models\Store $store) {
-            if ($store->channel->code !== 'tiktok')
-                abort(404);
-            \App\Jobs\PullProductsFromTiktok::dispatch($store);
-            return back()->with('success', 'Sinkronisasi produk TikTok sedang berjalan di latar belakang.');
-        })->name('tiktok.sync_products');
-
-        // Tokopedia Routes
-        Route::get('/tokopedia/connect', [TokopediaController::class, 'connectForm'])->name('tokopedia.connect');
-        Route::post('/tokopedia/connect', [TokopediaController::class, 'connect'])->name('tokopedia.connect.post');
-        Route::post('/tokopedia/{store}/sync-products', [TokopediaController::class, 'syncProducts'])->name('tokopedia.sync_products');
-        Route::post('/tokopedia/{store}/sync-orders', [TokopediaController::class, 'syncOrders'])->name('tokopedia.sync_orders');
+        // Tokopedia → Menggunakan TikTok Shop OAuth (platform sudah merger)
+        // 'tokopedia.connect' di-redirect ke TikTok Auth dengan channel=tokopedia
+        Route::get('/tokopedia/connect', fn() => redirect()->route('tiktok.auth', ['channel' => 'tokopedia']))
+            ->name('tokopedia.connect');
+        Route::post('/tokopedia/{store}/sync-products', [TiktokController::class, 'syncProducts'])->name('tokopedia.sync_products');
+        Route::post('/tokopedia/{store}/sync-orders', [TiktokController::class, 'syncOrders'])->name('tokopedia.sync_orders');
     });
 
 

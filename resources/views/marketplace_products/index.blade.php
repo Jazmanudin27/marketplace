@@ -197,7 +197,7 @@
     </div>
     
     <div style="margin-top: 1rem;">
-        {{ $marketplaceProducts->links('pagination::bootstrap-4') }}
+        {{ $marketplaceProducts->links() }}
     </div>
 </div>
 @endsection

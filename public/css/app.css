@@ -1771,3 +1771,24 @@ select.form-input option {
 .table {
     font-size: 0.82rem;
 }
+
+/* =============================================
+   PAGINATION FIXES
+   ============================================= */
+.pagination svg,
+svg.w-5,
+svg.h-5,
+nav[role="navigation"] svg {
+    width: 1.25rem !important;
+    height: 1.25rem !important;
+    display: inline-block;
+    vertical-align: middle;
+}
+
+.pagination {
+    display: flex;
+    padding-left: 0;
+    list-style: none;
+    border-radius: 0.375rem;
+    gap: 5px;
+}

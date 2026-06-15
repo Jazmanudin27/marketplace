@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Pagination\Paginator;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -14,17 +15,19 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        Paginator::useBootstrapFive();
+
         if (str_contains(config('app.url'), 'https://')) {
             URL::forceScheme('https');
         }
 
         // Jalankan migrasi otomatis jika tabel permission belum ada
-        if (!\Illuminate\Support\Facades\Schema::hasTable('permissions')) {
-            try {
+        try {
+            if (!\Illuminate\Support\Facades\Schema::hasTable('permissions')) {
                 \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
-            } catch (\Exception $e) {
-                // Abaikan error jika database belum siap
             }
+        } catch (\Exception $e) {
+            // Abaikan error jika database belum siap
         }
     }
 }
