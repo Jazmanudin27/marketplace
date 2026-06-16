@@ -34,26 +34,26 @@ class Order extends Model
     ];
 
     protected $casts = [
-        'order_date'       => 'datetime',
-        'packed_at'        => 'datetime',
+        'order_date' => 'datetime',
+        'packed_at' => 'datetime',
         'financial_breakdown' => 'array',
-        'total_amount'     => 'decimal:2',
-        'shipping_fee'     => 'decimal:2',
-        'discount_amount'  => 'decimal:2',
-        'marketplace_fee'  => 'decimal:2',
-        'net_amount'       => 'decimal:2',
+        'total_amount' => 'decimal:2',
+        'shipping_fee' => 'decimal:2',
+        'discount_amount' => 'decimal:2',
+        'marketplace_fee' => 'decimal:2',
+        'net_amount' => 'decimal:2',
         'is_stock_deducted' => 'boolean',
         'is_stock_returned' => 'boolean',
     ];
 
     // Status constants
-    const STATUS_UNPAID          = 'UNPAID';
-    const STATUS_READY_TO_SHIP   = 'READY_TO_SHIP';
-    const STATUS_SHIPPED         = 'SHIPPED';
-    const STATUS_DELIVERED       = 'DELIVERED';
-    const STATUS_COMPLETED       = 'COMPLETED';
-    const STATUS_CANCELLED       = 'CANCELLED';
-    const STATUS_RETURN          = 'RETURN';
+    const STATUS_UNPAID = 'UNPAID';
+    const STATUS_READY_TO_SHIP = 'READY_TO_SHIP';
+    const STATUS_SHIPPED = 'SHIPPED';
+    const STATUS_DELIVERED = 'DELIVERED';
+    const STATUS_COMPLETED = 'COMPLETED';
+    const STATUS_CANCELLED = 'CANCELLED';
+    const STATUS_RETURN = 'RETURN';
 
     public function tenant(): BelongsTo
     {
@@ -78,13 +78,13 @@ class Order extends Model
     public function getStatusBadgeAttribute(): string
     {
         return match ($this->order_status) {
-            self::STATUS_UNPAID        => 'warning',
+            self::STATUS_UNPAID => 'warning',
             self::STATUS_READY_TO_SHIP => 'primary',
-            self::STATUS_SHIPPED       => 'info',
-            self::STATUS_DELIVERED     => 'success',
-            self::STATUS_CANCELLED     => 'danger',
-            self::STATUS_RETURN        => 'secondary',
-            default                    => 'dark',
+            self::STATUS_SHIPPED => 'info',
+            self::STATUS_DELIVERED => 'success',
+            self::STATUS_CANCELLED => 'danger',
+            self::STATUS_RETURN => 'secondary',
+            default => 'dark',
         };
     }
 
@@ -97,9 +97,9 @@ class Order extends Model
                     $masterProduct = MasterProduct::find($item->master_product_id);
                     if ($masterProduct) {
                         $masterProduct->recordStockMovement(
-                            $item->quantity, 
-                            'out', 
-                            'Pesanan Masuk: ' . $this->order_marketplace_id, 
+                            $item->quantity,
+                            'out',
+                            'Pesanan Masuk: ' . $this->order_marketplace_id,
                             null
                         );
                     }
@@ -115,9 +115,9 @@ class Order extends Model
                     $masterProduct = MasterProduct::find($item->master_product_id);
                     if ($masterProduct) {
                         $masterProduct->recordStockMovement(
-                            $item->quantity, 
-                            'in', 
-                            'Pembatalan Pesanan: ' . $this->order_marketplace_id, 
+                            $item->quantity,
+                            'in',
+                            'Pembatalan Pesanan: ' . $this->order_marketplace_id,
                             null
                         );
                     }

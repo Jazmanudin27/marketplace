@@ -318,5 +318,31 @@ Route::middleware('auth')->group(function () {
     Route::post('/faq/items', [\App\Http\Controllers\FaqManagementController::class, 'storeItem'])->name('faq.items.store');
     Route::put('/faq/items/{item}', [\App\Http\Controllers\FaqManagementController::class, 'updateItem'])->name('faq.items.update');
     Route::delete('/faq/items/{item}', [\App\Http\Controllers\FaqManagementController::class, 'destroyItem'])->name('faq.items.destroy');
+
+    // =========================================================================
+    // Mobile Views (Secured by separate middlewares)
+    // =========================================================================
+    Route::get('/mobile', [\App\Http\Controllers\MobileController::class, 'index'])->name('mobile.index');
+
+    // Owner Mobile Dashboard (Laporan Omset, Stok dll)
+    Route::middleware('mobile.owner')->group(function () {
+        Route::get('/mobile/owner', [\App\Http\Controllers\MobileController::class, 'ownerDashboard'])->name('mobile.owner');
+    });
+
+    // Gudang Mobile Dashboard (Scan Kemasan Produk & Request Produksi)
+    Route::middleware('mobile.gudang')->group(function () {
+        Route::get('/mobile/gudang', [\App\Http\Controllers\MobileController::class, 'gudangDashboard'])->name('mobile.gudang');
+        Route::get('/mobile/gudang/scan', [\App\Http\Controllers\MobileController::class, 'gudangScan'])->name('mobile.gudang.scan');
+        Route::post('/mobile/gudang/adjust-stock/{id}', [\App\Http\Controllers\MobileController::class, 'gudangAdjustStock'])->name('mobile.gudang.adjust_stock');
+        Route::post('/mobile/gudang/request-production', [\App\Http\Controllers\MobileController::class, 'gudangRequestProduction'])->name('mobile.gudang.request_production');
+    });
+
+    // Produksi Mobile Dashboard (Pesanan Produksi)
+    Route::middleware('mobile.produksi')->group(function () {
+        Route::get('/mobile/produksi', [\App\Http\Controllers\MobileController::class, 'produksiDashboard'])->name('mobile.produksi');
+        Route::post('/mobile/produksi/{order}/start', [\App\Http\Controllers\MobileController::class, 'produksiStart'])->name('mobile.produksi.start');
+        Route::post('/mobile/produksi/{order}/complete', [\App\Http\Controllers\MobileController::class, 'produksiComplete'])->name('mobile.produksi.complete');
+        Route::post('/mobile/produksi/{order}/cancel', [\App\Http\Controllers\MobileController::class, 'produksiCancel'])->name('mobile.produksi.cancel');
+    });
 });
 

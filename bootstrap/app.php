@@ -18,6 +18,9 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'role' => \App\Http\Middleware\RoleMiddleware::class,
             'permission' => \App\Http\Middleware\PermissionMiddleware::class,
+            'mobile.owner' => \App\Http\Middleware\MobileOwnerMiddleware::class,
+            'mobile.gudang' => \App\Http\Middleware\MobileGudangMiddleware::class,
+            'mobile.produksi' => \App\Http\Middleware\MobileProduksiMiddleware::class,
         ]);
         
         $middleware->validateCsrfTokens(except: [
