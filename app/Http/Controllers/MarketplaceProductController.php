@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\MarketplaceProduct;
 use App\Models\MasterProduct;
+use App\Models\Channel;
+use App\Models\Store;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -19,7 +21,7 @@ class MarketplaceProductController extends Controller
                 $q->where('tenant_id', $tenantId);
             });
 
-        if ($request->has('status')) {
+        if ($request->filled('status')) {
             if ($request->status === 'unmapped') {
                 $query->whereNull('master_product_id');
             } elseif ($request->status === 'mapped') {
@@ -27,12 +29,34 @@ class MarketplaceProductController extends Controller
             }
         }
 
-        $marketplaceProducts = $query->latest('updated_at')->paginate(20);
+        if ($request->filled('name')) {
+            $query->where('name', 'like', '%' . $request->name . '%');
+        }
+
+        if ($request->filled('sku')) {
+            $query->where('marketplace_sku', 'like', '%' . $request->sku . '%');
+        }
+
+        if ($request->filled('channel_id')) {
+            $query->whereHas('store', function($q) use ($request) {
+                $q->where('channel_id', $request->channel_id);
+            });
+        }
+
+        if ($request->filled('store_id')) {
+            $query->where('store_id', $request->store_id);
+        }
+
+        $marketplaceProducts = $query->latest('updated_at')->paginate(20)->withQueryString();
 
         // Ambil data master product untuk dropdown 'Tautkan'
         $masterProducts = MasterProduct::where('tenant_id', $tenantId)->orderBy('name')->get();
 
-        return view('marketplace_products.index', compact('marketplaceProducts', 'masterProducts'));
+        // Ambil data channel dan store untuk filter
+        $channels = Channel::orderBy('name')->get();
+        $stores = Store::where('tenant_id', $tenantId)->orderBy('store_name')->get();
+
+        return view('marketplace_products.index', compact('marketplaceProducts', 'masterProducts', 'channels', 'stores'));
     }
 
     public function promote(MarketplaceProduct $product)

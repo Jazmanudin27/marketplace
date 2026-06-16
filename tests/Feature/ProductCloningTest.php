@@ -181,4 +181,64 @@ class ProductCloningTest extends TestCase
         // Harus ada tombol / link salin ke toko lain
         $response->assertSee('Salin ke Toko Lain');
     }
+
+    public function test_can_filter_marketplace_products(): void
+    {
+        $this->actingAs($this->user);
+
+        // Create a different channel and store
+        $otherChannel = Channel::create([
+            'name' => 'Tokopedia',
+            'code' => 'tokopedia',
+        ]);
+        $otherStore = Store::create([
+            'tenant_id'            => $this->tenant->id,
+            'channel_id'           => $otherChannel->id,
+            'store_name'           => 'Toko Tokped',
+            'marketplace_store_id' => 'TOKOPEDIA_001',
+            'status'               => 'connected',
+        ]);
+
+        $prodA = MarketplaceProduct::create([
+            'store_id' => $this->store->id,
+            'marketplace_product_id' => 'MP-A',
+            'marketplace_sku' => 'SKU-AAA',
+            'name' => 'Sandal Gunung Eiger',
+            'price' => 100000,
+            'stock' => 5,
+        ]);
+
+        $prodB = MarketplaceProduct::create([
+            'store_id' => $otherStore->id,
+            'marketplace_product_id' => 'MP-B',
+            'marketplace_sku' => 'SKU-BBB',
+            'name' => 'Sepatu Compass',
+            'price' => 200000,
+            'stock' => 10,
+        ]);
+
+        // 1. Filter by Name
+        $response = $this->get(route('marketplace_products.index', ['name' => 'Compass']));
+        $response->assertStatus(200);
+        $response->assertSee('Sepatu Compass');
+        $response->assertDontSee('Sandal Gunung Eiger');
+
+        // 2. Filter by SKU
+        $response = $this->get(route('marketplace_products.index', ['sku' => 'SKU-AAA']));
+        $response->assertStatus(200);
+        $response->assertSee('Sandal Gunung Eiger');
+        $response->assertDontSee('Sepatu Compass');
+
+        // 3. Filter by Channel
+        $response = $this->get(route('marketplace_products.index', ['channel_id' => $otherChannel->id]));
+        $response->assertStatus(200);
+        $response->assertSee('Sepatu Compass');
+        $response->assertDontSee('Sandal Gunung Eiger');
+
+        // 4. Filter by Store
+        $response = $this->get(route('marketplace_products.index', ['store_id' => $this->store->id]));
+        $response->assertStatus(200);
+        $response->assertSee('Sandal Gunung Eiger');
+        $response->assertDontSee('Sepatu Compass');
+    }
 }
