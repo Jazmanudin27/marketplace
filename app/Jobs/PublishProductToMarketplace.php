@@ -54,7 +54,12 @@ class PublishProductToMarketplace implements ShouldQueue
 
             // Check if already mapped
             $existingMapping = MarketplaceProduct::where('store_id', $store->id)
-                ->where('master_product_id', $product->id)
+                ->where(function($q) use ($product) {
+                    $q->where('master_product_id', $product->id);
+                    if ($product->sku) {
+                        $q->orWhere('marketplace_sku', $product->sku);
+                    }
+                })
                 ->first();
             if ($existingMapping) {
                 $log->update([
@@ -68,7 +73,12 @@ class PublishProductToMarketplace implements ShouldQueue
             $catId = $log->category_id;
             $fallbackImageUrl = $product->image_url;
             if (empty($fallbackImageUrl)) {
-                $linkedWithImage = MarketplaceProduct::where('master_product_id', $product->id)
+                $linkedWithImage = MarketplaceProduct::where(function($q) use ($product) {
+                        $q->where('master_product_id', $product->id);
+                        if ($product->sku) {
+                            $q->orWhere('marketplace_sku', $product->sku);
+                        }
+                    })
                     ->whereNotNull('image_url')
                     ->where('image_url', '!=', '')
                     ->first();

@@ -169,12 +169,9 @@ class PullOrdersFromShopee implements ShouldQueue
                 $qty = $item['model_quantity_purchased'] ?? 1;
 
                 // Snapshot HPP dari MasterProduct saat pesanan dibuat
-                $masterProductId = $marketplaceProduct ? $marketplaceProduct->master_product_id : null;
-                $costPrice = 0;
-                if ($masterProductId) {
-                    $mp = \App\Models\MasterProduct::find($masterProductId);
-                    $costPrice = $mp ? (float) $mp->cost_price : 0;
-                }
+                $masterProduct = $marketplaceProduct ? $marketplaceProduct->masterProduct : null;
+                $masterProductId = $masterProduct ? $masterProduct->id : null;
+                $costPrice = $masterProduct ? (float) $masterProduct->cost_price : 0;
 
                 OrderItem::updateOrCreate(
                     [

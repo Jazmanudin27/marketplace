@@ -42,7 +42,12 @@ class PushItemInfoToMarketplaces implements ShouldQueue
         // Note: For basic info like description/weight, we only need to push ONCE per marketplace_product_id.
         // If a product has multiple variants in ERP, they all map to the same marketplace_product_id.
         // We will group by marketplace_product_id to avoid duplicate API calls for the same item.
-        $marketplaceProducts = MarketplaceProduct::where('master_product_id', $this->masterProductId)
+        $marketplaceProducts = MarketplaceProduct::where(function($q) use ($masterProduct) {
+                $q->where('master_product_id', $this->masterProductId);
+                if ($masterProduct->sku) {
+                    $q->orWhere('marketplace_sku', $masterProduct->sku);
+                }
+            })
             ->with('store.channel')
             ->get()
             ->unique('marketplace_product_id');

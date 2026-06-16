@@ -354,7 +354,7 @@ class ShopeeController extends Controller
                                 ],
                                 [
                                     'marketplace_product_id' => $marketplaceProduct ? $marketplaceProduct->id : null,
-                                    'master_product_id' => $marketplaceProduct ? $marketplaceProduct->master_product_id : null,
+                                    'master_product_id' => $marketplaceProduct ? ($marketplaceProduct->masterProduct->id ?? $marketplaceProduct->master_product_id) : null,
                                     'product_name' => $item['item_name'] . (!empty($item['model_name']) ? ' - ' . $item['model_name'] : ''),
                                     'price' => $price,
                                     'quantity' => $qty,

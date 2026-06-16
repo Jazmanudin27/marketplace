@@ -255,7 +255,12 @@ class MasterProductController extends Controller
 
         $fallbackImageUrl = $product->image_url;
         if (empty($fallbackImageUrl)) {
-            $linkedWithImage = \App\Models\MarketplaceProduct::where('master_product_id', $product->id)
+            $linkedWithImage = \App\Models\MarketplaceProduct::where(function($q) use ($product) {
+                    $q->where('master_product_id', $product->id);
+                    if ($product->sku) {
+                        $q->orWhere('marketplace_sku', $product->sku);
+                    }
+                })
                 ->whereNotNull('image_url')
                 ->where('image_url', '!=', '')
                 ->first();
@@ -308,7 +313,12 @@ class MasterProductController extends Controller
 
             // Check if already mapped
             $exists = \App\Models\MarketplaceProduct::where('store_id', $store->id)
-                ->where('master_product_id', $product->id)
+                ->where(function($q) use ($product) {
+                    $q->where('master_product_id', $product->id);
+                    if ($product->sku) {
+                        $q->orWhere('marketplace_sku', $product->sku);
+                    }
+                })
                 ->exists();
             if ($exists) {
                 continue;

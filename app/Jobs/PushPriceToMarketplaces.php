@@ -38,7 +38,12 @@ class PushPriceToMarketplaces implements ShouldQueue
 
         // Cari semua marketplace product yang sinkronisasi harga aktif
         $marketplaceProducts = MarketplaceProduct::with('store.channel')
-            ->where('master_product_id', $this->masterProductId)
+            ->where(function($q) use ($masterProduct) {
+                $q->where('master_product_id', $this->masterProductId);
+                if ($masterProduct->sku) {
+                    $q->orWhere('marketplace_sku', $masterProduct->sku);
+                }
+            })
             ->get();
 
         foreach ($marketplaceProducts as $mp) {

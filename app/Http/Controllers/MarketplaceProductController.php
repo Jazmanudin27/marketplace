@@ -23,9 +23,9 @@ class MarketplaceProductController extends Controller
 
         if ($request->filled('status')) {
             if ($request->status === 'unmapped') {
-                $query->whereNull('master_product_id');
+                $query->whereDoesntHave('masterProduct');
             } elseif ($request->status === 'mapped') {
-                $query->whereNotNull('master_product_id');
+                $query->whereHas('masterProduct');
             }
         }
 
@@ -63,7 +63,7 @@ class MarketplaceProductController extends Controller
     {
         abort_unless($product->store->tenant_id === Auth::user()->tenant_id, 403);
         
-        if ($product->master_product_id) {
+        if ($product->masterProduct) {
             return back()->with('error', 'Produk ini sudah ditautkan ke Master Product.');
         }
 
@@ -80,11 +80,12 @@ class MarketplaceProductController extends Controller
         try {
             DB::transaction(function () use ($product) {
                 $attrs = $this->parseAttributesFromName($product->name);
+                $sku = $product->marketplace_sku ?: ('SKU-' . time() . '-' . rand(100, 999));
 
                 // Buat Master Product baru berdasarkan data dari MarketplaceProduct
                 $master = MasterProduct::create([
                     'tenant_id' => Auth::user()->tenant_id,
-                    'sku' => $product->marketplace_sku ?: ('SKU-' . time() . '-' . rand(100, 999)),
+                    'sku' => $sku,
                     'name' => $product->name,
                     'price' => $product->price,
                     'stock' => $product->stock,
@@ -96,6 +97,7 @@ class MarketplaceProductController extends Controller
 
                 // Update marketplace product agar tertaut ke master yang baru
                 $product->update([
+                    'marketplace_sku' => $sku,
                     'master_product_id' => $master->id,
                 ]);
             });
@@ -118,6 +120,7 @@ class MarketplaceProductController extends Controller
         abort_unless($master->tenant_id === Auth::user()->tenant_id, 403);
 
         $product->update([
+            'marketplace_sku' => $master->sku,
             'master_product_id' => $master->id,
         ]);
 
@@ -244,6 +247,7 @@ class MarketplaceProductController extends Controller
 
         $product->update([
             'master_product_id' => null,
+            'marketplace_sku' => null,
             'sync_stock' => false,
         ]);
 

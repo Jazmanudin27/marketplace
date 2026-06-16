@@ -55,7 +55,7 @@ class MasterProduct extends Model
 
     public function marketplaceProducts(): HasMany
     {
-        return $this->hasMany(MarketplaceProduct::class);
+        return $this->hasMany(MarketplaceProduct::class, 'marketplace_sku', 'sku');
     }
 
     public function orderItems(): HasMany

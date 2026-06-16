@@ -39,7 +39,12 @@ class PushStockToMarketplaces implements ShouldQueue
         }
 
         // Get all marketplace products mapped to this master product
-        $marketplaceProducts = MarketplaceProduct::where('master_product_id', $this->masterProductId)
+        $marketplaceProducts = MarketplaceProduct::where(function($q) use ($masterProduct) {
+                $q->where('master_product_id', $this->masterProductId);
+                if ($masterProduct->sku) {
+                    $q->orWhere('marketplace_sku', $masterProduct->sku);
+                }
+            })
             ->where('sync_stock', true)
             ->with('store.channel')
             ->get();

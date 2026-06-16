@@ -2,208 +2,291 @@
 @section('title', 'Produk Marketplace')
 @section('page-title', 'Produk Marketplace')
 
+@push('styles')
+    <style>
+        .table-hover tbody tr:hover {
+            background-color: rgba(255, 255, 255, 0.03) !important;
+        }
+
+        .badge {
+            font-weight: 600;
+            letter-spacing: 0.02em;
+        }
+
+        .mono {
+            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+        }
+
+        .form-control-custom {
+            background: rgba(255, 255, 255, 0.03) !important;
+            border: 1px solid rgba(255, 255, 255, 0.1) !important;
+            color: var(--text-primary) !important;
+        }
+
+        .form-control-custom:focus {
+            background: rgba(255, 255, 255, 0.05) !important;
+            box-shadow: 0 0 0 3px rgba(108, 99, 255, 0.2) !important;
+            border-color: var(--primary) !important;
+        }
+
+        .btn-action {
+            padding: 5px 12px;
+            font-size: 0.82rem;
+            border-radius: 6px;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            justify-content: center;
+        }
+    </style>
+@endpush
+
 @section('content')
-    <div class="dashboard-card">
-        <div class="card-header-line">
-            <h3><i class="fas fa-boxes"></i> Daftar Produk Marketplace</h3>
-            <div>
-                <a href="{{ route('marketplace_products.index', request()->except(['status', 'page'])) }}"
-                    class="btn-primary-sm {{ !request('status') ? 'active' : '' }}"
-                    style="background: {{ !request('status') ? 'var(--primary)' : 'var(--bg-card2)' }}; color: {{ !request('status') ? '#fff' : 'var(--text-secondary)' }}; border: 1px solid {{ !request('status') ? 'var(--primary)' : 'var(--border)' }}; text-decoration: none;">Semua</a>
-                <a href="{{ route('marketplace_products.index', array_merge(request()->except('page'), ['status' => 'unmapped'])) }}"
-                    class="btn-primary-sm {{ request('status') === 'unmapped' ? 'active' : '' }}"
-                    style="background: {{ request('status') === 'unmapped' ? 'var(--primary)' : 'var(--bg-card2)' }}; color: {{ request('status') === 'unmapped' ? '#fff' : 'var(--text-secondary)' }}; border: 1px solid {{ request('status') === 'unmapped' ? 'var(--primary)' : 'var(--border)' }}; text-decoration: none;">Belum
-                    Ditautkan</a>
-                <a href="{{ route('marketplace_products.index', array_merge(request()->except('page'), ['status' => 'mapped'])) }}"
-                    class="btn-primary-sm {{ request('status') === 'mapped' ? 'active' : '' }}"
-                    style="background: {{ request('status') === 'mapped' ? 'var(--primary)' : 'var(--bg-card2)' }}; color: {{ request('status') === 'mapped' ? '#fff' : 'var(--text-secondary)' }}; border: 1px solid {{ request('status') === 'mapped' ? 'var(--primary)' : 'var(--border)' }}; text-decoration: none;">Sudah
-                    Ditautkan</a>
-            </div>
+    {{-- Status Tabs Row --}}
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div class="d-flex align-items-center gap-2">
+            <h4 class="mb-0 fw-bold text-white"><i class="fas fa-store text-primary me-2"></i>Produk Marketplace</h4>
+            <span
+                class="badge bg-secondary-subtle text-secondary py-1.5 px-3 rounded-pill">{{ $marketplaceProducts->total() }}
+                Item</span>
         </div>
 
-        <!-- Filter Section -->
-        <div
-            style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 1rem; margin-top: 1rem; margin-bottom: 1rem;">
-            <form method="GET" action="{{ route('marketplace_products.index') }}">
+        <div class="bg-dark p-1.5 rounded-pill d-inline-flex border" style="border-color: var(--border) !important;">
+            <a href="{{ route('marketplace_products.index', request()->except(['status', 'page'])) }}"
+                class="btn rounded-pill px-4 btn-sm fw-semibold {{ !request('status') ? 'btn-primary shadow-sm text-white' : 'btn-link text-secondary text-decoration-none' }}">
+                Semua
+            </a>
+            <a href="{{ route('marketplace_products.index', array_merge(request()->except('page'), ['status' => 'unmapped'])) }}"
+                class="btn rounded-pill px-4 btn-sm fw-semibold {{ request('status') === 'unmapped' ? 'btn-primary shadow-sm text-white' : 'btn-link text-secondary text-decoration-none' }}">
+                Belum Ditautkan
+            </a>
+            <a href="{{ route('marketplace_products.index', array_merge(request()->except('page'), ['status' => 'mapped'])) }}"
+                class="btn rounded-pill px-4 btn-sm fw-semibold {{ request('status') === 'mapped' ? 'btn-primary shadow-sm text-white' : 'btn-link text-secondary text-decoration-none' }}">
+                Sudah Ditautkan
+            </a>
+        </div>
+    </div>
+
+    {{-- Filter Card --}}
+    <div class="card shadow-sm border-0 mb-4"
+        style="background: var(--bg-card); border-radius: var(--radius); border: 1px solid var(--border);">
+        <div class="card-body p-3">
+            <form method="GET" action="{{ route('marketplace_products.index') }}" class="row g-3 align-items-end">
                 @if (request('status'))
                     <input type="hidden" name="status" value="{{ request('status') }}">
                 @endif
-                <div class="row g-3 align-items-end">
-                    <div class="col-md-3">
-                        <label class="form-label"
-                            style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 0.4rem;">Nama
-                            Barang</label>
-                        <div class="input-group input-group-sm">
-                            <span class="input-group-text form-control-dark"
-                                style="border-right: none; background: var(--bg-card2); border-color: var(--border); color: var(--text-muted);"><i
-                                    class="fas fa-search"></i></span>
-                            <input type="text" name="name" class="form-control form-control-sm form-control-dark"
-                                placeholder="Cari nama barang..." value="{{ request('name') }}" style="border-left: none;">
-                        </div>
+
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold text-secondary mb-1.5">Nama Barang</label>
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text bg-transparent text-muted" style="border-right: none;">
+                            <i class="fas fa-search"></i>
+                        </span>
+                        <input type="text" name="name" class="form-control form-control-custom ps-0"
+                            placeholder="Cari nama barang..." value="{{ request('name') }}" style="border-left: none;">
                     </div>
-                    <div class="col-md-3">
-                        <label class="form-label"
-                            style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 0.4rem;">SKU</label>
-                        <div class="input-group input-group-sm">
-                            <span class="input-group-text form-control-dark"
-                                style="border-right: none; background: var(--bg-card2); border-color: var(--border); color: var(--text-muted);"><i
-                                    class="fas fa-barcode"></i></span>
-                            <input type="text" name="sku" class="form-control form-control-sm form-control-dark"
-                                placeholder="Cari SKU..." value="{{ request('sku') }}" style="border-left: none;">
-                        </div>
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold text-secondary mb-1.5">SKU</label>
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text bg-transparent text-muted" style="border-right: none;">
+                            <i class="fas fa-barcode"></i>
+                        </span>
+                        <input type="text" name="sku" class="form-control form-control-custom ps-0"
+                            placeholder="Cari SKU..." value="{{ request('sku') }}" style="border-left: none;">
                     </div>
-                    <div class="col-md-2">
-                        <label class="form-label"
-                            style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 0.4rem;">Channel</label>
-                        <select name="channel_id" class="form-select form-select-sm form-select-dark">
-                            <option value="">Semua Channel</option>
-                            @foreach ($channels as $channel)
-                                <option value="{{ $channel->id }}"
-                                    {{ request('channel_id') == $channel->id ? 'selected' : '' }}>{{ $channel->name }}
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div class="col-md-2">
-                        <label class="form-label"
-                            style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 0.4rem;">Toko</label>
-                        <select name="store_id" class="form-select form-select-sm form-select-dark">
-                            <option value="">Semua Toko</option>
-                            @foreach ($stores as $store)
-                                <option value="{{ $store->id }}"
-                                    {{ request('store_id') == $store->id ? 'selected' : '' }}>{{ $store->store_name }}
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div class="col-md-2">
-                        <div style="display: flex; gap: 0.5rem;">
-                            <button type="submit" class="btn-primary-sm"
-                                style="flex: 1; height: 31px; justify-content: center; font-size: 0.78rem; padding: 0;">
-                                <i class="fas fa-filter"></i> Filter
-                            </button>
-                            @if (request()->anyFilled(['name', 'sku', 'channel_id', 'store_id']))
-                                <a href="{{ route('marketplace_products.index', request()->only('status')) }}"
-                                    class="btn-primary-sm"
-                                    style="background: var(--bg-card2); border: 1px solid var(--border); color: var(--text-primary); height: 31px; padding: 0 0.65rem; display: inline-flex; align-items: center; justify-content: center;"
-                                    title="Reset Filter">
-                                    <i class="fas fa-undo"></i>
-                                </a>
-                            @endif
-                        </div>
-                    </div>
+                </div>
+
+                <div class="col-md-2 col-sm-6">
+                    <label class="form-label small fw-bold text-secondary mb-1.5">Channel</label>
+                    <select name="channel_id" class="form-select form-select-sm form-control-custom">
+                        <option value="">Semua Channel</option>
+                        @foreach ($channels as $channel)
+                            <option value="{{ $channel->id }}"
+                                {{ request('channel_id') == $channel->id ? 'selected' : '' }}>{{ $channel->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <div class="col-md-2 col-sm-6">
+                    <label class="form-label small fw-bold text-secondary mb-1.5">Toko</label>
+                    <select name="store_id" class="form-select form-select-sm form-control-custom">
+                        <option value="">Semua Toko</option>
+                        @foreach ($stores as $store)
+                            <option value="{{ $store->id }}" {{ request('store_id') == $store->id ? 'selected' : '' }}>
+                                {{ $store->store_name }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <div class="col-md-2 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary btn-sm flex-grow-1 fw-semibold py-2">
+                        <i class="fas fa-filter me-1"></i> Filter
+                    </button>
+                    @if (request()->anyFilled(['name', 'sku', 'channel_id', 'store_id']))
+                        <a href="{{ route('marketplace_products.index', request()->only('status')) }}"
+                            class="btn btn-outline-secondary btn-sm px-3 py-2" title="Reset Filter">
+                            <i class="fas fa-undo"></i>
+                        </a>
+                    @endif
                 </div>
             </form>
         </div>
+    </div>
 
-        <div class="table-responsive" style="margin-top: 1rem;">
-            <table class="data-table">
-                <thead>
+    {{-- Main Table Card --}}
+    <div class="card shadow-sm border-0"
+        style="background: var(--bg-card); border-radius: var(--radius); border: 1px solid var(--border);">
+        <div class="card-header bg-transparent d-flex justify-content-between align-items-center py-3 border-bottom"
+            style="border-color: var(--border) !important;">
+            <h5 class="card-title mb-0 fw-bold text-primary">
+                <i class="fas fa-list-ul me-2"></i>Daftar Produk
+            </h5>
+            <span class="text-muted small fw-medium">Menampilkan
+                {{ $marketplaceProducts->firstItem() ?? 0 }}-{{ $marketplaceProducts->lastItem() ?? 0 }} dari
+                {{ $marketplaceProducts->total() }} produk</span>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0" style="background: transparent;">
+                <thead style="background: rgba(255, 255, 255, 0.02); border-bottom: 2px solid var(--border);">
                     <tr>
-                        <th>Toko / Channel</th>
-                        <th>Produk Marketplace</th>
-                        <th>SKU / Harga</th>
-                        <th>Stok</th>
-                        <th>Status Master</th>
-                        <th>Aksi</th>
+                        <th class="ps-4 border-0 text-muted"
+                            style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; width: 18%;">Toko /
+                            Channel</th>
+                        <th class="border-0 text-muted"
+                            style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em;">Produk Marketplace
+                        </th>
+                        <th class="border-0 text-muted"
+                            style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; width: 15%;">SKU /
+                            Harga</th>
+                        <th class="border-0 text-center text-muted"
+                            style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; width: 12%;">Stok
+                        </th>
+                        <th class="border-0 text-muted"
+                            style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; width: 22%;">Status
+                            Master</th>
+                        <th class="border-0 text-center pe-4 text-muted"
+                            style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; width: 18%;">Aksi
+                        </th>
                     </tr>
                 </thead>
                 <tbody>
                     @forelse($marketplaceProducts as $product)
-                        <tr>
-                            <td>
-                                <div style="font-weight: 500;">{{ $product->store->store_name }}</div>
-                                <div style="font-size: 0.8rem; color: #666; margin-top: 0.2rem;">
+                        <tr style="border-bottom: 1px solid var(--border); transition: background-color 0.2s;">
+                            {{-- Store & Channel --}}
+                            <td class="ps-4 py-3">
+                                <div class="fw-bold text-white fs-6">{{ $product->store->store_name }}</div>
+                                <div class="mt-1.5">
                                     <span class="channel-badge channel-{{ $product->store->channel->code }}">
                                         {{ $product->store->channel->name }}
                                     </span>
                                 </div>
                             </td>
-                            <td>
-                                <div style="display: flex; gap: 10px; align-items: center;">
+
+                            {{-- Marketplace Product details --}}
+                            <td class="py-3">
+                                <div class="d-flex align-items-center gap-3">
                                     @if ($product->image_url)
                                         <img src="{{ $product->image_url }}" alt="{{ $product->name }}"
-                                            style="width: 50px; height: 50px; object-fit: cover; border-radius: 4px; border: 1px solid #eee;">
+                                            class="rounded shadow-sm border border-secondary"
+                                            style="width: 50px; height: 50px; object-fit: cover; background-color: rgba(255, 255, 255, 0.05);">
                                     @else
-                                        <div
-                                            style="width: 50px; height: 50px; background: #f5f5f5; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: #bbb;">
-                                            <i class="fas fa-image"></i>
+                                        <div class="rounded border border-secondary d-flex align-items-center justify-content-center bg-dark text-muted shadow-sm"
+                                            style="width: 50px; height: 50px; flex-shrink: 0; background-color: rgba(255, 255, 255, 0.02);">
+                                            <i class="fas fa-image fa-lg"></i>
                                         </div>
                                     @endif
                                     <div>
-                                        <div style="font-weight: 500;">{{ $product->name }}</div>
-                                        <div style="font-size: 0.8rem; color: #888;">ID:
-                                            {{ $product->marketplace_product_id }}</div>
+                                        <div class="fw-bold text-white fs-6">{{ $product->name }}</div>
+                                        <div class="text-muted small mt-1">ID: {{ $product->marketplace_product_id }}
+                                        </div>
                                     </div>
                                 </div>
                             </td>
-                            <td>
-                                <div><span
-                                        style="background: #eee; padding: 2px 6px; border-radius: 4px; font-size: 0.85rem; font-family: monospace;">{{ $product->marketplace_sku ?? 'Tidak ada SKU' }}</span>
+
+                            {{-- SKU / Harga --}}
+                            <td class="py-3">
+                                <span class="mono text-muted small bg-dark px-2 py-0.5 rounded border"
+                                    style="border-color: var(--border) !important;">
+                                    {{ $product->marketplace_sku ?? 'Tidak ada SKU' }}
+                                </span>
+                                <div class="mt-2 text-danger fw-bold fs-6">
+                                    Rp {{ number_format($product->price, 0, ',', '.') }}
                                 </div>
-                                <div style="margin-top: 0.4rem; color: #E53935; font-weight: 600;">Rp
-                                    {{ number_format($product->price, 0, ',', '.') }}</div>
                             </td>
-                            <td>
-                                <div style="font-size: 1.1rem; font-weight: 600;">{{ $product->stock }}</div>
-                                @if ($product->master_product_id && $product->sync_stock && $product->safety_stock > 0)
-                                    <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">
-                                        (Master: {{ $product->masterProduct->stock }} - Safety:
+
+                            {{-- Stok --}}
+                            <td class="text-center py-3">
+                                <div class="fs-5 fw-extrabold text-white">{{ number_format($product->stock) }}</div>
+                                @if ($product->masterProduct && $product->sync_stock && $product->safety_stock > 0)
+                                    <div class="text-muted small mt-1" style="font-size: 0.75rem;">
+                                        (Master: {{ $product->masterProduct->stock }} | Safety:
                                         {{ $product->safety_stock }})
                                     </div>
                                 @endif
                             </td>
-                            <td>
-                                @if ($product->master_product_id)
-                                    <div style="color: var(--success); font-size: 0.85rem;">
-                                        <i class="fas fa-link"></i> Tertaut ke:<br>
-                                        <strong
-                                            style="color: var(--text-primary);">{{ $product->masterProduct->name }}</strong>
+
+                            {{-- Status Master with safeguards --}}
+                            <td class="py-3">
+                                @if ($product->masterProduct)
+                                    <div class="d-flex flex-column gap-1.5">
+                                        <span
+                                            class="badge bg-success-subtle text-success border border-success-subtle py-1 px-2.5 rounded align-self-start fw-bold">
+                                            <i class="fas fa-link me-1"></i>Tertaut
+                                        </span>
+                                        <div class="text-white small fw-semibold">
+                                            {{ $product->masterProduct->name ?? 'Master Terhapus' }}
+                                        </div>
+                                        @if ($product->sync_stock)
+                                            <div class="text-primary small fw-semibold">
+                                                <i class="fas fa-sync-alt me-1"></i>Sync Aktif (Safety:
+                                                {{ $product->safety_stock }})
+                                            </div>
+                                        @else
+                                            <div class="text-muted small">
+                                                <i class="fas fa-sync-alt-slash me-1"></i>Sync Mati
+                                            </div>
+                                        @endif
                                     </div>
-                                    @if ($product->sync_stock)
-                                        <div
-                                            style="margin-top: 0.3rem; color: var(--primary); font-size: 0.8rem; font-weight: 500;">
-                                            <i class="fas fa-sync-alt"></i> Sync Aktif (Safety:
-                                            {{ $product->safety_stock }})
-                                        </div>
-                                    @else
-                                        <div style="margin-top: 0.3rem; color: var(--text-muted); font-size: 0.8rem;">
-                                            <i class="fas fa-sync-alt-slash"></i> Sync Mati
-                                        </div>
-                                    @endif
                                 @else
-                                    <div style="color: #F57C00; font-size: 0.85rem;">
-                                        <i class="fas fa-unlink"></i> Belum ditautkan
-                                    </div>
+                                    <span
+                                        class="badge bg-warning-subtle text-warning border border-warning-subtle py-1.5 px-3 rounded-pill fw-bold">
+                                        <i class="fas fa-unlink me-1"></i>Belum Ditautkan
+                                    </span>
                                 @endif
                             </td>
-                            <td>
-                                @if (!$product->master_product_id)
-                                    <div style="display: flex; gap: 0.5rem; flex-direction: column;">
+
+                            {{-- Actions --}}
+                            <td class="pe-4 py-3 text-center">
+                                @if (!$product->masterProduct)
+                                    <div class="d-flex gap-2 flex-column">
                                         <!-- Jadikan Master -->
                                         <form action="{{ route('marketplace_products.promote', $product->id) }}"
                                             method="POST">
                                             @csrf
-                                            <button type="submit" class="btn-primary-sm"
-                                                style="width: 100%; text-align: center; background: #2196F3; border: none; color: white; padding: 6px; border-radius: 4px; cursor: pointer;"
+                                            <button type="submit" class="btn btn-primary btn-action w-100"
                                                 onclick="return confirm('Jadikan produk ini sebagai Master Product baru?');">
                                                 <i class="fas fa-star"></i> Jadikan Master
                                             </button>
                                         </form>
 
                                         <!-- Tautkan ke Master yang sudah ada -->
-                                        <button type="button"
-                                            onclick="document.getElementById('link-form-{{ $product->id }}').style.display='block'"
-                                            style="width: 100%; text-align: center; background: #fff; border: 1px solid #ccc; color: #333; padding: 6px; border-radius: 4px; cursor: pointer;">
+                                        <button type="button" class="btn btn-outline-light btn-action w-100"
+                                            onclick="document.getElementById('link-form-{{ $product->id }}').style.display='block'">
                                             <i class="fas fa-link"></i> Tautkan...
                                         </button>
 
-                                        <!-- Salin ke Toko Lain (Auto-promote + publish) -->
+                                        <!-- Salin ke Toko Lain -->
                                         <form action="{{ route('marketplace_products.clone_and_publish', $product->id) }}"
                                             method="POST">
                                             @csrf
-                                            <button type="submit" class="btn-primary-sm"
-                                                style="width: 100%; text-align: center; background: #4f46e5; border: none; color: white; padding: 6px; border-radius: 4px; cursor: pointer;">
+                                            <button type="submit" class="btn btn-secondary btn-action w-100"
+                                                style="background-color: var(--purple) !important; border-color: var(--purple) !important;">
                                                 <i class="fas fa-copy"></i> Salin ke Toko Lain
                                             </button>
                                         </form>
@@ -211,43 +294,42 @@
                                         <form id="link-form-{{ $product->id }}"
                                             action="{{ route('marketplace_products.link', $product->id) }}"
                                             method="POST"
-                                            style="display: none; background: #f9f9f9; padding: 10px; border: 1px solid #ddd; border-radius: 4px; margin-top: 5px;">
+                                            style="display: none; background: rgba(255, 255, 255, 0.03); padding: 10px; border: 1px solid var(--border); border-radius: 8px; margin-top: 5px; text-align: left;">
                                             @csrf
                                             <select name="master_product_id"
-                                                style="width: 100%; padding: 6px; margin-bottom: 8px; border: 1px solid #ccc; border-radius: 4px;"
-                                                required>
-                                                <option value="">-- Pilih Master Product --</option>
+                                                class="form-select form-select-sm form-control-custom mb-2" required>
+                                                <option value="">-- Pilih Master --</option>
                                                 @foreach ($masterProducts as $master)
                                                     <option value="{{ $master->id }}">{{ $master->name }} (SKU:
                                                         {{ $master->sku }})</option>
                                                 @endforeach
                                             </select>
-                                            <div style="display: flex; gap: 5px;">
+                                            <div class="d-flex gap-2">
                                                 <button type="submit"
-                                                    style="flex: 1; background: #4CAF50; color: white; border: none; padding: 5px; border-radius: 3px; cursor: pointer;">Simpan</button>
-                                                <button type="button"
-                                                    onclick="document.getElementById('link-form-{{ $product->id }}').style.display='none'"
-                                                    style="flex: 1; background: #ccc; color: #333; border: none; padding: 5px; border-radius: 3px; cursor: pointer;">Batal</button>
+                                                    class="btn btn-success btn-sm flex-grow-1 py-1">Simpan</button>
+                                                <button type="button" class="btn btn-secondary btn-sm flex-grow-1 py-1"
+                                                    onclick="document.getElementById('link-form-{{ $product->id }}').style.display='none'">Batal</button>
                                             </div>
                                         </form>
                                     </div>
                                 @else
-                                    <div style="display: flex; gap: 0.5rem; flex-direction: column;">
-                                        <button type="button" class="btn-primary-sm"
-                                            style="width: 100%; text-align: center; background: rgba(108, 99, 255, 0.15); border: 1px solid var(--primary); color: var(--text-primary); padding: 6px; border-radius: 4px; cursor: pointer;"
+                                    <div class="d-flex gap-2 flex-column">
+                                        <button type="button" class="btn btn-outline-primary btn-action w-100"
                                             data-bs-toggle="modal" data-bs-target="#settingsModal-{{ $product->id }}">
                                             <i class="fas fa-cog"></i> Pengaturan Stok
                                         </button>
-                                        <a href="{{ route('products.publish', $product->master_product_id) }}"
-                                            class="btn-primary-sm"
-                                            style="width: 100%; text-align: center; background: #6366f1; border: none; color: white; padding: 6px; border-radius: 4px; text-decoration: none; display: block;">
+
+                                        <a href="{{ route('products.publish', $product->masterProduct->id) }}"
+                                            class="btn btn-secondary btn-action w-100"
+                                            style="background-color: var(--purple) !important; border-color: var(--purple) !important;">
                                             <i class="fas fa-copy"></i> Salin ke Toko Lain
                                         </a>
-                                        <form action="{{ route('marketplace_products.unlink', $product->id) }}" method="POST"
+
+                                        <form action="{{ route('marketplace_products.unlink', $product->id) }}"
+                                            method="POST"
                                             onsubmit="return confirm('Batal tautkan produk marketplace ini dari Master Product?');">
                                             @csrf
-                                            <button type="submit" class="btn-primary-sm"
-                                                style="width: 100%; text-align: center; background: #ea580c; border: none; color: white; padding: 6px; border-radius: 4px; cursor: pointer;">
+                                            <button type="submit" class="btn btn-outline-danger btn-action w-100">
                                                 <i class="fas fa-link-slash"></i> Batal Tautkan
                                             </button>
                                         </form>
@@ -260,10 +342,10 @@
                                             <div class="modal-content"
                                                 style="background: var(--bg-card); border: 1px solid var(--border); text-align: left;">
                                                 <div class="modal-header" style="border-bottom: 1px solid var(--border);">
-                                                    <h5 class="modal-title" id="settingsModalLabel-{{ $product->id }}"
+                                                    <h5 class="modal-title fw-bold"
+                                                        id="settingsModalLabel-{{ $product->id }}"
                                                         style="color: var(--text-primary);">
-                                                        <i class="fas fa-cog text-primary me-2"></i> Pengaturan Stok:
-                                                        {{ $product->name }}
+                                                        <i class="fas fa-cog text-primary me-2"></i> Pengaturan Stok
                                                     </h5>
                                                     <button type="button" class="btn-close btn-close-white"
                                                         data-bs-dismiss="modal" aria-label="Close"></button>
@@ -273,10 +355,14 @@
                                                     method="POST">
                                                     @csrf
                                                     @method('PUT')
-                                                    <div class="modal-body">
+                                                    <div class="modal-body py-4">
+                                                        <div class="fw-semibold text-white fs-6 mb-3">
+                                                            {{ $product->name }}
+                                                        </div>
+                                                        <hr style="border-color: var(--border);">
                                                         <div class="mb-4">
-                                                            <label class="form-label d-block fw-bold mb-2"
-                                                                style="color: var(--text-secondary);">Sinkronisasi
+                                                            <label
+                                                                class="form-label d-block fw-bold mb-2 text-secondary">Sinkronisasi
                                                                 Stok</label>
                                                             <div class="form-check form-switch">
                                                                 <input class="form-check-input" type="checkbox"
@@ -290,7 +376,7 @@
                                                                     Otomatis sinkronkan stok dari Master Product
                                                                 </label>
                                                             </div>
-                                                            <div class="form-text mt-1"
+                                                            <div class="form-text mt-1.5"
                                                                 style="font-size: 0.8rem; color: var(--text-muted);">
                                                                 Jika dinonaktifkan, perubahan stok Master Product tidak akan
                                                                 didorong ke marketplace ini.
@@ -299,26 +385,25 @@
 
                                                         <div class="mb-3">
                                                             <label for="safetyStock-{{ $product->id }}"
-                                                                class="form-label fw-bold mb-2"
-                                                                style="color: var(--text-secondary);">Stok Pengaman (Safety
-                                                                Stock)</label>
+                                                                class="form-label fw-bold mb-2 text-secondary">Stok
+                                                                Pengaman (Safety Stock)</label>
                                                             <div class="input-group">
                                                                 <span class="input-group-text"
                                                                     style="background: var(--bg-card2); border: 1px solid var(--border); color: var(--text-secondary);">
                                                                     <i class="fas fa-shield-alt"></i>
                                                                 </span>
-                                                                <input type="number" class="form-control"
+                                                                <input type="number"
+                                                                    class="form-control form-control-custom"
                                                                     name="safety_stock"
                                                                     id="safetyStock-{{ $product->id }}" min="0"
-                                                                    value="{{ $product->safety_stock ?? 0 }}" required
-                                                                    style="background: var(--bg); color: var(--text-primary); border: 1px solid var(--border);">
+                                                                    value="{{ $product->safety_stock ?? 0 }}" required>
                                                             </div>
                                                             <div class="form-text mt-2"
                                                                 style="font-size: 0.8rem; color: var(--text-muted);">
                                                                 Jumlah stok yang ditahan sebagai pengaman di gudang
                                                                 lokal.<br>
                                                                 Stok yang dikirim ke toko = <strong>Stok Master
-                                                                    ({{ $product->masterProduct->stock }}) - Stok
+                                                                    ({{ $product->masterProduct->stock ?? 0 }}) - Stok
                                                                     Pengaman</strong>.
                                                             </div>
                                                         </div>
@@ -341,10 +426,13 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="6" style="text-align: center; padding: 2rem;">
-                                <i class="fas fa-box-open"
-                                    style="font-size: 2rem; color: #ccc; margin-bottom: 1rem; display: block;"></i>
-                                Belum ada data produk marketplace yang ditarik.
+                            <td colspan="6" class="text-center text-muted py-5">
+                                <div class="d-flex flex-column align-items-center justify-content-center">
+                                    <i class="fas fa-box-open text-muted opacity-25 fa-3x mb-3"></i>
+                                    <h6 class="fw-semibold">Belum Ada Data Produk Marketplace</h6>
+                                    <p class="text-muted small mb-0">Silakan hubungkan toko atau tarik data produk terlebih
+                                        dahulu.</p>
+                                </div>
                             </td>
                         </tr>
                     @endforelse
@@ -352,8 +440,11 @@
             </table>
         </div>
 
-        <div style="margin-top: 1rem;">
-            {{ $marketplaceProducts->links() }}
-        </div>
+        @if ($marketplaceProducts->hasPages())
+            <div class="card-footer bg-transparent border-top py-3 d-flex justify-content-center"
+                style="border-color: var(--border) !important;">
+                {{ $marketplaceProducts->links('pagination::bootstrap-5') }}
+            </div>
+        @endif
     </div>
 @endsection

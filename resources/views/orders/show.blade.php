@@ -223,6 +223,12 @@
                                 <span class="mono text-danger">- Rp
                                     {{ number_format($fb['seller_transaction_fee'] ?? 0, 0, ',', '.') }}</span>
                             </div>
+                            <div class="d-flex justify-content-between mb-2 align-items-center">
+                                <span class="text-muted">Penyesuaian (Adjustment)</span>
+                                <span class="mono {{ ($fb['adjustment_amount'] ?? 0) < 0 ? 'text-danger' : 'text-success' }}">
+                                    {{ ($fb['adjustment_amount'] ?? 0) < 0 ? '-' : '+' }} Rp {{ number_format(abs($fb['adjustment_amount'] ?? 0), 0, ',', '.') }}
+                                </span>
+                            </div>
                         @else
                             <div class="d-flex justify-content-between mb-2 align-items-center">
                                 <span class="text-muted">Total Produk</span>

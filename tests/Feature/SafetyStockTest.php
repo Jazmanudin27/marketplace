@@ -95,7 +95,7 @@ class SafetyStockTest extends TestCase
             'store_id' => $this->storeShopee->id,
             'master_product_id' => $this->masterProduct->id,
             'marketplace_product_id' => 'MP-SHOPEE-999',
-            'marketplace_sku' => 'MP-SKU-999',
+            'marketplace_sku' => $this->masterProduct->sku,
             'name' => 'MP Product Name',
             'price' => 100000,
             'stock' => 10,

@@ -37,7 +37,7 @@ class MarketplaceProduct extends Model
 
     public function masterProduct(): BelongsTo
     {
-        return $this->belongsTo(MasterProduct::class);
+        return $this->belongsTo(MasterProduct::class, 'marketplace_sku', 'sku');
     }
 
     public function orderItems(): HasMany
