@@ -81,8 +81,10 @@
                                 <span class="input-group-text"><i class="fas fa-money-bill"></i></span>
                                 <input type="text" id="price" name="price"
                                     class="form-control formatted-number-input"
-                                    value="{{ old('price', isset($product->price) ? (int)$product->price : '') }}" required placeholder="0">
-                                <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#priceCalculatorModal">
+                                    value="{{ old('price', isset($product->price) ? (int) $product->price : '') }}" required
+                                    placeholder="0">
+                                <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal"
+                                    data-bs-target="#priceCalculatorModal">
                                     <i class="fas fa-calculator me-1"></i> Hitung Profit
                                 </button>
                             </div>
@@ -96,7 +98,8 @@
                                 <span class="input-group-text"><i class="fas fa-wallet"></i></span>
                                 <input type="text" id="cost_price" name="cost_price"
                                     class="form-control formatted-number-input"
-                                    value="{{ old('cost_price', isset($product->cost_price) ? (int)$product->cost_price : '') }}" placeholder="0">
+                                    value="{{ old('cost_price', isset($product->cost_price) ? (int) $product->cost_price : '') }}"
+                                    placeholder="0">
                             </div>
                         </div>
                     </div>
@@ -107,14 +110,16 @@
                                     class="text-danger">*</span></label>
                             <div class="input-group">
                                 <span class="input-group-text"><i class="fas fa-warehouse"></i></span>
-                                <input type="number" id="stock" name="stock" class="form-control {{ $isLinked ? 'bg-light text-muted' : '' }}"
+                                <input type="number" id="stock" name="stock"
+                                    class="form-control {{ $isLinked ? 'bg-light text-muted' : '' }}"
                                     value="{{ old('stock', $product->stock ?? 0) }}" min="0" required
-                                    placeholder="0"
-                                    {{ $isLinked ? 'readonly' : '' }}>
+                                    placeholder="0" {{ $isLinked ? 'readonly' : '' }}>
                             </div>
                             @if ($isLinked)
                                 <div class="form-text text-warning small mt-1">
-                                    <i class="fas fa-lock me-1"></i> Stok dikunci karena produk sudah terhubung ke marketplace. Gunakan menu <strong>Stock Opname</strong> atau <strong>Barang Masuk</strong> untuk mengubah stok.
+                                    <i class="fas fa-lock me-1"></i> Stok dikunci karena produk sudah terhubung ke
+                                    marketplace. Gunakan menu <strong>Stock Opname</strong> atau <strong>Barang
+                                        Masuk</strong> untuk mengubah stok.
                                 </div>
                             @endif
                             @error('stock')
@@ -520,170 +525,786 @@
         }
     </script>
 
-    <!-- Modal Kalkulator Harga Marketplace -->
-    <div class="modal fade" id="priceCalculatorModal" tabindex="-1" aria-labelledby="priceCalculatorModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg modal-dialog-centered">
-            <div class="modal-content" style="background: var(--bg-card); border: 1px solid var(--border); color: var(--text-primary);">
-                <div class="modal-header" style="border-bottom: 1px solid var(--border);">
-                    <h5 class="modal-title" id="priceCalculatorModalLabel">
-                        <i class="fas fa-calculator text-primary me-2"></i> Kalkulator Harga & Profit Marketplace (Model Shopee)
+    <!-- Modal Kalkulator Harga Shopee -->
+    <div class="modal fade" id="priceCalculatorModal" tabindex="-1" aria-labelledby="priceCalculatorModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-centered">
+            <div class="modal-content"
+                style="background: var(--bg-card); border: 1px solid var(--border); color: var(--text-primary);">
+                <div class="modal-header"
+                    style="border-bottom: 1px solid var(--border); background: rgba(238, 77, 45, 0.05);">
+                    <h5 class="modal-title" id="priceCalculatorModalLabel" style="color: #ee4d2d;">
+                        <i class="fas fa-calculator me-2"></i> KALKULATOR HARGA & PROFIT SHOPEE (DETAIL)
                     </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                        aria-label="Close"></button>
                 </div>
-                <div class="modal-body">
+                <div class="modal-body p-4">
                     <div class="row">
-                        <!-- Input Section -->
-                        <div class="col-md-6 border-end" style="border-color: var(--border) !important;">
-                            <h6 class="fw-bold mb-3 text-primary"><i class="fas fa-cog me-1"></i> Input Simulasi</h6>
-                            
-                            <div class="mb-3">
-                                <label class="form-label small fw-semibold text-secondary mb-1">Harga Modal / HPP (Rp)</label>
-                                <div class="input-group input-group-sm">
-                                    <span class="input-group-text form-control-dark"><i class="fas fa-wallet"></i></span>
-                                    <input type="text" id="calc-hpp" class="form-control form-control-sm form-control-dark calc-number-format" placeholder="0">
-                                </div>
-                            </div>
+                        <!-- Input Column -->
+                        <div class="col-md-5 border-end d-flex flex-column"
+                            style="border-color: var(--border) !important;">
+                            <div class="overflow-auto pe-2" style="max-height: 70vh;">
 
-                            <div class="mb-3">
-                                <label class="form-label small fw-semibold text-secondary mb-1">Harga Jual Diuji (Rp)</label>
-                                <div class="input-group input-group-sm">
-                                    <span class="input-group-text form-control-dark"><i class="fas fa-tag"></i></span>
-                                    <input type="text" id="calc-price" class="form-control form-control-sm form-control-dark calc-number-format" placeholder="0">
-                                </div>
-                            </div>
-
-                            <div class="mb-3">
-                                <label class="form-label small fw-semibold text-secondary mb-1">Biaya Voucher Ditanggung Seller (Rp)</label>
-                                <div class="input-group input-group-sm">
-                                    <span class="input-group-text form-control-dark"><i class="fas fa-gift"></i></span>
-                                    <input type="text" id="calc-voucher" class="form-control form-control-sm form-control-dark calc-number-format" placeholder="0" value="0">
-                                </div>
-                            </div>
-
-                            <div class="mb-3">
-                                <label class="form-label small fw-semibold text-secondary mb-1">Templet Marketplace (Default Fee)</label>
-                                <select id="calc-template" class="form-select form-select-sm form-select-dark">
-                                    <option value="custom">Kustom (Input Manual)</option>
-                                    <option value="shopee">Shopee (Admin 8.25% + Premi 0.5%)</option>
-                                    <option value="tiktok">TikTok Shop (Admin 5.0%)</option>
-                                    <option value="tokopedia">Tokopedia (Admin 4.5%)</option>
-                                    <option value="lazada">Lazada (Admin 4.0%)</option>
-                                </select>
-                            </div>
-
-                            <div class="mb-3">
-                                <div class="row g-2">
-                                    <div class="col-6">
-                                        <label class="form-label small fw-semibold text-secondary mb-1">Biaya Admin (%)</label>
-                                        <input type="number" step="0.01" id="calc-admin-pct" class="form-control form-control-sm form-control-dark" value="0">
+                                <!-- Pengaturan Informasi -->
+                                <div class="card bg-transparent border-0 mb-4">
+                                    <div class="text-uppercase fw-bold text-white small mb-2 pb-1 border-bottom"
+                                        style="border-color: rgba(255,255,255,0.08) !important;">
+                                        <i class="fas fa-info-circle me-1 text-primary"></i> Pengaturan Informasi
                                     </div>
-                                    <div class="col-6">
-                                        <label class="form-label small fw-semibold text-secondary mb-1">Premi (%)</label>
-                                        <input type="number" step="0.01" id="calc-premi-pct" class="form-control form-control-sm form-control-dark" value="0">
+                                    <div class="mb-2">
+                                        <label class="form-label extra-small text-secondary mb-1">Nama SKU INDUK</label>
+                                        <input type="text" id="calc-sku"
+                                            class="form-control form-control-sm form-control-dark" readonly
+                                            style="background: rgba(255,255,255,0.01);">
+                                    </div>
+                                    <div class="row g-2">
+                                        <div class="col-6">
+                                            <label class="form-label extra-small text-secondary mb-1">COGS / HPP
+                                                (Rp)</label>
+                                            <input type="text" id="calc-hpp"
+                                                class="form-control form-control-sm form-control-dark calc-number-format"
+                                                placeholder="0">
+                                        </div>
+                                        <div class="col-6">
+                                            <label class="form-label extra-small text-secondary mb-1">Biaya Operasional /
+                                                OPEX (Rp)</label>
+                                            <input type="text" id="calc-opex"
+                                                class="form-control form-control-sm form-control-dark calc-number-format"
+                                                placeholder="0" value="0">
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
 
-                            <div class="mb-3">
-                                <label class="form-label small fw-semibold text-white mb-2">Program Pemasaran (Ikut Serta)</label>
-                                <div class="form-check form-switch mb-1">
-                                    <input class="form-check-input" type="checkbox" id="calc-prog-ongkir" value="7.5">
-                                    <label class="form-check-label small text-secondary" for="calc-prog-ongkir">Gratis Ongkir Xtra (7.5%)</label>
+                                <!-- Persentase Biaya Marketing -->
+                                <div class="card bg-transparent border-0 mb-4">
+                                    <div class="text-uppercase fw-bold text-white small mb-2 pb-1 border-bottom"
+                                        style="border-color: rgba(255,255,255,0.08) !important;">
+                                        <i class="fas fa-bullhorn me-1 text-primary"></i> Persentase Biaya Marketing
+                                    </div>
+                                    <div class="row g-2">
+                                        <div class="col-6">
+                                            <label class="form-label extra-small text-secondary mb-1">Target ROAS (GMV
+                                                Max)</label>
+                                            <input type="number" step="0.1" id="calc-roas-target"
+                                                class="form-control form-control-sm form-control-dark" value="20">
+                                        </div>
+                                        <div class="col-6">
+                                            <label class="form-label extra-small text-secondary mb-1">Komisi Affiliate
+                                                (%)</label>
+                                            <input type="number" step="0.1" id="calc-affiliate-pct"
+                                                class="form-control form-control-sm form-control-dark" value="10">
+                                        </div>
+                                    </div>
                                 </div>
-                                <div class="form-check form-switch mb-1">
-                                    <input class="form-check-input" type="checkbox" id="calc-prog-promo" value="4.5">
-                                    <label class="form-check-label small text-secondary" for="calc-prog-promo">Promo Xtra (4.5%)</label>
-                                </div>
-                                <div class="form-check form-switch mb-1">
-                                    <input class="form-check-input" type="checkbox" id="calc-prog-live" value="2.0">
-                                    <label class="form-check-label small text-secondary" for="calc-prog-live">Live Xtra (2.0%)</label>
-                                </div>
-                                <div class="form-check form-switch mb-1">
-                                    <input class="form-check-input" type="checkbox" id="calc-prog-spaylater" value="2.5">
-                                    <label class="form-check-label small text-secondary" for="calc-prog-spaylater">Spaylater Tenor 3 Bln (2.5%)</label>
-                                </div>
-                            </div>
 
-                            <div class="mb-1">
-                                <label class="form-label small fw-semibold text-white mb-2">Promosi Toko Tambahan</label>
-                                <div class="form-check form-switch mb-1">
-                                    <input class="form-check-input" type="checkbox" id="calc-affiliate-active">
-                                    <label class="form-check-label small text-secondary" for="calc-affiliate-active">Komisi Affiliate (10%)</label>
+                                <!-- Promosi Seller -->
+                                <div class="card bg-transparent border-0 mb-4">
+                                    <div class="text-uppercase fw-bold text-white small mb-2 pb-1 border-bottom"
+                                        style="border-color: rgba(255,255,255,0.08) !important;">
+                                        <i class="fas fa-tags me-1 text-primary"></i> Promosi Seller
+                                    </div>
+                                    <div class="row g-2 mb-2">
+                                        <div class="col-6">
+                                            <label class="form-label extra-small text-secondary mb-1">Voucher Toko
+                                                (Rp)</label>
+                                            <input type="text" id="calc-voucher-toko"
+                                                class="form-control form-control-sm form-control-dark calc-number-format"
+                                                placeholder="0" value="10.000">
+                                        </div>
+                                        <div class="col-6">
+                                            <label class="form-label extra-small text-secondary mb-1">Voucher Produk
+                                                (Rp)</label>
+                                            <input type="text" id="calc-voucher-produk"
+                                                class="form-control form-control-sm form-control-dark calc-number-format"
+                                                placeholder="0" value="5.000">
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label class="form-label extra-small text-secondary mb-1">Potongan Lain / DLL
+                                            (Rp)</label>
+                                        <input type="text" id="calc-voucher-dll"
+                                            class="form-control form-control-sm form-control-dark calc-number-format"
+                                            placeholder="0" value="0">
+                                    </div>
                                 </div>
-                                <div class="form-check form-switch mb-1">
-                                    <input class="form-check-input" type="checkbox" id="calc-ads-active">
-                                    <label class="form-check-label small text-secondary" for="calc-ads-active">Iklan GMV Max (5%)</label>
+
+                                <!-- Co-Fund Voucher -->
+                                <div class="card bg-transparent border-0 mb-4">
+                                    <div class="text-uppercase fw-bold text-white small mb-2 pb-1 border-bottom"
+                                        style="border-color: rgba(255,255,255,0.08) !important;">
+                                        <i class="fas fa-handshake me-1 text-primary"></i> Co-Fund Voucher (Voucher
+                                        Bersama)
+                                    </div>
+                                    <div class="row g-2 mb-2">
+                                        <div class="col-6">
+                                            <label class="form-label extra-small text-secondary mb-1">Diskon Voucher
+                                                (%)</label>
+                                            <input type="number" step="0.1" id="calc-cofund-pct"
+                                                class="form-control form-control-sm form-control-dark" value="0">
+                                        </div>
+                                        <div class="col-6">
+                                            <label class="form-label extra-small text-secondary mb-1">Batas Maks. Seller
+                                                (Rp)</label>
+                                            <input type="text" id="calc-cofund-max-seller"
+                                                class="form-control form-control-sm form-control-dark calc-number-format"
+                                                value="0">
+                                        </div>
+                                    </div>
+                                    <div class="row g-2">
+                                        <div class="col-6">
+                                            <label class="form-label extra-small text-secondary mb-1">Ditanggung Platform
+                                                (%)</label>
+                                            <input type="number" step="0.1" id="calc-cofund-plat-pct"
+                                                class="form-control form-control-sm form-control-dark" value="0">
+                                        </div>
+                                        <div class="col-6">
+                                            <label class="form-label extra-small text-secondary mb-1">Ditanggung Penjual
+                                                (%)</label>
+                                            <input type="number" step="0.1" id="calc-cofund-seller-pct"
+                                                class="form-control form-control-sm form-control-dark" value="0">
+                                        </div>
+                                    </div>
                                 </div>
+
+                                <!-- Persentase Biaya Marketplace -->
+                                <div class="card bg-transparent border-0 mb-4">
+                                    <div class="text-uppercase fw-bold text-white small mb-2 pb-1 border-bottom"
+                                        style="border-color: rgba(255,255,255,0.08) !important;">
+                                        <i class="fas fa-percentage me-1 text-primary"></i> Persentase Biaya Marketplace
+                                    </div>
+                                    <div class="row g-2 mb-2 align-items-center">
+                                        <div class="col-7">
+                                            <label class="form-label extra-small text-secondary mb-0">Biaya Administrasi
+                                                Dasar</label>
+                                        </div>
+                                        <div class="col-5">
+                                            <div class="input-group input-group-sm">
+                                                <input type="number" step="0.01" id="calc-admin-pct"
+                                                    class="form-control form-control-dark text-end" value="8.25">
+                                                <span class="input-group-text form-control-dark">%</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="row g-2 mb-2 align-items-center">
+                                        <div class="col-7">
+                                            <div class="form-check form-switch mb-0">
+                                                <input class="form-check-input" type="checkbox" id="calc-mall-active">
+                                                <label class="form-check-label extra-small text-secondary"
+                                                    for="calc-mall-active">Biaya Layanan Mall</label>
+                                            </div>
+                                        </div>
+                                        <div class="col-5">
+                                            <div class="input-group input-group-sm">
+                                                <input type="number" step="0.01" id="calc-mall-pct"
+                                                    class="form-control form-control-dark text-end" value="0.00">
+                                                <span class="input-group-text form-control-dark">%</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="row g-2 mb-2 align-items-center">
+                                        <div class="col-7">
+                                            <div class="form-check form-switch mb-0">
+                                                <input class="form-check-input" type="checkbox" id="calc-premi-active"
+                                                    checked>
+                                                <label class="form-check-label extra-small text-secondary"
+                                                    for="calc-premi-active">Premi</label>
+                                            </div>
+                                        </div>
+                                        <div class="col-5">
+                                            <div class="input-group input-group-sm">
+                                                <input type="number" step="0.01" id="calc-premi-pct"
+                                                    class="form-control form-control-dark text-end" value="0.50">
+                                                <span class="input-group-text form-control-dark">%</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="row g-2 mb-2 align-items-center">
+                                        <div class="col-7">
+                                            <label class="form-label extra-small text-secondary mb-0">Biaya Per Pesanan
+                                                (Rp)</label>
+                                        </div>
+                                        <div class="col-5">
+                                            <input type="text" id="calc-pesanan-fee"
+                                                class="form-control form-control-sm form-control-dark text-end calc-number-format"
+                                                value="1.250">
+                                        </div>
+                                    </div>
+                                    <div class="row g-2 mb-2 align-items-center">
+                                        <div class="col-7">
+                                            <label class="form-label extra-small text-secondary mb-0">Hemat Biaya Kirim
+                                                (Rp)</label>
+                                        </div>
+                                        <div class="col-5">
+                                            <input type="text" id="calc-hemat-ongkir"
+                                                class="form-control form-control-sm form-control-dark text-end calc-number-format"
+                                                value="350">
+                                        </div>
+                                    </div>
+                                    <div class="row g-2 align-items-center">
+                                        <div class="col-7">
+                                            <label class="form-label extra-small text-secondary mb-0">Biaya Logistik
+                                                (Rp)</label>
+                                        </div>
+                                        <div class="col-5">
+                                            <input type="text" id="calc-logistik-fee"
+                                                class="form-control form-control-sm form-control-dark text-end calc-number-format"
+                                                value="0">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Persentase Program Pemasaran -->
+                                <div class="card bg-transparent border-0 mb-2">
+                                    <div class="text-uppercase fw-bold text-white small mb-2 pb-1 border-bottom"
+                                        style="border-color: rgba(255,255,255,0.08) !important;">
+                                        <i class="fas fa-shopping-basket me-1 text-primary"></i> Persentase Program
+                                        Pemasaran
+                                    </div>
+
+                                    <!-- Gratis Ongkir Xtra -->
+                                    <div class="row g-2 mb-2 align-items-center">
+                                        <div class="col-7">
+                                            <div class="form-check form-switch mb-0">
+                                                <input class="form-check-input" type="checkbox" id="calc-prog-ongkir"
+                                                    checked>
+                                                <label class="form-check-label extra-small text-secondary"
+                                                    for="calc-prog-ongkir">Gratis Ongkir Xtra</label>
+                                            </div>
+                                        </div>
+                                        <div class="col-5">
+                                            <div class="input-group input-group-sm">
+                                                <input type="number" step="0.01" id="calc-prog-ongkir-pct"
+                                                    class="form-control form-control-dark text-end" value="7.50">
+                                                <span class="input-group-text form-control-dark">%</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Promo Xtra -->
+                                    <div class="row g-2 mb-2 align-items-center">
+                                        <div class="col-7">
+                                            <div class="form-check form-switch mb-0">
+                                                <input class="form-check-input" type="checkbox" id="calc-prog-promo"
+                                                    checked>
+                                                <label class="form-check-label extra-small text-secondary"
+                                                    for="calc-prog-promo">Promo Xtra</label>
+                                            </div>
+                                        </div>
+                                        <div class="col-5">
+                                            <div class="input-group input-group-sm">
+                                                <input type="number" step="0.01" id="calc-prog-promo-pct"
+                                                    class="form-control form-control-dark text-end" value="4.50">
+                                                <span class="input-group-text form-control-dark">%</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Promo Xtra+ (Plus) -->
+                                    <div class="row g-2 mb-2 align-items-center">
+                                        <div class="col-7">
+                                            <div class="form-check form-switch mb-0">
+                                                <input class="form-check-input" type="checkbox" id="calc-prog-promo-plus"
+                                                    checked>
+                                                <label class="form-check-label extra-small text-secondary"
+                                                    for="calc-prog-promo-plus">Promo Xtra+ (Plus)</label>
+                                            </div>
+                                        </div>
+                                        <div class="col-5">
+                                            <div class="input-group input-group-sm">
+                                                <input type="number" step="0.01" id="calc-prog-promo-plus-pct"
+                                                    class="form-control form-control-dark text-end" value="2.00">
+                                                <span class="input-group-text form-control-dark">%</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Live Xtra -->
+                                    <div class="row g-2 mb-2 align-items-center">
+                                        <div class="col-7">
+                                            <div class="form-check form-switch mb-0">
+                                                <input class="form-check-input" type="checkbox" id="calc-prog-live"
+                                                    checked>
+                                                <label class="form-check-label extra-small text-secondary"
+                                                    for="calc-prog-live">Live Xtra</label>
+                                            </div>
+                                        </div>
+                                        <div class="col-5">
+                                            <div class="input-group input-group-sm">
+                                                <input type="number" step="0.01" id="calc-prog-live-pct"
+                                                    class="form-control form-control-dark text-end" value="2.00">
+                                                <span class="input-group-text form-control-dark">%</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Video Xtra -->
+                                    <div class="row g-2 mb-2 align-items-center">
+                                        <div class="col-7">
+                                            <div class="form-check form-switch mb-0">
+                                                <input class="form-check-input" type="checkbox" id="calc-prog-video">
+                                                <label class="form-check-label extra-small text-secondary"
+                                                    for="calc-prog-video">Video Xtra</label>
+                                            </div>
+                                        </div>
+                                        <div class="col-5">
+                                            <div class="input-group input-group-sm">
+                                                <input type="number" step="0.01" id="calc-prog-video-pct"
+                                                    class="form-control form-control-dark text-end" value="0.00">
+                                                <span class="input-group-text form-control-dark">%</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Pre-Order -->
+                                    <div class="row g-2 mb-2 align-items-center">
+                                        <div class="col-7">
+                                            <div class="form-check form-switch mb-0">
+                                                <input class="form-check-input" type="checkbox" id="calc-prog-preorder"
+                                                    checked>
+                                                <label class="form-check-label extra-small text-secondary"
+                                                    for="calc-prog-preorder">Pre-Order</label>
+                                            </div>
+                                        </div>
+                                        <div class="col-5">
+                                            <div class="input-group input-group-sm">
+                                                <input type="number" step="0.01" id="calc-prog-preorder-pct"
+                                                    class="form-control form-control-dark text-end" value="3.00">
+                                                <span class="input-group-text form-control-dark">%</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Spaylater 3 Bulan -->
+                                    <div class="row g-2 mb-2 align-items-center">
+                                        <div class="col-7">
+                                            <div class="form-check form-switch mb-0">
+                                                <input class="form-check-input" type="checkbox" id="calc-prog-spaylater3"
+                                                    checked>
+                                                <label class="form-check-label extra-small text-secondary"
+                                                    for="calc-prog-spaylater3">Spaylater 3 Bulan</label>
+                                            </div>
+                                        </div>
+                                        <div class="col-5">
+                                            <div class="input-group input-group-sm">
+                                                <input type="number" step="0.01" id="calc-prog-spaylater3-pct"
+                                                    class="form-control form-control-dark text-end" value="2.50">
+                                                <span class="input-group-text form-control-dark">%</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Spaylater 6 Bulan -->
+                                    <div class="row g-2 mb-2 align-items-center">
+                                        <div class="col-7">
+                                            <div class="form-check form-switch mb-0">
+                                                <input class="form-check-input" type="checkbox"
+                                                    id="calc-prog-spaylater6">
+                                                <label class="form-check-label extra-small text-secondary"
+                                                    for="calc-prog-spaylater6">Spaylater 6 Bulan</label>
+                                            </div>
+                                        </div>
+                                        <div class="col-5">
+                                            <div class="input-group input-group-sm">
+                                                <input type="number" step="0.01" id="calc-prog-spaylater6-pct"
+                                                    class="form-control form-control-dark text-end" value="0.00">
+                                                <span class="input-group-text form-control-dark">%</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
                             </div>
                         </div>
 
-                        <!-- Result Section -->
-                        <div class="col-md-6 d-flex flex-column justify-content-between ps-md-4 mt-3 mt-md-0">
-                            <div>
-                                <h6 class="fw-bold mb-3 text-success"><i class="fas fa-chart-line me-1"></i> Hasil Perhitungan</h6>
-                                
-                                <div class="p-3 rounded mb-3" style="background: rgba(255,255,255,0.02); border: 1px solid var(--border);">
-                                    <div class="d-flex justify-content-between align-items-center mb-2">
-                                        <span class="small text-secondary">Harga Jual Diuji:</span>
-                                        <span class="fw-bold font-monospace" id="res-price">Rp 0</span>
-                                    </div>
-                                    <div class="d-flex justify-content-between align-items-center mb-2">
-                                        <span class="small text-secondary">Total Potongan Marketplace:</span>
-                                        <span class="text-danger font-monospace" id="res-fees">Rp 0</span>
-                                    </div>
-                                    <div class="d-flex justify-content-between align-items-center mb-2">
-                                        <span class="small text-secondary">Pajak PPh Final (0.5%):</span>
-                                        <span class="text-danger font-monospace" id="res-pph">Rp 0</span>
-                                    </div>
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <span class="small text-secondary">Modal & Voucher Seller:</span>
-                                        <span class="text-secondary font-monospace" id="res-hpp-voucher">Rp 0</span>
+                        <!-- Output Column -->
+                        <div class="col-md-7 d-flex flex-column ps-md-4 mt-3 mt-md-0">
+                            <div class="overflow-auto pe-2" style="max-height: 70vh;">
+
+                                <!-- Input Harga Jual Uji (CORE) -->
+                                <div class="p-3 rounded mb-3 border border-primary"
+                                    style="background: rgba(238, 77, 45, 0.03);">
+                                    <label class="form-label small fw-bold text-white mb-2"><i
+                                            class="fas fa-coins me-1 text-warning"></i> HARGA JUAL UJI (IDR)</label>
+                                    <div class="input-group">
+                                        <span
+                                            class="input-group-text bg-dark border-primary text-white font-monospace fw-bold">Rp</span>
+                                        <input type="text" id="calc-price"
+                                            class="form-control form-control-lg bg-dark border-primary text-white text-end font-monospace fw-bold calc-number-format"
+                                            placeholder="0" style="font-size: 1.35rem;" value="385.900">
                                     </div>
                                 </div>
 
-                                <h6 class="small fw-semibold text-secondary mb-2">Estimasi Laba Bersih & Margin Skenario:</h6>
-                                
-                                <!-- Skenario 1: Organik -->
-                                <div class="d-flex align-items-center justify-content-between p-3 rounded mb-2 border" id="box-organic" style="background: rgba(16, 185, 129, 0.05); border-color: rgba(16, 185, 129, 0.2) !important;">
-                                    <div>
-                                        <div class="fw-bold small text-white">1. Penjualan Organik</div>
-                                        <div class="text-muted extra-small" style="font-size: 0.72rem;">Penjualan langsung (non-iklan/affiliate)</div>
+                                <!-- Perhitungan Harga Jual -->
+                                <div class="card bg-transparent border-0 mb-4">
+                                    <div class="text-uppercase fw-bold text-white small mb-2 pb-1 border-bottom"
+                                        style="border-color: rgba(255,255,255,0.08) !important;">
+                                        <i class="fas fa-calculator me-1 text-success"></i> Perhitungan Harga Jual
                                     </div>
-                                    <div class="text-end">
-                                        <div class="fw-bold text-success font-monospace" id="val-organic-profit">Rp 0</div>
-                                        <span class="badge bg-success-subtle text-success small" id="val-organic-pct">0%</span>
+                                    <table class="table table-sm table-borderless text-white mb-0 extra-small">
+                                        <tbody>
+                                            <tr>
+                                                <td class="text-secondary ps-0">Tampil Harga di Pembeli</td>
+                                                <td>
+                                                    <div class="input-group input-group-sm d-inline-flex"
+                                                        style="width: 80px;">
+                                                        <input type="number" id="calc-promo-pct"
+                                                            class="form-control form-control-dark p-1 text-end"
+                                                            value="20">
+                                                        <span class="input-group-text form-control-dark p-1">%</span>
+                                                    </div>
+                                                </td>
+                                                <td class="text-end fw-bold font-monospace text-warning"
+                                                    id="res-price-buyer-rp">Rp 0</td>
+                                            </tr>
+                                            <tr>
+                                                <td class="text-secondary ps-0">Harga Coret</td>
+                                                <td>
+                                                    <div class="input-group input-group-sm d-inline-flex"
+                                                        style="width: 80px;">
+                                                        <input type="number" id="calc-coret-pct"
+                                                            class="form-control form-control-dark p-1 text-end"
+                                                            value="50">
+                                                        <span class="input-group-text form-control-dark p-1">%</span>
+                                                    </div>
+                                                </td>
+                                                <td class="text-end fw-bold font-monospace text-secondary text-decoration-line-through"
+                                                    id="res-coret-price-rp">Rp 0</td>
+                                            </tr>
+                                            <tr>
+                                                <td class="text-secondary ps-0">Strategi Harga (MarkUp)</td>
+                                                <td>
+                                                    <div class="input-group input-group-sm d-inline-flex"
+                                                        style="width: 80px;">
+                                                        <input type="number" id="calc-markup-pct"
+                                                            class="form-control form-control-dark p-1 text-end"
+                                                            value="10">
+                                                        <span class="input-group-text form-control-dark p-1">%</span>
+                                                    </div>
+                                                </td>
+                                                <td class="text-end fw-bold font-monospace text-info"
+                                                    id="res-markup-price-rp">Rp 0</td>
+                                            </tr>
+                                            <tr class="border-top"
+                                                style="border-color: rgba(255,255,255,0.05) !important;">
+                                                <td class="text-secondary ps-0 pt-2">BEP ADS (Break Even Point ROAS)</td>
+                                                <td></td>
+                                                <td class="text-end fw-bold font-monospace text-danger pt-2"
+                                                    id="res-bep-ads-val" style="font-size: 0.9rem;">0.00</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <!-- Hasil Penghitungan (Profit Summary) -->
+                                <div class="card bg-transparent border-0 mb-4">
+                                    <div class="text-uppercase fw-bold text-white small mb-2 pb-1 border-bottom"
+                                        style="border-color: rgba(255,255,255,0.08) !important;">
+                                        <i class="fas fa-chart-pie me-1 text-success"></i> Ringkasan Profit Margin
+                                    </div>
+
+                                    <!-- Organic -->
+                                    <div class="d-flex align-items-center justify-content-between p-2 rounded mb-2 border"
+                                        id="box-organic"
+                                        style="background: rgba(16, 185, 129, 0.05); border-color: rgba(16, 185, 129, 0.2) !important;">
+                                        <div>
+                                            <div class="fw-bold extra-small text-white">Profit Organik</div>
+                                            <div class="text-muted extra-small" style="font-size: 0.7rem;">Murni non-iklan
+                                                / non-affiliate</div>
+                                        </div>
+                                        <div class="text-end">
+                                            <div class="fw-bold text-success font-monospace" id="val-organic-profit">Rp 0
+                                            </div>
+                                            <span class="badge bg-success-subtle text-success extra-small"
+                                                id="val-organic-pct">0%</span>
+                                        </div>
+                                    </div>
+
+                                    <!-- Affiliate -->
+                                    <div class="d-flex align-items-center justify-content-between p-2 rounded mb-2 border"
+                                        id="box-affiliate"
+                                        style="background: rgba(139, 92, 246, 0.05); border-color: rgba(139, 92, 246, 0.2) !important;">
+                                        <div>
+                                            <div class="fw-bold extra-small text-white">Profit Affiliate</div>
+                                            <div class="text-muted extra-small" style="font-size: 0.7rem;">Potongan Komisi
+                                                & PPN Affiliate</div>
+                                        </div>
+                                        <div class="text-end">
+                                            <div class="fw-bold text-purple font-monospace" id="val-affiliate-profit"
+                                                style="color: #a78bfa;">Rp 0</div>
+                                            <span class="badge bg-purple-subtle text-purple extra-small"
+                                                id="val-affiliate-pct">0%</span>
+                                        </div>
+                                    </div>
+
+                                    <!-- Ads & Affiliate -->
+                                    <div class="d-flex align-items-center justify-content-between p-2 rounded mb-3 border"
+                                        id="box-ads"
+                                        style="background: rgba(245, 158, 11, 0.05); border-color: rgba(245, 158, 11, 0.2) !important;">
+                                        <div>
+                                            <div class="fw-bold extra-small text-white">Profit Ads & Affiliate</div>
+                                            <div class="text-muted extra-small" style="font-size: 0.7rem;">Potongan Iklan
+                                                GMV Max & Affiliate</div>
+                                        </div>
+                                        <div class="text-end">
+                                            <div class="fw-bold text-warning font-monospace" id="val-ads-profit">Rp 0
+                                            </div>
+                                            <span class="badge bg-warning-subtle text-warning extra-small"
+                                                id="val-ads-pct">0%</span>
+                                        </div>
                                     </div>
                                 </div>
 
-                                <!-- Skenario 2: Affiliate -->
-                                <div class="d-flex align-items-center justify-content-between p-3 rounded mb-2 border" id="box-affiliate" style="background: rgba(139, 92, 246, 0.05); border-color: rgba(139, 92, 246, 0.2) !important;">
-                                    <div>
-                                        <div class="fw-bold small text-white">2. Penjualan Affiliate</div>
-                                        <div class="text-muted extra-small" style="font-size: 0.72rem;">Komisi Affiliate 10% + PPN 0.5%</div>
+                                <!-- Target Pasang ROAS Table -->
+                                <div class="card bg-transparent border-0 mb-4">
+                                    <div class="text-uppercase fw-bold text-white small mb-2 pb-1 border-bottom"
+                                        style="border-color: rgba(255,255,255,0.08) !important;">
+                                        <i class="fas fa-crosshairs me-1 text-warning"></i> Target Pasang ROAS : GMV Max
+                                        ROAS
                                     </div>
-                                    <div class="text-end">
-                                        <div class="fw-bold text-purple font-monospace" id="val-affiliate-profit" style="color: var(--purple);">Rp 0</div>
-                                        <span class="badge bg-purple-subtle text-purple small" id="val-affiliate-pct">0%</span>
+                                    <table
+                                        class="table table-sm table-bordered border-secondary text-white mb-0 extra-small font-monospace">
+                                        <thead>
+                                            <tr class="bg-dark text-secondary text-center">
+                                                <th>Ket.</th>
+                                                <th>ROAS</th>
+                                                <th>Biaya Iklan %</th>
+                                                <th>Biaya Iklan Rp</th>
+                                                <th>Profit Bersih %</th>
+                                                <th>Profit Bersih Rp</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td class="text-white text-center">Aman / Akselerasi ROAS</td>
+                                                <td class="text-center text-success fw-bold" id="res-roas-aman">0.00</td>
+                                                <td class="text-center text-danger" id="res-ads-pct-aman">0.00%</td>
+                                                <td class="text-end" id="res-ads-rp-aman">Rp 0</td>
+                                                <td class="text-center text-success" id="res-profit-pct-aman">0.00%</td>
+                                                <td class="text-end text-success fw-bold" id="res-profit-rp-aman">Rp 0
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td class="text-white text-center">Setelah Akselerasi (-30%)</td>
+                                                <td class="text-center text-warning fw-bold" id="res-roas-akselerasi">0.00
+                                                </td>
+                                                <td class="text-center text-danger" id="res-ads-pct-akselerasi">0.00%</td>
+                                                <td class="text-end" id="res-ads-rp-akselerasi">Rp 0</td>
+                                                <td class="text-center text-warning" id="res-profit-pct-akselerasi">0.00%
+                                                </td>
+                                                <td class="text-end text-warning fw-bold" id="res-profit-rp-akselerasi">Rp
+                                                    0</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <!-- BEP (Break Even Point) Kalkulator -->
+                                <div class="card bg-transparent border-0 mb-4">
+                                    <div class="text-uppercase fw-bold text-white small mb-2 pb-1 border-bottom"
+                                        style="border-color: rgba(255,255,255,0.08) !important;">
+                                        <i class="fas fa-balance-scale me-1 text-danger"></i> BEP (Break Even Point)
+                                        Kalkulator
+                                    </div>
+                                    <table
+                                        class="table table-sm table-bordered border-secondary text-white mb-0 extra-small font-monospace">
+                                        <thead>
+                                            <tr class="bg-dark text-secondary text-center">
+                                                <th>Ket.</th>
+                                                <th>ROAS</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td class="text-white text-center">Aman / Akselerasi ROAS</td>
+                                                <td class="text-center text-danger fw-bold" id="res-bep-roas-aman">0.00
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td class="text-white text-center">Setelah Akselerasi (-30%)</td>
+                                                <td class="text-center text-warning fw-bold" id="res-bep-roas-akselerasi">
+                                                    0.00</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <!-- Rincian Biaya (Detail) -->
+                                <div class="card bg-transparent border-0 mb-3">
+                                    <div class="text-uppercase fw-bold text-white small mb-2 pb-1 border-bottom"
+                                        style="border-color: rgba(255,255,255,0.08) !important;">
+                                        <i class="fas fa-list-ul me-1 text-secondary"></i> Rincian Biaya Lengkap
+                                    </div>
+                                    <div class="p-3 rounded border"
+                                        style="background: rgba(255,255,255,0.01); border-color: var(--border);">
+                                        <div class="d-flex justify-content-between align-items-center mb-2 font-monospace"
+                                            style="font-size: 0.85rem;">
+                                            <span class="text-success fw-bold"><i
+                                                    class="fas fa-arrow-circle-right me-1"></i> Total Pendapatan Organik
+                                                (Omset)</span>
+                                            <span class="text-success fw-bold" id="res-net-revenue">Rp 0</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between align-items-center mb-2 font-monospace border-bottom pb-2"
+                                            style="font-size: 0.85rem; border-color: rgba(255,255,255,0.05) !important;">
+                                            <span class="text-danger fw-bold"><i class="fas fa-minus-circle me-1"></i>
+                                                Total Biaya Marketplace</span>
+                                            <span class="text-danger fw-bold" id="res-total-fees">Rp 0</span>
+                                        </div>
+
+                                        <!-- Sub details -->
+                                        <div class="extra-small ps-2">
+                                            <div class="d-flex justify-content-between mb-1">
+                                                <span class="text-secondary">Pajak Penghasilan (PPh) (0.50%)</span>
+                                                <span class="font-monospace" id="res-pph-val">Rp 0</span>
+                                            </div>
+                                            <div class="d-flex justify-content-between mb-2">
+                                                <span class="text-secondary">Biaya Operasional (OPEX)</span>
+                                                <span class="font-monospace" id="res-opex-val">Rp 0</span>
+                                            </div>
+
+                                            <!-- Admin Fees Breakdown -->
+                                            <div class="mb-2">
+                                                <div
+                                                    class="d-flex justify-content-between fw-bold text-white border-bottom border-secondary mb-1">
+                                                    <span>Total Biaya Administrasi</span>
+                                                    <span id="res-admin-fees-total">Rp 0</span>
+                                                </div>
+                                                <div class="ps-2 text-muted extra-small">
+                                                    <div class="d-flex justify-content-between">
+                                                        <span>Biaya Administrasi Dasar</span>
+                                                        <span id="res-admin-fee-base">Rp 0</span>
+                                                    </div>
+                                                    <div class="d-flex justify-content-between">
+                                                        <span>Biaya Layanan Mall</span>
+                                                        <span id="res-mall-fee">Rp 0</span>
+                                                    </div>
+                                                    <div class="d-flex justify-content-between">
+                                                        <span>Premi</span>
+                                                        <span id="res-premi-fee">Rp 0</span>
+                                                    </div>
+                                                    <div class="d-flex justify-content-between">
+                                                        <span>Biaya Per Pesanan</span>
+                                                        <span id="res-pesanan-fee-val">Rp 0</span>
+                                                    </div>
+                                                    <div class="d-flex justify-content-between">
+                                                        <span>Program Hemat Biaya Kirim</span>
+                                                        <span id="res-hemat-ongkir-val">Rp 0</span>
+                                                    </div>
+                                                    <div class="d-flex justify-content-between">
+                                                        <span>Biaya Logistik</span>
+                                                        <span id="res-logistik-fee-val">Rp 0</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- Marketing Programs Breakdown -->
+                                            <div class="mb-2">
+                                                <div
+                                                    class="d-flex justify-content-between fw-bold text-white border-bottom border-secondary mb-1">
+                                                    <span>Total Biaya Pemasaran</span>
+                                                    <span id="res-marketing-fees-total">Rp 0</span>
+                                                </div>
+                                                <div class="ps-2 text-muted extra-small">
+                                                    <div class="d-flex justify-content-between">
+                                                        <span>Gratis Ongkir Xtra</span>
+                                                        <span id="res-prog-ongkir">Rp 0</span>
+                                                    </div>
+                                                    <div class="d-flex justify-content-between">
+                                                        <span>Promo Xtra</span>
+                                                        <span id="res-prog-promo">Rp 0</span>
+                                                    </div>
+                                                    <div class="d-flex justify-content-between">
+                                                        <span>Promo Xtra+ (Plus)</span>
+                                                        <span id="res-prog-promo-plus">Rp 0</span>
+                                                    </div>
+                                                    <div class="d-flex justify-content-between">
+                                                        <span>Live Xtra</span>
+                                                        <span id="res-prog-live">Rp 0</span>
+                                                    </div>
+                                                    <div class="d-flex justify-content-between">
+                                                        <span>Video Xtra</span>
+                                                        <span id="res-prog-video">Rp 0</span>
+                                                    </div>
+                                                    <div class="d-flex justify-content-between">
+                                                        <span>Pre-Order</span>
+                                                        <span id="res-prog-preorder">Rp 0</span>
+                                                    </div>
+                                                    <div class="d-flex justify-content-between">
+                                                        <span>Spaylater 3 Bulan</span>
+                                                        <span id="res-prog-spaylater3">Rp 0</span>
+                                                    </div>
+                                                    <div class="d-flex justify-content-between">
+                                                        <span>Spaylater 6 Bulan</span>
+                                                        <span id="res-prog-spaylater6">Rp 0</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- Total Biaya Marketing (Ads + Affiliate) -->
+                                            <div class="mb-2">
+                                                <div
+                                                    class="d-flex justify-content-between fw-bold text-white border-bottom border-secondary mb-1">
+                                                    <span>Total Biaya Marketing (Ads + Affiliate)</span>
+                                                    <span id="res-ads-marketing-total">Rp 0</span>
+                                                </div>
+                                                <div class="ps-2 text-muted extra-small">
+                                                    <div class="d-flex justify-content-between">
+                                                        <span>Ads/Iklan GMV Max</span>
+                                                        <span id="res-ads-base">Rp 0</span>
+                                                    </div>
+                                                    <div class="d-flex justify-content-between">
+                                                        <span>PPN Ads (12.00%)</span>
+                                                        <span id="res-ppn-ads">Rp 0</span>
+                                                    </div>
+                                                    <div class="d-flex justify-content-between">
+                                                        <span>Affiliate</span>
+                                                        <span id="res-affiliate-base">Rp 0</span>
+                                                    </div>
+                                                    <div class="d-flex justify-content-between">
+                                                        <span>PPN Affiliate (0.50%)</span>
+                                                        <span id="res-ppn-aff">Rp 0</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- Co-Found Voucher Breakdown -->
+                                            <div class="mb-0">
+                                                <div
+                                                    class="d-flex justify-content-between fw-bold text-white border-bottom border-secondary mb-1">
+                                                    <span>Total Biaya Co-Found</span>
+                                                    <span id="res-cofund-fees-total">Rp 0</span>
+                                                </div>
+                                                <div class="ps-2 text-muted extra-small">
+                                                    <div class="d-flex justify-content-between">
+                                                        <span>Ditanggung Platform (Diskon Pembeli)</span>
+                                                        <span id="res-cofund-plat-val">Rp 0</span>
+                                                    </div>
+                                                    <div class="d-flex justify-content-between">
+                                                        <span>Ditanggung Penjual (Beban Seller)</span>
+                                                        <span id="res-cofund-seller-val">Rp 0</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
 
-                                <!-- Skenario 3: Iklan + Affiliate -->
-                                <div class="d-flex align-items-center justify-content-between p-3 rounded border" id="box-ads" style="background: rgba(245, 158, 11, 0.05); border-color: rgba(245, 158, 11, 0.2) !important;">
-                                    <div>
-                                        <div class="fw-bold small text-white">3. Penjualan Iklan & Affiliate</div>
-                                        <div class="text-muted extra-small" style="font-size: 0.72rem;">Biaya Iklan 5% (PPN 12%) + Affiliate 10%</div>
-                                    </div>
-                                    <div class="text-end">
-                                        <div class="fw-bold text-warning font-monospace" id="val-ads-profit">Rp 0</div>
-                                        <span class="badge bg-warning-subtle text-warning small" id="val-ads-pct">0%</span>
-                                    </div>
-                                </div>
                             </div>
 
-                            <div class="mt-4">
-                                <button type="button" id="btn-apply-calc-price" class="btn btn-success w-100 fw-bold py-2 shadow-sm">
-                                    <i class="fas fa-check-circle me-1"></i> Gunakan Harga Jual Ini
-                                </button>
+                            <!-- Apply Button -->
+                            <div class="mt-auto pt-3 border-top" style="border-color: var(--border) !important;">
+                                <div class="row g-2">
+                                    <div class="col-8">
+                                        <button type="button" id="btn-apply-calc-price"
+                                            class="btn btn-success w-100 fw-bold py-2 shadow-sm">
+                                            <i class="fas fa-check-circle me-1"></i> Gunakan Harga Jual Ini
+                                        </button>
+                                    </div>
+                                    <div class="col-4">
+                                        <button type="button" class="btn btn-outline-secondary w-100 py-2"
+                                            data-bs-dismiss="modal">Batal</button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -698,16 +1319,24 @@
             if (!modalEl) return;
 
             // Load values when modal is shown
-            modalEl.addEventListener('show.bs.modal', function () {
+            modalEl.addEventListener('show.bs.modal', function() {
                 const costPriceInput = document.getElementById('cost_price');
                 const priceInput = document.getElementById('price');
-                
+                const skuInput = document.getElementById('sku') || document.getElementsByName('sku')[0];
+
                 const currentHpp = costPriceInput ? cleanNumber(costPriceInput.value) : 0;
                 const currentPrice = priceInput ? cleanNumber(priceInput.value) : 0;
-                
-                document.getElementById('calc-hpp').value = currentHpp > 0 ? formatNumberID(currentHpp) : '';
-                document.getElementById('calc-price').value = currentPrice > 0 ? formatNumberID(currentPrice) : '';
-                
+
+                // Get actual SKU or default name
+                const skuVal = (skuInput && skuInput.value) || document.getElementById('name')?.value ||
+                    'PRODUK';
+                document.getElementById('calc-sku').value = skuVal;
+
+                document.getElementById('calc-hpp').value = currentHpp > 0 ? formatNumberID(currentHpp) :
+                '';
+                document.getElementById('calc-price').value = currentPrice > 0 ? formatNumberID(
+                    currentPrice) : '';
+
                 calculateMarketplaceProfit();
             });
 
@@ -721,64 +1350,30 @@
             });
 
             // Listen to inputs for calculation
-            document.getElementById('calc-admin-pct').addEventListener('input', calculateMarketplaceProfit);
-            document.getElementById('calc-premi-pct').addEventListener('input', calculateMarketplaceProfit);
-            
-            document.getElementById('calc-prog-ongkir').addEventListener('change', calculateMarketplaceProfit);
-            document.getElementById('calc-prog-promo').addEventListener('change', calculateMarketplaceProfit);
-            document.getElementById('calc-prog-live').addEventListener('change', calculateMarketplaceProfit);
-            document.getElementById('calc-prog-spaylater').addEventListener('change', calculateMarketplaceProfit);
-            document.getElementById('calc-affiliate-active').addEventListener('change', calculateMarketplaceProfit);
-            document.getElementById('calc-ads-active').addEventListener('change', calculateMarketplaceProfit);
+            const inputIds = [
+                'calc-hpp', 'calc-opex', 'calc-price', 'calc-roas-target', 'calc-affiliate-pct',
+                'calc-voucher-toko', 'calc-voucher-produk', 'calc-voucher-dll',
+                'calc-cofund-pct', 'calc-cofund-max-seller', 'calc-cofund-plat-pct', 'calc-cofund-seller-pct',
+                'calc-admin-pct', 'calc-mall-pct', 'calc-premi-pct', 'calc-pesanan-fee', 'calc-hemat-ongkir',
+                'calc-logistik-fee',
+                'calc-prog-ongkir-pct', 'calc-prog-promo-pct', 'calc-prog-promo-plus-pct', 'calc-prog-live-pct',
+                'calc-prog-video-pct', 'calc-prog-preorder-pct', 'calc-prog-spaylater3-pct',
+                'calc-prog-spaylater6-pct',
+                'calc-promo-pct', 'calc-coret-pct', 'calc-markup-pct'
+            ];
+            inputIds.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.addEventListener('input', calculateMarketplaceProfit);
+            });
 
-            // Handle Template selection change
-            document.getElementById('calc-template').addEventListener('change', function() {
-                const template = this.value;
-                const adminInput = document.getElementById('calc-admin-pct');
-                const premiInput = document.getElementById('calc-premi-pct');
-                
-                if (template === 'shopee') {
-                    adminInput.value = '8.25';
-                    premiInput.value = '0.50';
-                    document.getElementById('calc-prog-ongkir').checked = true;
-                    document.getElementById('calc-prog-promo').checked = true;
-                    document.getElementById('calc-prog-live').checked = true;
-                    document.getElementById('calc-prog-spaylater').checked = true;
-                    document.getElementById('calc-affiliate-active').checked = true;
-                    document.getElementById('calc-ads-active').checked = true;
-                } else if (template === 'tiktok') {
-                    adminInput.value = '5.00';
-                    premiInput.value = '0.00';
-                    document.getElementById('calc-prog-ongkir').checked = false;
-                    document.getElementById('calc-prog-promo').checked = false;
-                    document.getElementById('calc-prog-live').checked = false;
-                    document.getElementById('calc-prog-spaylater').checked = false;
-                    document.getElementById('calc-affiliate-active').checked = false;
-                    document.getElementById('calc-ads-active').checked = false;
-                } else if (template === 'tokopedia') {
-                    adminInput.value = '4.50';
-                    premiInput.value = '0.00';
-                    document.getElementById('calc-prog-ongkir').checked = false;
-                    document.getElementById('calc-prog-promo').checked = false;
-                    document.getElementById('calc-prog-live').checked = false;
-                    document.getElementById('calc-prog-spaylater').checked = false;
-                    document.getElementById('calc-affiliate-active').checked = false;
-                    document.getElementById('calc-ads-active').checked = false;
-                } else if (template === 'lazada') {
-                    adminInput.value = '4.00';
-                    premiInput.value = '0.00';
-                    document.getElementById('calc-prog-ongkir').checked = false;
-                    document.getElementById('calc-prog-promo').checked = false;
-                    document.getElementById('calc-prog-live').checked = false;
-                    document.getElementById('calc-prog-spaylater').checked = false;
-                    document.getElementById('calc-affiliate-active').checked = false;
-                    document.getElementById('calc-ads-active').checked = false;
-                } else {
-                    adminInput.value = '0.00';
-                    premiInput.value = '0.00';
-                }
-                
-                calculateMarketplaceProfit();
+            const changeIds = [
+                'calc-mall-active', 'calc-premi-active',
+                'calc-prog-ongkir', 'calc-prog-promo', 'calc-prog-promo-plus', 'calc-prog-live',
+                'calc-prog-video', 'calc-prog-preorder', 'calc-prog-spaylater3', 'calc-prog-spaylater6'
+            ];
+            changeIds.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.addEventListener('change', calculateMarketplaceProfit);
             });
 
             // Apply price from calculator
@@ -798,75 +1393,245 @@
             if (!val) return 0;
             return parseFloat(val.toString().replace(/[^0-9]/g, '')) || 0;
         }
-        
+
         function formatNumberID(num) {
             return new Intl.NumberFormat('id-ID').format(num);
         }
-        
+
+        function formatCurrency(val) {
+            if (val === 0) return 'Rp -';
+            const formatted = formatNumberID(Math.abs(val));
+            return val < 0 ? `-Rp ${formatted}` : `Rp ${formatted}`;
+        }
+
         function calculateMarketplaceProfit() {
             const hpp = cleanNumber(document.getElementById('calc-hpp').value);
             const price = cleanNumber(document.getElementById('calc-price').value);
-            const voucher = cleanNumber(document.getElementById('calc-voucher').value);
-            
+            const opex = cleanNumber(document.getElementById('calc-opex').value);
+
+            // Promosi Seller
+            const voucherToko = cleanNumber(document.getElementById('calc-voucher-toko').value);
+            const voucherProduk = cleanNumber(document.getElementById('calc-voucher-produk').value);
+            const voucherDll = cleanNumber(document.getElementById('calc-voucher-dll').value);
+            const totalVoucher = voucherToko + voucherProduk + voucherDll;
+
+            // Co-Fund Voucher
+            const cofundPct = parseFloat(document.getElementById('calc-cofund-pct').value) || 0;
+            const cofundMaxSeller = cleanNumber(document.getElementById('calc-cofund-max-seller').value);
+            const cofundPlatPct = parseFloat(document.getElementById('calc-cofund-plat-pct').value) || 0;
+            const cofundSellerPct = parseFloat(document.getElementById('calc-cofund-seller-pct').value) || 0;
+
+            const baseCofundDisc = price * (cofundPct / 100);
+            const totalCofundDisc = cofundMaxSeller > 0 ? Math.min(baseCofundDisc, cofundMaxSeller) : baseCofundDisc;
+            const cofundSellerCost = Math.round(totalCofundDisc * (cofundSellerPct / 100));
+            const cofundPlatDisc = Math.round(totalCofundDisc * (cofundPlatPct / 100));
+
+            // Biaya Administrasi
             const adminPct = parseFloat(document.getElementById('calc-admin-pct').value) || 0;
-            const premiPct = parseFloat(document.getElementById('calc-premi-pct').value) || 0;
-            
+
+            let mallPct = 0;
+            if (document.getElementById('calc-mall-active').checked) {
+                mallPct = parseFloat(document.getElementById('calc-mall-pct').value) || 0;
+            }
+
+            let premiPct = 0;
+            if (document.getElementById('calc-premi-active').checked) {
+                premiPct = parseFloat(document.getElementById('calc-premi-pct').value) || 0;
+            }
+
+            const pesananFee = cleanNumber(document.getElementById('calc-pesanan-fee').value);
+            const hematOngkir = cleanNumber(document.getElementById('calc-hemat-ongkir').value);
+            const logistikFee = cleanNumber(document.getElementById('calc-logistik-fee').value);
+
+            const adminFeeBase = Math.round(price * (adminPct / 100));
+            const mallFee = Math.round(price * (mallPct / 100));
+            const premiFee = Math.round(price * (premiPct / 100));
+
+            const totalAdminCost = adminFeeBase + mallFee + premiFee + pesananFee + hematOngkir + logistikFee;
+
             // Program Pemasaran
-            let programPct = 0;
-            if (document.getElementById('calc-prog-ongkir').checked) programPct += parseFloat(document.getElementById('calc-prog-ongkir').value);
-            if (document.getElementById('calc-prog-promo').checked) programPct += parseFloat(document.getElementById('calc-prog-promo').value);
-            if (document.getElementById('calc-prog-live').checked) programPct += parseFloat(document.getElementById('calc-prog-live').value);
-            if (document.getElementById('calc-prog-spaylater').checked) programPct += parseFloat(document.getElementById('calc-prog-spaylater').value);
-            
-            let flatFee = 0;
-            const template = document.getElementById('calc-template').value;
-            if (template === 'shopee') {
-                flatFee = 1600;
+            let progOngkir = 0;
+            if (document.getElementById('calc-prog-ongkir').checked) {
+                progOngkir = Math.round(price * (parseFloat(document.getElementById('calc-prog-ongkir-pct').value) || 0) /
+                    100);
             }
-            
-            const feeRate = (adminPct + premiPct + programPct) / 100;
-            const totalFees = Math.round(price * feeRate) + flatFee;
+
+            let progPromo = 0;
+            if (document.getElementById('calc-prog-promo').checked) {
+                progPromo = Math.round(price * (parseFloat(document.getElementById('calc-prog-promo-pct').value) || 0) /
+                    100);
+            }
+
+            let progPromoPlus = 0;
+            if (document.getElementById('calc-prog-promo-plus').checked) {
+                progPromoPlus = Math.round(price * (parseFloat(document.getElementById('calc-prog-promo-plus-pct').value) ||
+                    0) / 100);
+            }
+
+            let progLive = 0;
+            if (document.getElementById('calc-prog-live').checked) {
+                progLive = Math.round(price * (parseFloat(document.getElementById('calc-prog-live-pct').value) || 0) / 100);
+            }
+
+            let progVideo = 0;
+            if (document.getElementById('calc-prog-video').checked) {
+                progVideo = Math.round(price * (parseFloat(document.getElementById('calc-prog-video-pct').value) || 0) /
+                    100);
+            }
+
+            let progPreorder = 0;
+            if (document.getElementById('calc-prog-preorder').checked) {
+                progPreorder = Math.round(price * (parseFloat(document.getElementById('calc-prog-preorder-pct').value) ||
+                    0) / 100);
+            }
+
+            let progSpaylater3 = 0;
+            if (document.getElementById('calc-prog-spaylater3').checked) {
+                progSpaylater3 = Math.round(price * (parseFloat(document.getElementById('calc-prog-spaylater3-pct')
+                    .value) || 0) / 100);
+            }
+
+            let progSpaylater6 = 0;
+            if (document.getElementById('calc-prog-spaylater6').checked) {
+                progSpaylater6 = Math.round(price * (parseFloat(document.getElementById('calc-prog-spaylater6-pct')
+                    .value) || 0) / 100);
+            }
+
+            const totalMarketingProgCost = progOngkir + progPromo + progPromoPlus + progLive + progVideo + progPreorder +
+                progSpaylater3 + progSpaylater6;
+
+            // Total Biaya (Admin + Pemasaran)
+            const totalFees = totalAdminCost + totalMarketingProgCost;
+
+            // Total Pendapatan Organik (Omset)
             const netRevenue = price - totalFees;
+
+            // PPh
             const pph = Math.round(netRevenue * 0.005);
-            
-            // Organic
-            const organicProfit = netRevenue - hpp - voucher - pph;
+
+            // 1. Profit Organik
+            const organicProfit = netRevenue - hpp - totalVoucher - pph - opex;
             const organicPct = price > 0 ? ((organicProfit / price) * 100).toFixed(2) : 0;
-            
-            // Affiliate
-            let affiliateCost = 0;
-            if (document.getElementById('calc-affiliate-active').checked) {
-                const commission = Math.round(price * 0.10);
-                const ppnAff = Math.round(commission * 0.005);
-                affiliateCost = commission + ppnAff;
-            }
+
+            // 2. Profit Affiliate
+            const affiliatePct = parseFloat(document.getElementById('calc-affiliate-pct').value) || 0;
+            const commission = Math.round(price * (affiliatePct / 100));
+            const ppnAff = Math.round(commission * 0.005);
+            const affiliateCost = commission + ppnAff;
+
             const affiliateProfit = organicProfit - affiliateCost;
-            const affiliatePct = price > 0 ? ((affiliateProfit / price) * 100).toFixed(2) : 0;
-            
-            // Ads & Affiliate
-            let adsCost = 0;
-            if (document.getElementById('calc-ads-active').checked) {
-                const adsBase = Math.round(price * 0.05);
-                const ppnAds = Math.round(adsBase * 0.12);
-                adsCost = adsBase + ppnAds;
-            }
+            const affiliatePctResult = price > 0 ? ((affiliateProfit / price) * 100).toFixed(2) : 0;
+
+            // 3. Profit Ads & Affiliate
+            const roasTarget = parseFloat(document.getElementById('calc-roas-target').value) || 20;
+            const adsPct = roasTarget > 0 ? (100 / roasTarget) : 0;
+            const adsBase = Math.round(price * (adsPct / 100));
+            const ppnAds = Math.round(adsBase * 0.12);
+            const adsCost = adsBase + ppnAds;
+
             const adsProfit = affiliateProfit - adsCost;
-            const adsPct = price > 0 ? ((adsProfit / price) * 100).toFixed(2) : 0;
-            
-            // UI
-            document.getElementById('res-price').textContent = 'Rp ' + formatNumberID(price);
-            document.getElementById('res-fees').textContent = 'Rp ' + formatNumberID(totalFees);
-            document.getElementById('res-pph').textContent = 'Rp ' + formatNumberID(pph);
-            document.getElementById('res-hpp-voucher').textContent = 'Rp ' + formatNumberID(hpp + voucher);
-            
+            const adsPctResult = price > 0 ? ((adsProfit / price) * 100).toFixed(2) : 0;
+
+            // Total Biaya Marketing (Ads + PPN + Affiliate)
+            const totalMarketingCost = adsBase + ppnAds + commission + ppnAff;
+
+            // Perhitungan Harga Jual section
+            const buyerPromoPct = parseFloat(document.getElementById('calc-promo-pct').value) || 20;
+            const buyerPrice = Math.round(price * (1 - buyerPromoPct / 100)) - totalVoucher - cofundPlatDisc;
+
+            const coretPct = parseFloat(document.getElementById('calc-coret-pct').value) || 50;
+            const coretPrice = coretPct < 100 ? Math.round(price / (1 - coretPct / 100)) : 0;
+
+            const markupPct = parseFloat(document.getElementById('calc-markup-pct').value) || 10;
+            const markupPrice = markupPct < 100 ? Math.round(price / (1 - markupPct / 100)) : 0;
+
+            const bepAdsROAS = affiliateProfit > 0 ? (price / affiliateProfit).toFixed(2) : '0.00';
+
+            // Target Pasang ROAS
+            const roasAman = (price / affiliateProfit * 1.70);
+            const adsPctAman = roasAman > 0 ? (1 / roasAman) * 100 : 0;
+            const adsRpAman = Math.round(price * (adsPctAman / 100));
+            const profitRpAman = affiliateProfit - adsRpAman;
+            const profitPctAman = price > 0 ? ((profitRpAman / price) * 100).toFixed(2) : '0.00';
+
+            const roasAkselerasi = roasAman * 0.70;
+            const adsPctAkselerasi = roasAkselerasi > 0 ? (1 / roasAkselerasi) * 100 : 0;
+            const adsRpAkselerasi = Math.round(price * (adsPctAkselerasi / 100));
+            const profitRpAkselerasi = affiliateProfit - adsRpAkselerasi;
+            const profitPctAkselerasi = price > 0 ? ((profitRpAkselerasi / price) * 100).toFixed(2) : '0.00';
+
+            // BEP ROAS
+            const bepRoasAman = profitRpAman > 0 ? (price / profitRpAman).toFixed(2) : '0.00';
+            const bepRoasAkselerasi = profitRpAkselerasi > 0 ? (price / profitRpAkselerasi).toFixed(2) : '0.00';
+
+            // UI Rendering
+            // Perhitungan Harga Jual
+            document.getElementById('res-price-buyer-rp').textContent = formatCurrency(buyerPrice);
+            document.getElementById('res-coret-price-rp').textContent = formatCurrency(coretPrice);
+            document.getElementById('res-markup-price-rp').textContent = formatCurrency(markupPrice);
+            document.getElementById('res-bep-ads-val').textContent = bepAdsROAS;
+
+            // Rincian Biaya
+            document.getElementById('res-net-revenue').textContent = formatCurrency(netRevenue);
+            document.getElementById('res-total-fees').textContent = formatCurrency(totalFees);
+            document.getElementById('res-pph-val').textContent = formatCurrency(pph);
+            document.getElementById('res-opex-val').textContent = formatCurrency(opex);
+
+            document.getElementById('res-admin-fees-total').textContent = formatCurrency(totalAdminCost);
+            document.getElementById('res-admin-fee-base').textContent = formatCurrency(adminFeeBase);
+            document.getElementById('res-mall-fee').textContent = formatCurrency(mallFee);
+            document.getElementById('res-premi-fee').textContent = formatCurrency(premiFee);
+            document.getElementById('res-pesanan-fee-val').textContent = formatCurrency(pesananFee);
+            document.getElementById('res-hemat-ongkir-val').textContent = formatCurrency(hematOngkir);
+            document.getElementById('res-logistik-fee-val').textContent = formatCurrency(logistikFee);
+
+            document.getElementById('res-marketing-fees-total').textContent = formatCurrency(totalMarketingProgCost);
+            document.getElementById('res-prog-ongkir').textContent = formatCurrency(progOngkir);
+            document.getElementById('res-prog-promo').textContent = formatCurrency(progPromo);
+            document.getElementById('res-prog-promo-plus').textContent = formatCurrency(progPromoPlus);
+            document.getElementById('res-prog-live').textContent = formatCurrency(progLive);
+            document.getElementById('res-prog-video').textContent = formatCurrency(progVideo);
+            document.getElementById('res-prog-preorder').textContent = formatCurrency(progPreorder);
+            document.getElementById('res-prog-spaylater3').textContent = formatCurrency(progSpaylater3);
+            document.getElementById('res-prog-spaylater6').textContent = formatCurrency(progSpaylater6);
+
+            document.getElementById('res-ads-marketing-total').textContent = formatCurrency(totalMarketingCost);
+            document.getElementById('res-ads-base').textContent = formatCurrency(adsBase);
+            document.getElementById('res-ppn-ads').textContent = formatCurrency(ppnAds);
+            document.getElementById('res-affiliate-base').textContent = formatCurrency(commission);
+            document.getElementById('res-ppn-aff').textContent = formatCurrency(ppnAff);
+
+            document.getElementById('res-cofund-fees-total').textContent = formatCurrency(cofundSellerCost);
+            document.getElementById('res-cofund-plat-val').textContent = formatCurrency(cofundPlatDisc);
+            document.getElementById('res-cofund-seller-val').textContent = formatCurrency(cofundSellerCost);
+
+            // Target Pasang ROAS Table
+            document.getElementById('res-roas-aman').textContent = isFinite(roasAman) ? roasAman.toFixed(2) : '0.00';
+            document.getElementById('res-ads-pct-aman').textContent = adsPctAman.toFixed(2) + '%';
+            document.getElementById('res-ads-rp-aman').textContent = formatCurrency(adsRpAman);
+            document.getElementById('res-profit-pct-aman').textContent = profitPctAman + '%';
+            document.getElementById('res-profit-rp-aman').textContent = formatCurrency(profitRpAman);
+
+            document.getElementById('res-roas-akselerasi').textContent = isFinite(roasAkselerasi) ? roasAkselerasi.toFixed(
+                2) : '0.00';
+            document.getElementById('res-ads-pct-akselerasi').textContent = adsPctAkselerasi.toFixed(2) + '%';
+            document.getElementById('res-ads-rp-akselerasi').textContent = formatCurrency(adsRpAkselerasi);
+            document.getElementById('res-profit-pct-akselerasi').textContent = profitPctAkselerasi + '%';
+            document.getElementById('res-profit-rp-akselerasi').textContent = formatCurrency(profitRpAkselerasi);
+
+            // BEP ROAS Table
+            document.getElementById('res-bep-roas-aman').textContent = bepRoasAman;
+            document.getElementById('res-bep-roas-akselerasi').textContent = bepRoasAkselerasi;
+
             function updateProfitBox(boxId, valId, pctId, profit, pct) {
                 const box = document.getElementById(boxId);
                 const valEl = document.getElementById(valId);
                 const pctEl = document.getElementById(pctId);
-                
-                valEl.textContent = 'Rp ' + formatNumberID(profit);
+                if (!box || !valEl || !pctEl) return;
+
+                valEl.textContent = formatCurrency(profit);
                 pctEl.textContent = pct + '%';
-                
+
                 if (profit >= 0) {
                     valEl.className = 'fw-bold text-success font-monospace';
                     pctEl.className = 'badge bg-success-subtle text-success small';
@@ -879,10 +1644,11 @@
                     box.style.borderColor = 'rgba(239, 68, 68, 0.2)';
                 }
             }
-            
+
             updateProfitBox('box-organic', 'val-organic-profit', 'val-organic-pct', organicProfit, organicPct);
-            updateProfitBox('box-affiliate', 'val-affiliate-profit', 'val-affiliate-pct', affiliateProfit, affiliatePct);
-            updateProfitBox('box-ads', 'val-ads-profit', 'val-ads-pct', adsProfit, adsPct);
+            updateProfitBox('box-affiliate', 'val-affiliate-profit', 'val-affiliate-pct', affiliateProfit,
+                affiliatePctResult);
+            updateProfitBox('box-ads', 'val-ads-profit', 'val-ads-pct', adsProfit, adsPctResult);
         }
     </script>
 @endsection
