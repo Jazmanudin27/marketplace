@@ -92,38 +92,84 @@ class Order extends Model
     {
         // 1. Deduct stock if not already deducted and not cancelled
         if (!$this->is_stock_deducted && $this->order_status !== self::STATUS_CANCELLED) {
+            $allDeducted = true;
             foreach ($this->items as $item) {
-                if ($item->master_product_id) {
-                    $masterProduct = MasterProduct::find($item->master_product_id);
-                    if ($masterProduct) {
-                        $masterProduct->recordStockMovement(
-                            $item->quantity,
-                            'out',
-                            'Pesanan Masuk: ' . $this->order_marketplace_id,
-                            null
-                        );
+                $masterProductId = $item->master_product_id;
+
+                // Fallback: jika di item belum ter-set, coba cari dari MarketplaceProduct
+                if (!$masterProductId && $item->marketplace_product_id) {
+                    $mp = MarketplaceProduct::find($item->marketplace_product_id);
+                    if ($mp && $mp->master_product_id) {
+                        $masterProductId = $mp->master_product_id;
+                        $item->update(['master_product_id' => $masterProductId]);
                     }
                 }
+
+                if ($masterProductId) {
+                    $masterProduct = MasterProduct::find($masterProductId);
+                    if ($masterProduct) {
+                        // Cek apakah pergerakan stok untuk item ini di order ini sudah pernah dicatat
+                        $reference = 'Pesanan Masuk: ' . $this->order_marketplace_id;
+                        $alreadyDeducted = StockMovement::where('master_product_id', $masterProductId)
+                            ->where('reference', $reference)
+                            ->exists();
+
+                        if (!$alreadyDeducted) {
+                            $masterProduct->recordStockMovement(
+                                $item->quantity,
+                                'out',
+                                $reference,
+                                null
+                            );
+                        }
+                    }
+                } else {
+                    // Ada item yang belum ter-map ke master product
+                    $allDeducted = false;
+                }
             }
-            $this->update(['is_stock_deducted' => true]);
+            
+            if ($allDeducted && $this->items->count() > 0) {
+                $this->update(['is_stock_deducted' => true]);
+            }
         }
 
-        // 2. Return stock if cancelled, and it was previously deducted, and not returned yet
-        if ($this->order_status === self::STATUS_CANCELLED && $this->is_stock_deducted && !$this->is_stock_returned) {
+        // 2. Return stock if cancelled, and not returned yet
+        if ($this->order_status === self::STATUS_CANCELLED && !$this->is_stock_returned) {
+            $allReturned = true;
             foreach ($this->items as $item) {
                 if ($item->master_product_id) {
                     $masterProduct = MasterProduct::find($item->master_product_id);
                     if ($masterProduct) {
-                        $masterProduct->recordStockMovement(
-                            $item->quantity,
-                            'in',
-                            'Pembatalan Pesanan: ' . $this->order_marketplace_id,
-                            null
-                        );
+                        // Hanya kembalikan jika pernah dipotong (ada stock movement "Pesanan Masuk")
+                        $deductionRef = 'Pesanan Masuk: ' . $this->order_marketplace_id;
+                        $wasDeducted = StockMovement::where('master_product_id', $item->master_product_id)
+                            ->where('reference', $deductionRef)
+                            ->exists();
+
+                        if ($wasDeducted) {
+                            $reference = 'Pembatalan Pesanan: ' . $this->order_marketplace_id;
+                            $alreadyReturned = StockMovement::where('master_product_id', $item->master_product_id)
+                                ->where('reference', $reference)
+                                ->exists();
+
+                            if (!$alreadyReturned) {
+                                $masterProduct->recordStockMovement(
+                                    $item->quantity,
+                                    'in',
+                                    $reference,
+                                    null
+                                );
+                            }
+                        }
                     }
+                } else {
+                    $allReturned = false;
                 }
             }
-            $this->update(['is_stock_returned' => true]);
+            if ($allReturned && $this->items->count() > 0) {
+                $this->update(['is_stock_returned' => true]);
+            }
         }
     }
 

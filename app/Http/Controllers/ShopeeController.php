@@ -340,21 +340,45 @@ class ShopeeController extends Controller
                         // Simpan order items
                         $itemList = $order['item_list'] ?? [];
                         foreach ($itemList as $item) {
-                            $marketplaceProduct = \App\Models\MarketplaceProduct::where('store_id', $store->id)
-                                ->where('marketplace_product_id', (string) $item['item_id'])
-                                ->first();
+                            $modelId = $item['model_id'] ?? null;
+                            $query = \App\Models\MarketplaceProduct::where('store_id', $store->id)
+                                ->where('marketplace_product_id', (string) $item['item_id']);
+                            if ($modelId) {
+                                $query->where('marketplace_variant_id', (string) $modelId);
+                            }
+                            $marketplaceProduct = $query->first();
+
+                            // Fallback without model_id
+                            if (!$marketplaceProduct && $modelId) {
+                                $marketplaceProduct = \App\Models\MarketplaceProduct::where('store_id', $store->id)
+                                    ->where('marketplace_product_id', (string) $item['item_id'])
+                                    ->first();
+                            }
 
                             $price = $item['model_discounted_price'] ?? $item['model_original_price'] ?? 0;
                             $qty = $item['model_quantity_purchased'] ?? 1;
+                            $itemSku = $item['model_sku'] ?: ($item['item_sku'] ?? null);
+
+                            // Resolve MasterProduct
+                            $masterProduct = $marketplaceProduct ? $marketplaceProduct->masterProduct : null;
+                            
+                            // Fallback to SKU matching if mapping not resolved yet
+                            if (!$masterProduct && $itemSku) {
+                                $masterProduct = \App\Models\MasterProduct::where('tenant_id', $store->tenant_id)
+                                    ->where('sku', $itemSku)
+                                    ->first();
+                            }
+
+                            $masterProductId = $masterProduct ? $masterProduct->id : null;
 
                             \App\Models\OrderItem::updateOrCreate(
                                 [
                                     'order_id' => $localOrder->id,
-                                    'sku' => $item['model_sku'] ?: ($item['item_sku'] ?? null),
+                                    'sku' => $itemSku,
                                 ],
                                 [
                                     'marketplace_product_id' => $marketplaceProduct ? $marketplaceProduct->id : null,
-                                    'master_product_id' => $marketplaceProduct ? ($marketplaceProduct->masterProduct->id ?? $marketplaceProduct->master_product_id) : null,
+                                    'master_product_id' => $masterProductId,
                                     'product_name' => $item['item_name'] . (!empty($item['model_name']) ? ' - ' . $item['model_name'] : ''),
                                     'price' => $price,
                                     'quantity' => $qty,

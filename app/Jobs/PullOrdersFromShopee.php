@@ -161,22 +161,42 @@ class PullOrdersFromShopee implements ShouldQueue
         // Save Items
         if (!empty($shopeeOrder['item_list'])) {
             foreach ($shopeeOrder['item_list'] as $item) {
-                $marketplaceProduct = \App\Models\MarketplaceProduct::where('store_id', $this->store->id)
-                    ->where('marketplace_product_id', (string) $item['item_id'])
-                    ->first();
+                $modelId = $item['model_id'] ?? null;
+                $query = \App\Models\MarketplaceProduct::where('store_id', $this->store->id)
+                    ->where('marketplace_product_id', (string) $item['item_id']);
+                if ($modelId) {
+                    $query->where('marketplace_variant_id', (string) $modelId);
+                }
+                $marketplaceProduct = $query->first();
+
+                // Fallback without model_id
+                if (!$marketplaceProduct && $modelId) {
+                    $marketplaceProduct = \App\Models\MarketplaceProduct::where('store_id', $this->store->id)
+                        ->where('marketplace_product_id', (string) $item['item_id'])
+                        ->first();
+                }
 
                 $price = $item['model_discounted_price'] ?? $item['model_original_price'] ?? 0;
                 $qty = $item['model_quantity_purchased'] ?? 1;
 
                 // Snapshot HPP dari MasterProduct saat pesanan dibuat
                 $masterProduct = $marketplaceProduct ? $marketplaceProduct->masterProduct : null;
+                $itemSku = $item['model_sku'] ?: ($item['item_sku'] ?? null);
+
+                // Fallback to SKU matching if mapping not resolved yet
+                if (!$masterProduct && $itemSku) {
+                    $masterProduct = \App\Models\MasterProduct::where('tenant_id', $this->store->tenant_id)
+                        ->where('sku', $itemSku)
+                        ->first();
+                }
+
                 $masterProductId = $masterProduct ? $masterProduct->id : null;
                 $costPrice = $masterProduct ? (float) $masterProduct->cost_price : 0;
 
                 OrderItem::updateOrCreate(
                     [
                         'order_id' => $order->id,
-                        'sku' => $item['model_sku'] ?: ($item['item_sku'] ?? null),
+                        'sku' => $itemSku,
                     ],
                     [
                         'marketplace_product_id' => $marketplaceProduct ? $marketplaceProduct->id : null,
