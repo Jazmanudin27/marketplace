@@ -152,7 +152,18 @@ class PullOrdersFromTiktok implements ShouldQueue
         $shippingFee = $paymentInfo['shipping_fee'] ?? $paymentInfo['shipping_amount'] ?? 0;
         $discountAmount = $paymentInfo['seller_discount'] ?? $paymentInfo['discount_amount'] ?? 0;
         $netAmount = $paymentInfo['sub_total'] ?? $paymentInfo['original_amount'] ?? 0;
-        $marketplaceFee = $paymentInfo['platform_discount'] ?? 0;
+        
+        // Hitung biaya admin (marketplace fee) dari selisih total amount, ongkir, dan pencairan bersih
+        $marketplaceFee = max(0, $totalAmount - $shippingFee - $netAmount);
+
+        $financialBreakdown = [
+            'original_price' => $totalAmount - $shippingFee,
+            'actual_shipping_fee' => $shippingFee,
+            'service_fee' => $marketplaceFee,
+            'commission_fee' => 0,
+            'voucher_from_shopee' => $paymentInfo['platform_discount'] ?? 0,
+            'adjustment_amount' => 0,
+        ];
 
         $courier = $tiktokOrder['shipping_provider'] ?? $tiktokOrder['shipping_provider_name'] ?? null;
         $trackingNumber = $tiktokOrder['tracking_number'] ?? $tiktokOrder['tracking_no'] ?? null;
@@ -178,6 +189,7 @@ class PullOrdersFromTiktok implements ShouldQueue
                 'courier' => $courier,
                 'tracking_number' => $trackingNumber,
                 'order_date' => date('Y-m-d H:i:s', $createTime),
+                'financial_breakdown' => $financialBreakdown,
             ]
         );
 

@@ -30,6 +30,7 @@ class Order extends Model
         'packed_at',
         'is_stock_deducted',
         'is_stock_returned',
+        'financial_breakdown',
     ];
 
     protected $casts = [
