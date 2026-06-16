@@ -14,8 +14,8 @@
             <div class="row g-3 mb-3 align-items-center">
                 <div class="col-md-6">
                     <form action="{{ route('inventory.index') }}" method="GET" class="d-flex gap-2">
-                        <input type="text" name="search" placeholder="Cari SKU atau Nama Produk..." value="{{ request('search') }}"
-                            class="form-control form-control-sm">
+                        <input type="text" name="search" placeholder="Cari SKU atau Nama Produk..."
+                            value="{{ request('search') }}" class="form-control form-control-sm">
                         <button type="submit" class="btn btn-primary btn-sm px-3">
                             <i class="fas fa-search me-1"></i> Cari
                         </button>
@@ -30,7 +30,7 @@
 
             <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0">
-                    <thead class="table-light">
+                    <thead class="table-dark">
                         <tr>
                             <th class="ps-3 border-0">SKU</th>
                             <th class="border-0">Nama Produk</th>
@@ -54,7 +54,8 @@
                                     {{ number_format($product->stock) }}
                                 </td>
                                 <td class="text-center pe-3">
-                                    <a href="{{ route('inventory.ledger', $product->id) }}" class="btn btn-outline-primary btn-sm px-2.5">
+                                    <a href="{{ route('inventory.ledger', $product->id) }}"
+                                        class="btn btn-outline-primary btn-sm px-2.5">
                                         <i class="fas fa-clipboard-list me-1"></i> Kartu Stok
                                     </a>
                                 </td>
@@ -68,7 +69,7 @@
                 </table>
             </div>
 
-            @if($products->hasPages())
+            @if ($products->hasPages())
                 <div class="mt-4">
                     {{ $products->links() }}
                 </div>
