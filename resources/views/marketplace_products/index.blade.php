@@ -17,28 +17,41 @@
         </div>
     @endif
 
-    {{-- Status Tabs Row --}}
-    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
-        <div class="d-flex align-items-center gap-2">
-            <h4 class="mb-0 fw-bold text-white"><i class="fas fa-store text-primary me-2"></i>Produk Marketplace</h4>
-            <span class="badge bg-secondary py-1.5 px-3 rounded-pill">{{ $marketplaceProducts->total() }} Item</span>
-        </div>
+    {{-- Tab Navigation --}}
+    @php
+        $tenantId = Auth::user()->tenant_id;
+        $baseQuery = \App\Models\MarketplaceProduct::whereHas('store', function($q) use ($tenantId) {
+            $q->where('tenant_id', $tenantId);
+        });
+        
+        $totalCount = (clone $baseQuery)->count();
+        $unmappedCount = (clone $baseQuery)->whereDoesntHave('masterProduct')->count();
+        $mappedCount = (clone $baseQuery)->whereHas('masterProduct')->count();
+    @endphp
 
-        <div class="bg-dark p-1.5 rounded-pill d-inline-flex border" style="border-color: var(--border) !important;">
+    <ul class="nav nav-tabs mb-4" id="marketplaceTab" role="tablist">
+        <li class="nav-item" role="presentation">
             <a href="{{ route('marketplace_products.index', request()->except(['status', 'page'])) }}"
-                class="btn rounded-pill px-4 btn-sm fw-semibold {{ !request('status') ? 'btn-primary shadow-sm text-white' : 'btn-link text-secondary text-decoration-none' }}">
-                Semua
+                class="nav-link {{ !request('status') ? 'active' : '' }}">
+                <i class="fas fa-store me-1"></i> Semua
+                <span class="badge bg-secondary ms-1">{{ $totalCount }}</span>
             </a>
+        </li>
+        <li class="nav-item" role="presentation">
             <a href="{{ route('marketplace_products.index', array_merge(request()->except('page'), ['status' => 'unmapped'])) }}"
-                class="btn rounded-pill px-4 btn-sm fw-semibold {{ request('status') === 'unmapped' ? 'btn-primary shadow-sm text-white' : 'btn-link text-secondary text-decoration-none' }}">
-                Belum Ditautkan
+                class="nav-link {{ request('status') === 'unmapped' ? 'active' : '' }}">
+                <i class="fas fa-unlink me-1"></i> Belum Ditautkan
+                <span class="badge bg-secondary ms-1">{{ $unmappedCount }}</span>
             </a>
+        </li>
+        <li class="nav-item" role="presentation">
             <a href="{{ route('marketplace_products.index', array_merge(request()->except('page'), ['status' => 'mapped'])) }}"
-                class="btn rounded-pill px-4 btn-sm fw-semibold {{ request('status') === 'mapped' ? 'btn-primary shadow-sm text-white' : 'btn-link text-secondary text-decoration-none' }}">
-                Sudah Ditautkan
+                class="nav-link {{ request('status') === 'mapped' ? 'active' : '' }}">
+                <i class="fas fa-link me-1"></i> Sudah Ditautkan
+                <span class="badge bg-secondary ms-1">{{ $mappedCount }}</span>
             </a>
-        </div>
-    </div>
+        </li>
+    </ul>
 
     {{-- Filter Card --}}
     <div class="card border-0 shadow-sm mb-4">
@@ -78,7 +91,7 @@
                         <option value="">Semua Toko</option>
                         @foreach ($stores as $store)
                             <option value="{{ $store->id }}" {{ request('store_id') == $store->id ? 'selected' : '' }}>
-                                {{ $store->store_name }}
+                                {{ $store->store_name }} ({{ $store->channel->name ?? '' }})
                             </option>
                         @endforeach
                     </select>
@@ -105,10 +118,11 @@
     <div class="card border-0 shadow-sm">
         <div class="card-header d-flex align-items-center justify-content-between py-3">
             <h6 class="mb-0 fw-semibold">
-                <i class="fas fa-store me-2 text-primary"></i>Daftar Produk Marketplace
+                <i class="fas fa-store text-primary me-2"></i>Daftar Produk Marketplace
             </h6>
             <span class="text-muted small">
-                Menampilkan {{ $marketplaceProducts->firstItem() ?? 0 }}-{{ $marketplaceProducts->lastItem() ?? 0 }} dari {{ $marketplaceProducts->total() }} produk
+                Menampilkan {{ $marketplaceProducts->firstItem() ?? 0 }}-{{ $marketplaceProducts->lastItem() ?? 0 }} dari
+                {{ $marketplaceProducts->total() }} produk
             </span>
         </div>
 
@@ -117,31 +131,25 @@
                 <table class="table table-hover align-middle mb-0">
                     <thead>
                         <tr>
-                            <th class="ps-3" style="width: 15%;">Toko / Channel</th>
-                            <th>Nama Produk Marketplace</th>
-                            <th>SKU</th>
+                            <th class="ps-3">SKU Marketplace</th>
+                            <th>Nama Produk</th>
                             <th>Harga Jual</th>
-                            <th class="text-center" style="width: 10%;">Stok</th>
+                            <th class="text-center">Stok</th>
                             <th>Status Master</th>
-                            <th class="pe-3 text-center" style="width: 20%;">Aksi</th>
+                            <th>Toko / Channel</th>
+                            <th class="pe-3 text-center">Aksi</th>
                         </tr>
                     </thead>
                     <tbody>
                         @forelse($marketplaceProducts as $product)
                             <tr>
-                                {{-- Store & Channel --}}
+                                {{-- SKU --}}
                                 <td class="ps-3">
-                                    <div class="fw-semibold">{{ $product->store->store_name }}</div>
-                                    <div class="mt-1">
-                                        <span class="channel-badge channel-{{ $product->store->channel->code ?? '' }}" style="font-size: 0.68rem; padding: 0.15rem 0.45rem; line-height: 1;">
-                                            @if (($product->store->channel->code ?? '') === 'shopee')
-                                                <i class="fab fa-shopify"></i>
-                                            @elseif(($product->store->channel->code ?? '') === 'tiktok')
-                                                <i class="fab fa-tiktok"></i>
-                                            @endif
-                                            {{ $product->store->channel->name }}
-                                        </span>
-                                    </div>
+                                    @if ($product->marketplace_sku)
+                                        <code class="text-primary">{{ $product->marketplace_sku }}</code>
+                                    @else
+                                        <span class="text-muted">-</span>
+                                    @endif
                                 </td>
 
                                 {{-- Marketplace Product details --}}
@@ -159,19 +167,16 @@
                                         @endif
                                         <div>
                                             <div class="fw-semibold">{{ $product->name }}</div>
-                                            <div class="text-secondary small mt-0.5" style="font-size: 0.75rem;">ID: {{ $product->marketplace_product_id }}</div>
+                                            <div class="text-secondary small mt-0.5" style="font-size: 0.75rem;">ID:
+                                                {{ $product->marketplace_product_id }}</div>
                                         </div>
                                     </div>
                                 </td>
 
-                                {{-- SKU --}}
-                                <td>
-                                    <code class="text-primary">{{ $product->marketplace_sku ?? '-' }}</code>
-                                </td>
-
                                 {{-- Harga --}}
                                 <td>
-                                    <span class="font-monospace">Rp {{ number_format($product->price, 0, ',', '.') }}</span>
+                                    <span class="font-monospace">Rp
+                                        {{ number_format($product->price, 0, ',', '.') }}</span>
                                 </td>
 
                                 {{-- Stok --}}
@@ -179,7 +184,8 @@
                                     <span class="fw-bold font-monospace">{{ number_format($product->stock) }}</span>
                                     @if ($product->masterProduct && $product->sync_stock && $product->safety_stock > 0)
                                         <div class="text-muted small mt-0.5" style="font-size: 0.7rem;">
-                                            (Master: {{ $product->masterProduct->stock }} | Safety: {{ $product->safety_stock }})
+                                            (Master: {{ $product->masterProduct->stock }} | Safety:
+                                            {{ $product->safety_stock }})
                                         </div>
                                     @endif
                                 </td>
@@ -188,7 +194,8 @@
                                 <td>
                                     @if ($product->masterProduct)
                                         <div class="d-flex flex-column gap-1">
-                                            <span class="badge bg-success-subtle text-success border border-success border-opacity-25 align-self-start">
+                                            <span
+                                                class="badge bg-success-subtle text-success border border-success border-opacity-25 align-self-start">
                                                 <i class="fas fa-link me-1"></i>Tertaut
                                             </span>
                                             <span class="text-light small fw-medium" style="font-size: 0.8rem;">
@@ -196,7 +203,8 @@
                                             </span>
                                             @if ($product->sync_stock)
                                                 <span class="text-info small" style="font-size: 0.72rem;">
-                                                    <i class="fas fa-sync-alt me-1"></i>Sync Aktif (Safety: {{ $product->safety_stock }})
+                                                    <i class="fas fa-sync-alt me-1"></i>Sync Aktif (Safety:
+                                                    {{ $product->safety_stock }})
                                                 </span>
                                             @else
                                                 <span class="text-muted small" style="font-size: 0.72rem;">
@@ -205,10 +213,27 @@
                                             @endif
                                         </div>
                                     @else
-                                        <span class="badge bg-secondary-subtle text-secondary border border-secondary border-opacity-25">
+                                        <span
+                                            class="badge bg-secondary-subtle text-secondary border border-secondary border-opacity-25">
                                             <i class="fas fa-unlink me-1"></i>Belum Ditautkan
                                         </span>
                                     @endif
+                                </td>
+
+                                {{-- Store & Channel --}}
+                                <td>
+                                    <div class="fw-semibold">{{ $product->store->store_name }}</div>
+                                    <div class="mt-1">
+                                        <span class="channel-badge channel-{{ $product->store->channel->code ?? '' }}"
+                                            style="font-size: 0.68rem; padding: 0.15rem 0.45rem; line-height: 1;">
+                                            @if (($product->store->channel->code ?? '') === 'shopee')
+                                                <i class="fab fa-shopify"></i>
+                                            @elseif(($product->store->channel->code ?? '') === 'tiktok')
+                                                <i class="fab fa-tiktok"></i>
+                                            @endif
+                                            {{ $product->store->channel->name }}
+                                        </span>
+                                    </div>
                                 </td>
 
                                 {{-- Actions --}}
@@ -232,7 +257,8 @@
                                             </button>
 
                                             <!-- Salin ke Toko Lain -->
-                                            <form action="{{ route('marketplace_products.clone_and_publish', $product->id) }}"
+                                            <form
+                                                action="{{ route('marketplace_products.clone_and_publish', $product->id) }}"
                                                 method="POST" class="d-inline">
                                                 @csrf
                                                 <button type="submit" class="btn btn-sm btn-outline-primary">
@@ -243,27 +269,30 @@
 
                                         <form id="link-form-{{ $product->id }}"
                                             action="{{ route('marketplace_products.link', $product->id) }}"
-                                            method="POST"
-                                            class="d-none mt-2 p-2 border rounded text-start"
+                                            method="POST" class="d-none mt-2 p-2 border rounded text-start"
                                             style="background: rgba(255, 255, 255, 0.02); border-color: var(--border) !important;">
                                             @csrf
                                             <select name="master_product_id"
                                                 class="form-select form-select-sm form-select-dark mb-2" required>
                                                 <option value="">-- Pilih Master --</option>
                                                 @foreach ($masterProducts as $master)
-                                                    <option value="{{ $master->id }}">{{ $master->name }} (SKU: {{ $master->sku }})</option>
+                                                    <option value="{{ $master->id }}">{{ $master->name }} (SKU:
+                                                        {{ $master->sku }})</option>
                                                 @endforeach
                                             </select>
                                             <div class="d-flex gap-2">
-                                                <button type="submit" class="btn btn-success btn-sm flex-grow-1 py-0.5" style="font-size: 0.75rem;">Simpan</button>
-                                                <button type="button" class="btn btn-secondary btn-sm flex-grow-1 py-0.5" style="font-size: 0.75rem;"
+                                                <button type="submit" class="btn btn-success btn-sm flex-grow-1 py-0.5"
+                                                    style="font-size: 0.75rem;">Simpan</button>
+                                                <button type="button" class="btn btn-secondary btn-sm flex-grow-1 py-0.5"
+                                                    style="font-size: 0.75rem;"
                                                     onclick="document.getElementById('link-form-{{ $product->id }}').classList.add('d-none')">Batal</button>
                                             </div>
                                         </form>
                                     @else
                                         <div class="d-flex gap-1 justify-content-center align-items-center">
                                             <button type="button" class="btn btn-sm btn-outline-primary"
-                                                data-bs-toggle="modal" data-bs-target="#settingsModal-{{ $product->id }}">
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#settingsModal-{{ $product->id }}">
                                                 <i class="fas fa-cog"></i> Pengaturan
                                             </button>
 
@@ -273,8 +302,7 @@
                                             </a>
 
                                             <form action="{{ route('marketplace_products.unlink', $product->id) }}"
-                                                method="POST"
-                                                class="d-inline"
+                                                method="POST" class="d-inline"
                                                 onsubmit="return confirm('Batal tautkan produk marketplace ini dari Master Product?');">
                                                 @csrf
                                                 <button type="submit" class="btn btn-sm btn-outline-danger">
@@ -289,7 +317,8 @@
                                             <div class="modal-dialog modal-dialog-centered">
                                                 <div class="modal-content"
                                                     style="background: var(--bg-card); border: 1px solid var(--border); text-align: left;">
-                                                    <div class="modal-header" style="border-bottom: 1px solid var(--border);">
+                                                    <div class="modal-header"
+                                                        style="border-bottom: 1px solid var(--border);">
                                                         <h5 class="modal-title fw-bold text-primary"
                                                             id="settingsModalLabel-{{ $product->id }}">
                                                             <i class="fas fa-cog me-2"></i> Pengaturan Stok
@@ -308,11 +337,13 @@
                                                             </div>
                                                             <hr style="border-color: var(--border);">
                                                             <div class="mb-3">
-                                                                <label class="form-label d-block fw-semibold text-secondary mb-2">Sinkronisasi Stok</label>
+                                                                <label
+                                                                    class="form-label d-block fw-semibold text-secondary mb-2">Sinkronisasi
+                                                                    Stok</label>
                                                                 <div class="form-check form-switch">
                                                                     <input class="form-check-input" type="checkbox"
-                                                                        name="sync_stock" id="syncStock-{{ $product->id }}"
-                                                                        value="1"
+                                                                        name="sync_stock"
+                                                                        id="syncStock-{{ $product->id }}" value="1"
                                                                         {{ $product->sync_stock ? 'checked' : '' }}
                                                                         style="cursor: pointer;">
                                                                     <label class="form-check-label text-light"
@@ -321,24 +352,36 @@
                                                                         Otomatis sinkronkan stok dari Master Product
                                                                     </label>
                                                                 </div>
-                                                                <div class="form-text mt-1" style="font-size: 0.75rem; color: var(--text-muted);">
-                                                                    Jika dinonaktifkan, perubahan stok Master Product tidak akan didorong ke marketplace ini.
+                                                                <div class="form-text mt-1"
+                                                                    style="font-size: 0.75rem; color: var(--text-muted);">
+                                                                    Jika dinonaktifkan, perubahan stok Master Product tidak
+                                                                    akan didorong ke marketplace ini.
                                                                 </div>
                                                             </div>
 
                                                             <div class="mb-3">
-                                                                <label for="safetyStock-{{ $product->id }}" class="form-label fw-semibold text-secondary mb-2">Stok Pengaman (Safety Stock)</label>
-                                                                <input type="number" class="form-control form-control-sm form-control-dark"
-                                                                    name="safety_stock" id="safetyStock-{{ $product->id }}" min="0"
+                                                                <label for="safetyStock-{{ $product->id }}"
+                                                                    class="form-label fw-semibold text-secondary mb-2">Stok
+                                                                    Pengaman (Safety Stock)</label>
+                                                                <input type="number"
+                                                                    class="form-control form-control-sm form-control-dark"
+                                                                    name="safety_stock"
+                                                                    id="safetyStock-{{ $product->id }}" min="0"
                                                                     value="{{ $product->safety_stock ?? 0 }}" required>
-                                                                <div class="form-text mt-1" style="font-size: 0.75rem; color: var(--text-muted);">
-                                                                    Stok yang dikirim ke toko = <strong>Stok Master ({{ $product->masterProduct->stock ?? 0 }}) - Stok Pengaman</strong>.
+                                                                <div class="form-text mt-1"
+                                                                    style="font-size: 0.75rem; color: var(--text-muted);">
+                                                                    Stok yang dikirim ke toko = <strong>Stok Master
+                                                                        ({{ $product->masterProduct->stock ?? 0 }}) - Stok
+                                                                        Pengaman</strong>.
                                                                 </div>
                                                             </div>
                                                         </div>
-                                                        <div class="modal-footer" style="border-top: 1px solid var(--border);">
-                                                            <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Batal</button>
-                                                            <button type="submit" class="btn btn-primary btn-sm">Simpan</button>
+                                                        <div class="modal-footer"
+                                                            style="border-top: 1px solid var(--border);">
+                                                            <button type="button" class="btn btn-secondary btn-sm"
+                                                                data-bs-dismiss="modal">Batal</button>
+                                                            <button type="submit"
+                                                                class="btn btn-primary btn-sm">Simpan</button>
                                                         </div>
                                                     </form>
                                                 </div>
@@ -361,7 +404,7 @@
         </div>
 
         @if ($marketplaceProducts->hasPages())
-            <div class="card-footer border-top-0 py-3 d-flex justify-content-center">
+            <div class="card-footer border-top-0 py-3">
                 {{ $marketplaceProducts->links() }}
             </div>
         @endif

@@ -24,9 +24,9 @@ class MarketplaceProduct extends Model
     ];
 
     protected $casts = [
-        'price'          => 'decimal:2',
-        'sync_stock'     => 'boolean',
-        'safety_stock'   => 'integer',
+        'price' => 'decimal:2',
+        'sync_stock' => 'boolean',
+        'safety_stock' => 'integer',
         'last_synced_at' => 'datetime',
     ];
 
