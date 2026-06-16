@@ -152,6 +152,26 @@ class ReportController extends Controller
             
         $allMovements = $movementQuery->get()->groupBy('master_product_id');
 
+        // Extract all order marketplace IDs from references to query their channels in bulk
+        $orderIds = [];
+        foreach ($allMovements as $productId => $movements) {
+            foreach ($movements as $mov) {
+                $ref = $mov->reference;
+                if (str_starts_with($ref, 'Pesanan Masuk: ')) {
+                    $orderIds[] = substr($ref, strlen('Pesanan Masuk: '));
+                } elseif (str_starts_with($ref, 'Pembatalan Pesanan: ')) {
+                    $orderIds[] = substr($ref, strlen('Pembatalan Pesanan: '));
+                }
+            }
+        }
+        $orderIds = array_unique(array_filter($orderIds));
+
+        $orders = \App\Models\Order::with('store.channel')
+            ->whereIn('order_marketplace_id', $orderIds)
+            ->where('tenant_id', $tenantId)
+            ->get()
+            ->keyBy('order_marketplace_id');
+
         $reportData = [];
 
         foreach ($products as $product) {
@@ -188,7 +208,19 @@ class ReportController extends Controller
             foreach ($periodMovements as $mov) {
                 $qty = $mov->quantity;
                 $type = $mov->type;
-                $ref = strtolower($mov->reference);
+                $ref = $mov->reference;
+
+                $channelCode = null;
+                $orderIdFromRef = null;
+                if (str_starts_with($ref, 'Pesanan Masuk: ')) {
+                    $orderIdFromRef = substr($ref, strlen('Pesanan Masuk: '));
+                } elseif (str_starts_with($ref, 'Pembatalan Pesanan: ')) {
+                    $orderIdFromRef = substr($ref, strlen('Pembatalan Pesanan: '));
+                }
+                
+                if ($orderIdFromRef && isset($orders[$orderIdFromRef])) {
+                    $channelCode = $orders[$orderIdFromRef]->store->channel->code ?? null;
+                }
 
                 if ($qty > 0) {
                     if ($type === 'in') {
@@ -200,14 +232,15 @@ class ReportController extends Controller
                     }
                 } elseif ($qty < 0) {
                     $absQty = abs($qty);
+                    $refLower = strtolower($ref);
                     if ($type === 'out') {
-                        if (str_contains($ref, 'shopee')) {
+                        if ($channelCode === 'shopee' || str_contains($refLower, 'shopee')) {
                             $outShopee += $absQty;
-                        } elseif (str_contains($ref, 'tiktok')) {
+                        } elseif ($channelCode === 'tiktok' || str_contains($refLower, 'tiktok')) {
                             $outTiktok += $absQty;
-                        } elseif (str_contains($ref, 'tokopedia')) {
+                        } elseif ($channelCode === 'tokopedia' || str_contains($refLower, 'tokopedia')) {
                             $outTokopedia += $absQty;
-                        } elseif (str_contains($ref, 'lazada')) {
+                        } elseif ($channelCode === 'lazada' || str_contains($refLower, 'lazada')) {
                             $outLazada += $absQty;
                         } else {
                             $outLain += $absQty;
