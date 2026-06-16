@@ -51,6 +51,50 @@
 
         {{-- ===================== TAB 1: MASTER PRODUK ===================== --}}
         <div class="tab-pane fade show active" id="panel-produk" role="tabpanel" aria-labelledby="tab-produk">
+            <!-- Filter Section -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body p-3">
+                    <form method="GET" action="{{ route('products.index') }}" class="row g-3 align-items-end">
+                        <div class="col-md-5">
+                            <label class="form-label small fw-semibold text-secondary mb-1">Filter Chanel</label>
+                            <select name="channel_id" class="form-select form-select-sm form-select-dark">
+                                <option value="">Semua Chanel</option>
+                                @foreach ($channels as $channel)
+                                    <option value="{{ $channel->id }}"
+                                        {{ request('channel_id') == $channel->id ? 'selected' : '' }}>
+                                        {{ $channel->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-md-5">
+                            <label class="form-label small fw-semibold text-secondary mb-1">Filter Akun / Toko</label>
+                            <select name="store_id" class="form-select form-select-sm form-select-dark">
+                                <option value="">Semua Akun / Toko</option>
+                                @foreach ($stores as $store)
+                                    <option value="{{ $store->id }}"
+                                        {{ request('store_id') == $store->id ? 'selected' : '' }}>
+                                        {{ $store->store_name }} ({{ $store->channel->name ?? '' }})
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-md-2 d-flex gap-2">
+                            <button type="submit" class="btn btn-sm btn-primary flex-grow-1" style="height: 31px;">
+                                <i class="fas fa-filter me-1"></i> Filter
+                            </button>
+                            @if (request()->anyFilled(['channel_id', 'store_id']))
+                                <a href="{{ route('products.index') }}" class="btn btn-sm btn-outline-secondary"
+                                    style="height: 31px; display: flex; align-items: center; justify-content: center; padding: 0 10px;"
+                                    title="Reset Filter">
+                                    <i class="fas fa-undo"></i>
+                                </a>
+                            @endif
+                        </div>
+                    </form>
+                </div>
+            </div>
+
             <div class="card border-0 shadow-sm">
                 <div class="card-header d-flex align-items-center justify-content-between py-3">
                     <h6 class="mb-0 fw-semibold">

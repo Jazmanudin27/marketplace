@@ -17,7 +17,7 @@
                 style="background-color: transparent;">
                 <h5 class="mb-0 fw-bold text-white"><i class="fas fa-clipboard-check text-primary"></i> Form Stock Opname</h5>
                 <div>
-                    <a href="{{ route('inventory.opname.history') }}" class="btn btn-outline-secondary btn-sm text-white">
+                    <a href="{{ route('stock_opnames.index') }}" class="btn btn-outline-secondary btn-sm text-white">
                         <i class="fas fa-arrow-left"></i> Batal & Kembali
                     </a>
                 </div>
@@ -25,7 +25,7 @@
 
             <div class="card-body">
                 <div class="mb-4 pb-3 border-bottom border-secondary">
-                    <form action="{{ route('inventory.opname') }}" method="GET" class="row g-3 align-items-end">
+                    <form action="{{ route('stock_opnames.create') }}" method="GET" class="row g-3 align-items-end">
                         <div class="col-md-4 col-sm-12">
                             <label class="form-label fw-semibold small mb-1 text-white">Pencarian</label>
                             <input type="text" name="search" placeholder="Cari SKU / Nama Produk..."
@@ -63,7 +63,7 @@
                             <button type="submit" class="btn btn-primary btn-sm w-100"><i class="fas fa-filter"></i>
                                 Filter</button>
                             @if (request()->anyFilled(['search', 'category_id', 'brand_id']))
-                                <a href="{{ route('inventory.opname') }}" class="btn btn-outline-danger btn-sm"
+                                <a href="{{ route('stock_opnames.create') }}" class="btn btn-outline-danger btn-sm"
                                     title="Reset">
                                     <i class="fas fa-times"></i>
                                 </a>

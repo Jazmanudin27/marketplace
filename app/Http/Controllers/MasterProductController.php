@@ -14,7 +14,7 @@ use App\Services\TiktokService;
 
 class MasterProductController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         $tenantId = Auth::user()->tenant_id;
 
@@ -27,10 +27,22 @@ class MasterProductController extends Controller
                 'error_message' => 'Job timeout: Queue worker berhenti tak terduga. Klik Retry untuk coba ulang.',
             ]);
 
-        $products = MasterProduct::with(['marketplaceProducts.store.channel', 'category', 'brand'])
-            ->where('tenant_id', $tenantId)
-            ->orderBy('name')
-            ->paginate(25);
+        $query = MasterProduct::with(['marketplaceProducts.store.channel', 'category', 'brand'])
+            ->where('tenant_id', $tenantId);
+
+        if ($request->filled('channel_id')) {
+            $query->whereHas('marketplaceProducts.store', function($q) use ($request) {
+                $q->where('channel_id', $request->channel_id);
+            });
+        }
+
+        if ($request->filled('store_id')) {
+            $query->whereHas('marketplaceProducts', function($q) use ($request) {
+                $q->where('store_id', $request->store_id);
+            });
+        }
+
+        $products = $query->orderBy('name')->paginate(25)->withQueryString();
 
         $connectedStoresCount = \App\Models\Store::where('tenant_id', $tenantId)
             ->where('status', 'connected')
@@ -49,6 +61,7 @@ class MasterProductController extends Controller
 
         $brands = \App\Models\Brand::where('tenant_id', $tenantId)->orderBy('name')->get();
         $stores = \App\Models\Store::with('channel')->where('tenant_id', $tenantId)->where('status', 'connected')->get();
+        $channels = \App\Models\Channel::all();
 
         return view('products.index', compact(
             'products',
@@ -57,7 +70,8 @@ class MasterProductController extends Controller
             'categoryMappings',
             'brandMappings',
             'brands',
-            'stores'
+            'stores',
+            'channels'
         ));
     }
 
