@@ -11,12 +11,61 @@ class OrderController extends Controller
 {
     public function index(Request $request)
     {
-        $orders = Order::with('store.channel')
-            ->where('tenant_id', Auth::user()->tenant_id)
-            ->orderByDesc('order_date')
-            ->paginate(20);
+        $tenantId = Auth::user()->tenant_id;
 
-        return view('orders.index', compact('orders'));
+        $query = Order::with('store.channel')
+            ->where('tenant_id', $tenantId);
+
+        // Filter Channel
+        if ($request->filled('channel_id')) {
+            $query->whereHas('store', function ($q) use ($request) {
+                $q->where('channel_id', $request->channel_id);
+            });
+        }
+
+        // Filter Toko
+        if ($request->filled('store_id')) {
+            $query->where('store_id', $request->store_id);
+        }
+
+        // Filter Kurir
+        if ($request->filled('courier')) {
+            $query->where('courier', 'like', '%' . $request->courier . '%');
+        }
+
+        // Filter Status
+        if ($request->filled('status')) {
+            $query->where('order_status', $request->status);
+        }
+
+        // Filter Tanggal
+        if ($request->filled('start_date')) {
+            $query->whereDate('order_date', '>=', $request->start_date);
+        }
+        if ($request->filled('end_date')) {
+            $query->whereDate('order_date', '<=', $request->end_date);
+        }
+
+        $orders = $query->orderByDesc('order_date')
+            ->paginate(20)
+            ->withQueryString();
+
+        // Data pendukung untuk UI filter
+        $channels = \App\Models\Channel::all();
+        $stores = \App\Models\Store::where('tenant_id', $tenantId)->get();
+        
+        $couriers = Order::where('tenant_id', $tenantId)
+            ->whereNotNull('courier')
+            ->where('courier', '!=', '')
+            ->distinct()
+            ->pluck('courier');
+            
+        $statuses = Order::where('tenant_id', $tenantId)
+            ->whereNotNull('order_status')
+            ->distinct()
+            ->pluck('order_status');
+
+        return view('orders.index', compact('orders', 'channels', 'stores', 'couriers', 'statuses'));
     }
 
     public function show(Order $order)

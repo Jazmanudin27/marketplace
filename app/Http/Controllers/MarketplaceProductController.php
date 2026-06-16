@@ -238,6 +238,18 @@ class MarketplaceProductController extends Controller
         }
     }
 
+    public function unlink(MarketplaceProduct $product)
+    {
+        abort_unless($product->store->tenant_id === Auth::user()->tenant_id, 403);
+
+        $product->update([
+            'master_product_id' => null,
+            'sync_stock' => false,
+        ]);
+
+        return back()->with('success', "Tautan produk marketplace '{$product->name}' berhasil dibatalkan.");
+    }
+
     /**
      * Parse ukuran and warna from variation name.
      */

@@ -15,6 +15,93 @@
                 </form>
             </div>
         </div>
+
+        <!-- Filter Section -->
+        <div
+            style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 1rem; margin-top: 1rem; margin-bottom: 1rem;">
+            <form method="GET" action="{{ route('orders.index') }}">
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-2">
+                        <label class="form-label"
+                            style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 0.4rem;">Channel</label>
+                        <select name="channel_id" class="form-select form-select-sm form-select-dark">
+                            <option value="">Semua Channel</option>
+                            @foreach ($channels as $channel)
+                                <option value="{{ $channel->id }}"
+                                    {{ request('channel_id') == $channel->id ? 'selected' : '' }}>
+                                    {{ $channel->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label"
+                            style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 0.4rem;">Toko</label>
+                        <select name="store_id" class="form-select form-select-sm form-select-dark">
+                            <option value="">Semua Toko</option>
+                            @foreach ($stores as $store)
+                                <option value="{{ $store->id }}"
+                                    {{ request('store_id') == $store->id ? 'selected' : '' }}>
+                                    {{ $store->store_name }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label"
+                            style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 0.4rem;">Kurir</label>
+                        <select name="courier" class="form-select form-select-sm form-select-dark">
+                            <option value="">Semua Kurir</option>
+                            @foreach ($couriers as $courier)
+                                <option value="{{ $courier }}" {{ request('courier') == $courier ? 'selected' : '' }}>
+                                    {{ $courier }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label"
+                            style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 0.4rem;">Status</label>
+                        <select name="status" class="form-select form-select-sm form-select-dark">
+                            <option value="">Semua Status</option>
+                            @foreach ($statuses as $status)
+                                <option value="{{ $status }}" {{ request('status') == $status ? 'selected' : '' }}>
+                                    {{ str_replace('_', ' ', $status) }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label"
+                            style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 0.4rem;">Rentang
+                            Tanggal</label>
+                        <div class="d-flex gap-2">
+                            <input type="date" name="start_date" class="form-control form-control-sm form-control-dark"
+                                value="{{ request('start_date') }}" placeholder="Dari">
+                            <input type="date" name="end_date" class="form-control form-control-sm form-control-dark"
+                                value="{{ request('end_date') }}" placeholder="Ke">
+                        </div>
+                    </div>
+                    <div class="col-md-1 text-end">
+                        <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
+                            <button type="submit" class="btn-primary-sm"
+                                style="height: 31px; display: inline-flex; justify-content: center; align-items: center; font-size: 0.78rem; padding: 0 0.8rem;"
+                                title="Filter">
+                                <i class="fas fa-filter"></i>
+                            </button>
+                            @if (request()->anyFilled(['channel_id', 'store_id', 'courier', 'status', 'start_date', 'end_date']))
+                                <a href="{{ route('orders.index') }}" class="btn-primary-sm"
+                                    style="background: var(--bg-card2); border: 1px solid var(--border); color: var(--text-primary); height: 31px; padding: 0 0.65rem; display: inline-flex; align-items: center; justify-content: center;"
+                                    title="Reset Filter">
+                                    <i class="fas fa-undo"></i>
+                                </a>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+
         <div class="table-wrapper">
             <form id="mass-print-form" action="{{ route('orders.mass_print') }}" method="POST" target="_blank">
                 @csrf

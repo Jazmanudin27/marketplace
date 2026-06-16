@@ -243,6 +243,14 @@
                                             style="width: 100%; text-align: center; background: #6366f1; border: none; color: white; padding: 6px; border-radius: 4px; text-decoration: none; display: block;">
                                             <i class="fas fa-copy"></i> Salin ke Toko Lain
                                         </a>
+                                        <form action="{{ route('marketplace_products.unlink', $product->id) }}" method="POST"
+                                            onsubmit="return confirm('Batal tautkan produk marketplace ini dari Master Product?');">
+                                            @csrf
+                                            <button type="submit" class="btn-primary-sm"
+                                                style="width: 100%; text-align: center; background: #ea580c; border: none; color: white; padding: 6px; border-radius: 4px; cursor: pointer;">
+                                                <i class="fas fa-link-slash"></i> Batal Tautkan
+                                            </button>
+                                        </form>
                                     </div>
 
                                     <!-- Modal Pengaturan Stok -->
