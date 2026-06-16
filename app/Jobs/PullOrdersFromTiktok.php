@@ -211,7 +211,7 @@ class PullOrdersFromTiktok implements ShouldQueue
             $qty = $item['quantity'] ?? 1;
             
             // Standardisasi harga
-            $price = $item['sku_sale_price'] ?? $item['price'] ?? $item['sku_original_price'] ?? 0;
+            $price = $item['sku_sale_price'] ?? $item['sale_price'] ?? $item['price'] ?? $item['sku_original_price'] ?? $item['original_price'] ?? 0;
             // Jika price berupa string (misal "150000.00"), cast ke float
             $price = (float) $price;
 

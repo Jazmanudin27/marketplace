@@ -16,7 +16,7 @@
                 <button type="submit" class="btn-primary-sm"><i class="fas fa-search"></i> Cari</button>
             </form>
 
-            <a href="{{ route('inventory.opname') }}" class="btn-primary-sm">
+            <a href="{{ route('stock_opnames.create') }}" class="btn-primary-sm">
                 <i class="fas fa-clipboard-check"></i> Mulai Stock Opname
             </a>
         </div>
