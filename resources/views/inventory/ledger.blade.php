@@ -3,127 +3,152 @@
 @section('page-title', 'Kartu Stok')
 
 @section('content')
-<div class="form-page-wrapper">
-    <a href="{{ route('inventory.index') }}" class="btn-back">
-        <i class="fas fa-arrow-left"></i> Kembali ke Inventory
-    </a>
-
-    @if(session('success'))
-    <div class="alert alert-success" style="padding: 1rem; background: #d4edda; color: #155724; border-radius: 4px; margin-bottom: 1rem;">
-        {{ session('success') }}
-    </div>
-    @endif
-
-    @if($errors->any())
-    <div class="alert alert-danger" style="padding: 1rem; background: #f8d7da; color: #721c24; border-radius: 4px; margin-bottom: 1rem;">
-        <ul style="margin: 0; padding-left: 1.5rem;">
-            @foreach($errors->all() as $error)
-                <li>{{ $error }}</li>
-            @endforeach
-        </ul>
-    </div>
-    @endif
-
-    <div style="display:grid; grid-template-columns: 1fr 350px; gap:1.5rem; margin-top:1rem;">
-
-        {{-- Kiri: Riwayat Pergerakan Stok --}}
-        <div class="dashboard-card">
-            <div class="card-header-line">
-                <h3><i class="fas fa-history"></i> Riwayat Pergerakan Stok</h3>
-            </div>
-            
-            <div class="table-wrapper">
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>Waktu</th>
-                            <th>Tipe</th>
-                            <th style="text-align: right;">Qty</th>
-                            <th style="text-align: right;">Sisa Stok</th>
-                            <th>Referensi / Keterangan</th>
-                            <th>User</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @forelse($movements as $mov)
-                        <tr>
-                            <td class="mono" style="font-size: 0.85rem;">{{ $mov->created_at->format('d M Y H:i') }}</td>
-                            <td>
-                                @if($mov->type == 'in') <span class="badge badge-success">IN</span>
-                                @elseif($mov->type == 'out') <span class="badge badge-danger">OUT</span>
-                                @else <span class="badge badge-warning">ADJ</span>
-                                @endif
-                            </td>
-                            <td class="mono fw-bold {{ $mov->quantity > 0 ? 'text-success' : 'text-danger' }}" style="text-align: right;">
-                                {{ $mov->quantity > 0 ? '+' : '' }}{{ number_format($mov->quantity) }}
-                            </td>
-                            <td class="mono fw-bold" style="text-align: right;">{{ number_format($mov->balance_after) }}</td>
-                            <td>{{ $mov->reference }}</td>
-                            <td>{{ $mov->user->name ?? 'System' }}</td>
-                        </tr>
-                        @empty
-                        <tr><td colspan="6" class="text-center text-muted" style="padding:2rem;">Belum ada riwayat stok</td></tr>
-                        @endforelse
-                    </tbody>
-                </table>
-            </div>
-            <div style="margin-top:1rem;">{{ $movements->links() }}</div>
+    <div class="container-fluid p-0">
+        <!-- Back Button -->
+        <div class="mb-3">
+            <a href="{{ route('inventory.index') }}" class="btn btn-secondary btn-sm shadow-sm">
+                <i class="fas fa-arrow-left me-1"></i> Kembali ke Inventory
+            </a>
         </div>
 
-        {{-- Kanan: Detail & Form Penyesuaian --}}
-        <div>
-            <div class="dashboard-card" style="margin-bottom: 1.5rem;">
-                <h3 style="font-size:1rem; font-weight:700; margin-bottom:1rem; color:var(--text-primary);">
-                    <i class="fas fa-info-circle"></i> Info Produk
-                </h3>
-                <div style="display: flex; gap: 1rem; align-items: center; margin-bottom: 1rem;">
-                    @if($product->image_url)
-                        <img src="{{ Storage::url($product->image_url) }}" alt="{{ $product->name }}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 4px;">
-                    @else
-                        <div style="width: 60px; height: 60px; background: #eee; border-radius: 4px; display: flex; align-items: center; justify-content: center;">
-                            <i class="fas fa-image text-muted"></i>
+        <div class="row g-3">
+
+            <!-- Left Column: Stock Movements History -->
+            <div class="col-lg-8">
+                <div class="card shadow-sm border-0">
+                    <div class="card-header bg-transparent py-3 border-0">
+                        <h5 class="card-title mb-0 fw-bold text-primary">
+                            <i class="fas fa-history me-2"></i>Riwayat Pergerakan Stok
+                        </h5>
+                    </div>
+
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th class="ps-3 border-0">Waktu</th>
+                                        <th class="border-0">Tipe</th>
+                                        <th class="text-end border-0">Qty</th>
+                                        <th class="text-end border-0">Sisa Stok</th>
+                                        <th class="border-0">Referensi / Keterangan</th>
+                                        <th class="pe-3 border-0">User</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @forelse($movements as $mov)
+                                        <tr>
+                                            <td class="mono small ps-3">{{ $mov->created_at->format('d M Y H:i') }}</td>
+                                            <td>
+                                                @if ($mov->type == 'in')
+                                                    <span class="badge bg-success">IN</span>
+                                                @elseif($mov->type == 'out')
+                                                    <span class="badge bg-danger">OUT</span>
+                                                @else
+                                                    <span class="badge bg-warning text-dark">ADJ</span>
+                                                @endif
+                                            </td>
+                                            <td
+                                                class="mono fw-bold text-end text-{{ $mov->quantity > 0 ? 'success' : 'danger' }}">
+                                                {{ $mov->quantity > 0 ? '+' : '' }}{{ number_format($mov->quantity) }}
+                                            </td>
+                                            <td class="mono fw-bold text-end">{{ number_format($mov->balance_after) }}</td>
+                                            <td>{{ $mov->reference }}</td>
+                                            <td class="pe-3 fw-semibold">{{ $mov->user->name ?? 'System' }}</td>
+                                        </tr>
+                                    @empty
+                                        <tr>
+                                            <td colspan="6" class="text-center text-muted py-4">Belum ada riwayat stok
+                                            </td>
+                                        </tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    @if ($movements->hasPages())
+                        <div class="card-footer bg-transparent border-0 pt-0">
+                            <div class="mt-3">
+                                {{ $movements->links() }}
+                            </div>
                         </div>
                     @endif
-                    <div>
-                        <div class="fw-bold">{{ $product->name }}</div>
-                        <div class="mono text-muted" style="font-size: 0.85rem;">{{ $product->sku }}</div>
-                    </div>
-                </div>
-                
-                <div style="background: #f8f9fa; padding: 1rem; border-radius: 4px; text-align: center; border: 1px solid var(--border);">
-                    <div style="font-size: 0.85rem; color: var(--text-secondary); text-transform: uppercase; font-weight: bold;">Total Stok Saat Ini</div>
-                    <div class="mono" style="font-size: 2.5rem; font-weight: 800; color: {{ $product->stock <= $product->min_stock ? 'var(--danger)' : 'var(--success)' }};">
-                        {{ number_format($product->stock) }}
-                    </div>
                 </div>
             </div>
 
-            <div class="dashboard-card">
-                <h3 style="font-size:1rem; font-weight:700; margin-bottom:1rem; color:var(--text-primary);">
-                    <i class="fas fa-sliders-h"></i> Penyesuaian Stok (Adjustment)
-                </h3>
-                
-                <form action="{{ route('inventory.adjust', $product->id) }}" method="POST">
-                    @csrf
-                    
-                    <div class="form-group" style="margin-bottom: 1rem;">
-                        <label style="display: block; margin-bottom: 0.5rem; font-size: 0.85rem; font-weight: 600;">Jumlah Penyesuaian (Qty)</label>
-                        <input type="number" name="quantity" required placeholder="Gunakan minus (-) untuk mengurangi" style="width: 100%; padding: 0.6rem; border: 1px solid var(--border); border-radius: 4px;">
-                        <small class="text-muted" style="display: block; margin-top: 0.25rem;">Contoh: <b>5</b> untuk menambah, <b>-3</b> untuk mengurangi.</small>
-                    </div>
+            <!-- Right Column: Product Info & Adjustment Form -->
+            <div class="col-lg-4">
 
-                    <div class="form-group" style="margin-bottom: 1rem;">
-                        <label style="display: block; margin-bottom: 0.5rem; font-size: 0.85rem; font-weight: 600;">Keterangan / Alasan</label>
-                        <textarea name="reference" required rows="3" placeholder="Misal: Stok Opname, Barang Rusak, Penambahan Manual..." style="width: 100%; padding: 0.6rem; border: 1px solid var(--border); border-radius: 4px; resize: vertical;"></textarea>
+                <!-- Product Info Card -->
+                <div class="card shadow-sm border-0 mb-3">
+                    <div class="card-header bg-transparent py-3 border-0">
+                        <h6 class="card-title mb-0 fw-bold">
+                            <i class="fas fa-info-circle me-2"></i>Info Produk
+                        </h6>
                     </div>
+                    <div class="card-body pt-0">
+                        <div class="d-flex gap-3 align-items-center mb-3">
+                            @if ($product->image_url)
+                                <img src="{{ Storage::url($product->image_url) }}" alt="{{ $product->name }}"
+                                    class="rounded shadow-sm" style="width: 60px; height: 60px; object-fit: cover;">
+                            @else
+                                <div class="rounded bg-body-secondary d-flex align-items-center justify-content-center shadow-sm"
+                                    style="width: 60px; height: 60px;">
+                                    <i class="fas fa-image text-muted fa-lg"></i>
+                                </div>
+                            @endif
+                            <div>
+                                <div class="fw-bold text-light">{{ $product->name }}</div>
+                                <div class="mono small text-muted">{{ $product->sku }}</div>
+                            </div>
+                        </div>
 
-                    <button type="submit" class="btn-primary" style="width: 100%; background: var(--warning); border-color: var(--warning); color: #fff;">
-                        <i class="fas fa-save"></i> Simpan Penyesuaian
-                    </button>
-                </form>
+                        <div class="p-3 rounded bg-body-tertiary text-center border">
+                            <small class="text-muted d-block text-uppercase fw-semibold mb-1"
+                                style="font-size: 0.72rem; letter-spacing: 0.5px;">Total Stok Saat Ini</small>
+                            <span
+                                class="mono fw-bold text-{{ $product->stock <= $product->min_stock ? 'danger' : 'success' }} fs-2">
+                                {{ number_format($product->stock) }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Adjustment Form Card -->
+                <div class="card shadow-sm border-0">
+                    <div class="card-header bg-transparent py-3 border-0">
+                        <h6 class="card-title mb-0 fw-bold">
+                            <i class="fas fa-sliders-h me-2"></i>Penyesuaian Stok (Adjustment)
+                        </h6>
+                    </div>
+                    <div class="card-body pt-0">
+                        <form action="{{ route('inventory.adjust', $product->id) }}" method="POST">
+                            @csrf
+
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold">Jumlah Penyesuaian (Qty)</label>
+                                <input type="number" name="quantity" required
+                                    placeholder="Gunakan minus (-) untuk mengurangi" class="form-control form-control-sm">
+                                <div class="form-text small text-muted">Contoh: <b>5</b> untuk menambah, <b>-3</b> untuk
+                                    mengurangi.</div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold">Keterangan / Alasan</label>
+                                <textarea name="reference" required rows="3" placeholder="Misal: Stok Opname, Barang Rusak, Penambahan Manual..."
+                                    class="form-control form-control-sm" style="resize: vertical;"></textarea>
+                            </div>
+
+                            <button type="submit" class="btn btn-warning btn-sm w-100 text-dark fw-bold py-2 shadow-sm">
+                                <i class="fas fa-save me-1"></i> Simpan Penyesuaian
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
             </div>
+
         </div>
-
     </div>
-</div>
 @endsection
