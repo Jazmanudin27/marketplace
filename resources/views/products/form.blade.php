@@ -81,7 +81,7 @@
                                 <span class="input-group-text"><i class="fas fa-money-bill"></i></span>
                                 <input type="text" id="price" name="price"
                                     class="form-control formatted-number-input"
-                                    value="{{ old('price', $product->price ?? '') }}" required placeholder="0">
+                                    value="{{ old('price', isset($product->price) ? (int)$product->price : '') }}" required placeholder="0">
                             </div>
                             @error('price')
                                 <div class="text-danger mt-1 small">{{ $message }}</div>
@@ -93,7 +93,7 @@
                                 <span class="input-group-text"><i class="fas fa-wallet"></i></span>
                                 <input type="text" id="cost_price" name="cost_price"
                                     class="form-control formatted-number-input"
-                                    value="{{ old('cost_price', $product->cost_price ?? '') }}" placeholder="0">
+                                    value="{{ old('cost_price', isset($product->cost_price) ? (int)$product->cost_price : '') }}" placeholder="0">
                             </div>
                         </div>
                     </div>
@@ -324,6 +324,12 @@
 
             // Initialize & Format number inputs
             document.querySelectorAll('.formatted-number-input').forEach(function(input) {
+                if (input.value && input.value.includes('.')) {
+                    const parsed = parseFloat(input.value);
+                    if (!isNaN(parsed)) {
+                        input.value = Math.round(parsed).toString();
+                    }
+                }
                 formatNumberWithSeparator(input);
 
                 // Format on typing
