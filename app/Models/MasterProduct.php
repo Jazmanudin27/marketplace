@@ -11,6 +11,7 @@ class MasterProduct extends Model
     protected $fillable = [
         'tenant_id',
         'sku',
+        'sku_induk',
         'name',
         'description',
         'weight',
@@ -24,8 +25,11 @@ class MasterProduct extends Model
         'min_stock',
         'unit',
         'category_id',
+        'sub_kategori',
         'brand_id',
         'is_active',
+        'ukuran',
+        'warna',
     ];
 
     public function category()

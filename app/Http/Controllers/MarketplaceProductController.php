@@ -79,6 +79,8 @@ class MarketplaceProductController extends Controller
 
         try {
             DB::transaction(function () use ($product) {
+                $attrs = $this->parseAttributesFromName($product->name);
+
                 // Buat Master Product baru berdasarkan data dari MarketplaceProduct
                 $master = MasterProduct::create([
                     'tenant_id' => Auth::user()->tenant_id,
@@ -88,6 +90,8 @@ class MarketplaceProductController extends Controller
                     'stock' => $product->stock,
                     'image_url' => $product->image_url,
                     'is_active' => true,
+                    'ukuran' => $attrs['ukuran'],
+                    'warna' => $attrs['warna'],
                 ]);
 
                 // Update marketplace product agar tertaut ke master yang baru
@@ -119,6 +123,19 @@ class MarketplaceProductController extends Controller
 
         if (empty($master->image_url) && !empty($product->image_url)) {
             $master->update(['image_url' => $product->image_url]);
+        }
+
+        // Tautkan atribut ukuran & warna secara otomatis jika di master masih kosong
+        $attrs = $this->parseAttributesFromName($product->name);
+        $updateData = [];
+        if (empty($master->ukuran) && !empty($attrs['ukuran'])) {
+            $updateData['ukuran'] = $attrs['ukuran'];
+        }
+        if (empty($master->warna) && !empty($attrs['warna'])) {
+            $updateData['warna'] = $attrs['warna'];
+        }
+        if (!empty($updateData)) {
+            $master->update($updateData);
         }
 
         return back()->with('success', "Produk marketplace '{$product->name}' berhasil ditautkan ke Master '{$master->name}'.");
@@ -164,6 +181,20 @@ class MarketplaceProductController extends Controller
             if ($existingMaster) {
                 // Tautkan otomatis ke master yang sudah ada
                 $product->update(['master_product_id' => $existingMaster->id]);
+                
+                // Tautkan atribut ukuran & warna secara otomatis jika di master masih kosong
+                $attrs = $this->parseAttributesFromName($product->name);
+                $updateData = [];
+                if (empty($existingMaster->ukuran) && !empty($attrs['ukuran'])) {
+                    $updateData['ukuran'] = $attrs['ukuran'];
+                }
+                if (empty($existingMaster->warna) && !empty($attrs['warna'])) {
+                    $updateData['warna'] = $attrs['warna'];
+                }
+                if (!empty($updateData)) {
+                    $existingMaster->update($updateData);
+                }
+
                 return redirect()->route('products.publish', $existingMaster->id)
                     ->with('success', "Produk marketplace otomatis ditautkan ke Master Produk '{$existingMaster->name}' yang memiliki SKU yang sama.");
             }
@@ -171,6 +202,8 @@ class MarketplaceProductController extends Controller
 
         try {
             $master = DB::transaction(function () use ($product) {
+                $attrs = $this->parseAttributesFromName($product->name);
+
                 // Buat Master Product baru berdasarkan data dari MarketplaceProduct
                 $newMaster = MasterProduct::create([
                     'tenant_id'   => Auth::user()->tenant_id,
@@ -185,6 +218,8 @@ class MarketplaceProductController extends Controller
                     'length'      => 10,
                     'width'       => 10,
                     'height'      => 10,
+                    'ukuran'      => $attrs['ukuran'],
+                    'warna'       => $attrs['warna'],
                 ]);
 
                 // Update marketplace product agar tertaut ke master yang baru
@@ -201,5 +236,50 @@ class MarketplaceProductController extends Controller
         } catch (\Exception $e) {
             return back()->with('error', 'Gagal memproses kloning produk: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Parse ukuran and warna from variation name.
+     */
+    private function parseAttributesFromName(?string $name): array
+    {
+        $attributes = [
+            'ukuran' => null,
+            'warna'  => null,
+        ];
+
+        if (empty($name)) {
+            return $attributes;
+        }
+
+        // Format variation names: "Product Name - Variant 1, Variant 2" or "Product Name - Variant 1"
+        if (str_contains($name, ' - ')) {
+            $parts = explode(' - ', $name);
+            $variantPart = end($parts);
+
+            // Split by comma, slash
+            $options = preg_split('/[,\/]/', $variantPart);
+
+            foreach ($options as $opt) {
+                $opt = trim($opt);
+                if (empty($opt)) {
+                    continue;
+                }
+
+                // Match common size patterns (S, M, L, XL, Shoe Size, Waist Size, etc.)
+                $isSize = preg_match('/^(s|m|l|xl|xxl|xxxl|2xl|3xl|4xl|5xl|all\s*size|one\s*size)$/i', $opt) ||
+                          preg_match('/^\d+(\s*(cm|mm|m|gr|kg))?$/i', $opt) ||
+                          preg_match('/^\d+\/\d+$/', $opt) ||
+                          preg_match('/^(3[6-9]|4[0-6])$/', $opt); // Shoe sizes
+
+                if ($isSize) {
+                    $attributes['ukuran'] = $opt;
+                } else {
+                    $attributes['warna'] = $opt;
+                }
+            }
+        }
+
+        return $attributes;
     }
 }

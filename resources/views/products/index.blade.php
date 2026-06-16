@@ -109,15 +109,18 @@
                         <table class="table table-hover align-middle mb-0">
                             <thead>
                                 <tr>
-                                    <th class="ps-3">SKU</th>
-                                    <th>Nama Produk</th>
+                                    <th class="ps-3">SKU Variasi</th>
+                                    <th>Nama Barang</th>
+                                    <th>SKU Induk</th>
                                     <th>Kategori</th>
-                                    <th>Merk</th>
+                                    <th>Sub Kategori</th>
+                                    <th>Ukuran</th>
+                                    <th>Warna</th>
+                                    <th>HPP Produk</th>
                                     <th>Harga Jual</th>
                                     <th>Stok</th>
-                                    <th>Min Stok</th>
-                                    <th>Marketplace</th>
                                     <th>Status</th>
+                                    <th>Marketplace</th>
                                     <th class="pe-3">Aksi</th>
                                 </tr>
                             </thead>
@@ -129,10 +132,29 @@
                                         </td>
                                         <td class="fw-semibold">{{ $product->name }}</td>
                                         <td>
+                                            @if ($product->sku_induk)
+                                                <code class="text-secondary">{{ $product->sku_induk }}</code>
+                                            @else
+                                                <span class="text-muted">-</span>
+                                            @endif
+                                        </td>
+                                        <td>
                                             <span class="text-secondary small">{{ $product->category->name ?? '-' }}</span>
                                         </td>
                                         <td>
-                                            <span class="text-secondary small">{{ $product->brand->name ?? '-' }}</span>
+                                            <span class="text-secondary small">{{ $product->sub_kategori ?? '-' }}</span>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-secondary-subtle text-secondary-emphasis"
+                                                style="font-size: 0.75rem;">{{ $product->ukuran ?? '-' }}</span>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-dark-subtle text-dark-emphasis"
+                                                style="font-size: 0.75rem;">{{ $product->warna ?? '-' }}</span>
+                                        </td>
+                                        <td>
+                                            <span class="font-monospace">Rp
+                                                {{ number_format($product->cost_price, 0, ',', '.') }}</span>
                                         </td>
                                         <td>
                                             <span class="font-monospace">Rp
@@ -145,8 +167,13 @@
                                             </span>
                                         </td>
                                         <td>
-                                            <span
-                                                class="font-monospace text-secondary">{{ number_format($product->min_stock) }}</span>
+                                            @if ($product->is_active)
+                                                <span
+                                                    class="badge bg-success-subtle text-success border border-success border-opacity-25">Aktif</span>
+                                            @else
+                                                <span
+                                                    class="badge bg-secondary-subtle text-secondary border border-secondary border-opacity-25">Nonaktif</span>
+                                            @endif
                                         </td>
                                         <td>
                                             @if ($product->marketplaceProducts->isEmpty())
@@ -167,15 +194,6 @@
                                                         </span>
                                                     @endforeach
                                                 </div>
-                                            @endif
-                                        </td>
-                                        <td>
-                                            @if ($product->is_active)
-                                                <span
-                                                    class="badge bg-success-subtle text-success border border-success border-opacity-25">Aktif</span>
-                                            @else
-                                                <span
-                                                    class="badge bg-secondary-subtle text-secondary border border-secondary border-opacity-25">Nonaktif</span>
                                             @endif
                                         </td>
                                         <td class="pe-3">

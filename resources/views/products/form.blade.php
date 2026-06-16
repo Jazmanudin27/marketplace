@@ -31,10 +31,10 @@
                     @if (isset($product->id))
                         @method('PUT')
                     @endif
-
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label class="form-label fw-semibold">SKU <small class="text-muted fw-normal">(Kosongkan untuk
+                            <label class="form-label fw-semibold">SKU VARIASI <small class="text-muted fw-normal">(Kosongkan
+                                    untuk
                                     generate otomatis)</small></label>
                             <div class="input-group">
                                 <span class="input-group-text"><i class="fas fa-barcode"></i></span>
@@ -48,23 +48,27 @@
                             @enderror
                         </div>
                         <div class="col-md-6 mb-3">
-                            <label for="unit" class="form-label fw-semibold">Satuan</label>
+                            <label for="sku_induk" class="form-label fw-semibold">SKU INDUK</label>
                             <div class="input-group">
-                                <span class="input-group-text"><i class="fas fa-cube"></i></span>
-                                <input type="text" id="unit" name="unit" class="form-control"
-                                    value="{{ old('unit', $product->unit ?? '') }}" placeholder="pcs, kg, box...">
+                                <span class="input-group-text"><i class="fas fa-layer-group"></i></span>
+                                <input type="text" id="sku_induk" name="sku_induk" class="form-control"
+                                    value="{{ old('sku_induk', $product->sku_induk ?? '') }}"
+                                    placeholder="Contoh: SKU-PARENT-001">
                             </div>
+                            @error('sku_induk')
+                                <div class="text-danger mt-1 small">{{ $message }}</div>
+                            @enderror
                         </div>
                     </div>
 
                     <div class="mb-3">
-                        <label for="name" class="form-label fw-semibold">Nama Produk <span
+                        <label for="name" class="form-label fw-semibold">NAMA BARANG <span
                                 class="text-danger">*</span></label>
                         <div class="input-group">
                             <span class="input-group-text"><i class="fas fa-tag"></i></span>
                             <input type="text" id="name" name="name" class="form-control"
                                 value="{{ old('name', $product->name ?? '') }}" required minlength="30"
-                                placeholder="Nama produk lengkap (min. 30 karakter)"
+                                placeholder="Nama barang lengkap (min. 30 karakter)"
                                 oninput="updateNameCounter(this.value)">
                         </div>
                         <div id="name-counter" class="form-text font-weight-semibold"></div>
@@ -81,8 +85,8 @@
                                 <span class="input-group-text"><i class="fas fa-money-bill"></i></span>
                                 <input type="text" id="price" name="price"
                                     class="form-control formatted-number-input"
-                                    value="{{ old('price', isset($product->price) ? (int) $product->price : '') }}" required
-                                    placeholder="0">
+                                    value="{{ old('price', isset($product->price) ? (int) $product->price : '') }}"
+                                    required placeholder="0">
                                 <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal"
                                     data-bs-target="#priceCalculatorModal">
                                     <i class="fas fa-calculator me-1"></i> Hitung Profit
@@ -93,7 +97,7 @@
                             @enderror
                         </div>
                         <div class="col-md-6 mb-3">
-                            <label for="cost_price" class="form-label fw-semibold">Harga Modal (Rp)</label>
+                            <label for="cost_price" class="form-label fw-semibold">HPP PRODUK / Harga Modal (Rp)</label>
                             <div class="input-group">
                                 <span class="input-group-text"><i class="fas fa-wallet"></i></span>
                                 <input type="text" id="cost_price" name="cost_price"
@@ -105,7 +109,7 @@
                     </div>
 
                     <div class="row">
-                        <div class="col-md-6 mb-3">
+                        <div class="col-md-4 mb-3">
                             <label for="stock" class="form-label fw-semibold">Stok Fisik <span
                                     class="text-danger">*</span></label>
                             <div class="input-group">
@@ -117,16 +121,14 @@
                             </div>
                             @if ($isLinked)
                                 <div class="form-text text-warning small mt-1">
-                                    <i class="fas fa-lock me-1"></i> Stok dikunci karena produk sudah terhubung ke
-                                    marketplace. Gunakan menu <strong>Stock Opname</strong> atau <strong>Barang
-                                        Masuk</strong> untuk mengubah stok.
+                                    <i class="fas fa-lock me-1"></i> Stok dikunci karena produk sudah terhubung.
                                 </div>
                             @endif
                             @error('stock')
                                 <div class="text-danger mt-1 small">{{ $message }}</div>
                             @enderror
                         </div>
-                        <div class="col-md-6 mb-3">
+                        <div class="col-md-4 mb-3">
                             <label for="min_stock" class="form-label fw-semibold">Stok Minimum</label>
                             <div class="input-group">
                                 <span class="input-group-text"><i class="fas fa-exclamation-triangle"></i></span>
@@ -135,11 +137,28 @@
                                     placeholder="0">
                             </div>
                         </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="is_active" class="form-label fw-semibold">STATUS</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-toggle-on"></i></span>
+                                <select id="is_active" name="is_active" class="form-select">
+                                    <option value="1"
+                                        {{ old('is_active', $product->is_active ?? 1) == 1 ? 'selected' : '' }}>Aktif
+                                    </option>
+                                    <option value="0"
+                                        {{ old('is_active', $product->is_active ?? 1) == 0 ? 'selected' : '' }}>Nonaktif
+                                    </option>
+                                </select>
+                            </div>
+                            @error('is_active')
+                                <div class="text-danger mt-1 small">{{ $message }}</div>
+                            @enderror
+                        </div>
                     </div>
 
                     <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label for="category_id" class="form-label fw-semibold">Kategori</label>
+                        <div class="col-md-4 mb-3">
+                            <label for="category_id" class="form-label fw-semibold">KATEGORI</label>
                             <div class="input-group">
                                 <span class="input-group-text"><i class="fas fa-folder"></i></span>
                                 <select id="category_id" name="category_id" class="form-select">
@@ -152,8 +171,23 @@
                                     @endforeach
                                 </select>
                             </div>
+                            @error('category_id')
+                                <div class="text-danger mt-1 small">{{ $message }}</div>
+                            @enderror
                         </div>
-                        <div class="col-md-6 mb-3">
+                        <div class="col-md-4 mb-3">
+                            <label for="sub_kategori" class="form-label fw-semibold">SUB KATEGORI</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-folder-open"></i></span>
+                                <input type="text" id="sub_kategori" name="sub_kategori" class="form-control"
+                                    value="{{ old('sub_kategori', $product->sub_kategori ?? '') }}"
+                                    placeholder="Contoh: Kaos Polos">
+                            </div>
+                            @error('sub_kategori')
+                                <div class="text-danger mt-1 small">{{ $message }}</div>
+                            @enderror
+                        </div>
+                        <div class="col-md-4 mb-3">
                             <label for="brand_id" class="form-label fw-semibold">Merk / Brand</label>
                             <div class="input-group">
                                 <span class="input-group-text"><i class="fas fa-certificate"></i></span>
@@ -167,6 +201,47 @@
                                     @endforeach
                                 </select>
                             </div>
+                            @error('brand_id')
+                                <div class="text-danger mt-1 small">{{ $message }}</div>
+                            @enderror
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label for="ukuran" class="form-label fw-semibold">UKURAN</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-ruler-combined"></i></span>
+                                <input type="text" id="ukuran" name="ukuran" class="form-control"
+                                    value="{{ old('ukuran', $product->ukuran ?? '') }}"
+                                    placeholder="Contoh: L, XL, 39, 40">
+                            </div>
+                            @error('ukuran')
+                                <div class="text-danger mt-1 small">{{ $message }}</div>
+                            @enderror
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="warna" class="form-label fw-semibold">WARNA</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-palette"></i></span>
+                                <input type="text" id="warna" name="warna" class="form-control"
+                                    value="{{ old('warna', $product->warna ?? '') }}"
+                                    placeholder="Contoh: Hitam, Putih, Navy">
+                            </div>
+                            @error('warna')
+                                <div class="text-danger mt-1 small">{{ $message }}</div>
+                            @enderror
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="unit" class="form-label fw-semibold">Satuan</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-cube"></i></span>
+                                <input type="text" id="unit" name="unit" class="form-control"
+                                    value="{{ old('unit', $product->unit ?? '') }}" placeholder="pcs, kg, box...">
+                            </div>
+                            @error('unit')
+                                <div class="text-danger mt-1 small">{{ $message }}</div>
+                            @enderror
                         </div>
                     </div>
 
@@ -1333,7 +1408,7 @@
                 document.getElementById('calc-sku').value = skuVal;
 
                 document.getElementById('calc-hpp').value = currentHpp > 0 ? formatNumberID(currentHpp) :
-                '';
+                    '';
                 document.getElementById('calc-price').value = currentPrice > 0 ? formatNumberID(
                     currentPrice) : '';
 

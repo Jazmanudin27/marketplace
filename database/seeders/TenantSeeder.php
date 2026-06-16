@@ -93,9 +93,45 @@ class TenantSeeder extends Seeder
 
         // Produk Master Perusahaan A
         $products = [
-            ['sku' => 'SKU-A-001', 'name' => 'Sepatu Sneakers Premium', 'price' => 350000, 'cost_price' => 180000, 'stock' => 150, 'category_id' => $catFashion->id, 'brand_id' => $brandX->id],
-            ['sku' => 'SKU-A-002', 'name' => 'Tas Ransel Outdoor',      'price' => 250000, 'cost_price' => 120000, 'stock' => 80,  'category_id' => $catFashion->id, 'brand_id' => $brandX->id],
-            ['sku' => 'SKU-A-003', 'name' => 'Topi Baseball Polos',     'price' => 85000,  'cost_price' => 35000,  'stock' => 200, 'category_id' => $catFashion->id, 'brand_id' => $brandY->id],
+            [
+                'sku' => 'SKU-A-001', 
+                'name' => 'Sepatu Sneakers Premium', 
+                'sku_induk' => 'SKU-IND-SNEAKERS',
+                'price' => 350000, 
+                'cost_price' => 180000, 
+                'stock' => 150, 
+                'category_id' => $catFashion->id, 
+                'sub_kategori' => 'Alas Kaki',
+                'brand_id' => $brandX->id,
+                'ukuran' => '42',
+                'warna' => 'Hitam Merah'
+            ],
+            [
+                'sku' => 'SKU-A-002', 
+                'name' => 'Tas Ransel Outdoor',      
+                'sku_induk' => 'SKU-IND-RANSEL',
+                'price' => 250000, 
+                'cost_price' => 120000, 
+                'stock' => 80,  
+                'category_id' => $catFashion->id, 
+                'sub_kategori' => 'Tas',
+                'brand_id' => $brandX->id,
+                'ukuran' => 'All Size',
+                'warna' => 'Hijau Army'
+            ],
+            [
+                'sku' => 'SKU-A-003', 
+                'name' => 'Topi Baseball Polos',     
+                'sku_induk' => 'SKU-IND-TOPI',
+                'price' => 85000,  
+                'cost_price' => 35000,  
+                'stock' => 200, 
+                'category_id' => $catFashion->id, 
+                'sub_kategori' => 'Aksesoris',
+                'brand_id' => $brandY->id,
+                'ukuran' => 'M',
+                'warna' => 'Putih'
+            ],
         ];
 
         foreach ($products as $p) {
