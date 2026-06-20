@@ -4,16 +4,16 @@
 
 @section('content')
     <div class="container-fluid px-0">
-        <div class="mb-4">
-            <a href="{{ route('products.index') }}" class="btn btn-outline-secondary">
+        <div class="mb-3">
+            <a href="{{ route('products.index') }}" class="btn btn-secondary btn-sm">
                 <i class="fas fa-arrow-left me-1"></i> Kembali
             </a>
         </div>
 
         @if ($errors->any())
-            <div class="alert alert-danger shadow-sm mb-4">
-                <h5 class="alert-heading fw-bold"><i class="fas fa-exclamation-triangle me-2"></i> Terjadi Kesalahan</h5>
-                <ul class="mb-0 ps-3">
+            <div class="alert alert-danger shadow-sm mb-4 py-2 px-3">
+                <h6 class="alert-heading fw-bold mb-1"><i class="fas fa-exclamation-triangle me-2"></i> Terjadi Kesalahan</h6>
+                <ul class="mb-0 ps-3 extra-small">
                     @foreach ($errors->all() as $error)
                         <li>{{ $error }}</li>
                     @endforeach
@@ -22,60 +22,60 @@
         @endif
 
         {{-- Informasi Produk Master --}}
-        <div class="card shadow-sm border-0 mb-4">
-            <div class="card-header bg-dark text-white py-3">
-                <h5 class="mb-0 fs-6 fw-bold"><i class="fas fa-box-open me-2"></i> Informasi Produk Master</h5>
+        <div class="dashboard-card mb-4">
+            <div class="card-header-line d-flex justify-content-between align-items-center mb-3">
+                <div>
+                    <h5 class="mb-0"><i class="fas fa-box-open me-2 text-primary"></i> Informasi Produk Master</h5>
+                    <p class="text-muted mb-0 mt-1" style="font-size:0.75rem;">Detail spesifikasi produk lokal yang akan dipublikasikan</p>
+                </div>
             </div>
-            <div class="card-body p-4">
-                <div class="row align-items-center g-3">
-                    <div class="col-auto">
-                        @if (!empty($fallbackImageUrl))
-                            <div class="position-relative border rounded p-1 bg-body d-flex align-items-center justify-content-center"
-                                style="width: 120px; height: 120px;">
-                                <img src="{{ $fallbackImageUrl }}" alt="{{ $product->name }}" class="img-fluid rounded"
-                                    style="max-height: 110px; object-fit: contain;">
-                                @if (empty($product->image_url))
-                                    <span
-                                        class="position-absolute bottom-0 start-0 end-0 bg-dark bg-opacity-75 text-white text-center py-1 extra-small"
-                                        style="font-size: 0.65rem;">Gambar Sinkronisasi</span>
+
+            <div class="row align-items-center g-3">
+                <div class="col-auto">
+                    @if (!empty($fallbackImageUrl))
+                        <div class="position-relative border border-secondary border-opacity-10 rounded p-1 bg-dark bg-opacity-20 d-flex align-items-center justify-content-center"
+                            style="width: 100px; height: 100px;">
+                            <img src="{{ $fallbackImageUrl }}" alt="{{ $product->name }}" class="img-fluid rounded"
+                                style="max-height: 90px; object-fit: contain;">
+                            @if (empty($product->image_url))
+                                <span
+                                    class="position-absolute bottom-0 start-0 end-0 bg-dark bg-opacity-75 text-white text-center py-1 extra-small"
+                                    style="font-size: 0.6rem;">Gambar Sinkronisasi</span>
+                            @endif
+                        </div>
+                    @else
+                        <div class="border border-dashed border-secondary border-opacity-25 rounded d-flex flex-column align-items-center justify-content-center text-muted bg-dark bg-opacity-20"
+                            style="width: 100px; height: 100px;">
+                            <i class="fas fa-image fs-4 mb-1"></i>
+                            <span class="extra-small" style="font-size:0.7rem;">Tidak ada foto</span>
+                        </div>
+                    @endif
+                </div>
+                <div class="col">
+                    <h5 class="mb-2 fw-bold text-primary">{{ $product->name }}</h5>
+                    <div class="row g-2">
+                        <div class="col-sm-6 col-md-3">
+                            <span class="text-muted d-block extra-small">SKU</span>
+                            <span class="font-monospace fw-bold small text-white">{{ $product->sku }}</span>
+                        </div>
+                        <div class="col-sm-6 col-md-3">
+                            <span class="text-muted d-block extra-small">Harga Jual</span>
+                            <span class="fw-bold text-success small">Rp {{ number_format($product->price, 0, ',', '.') }}</span>
+                        </div>
+                        <div class="col-sm-6 col-md-3">
+                            <span class="text-muted d-block extra-small">Stok Lokal</span>
+                            <span class="fw-bold text-white small">{{ number_format($product->stock) }} pcs</span>
+                        </div>
+                        <div class="col-sm-6 col-md-3">
+                            <span class="text-muted d-block extra-small">Berat & Dimensi</span>
+                            <span class="fw-bold text-white small">
+                                {{ $product->weight ?? '-' }} kg /
+                                @if ($product->length || $product->width || $product->height)
+                                    {{ $product->length ?? 0 }}x{{ $product->width ?? 0 }}x{{ $product->height ?? 0 }} cm
+                                @else
+                                    -
                                 @endif
-                            </div>
-                        @else
-                            <div class="border border-dashed rounded d-flex flex-column align-items-center justify-content-center text-muted bg-light"
-                                style="width: 120px; height: 120px;">
-                                <i class="fas fa-image fs-3 mb-1"></i>
-                                <span class="small">Tidak ada foto</span>
-                            </div>
-                        @endif
-                    </div>
-                    <div class="col">
-                        <h4 class="mb-2 fs-5 fw-bold text-primary">{{ $product->name }}</h4>
-                        <div class="row g-3">
-                            <div class="col-sm-6 col-md-3">
-                                <span class="text-muted d-block small">SKU</span>
-                                <span class="font-monospace fw-bold">{{ $product->sku }}</span>
-                            </div>
-                            <div class="col-sm-6 col-md-3">
-                                <span class="text-muted d-block small">Harga Jual</span>
-                                <span class="fw-bold text-success">Rp
-                                    {{ number_format($product->price, 0, ',', '.') }}</span>
-                            </div>
-                            <div class="col-sm-6 col-md-3">
-                                <span class="text-muted d-block small">Stok Lokal</span>
-                                <span class="fw-bold">{{ number_format($product->stock) }} pcs</span>
-                            </div>
-                            <div class="col-sm-6 col-md-3">
-                                <span class="text-muted d-block small">Berat & Dimensi</span>
-                                <span class="fw-bold">
-                                    {{ $product->weight ?? '-' }} kg /
-                                    @if ($product->length || $product->width || $product->height)
-                                        {{ $product->length ?? 0 }}x{{ $product->width ?? 0 }}x{{ $product->height ?? 0 }}
-                                        cm
-                                    @else
-                                        -
-                                    @endif
-                                </span>
-                            </div>
+                            </span>
                         </div>
                     </div>
                 </div>
@@ -86,224 +86,213 @@
         <form id="publish-form" action="{{ route('products.publish.store', $product) }}" method="POST">
             @csrf
 
-            <div class="card shadow-sm border-0 mb-4">
-                <div class="card-header bg-dark text-white py-3">
-                    <h5 class="mb-0 fs-6 fw-bold"><i class="fas fa-share-square me-2"></i> Pilih Toko Tujuan & Kategori</h5>
+            <div class="dashboard-card mb-4">
+                <div class="card-header-line d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                        <h5 class="mb-0"><i class="fas fa-share-square me-2 text-primary"></i> Pilih Toko Tujuan & Kategori</h5>
+                        <p class="text-muted mb-0 mt-1" style="font-size:0.75rem;">Upload produk lokal ini ke channel toko marketplace terpilih</p>
+                    </div>
                 </div>
 
-                <div class="card-body p-4">
-                    <p class="text-muted small mb-4">
-                        Pilih toko marketplace yang ingin Anda upload produk baru ini. Untuk Shopee & TikTok, cari kategori
-                        langsung dari database marketplace.
-                        <strong class="text-primary">Aktifkan "Simpan Pemetaan"</strong> agar kategori ini otomatis dipilih
-                        ulang untuk produk dengan kategori yang sama.
-                    </p>
+                <p class="text-muted small mb-4">
+                    Pilih toko marketplace yang ingin Anda upload produk baru ini. Untuk Shopee & TikTok, cari kategori
+                    langsung dari database marketplace.
+                    <strong class="text-primary">Aktifkan "Simpan Pemetaan"</strong> agar kategori ini otomatis dipilih
+                    ulang untuk produk dengan kategori yang sama.
+                </p>
 
-                    @forelse($stores as $store)
-                        @php
-                            $isMapped = in_array($store->id, $mappedStoreIds ?? []);
-                            $isProcessing = in_array($store->id, $processingStoreIds ?? []);
-                            $isShopee = $store->channel->code === 'shopee';
-                            $isTiktok = $store->channel->code === 'tiktok';
-                            $existingMapping = $categoryMappings[$store->id] ?? null;
-                        @endphp
+                @forelse($stores as $store)
+                    @php
+                        $isMapped = in_array($store->id, $mappedStoreIds ?? []);
+                        $isProcessing = in_array($store->id, $processingStoreIds ?? []);
+                        $isShopee = $store->channel->code === 'shopee';
+                        $isTiktok = $store->channel->code === 'tiktok';
+                        $existingMapping = $categoryMappings[$store->id] ?? null;
+                    @endphp
 
-                        <div class="card mb-3 border {{ $isMapped || $isProcessing ? 'border-secondary opacity-75 bg-light-subtle' : 'border-light-subtle shadow-sm' }}"
-                            id="store_card_{{ $store->id }}">
-                            <div class="card-body p-3">
-                                {{-- Top row: checkbox + store name --}}
-                                <div class="d-flex align-items-center flex-wrap gap-2 mb-3">
-                                    <div class="form-check m-0 d-flex align-items-center">
-                                        @if ($isMapped)
-                                            <span class="text-success fs-5 me-2"><i class="fas fa-check-circle"></i></span>
-                                        @elseif ($isProcessing)
-                                            <span class="text-warning fs-5 me-2"><i
-                                                    class="fas fa-spinner fa-spin"></i></span>
-                                        @else
-                                            <input type="checkbox" name="stores[]" value="{{ $store->id }}"
-                                                id="store_{{ $store->id }}"
-                                                class="form-check-input store-checkbox me-2 fs-5 cursor-pointer"
-                                                data-store="{{ $store->id }}" style="margin-top: 0;">
-                                        @endif
+                    <div class="card mb-3 bg-dark bg-opacity-20 border {{ $isMapped || $isProcessing ? 'border-secondary border-opacity-25 opacity-75' : 'border-secondary border-opacity-10 shadow-sm' }}"
+                        id="store_card_{{ $store->id }}" style="background: rgba(255,255,255,0.01);">
+                        <div class="card-body p-3">
+                            {{-- Top row: checkbox + store name --}}
+                            <div class="d-flex align-items-center flex-wrap gap-2 mb-3">
+                                <div class="form-check m-0 d-flex align-items-center">
+                                    @if ($isMapped)
+                                        <span class="text-success fs-5 me-2"><i class="fas fa-check-circle"></i></span>
+                                    @elseif ($isProcessing)
+                                        <span class="text-warning fs-5 me-2"><i class="fas fa-spinner fa-spin"></i></span>
+                                    @else
+                                        <input type="checkbox" name="stores[]" value="{{ $store->id }}"
+                                            id="store_{{ $store->id }}"
+                                            class="form-check-input store-checkbox me-2 fs-5 cursor-pointer"
+                                            data-store="{{ $store->id }}" style="margin-top: 0;">
+                                    @endif
 
-                                        <label class="form-check-label d-flex flex-column"
-                                            for="{{ $isMapped || $isProcessing ? '' : 'store_' . $store->id }}"
-                                            style="cursor: {{ $isMapped || $isProcessing ? 'default' : 'pointer' }};">
-                                            <span class="fw-bold text-dark fs-6">
-                                                {{ $store->store_name }}
-                                                @if ($isMapped)
-                                                    <small class="badge bg-success ms-2 font-normal"
-                                                        style="font-weight: 500;">Terhubung</small>
-                                                @elseif ($isProcessing)
-                                                    <small class="badge bg-warning text-dark ms-2 font-normal"
-                                                        style="font-weight: 500;">Sedang Diproses</small>
-                                                @endif
-                                            </span>
-                                            <span class="d-inline-block mt-1">
-                                                @if ($isShopee)
-                                                    <span class="badge bg-danger"><i class="fab fa-shopify me-1"></i>
-                                                        Shopee</span>
-                                                @elseif ($isTiktok)
-                                                    <span class="badge bg-dark"><i class="fab fa-tiktok me-1"></i>
-                                                        TikTok</span>
-                                                @else
-                                                    <span class="badge bg-secondary">{{ $store->channel->name }}</span>
-                                                @endif
-                                            </span>
-                                        </label>
-                                    </div>
-
-                                    <div class="ms-auto">
-                                        @if ($isMapped)
-                                            <span class="text-muted small"><i class="fas fa-link me-1"></i> Terhubung &
-                                                Sinkron</span>
-                                        @elseif ($isProcessing)
-                                            <span class="text-warning small"><i class="fas fa-spinner fa-spin me-1"></i>
-                                                Sedang Diproses...</span>
-                                        @elseif ($existingMapping)
-                                            <span
-                                                class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-2 rounded-pill">
-                                                <i class="fas fa-magic me-1"></i> Pemetaan Tersimpan
-                                            </span>
-                                        @endif
-                                    </div>
+                                    <label class="form-check-label d-flex flex-column"
+                                        for="{{ $isMapped || $isProcessing ? '' : 'store_' . $store->id }}"
+                                        style="cursor: {{ $isMapped || $isProcessing ? 'default' : 'pointer' }};">
+                                        <span class="fw-bold text-white fs-6">
+                                            {{ $store->store_name }}
+                                            @if ($isMapped)
+                                                <small class="badge bg-success ms-2 font-normal" style="font-weight: 500;">Terhubung</small>
+                                            @elseif ($isProcessing)
+                                                <small class="badge bg-warning text-dark ms-2 font-normal" style="font-weight: 500;">Sedang Diproses</small>
+                                            @endif
+                                        </span>
+                                        <span class="d-inline-block mt-1">
+                                            @if ($isShopee)
+                                                <span class="badge bg-danger"><i class="fab fa-shopify me-1"></i> Shopee</span>
+                                            @elseif ($isTiktok)
+                                                <span class="badge bg-dark border border-secondary border-opacity-20"><i class="fab fa-tiktok me-1"></i> TikTok</span>
+                                            @else
+                                                <span class="badge bg-secondary">{{ $store->channel->name }}</span>
+                                            @endif
+                                        </span>
+                                    </label>
                                 </div>
 
-                                {{-- Input Kategori --}}
-                                @if (!$isMapped && !$isProcessing)
-                                    <div class="category-input-area border-top pt-3 mt-2"
-                                        id="cat_area_{{ $store->id }}">
-                                        <label class="form-label fw-semibold mb-2">
-                                            @if ($isShopee || $isTiktok)
-                                                <i class="fas fa-search me-1 text-muted"></i> Cari Kategori
-                                                {{ ucfirst($store->channel->code) }} <span class="text-danger">*</span>
-                                            @else
-                                                <i class="fas fa-folder-open me-1 text-muted"></i> ID Kategori
-                                                {{ $store->channel->name }} <span class="text-danger">*</span>
-                                            @endif
-                                        </label>
-
-                                        @if ($existingMapping)
-                                            <div
-                                                class="alert alert-info py-2 px-3 mb-2 d-flex align-items-center flex-wrap gap-2 border-0 bg-primary-subtle text-primary-emphasis">
-                                                <i class="fas fa-bookmark"></i>
-                                                <span class="small me-auto">
-                                                    Pemetaan Tersimpan:
-                                                    <strong>{{ $existingMapping['marketplace_category_name'] }}</strong>
-                                                    <span class="text-muted">(ID:
-                                                        {{ $existingMapping['marketplace_category_id'] }})</span>
-                                                </span>
-                                                <div class="d-flex gap-2">
-                                                    <button type="button" class="btn btn-sm btn-primary px-3"
-                                                        onclick="useMapping({{ $store->id }}, '{{ $existingMapping['marketplace_category_id'] }}', '{{ addslashes($existingMapping['marketplace_category_name']) }}')">
-                                                        <i class="fas fa-check me-1"></i> Gunakan
-                                                    </button>
-                                                    <button type="button" class="btn btn-sm btn-outline-secondary"
-                                                        onclick="ignoreMapping({{ $store->id }})">
-                                                        Pilih Lain
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        @endif
-
-                                        @if (in_array($store->channel->code, ['shopee', 'tiktok']))
-                                            {{-- Shopee/Tiktok Category Picker --}}
-                                            <div class="shopee-category-picker position-relative"
-                                                data-store-id="{{ $store->id }}"
-                                                data-channel="{{ $store->channel->code }}">
-                                                <input type="hidden" name="categories[{{ $store->id }}]"
-                                                    id="cat_id_{{ $store->id }}"
-                                                    value="{{ $existingMapping['marketplace_category_id'] ?? '' }}"
-                                                    {{ $existingMapping ? '' : 'required' }}>
-                                                <input type="hidden" name="category_names[{{ $store->id }}]"
-                                                    id="cat_name_{{ $store->id }}"
-                                                    value="{{ $existingMapping['marketplace_category_name'] ?? '' }}">
-
-                                                {{-- Search Input Wrapper --}}
-                                                <div class="input-group" id="cat_search_wrapper_{{ $store->id }}"
-                                                    style="{{ $existingMapping ? 'display: none;' : '' }}">
-                                                    <span class="input-group-text"><i class="fas fa-search"></i></span>
-                                                    <input type="text" id="cat_search_{{ $store->id }}"
-                                                        class="form-control shopee-cat-search"
-                                                        placeholder="Ketik nama kategori ({{ ucfirst($store->channel->code) }})..."
-                                                        autocomplete="off" data-store-id="{{ $store->id }}">
-                                                    <button type="button" id="cat_clear_{{ $store->id }}"
-                                                        class="btn btn-outline-secondary shopee-cat-clear"
-                                                        style="display: none;"><i class="fas fa-times"></i></button>
-                                                </div>
-
-                                                {{-- Selected Badge --}}
-                                                <div id="cat_selected_{{ $store->id }}"
-                                                    class="shopee-cat-selected mt-2"
-                                                    style="{{ $existingMapping ? 'display: block;' : 'display: none;' }}">
-                                                    <span
-                                                        class="badge bg-primary-subtle text-primary border border-primary-subtle p-2 fs-7 align-items-center"
-                                                        style="display: inline-flex;">
-                                                        <i class="fas fa-check-circle me-1 text-success"></i>
-                                                        <span
-                                                            id="cat_selected_name_{{ $store->id }}">{{ $existingMapping['marketplace_category_name'] ?? '' }}</span>
-                                                        <span id="cat_selected_id_{{ $store->id }}"
-                                                            class="opacity-75 ms-1 font-monospace">{{ $existingMapping ? '(ID: ' . $existingMapping['marketplace_category_id'] . ')' : '' }}</span>
-                                                        <button type="button"
-                                                            class="btn btn-link p-0 text-primary ms-2 fs-7 text-decoration-none"
-                                                            onclick="clearCategorySelection({{ $store->id }}, '{{ $store->channel->code }}')"><i
-                                                                class="fas fa-pen"></i> Ubah</button>
-                                                    </span>
-                                                </div>
-
-                                                {{-- Dropdown list --}}
-                                                 <div id="cat_dropdown_{{ $store->id }}"
-                                                    class="shopee-cat-dropdown shadow rounded border mt-1 position-absolute w-100"
-                                                    style="display: none; z-index: 1050; max-height: 250px; overflow-y: auto;">
-                                                 </div>
-                                            </div>
-
-                                            {{-- Save Mapping checkbox --}}
-                                            @if ($product->category_id)
-                                                <div class="form-check mt-3 small">
-                                                    <input type="checkbox" name="save_mapping[{{ $store->id }}]"
-                                                        id="save_mapping_{{ $store->id }}" value="1"
-                                                        class="form-check-input" {{ $existingMapping ? 'checked' : '' }}>
-                                                    <label for="save_mapping_{{ $store->id }}"
-                                                        class="form-check-label text-muted">
-                                                        <i class="fas fa-bookmark me-1 text-primary"></i> Simpan pemetaan
-                                                        kategori ini untuk kategori produk lokal: <strong
-                                                            class="text-dark">"{{ $product->category->name ?? 'ini' }}"</strong>
-                                                    </label>
-                                                </div>
-                                            @endif
-                                        @else
-                                            {{-- Other platforms: Manual Input --}}
-                                            <input type="hidden" name="category_names[{{ $store->id }}]"
-                                                id="cat_name_{{ $store->id }}" value="Manual Category">
-                                            <div class="input-group">
-                                                <span class="input-group-text"><i class="fas fa-folder-open"></i></span>
-                                                <input type="number" name="categories[{{ $store->id }}]"
-                                                    id="category_{{ $store->id }}" class="form-control"
-                                                    placeholder="Contoh ID Kategori: 602001" required>
-                                            </div>
-                                        @endif
-                                    </div>
-                                @endif
+                                <div class="ms-auto">
+                                    @if ($isMapped)
+                                        <span class="text-muted small"><i class="fas fa-link me-1"></i> Terhubung & Sinkron</span>
+                                    @elseif ($isProcessing)
+                                        <span class="text-warning small"><i class="fas fa-spinner fa-spin me-1"></i> Sedang Diproses...</span>
+                                    @elseif ($existingMapping)
+                                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-2 rounded-pill">
+                                            <i class="fas fa-magic me-1"></i> Pemetaan Tersimpan
+                                        </span>
+                                    @endif
+                                </div>
                             </div>
-                        </div>
-                    @empty
-                        <div class="text-center py-5 text-muted border border-dashed rounded bg-body-tertiary">
-                            <i class="fas fa-store-slash fs-1 mb-2"></i>
-                            <p class="mb-3">Belum ada toko marketplace yang terhubung.</p>
-                            <a href="{{ route('stores.index') }}" class="btn btn-primary btn-sm">Hubungkan Toko</a>
-                        </div>
-                    @endforelse
 
-                    @if ($stores->count() > 0)
-                        <div class="d-flex justify-content-end gap-2 mt-4">
-                            <a href="{{ route('products.index') }}" class="btn btn-secondary">Batal</a>
-                            <button type="submit" class="btn btn-primary px-4">
-                                <i class="fas fa-paper-plane me-1"></i> Kirim ke Antrean Publikasi
-                            </button>
+                            {{-- Input Kategori --}}
+                            @if (!$isMapped && !$isProcessing)
+                                <div class="category-input-area border-top border-secondary border-opacity-10 pt-3 mt-2"
+                                    id="cat_area_{{ $store->id }}">
+                                    <label class="form-label form-label-sm fw-semibold mb-2">
+                                        @if ($isShopee || $isTiktok)
+                                            <i class="fas fa-search me-1 text-muted"></i> Cari Kategori
+                                            {{ ucfirst($store->channel->code) }} <span class="text-danger">*</span>
+                                        @else
+                                            <i class="fas fa-folder-open me-1 text-muted"></i> ID Kategori
+                                            {{ $store->channel->name }} <span class="text-danger">*</span>
+                                        @endif
+                                    </label>
+
+                                    @if ($existingMapping)
+                                        <div class="alert alert-info py-2 px-3 mb-2 d-flex align-items-center flex-wrap gap-2 border-0 bg-primary bg-opacity-10 text-primary-emphasis">
+                                            <i class="fas fa-bookmark text-primary"></i>
+                                            <span class="small me-auto text-white">
+                                                Pemetaan Tersimpan:
+                                                <strong>{{ $existingMapping['marketplace_category_name'] }}</strong>
+                                                <span class="text-muted">(ID: {{ $existingMapping['marketplace_category_id'] }})</span>
+                                            </span>
+                                            <div class="d-flex gap-2">
+                                                <button type="button" class="btn btn-sm btn-primary btn-sm px-3"
+                                                    onclick="useMapping({{ $store->id }}, '{{ $existingMapping['marketplace_category_id'] }}', '{{ addslashes($existingMapping['marketplace_category_name']) }}')">
+                                                    <i class="fas fa-check me-1"></i> Gunakan
+                                                </button>
+                                                <button type="button" class="btn btn-sm btn-outline-secondary btn-sm"
+                                                    onclick="ignoreMapping({{ $store->id }})">
+                                                    Pilih Lain
+                                                </button>
+                                            </div>
+                                        </div>
+                                    @endif
+
+                                    @if (in_array($store->channel->code, ['shopee', 'tiktok']))
+                                        {{-- Shopee/Tiktok Category Picker --}}
+                                        <div class="shopee-category-picker position-relative"
+                                            data-store-id="{{ $store->id }}"
+                                            data-channel="{{ $store->channel->code }}">
+                                            <input type="hidden" name="categories[{{ $store->id }}]"
+                                                id="cat_id_{{ $store->id }}"
+                                                value="{{ $existingMapping['marketplace_category_id'] ?? '' }}"
+                                                {{ $existingMapping ? '' : 'required' }}>
+                                            <input type="hidden" name="category_names[{{ $store->id }}]"
+                                                id="cat_name_{{ $store->id }}"
+                                                value="{{ $existingMapping['marketplace_category_name'] ?? '' }}">
+
+                                            {{-- Search Input Wrapper --}}
+                                            <div class="input-group input-group-sm" id="cat_search_wrapper_{{ $store->id }}"
+                                                style="{{ $existingMapping ? 'display: none;' : '' }}">
+                                                <span class="input-group-text"><i class="fas fa-search"></i></span>
+                                                <input type="text" id="cat_search_{{ $store->id }}"
+                                                    class="form-control form-control-sm shopee-cat-search"
+                                                    placeholder="Ketik nama kategori ({{ ucfirst($store->channel->code) }})..."
+                                                    autocomplete="off" data-store-id="{{ $store->id }}">
+                                                <button type="button" id="cat_clear_{{ $store->id }}"
+                                                    class="btn btn-outline-secondary btn-sm shopee-cat-clear"
+                                                    style="display: none;"><i class="fas fa-times"></i></button>
+                                            </div>
+
+                                            {{-- Selected Badge --}}
+                                            <div id="cat_selected_{{ $store->id }}"
+                                                class="shopee-cat-selected mt-2"
+                                                style="{{ $existingMapping ? 'display: block;' : 'display: none;' }}">
+                                                <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-20 p-2 fs-7 align-items-center"
+                                                    style="display: inline-flex;">
+                                                    <i class="fas fa-check-circle me-1 text-success"></i>
+                                                    <span id="cat_selected_name_{{ $store->id }}">{{ $existingMapping['marketplace_category_name'] ?? '' }}</span>
+                                                    <span id="cat_selected_id_{{ $store->id }}"
+                                                        class="opacity-75 ms-1 font-monospace">{{ $existingMapping ? '(ID: ' . $existingMapping['marketplace_category_id'] . ')' : '' }}</span>
+                                                    <button type="button"
+                                                        class="btn btn-link p-0 text-primary ms-2 fs-7 text-decoration-none"
+                                                        onclick="clearCategorySelection({{ $store->id }}, '{{ $store->channel->code }}')"><i
+                                                            class="fas fa-pen"></i> Ubah</button>
+                                                </span>
+                                            </div>
+
+                                            {{-- Dropdown list --}}
+                                            <div id="cat_dropdown_{{ $store->id }}"
+                                                class="shopee-cat-dropdown shadow rounded border mt-1 position-absolute w-100"
+                                                style="display: none; z-index: 1050; max-height: 250px; overflow-y: auto;">
+                                            </div>
+                                        </div>
+
+                                        {{-- Save Mapping checkbox --}}
+                                        @if ($product->category_id)
+                                            <div class="form-check mt-3 small">
+                                                <input type="checkbox" name="save_mapping[{{ $store->id }}]"
+                                                    id="save_mapping_{{ $store->id }}" value="1"
+                                                    class="form-check-input" {{ $existingMapping ? 'checked' : '' }}>
+                                                <label for="save_mapping_{{ $store->id }}"
+                                                    class="form-check-label text-muted">
+                                                    <i class="fas fa-bookmark me-1 text-primary"></i> Simpan pemetaan
+                                                    kategori ini untuk kategori produk lokal: <strong
+                                                        class="text-light">"{{ $product->category->name ?? 'ini' }}"</strong>
+                                                </label>
+                                            </div>
+                                        @endif
+                                    @else
+                                        {{-- Other platforms: Manual Input --}}
+                                        <input type="hidden" name="category_names[{{ $store->id }}]"
+                                            id="cat_name_{{ $store->id }}" value="Manual Category">
+                                        <div class="input-group input-group-sm">
+                                            <span class="input-group-text"><i class="fas fa-folder-open"></i></span>
+                                            <input type="number" name="categories[{{ $store->id }}]"
+                                                id="category_{{ $store->id }}" class="form-control form-control-sm"
+                                                placeholder="Contoh ID Kategori: 602001" required>
+                                        </div>
+                                    @endif
+                                </div>
+                            @endif
                         </div>
-                    @endif
-                </div>
+                    </div>
+                @empty
+                    <div class="text-center py-5 text-muted border border-dashed border-secondary border-opacity-25 rounded bg-dark bg-opacity-10">
+                        <i class="fas fa-store-slash fs-1 mb-2"></i>
+                        <p class="mb-3">Belum ada toko marketplace yang terhubung.</p>
+                        <a href="{{ route('stores.index') }}" class="btn btn-primary btn-sm">Hubungkan Toko</a>
+                    </div>
+                @endforelse
+
+                @if ($stores->count() > 0)
+                    <div class="d-flex justify-content-end gap-2 mt-4">
+                        <a href="{{ route('products.index') }}" class="btn btn-secondary btn-sm px-4">Batal</a>
+                        <button type="submit" class="btn btn-primary btn-sm px-4">
+                            <i class="fas fa-paper-plane me-1"></i> Kirim ke Antrean Publikasi
+                        </button>
+                    </div>
+                @endif
             </div>
         </form>
     </div>
@@ -319,20 +308,20 @@
         }
 
         .shopee-cat-dropdown::-webkit-scrollbar-thumb {
-            background: rgba(255,255,255,0.2);
+            background: rgba(255, 255, 255, 0.2);
             border-radius: 3px;
         }
 
         .shopee-cat-dropdown {
             background-color: #1e2130 !important;
-            border-color: rgba(255,255,255,0.1) !important;
+            border-color: rgba(255, 255, 255, 0.1) !important;
         }
 
         .cat-option {
             padding: 8px 16px;
             cursor: pointer;
             font-size: 0.85rem;
-            border-bottom: 1px solid rgba(255,255,255,0.06);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
             transition: background-color 0.15s;
             color: #e2e8f0;
         }
@@ -343,20 +332,20 @@
 
         .cat-option:hover,
         .cat-option.active {
-            background-color: rgba(99,102,241,0.25);
+            background-color: rgba(99, 102, 241, 0.25);
             color: #a5b4fc;
         }
 
         .cat-option .cat-id {
             display: block;
             font-size: 0.75rem;
-            color: rgba(255,255,255,0.4);
+            color: rgba(255, 255, 255, 0.4);
             margin-top: 2px;
         }
 
         .dropdown-header {
-            background-color: rgba(255,255,255,0.05);
-            color: rgba(255,255,255,0.5) !important;
+            background-color: rgba(255, 255, 255, 0.05);
+            color: rgba(255, 255, 255, 0.5) !important;
             font-size: 0.75rem;
         }
 
@@ -366,7 +355,7 @@
             padding: 15px;
             text-align: center;
             font-size: 0.85rem;
-            color: rgba(255,255,255,0.5);
+            color: rgba(255, 255, 255, 0.5);
         }
 
         .cat-error {
@@ -620,24 +609,32 @@
             $('#publish-form').on('submit', function(e) {
                 const $checked = $('.store-checkbox:checked');
                 if ($checked.length === 0) {
-                    alert('Pilih minimal satu toko untuk dipublikasikan!');
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Toko Belum Dipilih',
+                        text: 'Pilih minimal satu toko untuk dipublikasikan!',
+                        background: '#151f2c',
+                        color: '#f8fafc',
+                        confirmButtonColor: '#3b82f6'
+                    });
                     e.preventDefault();
                     return;
                 }
 
                 let valid = true;
+                let errorMsg = '';
                 $checked.each(function() {
                     const storeId = $(this).data('store');
                     const catId = $('#cat_id_' + storeId).val();
                     const manualCatId = $('#category_' + storeId).val();
 
                     if ($('#cat_id_' + storeId).length && !catId) {
-                        alert('Pilih kategori untuk toko: ' + storeId);
+                        errorMsg = 'Pilih kategori terlebih dahulu untuk toko yang dicentang!';
                         valid = false;
                         return false; // break loop
                     }
                     if ($('#category_' + storeId).length && !manualCatId) {
-                        alert('Masukkan ID Kategori untuk toko yang dicentang!');
+                        errorMsg = 'Masukkan ID Kategori terlebih dahulu untuk toko yang dicentang!';
                         valid = false;
                         return false; // break loop
                     }
@@ -645,6 +642,14 @@
 
                 if (!valid) {
                     e.preventDefault();
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Lengkapi Kategori',
+                        text: errorMsg,
+                        background: '#151f2c',
+                        color: '#f8fafc',
+                        confirmButtonColor: '#3b82f6'
+                    });
                 } else {
                     const $btn = $(this).find('button[type="submit"]');
                     $btn.prop('disabled', true).html(

@@ -21,6 +21,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'mobile.owner' => \App\Http\Middleware\MobileOwnerMiddleware::class,
             'mobile.gudang' => \App\Http\Middleware\MobileGudangMiddleware::class,
             'mobile.produksi' => \App\Http\Middleware\MobileProduksiMiddleware::class,
+            'employee.auth' => \App\Http\Middleware\EmployeeAuth::class,
         ]);
         
         $middleware->validateCsrfTokens(except: [

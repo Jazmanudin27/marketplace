@@ -30,6 +30,24 @@ class MarketplaceProduct extends Model
         'last_synced_at' => 'datetime',
     ];
 
+    protected static function booted()
+    {
+        static::saving(function (MarketplaceProduct $product) {
+            if (empty($product->master_product_id) && !empty($product->marketplace_sku)) {
+                $store = $product->store;
+                if ($store) {
+                    $master = MasterProduct::where('tenant_id', $store->tenant_id)
+                        ->where('sku', $product->marketplace_sku)
+                        ->first();
+                    if ($master) {
+                        $product->master_product_id = $master->id;
+                        $product->sync_stock = true; // Otomatis aktifkan sinkronisasi stok
+                    }
+                }
+            }
+        });
+    }
+
     public function store(): BelongsTo
     {
         return $this->belongsTo(Store::class);

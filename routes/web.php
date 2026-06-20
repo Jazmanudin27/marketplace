@@ -3,28 +3,11 @@
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\MasterProductController;
-use App\Http\Controllers\BrandController;
-use App\Http\Controllers\SupplierController;
-use App\Http\Controllers\CategoryController;
-use App\Http\Controllers\ShopeeController;
-use App\Http\Controllers\StoreController;
-use App\Http\Controllers\CustomerController;
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Api\WebhookController;
-use App\Http\Controllers\TiktokController;
-use App\Http\Controllers\EmployeeController;
-use App\Http\Controllers\UserController;
-use App\Http\Controllers\OrderController;
-use App\Http\Controllers\OrderPrintController;
-use App\Http\Controllers\IncomingGoodController;
-use App\Http\Controllers\StockOpnameController;
-use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\MarketplaceProductController;
 use App\Http\Controllers\ChatController;
 use App\Http\Controllers\ReturnOrderController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\ReconciliationController;
-use App\Http\Controllers\RoleController;
 use App\Http\Controllers\FulfillmentController;
 use App\Http\Controllers\ProfitController;
 use App\Http\Controllers\OfflineSaleController;
@@ -32,7 +15,60 @@ use App\Http\Controllers\ExpenseController;
 use App\Http\Controllers\IncomeController;
 use App\Http\Controllers\FundTransferController;
 use App\Http\Controllers\FinancialReportController;
+use App\Http\Controllers\OrderController;
+use App\Http\Controllers\OrderPrintController;
+use App\Http\Controllers\ShopeeController;
+use App\Http\Controllers\TiktokController;
+use App\Http\Controllers\Hrd\PayrollController;
+use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\WebhookController;
+use App\Http\Controllers\Employee\EmployeeAuthController;
+use App\Http\Controllers\Employee\EmployeeAttendanceController;
+// Master
+use App\Http\Controllers\Master\BrandController;
+use App\Http\Controllers\Master\CategoryController;
+use App\Http\Controllers\Master\SupplierController;
+use App\Http\Controllers\Master\CustomerController;
+// HRD
+use App\Http\Controllers\Hrd\EmployeeController;
+use App\Http\Controllers\Hrd\AttendanceController;
+use App\Http\Controllers\Hrd\HolidayController;
+use App\Http\Controllers\Hrd\OvertimeController;
+use App\Http\Controllers\Hrd\CashAdvanceController;
+use App\Http\Controllers\Hrd\AllowanceTypeController;
+use App\Http\Controllers\Hrd\LatePenaltyRuleController;
+use App\Http\Controllers\Hrd\LeaveRequestController;
+// Inventory
+use App\Http\Controllers\Inventory\InventoryController;
+use App\Http\Controllers\Inventory\IncomingGoodController;
+use App\Http\Controllers\Inventory\StockOpnameController;
+// Marketplace
+use App\Http\Controllers\Marketplace\StoreController;
+// Settings
+use App\Http\Controllers\Settings\UserController;
+use App\Http\Controllers\Settings\RoleController;
 
+
+// =========================================================================
+// Employee Self-Service (Presensi Mandiri Karyawan)
+// =========================================================================
+
+// Guest: belum login sebagai karyawan
+Route::prefix('employee')->name('employee.')->group(function () {
+    Route::middleware('guest:employee')->group(function () {
+        Route::get('/login', [EmployeeAuthController::class, 'showLogin'])->name('login');
+        Route::post('/login', [EmployeeAuthController::class, 'login'])->name('login.post');
+    });
+
+    // Protected: sudah login sebagai karyawan
+    Route::middleware('employee.auth')->group(function () {
+        Route::post('/logout', [EmployeeAuthController::class, 'logout'])->name('logout');
+        Route::get('/dashboard', [EmployeeAttendanceController::class, 'dashboard'])->name('dashboard');
+        Route::post('/clock-in', [EmployeeAttendanceController::class, 'clockIn'])->name('clock-in');
+        Route::post('/clock-out', [EmployeeAttendanceController::class, 'clockOut'])->name('clock-out');
+        Route::post('/leaves', [EmployeeAttendanceController::class, 'storeLeave'])->name('leaves.store');
+    });
+});
 
 // =========================================================================
 // Auth Routes (hanya untuk guest)
@@ -96,7 +132,9 @@ Route::middleware('auth')->group(function () {
     // Brands
     Route::middleware('permission:manage-brands')->group(function () {
         Route::get('/brands', [BrandController::class, 'index'])->name('brands.index');
+        Route::get('/brands/create', [BrandController::class, 'create'])->name('brands.create');
         Route::post('/brands', [BrandController::class, 'store'])->name('brands.store');
+        Route::get('/brands/{brand}/edit', [BrandController::class, 'edit'])->name('brands.edit');
         Route::put('/brands/{brand}', [BrandController::class, 'update'])->name('brands.update');
         Route::delete('/brands/{brand}', [BrandController::class, 'destroy'])->name('brands.destroy');
     });
@@ -111,9 +149,76 @@ Route::middleware('auth')->group(function () {
         Route::delete('/suppliers/{supplier}', [SupplierController::class, 'destroy'])->name('suppliers.destroy');
     });
 
+    // Customers
+    Route::middleware('permission:manage-customers')->group(function () {
+        Route::resource('customers', CustomerController::class)->only(['index', 'show', 'update']);
+    });
+
     // Employees
     Route::middleware('permission:manage-employees')->group(function () {
-        Route::resource('employees', EmployeeController::class)->except(['create', 'show', 'edit']);
+        Route::resource('employees', EmployeeController::class)->except(['show']);
+        Route::put('employees/{employee}/salary', [EmployeeController::class, 'updateSalary'])->name('employees.salary.update');
+        Route::put('employees/{employee}/credentials', [EmployeeController::class, 'updateCredentials'])->name('employees.credentials.update');
+
+        // Kepegawaian & HRD
+        Route::prefix('hr')->name('hr.')->group(function () {
+            // Attendance
+            Route::middleware('permission:view-attendance')->group(function () {
+                Route::get('attendance', [AttendanceController::class, 'index'])->name('attendance.index');
+                Route::get('attendance/report', [AttendanceController::class, 'report'])->name('attendance.report');
+            });
+
+            Route::post('attendance/corrections', [AttendanceController::class, 'storeCorrection'])
+                ->name('attendance.corrections.store')
+                ->middleware('permission:propose-attendance-correction');
+
+            Route::post('attendance/corrections/{correction}/approve', [AttendanceController::class, 'approveCorrection'])
+                ->name('attendance.corrections.approve')
+                ->middleware('permission:approve-attendance-correction');
+
+            Route::post('attendance/corrections/{correction}/reject', [AttendanceController::class, 'rejectCorrection'])
+                ->name('attendance.corrections.reject')
+                ->middleware('permission:approve-attendance-correction');
+
+            Route::middleware('permission:propose-attendance-correction')->group(function () {
+                Route::post('attendance', [AttendanceController::class, 'store'])->name('attendance.store');
+                Route::put('attendance/{attendance}', [AttendanceController::class, 'update'])->name('attendance.update');
+                Route::delete('attendance/{attendance}', [AttendanceController::class, 'destroy'])->name('attendance.destroy');
+            });
+
+            // Holidays
+            Route::resource('holidays', HolidayController::class)->only(['index', 'store', 'update', 'destroy']);
+            Route::post('holidays/{holiday}/employees', [HolidayController::class, 'updateEmployees'])->name('holidays.employees.update');
+
+            // Overtime
+            Route::resource('overtime', OvertimeController::class)->only(['index', 'store', 'update', 'destroy']);
+            Route::post('overtime/{overtime}/approve', [OvertimeController::class, 'approve'])->name('overtime.approve');
+            Route::post('overtime/{overtime}/reject', [OvertimeController::class, 'reject'])->name('overtime.reject');
+
+            // Cash Advance (Kasbon)
+            Route::resource('cash-advances', CashAdvanceController::class)->only(['index', 'store', 'update', 'destroy']);
+            Route::post('cash-advances/{cashAdvance}/approve', [CashAdvanceController::class, 'approve'])->name('cash-advances.approve');
+            Route::post('cash-advances/{cashAdvance}/reject', [CashAdvanceController::class, 'reject'])->name('cash-advances.reject');
+
+            // Allowance Types (Master Tunjangan)
+            Route::resource('allowance-types', AllowanceTypeController::class)->except(['create', 'show', 'edit']);
+
+            // Late Penalties (Denda Keterlambatan)
+            Route::resource('late-penalties', LatePenaltyRuleController::class)->except(['create', 'show', 'edit']);
+
+            // Leave Requests (Pengajuan Izin, Cuti, Sakit)
+            Route::resource('leaves', LeaveRequestController::class)->except(['create', 'show', 'edit']);
+            Route::post('leaves/{leave}/approve', [LeaveRequestController::class, 'approve'])->name('leaves.approve');
+            Route::post('leaves/{leave}/reject', [LeaveRequestController::class, 'reject'])->name('leaves.reject');
+
+            // Payroll
+            Route::get('payroll', [PayrollController::class, 'index'])->name('payroll.index');
+            Route::post('payroll/generate', [PayrollController::class, 'generate'])->name('payroll.generate');
+            Route::get('payroll/{payroll}', [PayrollController::class, 'show'])->name('payroll.show');
+            Route::put('payroll/{payroll}', [PayrollController::class, 'update'])->name('payroll.update');
+            Route::post('payroll/{payroll}/pay', [PayrollController::class, 'pay'])->name('payroll.pay');
+            Route::delete('payroll/{payroll}', [PayrollController::class, 'destroy'])->name('payroll.destroy');
+        });
     });
 
     // Users & Roles (Hak Akses)
@@ -122,10 +227,11 @@ Route::middleware('auth')->group(function () {
         Route::resource('roles', RoleController::class)->except(['create', 'show', 'edit']);
     });
 
-    // Customers (Pelanggan)
-    Route::middleware('permission:manage-customers')->group(function () {
-        Route::resource('customers', CustomerController::class)->only(['index', 'show', 'update']);
-    });
+    // Pengaturan Perusahaan (Tenant Settings)
+    Route::get('/settings/tenant', [\App\Http\Controllers\Settings\TenantSettingsController::class, 'edit'])->name('settings.tenant.edit');
+    Route::put('/settings/tenant', [\App\Http\Controllers\Settings\TenantSettingsController::class, 'update'])->name('settings.tenant.update');
+
+
 
     // Stores (Toko)
     Route::middleware('permission:manage-stores')->group(function () {
@@ -295,10 +401,10 @@ Route::middleware('auth')->group(function () {
         ]);
     });
 
-    // Route untuk menjalankan migrasi via browser (Bypass permission check, diproteksi role === admin kustom)
+    // Route untuk menjalankan migrasi via browser (Bypass permission check, diproteksi role === admin/owner kustom)
     Route::get('/finance/run-migrations', function () {
-        if (auth()->user()->role !== 'admin' && !auth()->user()->hasRole('admin')) {
-            abort(403, 'Hanya Administrator yang dapat menjalankan migrasi database.');
+        if (!in_array(auth()->user()->role, ['admin', 'owner']) && !auth()->user()->hasAnyRole(['admin', 'owner'])) {
+            abort(403, 'Hanya Administrator atau Owner yang dapat menjalankan migrasi database.');
         }
         \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
         return '<pre>' . \Illuminate\Support\Facades\Artisan::output() . '</pre><br><a href="' . route('dashboard') . '">Kembali ke Dashboard</a>';
@@ -345,4 +451,5 @@ Route::middleware('auth')->group(function () {
         Route::post('/mobile/produksi/{order}/cancel', [\App\Http\Controllers\MobileController::class, 'produksiCancel'])->name('mobile.produksi.cancel');
     });
 });
+
 

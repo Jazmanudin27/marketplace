@@ -35,7 +35,7 @@
             background-color: var(--bg-primary);
             color: var(--text-main);
             margin: 0;
-            padding-bottom: 90px; /* Space for bottom nav */
+            padding-bottom: 110px; /* Enhanced space for floating bottom nav */
             overflow-x: hidden;
             -webkit-tap-highlight-color: transparent;
         }
@@ -71,7 +71,7 @@
         }
 
         .mobile-header h1 {
-            font-size: 1.25rem;
+            font-size: 1.2rem;
             font-weight: 700;
             margin: 0;
             background: linear-gradient(135deg, #a5b4fc, #818cf8);
@@ -80,7 +80,7 @@
         }
 
         .user-tag {
-            font-size: 0.75rem;
+            font-size: 0.7rem;
             background: rgba(79, 70, 229, 0.15);
             border: 1px solid rgba(79, 70, 229, 0.3);
             padding: 4px 10px;
@@ -88,24 +88,163 @@
             color: #c7d2fe;
             text-transform: uppercase;
             letter-spacing: 0.5px;
+            font-weight: 600;
         }
 
-        /* Bottom Navigation Bar */
+        /* Slide-out Mobile Sidebar Drawer */
+        .mobile-sidebar {
+            position: fixed;
+            top: 0;
+            left: -280px;
+            width: 280px;
+            height: 100vh;
+            background: #111726;
+            border-right: 1px solid var(--border-card);
+            box-shadow: 10px 0 30px rgba(0, 0, 0, 0.5);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 1100;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .mobile-sidebar.show {
+            left: 0;
+        }
+
+        .mobile-sidebar-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(5, 8, 16, 0.65);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            display: none;
+            z-index: 1090;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .mobile-sidebar-overlay.show {
+            display: block;
+            opacity: 1;
+        }
+
+        .mobile-sidebar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border-card);
+            margin-bottom: 20px;
+        }
+
+        .mobile-sidebar-header h4 {
+            font-size: 1.15rem;
+            font-weight: 700;
+            margin: 0;
+            color: white;
+        }
+
+        .mobile-tenant-badge {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border-card);
+            border-radius: 12px;
+            padding: 12px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .mobile-tenant-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #4f46e5, #818cf8);
+            color: white;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+        }
+
+        .mobile-tenant-info {
+            overflow: hidden;
+            line-height: 1.3;
+        }
+
+        .mobile-tenant-name {
+            font-weight: 600;
+            color: white;
+            font-size: 0.85rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .mobile-tenant-role {
+            font-size: 0.72rem;
+            color: var(--text-muted);
+        }
+
+        .mobile-sidebar-menu {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .mobile-sidebar-menu a {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            border-radius: 12px;
+            color: var(--text-muted);
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+        }
+
+        .mobile-sidebar-menu a:hover,
+        .mobile-sidebar-menu a.active {
+            color: white;
+            background: rgba(79, 70, 229, 0.15);
+            border-left: 3px solid #818cf8;
+            padding-left: 13px;
+        }
+
+        .mobile-sidebar-menu i {
+            font-size: 1.1rem;
+            width: 20px;
+            text-align: center;
+        }
+
+        .mobile-sidebar-footer {
+            margin-top: auto;
+            padding-top: 20px;
+            border-top: 1px solid var(--border-card);
+        }
+
+        /* Floating premium bottom nav */
         .bottom-nav {
             position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            height: 75px;
-            background: rgba(18, 24, 41, 0.95);
-            backdrop-filter: blur(15px);
-            -webkit-backdrop-filter: blur(15px);
-            border-top: 1px solid var(--border-card);
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            height: 68px;
+            background: rgba(18, 24, 41, 0.85);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--border-card);
+            border-radius: 20px;
             display: flex;
             justify-content: space-around;
             align-items: center;
             z-index: 1000;
-            padding-bottom: env(safe-area-inset-bottom);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            padding: 0 10px;
         }
 
         .nav-item-custom {
@@ -114,29 +253,42 @@
             align-items: center;
             text-decoration: none;
             color: var(--text-muted);
-            font-size: 0.7rem;
-            font-weight: 500;
-            transition: all 0.2s ease;
+            font-size: 0.65rem;
+            font-weight: 600;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
             position: relative;
-            padding: 8px 12px;
-            border-radius: 12px;
+            padding: 8px 0;
+            flex: 1;
+            height: 100%;
+            justify-content: center;
         }
 
         .nav-item-custom i {
-            font-size: 1.35rem;
-            margin-bottom: 4px;
-            transition: all 0.2s ease;
+            font-size: 1.25rem;
+            margin-bottom: 2px;
+            transition: all 0.25s ease;
         }
 
         .nav-item-custom.active {
             color: #818cf8;
-            background: rgba(79, 70, 229, 0.08);
         }
 
         .nav-item-custom.active i {
-            transform: translateY(-2px);
+            transform: translateY(-4px);
             color: #818cf8;
-            text-shadow: 0 0 10px rgba(129, 140, 248, 0.6);
+            text-shadow: 0 0 12px rgba(129, 140, 248, 0.8);
+        }
+
+        /* Floating active bar/indicator dot */
+        .nav-item-custom.active::after {
+            content: '';
+            position: absolute;
+            bottom: 6px;
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            background-color: #818cf8;
+            box-shadow: 0 0 8px #818cf8;
         }
 
         /* Custom badge */
@@ -246,20 +398,91 @@
 </head>
 <body>
 
+    <!-- Drawer Overlay -->
+    <div class="mobile-sidebar-overlay" id="mobileSidebarOverlay"></div>
+
+    <!-- Drawer Sidebar -->
+    <div class="mobile-sidebar" id="mobileSidebar">
+        <div class="mobile-sidebar-header">
+            <h4>ASPARTECH ERP</h4>
+            <button type="button" class="btn-close btn-close-white" id="closeMobileSidebar" aria-label="Close"></button>
+        </div>
+
+        <!-- Tenant info inside Mobile Sidebar -->
+        <div class="mobile-tenant-badge">
+            <div class="mobile-tenant-avatar">
+                {{ strtoupper(substr(Auth::user()->tenant->name, 0, 1)) }}
+            </div>
+            <div class="mobile-tenant-info">
+                <div class="mobile-tenant-name">{{ Auth::user()->tenant->name }}</div>
+                <div class="mobile-tenant-role">{{ Auth::user()->roles->first() ? ucfirst(Auth::user()->roles->first()->name) : ucfirst(Auth::user()->role) }}</div>
+            </div>
+        </div>
+
+        <!-- Mobile Drawer Menus -->
+        @php
+            $role = Auth::user()->role;
+            $isOwnerActive = request()->routeIs('mobile.owner*');
+            $isGudangActive = request()->routeIs('mobile.gudang') || request()->routeIs('mobile.gudang.adjust_stock') || request()->routeIs('mobile.gudang.request_production');
+            $isScanActive = request()->routeIs('mobile.gudang.scan*');
+            $isProduksiActive = request()->routeIs('mobile.produksi*');
+        @endphp
+
+        <div class="mobile-sidebar-menu">
+            <a href="{{ route('dashboard') }}">
+                <i class="fas fa-home"></i>
+                <span>Kembali ke Desktop</span>
+            </a>
+
+            @if(in_array($role, ['admin', 'owner', 'finance']))
+                <a href="{{ route('mobile.owner') }}" class="{{ $isOwnerActive ? 'active' : '' }}">
+                    <i class="fas fa-chart-line"></i>
+                    <span>Dashboard Owner</span>
+                </a>
+            @endif
+
+            @if(in_array($role, ['admin', 'warehouse', 'gudang']))
+                <a href="{{ route('mobile.gudang') }}" class="{{ $isGudangActive ? 'active' : '' }}">
+                    <i class="fas fa-warehouse"></i>
+                    <span>Dashboard Gudang</span>
+                </a>
+                <a href="{{ route('mobile.gudang.scan') }}" class="{{ $isScanActive ? 'active' : '' }}">
+                    <i class="fas fa-barcode"></i>
+                    <span>Scan & Cari SKU</span>
+                </a>
+            @endif
+
+            @if(in_array($role, ['admin', 'production', 'produksi']))
+                <a href="{{ route('mobile.produksi') }}" class="{{ $isProduksiActive ? 'active' : '' }}">
+                    <i class="fas fa-tools"></i>
+                    <span>Dashboard Produksi</span>
+                </a>
+            @endif
+        </div>
+
+        <!-- Mobile Drawer Footer -->
+        <div class="mobile-sidebar-footer">
+            <form action="{{ route('logout') }}" method="POST" class="m-0">
+                @csrf
+                <button type="submit" class="btn btn-outline-danger w-100 d-flex align-items-center justify-content-center gap-2 py-2 btn-sm" style="border-radius: 10px;">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Keluar</span>
+                </button>
+            </form>
+        </div>
+    </div>
+
     <!-- Header Bar -->
     <header class="mobile-header">
         <div class="d-flex align-items-center">
-            <i class="fas fa-cubes me-2 text-indigo" style="color:#818cf8; font-size:1.35rem;"></i>
+            <button class="btn text-white p-0 me-3 d-flex align-items-center" id="btnToggleMobileSidebar" style="border: none; background: none;">
+                <i class="fas fa-bars" style="font-size: 1.3rem;"></i>
+            </button>
+            <i class="fas fa-cubes me-2" style="color:#818cf8; font-size:1.25rem;"></i>
             <h1>@yield('header-title', 'ERP Mobile')</h1>
         </div>
         <div class="d-flex align-items-center gap-2">
             <span class="user-tag">{{ Auth::user()->role }}</span>
-            <form action="{{ route('logout') }}" method="POST" class="m-0" id="logout-form">
-                @csrf
-                <button type="submit" class="btn btn-link text-danger p-0" style="font-size: 1.15rem;" title="Keluar">
-                    <i class="fas fa-sign-out-alt"></i>
-                </button>
-            </form>
         </div>
     </header>
 
@@ -284,14 +507,9 @@
 
     <!-- Bottom Navigation Bar -->
     <nav class="bottom-nav">
-        @php
-            $role = Auth::user()->role;
-            $currentRoute = Route::currentRouteName();
-        @endphp
-
         <!-- Tab Owner -->
         @if(in_array($role, ['admin', 'owner', 'finance']))
-            <a href="{{ route('mobile.owner') }}" class="nav-item-custom {{ $currentRoute === 'mobile.owner' ? 'active' : '' }}">
+            <a href="{{ route('mobile.owner') }}" class="nav-item-custom {{ $isOwnerActive ? 'active' : '' }}">
                 <i class="fas fa-chart-line"></i>
                 <span>Owner</span>
             </a>
@@ -299,11 +517,11 @@
 
         <!-- Tab Gudang -->
         @if(in_array($role, ['admin', 'warehouse', 'gudang']))
-            <a href="{{ route('mobile.gudang') }}" class="nav-item-custom {{ $currentRoute === 'mobile.gudang' ? 'active' : '' }}">
+            <a href="{{ route('mobile.gudang') }}" class="nav-item-custom {{ $isGudangActive ? 'active' : '' }}">
                 <i class="fas fa-warehouse"></i>
                 <span>Gudang</span>
             </a>
-            <a href="{{ route('mobile.gudang.scan') }}" class="nav-item-custom {{ $currentRoute === 'mobile.gudang.scan' ? 'active' : '' }}">
+            <a href="{{ route('mobile.gudang.scan') }}" class="nav-item-custom {{ $isScanActive ? 'active' : '' }}">
                 <i class="fas fa-barcode"></i>
                 <span>Scan SKU</span>
             </a>
@@ -311,7 +529,7 @@
 
         <!-- Tab Produksi -->
         @if(in_array($role, ['admin', 'production', 'produksi']))
-            <a href="{{ route('mobile.produksi') }}" class="nav-item-custom {{ $currentRoute === 'mobile.produksi' ? 'active' : '' }}">
+            <a href="{{ route('mobile.produksi') }}" class="nav-item-custom {{ $isProduksiActive ? 'active' : '' }}">
                 <i class="fas fa-tools"></i>
                 <span>Produksi</span>
             </a>
@@ -321,6 +539,33 @@
     <!-- Bootstrap 5 Bundle JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     
+    <!-- Drawer Toggle Script (Vanilla JS) -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const toggleBtn = document.getElementById('btnToggleMobileSidebar');
+            const sidebar = document.getElementById('mobileSidebar');
+            const overlay = document.getElementById('mobileSidebarOverlay');
+            const closeBtn = document.getElementById('closeMobileSidebar');
+
+            if (toggleBtn && sidebar && overlay) {
+                const openSidebar = function() {
+                    sidebar.classList.add('show');
+                    overlay.classList.add('show');
+                };
+
+                const closeSidebar = function() {
+                    sidebar.classList.remove('show');
+                    overlay.classList.remove('show');
+                };
+
+                toggleBtn.addEventListener('click', openSidebar);
+                overlay.addEventListener('click', closeSidebar);
+                if (closeBtn) {
+                    closeBtn.addEventListener('click', closeSidebar);
+                }
+            }
+        });
+    </script>
     @yield('scripts')
 </body>
 </html>

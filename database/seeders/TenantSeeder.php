@@ -17,6 +17,22 @@ class TenantSeeder extends Seeder
     public function run(): void
     {
         // ==========================
+        // Super Admin (Global) - ID 1
+        // ==========================
+        $tenantGlobal = Tenant::create([
+            'name'   => 'Super Admin (Global)',
+            'status' => 'active',
+        ]);
+
+        User::create([
+            'tenant_id' => $tenantGlobal->id,
+            'name'      => 'Super Administrator',
+            'email'     => 'superadmin@erp.com',
+            'password'  => Hash::make('SuperAdmin@2024!'),
+            'role'      => 'super-admin',
+        ]);
+
+        // ==========================
         // Perusahaan A - Demo
         // ==========================
         $tenantA = Tenant::create([
@@ -31,6 +47,14 @@ class TenantSeeder extends Seeder
             'email'     => 'admin@perusahaan-a.com',
             'password'  => Hash::make('password'),
             'role'      => 'admin',
+        ]);
+
+        User::create([
+            'tenant_id' => $tenantA->id,
+            'name'      => 'Owner Perusahaan A',
+            'email'     => 'owner@perusahaan-a.com',
+            'password'  => Hash::make('password'),
+            'role'      => 'owner',
         ]);
 
         User::create([
@@ -153,6 +177,14 @@ class TenantSeeder extends Seeder
             'email'     => 'admin@perusahaan-b.com',
             'password'  => Hash::make('password'),
             'role'      => 'admin',
+        ]);
+
+        User::create([
+            'tenant_id' => $tenantB->id,
+            'name'      => 'Owner Perusahaan B',
+            'email'     => 'owner@perusahaan-b.com',
+            'password'  => Hash::make('password'),
+            'role'      => 'owner',
         ]);
 
         User::create([

@@ -30,6 +30,8 @@ class MasterProduct extends Model
         'is_active',
         'ukuran',
         'warna',
+        'is_preorder',
+        'preorder_days',
     ];
 
     public function category()
@@ -46,6 +48,8 @@ class MasterProduct extends Model
         'price'     => 'decimal:2',
         'cost_price'=> 'decimal:2',
         'is_active' => 'boolean',
+        'is_preorder' => 'boolean',
+        'preorder_days' => 'integer',
     ];
 
     public function tenant(): BelongsTo

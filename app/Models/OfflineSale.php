@@ -32,6 +32,7 @@ class OfflineSale extends Model
         'transfer' => 'Transfer Bank',
         'qris'     => 'QRIS',
         'kartu'    => 'Kartu Debit/Kredit',
+        'piutang'  => 'Piutang / Bayar Nanti',
     ];
 
     public function tenant(): BelongsTo

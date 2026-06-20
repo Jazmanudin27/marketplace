@@ -110,7 +110,14 @@ class MasterProductController extends Controller
             'ukuran'       => 'nullable|string|max:100',
             'warna'        => 'nullable|string|max:100',
             'is_active'    => 'nullable|boolean',
+            'is_preorder'  => 'nullable|boolean',
+            'preorder_days'=> 'nullable|integer|min:0',
         ]);
+
+        $data['is_preorder'] = $request->has('is_preorder') ? true : false;
+        if (!$data['is_preorder']) {
+            $data['preorder_days'] = null;
+        }
 
         // Handle file upload — takes priority over URL
         if ($request->hasFile('image_file') && $request->file('image_file')->isValid()) {
@@ -187,7 +194,14 @@ class MasterProductController extends Controller
             'ukuran'       => 'nullable|string|max:100',
             'warna'        => 'nullable|string|max:100',
             'is_active'    => 'nullable|boolean',
+            'is_preorder'  => 'nullable|boolean',
+            'preorder_days'=> 'nullable|integer|min:0',
         ]);
+
+        $data['is_preorder'] = $request->has('is_preorder') ? true : false;
+        if (!$data['is_preorder']) {
+            $data['preorder_days'] = null;
+        }
 
         // Handle file upload — takes priority over URL
         if ($request->hasFile('image_file') && $request->file('image_file')->isValid()) {

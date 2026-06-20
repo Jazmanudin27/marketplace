@@ -14,20 +14,70 @@ class ReturnOrderController extends Controller
     {
         $tenantId = Auth::user()->tenant_id;
         $search = $request->query('search');
+        $channelId = $request->query('channel_id');
+        $storeId = $request->query('store_id');
+        $status = $request->query('status');
+        $isRestocked = $request->query('is_restocked');
 
-        $returns = ReturnOrder::with(['order.customer', 'store', 'items.orderItem.marketplaceProduct.masterProduct'])
-            ->where('tenant_id', $tenantId)
-            ->when($search, function ($query, $search) {
-                return $query->where('return_sn', 'like', "%{$search}%")
-                             ->orWhereHas('order', function ($q) use ($search) {
-                                 $q->where('invoice_number', 'like', "%{$search}%")
-                                   ->orWhere('order_marketplace_id', 'like', "%{$search}%");
-                             });
-            })
-            ->orderByDesc('created_at')
-            ->paginate(15);
+        $query = ReturnOrder::with(['order.customer', 'store.channel', 'items.orderItem.marketplaceProduct.masterProduct'])
+            ->where('tenant_id', $tenantId);
 
-        return view('returns.index', compact('returns', 'search'));
+        // Filter Search
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('return_sn', 'like', "%{$search}%")
+                  ->orWhereHas('order', function ($o) use ($search) {
+                      $o->where('invoice_number', 'like', "%{$search}%")
+                        ->orWhere('order_marketplace_id', 'like', "%{$search}%");
+                  });
+            });
+        }
+
+        // Filter Channel
+        if ($channelId) {
+            $query->whereHas('store', function ($q) use ($channelId) {
+                $q->where('channel_id', $channelId);
+            });
+        }
+
+        // Filter Toko
+        if ($storeId) {
+            $query->where('store_id', $storeId);
+        }
+
+        // Filter Status Retur
+        if ($status) {
+            $query->where('status', $status);
+        }
+
+        // Filter Tindakan Gudang (is_restocked)
+        if ($isRestocked !== null && $isRestocked !== '') {
+            $query->where('is_restocked', $isRestocked);
+        }
+
+        $returns = $query->orderByDesc('created_at')
+            ->paginate(15)
+            ->withQueryString();
+
+        // Support data for filters
+        $channels = \App\Models\Channel::all();
+        $stores = \App\Models\Store::where('tenant_id', $tenantId)->get();
+        $statuses = ReturnOrder::where('tenant_id', $tenantId)
+            ->whereNotNull('status')
+            ->distinct()
+            ->pluck('status');
+
+        return view('returns.index', compact(
+            'returns',
+            'search',
+            'channels',
+            'stores',
+            'statuses',
+            'channelId',
+            'storeId',
+            'status',
+            'isRestocked'
+        ));
     }
 
     public function sync()

@@ -115,6 +115,12 @@ class Order extends Model
                             ->exists();
 
                         if (!$alreadyDeducted) {
+                            // Cek jika produk merupakan Pre-Order dan stok fisik di gudang tidak cukup
+                            if ($masterProduct->is_preorder && $masterProduct->stock < $item->quantity) {
+                                $allDeducted = false;
+                                continue;
+                            }
+
                             $masterProduct->recordStockMovement(
                                 $item->quantity,
                                 'out',

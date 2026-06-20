@@ -10,7 +10,9 @@ class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        //
+        \Illuminate\Database\Connection::resolverFor('mysql', function ($connection, $database, $prefix, $config) {
+            return new \App\Database\CustomMySqlConnection($connection, $database, $prefix, $config);
+        });
     }
 
     public function boot(): void
@@ -18,7 +20,9 @@ class AppServiceProvider extends ServiceProvider
         Paginator::useBootstrapFive();
 
         if (str_contains(config('app.url'), 'https://')) {
-            URL::forceScheme('https');
+            if (!app()->runningInConsole() && !in_array(request()->getHost(), ['127.0.0.1', 'localhost'])) {
+                URL::forceScheme('https');
+            }
         }
 
         // Jalankan migrasi otomatis jika tabel permission belum ada

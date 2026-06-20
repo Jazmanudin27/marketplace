@@ -47,7 +47,7 @@
     </div>
 
     <div class="table-wrapper">
-        <table class="data-table">
+        <table class="data-table align-middle">
             <thead>
                 <tr>
                     <th>Kode</th>

@@ -3,550 +3,615 @@
 @section('page-title', 'Inbox Chat')
 
 @push('styles')
-<style>
-/* ============================================================
-   CHAT INBOX — TWO-PANEL LAYOUT
-   ============================================================ */
-.chat-layout {
-    display: flex;
-    height: calc(100vh - 120px);
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    overflow: hidden;
-    box-shadow: 0 4px 32px rgba(0,0,0,0.25);
-}
+    <style>
+        /* ── Chat Layout ── */
+        .chat-layout {
+            display: flex;
+            height: 95vh;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.07);
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
+        }
 
-/* ── LEFT PANEL ── */
-.chat-sidebar {
-    width: 360px;
-    min-width: 320px;
-    display: flex;
-    flex-direction: column;
-    border-right: 1px solid var(--border);
-    background: rgba(255,255,255,0.02);
-}
+        /* ── Left Sidebar ── */
+        .chat-sidebar {
+            width: 340px;
+            min-width: 300px;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid rgba(255, 255, 255, 0.07);
+            background: var(--bg-card, #1a2332);
+        }
 
-.chat-sidebar-header {
-    padding: 1.25rem 1.25rem 0.75rem;
-    border-bottom: 1px solid var(--border);
-}
+        .chat-sidebar-header {
+            padding: .875rem 1rem .75rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+        }
 
-.chat-sidebar-header h2 {
-    font-size: 1.1rem;
-    font-weight: 700;
-    margin: 0 0 0.75rem;
-    color: var(--text-primary);
-    display: flex;
-    align-items: center;
-    gap: .5rem;
-}
+        /* Search */
+        .chat-search-wrap {
+            position: relative;
+        }
 
-.chat-search-bar {
-    position: relative;
-}
+        .chat-search-wrap .fa-search {
+            position: absolute;
+            left: .75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #64748b;
+            font-size: .78rem;
+            pointer-events: none;
+        }
 
-.chat-search-bar input {
-    width: 100%;
-    background: rgba(255,255,255,0.06);
-    border: 1px solid var(--border);
-    border-radius: 24px;
-    padding: .5rem 1rem .5rem 2.5rem;
-    color: var(--text-primary);
-    font-size: .88rem;
-    transition: all .2s;
-}
+        .chat-search-input {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.09);
+            border-radius: 20px;
+            padding: .45rem .85rem .45rem 2.2rem;
+            color: #e2e8f0;
+            font-size: .83rem;
+            transition: border-color .2s, background .2s;
+            outline: none;
+        }
 
-.chat-search-bar input:focus {
-    outline: none;
-    border-color: var(--primary);
-    background: rgba(255,255,255,0.09);
-}
+        .chat-search-input:focus {
+            border-color: #6366f1;
+            background: rgba(255, 255, 255, 0.08);
+        }
 
-.chat-search-bar i {
-    position: absolute;
-    left: .9rem;
-    top: 50%;
-    transform: translateY(-50%);
-    color: var(--text-muted);
-    font-size: .82rem;
-}
+        .chat-search-input::placeholder {
+            color: #475569;
+        }
 
-/* Filter Pills */
-.chat-filter-pills {
-    display: flex;
-    gap: .5rem;
-    padding: .75rem 1.25rem;
-    border-bottom: 1px solid var(--border);
-    overflow-x: auto;
-    scrollbar-width: none;
-}
+        /* Filter pills */
+        .chat-pills {
+            display: flex;
+            gap: .35rem;
+            padding: .6rem 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+            overflow-x: auto;
+            scrollbar-width: none;
+            flex-shrink: 0;
+        }
 
-.chat-filter-pills::-webkit-scrollbar { display: none; }
+        .chat-pills::-webkit-scrollbar {
+            display: none;
+        }
 
-.filter-pill {
-    display: flex;
-    align-items: center;
-    gap: .35rem;
-    padding: .3rem .85rem;
-    border-radius: 20px;
-    font-size: .8rem;
-    font-weight: 500;
-    border: 1px solid var(--border);
-    background: transparent;
-    color: var(--text-muted);
-    cursor: pointer;
-    white-space: nowrap;
-    text-decoration: none;
-    transition: all .2s;
-}
+        .chat-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: .3rem;
+            padding: .22rem .7rem;
+            border-radius: 20px;
+            font-size: .75rem;
+            font-weight: 500;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: transparent;
+            color: #94a3b8;
+            cursor: pointer;
+            white-space: nowrap;
+            text-decoration: none;
+            transition: all .18s;
+        }
 
-.filter-pill:hover,
-.filter-pill.active {
-    background: var(--primary);
-    border-color: var(--primary);
-    color: #fff;
-}
+        .chat-pill:hover,
+        .chat-pill.active {
+            background: #6366f1;
+            border-color: #6366f1;
+            color: #fff;
+        }
 
-/* Conversation List */
-.chat-conv-list {
-    flex: 1;
-    overflow-y: auto;
-    scrollbar-width: thin;
-    scrollbar-color: var(--border) transparent;
-}
+        /* Conversation list */
+        .chat-conv-list {
+            flex: 1;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255, 255, 255, 0.08) transparent;
+        }
 
-.conv-item {
-    display: flex;
-    align-items: center;
-    gap: .875rem;
-    padding: .9rem 1.25rem;
-    border-bottom: 1px solid rgba(255,255,255,0.04);
-    cursor: pointer;
-    text-decoration: none;
-    color: var(--text-primary);
-    transition: background .15s;
-    position: relative;
-}
+        .chat-conv-list::-webkit-scrollbar {
+            width: 4px;
+        }
 
-.conv-item:hover { background: rgba(255,255,255,0.04); color: var(--text-primary); }
-.conv-item.active { background: rgba(99,102,241,0.12); }
-.conv-item.active::before {
-    content: '';
-    position: absolute;
-    left: 0; top: 0; bottom: 0;
-    width: 3px;
-    background: var(--primary);
-    border-radius: 0 2px 2px 0;
-}
+        .chat-conv-list::-webkit-scrollbar-track {
+            background: transparent;
+        }
 
-.conv-avatar {
-    width: 46px; height: 46px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #6366f1, #8b5cf6);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 700;
-    font-size: 1rem;
-    color: #fff;
-    flex-shrink: 0;
-    position: relative;
-}
+        .chat-conv-list::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+        }
 
-.conv-avatar-img {
-    width: 46px; height: 46px;
-    border-radius: 50%;
-    object-fit: cover;
-    flex-shrink: 0;
-}
+        .conv-item {
+            display: flex;
+            align-items: center;
+            gap: .75rem;
+            padding: .8rem 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            cursor: pointer;
+            text-decoration: none;
+            color: #e2e8f0;
+            transition: background .15s;
+            position: relative;
+        }
 
-.channel-dot {
-    position: absolute;
-    bottom: -2px; right: -2px;
-    width: 18px; height: 18px;
-    border-radius: 50%;
-    border: 2px solid var(--bg-card);
-    font-size: .55rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 700;
-    color: #fff;
-}
+        .conv-item:hover {
+            background: rgba(255, 255, 255, 0.04);
+            color: #e2e8f0;
+            text-decoration: none;
+        }
 
-.channel-dot.shopee { background: #ee4d2d; }
-.channel-dot.tiktok { background: #010101; }
+        .conv-item.active {
+            background: rgba(99, 102, 241, 0.12);
+        }
 
-.conv-info { flex: 1; min-width: 0; }
+        .conv-item.active::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            background: #6366f1;
+            border-radius: 0 2px 2px 0;
+        }
 
-.conv-name {
-    font-size: .9rem;
-    font-weight: 600;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    margin-bottom: .15rem;
-}
+        /* Avatar */
+        .conv-avatar {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: .95rem;
+            color: #fff;
+            flex-shrink: 0;
+            position: relative;
+        }
 
-.conv-preview {
-    font-size: .78rem;
-    color: var(--text-muted);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
+        .channel-dot {
+            position: absolute;
+            bottom: -2px;
+            right: -2px;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            border: 2px solid var(--bg-card, #1a2332);
+            font-size: .5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            color: #fff;
+        }
 
-.conv-meta {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: .3rem;
-    flex-shrink: 0;
-}
+        .channel-dot.shopee {
+            background: #ee4d2d;
+        }
 
-.conv-time {
-    font-size: .72rem;
-    color: var(--text-muted);
-}
+        .channel-dot.tiktok {
+            background: #010101;
+            border-color: #252525;
+        }
 
-.conv-unread {
-    width: 20px; height: 20px;
-    border-radius: 50%;
-    background: var(--primary);
-    color: #fff;
-    font-size: .65rem;
-    font-weight: 700;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
+        .conv-info {
+            flex: 1;
+            min-width: 0;
+        }
 
-/* Store sync bar */
-.sync-bar {
-    padding: .6rem 1.25rem;
-    border-top: 1px solid var(--border);
-    display: flex;
-    gap: .5rem;
-    flex-wrap: wrap;
-    align-items: center;
-    background: rgba(0,0,0,.15);
-}
+        .conv-name {
+            font-size: .86rem;
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-bottom: .1rem;
+        }
 
-.sync-bar-label {
-    font-size: .75rem;
-    color: var(--text-muted);
-    margin-right: .25rem;
-}
+        .conv-preview {
+            font-size: .74rem;
+            color: #64748b;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
 
-.btn-sync-store {
-    display: flex;
-    align-items: center;
-    gap: .35rem;
-    padding: .25rem .7rem;
-    border-radius: 20px;
-    font-size: .75rem;
-    font-weight: 500;
-    border: 1px solid var(--border);
-    background: transparent;
-    color: var(--text-muted);
-    cursor: pointer;
-    transition: all .2s;
-}
+        .conv-meta {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: .25rem;
+            flex-shrink: 0;
+        }
 
-.btn-sync-store:hover {
-    border-color: var(--primary);
-    color: var(--primary);
-}
+        .conv-time {
+            font-size: .68rem;
+            color: #475569;
+        }
 
-/* ── RIGHT PANEL (empty state) ── */
-.chat-main {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    color: var(--text-muted);
-    gap: 1rem;
-}
+        /* Status badge */
+        .status-badge {
+            display: inline-block;
+            padding: .08rem .45rem;
+            border-radius: 10px;
+            font-size: .66rem;
+            font-weight: 600;
+        }
 
-.chat-empty-icon {
-    width: 80px; height: 80px;
-    border-radius: 50%;
-    background: rgba(99,102,241,0.1);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 2rem;
-    color: var(--primary);
-}
+        .status-open {
+            background: rgba(34, 197, 94, .15);
+            color: #22c55e;
+        }
 
-.chat-empty-title {
-    font-size: 1.1rem;
-    font-weight: 600;
-    color: var(--text-primary);
-}
+        .status-closed {
+            background: rgba(100, 116, 139, .15);
+            color: #94a3b8;
+        }
 
-.chat-empty-sub {
-    font-size: .88rem;
-    text-align: center;
-    max-width: 260px;
-    line-height: 1.6;
-}
+        .status-archived {
+            background: rgba(71, 85, 105, .15);
+            color: #64748b;
+        }
 
-/* Pagination small */
-.chat-pagination {
-    padding: .5rem 1.25rem;
-    border-top: 1px solid var(--border);
-    display: flex;
-    justify-content: center;
-}
+        /* Channel tag */
+        .channel-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: .25rem;
+            padding: .18rem .55rem;
+            border-radius: 12px;
+            font-size: .72rem;
+            font-weight: 600;
+        }
 
-.chat-pagination nav { transform: scale(.85); transform-origin: center; }
+        .channel-shopee {
+            background: rgba(238, 77, 45, .18);
+            color: #ee4d2d;
+        }
 
-/* Channel tag */
-.channel-tag {
-    display: inline-flex;
-    align-items: center;
-    gap: .25rem;
-    padding: .15rem .55rem;
-    border-radius: 12px;
-    font-size: .72rem;
-    font-weight: 600;
-    letter-spacing: .02em;
-}
+        .channel-tiktok {
+            background: rgba(1, 1, 1, .35);
+            color: #69c9d0;
+            border: 1px solid rgba(105, 201, 208, .25);
+        }
 
-.channel-shopee { background: rgba(238,77,45,.18); color: #ee4d2d; }
-.channel-tiktok  { background: rgba(1,1,1,.35); color: #69c9d0; border: 1px solid rgba(105,201,208,.3); }
+        /* Sync bar */
+        .chat-sync-bar {
+            padding: .5rem .875rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.07);
+            display: flex;
+            gap: .4rem;
+            flex-wrap: wrap;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.15);
+            flex-shrink: 0;
+        }
 
-/* Status badge */
-.status-badge {
-    display: inline-block;
-    padding: .1rem .5rem;
-    border-radius: 10px;
-    font-size: .7rem;
-    font-weight: 600;
-}
-.status-open     { background: rgba(34,197,94,.15); color: #22c55e; }
-.status-closed   { background: rgba(100,116,139,.15); color: #94a3b8; }
-.status-archived { background: rgba(71,85,105,.15); color: #64748b; }
+        /* Pagination */
+        .chat-pagination {
+            padding: .4rem .875rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.07);
+            display: flex;
+            justify-content: center;
+            flex-shrink: 0;
+        }
 
-/* Spinning icon for loading */
-@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-.spin { animation: spin 1s linear infinite; }
+        .chat-pagination .pagination {
+            transform: scale(.82);
+            transform-origin: center;
+            margin: 0;
+        }
 
-/* Responsive */
-@media (max-width: 768px) {
-    .chat-layout { height: auto; flex-direction: column; }
-    .chat-sidebar { width: 100%; min-width: 0; border-right: none; border-bottom: 1px solid var(--border); height: 55vh; }
-    .chat-main { height: 200px; }
-}
-</style>
+        /* ── Right Panel ── */
+        .chat-main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: .875rem;
+            background: var(--bg-card, #1a2332);
+            color: #475569;
+        }
+
+        .chat-empty-icon {
+            width: 72px;
+            height: 72px;
+            border-radius: 50%;
+            background: rgba(99, 102, 241, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+            color: #6366f1;
+        }
+
+        /* Spinning */
+        @keyframes spin {
+            from {
+                transform: rotate(0deg);
+            }
+
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .spin {
+            animation: spin 1s linear infinite;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .chat-layout {
+                height: auto;
+                flex-direction: column;
+            }
+
+            .chat-sidebar {
+                width: 100%;
+                min-width: 0;
+                border-right: none;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+                max-height: 55vh;
+            }
+
+            .chat-main {
+                min-height: 180px;
+            }
+        }
+    </style>
 @endpush
 
 @section('content')
-<div class="chat-layout">
+    <div class="chat-layout">
 
-    {{-- ────────────── LEFT: Conversation List ────────────── --}}
-    <div class="chat-sidebar">
-        <div class="chat-sidebar-header">
-            <h2><i class="fas fa-comments" style="color:var(--primary)"></i> Inbox Chat</h2>
+        {{-- ─────────────── LEFT: Daftar Percakapan ─────────────── --}}
+        <div class="chat-sidebar">
 
-            {{-- Search --}}
-            <form method="GET" action="{{ route('chats.index') }}" id="chat-filter-form">
-                <div class="chat-search-bar mb-2">
-                    <i class="fas fa-search"></i>
-                    <input
-                        type="text"
-                        name="search"
-                        value="{{ $search }}"
-                        placeholder="Cari buyer atau pesan..."
-                        autocomplete="off"
-                        onchange="this.form.submit()"
-                    >
-                </div>
-
-                {{-- Hidden filters --}}
-                @if ($storeId)
-                    <input type="hidden" name="store_id" value="{{ $storeId }}">
-                @endif
-                @if ($channelCode)
-                    <input type="hidden" name="channel" value="{{ $channelCode }}">
-                @endif
-                @if ($status)
-                    <input type="hidden" name="status" value="{{ $status }}">
-                @endif
-            </form>
-        </div>
-
-        {{-- Filter Pills --}}
-        <div class="chat-filter-pills">
-            <a href="{{ route('chats.index') }}"
-               class="filter-pill {{ !$channelCode && !$status ? 'active' : '' }}">
-                <i class="fas fa-inbox"></i> Semua
-            </a>
-            <a href="{{ route('chats.index', array_merge(request()->query(), ['channel' => 'shopee'])) }}"
-               class="filter-pill {{ $channelCode === 'shopee' ? 'active' : '' }}">
-                🛒 Shopee
-            </a>
-            <a href="{{ route('chats.index', array_merge(request()->query(), ['channel' => 'tiktok'])) }}"
-               class="filter-pill {{ $channelCode === 'tiktok' ? 'active' : '' }}">
-                🎵 TikTok
-            </a>
-            <a href="{{ route('chats.index', array_merge(request()->query(), ['status' => 'open'])) }}"
-               class="filter-pill {{ $status === 'open' ? 'active' : '' }}">
-                <i class="fas fa-circle" style="font-size:.55rem;color:#22c55e"></i> Open
-            </a>
-            <a href="{{ route('chats.index', array_merge(request()->query(), ['status' => 'closed'])) }}"
-               class="filter-pill {{ $status === 'closed' ? 'active' : '' }}">
-                <i class="fas fa-check-circle" style="font-size:.55rem"></i> Closed
-            </a>
-        </div>
-
-        {{-- Conversation List --}}
-        <div class="chat-conv-list">
-            @forelse($conversations as $conv)
-                @php
-                    $ch = $conv->store->channel->code ?? '';
-                    $initial = strtoupper(substr($conv->buyer_name ?? 'B', 0, 1));
-                    $isActive = false; // on index page, no active
-                @endphp
-                <a href="{{ route('chats.show', $conv) }}" class="conv-item {{ $isActive ? 'active' : '' }}">
-                    {{-- Avatar --}}
-                    <div class="conv-avatar" style="background: linear-gradient(135deg,
-                        {{ $ch === 'shopee' ? '#ee4d2d, #f97316' : ($ch === 'tiktok' ? '#010101, #1d1d1d' : '#6366f1, #8b5cf6') }});">
-                        {{ $initial }}
-                        <span class="channel-dot {{ $ch }}">
-                            {{ $ch === 'shopee' ? 'S' : ($ch === 'tiktok' ? 'T' : '?') }}
-                        </span>
+            {{-- Header & Search --}}
+            <div class="chat-sidebar-header">
+                <h6 class="mb-2 fw-bold d-flex align-items-center gap-2">
+                    <i class="fas fa-comments text-primary"></i> Inbox Chat
+                </h6>
+                <form method="GET" action="{{ route('chats.index') }}" id="chatFilterForm">
+                    <div class="chat-search-wrap">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="chatSearchInput" name="search" value="{{ $search }}"
+                            placeholder="Cari buyer atau pesan…" autocomplete="off" class="chat-search-input">
                     </div>
+                    {{-- Hidden filters --}}
+                    @if ($storeId)
+                        <input type="hidden" name="store_id" value="{{ $storeId }}">
+                    @endif
+                    @if ($channelCode)
+                        <input type="hidden" name="channel" value="{{ $channelCode }}">
+                    @endif
+                    @if ($status)
+                        <input type="hidden" name="status" value="{{ $status }}">
+                    @endif
+                </form>
+            </div>
 
-                    {{-- Info --}}
-                    <div class="conv-info">
-                        <div class="conv-name">{{ $conv->buyer_name ?? 'Unknown Buyer' }}</div>
-                        <div class="conv-preview">
-                            <span style="color:var(--text-muted);font-size:.72rem;">{{ $conv->store->store_name }}</span>
-                            · {{ \Illuminate\Support\Str::limit($conv->last_message_preview ?? '—', 40) }}
+            {{-- Filter Pills --}}
+            <div class="chat-pills">
+                <a href="{{ route('chats.index') }}" class="chat-pill {{ !$channelCode && !$status ? 'active' : '' }}">
+                    <i class="fas fa-inbox"></i> Semua
+                </a>
+                <a href="{{ route('chats.index', array_merge(request()->query(), ['channel' => 'shopee'])) }}"
+                    class="chat-pill {{ $channelCode === 'shopee' ? 'active' : '' }}">
+                    🛒 Shopee
+                </a>
+                <a href="{{ route('chats.index', array_merge(request()->query(), ['channel' => 'tiktok'])) }}"
+                    class="chat-pill {{ $channelCode === 'tiktok' ? 'active' : '' }}">
+                    🎵 TikTok
+                </a>
+                <a href="{{ route('chats.index', array_merge(request()->query(), ['status' => 'open'])) }}"
+                    class="chat-pill {{ $status === 'open' ? 'active' : '' }}">
+                    <i class="fas fa-circle" style="font-size:.5rem;color:#22c55e"></i> Open
+                </a>
+                <a href="{{ route('chats.index', array_merge(request()->query(), ['status' => 'closed'])) }}"
+                    class="chat-pill {{ $status === 'closed' ? 'active' : '' }}">
+                    <i class="fas fa-check-circle" style="font-size:.5rem"></i> Closed
+                </a>
+            </div>
+
+            {{-- Conversation List --}}
+            <div class="chat-conv-list">
+                @forelse($conversations as $conv)
+                    @php
+                        $ch = $conv->store->channel->code ?? '';
+                        $initial = strtoupper(substr($conv->buyer_name ?? 'B', 0, 1));
+                        $grad =
+                            $ch === 'shopee'
+                                ? 'linear-gradient(135deg,#ee4d2d,#f97316)'
+                                : ($ch === 'tiktok'
+                                    ? 'linear-gradient(135deg,#1d1d1d,#3d3d3d)'
+                                    : 'linear-gradient(135deg,#6366f1,#8b5cf6)');
+                    @endphp
+                    <a href="{{ route('chats.show', $conv) }}" class="conv-item">
+                        {{-- Avatar --}}
+                        <div class="conv-avatar" style="background:{{ $grad }}">
+                            {{ $initial }}
+                            <span class="channel-dot {{ $ch }}">
+                                {{ $ch === 'shopee' ? 'S' : ($ch === 'tiktok' ? 'T' : '?') }}
+                            </span>
+                        </div>
+
+                        {{-- Info --}}
+                        <div class="conv-info">
+                            <div class="conv-name">{{ $conv->buyer_name ?? 'Unknown Buyer' }}</div>
+                            <div class="conv-preview">
+                                <span class="text-muted" style="font-size:.7rem">{{ $conv->store->store_name }}</span>
+                                · {{ \Illuminate\Support\Str::limit($conv->last_message_preview ?? '—', 38) }}
+                            </div>
+                        </div>
+
+                        {{-- Meta --}}
+                        <div class="conv-meta">
+                            <span class="conv-time">
+                                {{ optional($conv->last_message_at)->diffForHumans(['short' => true]) ?? '—' }}
+                            </span>
+                            <span class="status-badge status-{{ $conv->status }}">{{ ucfirst($conv->status) }}</span>
+                        </div>
+                    </a>
+                @empty
+                    <div class="text-center py-5 px-3">
+                        <i class="fas fa-inbox fa-2x mb-3 d-block opacity-25 text-muted"></i>
+                        <div class="small text-muted">Belum ada percakapan.</div>
+                        <div class="text-muted" style="font-size:.75rem;margin-top:.25rem">
+                            Tekan <strong>Sync</strong> untuk menarik data dari marketplace.
                         </div>
                     </div>
+                @endforelse
+            </div>
 
-                    {{-- Meta --}}
-                    <div class="conv-meta">
-                        <span class="conv-time">
-                            {{ optional($conv->last_message_at)->diffForHumans(['short' => true]) ?? '—' }}
-                        </span>
-                        <span class="status-badge status-{{ $conv->status }}">{{ ucfirst($conv->status) }}</span>
-                    </div>
-                </a>
-            @empty
-                <div style="padding:2.5rem 1.5rem; text-align:center; color:var(--text-muted);">
-                    <i class="fas fa-inbox" style="font-size:2rem; margin-bottom:.75rem; display:block; opacity:.4;"></i>
-                    <div style="font-size:.88rem;">Belum ada percakapan.</div>
-                    <div style="font-size:.78rem; margin-top:.35rem;">Tekan Sync untuk menarik data dari marketplace.</div>
+            {{-- Pagination --}}
+            @if ($conversations->hasPages())
+                <div class="chat-pagination">
+                    {{ $conversations->links('pagination::bootstrap-5') }}
                 </div>
-            @endforelse
-        </div>
+            @endif
 
-        {{-- Pagination --}}
-        @if($conversations->hasPages())
-        <div class="chat-pagination">
-            {{ $conversations->links() }}
-        </div>
-        @endif
-
-        {{-- Sync Bar --}}
-        <div class="sync-bar">
-            <span class="sync-bar-label"><i class="fas fa-sync-alt"></i> Sync:</span>
-            <button type="button"
-                    class="btn-sync-store"
-                    onclick="triggerSync(null)"
-                    id="btn-sync-all">
-                <i class="fas fa-globe"></i> Semua Toko
-            </button>
-            @foreach($stores as $store)
-                <button type="button"
-                        class="btn-sync-store"
-                        onclick="triggerSync({{ $store->id }})"
-                        title="Sync {{ $store->store_name }}">
-                    <i class="fas fa-store"></i> {{ Str::limit($store->store_name, 14) }}
+            {{-- Sync Bar --}}
+            <div class="chat-sync-bar">
+                <span class="text-muted" style="font-size:.72rem"><i class="fas fa-sync-alt me-1"></i>Sync:</span>
+                <button type="button" class="btn btn-outline-secondary btn-sm py-0 px-2"
+                    style="font-size:.73rem; border-radius:20px;" id="btnSyncAll">
+                    <i class="fas fa-globe me-1"></i>Semua Toko
                 </button>
-            @endforeach
+                @foreach ($stores as $store)
+                    <button type="button" class="btn btn-outline-secondary btn-sm py-0 px-2 btn-sync-store"
+                        style="font-size:.73rem; border-radius:20px;" data-store-id="{{ $store->id }}"
+                        title="Sync {{ $store->store_name }}">
+                        <i class="fas fa-store me-1"></i>{{ Str::limit($store->store_name, 13) }}
+                    </button>
+                @endforeach
+            </div>
         </div>
+
+        {{-- ─────────────── RIGHT: Empty state ─────────────── --}}
+        <div class="chat-main">
+            <div class="chat-empty-icon">
+                <i class="fas fa-comment-dots"></i>
+            </div>
+            <h6 class="fw-bold text-light mb-0">Pilih Percakapan</h6>
+            <p class="text-muted small text-center mb-1" style="max-width:240px; line-height:1.6">
+                Klik nama buyer di sebelah kiri untuk membuka chat dan membalas pesan.
+            </p>
+            <div class="d-flex gap-2 flex-wrap justify-content-center">
+                <span class="channel-tag channel-shopee"><i class="fas fa-shopping-bag"></i> Shopee</span>
+                <span class="channel-tag channel-tiktok"><i class="fab fa-tiktok"></i> TikTok Shop</span>
+            </div>
+        </div>
+
     </div>
-
-    {{-- ────────────── RIGHT: Empty state (pilih percakapan) ────────────── --}}
-    <div class="chat-main">
-        <div class="chat-empty-icon">
-            <i class="fas fa-comment-dots"></i>
-        </div>
-        <div class="chat-empty-title">Pilih Percakapan</div>
-        <div class="chat-empty-sub">
-            Klik nama buyer di sebelah kiri untuk membuka chat dan membalas pesan.
-        </div>
-        <div style="display:flex; gap:.75rem; flex-wrap:wrap; justify-content:center; margin-top:.5rem;">
-            <span class="channel-tag channel-shopee"><i class="fas fa-shopping-bag"></i> Shopee</span>
-            <span class="channel-tag channel-tiktok"><i class="fab fa-tiktok"></i> TikTok Shop</span>
-        </div>
-    </div>
-
-</div>
-
-{{-- Sync toast --}}
-<div id="sync-toast"
-     style="display:none; position:fixed; bottom:1.5rem; right:1.5rem; background:var(--bg-card);
-            border:1px solid var(--border); border-radius:12px; padding:.875rem 1.25rem;
-            box-shadow:0 8px 32px rgba(0,0,0,.3); z-index:9999; display:flex; align-items:center; gap:.75rem; min-width:260px;">
-    <i class="fas fa-sync-alt spin" style="color:var(--primary)"></i>
-    <span style="font-size:.88rem; color:var(--text-primary);">Sync chat berjalan di latar belakang…</span>
-</div>
 @endsection
 
 @push('scripts')
-<script>
-function triggerSync(storeId) {
-    const toast = document.getElementById('sync-toast');
-    const toastText = toast.querySelector('span');
-    const toastIcon = toast.querySelector('i');
-    
-    // Set loading state
-    toastIcon.className = 'fas fa-sync-alt spin';
-    toastIcon.style.color = 'var(--primary)';
-    toastText.textContent = 'Sync chat sedang berjalan...';
-    toast.style.display = 'flex';
+    <script>
+        $(function() {
 
-    const body = new FormData();
-    body.append('_token', '{{ csrf_token() }}');
-    if (storeId) body.append('store_id', storeId);
+            // ── Auto-submit search on stop typing ──────────────────────────
+            let searchTimer;
+            $('#chatSearchInput').on('input', function() {
+                clearTimeout(searchTimer);
+                searchTimer = setTimeout(() => {
+                    $('#chatFilterForm').submit();
+                }, 500);
+            });
 
-    fetch('{{ route("chats.sync") }}', {
-        method: 'POST',
-        headers: { 'Accept': 'application/json' },
-        body,
-    })
-    .then(async r => {
-        const d = await r.json();
-        if (r.ok && d.success) {
-            toastIcon.className = 'fas fa-check-circle text-success';
-            toastIcon.style.color = '#22c55e';
-            toastText.textContent = d.message || 'Sync berhasil!';
-            setTimeout(() => {
-                toast.style.display = 'none';
-                window.location.reload();
-            }, 1200);
-        } else {
-            toastIcon.className = 'fas fa-exclamation-circle text-danger';
-            toastIcon.style.color = '#ef4444';
-            toastText.textContent = d.message || 'Gagal sinkronisasi';
-            // Biarkan user membaca error lebih lama
-            setTimeout(() => { toast.style.display = 'none'; }, 8000);
-        }
-    })
-    .catch((err) => {
-        toastIcon.className = 'fas fa-exclamation-circle text-danger';
-        toastIcon.style.color = '#ef4444';
-        toastText.textContent = 'Koneksi error atau gagal sinkronisasi.';
-        setTimeout(() => { toast.style.display = 'none'; }, 5000);
-    });
-}
-</script>
+            // ── Trigger sync (all toko) ─────────────────────────────────────
+            $('#btnSyncAll').on('click', function() {
+                triggerSync(null);
+            });
+
+            // ── Trigger sync (per toko) ─────────────────────────────────────
+            $(document).on('click', '.btn-sync-store', function() {
+                triggerSync($(this).data('store-id'));
+            });
+
+            // ── Core sync function ──────────────────────────────────────────
+            function triggerSync(storeId) {
+                // Show SweetAlert loading
+                Swal.fire({
+                    title: 'Sinkronisasi Chat…',
+                    text: storeId ? 'Menarik chat untuk toko ini…' : 'Menarik semua chat marketplace…',
+                    icon: 'info',
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
+                    showConfirmButton: false,
+                    background: '#151f2c',
+                    color: '#f8fafc',
+                    customClass: {
+                        popup: 'border border-secondary border-opacity-10'
+                    },
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+
+                const formData = new FormData();
+                formData.append('_token', '{{ csrf_token() }}');
+                if (storeId) formData.append('store_id', storeId);
+
+                $.ajax({
+                    url: '{{ route('chats.sync') }}',
+                    method: 'POST',
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    headers: {
+                        'Accept': 'application/json'
+                    },
+                    success: function(data) {
+                        if (data.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Sync Berhasil!',
+                                text: data.message || 'Chat berhasil disinkronisasi.',
+                                timer: 2000,
+                                showConfirmButton: false,
+                                background: '#151f2c',
+                                color: '#f8fafc',
+                                customClass: {
+                                    popup: 'border border-secondary border-opacity-10'
+                                }
+                            }).then(() => window.location.reload());
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Gagal Sync',
+                                text: data.message || 'Terjadi kesalahan saat sinkronisasi.',
+                                background: '#151f2c',
+                                color: '#f8fafc',
+                                customClass: {
+                                    popup: 'border border-secondary border-opacity-10'
+                                }
+                            });
+                        }
+                    },
+                    error: function(xhr) {
+                        const msg = xhr.responseJSON?.message ||
+                            'Koneksi error atau terjadi kesalahan server.';
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Gagal Sync',
+                            text: msg,
+                            background: '#151f2c',
+                            color: '#f8fafc',
+                            customClass: {
+                                popup: 'border border-secondary border-opacity-10'
+                            }
+                        });
+                    }
+                });
+            }
+        });
+    </script>
 @endpush

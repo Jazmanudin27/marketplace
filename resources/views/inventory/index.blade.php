@@ -168,13 +168,13 @@
         </div>
         <div class="table-responsive">
             <table class="table table-hover align-middle mb-0" style="background: transparent;">
-                <thead style="background: rgba(255, 255, 255, 0.02); border-bottom: 2px solid var(--border);">
+                <thead style="background: rgba(16, 185, 129, 0.08); border-bottom: 2px solid rgba(16, 185, 129, 0.25);">
                     <tr>
-                        <th class="ps-4 border-0 text-muted" style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em;">Detail Produk</th>
-                        <th class="border-0 text-end text-muted" style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; width: 15%;">Harga Modal (HPP)</th>
-                        <th class="border-0 text-end text-muted" style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; width: 15%;">Harga Jual</th>
-                        <th class="border-0 text-center text-muted" style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; width: 18%;">Stok Tersedia</th>
-                        <th class="border-0 text-center pe-4 text-muted" style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; width: 15%;">Aksi</th>
+                        <th class="ps-4 border-0" style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.03em; color: #34d399; font-weight: 700;">Detail Produk</th>
+                        <th class="border-0 text-end" style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.03em; color: #34d399; font-weight: 700; width: 15%;">Harga Modal (HPP)</th>
+                        <th class="border-0 text-end" style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.03em; color: #34d399; font-weight: 700; width: 15%;">Harga Jual</th>
+                        <th class="border-0 text-center" style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.03em; color: #34d399; font-weight: 700; width: 18%;">Stok Tersedia</th>
+                        <th class="border-0 text-center pe-4" style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.03em; color: #34d399; font-weight: 700; width: 15%;">Aksi</th>
                     </tr>
                 </thead>
                 <tbody>

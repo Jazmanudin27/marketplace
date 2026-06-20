@@ -249,7 +249,21 @@ class MobileController extends Controller
             Auth::id()
         );
 
-        return back()->with('success', 'Produksi selesai! Stok produk ' . $order->masterProduct->name . ' otomatis ditambahkan sebanyak ' . $order->quantity . ' pcs.');
+        // Cari semua pesanan yang belum terpotong stoknya dan memiliki item produk ini
+        $pendingOrders = \App\Models\Order::where('tenant_id', $order->tenant_id)
+            ->where('is_stock_deducted', false)
+            ->whereIn('order_status', [\App\Models\Order::STATUS_READY_TO_SHIP, \App\Models\Order::STATUS_UNPAID])
+            ->whereHas('items', function ($query) use ($order) {
+                $query->where('master_product_id', $order->master_product_id);
+            })
+            ->orderBy('order_date', 'asc') // Urutan FIFO
+            ->get();
+
+        foreach ($pendingOrders as $pendingOrder) {
+            $pendingOrder->processStockDeduction();
+        }
+
+        return back()->with('success', 'Produksi selesai! Stok produk ' . $order->masterProduct->name . ' otomatis ditambahkan sebanyak ' . $order->quantity . ' pcs dan dialokasikan ke pesanan PO yang tertunda.');
     }
 
     public function produksiCancel(ProductionOrder $order)

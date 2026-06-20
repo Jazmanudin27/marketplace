@@ -3,19 +3,21 @@
 
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cetak Resi Massal</title>
-    <!-- JsBarcode and QRCode JS libs -->
+    <!-- FontAwesome, JsBarcode, and QRCode JS libs -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
     <style>
         body {
-            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-            margin: 0;
-            padding: 20px;
+            font-family: Arial, sans-serif;
             color: #000;
             background: #fff;
-            font-size: 12px;
+            margin: 0;
+            padding: 20px;
+            font-size: 11px;
         }
 
         .page-break {
@@ -24,50 +26,119 @@
 
         /* Pick List Styles */
         .pick-list {
+            padding: 10px;
+        }
+
+        .pick-list-header {
+            border-bottom: 3px double #000;
+            padding-bottom: 12px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .pick-list-title {
+            font-size: 20px;
+            font-weight: 800;
+            letter-spacing: 1px;
+        }
+
+        .pick-list-meta {
+            text-align: right;
+            font-size: 11px;
+            line-height: 1.5;
+        }
+
+        .pick-list-meta strong {
+            color: #333;
+        }
+
+        .pick-list-table {
+            width: 100%;
+            border-collapse: collapse;
             margin-bottom: 30px;
         }
 
-        .pick-list h1 {
-            text-align: center;
-            border-bottom: 2px solid #000;
-            padding-bottom: 10px;
-            margin-bottom: 20px;
+        .pick-list-table th,
+        .pick-list-table td {
+            border: 1px solid #000;
+            padding: 10px 12px;
+            font-size: 11px;
+            vertical-align: middle;
         }
 
-        .pick-list table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        .pick-list th,
-        .pick-list td {
-            border: 1px solid #ddd;
-            padding: 12px;
-            text-align: left;
-        }
-
-        .pick-list th {
-            background-color: #f8f9fa;
+        .pick-list-table th {
+            background-color: #f0f0f0;
             font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
-        .pick-list .qty-col {
-            text-align: center;
+        .sku-cell {
+            font-family: 'Courier New', Courier, monospace;
             font-weight: bold;
-            font-size: 1.2em;
-            width: 80px;
+            font-size: 12px;
+            letter-spacing: 0.5px;
+        }
+
+        .product-name-cell {
+            font-weight: 500;
+        }
+
+        .qty-cell {
+            text-align: center;
+            font-weight: 800;
+            font-size: 14px;
+        }
+
+        .checkbox-box {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2.5px solid #000;
+            border-radius: 3px;
+        }
+
+        .pick-list-footer {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 40px;
+            page-break-inside: avoid;
+        }
+
+        .signature-box {
+            width: 200px;
+            text-align: center;
+        }
+
+        .signature-title {
+            font-weight: bold;
+            margin-bottom: 60px;
+        }
+
+        .signature-line {
+            border-bottom: 1.5px solid #000;
+            margin-bottom: 5px;
+        }
+
+        .signature-name {
+            font-size: 10px;
+            color: #666;
         }
 
         /* Waybill Styles */
         .waybill-wrapper {
-            padding: 10px 0;
+            padding: 20px 0;
+            display: flex;
+            justify-content: center;
         }
 
         .waybill {
-            max-width: 420px;
-            margin: 0 auto;
-            border: 3px solid #000;
-            padding: 10px;
+            width: 100%;
+            max-width: 450px;
+            border: 2px solid #000;
+            padding: 12px;
             box-sizing: border-box;
             background: #fff;
             color: #000;
@@ -82,35 +153,34 @@
         }
 
         .divider {
-            border-bottom: 2px dashed #000;
-            margin: 8px 0;
+            border-bottom: 1.5px dashed #000;
+            margin: 10px 0;
         }
 
         .header {
             display: flex;
             justify-content: space-between;
-            align-items: flex-end;
-            margin-bottom: 2px;
+            align-items: center;
+            margin-bottom: 8px;
         }
 
         .header-logo {
-            width: 30%;
-            font-size: 20px;
+            font-size: 18px;
             font-weight: bold;
-            color: #EE4D2D;
             display: flex;
             align-items: center;
-            gap: 4px;
+            gap: 6px;
         }
 
         .header-logo svg {
-            width: 28px;
-            height: 28px;
+            width: 24px;
+            height: 24px;
         }
 
         .header-barcode {
-            width: 40%;
             text-align: center;
+            flex-grow: 1;
+            padding: 0 10px;
         }
 
         .header-barcode svg {
@@ -121,19 +191,19 @@
         }
 
         .header-courier {
-            width: 30%;
             text-align: right;
-            font-weight: bold;
-            font-size: 14px;
-            color: #D00;
+            font-weight: 800;
+            font-size: 16px;
+            color: #000;
             text-transform: uppercase;
-            line-height: 1.1;
         }
 
         .resi-text {
-            font-size: 11px;
-            margin-top: 2px;
+            font-size: 12px;
+            font-weight: bold;
             text-align: center;
+            margin-top: 4px;
+            letter-spacing: 0.5px;
         }
 
         .main-content {
@@ -143,50 +213,53 @@
         }
 
         .info-grid {
-            width: 65%;
+            width: 68%;
         }
 
         .qr-section {
-            width: 32%;
+            width: 28%;
             display: flex;
             flex-direction: column;
-            align-items: flex-end;
+            align-items: center;
         }
 
         .order-no {
-            font-size: 11px;
+            font-size: 10px;
             margin-bottom: 8px;
+            color: #333;
         }
 
         .info-row {
             display: flex;
             margin-bottom: 6px;
-            font-size: 11px;
-            line-height: 1.3;
+            font-size: 10.5px;
+            line-height: 1.35;
         }
 
         .info-label {
-            width: 65px;
+            width: 70px;
             font-weight: bold;
+            color: #444;
         }
 
         .info-value {
             flex: 1;
-            border-left: 2px solid #ccc;
-            padding-left: 6px;
+            border-left: 2px solid #ddd;
+            padding-left: 8px;
         }
 
         .sort-code {
-            font-size: 18px;
-            font-weight: bold;
-            margin-bottom: 5px;
-            text-align: right;
+            font-size: 20px;
+            font-weight: 900;
+            margin-bottom: 6px;
+            text-align: center;
+            letter-spacing: 0.5px;
         }
 
         .qr-container {
             width: 90px;
             height: 90px;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
         }
 
         .qr-container img {
@@ -195,63 +268,66 @@
         }
 
         .box-text {
-            border: 1px solid #000;
-            padding: 4px 0;
+            border: 2px solid #000;
+            padding: 4px 8px;
             font-size: 14px;
-            font-weight: bold;
+            font-weight: 900;
             text-align: center;
             width: 100%;
-            margin-bottom: 5px;
+            margin-bottom: 6px;
             letter-spacing: 1px;
+            box-sizing: border-box;
         }
 
         .service-type {
-            font-size: 16px;
-            font-weight: bold;
+            font-size: 18px;
+            font-weight: 900;
             text-align: center;
             width: 100%;
             letter-spacing: 1px;
         }
 
         .cut-line {
-            border-bottom: 2px dashed #000;
+            border-bottom: 1.5px dashed #000;
             position: relative;
             margin: 15px 0 10px 0;
         }
 
         .cut-icon {
             position: absolute;
-            left: 0;
+            left: 10px;
             top: -11px;
             background: #fff;
-            padding-right: 5px;
-            font-size: 16px;
+            padding: 0 4px;
+            font-size: 14px;
         }
 
         .product-header {
             display: flex;
             justify-content: space-between;
             font-weight: bold;
-            font-size: 11px;
-            margin-bottom: 5px;
+            font-size: 10.5px;
+            margin-bottom: 6px;
         }
 
         .product-table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 11px;
+            font-size: 10px;
             margin-bottom: 10px;
         }
 
         .product-table th {
+            border-top: 1px solid #000;
             border-bottom: 1px solid #000;
-            padding: 4px 0;
+            padding: 5px 0;
             text-align: left;
+            font-weight: bold;
         }
 
         .product-table td {
-            padding: 4px 0;
-            border-bottom: 1px solid #eee;
+            padding: 5px 0;
+            border-bottom: 1px dashed #ddd;
             vertical-align: top;
         }
 
@@ -261,7 +337,10 @@
 
         .note {
             font-weight: bold;
-            font-size: 11px;
+            font-size: 10.5px;
+            border: 1px solid #000;
+            padding: 6px;
+            margin-top: 6px;
         }
 
         @media print {
@@ -271,36 +350,44 @@
                 color: #000;
             }
 
-            .no-print {
-                display: none !important;
+            .waybill-wrapper {
+                padding: 0;
+                display: block;
             }
 
             .waybill {
-                border: 3px solid #000;
-                max-width: 420px;
+                border: 2px solid #000;
+                max-width: 100%;
+                width: 100%;
+                page-break-inside: avoid;
+            }
+
+            .pick-list {
                 page-break-inside: avoid;
             }
         }
     </style>
 </head>
 
-<body>
+<body onload="initPrint()">
 
     <!-- PICK LIST (Halaman Pertama) -->
     <div class="pick-list page-break">
-        <h1>Daftar Pengambilan Barang (Pick List)</h1>
-        <div style="margin-bottom: 20px; font-size: 1.1em; display: flex; justify-content: space-between; border-bottom: 1px solid #eee; padding-bottom: 10px;">
-            <div><strong>Total Pesanan:</strong> {{ $orders->count() }} pesanan</div>
-            <div><strong>Tanggal Cetak:</strong> {{ now()->format('d/m/Y H:i') }}</div>
+        <div class="pick-list-header">
+            <div class="pick-list-title">DAFTAR PENGAMBILAN BARANG (PICK LIST)</div>
+            <div class="pick-list-meta">
+                <div class="meta-item"><strong>Total Pesanan:</strong> <span>{{ $orders->count() }} Pesanan</span></div>
+                <div class="meta-item"><strong>Tanggal Cetak:</strong> <span>{{ now()->format('d/m/Y H:i') }}</span></div>
+            </div>
         </div>
-        <table>
+
+        <table class="pick-list-table">
             <thead>
                 <tr>
-                    <th style="width: 5%;">#</th>
-                    <th>SKU</th>
-                    <th>Nama Produk</th>
-                    <th class="qty-col">Jumlah (Qty)</th>
-                    <th style="width: 15%;">Rak / Lokasi</th>
+                    <th style="width: 5%; text-align: center;">#</th>
+                    <th style="width: 25%;">SKU</th>
+                    <th style="width: 45%;">Nama Produk</th>
+                    <th style="width: 10%; text-align: center;">Qty</th>
                     <th style="width: 15%; text-align: center;">Checklist</th>
                 </tr>
             </thead>
@@ -308,16 +395,25 @@
                 @php $no = 1; @endphp
                 @foreach($pickList as $sku => $item)
                     <tr>
-                        <td>{{ $no++ }}</td>
-                        <td class="fw-bold" style="font-family: monospace; font-size: 1.1em; letter-spacing: 0.5px;">{{ $sku }}</td>
-                        <td>{{ $item['name'] }}</td>
-                        <td class="qty-col">{{ $item['qty'] }}</td>
-                        <td>Gudang Utama</td>
-                        <td style="text-align: center; font-size: 1.2em;">[ &nbsp; ]</td>
+                        <td style="text-align: center;">{{ $no++ }}</td>
+                        <td class="sku-cell">{{ $sku }}</td>
+                        <td class="product-name-cell">{{ $item['name'] }}</td>
+                        <td class="qty-cell">{{ $item['qty'] }}</td>
+                        <td style="text-align: center;">
+                            <span class="checkbox-box"></span>
+                        </td>
                     </tr>
                 @endforeach
             </tbody>
         </table>
+
+        <div class="pick-list-footer">
+            <div class="signature-box">
+                <div class="signature-title">Petugas Gudang</div>
+                <div class="signature-line"></div>
+                <div class="signature-name">(Nama Terang)</div>
+            </div>
+        </div>
     </div>
 
     <!-- INDIVIDUAL WAYBILLS -->
@@ -390,21 +486,20 @@
                                     d="M16.2 3.8l-1.3-1.6c-.2-.2-.5-.3-.8-.3H9.9c-.3 0-.6.1-.8.3L7.8 3.8h8.4zM22.5 6H1.5c-.5 0-.8.4-.8.8l1.6 13.9c.1.6.6 1.1 1.2 1.1h17.1c.6 0 1.1-.5 1.2-1.1L23.3 6.8c0-.4-.4-.8-.8-.8zm-10.5 12c-2.8 0-4.8-1.2-4.8-1.2l.7-1.4s1.6 1 4 1c1.5 0 2.2-.6 2.2-1.4 0-.8-.7-1.1-2.1-1.6-1.9-.6-3.2-1.6-3.2-3.3 0-2 1.7-3.4 4.3-3.4 2.5 0 4.1 1 4.1 1l-.7 1.5s-1.4-.8-3.4-.8c-1.2 0-2 .5-2 1.2 0 .7.6 1 2 1.4 2 .6 3.4 1.5 3.4 3.4-.1 2.2-1.9 3.6-4.5 3.6z"
                                     fill="#EE4D2D" />
                             </svg>
-                            Shopee
+                            <span style="color:#EE4D2D;">Shopee</span>
                         @elseif($order->store->channel->code === 'tiktok')
-                            <i class="fab fa-tiktok" style="font-size: 20px; color: #000; margin-right: 4px;"></i>
-                            TikTok
+                            <i class="fab fa-tiktok" style="font-size: 18px; color: #000; margin-right: 2px;"></i>
+                            <span>TikTok</span>
                         @else
-                            <i class="fas fa-store" style="font-size: 18px; color: #000; margin-right: 4px;"></i>
-                            {{ $order->store->channel->name }}
+                            <i class="fas fa-store" style="font-size: 16px; color: #000; margin-right: 2px;"></i>
+                            <span>{{ $order->store->channel->name }}</span>
                         @endif
                     </div>
                     <div class="header-barcode">
                         @if ($order->tracking_number)
                             <svg id="barcode-{{ $order->id }}"></svg>
                         @else
-                            <div style="font-size: 8px; font-weight: bold; border: 1px dashed #000; padding: 4px 0;">
-                                BELUM ADA RESI</div>
+                            <div style="font-size: 8px; font-weight: bold; border: 1px dashed #000; padding: 4px 0;">BELUM ADA RESI</div>
                         @endif
                     </div>
                     <div class="header-courier">
@@ -413,15 +508,14 @@
                 </div>
 
                 <div class="resi-text">
-                    No.Resi {{ $order->tracking_number ?? 'Belum ada resi' }}
+                    No.Resi: {{ $order->tracking_number ?? 'Belum ada resi' }}
                 </div>
 
                 <div class="divider"></div>
 
                 <div class="main-content">
                     <div class="info-grid">
-                        <div class="order-no">No. Pesanan: <span
-                                class="fw-bold">{{ $order->order_marketplace_id }}</span></div>
+                        <div class="order-no">No. Pesanan: <span class="fw-bold">{{ $order->order_marketplace_id }}</span></div>
 
                         <div class="info-row">
                             <div class="info-label">Asal</div>
@@ -439,7 +533,7 @@
 
                         <div class="info-row">
                             <div class="info-label">Total COD</div>
-                            <div class="info-value">
+                            <div class="info-value fw-bold">
                                 @if ($isCod)
                                     Rp {{ number_format($order->total_amount, 0, ',', '.') }}
                                 @else
@@ -449,18 +543,9 @@
                         </div>
 
                         <div class="info-row">
-                            <div class="info-label">Biaya</div>
-                            <div class="info-value">
-                                Asuransi: -<br>
-                                Biaya kirim: {{ number_format($order->shipping_fee, 0, ',', '.') }}
-                            </div>
-                        </div>
-
-                        <div class="info-row">
                             <div class="info-label">Penerima</div>
                             <div class="info-value">
-                                <span class="fw-bold">{{ $order->buyer_name }}</span>,
-                                {{ $order->buyer_phone ?? '-' }}<br>
+                                <span class="fw-bold">{{ $order->buyer_name }}</span>, {{ $order->buyer_phone ?? '-' }}<br>
                                 {{ $order->shipping_address }}
                             </div>
                         </div>
@@ -497,9 +582,8 @@
                 </div>
 
                 <div class="product-header">
-                    <div>DAFTAR PRODUK</div>
-                    <div style="font-weight: normal; color: #666;">NO.PESANAN <span class="fw-bold"
-                            style="color: #000;">{{ $order->order_marketplace_id }}</span></div>
+                    <div class="fw-bold">DAFTAR PRODUK</div>
+                    <div style="font-weight: normal; color: #666;">NO.PESANAN: <span class="fw-bold" style="color: #000;">{{ $order->order_marketplace_id }}</span></div>
                 </div>
 
                 <table class="product-table">
@@ -517,7 +601,7 @@
                             <tr>
                                 <td>{{ $itemIndex + 1 }}</td>
                                 <td>{{ $item->product_name }}</td>
-                                <td>{{ $item->sku ?? '-' }}</td>
+                                <td class="font-monospace">{{ $item->sku ?? '-' }}</td>
                                 <td>-</td>
                                 <td class="text-center fw-bold">{{ $item->quantity }}</td>
                             </tr>
@@ -531,7 +615,7 @@
     @endforeach
 
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
+        function initPrint() {
             // Generate barcodes and qrcodes
             @foreach ($orders as $order)
                 @if ($order->tracking_number)
@@ -562,7 +646,10 @@
                 @endif
             @endforeach
 
-        });
+            setTimeout(function() {
+                window.print();
+            }, 1000);
+        }
     </script>
 </body>
 

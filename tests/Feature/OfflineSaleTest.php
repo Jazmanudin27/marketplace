@@ -21,6 +21,7 @@ class OfflineSaleTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        $this->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class]);
 
         $this->tenant = Tenant::create([
             'name'   => 'Offline Sales Tenant',
@@ -151,6 +152,7 @@ class OfflineSaleTest extends TestCase
             'paid_amount'    => 120000,
             'discount_amount'=> 0,
             'buyer_name'     => 'Budi',
+            'buyer_phone'    => '08123456789',
         ];
 
         $response = $this->actingAs($this->user)
@@ -230,5 +232,72 @@ class OfflineSaleTest extends TestCase
         $response->assertStatus(200);
         $response->assertViewIs('offline_sales.receipt');
         $response->assertSee($sale->sale_number);
+    }
+
+    public function test_offline_sale_store_creates_customer_with_address_if_manual_and_not_exists(): void
+    {
+        $payload = [
+            'items' => [
+                [
+                    'master_product_id' => $this->masterProduct->id,
+                    'quantity'          => 1,
+                    'unit_price'        => 10000,
+                ]
+            ],
+            'payment_method' => 'tunai',
+            'paid_amount'    => 10000,
+            'discount_amount'=> 0,
+            'buyer_name'     => 'Customer Baru POS',
+            'buyer_phone'    => '08987654321',
+            'buyer_address'  => 'Jalan POS Baru No. 123',
+            'notes'          => 'Catatan test customer baru',
+        ];
+
+        $response = $this->actingAs($this->user)
+            ->post(route('offline_sales.store'), $payload);
+
+        $response->assertRedirect(route('offline_sales.index'));
+
+        // Check if customer was created in the database with address
+        $this->assertDatabaseHas('customers', [
+            'tenant_id' => $this->tenant->id,
+            'name'      => 'Customer Baru POS',
+            'phone'     => '08987654321',
+            'address'   => 'Jalan POS Baru No. 123',
+        ]);
+    }
+
+    public function test_offline_sale_store_with_piutang_payment_method(): void
+    {
+        $payload = [
+            'items' => [
+                [
+                    'master_product_id' => $this->masterProduct->id,
+                    'quantity'          => 2,
+                    'unit_price'        => 10000,
+                ]
+            ],
+            'payment_method' => 'piutang',
+            'paid_amount'    => 0, // Down payment can be 0 for piutang
+            'discount_amount'=> 0,
+            'buyer_name'     => 'Customer Piutang POS',
+            'buyer_phone'    => '08999999999',
+            'buyer_address'  => 'Alamat Piutang',
+        ];
+
+        $response = $this->actingAs($this->user)
+            ->post(route('offline_sales.store'), $payload);
+
+        $response->assertRedirect(route('offline_sales.index'));
+
+        // Check if offline sale was created with piutang method and 0 paid amount
+        $this->assertDatabaseHas('offline_sales', [
+            'tenant_id'      => $this->tenant->id,
+            'buyer_name'     => 'Customer Piutang POS',
+            'payment_method' => 'piutang',
+            'total_amount'   => 20000,
+            'grand_total'    => 20000,
+            'paid_amount'    => 0,
+        ]);
     }
 }

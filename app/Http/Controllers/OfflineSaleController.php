@@ -61,23 +61,46 @@ class OfflineSaleController extends Controller
             ->orderBy('name')
             ->get(['id', 'name', 'sku', 'price', 'stock', 'unit']);
 
-        return view('offline_sales.create', compact('products'));
+        $customers = \App\Models\Customer::where('tenant_id', $tenantId)
+            ->where(function ($q) {
+                $q->whereNull('marketplace_username')
+                  ->orWhere('marketplace_username', '');
+            })
+            ->orderBy('name')
+            ->get(['id', 'name', 'phone', 'address']);
+
+        return view('offline_sales.create', compact('products', 'customers'));
     }
 
     public function store(Request $request)
     {
-        $request->validate([
-            'items'                  => 'required|array|min:1',
+        $rules = [
+            'customer_id'               => 'nullable|exists:customers,id',
+            'items'                     => 'required|array|min:1',
             'items.*.master_product_id' => 'required|exists:master_products,id',
-            'items.*.quantity'       => 'required|integer|min:1',
-            'items.*.unit_price'     => 'required|numeric|min:0',
-            'payment_method'         => 'required|in:tunai,transfer,qris,kartu',
-            'paid_amount'            => 'required|numeric|min:0',
-            'discount_amount'        => 'nullable|numeric|min:0',
-            'buyer_name'             => 'nullable|string|max:100',
-            'buyer_phone'            => 'nullable|string|max:20',
-            'notes'                  => 'nullable|string|max:500',
-        ]);
+            'items.*.quantity'          => 'required|integer|min:1',
+            'items.*.unit_price'        => 'required|numeric|min:0',
+            'payment_method'            => 'required|in:tunai,transfer,qris,kartu,piutang',
+            'paid_amount'               => 'required|numeric|min:0',
+            'discount_amount'           => 'nullable|numeric|min:0',
+            'buyer_name'                => 'nullable|string|max:100',
+            'buyer_phone'               => 'nullable|string|max:20',
+            'buyer_address'             => 'nullable|string|max:500',
+            'notes'                     => 'nullable|string|max:500',
+        ];
+
+        if ($request->payment_method === 'piutang') {
+            if (!$request->filled('customer_id')) {
+                $rules['buyer_name']  = 'required|string|max:100';
+                $rules['buyer_phone'] = 'required|string|max:20';
+            }
+        } else {
+            if (!$request->filled('customer_id') && $request->filled('buyer_name')) {
+                $rules['buyer_phone'] = 'required|string|max:20';
+            }
+        }
+
+        $request->validate($rules);
 
         $tenantId = Auth::user()->tenant_id;
 
@@ -115,9 +138,45 @@ class OfflineSaleController extends Controller
             $paidAmount   = (float) $request->paid_amount;
             $changeAmount = max(0, $paidAmount - $grandTotal);
 
+            // Auto create customer if cashier filled in general buyer name but no customer_id exists
+            $customerId = $request->customer_id;
+            if (!$customerId && $request->filled('buyer_name')) {
+                $customerQuery = \App\Models\Customer::where('tenant_id', $tenantId);
+                if ($request->filled('buyer_phone')) {
+                    $customerQuery->where('phone', $request->buyer_phone);
+                } else {
+                    $customerQuery->where('name', $request->buyer_name)
+                                  ->where(function($q) {
+                                      $q->whereNull('marketplace_username')
+                                        ->orWhere('marketplace_username', '');
+                                  });
+                }
+                
+                $customer = $customerQuery->first();
+                if (!$customer) {
+                    $customer = \App\Models\Customer::create([
+                        'tenant_id' => $tenantId,
+                        'name'      => $request->buyer_name,
+                        'phone'     => $request->buyer_phone,
+                        'address'   => $request->buyer_address,
+                    ]);
+                } else {
+                    if (empty($customer->address) && $request->filled('buyer_address')) {
+                        $customer->update(['address' => $request->buyer_address]);
+                    }
+                }
+                $customerId = $customer->id;
+            } elseif ($customerId && $request->filled('buyer_address')) {
+                $customer = \App\Models\Customer::find($customerId);
+                if ($customer && empty($customer->address)) {
+                    $customer->update(['address' => $request->buyer_address]);
+                }
+            }
+
             $sale = OfflineSale::create([
                 'tenant_id'       => $tenantId,
                 'user_id'         => Auth::id(),
+                'customer_id'     => $customerId,
                 'sale_number'     => OfflineSale::generateSaleNumber(),
                 'status'          => OfflineSale::STATUS_COMPLETED,
                 'buyer_name'      => $request->buyer_name,

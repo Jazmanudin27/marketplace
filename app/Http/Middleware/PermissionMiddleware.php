@@ -23,7 +23,7 @@ class PermissionMiddleware
         $user = Auth::user();
 
         // Admin (Owner) memiliki akses penuh tanpa terkecuali
-        if ($user->role === 'admin' || $user->hasRole('admin')) {
+        if ($user->role === 'admin' || $user->hasRole('admin') || $user->role === 'owner' || $user->hasRole('owner')) {
             return $next($request);
         }
 
