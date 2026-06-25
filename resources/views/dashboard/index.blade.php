@@ -318,7 +318,7 @@
     </div>
 
     <!-- Recent Orders & Stock warning grid -->
-    <div class="row g-3">
+    <div class="row g-3 p-2">
 
         <!-- Column: Recent Orders Table -->
         <div class="col-12 col-xxl-8">
@@ -336,6 +336,7 @@
                         <table class="table table-sm table-striped align-middle mb-0">
                             <thead>
                                 <tr>
+                                    <th>Tanggal</th>
                                     <th>Invoice</th>
                                     <th>Pembeli</th>
                                     <th>Toko / Channel</th>
@@ -346,6 +347,9 @@
                             <tbody>
                                 @forelse($recentOrders as $order)
                                     <tr>
+                                        <td class="text-dark small">
+                                            {{ $order->order_date ? \Carbon\Carbon::parse($order->order_date)->format('d/m/Y H:i') : '-' }}
+                                        </td>
                                         <td class="font-monospace fw-semibold text-dark small">
                                             {{ $order->invoice_number ?? $order->order_marketplace_id }}
                                         </td>
@@ -387,7 +391,7 @@
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="5" class="text-center py-4 text-secondary">
+                                        <td colspan="6" class="text-center py-4 text-secondary">
                                             <i
                                                 class="bi bi-check-circle-fill fs-3 text-success opacity-75 mb-2 d-block"></i>
                                             <p class="mb-0 small">Belum ada pesanan terbaru</p>
