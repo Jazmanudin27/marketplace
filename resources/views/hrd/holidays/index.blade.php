@@ -28,18 +28,6 @@
             background-color: rgba(255, 255, 255, 0.015) !important;
         }
 
-        .btn-action {
-            border-radius: 8px !important;
-            padding: 0.35rem 0.6rem !important;
-            font-size: 0.8rem !important;
-            transition: all 0.2s ease !important;
-        }
-
-        .btn-action:hover {
-            transform: translateY(-1.5px);
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
-        }
-
         /* Custom modal employee layout styling */
         .employee-search-container {
             position: relative;
@@ -155,36 +143,35 @@
     <div class="row">
         <!-- Form Hari Libur (Kiri) -->
         <div class="col-lg-4 mb-4">
-            <div class="card h-100" style="background:var(--bg-card); border-color:var(--border); border-radius: 14px;">
-                <div class="card-header border-bottom d-flex align-items-center py-3"
-                    style="border-color: var(--border) !important;">
-                    <div class="brand-icon bg-primary-subtle text-primary me-3 p-2 rounded d-flex align-items-center justify-content-center"
-                        style="width: 36px; height: 36px; background: rgba(108, 99, 255, 0.1) !important;">
-                        <i class="fas fa-calendar-plus text-primary"></i>
+            <div class="dashboard-card p-0 overflow-hidden h-100">
+                <div class="card-header-line d-flex align-items-center p-3 mb-0 bg-primary bg-opacity-10">
+                    <div class="bg-primary text-white rounded p-2 me-3 d-flex align-items-center justify-content-center"
+                        style="width: 36px; height: 36px;">
+                        <i class="fas fa-calendar-plus text-white"></i>
                     </div>
                     <h5 class="mb-0 fw-bold text-white" id="formTitle">Tambah Hari Libur</h5>
                 </div>
-                <div class="card-body p-4">
+                <div class="p-4">
                     <form id="holidayForm" method="POST" action="{{ route('hr.holidays.store') }}">
                         @csrf
                         <input type="hidden" name="_method" id="formMethod" value="POST">
 
                         <div class="mb-4">
-                            <label class="form-label-custom"><i class="fas fa-calendar-day text-primary"></i> Nama Libur / Keterangan</label>
-                            <input type="text" name="name" id="name" class="form-control form-control-custom"
+                            <label class="form-label"><i class="fas fa-calendar-day text-primary me-1"></i> Nama Libur / Keterangan</label>
+                            <input type="text" name="name" id="name" class="form-control"
                                 placeholder="Contoh: Hari Raya Idul Fitri" required>
                         </div>
                         <div class="mb-4">
-                            <label class="form-label-custom"><i class="fas fa-calendar-alt text-primary"></i> Tanggal Libur</label>
-                            <input type="date" name="date" id="date" class="form-control form-control-custom" required>
+                            <label class="form-label"><i class="fas fa-calendar-alt text-primary me-1"></i> Tanggal Libur</label>
+                            <input type="date" name="date" id="date" class="form-control" required>
                         </div>
 
                         <div class="d-flex gap-2 pt-2">
-                            <button type="submit" class="btn btn-primary btn-sm px-4 fw-semibold" style="border-radius: 8px;">
+                            <button type="submit" class="btn btn-primary btn-sm px-4 fw-semibold">
                                 <i class="fas fa-save me-1"></i> Simpan
                             </button>
                             <button type="button" class="btn btn-secondary btn-sm px-3" id="btnCancel"
-                                style="display:none; border-radius: 8px;" onclick="resetForm()">Batal</button>
+                                style="display:none;" onclick="resetForm()">Batal</button>
                         </div>
                     </form>
                 </div>
@@ -193,121 +180,118 @@
 
         <!-- Tabel Daftar Hari Libur (Kanan) -->
         <div class="col-lg-8 mb-4">
-            <div class="card h-100" style="background:var(--bg-card); border-color:var(--border); border-radius: 14px;">
-                <div class="card-header border-bottom d-flex align-items-center py-3"
-                    style="border-color: var(--border) !important;">
-                    <div class="brand-icon bg-success-subtle text-success me-3 p-2 rounded d-flex align-items-center justify-content-center"
-                        style="width: 36px; height: 36px; background: rgba(16, 185, 129, 0.1) !important;">
-                        <i class="fas fa-calendar-alt text-success"></i>
+            <div class="dashboard-card p-0 overflow-hidden h-100">
+                <div class="card-header-line d-flex align-items-center p-3 mb-0 bg-success bg-opacity-10">
+                    <div class="bg-success text-white rounded p-2 me-3 d-flex align-items-center justify-content-center"
+                        style="width: 36px; height: 36px;">
+                        <i class="fas fa-calendar-alt text-white"></i>
                     </div>
                     <h5 class="mb-0 fw-bold text-white">Kalender Hari Libur Perusahaan</h5>
                 </div>
-                <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-hover align-middle mb-0">
-                            <thead class="table-dark" style="background: var(--bg-card2);">
-                                <tr>
-                                    <th style="width: 55%; padding: 1rem 1.2rem;">Nama Libur / Keterangan</th>
-                                    <th style="width: 20%; padding: 1rem 1.2rem;">Hari / Tanggal</th>
-                                    <th style="width: 25%; padding: 1rem 1.2rem; text-align: center;">Aksi</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @forelse($holidays as $hol)
-                                    <tr class="holiday-row" style="border-bottom-color: var(--border);">
-                                        <td style="padding: 1rem 1.2rem;">
-                                            <div class="d-flex align-items-center">
-                                                <!-- Mini Calendar Badge -->
-                                                <div class="calendar-badge me-3 text-center d-flex flex-column">
-                                                    <div class="bg-danger text-white py-1 small fw-bold text-uppercase"
-                                                        style="font-size: 0.6rem; line-height: 1.2; letter-spacing: 0.5px;">
-                                                        {{ $hol->date->isoFormat('MMM') }}
-                                                    </div>
-                                                    <div class="flex-grow-1 d-flex align-items-center justify-content-center fs-5 fw-bold text-white"
-                                                        style="line-height: 1;">
-                                                        {{ $hol->date->format('d') }}
-                                                    </div>
+                <div class="table-responsive p-3 pt-0">
+                    <table class="table table-bordered table-premium-dark align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th style="width: 55%;">Nama Libur / Keterangan</th>
+                                <th style="width: 25%;">Hari / Tanggal</th>
+                                <th style="width: 20%;" class="text-center">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse($holidays as $hol)
+                                <tr class="holiday-row">
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <!-- Mini Calendar Badge -->
+                                            <div class="calendar-badge me-3 text-center d-flex flex-column">
+                                                <div class="bg-danger text-white py-1 small fw-bold text-uppercase"
+                                                    style="font-size: 0.6rem; line-height: 1.2; letter-spacing: 0.5px;">
+                                                    {{ $hol->date->isoFormat('MMM') }}
                                                 </div>
-                                                <div>
-                                                    <strong class="text-white d-block"
-                                                        style="font-size: 0.95rem;">{{ $hol->name }}</strong>
-                                                    <!-- List Assigned Employees -->
-                                                    <div class="mt-1 d-flex flex-wrap gap-1">
-                                                        @if ($hol->employees->isEmpty())
+                                                <div class="flex-grow-1 d-flex align-items-center justify-content-center fs-5 fw-bold text-white"
+                                                    style="line-height: 1;">
+                                                    {{ $hol->date->format('d') }}
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <strong class="text-white d-block"
+                                                    style="font-size: 0.85rem;">{{ $hol->name }}</strong>
+                                                <!-- List Assigned Employees -->
+                                                <div class="mt-1 d-flex flex-wrap gap-1">
+                                                    @if ($hol->employees->isEmpty())
+                                                        <span
+                                                            class="badge bg-secondary-subtle text-secondary border border-secondary-subtle"
+                                                            style="font-size: 0.65rem; padding: 0.25em 0.5em;">
+                                                            <i class="fas fa-globe me-1"></i> Semua Karyawan
+                                                        </span>
+                                                    @else
+                                                        <span
+                                                            class="badge bg-primary-subtle text-primary border border-primary-subtle"
+                                                            style="font-size: 0.65rem; padding: 0.25em 0.5em; border-radius: 4px;"
+                                                            title="Atur Karyawan Libur">
+                                                            <i class="fas fa-user-friends me-1"></i>
+                                                            {{ $hol->employees->count() }} Karyawan
+                                                        </span>
+                                                        @foreach ($hol->employees->take(3) as $emp)
                                                             <span
-                                                                class="badge bg-secondary-subtle text-secondary border border-secondary-subtle"
-                                                                style="font-size: 0.65rem; padding: 0.25em 0.5em;">
-                                                                <i class="fas fa-globe me-1"></i> Semua Karyawan
+                                                                class="badge bg-dark-subtle text-white border border-light-subtle"
+                                                                style="font-size: 0.65rem; padding: 0.25em 0.5em; border-radius: 4px; background: rgba(255,255,255,0.03);">
+                                                                {{ $emp->name }}
                                                             </span>
-                                                        @else
+                                                        @endforeach
+                                                        @if ($hol->employees->count() > 3)
                                                             <span
-                                                                class="badge bg-primary-subtle text-primary border border-primary-subtle"
-                                                                style="font-size: 0.65rem; padding: 0.25em 0.5em; border-radius: 4px;"
-                                                                title="Atur Karyawan Libur">
-                                                                <i class="fas fa-user-friends me-1"></i>
-                                                                {{ $hol->employees->count() }} Karyawan
+                                                                class="badge bg-dark-subtle text-white border border-light-subtle"
+                                                                style="font-size: 0.65rem; padding: 0.25em 0.5em; border-radius: 4px; background: rgba(255,255,255,0.03);">
+                                                                +{{ $hol->employees->count() - 3 }} lainnya
                                                             </span>
-                                                            @foreach ($hol->employees->take(3) as $emp)
-                                                                <span
-                                                                    class="badge bg-dark-subtle text-white-50 border border-light-subtle"
-                                                                    style="font-size: 0.65rem; padding: 0.25em 0.5em; border-radius: 4px; background: rgba(255,255,255,0.03);">
-                                                                    {{ $emp->name }}
-                                                                </span>
-                                                            @endforeach
-                                                            @if ($hol->employees->count() > 3)
-                                                                <span
-                                                                    class="badge bg-dark-subtle text-white-50 border border-light-subtle"
-                                                                    style="font-size: 0.65rem; padding: 0.25em 0.5em; border-radius: 4px; background: rgba(255,255,255,0.03);">
-                                                                    +{{ $hol->employees->count() - 3 }} lainnya
-                                                                </span>
-                                                            @endif
                                                         @endif
-                                                    </div>
+                                                    @endif
                                                 </div>
                                             </div>
-                                        </td>
-                                        <td style="padding: 1rem 1.2rem;">
-                                            <span class="text-white fw-semibold" style="font-size: 0.9rem;">
-                                                {{ $hol->date->format('d-m-Y') }}
-                                            </span>
-                                            <small class="text-muted d-block" style="font-size: 0.75rem;">
-                                                {{ $hol->date->isoFormat('dddd') }}
-                                            </small>
-                                        </td>
-                                        <td style="padding: 1rem 1.2rem; text-align: center;">
-                                            <div class="d-inline-flex gap-1 align-items-center">
-                                                <button class="btn btn-action-custom btn-action-approve"
-                                                    title="Atur Karyawan Libur"
-                                                    onclick="openManageEmployeesModal({{ $hol->id }}, '{{ addslashes($hol->name) }}', {{ json_encode($hol->employees->pluck('id')) }})">
-                                                    <i class="fas fa-users"></i>
-                                                </button>
-                                                <button class="btn btn-action-custom btn-action-edit"
-                                                    title="Edit Hari Libur"
-                                                    onclick="editHoliday({{ $hol->id }}, '{{ addslashes($hol->name) }}', '{{ $hol->date->format('Y-m-d') }}')">
-                                                    <i class="fas fa-edit"></i>
-                                                </button>
-                                                <form action="{{ route('hr.holidays.destroy', $hol->id) }}" method="POST"
-                                                    style="display:inline;"
-                                                    onsubmit="return confirm('Hapus hari libur ini?');">
-                                                    @csrf
-                                                    @method('DELETE')
-                                                    <button type="submit" class="btn btn-action-custom btn-action-delete"
-                                                        title="Hapus"><i class="fas fa-trash"></i></button>
-                                                </form>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                @empty
-                                    <tr>
-                                        <td colspan="3" class="text-center py-5 text-muted">
-                                            <div class="fs-4 mb-2"><i class="far fa-calendar-times"></i></div>
-                                            Belum ada hari libur yang terdaftar.
-                                        </td>
-                                    </tr>
-                                @endforelse
-                            </tbody>
-                        </table>
-                    </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="text-white fw-semibold" style="font-size: 0.82rem;">
+                                            {{ $hol->date->format('d-m-Y') }}
+                                        </span>
+                                        <small class="text-muted d-block" style="font-size: 0.72rem;">
+                                            {{ $hol->date->isoFormat('dddd') }}
+                                        </small>
+                                    </td>
+                                    <td class="text-center">
+                                        <div class="d-inline-flex gap-1 align-items-center">
+                                            <button class="btn btn-info text-white btn-action-sm"
+                                                title="Atur Karyawan Libur"
+                                                onclick="openManageEmployeesModal({{ $hol->id }}, '{{ addslashes($hol->name) }}', {{ json_encode($hol->employees->pluck('id')) }})">
+                                                <i class="fas fa-users"></i>
+                                            </button>
+                                            <button class="btn btn-warning btn-action-sm"
+                                                title="Edit Hari Libur"
+                                                onclick="editHoliday({{ $hol->id }}, '{{ addslashes($hol->name) }}', '{{ $hol->date->format('Y-m-d') }}')">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <form action="{{ route('hr.holidays.destroy', $hol->id) }}" method="POST"
+                                                style="display:inline;"
+                                                onsubmit="return confirm('Hapus hari libur ini?');">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="btn btn-danger btn-action-sm"
+                                                    title="Hapus"><i class="fas fa-trash"></i></button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="3" class="text-center py-5 text-muted">
+                                        <i class="far fa-calendar-times fa-2x mb-3 d-block text-secondary opacity-25"></i>
+                                        Belum ada hari libur yang terdaftar.
+                                    </td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
@@ -317,21 +301,19 @@
     <div class="modal fade" id="manageEmployeesModal" tabindex="-1" aria-labelledby="manageEmployeesModalLabel"
         aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-md">
-            <div class="modal-content"
-                style="background: var(--bg-card); border-color: var(--border); box-shadow: var(--shadow); border-radius: 16px; overflow: hidden;">
-                <div class="modal-header border-bottom py-3" style="border-color: var(--border) !important;">
+            <div class="modal-content">
+                <div class="modal-header border-bottom py-3">
                     <h5 class="modal-title fw-bold text-white fs-6" id="manageEmployeesModalLabel">
                         <i class="fas fa-user-tag me-2 text-primary"></i>Atur Karyawan Libur
                     </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"
                         aria-label="Close"></button>
                 </div>
                 <form id="manageEmployeesForm" method="POST" action="">
                     @csrf
                     <div class="modal-body p-4">
                         <!-- Holiday Info Header -->
-                        <div class="mb-4 p-3 rounded border border-light-subtle d-flex align-items-center justify-content-between"
-                            style="background: rgba(255,255,255,0.015); border-color: var(--border) !important;">
+                        <div class="mb-4 p-3 rounded border border-light-subtle d-flex align-items-center justify-content-between">
                             <div>
                                 <small class="text-muted d-block text-uppercase fw-semibold mb-1"
                                     style="font-size: 0.65rem; letter-spacing: 0.5px;">Hari Libur / Acara</small>
@@ -434,7 +416,7 @@
                             </small>
                         </div>
                     </div>
-                    <div class="modal-footer border-top py-3" style="border-color: var(--border) !important;">
+                    <div class="modal-footer border-top py-3">
                         <button type="button" class="btn btn-secondary btn-sm px-3"
                             data-bs-dismiss="modal">Batal</button>
                         <button type="submit" class="btn btn-primary btn-sm px-4 fw-semibold"><i

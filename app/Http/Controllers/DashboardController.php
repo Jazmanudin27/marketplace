@@ -53,34 +53,168 @@ class DashboardController extends Controller
                        ->withCount('orders')
                        ->get();
 
-        // Data Grafik 30 Hari Terakhir
-        $thirtyDaysAgo = \Carbon\Carbon::now()->subDays(29)->startOfDay();
-        $dailyData = Order::where('tenant_id', $tenant->id)
-            ->where('order_date', '>=', $thirtyDaysAgo)
-            ->where('order_status', '!=', Order::STATUS_CANCELLED)
-            ->selectRaw('DATE(order_date) as date, SUM(total_amount) as gross_total, SUM(net_amount) as net_total')
-            ->groupBy('date')
-            ->orderBy('date', 'asc')
-            ->get()
-            ->keyBy('date')
-            ->toArray();
-
-        // Isi tanggal yang kosong
-        $chartDates = [];
-        $chartGross = [];
-        $chartNet = [];
-        for ($i = 0; $i < 30; $i++) {
-            $dateObj = \Carbon\Carbon::now()->subDays(29 - $i);
-            $dateString = $dateObj->format('Y-m-d');
-            $chartDates[] = $dateObj->format('d M');
-            $chartGross[] = $dailyData[$dateString]['gross_total'] ?? 0;
-            $chartNet[] = $dailyData[$dateString]['net_total'] ?? 0;
-        }
+        $initialChartData = $this->buildChartData($tenant->id, 'monthly');
 
         return view('dashboard.index', compact(
             'totalStores', 'totalProducts', 'todayOrders', 'todayRevenue',
             'monthRevenue', 'pendingOrders', 'recentOrders', 'lowStockProducts', 'stores',
-            'chartDates', 'chartGross', 'chartNet'
+            'initialChartData'
         ));
     }
+
+    public function getChartData(Request $request)
+    {
+        $tenant = Auth::user()->tenant;
+        $scope = $request->query('scope', 'monthly');
+
+        $chartData = $this->buildChartData($tenant->id, $scope);
+
+        return response()->json($chartData);
+    }
+
+    private function buildChartData($tenantId, $scope)
+    {
+        $labels = [];
+        $current = [];
+        $previous = [];
+        $currentLabel = '';
+        $previousLabel = '';
+
+        if ($scope === 'daily') {
+            $currentLabel = 'Hari Ini';
+            $previousLabel = 'Kemarin';
+
+            // 24 Hours
+            for ($h = 0; $h < 24; $h++) {
+                $labels[] = sprintf('%02d:00', $h);
+                $current[$h] = 0;
+                $previous[$h] = 0;
+            }
+
+            $todayData = Order::where('tenant_id', $tenantId)
+                ->whereDate('order_date', \Carbon\Carbon::today())
+                ->where('order_status', '!=', Order::STATUS_CANCELLED)
+                ->selectRaw('HOUR(order_date) as hr, SUM(net_amount) as total')
+                ->groupBy('hr')
+                ->pluck('total', 'hr')
+                ->toArray();
+
+            $yesterdayData = Order::where('tenant_id', $tenantId)
+                ->whereDate('order_date', \Carbon\Carbon::yesterday())
+                ->where('order_status', '!=', Order::STATUS_CANCELLED)
+                ->selectRaw('HOUR(order_date) as hr, SUM(net_amount) as total')
+                ->groupBy('hr')
+                ->pluck('total', 'hr')
+                ->toArray();
+
+            foreach ($todayData as $hr => $val) {
+                $current[(int)$hr] = (float)$val;
+            }
+            foreach ($yesterdayData as $hr => $val) {
+                $previous[(int)$hr] = (float)$val;
+            }
+
+            $current = array_values($current);
+            $previous = array_values($previous);
+
+        } elseif ($scope === 'yearly') {
+            $currentLabel = 'Tahun Ini (' . date('Y') . ')';
+            $previousLabel = 'Tahun Lalu (' . (date('Y') - 1) . ')';
+
+            $monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+            for ($m = 1; $m <= 12; $m++) {
+                $labels[] = $monthNames[$m - 1];
+                $current[$m] = 0;
+                $previous[$m] = 0;
+            }
+
+            $thisYearData = Order::where('tenant_id', $tenantId)
+                ->whereBetween('order_date', [
+                    \Carbon\Carbon::now()->startOfYear(),
+                    \Carbon\Carbon::now()->endOfYear()
+                ])
+                ->where('order_status', '!=', Order::STATUS_CANCELLED)
+                ->selectRaw('MONTH(order_date) as mth, SUM(net_amount) as total')
+                ->groupBy('mth')
+                ->pluck('total', 'mth')
+                ->toArray();
+
+            $lastYearData = Order::where('tenant_id', $tenantId)
+                ->whereBetween('order_date', [
+                    \Carbon\Carbon::now()->subYear()->startOfYear(),
+                    \Carbon\Carbon::now()->subYear()->endOfYear()
+                ])
+                ->where('order_status', '!=', Order::STATUS_CANCELLED)
+                ->selectRaw('MONTH(order_date) as mth, SUM(net_amount) as total')
+                ->groupBy('mth')
+                ->pluck('total', 'mth')
+                ->toArray();
+
+            foreach ($thisYearData as $mth => $val) {
+                $current[(int)$mth] = (float)$val;
+            }
+            foreach ($lastYearData as $mth => $val) {
+                $previous[(int)$mth] = (float)$val;
+            }
+
+            $current = array_values($current);
+            $previous = array_values($previous);
+
+        } else { // monthly
+            $currentLabel = 'Bulan Ini (' . \Carbon\Carbon::now()->translatedFormat('F') . ')';
+            $previousLabel = 'Bulan Lalu (' . \Carbon\Carbon::now()->subMonth()->translatedFormat('F') . ')';
+
+            $maxDays = max(
+                \Carbon\Carbon::now()->daysInMonth,
+                \Carbon\Carbon::now()->subMonth()->daysInMonth
+            );
+
+            for ($d = 1; $d <= $maxDays; $d++) {
+                $labels[] = 'Tgl ' . $d;
+                $current[$d] = 0;
+                $previous[$d] = 0;
+            }
+
+            $thisMonthData = Order::where('tenant_id', $tenantId)
+                ->whereBetween('order_date', [
+                    \Carbon\Carbon::now()->startOfMonth(),
+                    \Carbon\Carbon::now()->endOfMonth()
+                ])
+                ->where('order_status', '!=', Order::STATUS_CANCELLED)
+                ->selectRaw('DAY(order_date) as dy, SUM(net_amount) as total')
+                ->groupBy('dy')
+                ->pluck('total', 'dy')
+                ->toArray();
+
+            $lastMonthData = Order::where('tenant_id', $tenantId)
+                ->whereBetween('order_date', [
+                    \Carbon\Carbon::now()->subMonth()->startOfMonth(),
+                    \Carbon\Carbon::now()->subMonth()->endOfMonth()
+                ])
+                ->where('order_status', '!=', Order::STATUS_CANCELLED)
+                ->selectRaw('DAY(order_date) as dy, SUM(net_amount) as total')
+                ->groupBy('dy')
+                ->pluck('total', 'dy')
+                ->toArray();
+
+            foreach ($thisMonthData as $dy => $val) {
+                $current[(int)$dy] = (float)$val;
+            }
+            foreach ($lastMonthData as $dy => $val) {
+                $previous[(int)$dy] = (float)$val;
+            }
+
+            $current = array_values($current);
+            $previous = array_values($previous);
+        }
+
+        return [
+            'labels' => $labels,
+            'current' => $current,
+            'previous' => $previous,
+            'currentLabel' => $currentLabel,
+            'previousLabel' => $previousLabel,
+        ];
+    }
 }
+

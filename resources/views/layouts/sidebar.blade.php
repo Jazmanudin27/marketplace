@@ -3,7 +3,6 @@
         request()->routeIs('categories.*') ||
         request()->routeIs('brands.*') ||
         request()->routeIs('suppliers.*') ||
-        request()->routeIs('employees.*') ||
         request()->routeIs('customers.*') ||
         request()->routeIs('users.*');
 
@@ -18,6 +17,8 @@
     $isInventoryActive = request()->routeIs('inventory.*') || request()->routeIs('stock_opnames.*');
 
     $isReportActive = request()->routeIs('reports.*');
+
+    $isHrdActive = request()->routeIs('hr.*') || request()->routeIs('employees.*');
 
     $isFinanceActive =
         request()->routeIs('finance.profit_loss') ||
@@ -274,6 +275,54 @@
                         <a href="{{ route('reports.analytics') }}"
                             class="{{ request()->routeIs('reports.analytics*') ? 'active' : '' }}">Analitik
                             Inventori</a>
+                    </div>
+                </div>
+            </div>
+        @endif
+
+        <!-- HRD -->
+        @if (auth()->user()->role === 'admin' || auth()->user()->hasPermissionTo('manage-employees'))
+            <div class="section-title">HRD & Kepegawaian</div>
+
+            <div>
+                <div class="dropdown-trigger {{ $isHrdActive ? '' : 'collapsed' }}" data-bs-toggle="collapse"
+                    data-bs-target="#collapseHrd" role="button"
+                    aria-expanded="{{ $isHrdActive ? 'true' : 'false' }}" aria-controls="collapseHrd">
+                    <i class="bi bi-person-badge"></i>
+                    <span>Kepegawaian (HRD)</span>
+                    <i class="bi bi-chevron-down ms-auto chevron" style="font-size: 0.8rem;"></i>
+                </div>
+                <div class="collapse {{ $isHrdActive ? 'show' : '' }}" id="collapseHrd">
+                    <div class="submenu-container">
+                        @can('manage-employees')
+                            <a href="{{ route('employees.index') }}"
+                                class="{{ request()->routeIs('employees.*') ? 'active' : '' }}">Daftar Karyawan</a>
+                        @endcan
+                        @if (auth()->user()->role === 'admin' ||
+                                auth()->user()->hasAnyPermission(['view-attendance', 'manage-employees']))
+                            <a href="{{ route('hr.attendance.index') }}"
+                                class="{{ request()->routeIs('hr.attendance.*') ? 'active' : '' }}">Presensi /
+                                Absensi</a>
+                        @endif
+                        @can('manage-employees')
+                            <a href="{{ route('hr.leaves.index') }}"
+                                class="{{ request()->routeIs('hr.leaves.*') ? 'active' : '' }}">Pengajuan Izin & Cuti</a>
+                            <a href="{{ route('hr.overtime.index') }}"
+                                class="{{ request()->routeIs('hr.overtime.*') ? 'active' : '' }}">Lembur / Overtime</a>
+                            <a href="{{ route('hr.cash-advances.index') }}"
+                                class="{{ request()->routeIs('hr.cash-advances.*') ? 'active' : '' }}">Kasbon (Cash
+                                Advance)</a>
+                            <a href="{{ route('hr.payroll.index') }}"
+                                class="{{ request()->routeIs('hr.payroll.*') ? 'active' : '' }}">Gaji / Payroll</a>
+                            <a href="{{ route('hr.allowance-types.index') }}"
+                                class="{{ request()->routeIs('hr.allowance-types.*') ? 'active' : '' }}">Master
+                                Tunjangan</a>
+                            <a href="{{ route('hr.late-penalties.index') }}"
+                                class="{{ request()->routeIs('hr.late-penalties.*') ? 'active' : '' }}">Aturan
+                                Terlambat</a>
+                            <a href="{{ route('hr.holidays.index') }}"
+                                class="{{ request()->routeIs('hr.holidays.*') ? 'active' : '' }}">Hari Libur</a>
+                        @endcan
                     </div>
                 </div>
             </div>

@@ -4,7 +4,7 @@
 
 @section('content')
     <div class="row justify-content-strat">
-        <div class="col-md-6">
+        <div class="col-md-4">
             <div class="dashboard-card">
                 <div class="card-header-line">
                     <h3><i class="fas fa-file-invoice"></i> Filter Laporan Stok</h3>

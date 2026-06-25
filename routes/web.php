@@ -223,6 +223,8 @@ Route::middleware('auth')->group(function () {
 
     // Users & Roles (Hak Akses)
     Route::middleware('permission:manage-users')->group(function () {
+        Route::get('users/{user}/permissions', [UserController::class, 'editPermissions'])->name('users.permissions.edit');
+        Route::put('users/{user}/permissions', [UserController::class, 'updatePermissions'])->name('users.permissions.update');
         Route::resource('users', UserController::class)->except(['create', 'show', 'edit']);
         Route::resource('roles', RoleController::class)->except(['create', 'show', 'edit']);
     });
@@ -412,6 +414,8 @@ Route::middleware('auth')->group(function () {
 
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/dashboard/chart-data', [DashboardController::class, 'getChartData'])->name('dashboard.chart-data');
+
 
     // FAQ & Tutorials
     Route::get('/faq', [\App\Http\Controllers\FaqController::class, 'index'])->name('faq.index');

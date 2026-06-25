@@ -15,11 +15,13 @@
                         <div class="row g-2 mb-2">
                             <div class="col-12">
                                 <div class="d-flex align-items-center gap-2">
-                                    <span class="badge bg-primary bg-opacity-15 text-primary border border-primary border-opacity-25 flex-shrink-0 small">
+                                    <span
+                                        class="badge bg-primary bg-opacity-15 text-primary border border-primary border-opacity-25 flex-shrink-0 small">
                                         <i class="fas fa-shield-alt me-1"></i>Super Admin
                                     </span>
                                     <i class="fas fa-building text-muted small"></i>
-                                    <span class="fw-semibold small text-light text-opacity-75 text-nowrap">Filter Perusahaan:</span>
+                                    <span class="fw-semibold small text-light text-opacity-75 text-nowrap">Filter
+                                        Perusahaan:</span>
                                     <div class="flex-grow-1">
                                         <select name="tenant_id" id="filterTenant"
                                             class="form-select form-select-sm select2"
@@ -155,7 +157,8 @@
                                     <td>
                                         <strong class="text-white small">{{ $u->name }}</strong>
                                         @if ($u->id === Auth::id())
-                                            <span class="badge bg-info-subtle text-info border border-info-subtle ms-1 small">Anda</span>
+                                            <span
+                                                class="badge bg-info-subtle text-info border border-info-subtle ms-1 small">Anda</span>
                                         @endif
                                     </td>
                                     <td class="font-monospace small">{{ $u->email }}</td>
@@ -184,6 +187,17 @@
                                                 class="badge bg-secondary-subtle text-muted border border-secondary-subtle">Belum
                                                 ada role</span>
                                         @endif
+
+                                        @if ($u->permissions->count() > 0)
+                                            <div class="mt-1">
+                                                <span
+                                                    class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-10 small"
+                                                    style="font-size: 0.7rem;" title="Hak akses khusus bypass/tambahan">
+                                                    <i class="fas fa-user-shield me-1"></i>+{{ $u->permissions->count() }}
+                                                    Izin Khusus
+                                                </span>
+                                            </div>
+                                        @endif
                                     </td>
                                     @if (auth()->user()->isSuperAdmin())
                                         <td class="small">{{ $u->tenant?->name ?? '-' }}</td>
@@ -191,11 +205,15 @@
                                     <td class="text-center">
                                         <div class="d-flex gap-1 justify-content-center">
                                             <button type="button" class="btn btn-warning btn-action-sm edit-user-btn"
-                                                title="Edit" data-id="{{ $u->id }}"
+                                                title="Edit Profil" data-id="{{ $u->id }}"
                                                 data-name="{{ $u->name }}" data-email="{{ $u->email }}"
                                                 data-role-id="{{ $u->roles->first()?->id ?? '' }}">
                                                 <i class="fas fa-pen"></i>
                                             </button>
+                                            <a href="{{ route('users.permissions.edit', $u->id) }}"
+                                                class="btn btn-info text-white btn-action-sm" title="Hak Akses Khusus">
+                                                <i class="fas fa-key"></i>
+                                            </a>
                                             @if ($u->id !== Auth::id())
                                                 <form action="{{ route('users.destroy', $u->id) }}" method="POST"
                                                     class="confirm-delete d-inline"
@@ -227,7 +245,7 @@
         </div>
     </div>
 
-    {{-- ── Modal Form Tambah / Edit ──────────────────────────── --}}
+    {{-- ── Modal Form Tambah / Edit Profil ───────────────────── --}}
     <div class="modal fade" id="userModal" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered">
             <form id="userForm" method="POST" action="{{ route('users.store') }}">
@@ -241,7 +259,8 @@
 
                 <div class="modal-content overflow-hidden">
                     <div class="modal-header d-flex align-items-center gap-3 p-3 bg-primary bg-opacity-10">
-                        <div class="bg-primary text-white rounded-3 d-flex align-items-center justify-content-center flex-shrink-0 p-2 fs-5">
+                        <div
+                            class="bg-primary text-white rounded-3 d-flex align-items-center justify-content-center flex-shrink-0 p-2 fs-5">
                             <i class="fas fa-user"></i>
                         </div>
                         <div class="flex-grow-1">

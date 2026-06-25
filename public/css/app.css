@@ -858,3 +858,9 @@ label, .form-label {
 .form-control, .form-select, .select2-selection, .select2-container {
     margin-bottom: 0 !important;
 }
+
+/* Card Header Custom Heading Sizes */
+.card-header-line h3, .dashboard-card h3 {
+    font-size: 1.15rem;
+    font-weight: 700;
+}

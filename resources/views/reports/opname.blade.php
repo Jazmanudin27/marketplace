@@ -4,7 +4,7 @@
 
 @section('content')
     <div class="row justify-content-start">
-        <div class="col-md-6">
+        <div class="col-md-4">
             <div class="dashboard-card">
                 <div class="card-header-line">
                     <h3><i class="fas fa-clipboard-check"></i> Filter Riwayat Opname</h3>

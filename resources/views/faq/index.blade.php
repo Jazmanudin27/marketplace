@@ -47,136 +47,144 @@
             <div class="text-center py-5 dashboard-card">
                 <i class="fas fa-info-circle text-muted mb-3" style="font-size: 3rem;"></i>
                 <h4 class="text-white">Belum Ada Panduan</h4>
-                <p class="text-muted">Gunakan tombol "Kelola Panduan" di atas untuk menambahkan kategori dan panduan pertama
-                    Anda.</p>
+                <p class="text-muted">Gunakan tombol "Kelola Panduan" di atas untuk menambahkan kategori dan panduan pertama Anda.</p>
             </div>
         @else
             <!-- Main Grid Layout -->
-            <div class="faq-grid-layout">
+            <div class="row g-4">
                 <!-- Sidebar Navigation -->
-                <div class="faq-sidebar">
-                    @foreach ($categories as $index => $category)
-                        <button class="category-nav-card {{ $index === 0 ? 'active' : '' }}"
-                            data-category="{{ $category->slug }}"
-                            data-default-count="{{ $category->workflows->count() + $category->faqs->count() }}"
-                            style="--cat-color: {{ $category->color }}; --cat-color-rgb: {{ $category->color_rgb }};">
-                            <div class="cat-icon-wrap"><i class="{{ $category->icon }}"></i></div>
-                            <div class="cat-info">
-                                <h4>{{ $category->name }}</h4>
-                                <p>{{ $category->subtitle }}</p>
-                            </div>
-                            <span class="cat-badge"
-                                id="badge-{{ $category->slug }}">{{ $category->workflows->count() + $category->faqs->count() }}</span>
-                        </button>
-                    @endforeach
+                <div class="col-lg-4 col-xl-3">
+                    <div class="faq-sidebar">
+                        @foreach ($categories as $index => $category)
+                            <button class="category-nav-card {{ $index === 0 ? 'active' : '' }}"
+                                data-category="{{ $category->slug }}"
+                                data-default-count="{{ $category->workflows->count() + $category->faqs->count() }}"
+                                style="--cat-color: {{ $category->color }}; --cat-color-rgb: {{ $category->color_rgb }};">
+                                <div class="cat-icon-wrap"><i class="{{ $category->icon }}"></i></div>
+                                <div class="cat-info">
+                                    <h4>{{ $category->name }}</h4>
+                                    <p>{{ $category->subtitle }}</p>
+                                </div>
+                                <span class="cat-badge"
+                                    id="badge-{{ $category->slug }}">{{ $category->workflows->count() + $category->faqs->count() }}</span>
+                            </button>
+                        @endforeach
+                    </div>
                 </div>
 
                 <!-- Content Area -->
-                <div class="content-card-wrapper">
-                    <!-- Searching Not Found Screen -->
-                    <div class="search-not-found" id="search-empty">
-                        <i class="fas fa-search-minus"></i>
-                        <h4>Pencarian Tidak Ditemukan</h4>
-                        <p>Maaf, kami tidak dapat menemukan hasil untuk kata kunci tersebut. Coba gunakan kata kunci
-                            lainnya.</p>
-                    </div>
-
-                    @foreach ($categories as $index => $category)
-                        <div class="content-card {{ $index === 0 ? 'show-active' : '' }}"
-                            data-category="{{ $category->slug }}"
-                            style="--cat-color: {{ $category->color }}; --cat-color-rgb: {{ $category->color_rgb }};">
-
-                            <div class="content-header">
-                                <div class="content-header-icon"><i class="{{ $category->icon }}"></i></div>
-                                <div class="content-header-title">
-                                    <h3>{{ $category->name }}</h3>
-                                    <p>{{ $category->subtitle }}</p>
-                                </div>
-                                <div class="content-header-meta">
-                                    @if ($category->read_time)
-                                        <div>Estimasi baca: {{ $category->read_time }}</div>
-                                    @endif
-                                    <div>Terakhir update: {{ $category->updated_at->translatedFormat('d F Y') }}</div>
-                                </div>
-                            </div>
-
-                            @if ($category->workflows->count() > 0)
-                                <div class="section-title-wrap">
-                                    <i class="fas fa-project-diagram"></i>
-                                    <h4>{{ $category->workflow_title }}</h4>
-                                </div>
-
-                                <div class="workflow-timeline">
-                                    @foreach ($category->workflows as $step)
-                                        <div class="timeline-item">
-                                            <div class="timeline-number">{{ $step->sort_order }}</div>
-                                            <div class="timeline-content">
-                                                <h5>{!! $step->title !!}</h5>
-                                                <p>{!! $step->content !!}</p>
-                                            </div>
-                                        </div>
-                                    @endforeach
-                                </div>
-                            @endif
-
-                            @if ($category->faqs->count() > 0)
-                                <div class="section-title-wrap mt-4">
-                                    <i class="fas fa-question-circle"></i>
-                                    <h4>Pertanyaan Populer (FAQ)</h4>
-                                </div>
-
-                                <div class="faq-accordion">
-                                    @foreach ($category->faqs as $faq)
-                                        <div class="accordion-item">
-                                            <button class="accordion-trigger">{{ $faq->title }} <i
-                                                    class="fas fa-chevron-down"></i></button>
-                                            <div class="accordion-content">
-                                                {!! $faq->content !!}
-                                            </div>
-                                        </div>
-                                    @endforeach
-                                </div>
-                            @endif
-
-                            <div class="feedback-widget">
-                                <div class="feedback-question">Apakah panduan kategori ini membantu Anda?</div>
-                                <div class="feedback-btns">
-                                    <button class="feedback-btn yes"><i class="far fa-thumbs-up"></i> Ya, membantu</button>
-                                    <button class="feedback-btn no"><i class="far fa-thumbs-down"></i> Kurang
-                                        membantu</button>
-                                </div>
-                                <div class="feedback-response"></div>
-                            </div>
+                <div class="col-lg-8 col-xl-9">
+                    <div class="content-card-wrapper">
+                        <!-- Searching Not Found Screen -->
+                        <div class="search-not-found" id="search-empty">
+                            <i class="fas fa-search-minus"></i>
+                            <h4>Pencarian Tidak Ditemukan</h4>
+                            <p>Maaf, kami tidak dapat menemukan hasil untuk kata kunci tersebut. Coba gunakan kata kunci lainnya.</p>
                         </div>
-                    @endforeach
+
+                        @foreach ($categories as $index => $category)
+                            <div class="content-card {{ $index === 0 ? 'show-active' : '' }}"
+                                data-category="{{ $category->slug }}"
+                                style="--cat-color: {{ $category->color }}; --cat-color-rgb: {{ $category->color_rgb }};">
+
+                                <div class="content-header">
+                                    <div class="content-header-icon"><i class="{{ $category->icon }}"></i></div>
+                                    <div class="content-header-title">
+                                        <h3>{{ $category->name }}</h3>
+                                        <p>{{ $category->subtitle }}</p>
+                                    </div>
+                                    <div class="content-header-meta">
+                                        @if ($category->read_time)
+                                            <div>Estimasi baca: {{ $category->read_time }}</div>
+                                        @endif
+                                        <div>Terakhir update: {{ $category->updated_at->translatedFormat('d F Y') }}</div>
+                                    </div>
+                                </div>
+
+                                @if ($category->workflows->count() > 0)
+                                    <div class="section-title-wrap">
+                                        <i class="fas fa-project-diagram"></i>
+                                        <h4>{{ $category->workflow_title }}</h4>
+                                    </div>
+
+                                    <div class="workflow-timeline">
+                                        @foreach ($category->workflows as $step)
+                                            <div class="timeline-item">
+                                                <div class="timeline-number">{{ $step->sort_order }}</div>
+                                                <div class="timeline-content">
+                                                    <h5>{!! $step->title !!}</h5>
+                                                    <p>{!! $step->content !!}</p>
+                                                </div>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                @endif
+
+                                @if ($category->faqs->count() > 0)
+                                    <div class="section-title-wrap mt-4">
+                                        <i class="fas fa-question-circle"></i>
+                                        <h4>Pertanyaan Populer (FAQ)</h4>
+                                    </div>
+
+                                    <div class="faq-accordion">
+                                        @foreach ($category->faqs as $faq)
+                                            <div class="accordion-item">
+                                                <button class="accordion-trigger">{{ $faq->title }} <i
+                                                        class="fas fa-chevron-down"></i></button>
+                                                <div class="accordion-content">
+                                                    {!! $faq->content !!}
+                                                </div>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                @endif
+
+                                <div class="feedback-widget">
+                                    <div class="feedback-question">Apakah panduan kategori ini membantu Anda?</div>
+                                    <div class="feedback-btns">
+                                        <button class="feedback-btn yes"><i class="far fa-thumbs-up"></i> Ya, membantu</button>
+                                        <button class="feedback-btn no"><i class="far fa-thumbs-down"></i> Kurang membantu</button>
+                                    </div>
+                                    <div class="feedback-response"></div>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
                 </div>
             </div>
         @endif
 
         <!-- Extra Help Desk Cards -->
-        <div class="extra-help-section">
-            <div class="help-card">
-                <div class="help-card-icon whatsapp"><i class="fab fa-whatsapp"></i></div>
-                <div class="help-card-info">
-                    <h5>WhatsApp Customer Service</h5>
-                    <p>Butuh bantuan teknis cepat? Hubungi tim support kami via obrolan WhatsApp untuk respon instan harian.
-                    </p>
-                    <a href="https://wa.me/6281234567890?text=Halo%20ERP%20Marketplace%20Support%2C%20saya%20butuh%20bantuan%20mengenai..."
-                        target="_blank" class="help-card-btn">Hubungi WA Support</a>
+        <div class="row g-3 mt-4">
+            <div class="col-md-6">
+                <div class="help-card h-100">
+                    <div class="help-card-icon whatsapp"><i class="fab fa-whatsapp"></i></div>
+                    <div class="help-card-info d-flex flex-column h-100">
+                        <h5>WhatsApp Customer Service</h5>
+                        <p class="flex-grow-1">Butuh bantuan teknis cepat? Hubungi tim support kami via obrolan WhatsApp untuk respon instan harian.</p>
+                        <div>
+                            <a href="https://wa.me/6281234567890?text=Halo%20ERP%20Marketplace%20Support%2C%20saya%20butuh%20bantuan%20mengenai..."
+                                target="_blank" class="help-card-btn">Hubungi WA Support</a>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <div class="help-card">
-                <div class="help-card-icon"><i class="fas fa-ticket-alt"></i></div>
-                <div class="help-card-info">
-                    <h5>Buat Tiket Bantuan</h5>
-                    <p>Kirimkan kendala server, bug sistem, atau permintaan custom fitur melalui sistem tiket bantuan kami.
-                    </p>
-                    <a href="#" class="help-card-btn">Kirim Tiket Masalah</a>
+            <div class="col-md-6">
+                <div class="help-card h-100">
+                    <div class="help-card-icon"><i class="fas fa-ticket-alt"></i></div>
+                    <div class="help-card-info d-flex flex-column h-100">
+                        <h5>Buat Tiket Bantuan</h5>
+                        <p class="flex-grow-1">Kirimkan kendala server, bug sistem, atau permintaan custom fitur melalui sistem tiket bantuan kami.</p>
+                        <div>
+                            <a href="#" class="help-card-btn">Kirim Tiket Masalah</a>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
+
 
     @push('scripts')
         <script>

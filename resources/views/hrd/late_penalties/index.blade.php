@@ -6,18 +6,18 @@
     <div class="row">
         <!-- Form Aturan Denda Keterlambatan (Kiri) -->
         <div class="col-md-4 mb-4">
-            <div class="card shadow-sm" style="border-radius: 14px; background: var(--bg-card); border: 1px solid var(--border);">
-                <div class="card-header border-bottom d-flex align-items-center py-3" style="border-color: var(--border) !important;">
-                    <div class="brand-icon bg-primary-subtle text-primary me-3 p-2 rounded d-flex align-items-center justify-content-center"
-                        style="width: 36px; height: 36px; background: rgba(108, 99, 255, 0.1) !important;">
-                        <i class="fas fa-history text-primary"></i>
+            <div class="dashboard-card p-0 overflow-hidden">
+                <div class="card-header-line d-flex align-items-center p-3 mb-0 bg-primary bg-opacity-10">
+                    <div class="bg-primary text-white rounded p-2 me-3 d-flex align-items-center justify-content-center"
+                        style="width: 36px; height: 36px;">
+                        <i class="fas fa-history text-white"></i>
                     </div>
                     <h5 class="mb-0 fw-bold text-white" id="formTitle">Tambah Aturan Denda</h5>
                 </div>
-                <div class="card-body p-4">
+                <div class="p-4">
                     @if ($errors->any())
-                        <div class="alert alert-danger py-2" style="border-radius: 8px;">
-                            <ul class="mb-0 ps-3">
+                        <div class="alert alert-danger py-2">
+                            <ul class="mb-0 ps-3 small">
                                 @foreach ($errors->all() as $error)
                                     <li>{{ $error }}</li>
                                 @endforeach
@@ -30,26 +30,26 @@
                         <input type="hidden" name="_method" id="formMethod" value="POST">
 
                         <div class="mb-4">
-                            <label class="form-label-custom"><i class="fas fa-hourglass-half text-primary"></i> Minimal Menit Keterlambatan</label>
-                            <div class="input-group">
-                                <input type="number" name="min_minutes" id="min_minutes" class="form-control form-control-custom"
-                                    placeholder="Contoh: 5" min="1" required style="border-radius: 10px 0 0 10px !important;">
-                                <span class="input-group-text" style="background:var(--bg-card); color:var(--text-secondary); border-color:var(--border); border-radius: 0 10px 10px 0 !important;">menit</span>
+                            <label class="form-label"><i class="fas fa-hourglass-half text-primary me-1"></i> Minimal Menit Keterlambatan</label>
+                            <div class="input-group input-group-sm">
+                                <input type="number" name="min_minutes" id="min_minutes" class="form-control"
+                                    placeholder="Contoh: 5" min="1" required>
+                                <span class="input-group-text">menit</span>
                             </div>
                         </div>
 
                         <div class="mb-4">
-                            <label class="form-label-custom"><i class="fas fa-coins text-primary"></i> Nominal Denda</label>
-                            <div class="input-group">
-                                <span class="input-group-text" style="background:var(--bg-card); color:var(--text-secondary); border-color:var(--border); border-radius: 10px 0 0 10px !important;">Rp</span>
-                                <input type="number" name="penalty_amount" id="penalty_amount" class="form-control form-control-custom"
-                                    placeholder="Contoh: 5000" min="0" required style="border-radius: 0 10px 10px 0 !important;">
+                            <label class="form-label"><i class="fas fa-coins text-primary me-1"></i> Nominal Denda</label>
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text">Rp</span>
+                                <input type="number" name="penalty_amount" id="penalty_amount" class="form-control"
+                                    placeholder="Contoh: 5000" min="0" required>
                             </div>
                         </div>
 
                         <div class="d-flex gap-2 pt-2">
-                            <button type="submit" class="btn btn-primary btn-sm px-4 fw-semibold" style="border-radius: 8px;">Simpan</button>
-                            <button type="button" class="btn btn-secondary btn-sm px-3" id="btnCancel" style="display:none; border-radius: 8px;"
+                            <button type="submit" class="btn btn-primary btn-sm px-4 fw-semibold">Simpan</button>
+                            <button type="button" class="btn btn-secondary btn-sm px-3" id="btnCancel" style="display:none;"
                                 onclick="resetForm()">Batal</button>
                         </div>
                     </form>
@@ -59,65 +59,63 @@
 
         <!-- Tabel Daftar Aturan Denda (Kanan) -->
         <div class="col-md-8">
-            <div class="card shadow-sm" style="border-radius: 14px; background: var(--bg-card); border: 1px solid var(--border);">
-                <div class="card-header border-bottom d-flex align-items-center py-3" style="border-color: var(--border) !important;">
-                    <div class="brand-icon bg-success-subtle text-success me-3 p-2 rounded d-flex align-items-center justify-content-center"
-                        style="width: 36px; height: 36px; background: rgba(16, 185, 129, 0.1) !important;">
-                        <i class="fas fa-list text-success"></i>
+            <div class="dashboard-card p-0 overflow-hidden">
+                <div class="card-header-line d-flex align-items-center p-3 mb-0 bg-success bg-opacity-10">
+                    <div class="bg-success text-white rounded p-2 me-3 d-flex align-items-center justify-content-center"
+                        style="width: 36px; height: 36px;">
+                        <i class="fas fa-list text-white"></i>
                     </div>
                     <h5 class="mb-0 fw-bold text-white">Daftar Tingkatan Denda (Rules)</h5>
                 </div>
-                <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-hover align-middle mb-0">
-                            <thead class="table-dark" style="background: var(--bg-card2);">
+                <div class="table-responsive p-3 pt-0">
+                    <table class="table table-bordered table-premium-dark align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th style="width: 40%;">Batas Keterlambatan</th>
+                                <th style="width: 40%;">Nominal Denda</th>
+                                <th style="width: 20%;" class="text-center">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse($rules as $rule)
                                 <tr>
-                                    <th style="width: 40%; padding: 1rem 1.2rem;">Batas Keterlambatan</th>
-                                    <th style="width: 40%; padding: 1rem 1.2rem;">Nominal Denda</th>
-                                    <th style="width: 20%; padding: 1rem 1.2rem; text-align: center;">Aksi</th>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="bg-danger bg-opacity-10 text-danger rounded p-1 px-2 me-3">
+                                                <i class="fas fa-clock text-danger"></i>
+                                            </div>
+                                            <span class="text-white fw-bold">&ge; {{ $rule->min_minutes }} menit</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="text-success fw-bold">Rp {{ number_format($rule->penalty_amount, 0, ',', '.') }}</span>
+                                    </td>
+                                    <td class="text-center">
+                                        <div class="d-inline-flex gap-1 align-items-center">
+                                            <button class="btn btn-warning btn-action-sm" title="Edit"
+                                                onclick="editLatePenalty({{ $rule->id }}, {{ $rule->min_minutes }}, {{ $rule->penalty_amount }})">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <form action="{{ route('hr.late-penalties.destroy', $rule->id) }}" method="POST"
+                                                style="display:inline;" onsubmit="return confirm('Hapus aturan denda keterlambatan ini?');">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="btn btn-danger btn-action-sm" title="Hapus"><i
+                                                        class="fas fa-trash"></i></button>
+                                            </form>
+                                        </div>
+                                    </td>
                                 </tr>
-                            </thead>
-                            <tbody>
-                                @forelse($rules as $rule)
-                                    <tr style="border-bottom-color: var(--border);">
-                                        <td style="padding: 1rem 1.2rem;">
-                                            <div class="d-flex align-items-center">
-                                                <div class="brand-icon bg-danger-subtle text-danger me-3 p-1 px-2 rounded" style="background: rgba(239, 68, 68, 0.1) !important;">
-                                                    <i class="fas fa-clock text-danger"></i>
-                                                </div>
-                                                <span class="text-white fw-bold">&ge; {{ $rule->min_minutes }} menit</span>
-                                            </div>
-                                        </td>
-                                        <td style="padding: 1rem 1.2rem;">
-                                            <span class="text-success fw-bold">Rp {{ number_format($rule->penalty_amount, 0, ',', '.') }}</span>
-                                        </td>
-                                        <td style="padding: 1rem 1.2rem; text-align: center;">
-                                            <div class="d-inline-flex gap-1 align-items-center">
-                                                <button class="btn btn-action-custom btn-action-edit" title="Edit"
-                                                    onclick="editLatePenalty({{ $rule->id }}, {{ $rule->min_minutes }}, {{ $rule->penalty_amount }})">
-                                                    <i class="fas fa-edit"></i>
-                                                </button>
-                                                <form action="{{ route('hr.late-penalties.destroy', $rule->id) }}" method="POST"
-                                                    style="display:inline;" onsubmit="return confirm('Hapus aturan denda keterlambatan ini?');">
-                                                    @csrf
-                                                    @method('DELETE')
-                                                    <button type="submit" class="btn btn-action-custom btn-action-delete" title="Hapus"><i
-                                                            class="fas fa-trash"></i></button>
-                                                </form>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                @empty
-                                    <tr>
-                                        <td colspan="3" class="text-center py-5 text-muted">
-                                            <div class="fs-4 mb-2"><i class="far fa-folder-open"></i></div>
-                                            Belum ada aturan denda keterlambatan yang terdaftar.
-                                        </td>
-                                    </tr>
-                                @endforelse
-                            </tbody>
-                        </table>
-                    </div>
+                            @empty
+                                <tr>
+                                    <td colspan="3" class="text-center py-5 text-muted">
+                                        <i class="far fa-folder-open fa-2x mb-3 d-block text-secondary opacity-25"></i>
+                                        Belum ada aturan denda keterlambatan yang terdaftar.
+                                    </td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
