@@ -2,515 +2,138 @@
 @section('title', 'Inbox Chat')
 @section('page-title', 'Inbox Chat')
 
-@push('styles')
-    <style>
-        /* ── Chat Layout ── */
-        .chat-layout {
-            display: flex;
-            height: 95vh;
-            border-radius: 12px;
-            overflow: hidden;
-            border: 1px solid rgba(255, 255, 255, 0.07);
-            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
-        }
-
-        /* ── Left Sidebar ── */
-        .chat-sidebar {
-            width: 340px;
-            min-width: 300px;
-            display: flex;
-            flex-direction: column;
-            border-right: 1px solid rgba(255, 255, 255, 0.07);
-            background: var(--bg-card, #1a2332);
-        }
-
-        .chat-sidebar-header {
-            padding: .875rem 1rem .75rem;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.07);
-        }
-
-        /* Search */
-        .chat-search-wrap {
-            position: relative;
-        }
-
-        .chat-search-wrap .fa-search {
-            position: absolute;
-            left: .75rem;
-            top: 50%;
-            transform: translateY(-50%);
-            color: #64748b;
-            font-size: .78rem;
-            pointer-events: none;
-        }
-
-        .chat-search-input {
-            width: 100%;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.09);
-            border-radius: 20px;
-            padding: .45rem .85rem .45rem 2.2rem;
-            color: #e2e8f0;
-            font-size: .83rem;
-            transition: border-color .2s, background .2s;
-            outline: none;
-        }
-
-        .chat-search-input:focus {
-            border-color: #6366f1;
-            background: rgba(255, 255, 255, 0.08);
-        }
-
-        .chat-search-input::placeholder {
-            color: #475569;
-        }
-
-        /* Filter pills */
-        .chat-pills {
-            display: flex;
-            gap: .35rem;
-            padding: .6rem 1rem;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.07);
-            overflow-x: auto;
-            scrollbar-width: none;
-            flex-shrink: 0;
-        }
-
-        .chat-pills::-webkit-scrollbar {
-            display: none;
-        }
-
-        .chat-pill {
-            display: inline-flex;
-            align-items: center;
-            gap: .3rem;
-            padding: .22rem .7rem;
-            border-radius: 20px;
-            font-size: .75rem;
-            font-weight: 500;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            background: transparent;
-            color: #94a3b8;
-            cursor: pointer;
-            white-space: nowrap;
-            text-decoration: none;
-            transition: all .18s;
-        }
-
-        .chat-pill:hover,
-        .chat-pill.active {
-            background: #6366f1;
-            border-color: #6366f1;
-            color: #fff;
-        }
-
-        /* Conversation list */
-        .chat-conv-list {
-            flex: 1;
-            overflow-y: auto;
-            scrollbar-width: thin;
-            scrollbar-color: rgba(255, 255, 255, 0.08) transparent;
-        }
-
-        .chat-conv-list::-webkit-scrollbar {
-            width: 4px;
-        }
-
-        .chat-conv-list::-webkit-scrollbar-track {
-            background: transparent;
-        }
-
-        .chat-conv-list::-webkit-scrollbar-thumb {
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 4px;
-        }
-
-        .conv-item {
-            display: flex;
-            align-items: center;
-            gap: .75rem;
-            padding: .8rem 1rem;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-            cursor: pointer;
-            text-decoration: none;
-            color: #e2e8f0;
-            transition: background .15s;
-            position: relative;
-        }
-
-        .conv-item:hover {
-            background: rgba(255, 255, 255, 0.04);
-            color: #e2e8f0;
-            text-decoration: none;
-        }
-
-        .conv-item.active {
-            background: rgba(99, 102, 241, 0.12);
-        }
-
-        .conv-item.active::before {
-            content: '';
-            position: absolute;
-            left: 0;
-            top: 0;
-            bottom: 0;
-            width: 3px;
-            background: #6366f1;
-            border-radius: 0 2px 2px 0;
-        }
-
-        /* Avatar */
-        .conv-avatar {
-            width: 42px;
-            height: 42px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 700;
-            font-size: .95rem;
-            color: #fff;
-            flex-shrink: 0;
-            position: relative;
-        }
-
-        .channel-dot {
-            position: absolute;
-            bottom: -2px;
-            right: -2px;
-            width: 16px;
-            height: 16px;
-            border-radius: 50%;
-            border: 2px solid var(--bg-card, #1a2332);
-            font-size: .5rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 800;
-            color: #fff;
-        }
-
-        .channel-dot.shopee {
-            background: #ee4d2d;
-        }
-
-        .channel-dot.tiktok {
-            background: #010101;
-            border-color: #252525;
-        }
-
-        .conv-info {
-            flex: 1;
-            min-width: 0;
-        }
-
-        .conv-name {
-            font-size: .86rem;
-            font-weight: 600;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            margin-bottom: .1rem;
-        }
-
-        .conv-preview {
-            font-size: .74rem;
-            color: #64748b;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .conv-meta {
-            display: flex;
-            flex-direction: column;
-            align-items: flex-end;
-            gap: .25rem;
-            flex-shrink: 0;
-        }
-
-        .conv-time {
-            font-size: .68rem;
-            color: #475569;
-        }
-
-        /* Status badge */
-        .status-badge {
-            display: inline-block;
-            padding: .08rem .45rem;
-            border-radius: 10px;
-            font-size: .66rem;
-            font-weight: 600;
-        }
-
-        .status-open {
-            background: rgba(34, 197, 94, .15);
-            color: #22c55e;
-        }
-
-        .status-closed {
-            background: rgba(100, 116, 139, .15);
-            color: #94a3b8;
-        }
-
-        .status-archived {
-            background: rgba(71, 85, 105, .15);
-            color: #64748b;
-        }
-
-        /* Channel tag */
-        .channel-tag {
-            display: inline-flex;
-            align-items: center;
-            gap: .25rem;
-            padding: .18rem .55rem;
-            border-radius: 12px;
-            font-size: .72rem;
-            font-weight: 600;
-        }
-
-        .channel-shopee {
-            background: rgba(238, 77, 45, .18);
-            color: #ee4d2d;
-        }
-
-        .channel-tiktok {
-            background: rgba(1, 1, 1, .35);
-            color: #69c9d0;
-            border: 1px solid rgba(105, 201, 208, .25);
-        }
-
-        /* Sync bar */
-        .chat-sync-bar {
-            padding: .5rem .875rem;
-            border-top: 1px solid rgba(255, 255, 255, 0.07);
-            display: flex;
-            gap: .4rem;
-            flex-wrap: wrap;
-            align-items: center;
-            background: rgba(0, 0, 0, 0.15);
-            flex-shrink: 0;
-        }
-
-        /* Pagination */
-        .chat-pagination {
-            padding: .4rem .875rem;
-            border-top: 1px solid rgba(255, 255, 255, 0.07);
-            display: flex;
-            justify-content: center;
-            flex-shrink: 0;
-        }
-
-        .chat-pagination .pagination {
-            transform: scale(.82);
-            transform-origin: center;
-            margin: 0;
-        }
-
-        /* ── Right Panel ── */
-        .chat-main {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: .875rem;
-            background: var(--bg-card, #1a2332);
-            color: #475569;
-        }
-
-        .chat-empty-icon {
-            width: 72px;
-            height: 72px;
-            border-radius: 50%;
-            background: rgba(99, 102, 241, 0.1);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.8rem;
-            color: #6366f1;
-        }
-
-        /* Spinning */
-        @keyframes spin {
-            from {
-                transform: rotate(0deg);
-            }
-
-            to {
-                transform: rotate(360deg);
-            }
-        }
-
-        .spin {
-            animation: spin 1s linear infinite;
-        }
-
-        /* Responsive */
-        @media (max-width: 768px) {
-            .chat-layout {
-                height: auto;
-                flex-direction: column;
-            }
-
-            .chat-sidebar {
-                width: 100%;
-                min-width: 0;
-                border-right: none;
-                border-bottom: 1px solid rgba(255, 255, 255, 0.07);
-                max-height: 55vh;
-            }
-
-            .chat-main {
-                min-height: 180px;
-            }
-        }
-    </style>
-@endpush
-
 @section('content')
-    <div class="chat-layout">
-
-        {{-- ─────────────── LEFT: Daftar Percakapan ─────────────── --}}
-        <div class="chat-sidebar">
-
-            {{-- Header & Search --}}
-            <div class="chat-sidebar-header">
-                <h6 class="mb-2 fw-bold d-flex align-items-center gap-2">
-                    <i class="fas fa-comments text-primary"></i> Inbox Chat
-                </h6>
-                <form method="GET" action="{{ route('chats.index') }}" id="chatFilterForm">
-                    <div class="chat-search-wrap">
+<div class="row g-0 border rounded shadow-sm bg-white" style="height: calc(100vh - 160px); overflow: hidden;">
+    <!-- LEFT: Conversation List Sidebar -->
+    <div class="col-md-4 d-flex flex-column border-end bg-light" style="max-height: 100%;">
+        <!-- Header & Search -->
+        <div class="p-3 border-bottom bg-white">
+            <h6 class="mb-2 fw-bold text-primary">
+                <i class="fas fa-comments me-2"></i> Inbox Chat
+            </h6>
+            <form method="GET" action="{{ route('chats.index') }}" id="chatFilterForm">
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text bg-light border-end-0 text-muted">
                         <i class="fas fa-search"></i>
-                        <input type="text" id="chatSearchInput" name="search" value="{{ $search }}"
-                            placeholder="Cari buyer atau pesan…" autocomplete="off" class="chat-search-input">
-                    </div>
-                    {{-- Hidden filters --}}
-                    @if ($storeId)
-                        <input type="hidden" name="store_id" value="{{ $storeId }}">
-                    @endif
-                    @if ($channelCode)
-                        <input type="hidden" name="channel" value="{{ $channelCode }}">
-                    @endif
-                    @if ($status)
-                        <input type="hidden" name="status" value="{{ $status }}">
-                    @endif
-                </form>
-            </div>
-
-            {{-- Filter Pills --}}
-            <div class="chat-pills">
-                <a href="{{ route('chats.index') }}" class="chat-pill {{ !$channelCode && !$status ? 'active' : '' }}">
-                    <i class="fas fa-inbox"></i> Semua
-                </a>
-                <a href="{{ route('chats.index', array_merge(request()->query(), ['channel' => 'shopee'])) }}"
-                    class="chat-pill {{ $channelCode === 'shopee' ? 'active' : '' }}">
-                    🛒 Shopee
-                </a>
-                <a href="{{ route('chats.index', array_merge(request()->query(), ['channel' => 'tiktok'])) }}"
-                    class="chat-pill {{ $channelCode === 'tiktok' ? 'active' : '' }}">
-                    🎵 TikTok
-                </a>
-                <a href="{{ route('chats.index', array_merge(request()->query(), ['status' => 'open'])) }}"
-                    class="chat-pill {{ $status === 'open' ? 'active' : '' }}">
-                    <i class="fas fa-circle" style="font-size:.5rem;color:#22c55e"></i> Open
-                </a>
-                <a href="{{ route('chats.index', array_merge(request()->query(), ['status' => 'closed'])) }}"
-                    class="chat-pill {{ $status === 'closed' ? 'active' : '' }}">
-                    <i class="fas fa-check-circle" style="font-size:.5rem"></i> Closed
-                </a>
-            </div>
-
-            {{-- Conversation List --}}
-            <div class="chat-conv-list">
-                @forelse($conversations as $conv)
-                    @php
-                        $ch = $conv->store->channel->code ?? '';
-                        $initial = strtoupper(substr($conv->buyer_name ?? 'B', 0, 1));
-                        $grad =
-                            $ch === 'shopee'
-                                ? 'linear-gradient(135deg,#ee4d2d,#f97316)'
-                                : ($ch === 'tiktok'
-                                    ? 'linear-gradient(135deg,#1d1d1d,#3d3d3d)'
-                                    : 'linear-gradient(135deg,#6366f1,#8b5cf6)');
-                    @endphp
-                    <a href="{{ route('chats.show', $conv) }}" class="conv-item">
-                        {{-- Avatar --}}
-                        <div class="conv-avatar" style="background:{{ $grad }}">
-                            {{ $initial }}
-                            <span class="channel-dot {{ $ch }}">
-                                {{ $ch === 'shopee' ? 'S' : ($ch === 'tiktok' ? 'T' : '?') }}
-                            </span>
-                        </div>
-
-                        {{-- Info --}}
-                        <div class="conv-info">
-                            <div class="conv-name">{{ $conv->buyer_name ?? 'Unknown Buyer' }}</div>
-                            <div class="conv-preview">
-                                <span class="text-muted" style="font-size:.7rem">{{ $conv->store->store_name }}</span>
-                                · {{ \Illuminate\Support\Str::limit($conv->last_message_preview ?? '—', 38) }}
-                            </div>
-                        </div>
-
-                        {{-- Meta --}}
-                        <div class="conv-meta">
-                            <span class="conv-time">
-                                {{ optional($conv->last_message_at)->diffForHumans(['short' => true]) ?? '—' }}
-                            </span>
-                            <span class="status-badge status-{{ $conv->status }}">{{ ucfirst($conv->status) }}</span>
-                        </div>
-                    </a>
-                @empty
-                    <div class="text-center py-5 px-3">
-                        <i class="fas fa-inbox fa-2x mb-3 d-block opacity-25 text-muted"></i>
-                        <div class="small text-muted">Belum ada percakapan.</div>
-                        <div class="text-muted" style="font-size:.75rem;margin-top:.25rem">
-                            Tekan <strong>Sync</strong> untuk menarik data dari marketplace.
-                        </div>
-                    </div>
-                @endforelse
-            </div>
-
-            {{-- Pagination --}}
-            @if ($conversations->hasPages())
-                <div class="chat-pagination">
-                    {{ $conversations->links('pagination::bootstrap-5') }}
+                    </span>
+                    <input type="text" id="chatSearchInput" name="search" value="{{ $search }}"
+                        placeholder="Cari buyer atau pesan…" autocomplete="off" class="form-control border-start-0 bg-light">
                 </div>
-            @endif
+                {{-- Hidden filters --}}
+                @if ($storeId)
+                    <input type="hidden" name="store_id" value="{{ $storeId }}">
+                @endif
+                @if ($channelCode)
+                    <input type="hidden" name="channel" value="{{ $channelCode }}">
+                @endif
+                @if ($status)
+                    <input type="hidden" name="status" value="{{ $status }}">
+                @endif
+            </form>
+        </div>
 
-            {{-- Sync Bar --}}
-            <div class="chat-sync-bar">
-                <span class="text-muted" style="font-size:.72rem"><i class="fas fa-sync-alt me-1"></i>Sync:</span>
-                <button type="button" class="btn btn-outline-secondary btn-sm py-0 px-2"
-                    style="font-size:.73rem; border-radius:20px;" id="btnSyncAll">
-                    <i class="fas fa-globe me-1"></i>Semua Toko
+        <!-- Filter Pills -->
+        <div class="d-flex gap-1 p-2 border-bottom overflow-auto bg-white" style="white-space: nowrap;">
+            <a href="{{ route('chats.index') }}" class="btn btn-outline-primary btn-sm rounded-pill py-0.5 px-3 {{ !$channelCode && !$status ? 'active' : '' }}">
+                <i class="fas fa-inbox me-1"></i> Semua
+            </a>
+            <a href="{{ route('chats.index', array_merge(request()->query(), ['channel' => 'shopee'])) }}"
+                class="btn btn-outline-primary btn-sm rounded-pill py-0.5 px-3 {{ $channelCode === 'shopee' ? 'active' : '' }}">
+                🛒 Shopee
+            </a>
+            <a href="{{ route('chats.index', array_merge(request()->query(), ['channel' => 'tiktok'])) }}"
+                class="btn btn-outline-primary btn-sm rounded-pill py-0.5 px-3 {{ $channelCode === 'tiktok' ? 'active' : '' }}">
+                🎵 TikTok
+            </a>
+            <a href="{{ route('chats.index', array_merge(request()->query(), ['status' => 'open'])) }}"
+                class="btn btn-outline-primary btn-sm rounded-pill py-0.5 px-3 {{ $status === 'open' ? 'active' : '' }}">
+                <i class="fas fa-circle me-1 text-success" style="font-size:.5rem;"></i> Open
+            </a>
+            <a href="{{ route('chats.index', array_merge(request()->query(), ['status' => 'closed'])) }}"
+                class="btn btn-outline-primary btn-sm rounded-pill py-0.5 px-3 {{ $status === 'closed' ? 'active' : '' }}">
+                <i class="fas fa-check-circle me-1"></i> Closed
+            </a>
+        </div>
+
+        <!-- Conversation List -->
+        <div class="list-group list-group-flush flex-grow-1 overflow-auto bg-white" id="sidebar-conv-list">
+            @forelse($conversations as $conv)
+                @php
+                    $ch = $conv->store->channel->code ?? '';
+                    $initial = strtoupper(substr($conv->buyer_name ?? 'B', 0, 1));
+                    $bgGrad = $ch === 'shopee' ? 'bg-danger' : ($ch === 'tiktok' ? 'bg-dark' : 'bg-primary');
+                @endphp
+                <a href="{{ route('chats.show', $conv) }}" class="list-group-item list-group-item-action d-flex align-items-center gap-3 border-0 border-bottom p-3">
+                    <!-- Avatar -->
+                    <div class="position-relative rounded-circle d-flex align-items-center justify-content-center text-white fw-bold flex-shrink-0 {{ $bgGrad }}" style="width: 42px; height: 42px; font-size: 0.95rem;">
+                        {{ $initial }}
+                        <span class="position-absolute bottom-0 end-0 badge rounded-circle p-1 {{ $ch === 'shopee' ? 'bg-warning text-dark' : 'bg-secondary text-white' }}" style="font-size: 0.55rem; width: 18px; height: 18px; transform: translate(20%, 20%);">
+                            {{ $ch === 'shopee' ? 'S' : ($ch === 'tiktok' ? 'T' : '?') }}
+                        </span>
+                    </div>
+
+                    <!-- Info -->
+                    <div class="flex-grow-1 min-w-0">
+                        <div class="fw-bold text-dark small text-truncate mb-0.5">{{ $conv->buyer_name ?? 'Unknown Buyer' }}</div>
+                        <div class="text-muted small text-truncate" style="font-size: 0.75rem;">
+                            <span class="fw-semibold text-primary">{{ $conv->store->store_name }}</span>
+                            · {{ \Illuminate\Support\Str::limit($conv->last_message_preview ?? '—', 38) }}
+                        </div>
+                    </div>
+
+                    <!-- Meta -->
+                    <div class="text-end flex-shrink-0">
+                        <div class="text-muted" style="font-size: 0.68rem;">
+                            {{ optional($conv->last_message_at)->diffForHumans(['short' => true]) ?? '—' }}
+                        </div>
+                        <span class="badge {{ $conv->status === 'open' ? 'bg-success bg-opacity-10 text-success' : 'bg-secondary bg-opacity-10 text-secondary' }} mt-1" style="font-size: 0.65rem;">
+                            {{ ucfirst($conv->status) }}
+                        </span>
+                    </div>
+                </a>
+            @empty
+                <div class="text-center py-5 px-3 bg-white flex-grow-1">
+                    <i class="fas fa-inbox fa-2x mb-3 d-block opacity-25 text-muted"></i>
+                    <div class="small text-muted">Belum ada percakapan.</div>
+                    <div class="text-muted mt-1" style="font-size:.75rem;">
+                        Tekan <strong>Sync</strong> untuk menarik data dari marketplace.
+                    </div>
+                </div>
+            @endforelse
+        </div>
+
+        <!-- Pagination -->
+        @if ($conversations->hasPages())
+            <div class="p-2 border-top bg-light d-flex justify-content-center">
+                {{ $conversations->links('pagination::bootstrap-5') }}
+            </div>
+        @endif
+
+        <!-- Sync Bar -->
+        <div class="p-2 bg-light border-top d-flex gap-1 align-items-center flex-wrap">
+            <span class="text-muted small me-1"><i class="fas fa-sync-alt me-1"></i>Sync:</span>
+            <button type="button" class="btn btn-outline-secondary btn-sm py-0.5 px-2.5 rounded-pill" style="font-size:.73rem;" id="btnSyncAll">
+                <i class="fas fa-globe me-1"></i>Semua
+            </button>
+            @foreach ($stores as $store)
+                <button type="button" class="btn btn-outline-secondary btn-sm py-0.5 px-2.5 rounded-pill btn-sync-store" style="font-size:.73rem;" data-store-id="{{ $store->id }}" title="Sync {{ $store->store_name }}">
+                    <i class="fas fa-store me-1"></i>{{ Str::limit($store->store_name, 13) }}
                 </button>
-                @foreach ($stores as $store)
-                    <button type="button" class="btn btn-outline-secondary btn-sm py-0 px-2 btn-sync-store"
-                        style="font-size:.73rem; border-radius:20px;" data-store-id="{{ $store->id }}"
-                        title="Sync {{ $store->store_name }}">
-                        <i class="fas fa-store me-1"></i>{{ Str::limit($store->store_name, 13) }}
-                    </button>
-                @endforeach
-            </div>
+            @endforeach
         </div>
-
-        {{-- ─────────────── RIGHT: Empty state ─────────────── --}}
-        <div class="chat-main">
-            <div class="chat-empty-icon">
-                <i class="fas fa-comment-dots"></i>
-            </div>
-            <h6 class="fw-bold text-light mb-0">Pilih Percakapan</h6>
-            <p class="text-muted small text-center mb-1" style="max-width:240px; line-height:1.6">
-                Klik nama buyer di sebelah kiri untuk membuka chat dan membalas pesan.
-            </p>
-            <div class="d-flex gap-2 flex-wrap justify-content-center">
-                <span class="channel-tag channel-shopee"><i class="fas fa-shopping-bag"></i> Shopee</span>
-                <span class="channel-tag channel-tiktok"><i class="fab fa-tiktok"></i> TikTok Shop</span>
-            </div>
-        </div>
-
     </div>
+
+    <!-- RIGHT: Empty state -->
+    <div class="col-md-8 d-none d-md-flex flex-column align-items-center justify-content-center bg-white text-muted">
+        <div class="rounded-circle bg-primary bg-opacity-10 p-4 mb-3 text-primary fs-3 d-flex align-items-center justify-content-center" style="width: 72px; height: 72px;">
+            <i class="fas fa-comment-dots"></i>
+        </div>
+        <h6 class="fw-bold text-dark mb-1">Pilih Percakapan</h6>
+        <p class="small text-muted mb-0 text-center" style="max-width:240px; line-height:1.6">
+            Klik nama buyer di sebelah kiri untuk membuka chat dan membalas pesan.
+        </p>
+    </div>
+</div>
 @endsection
 
 @push('scripts')
@@ -546,11 +169,6 @@
                     allowOutsideClick: false,
                     allowEscapeKey: false,
                     showConfirmButton: false,
-                    background: '#151f2c',
-                    color: '#f8fafc',
-                    customClass: {
-                        popup: 'border border-secondary border-opacity-10'
-                    },
                     didOpen: () => {
                         Swal.showLoading();
                     }
@@ -576,23 +194,13 @@
                                 title: 'Sync Berhasil!',
                                 text: data.message || 'Chat berhasil disinkronisasi.',
                                 timer: 2000,
-                                showConfirmButton: false,
-                                background: '#151f2c',
-                                color: '#f8fafc',
-                                customClass: {
-                                    popup: 'border border-secondary border-opacity-10'
-                                }
+                                showConfirmButton: false
                             }).then(() => window.location.reload());
                         } else {
                             Swal.fire({
                                 icon: 'error',
                                 title: 'Gagal Sync',
-                                text: data.message || 'Terjadi kesalahan saat sinkronisasi.',
-                                background: '#151f2c',
-                                color: '#f8fafc',
-                                customClass: {
-                                    popup: 'border border-secondary border-opacity-10'
-                                }
+                                text: data.message || 'Terjadi kesalahan saat sinkronisasi.'
                             });
                         }
                     },
@@ -602,12 +210,7 @@
                         Swal.fire({
                             icon: 'error',
                             title: 'Gagal Sync',
-                            text: msg,
-                            background: '#151f2c',
-                            color: '#f8fafc',
-                            customClass: {
-                                popup: 'border border-secondary border-opacity-10'
-                            }
+                            text: msg
                         });
                     }
                 });

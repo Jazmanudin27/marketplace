@@ -23,7 +23,7 @@
                 </ol>
             </nav>
 
-            <div class="dashboard-card p-0 overflow-hidden">
+            <div class="card border shadow-sm p-0 overflow-hidden">
 
                 {{-- Header --}}
                 <div class="d-flex align-items-center gap-3 p-3 border-bottom bg-primary bg-opacity-10">
@@ -32,10 +32,10 @@
                         <i class="fas fa-{{ $isEdit ? 'user-pen' : 'user-plus' }}"></i>
                     </div>
                     <div>
-                        <h5 class="mb-0 fw-bold">{{ $title }}</h5>
-                        <p class="mb-0 text-muted small">
+                        <h6 class="mb-0 fw-bold text-dark">{{ $title }}</h6>
+                        <small class="mb-0 text-muted">
                             {{ $isEdit ? 'Perbarui informasi data profil karyawan' : 'Tambahkan data profil karyawan baru' }}
-                        </p>
+                        </small>
                     </div>
                 </div>
 
@@ -63,7 +63,7 @@
 
                     {{-- Nama Karyawan --}}
                     <div class="mb-3">
-                        <label class="form-label fw-semibold">
+                        <label class="form-label fw-bold small text-dark">
                             <i class="fas fa-user me-1 text-primary"></i>
                             Nama Lengkap <span class="text-danger">*</span>
                         </label>
@@ -79,7 +79,7 @@
                     {{-- Email & Telepon --}}
                     <div class="row g-3 mb-3">
                         <div class="col-md-6">
-                            <label class="form-label fw-semibold">
+                            <label class="form-label fw-bold small text-dark">
                                 <i class="fas fa-envelope me-1 text-primary"></i>
                                 Email
                             </label>
@@ -92,7 +92,7 @@
                             @enderror
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label fw-semibold">
+                            <label class="form-label fw-bold small text-dark">
                                 <i class="fas fa-phone me-1 text-primary"></i>
                                 No. Handphone
                             </label>
@@ -108,7 +108,7 @@
                     {{-- Posisi & Tanggal Bergabung --}}
                     <div class="row g-3 mb-3">
                         <div class="col-md-6">
-                            <label class="form-label fw-semibold">
+                            <label class="form-label fw-bold small text-dark">
                                 <i class="fas fa-briefcase me-1 text-primary"></i>
                                 Posisi / Jabatan
                             </label>
@@ -121,7 +121,7 @@
                             @enderror
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label fw-semibold">
+                            <label class="form-label fw-bold small text-dark">
                                 <i class="fas fa-calendar-alt me-1 text-primary"></i>
                                 Tanggal Bergabung
                             </label>
@@ -136,7 +136,7 @@
 
                     {{-- Alamat --}}
                     <div class="mb-3">
-                        <label class="form-label fw-semibold">
+                        <label class="form-label fw-bold small text-dark">
                             <i class="fas fa-map-marker-alt me-1 text-primary"></i>
                             Alamat Lengkap
                         </label>
@@ -148,12 +148,12 @@
                     </div>
 
                     {{-- Status Aktif --}}
-                    <div class="d-flex align-items-center justify-content-between border rounded p-3 mb-4">
+                    <div class="d-flex align-items-center justify-content-between border rounded p-2 mb-3">
                         <div>
                             <div class="fw-semibold small">Status Karyawan</div>
-                            <div class="text-muted small">
+                            <small class="text-muted d-block">
                                 Karyawan aktif dapat melakukan presensi mandiri dan dimasukkan dalam daftar gaji bulanan
-                            </div>
+                            </small>
                         </div>
                         <div class="form-check form-switch mb-0 ms-3">
                             <input class="form-check-input" type="checkbox" role="switch" name="is_active" value="1"
@@ -163,11 +163,11 @@
 
                     <hr class="my-4">
                     <div class="d-flex justify-content-between align-items-center">
-                        <button type="button" class="btn btn-secondary btn-sm px-4 d-inline-flex align-items-center gap-1"
+                        <button type="button" class="btn btn-secondary btn-sm px-3 d-inline-flex align-items-center gap-1"
                             onclick="window.history.back()">
                             <i class="fas fa-arrow-left"></i> Kembali
                         </button>
-                        <button type="submit" class="btn btn-primary btn-sm px-4 d-inline-flex align-items-center gap-1">
+                        <button type="submit" class="btn btn-primary btn-sm px-3 d-inline-flex align-items-center gap-1 rounded-3">
                             <i class="fas fa-{{ $isEdit ? 'save' : 'plus' }}"></i>
                             {{ $isEdit ? 'Simpan Perubahan' : 'Tambah Karyawan' }}
                         </button>

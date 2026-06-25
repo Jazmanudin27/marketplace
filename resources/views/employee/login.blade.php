@@ -2,101 +2,91 @@
 
 @section('title', 'Login Karyawan — Presensi & Keuangan')
 
-@section('styles')
-    <link rel="stylesheet" href="{{ asset('css/employee-login.css') }}">
-@endsection
-
 @section('content')
-<div class="login-container">
-    <div class="logo-section">
-        <div class="logo-icon">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
-                <circle cx="9" cy="7" r="4"></circle>
-                <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
-                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-            </svg>
+<div class="row justify-content-center align-items-center min-vh-100">
+    <div class="col-md-5 col-lg-4">
+        <!-- Logo/Header Section -->
+        <div class="text-center mb-4">
+            <div class="bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 60px; height: 60px;">
+                <i class="fas fa-users-cog fs-3"></i>
+            </div>
+            <h3 class="fw-bold text-dark mb-1">Portal Karyawan</h3>
+            <p class="text-muted small">Presensi & Informasi Kepegawaian</p>
         </div>
-        <h1>Portal Karyawan</h1>
-        <p class="subtitle">Presensi & Informasi Kepegawaian</p>
-    </div>
 
-    <div class="glass-card login-card">
-        @if ($errors->any())
-            <div class="alert-danger">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <line x1="12" y1="8" x2="12" y2="12"></line>
-                    <line x1="12" y1="16" x2="12.01" y2="16"></line>
-                </svg>
-                <span>{{ $errors->first() }}</span>
+        <!-- Login Card -->
+        <div class="card border shadow-sm rounded-3">
+            <div class="card-body p-4">
+                @if ($errors->any())
+                    <div class="alert alert-danger d-flex align-items-center gap-2 small py-2 mb-3" role="alert">
+                        <i class="fas fa-exclamation-circle"></i>
+                        <span>{{ $errors->first() }}</span>
+                    </div>
+                @endif
+
+                <form method="POST" action="{{ route('employee.login.post') }}">
+                    @csrf
+
+                    <!-- Username -->
+                    <div class="mb-3">
+                        <label for="username" class="form-label text-dark small fw-semibold">Username</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light text-muted">
+                                <i class="fas fa-user"></i>
+                            </span>
+                            <input
+                                id="username"
+                                type="text"
+                                name="username"
+                                placeholder="Masukkan username Anda"
+                                value="{{ old('username') }}"
+                                class="form-control {{ $errors->has('username') ? 'is-invalid' : '' }}"
+                                autocomplete="username"
+                                autofocus
+                                required
+                            >
+                        </div>
+                        @error('username')
+                            <span class="invalid-feedback d-block small mt-1">{{ $message }}</span>
+                        @enderror
+                    </div>
+
+                    <!-- Password -->
+                    <div class="mb-3">
+                        <label for="password" class="form-label text-dark small fw-semibold">Password</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light text-muted">
+                                <i class="fas fa-lock"></i>
+                            </span>
+                            <input
+                                id="password"
+                                type="password"
+                                name="password"
+                                placeholder="Masukkan password Anda"
+                                class="form-control"
+                                autocomplete="current-password"
+                                required
+                            >
+                        </div>
+                    </div>
+
+                    <!-- Remember Me -->
+                    <div class="form-check mb-4">
+                        <input type="checkbox" id="remember" name="remember" class="form-check-input">
+                        <label for="remember" class="form-check-label text-muted small">Ingat saya di perangkat ini</label>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <button type="submit" class="btn btn-primary w-100 py-2 d-flex align-items-center justify-content-center gap-2" id="btn-login">
+                        <span class="fw-bold">Masuk</span>
+                        <i class="fas fa-arrow-right"></i>
+                    </button>
+                </form>
             </div>
-        @endif
-
-        <form method="POST" action="{{ route('employee.login.post') }}">
-            @csrf
-
-            <div class="form-group">
-                <label for="username">Username</label>
-                <div class="input-wrap">
-                    <span class="input-icon">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                            <circle cx="12" cy="7" r="4"></circle>
-                        </svg>
-                    </span>
-                    <input
-                        id="username"
-                        type="text"
-                        name="username"
-                        placeholder="Masukkan username Anda"
-                        value="{{ old('username') }}"
-                        class="{{ $errors->has('username') ? 'is-invalid' : '' }}"
-                        autocomplete="username"
-                        autofocus
-                        required
-                    >
-                </div>
-                @error('username')
-                    <span class="invalid-feedback">{{ $message }}</span>
-                @enderror
+            <div class="card-footer bg-light text-center py-3 border-top">
+                <small class="text-muted" style="font-size: 0.72rem;">Hubungi Admin/HRD perusahaan Anda jika mengalami kendala login</small>
             </div>
-
-            <div class="form-group">
-                <label for="password">Password</label>
-                <div class="input-wrap">
-                    <span class="input-icon">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-                        </svg>
-                    </span>
-                    <input
-                        id="password"
-                        type="password"
-                        name="password"
-                        placeholder="Masukkan password Anda"
-                        autocomplete="current-password"
-                        required
-                    >
-                </div>
-            </div>
-
-            <div class="remember-row">
-                <input type="checkbox" id="remember" name="remember">
-                <label for="remember">Ingat saya di perangkat ini</label>
-            </div>
-
-            <button type="submit" class="btn-login" id="btn-login">
-                <span>Masuk</span>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                    <polyline points="12 5 19 12 12 19"></polyline>
-                </svg>
-            </button>
-        </form>
-
-        <p class="footer-note">Hubungi Admin/HRD perusahaan Anda jika mengalami kendala login</p>
+        </div>
     </div>
 </div>
 @endsection

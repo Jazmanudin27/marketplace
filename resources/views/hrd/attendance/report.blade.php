@@ -5,7 +5,6 @@
 @push('styles')
     <style>
         /* ===== Fix Horizontal Scroll ===== */
-        /* Override body overflow-x:hidden yang ada di app.css agar tabel bisa scroll */
         body {
             overflow-x: auto !important;
         }
@@ -26,10 +25,10 @@
             width: 100%;
             overflow-x: auto;
             -webkit-overflow-scrolling: touch;
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            box-shadow: var(--shadow);
+            background: #ffffff;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
             margin-bottom: 2rem;
         }
 
@@ -38,12 +37,12 @@
             width: max-content !important;
             min-width: 100%;
             font-size: 0.75rem;
-            color: var(--text-primary);
+            color: #212529;
         }
 
         .table-spreadsheet th,
         .table-spreadsheet td {
-            border: 1px solid var(--border) !important;
+            border: 1px solid #dee2e6 !important;
             padding: 0.4rem 0.5rem;
             text-align: center;
             vertical-align: middle;
@@ -51,43 +50,43 @@
         }
 
         .table-spreadsheet thead th {
-            background: var(--bg-card2) !important;
-            color: #fff;
+            background: #f8f9fa !important;
+            color: #212529;
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
 
         .table-spreadsheet tbody tr:hover {
-            background: rgba(255, 255, 255, 0.02);
+            background: rgba(0, 0, 0, 0.02);
         }
 
         /* Fixed column styling */
         .col-sticky {
             position: sticky;
             left: 0;
-            background: var(--bg-card) !important;
+            background: #ffffff !important;
             z-index: 2;
             text-align: left !important;
-            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.2);
+            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.05);
         }
 
         .col-sticky-2 {
             position: sticky;
             left: 40px;
-            background: var(--bg-card) !important;
+            background: #ffffff !important;
             z-index: 2;
             text-align: left !important;
-            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.2);
+            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.05);
         }
 
         .col-sticky-3 {
             position: sticky;
             left: 130px;
-            background: var(--bg-card) !important;
+            background: #ffffff !important;
             z-index: 2;
             text-align: left !important;
-            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.2);
+            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.05);
         }
 
         /* Status cell badges */
@@ -105,43 +104,43 @@
         }
 
         .status-h {
-            background: rgba(16, 185, 129, 0.15);
-            color: var(--success);
-            border: 1px solid rgba(16, 185, 129, 0.3);
+            background-color: #d1e7dd;
+            color: #0f5132;
+            border: 1px solid #badbcc;
         }
 
         .status-s {
-            background: rgba(6, 182, 212, 0.15);
-            color: var(--info);
-            border: 1px solid rgba(6, 182, 212, 0.3);
+            background-color: #cff4fc;
+            color: #055160;
+            border: 1px solid #b6effb;
         }
 
         .status-i {
-            background: rgba(245, 158, 11, 0.15);
-            color: var(--warning);
-            border: 1px solid rgba(245, 158, 11, 0.3);
+            background-color: #fff3cd;
+            color: #664d03;
+            border: 1px solid #ffecb5;
         }
 
         .status-c {
-            background: rgba(139, 92, 246, 0.15);
-            color: var(--purple);
-            border: 1px solid rgba(139, 92, 246, 0.3);
+            background-color: #e2d9f3;
+            color: #3e1b73;
+            border: 1px solid #d1c2ec;
         }
 
         .status-a {
-            background: rgba(239, 68, 68, 0.15);
-            color: var(--danger);
-            border: 1px solid rgba(239, 68, 68, 0.3);
+            background-color: #f8d7da;
+            color: #842029;
+            border: 1px solid #f5c2c7;
         }
 
         .cell-sunday {
-            background: rgba(239, 68, 68, 0.05) !important;
-            color: rgba(239, 68, 68, 0.6) !important;
+            background: rgba(220, 53, 69, 0.05) !important;
+            color: #dc3545 !important;
         }
 
         .cell-holiday {
-            background: rgba(108, 99, 255, 0.06) !important;
-            color: var(--primary) !important;
+            background: rgba(13, 202, 240, 0.05) !important;
+            color: #0dcaf0 !important;
             font-style: italic;
         }
 
@@ -217,22 +216,21 @@
     <!-- Filter Section & Actions -->
     <div class="row g-3 mb-4 filter-section">
         <div class="col-md-8">
-            <div class="card" style="border-radius: 14px; background: var(--bg-card); border: 1px solid var(--border);">
+            <div class="card border shadow-sm">
                 <div class="card-body p-3">
                     <form method="GET" action="{{ route('hr.attendance.report') }}" id="reportFilterForm"
                         class="row g-2 align-items-center">
                         <div class="col-auto">
-                            <label class="form-label-custom mb-0 text-white-50"><i
+                            <label class="form-label fw-bold small text-dark mb-0"><i
                                     class="far fa-calendar-alt text-primary"></i> Periode Bulan:</label>
                         </div>
                         <div class="col-md-3">
                             <input type="month" name="period"
-                                class="form-control form-control-custom form-control-sm py-1" value="{{ $period }}"
+                                class="form-control form-control-sm py-1" value="{{ $period }}"
                                 onchange="document.getElementById('reportFilterForm').submit()">
                         </div>
                         <div class="col-auto">
-                            <button type="submit" class="btn btn-primary btn-sm px-3 fw-semibold"
-                                style="border-radius: 8px;"><i class="fas fa-search"></i> Tampilkan</button>
+                            <button type="submit" class="btn btn-primary btn-sm px-3 rounded-3"><i class="fas fa-search"></i> Tampilkan</button>
                         </div>
                         <div class="col-auto text-muted small ps-2">
                             <i class="fas fa-info-circle text-info me-1"></i> Range Cut-off:
@@ -245,12 +243,11 @@
         </div>
         <div class="col-md-4 text-md-end d-flex align-items-center justify-content-md-end gap-2 btn-print-group">
             @if (Auth::user()->hasPermissionTo('print-attendance-report'))
-                <button onclick="window.print()" class="btn btn-info btn-sm text-white px-4 fw-semibold"
-                    style="border-radius: 8px;">
+                <button onclick="window.print()" class="btn btn-info btn-sm text-white px-3 rounded-3">
                     <i class="fas fa-print me-1"></i> Cetak Laporan
                 </button>
             @endif
-            <a href="{{ route('hr.attendance.index') }}" class="btn btn-secondary btn-sm px-3" style="border-radius: 8px;">
+            <a href="{{ route('hr.attendance.index') }}" class="btn btn-secondary btn-sm px-3 rounded-3">
                 <i class="fas fa-arrow-left me-1"></i> Kembali
             </a>
         </div>
@@ -262,9 +259,9 @@
             <thead>
                 <!-- Row 1: Main Headers -->
                 <tr>
-                    <th rowspan="2" style="width: 40px; min-width: 40px;">No</th>
-                    <th rowspan="2" style="width: 100px; min-width: 100px;">Nik</th>
-                    <th rowspan="2" style="width: 180px; min-width: 180px;">Nama Karyawan</th>
+                    <th rowspan="2" class="col-sticky" style="width: 40px; min-width: 40px;">No</th>
+                    <th rowspan="2" class="col-sticky-2" style="width: 100px; min-width: 100px;">Nik</th>
+                    <th rowspan="2" class="col-sticky-3" style="width: 180px; min-width: 180px;">Nama Karyawan</th>
                     <th rowspan="2" style="width: 70px; min-width: 70px;">Cabang</th>
                     <th colspan="{{ count($dates) }}">Tanggal</th>
                     <th colspan="9">Tidak Masuk Karena</th>
@@ -302,32 +299,32 @@
                 @forelse($employees as $idx => $emp)
                     @php
                         // Formatted NIK dynamically using employee ID (mimicking user template NIKs like '00.01.029)
-$nik = '00.01.' . str_pad($emp->id + 28, 3, '0', STR_PAD_LEFT);
+                        $nik = '00.01.' . str_pad($emp->id + 28, 3, '0', STR_PAD_LEFT);
 
-$empAttendances = $attendances->get($emp->id) ?? collect();
-$empOvertimes = $overtimes->get($emp->id) ?? collect();
-$empLeaves = $leaveRequests->get($emp->id) ?? collect();
+                        $empAttendances = $attendances->get($emp->id) ?? collect();
+                        $empOvertimes = $overtimes->get($emp->id) ?? collect();
+                        $empLeaves = $leaveRequests->get($emp->id) ?? collect();
 
-$countH = 0;
-$countS = 0;
-$countA = 0;
-$countSID = 0; // Izin/Permission
-$countSKT = 0; // Sakit resmi
-$countIK = 0; // Izin Khusus
-$countC = 0; // Cuti
-$countITH = 0; // Izin tanpa gaji
-$countL = 0; // Lainnya
+                        $countH = 0;
+                        $countS = 0;
+                        $countA = 0;
+                        $countSID = 0; // Izin/Permission
+                        $countSKT = 0; // Sakit resmi
+                        $countIK = 0; // Izin Khusus
+                        $countC = 0; // Cuti
+                        $countITH = 0; // Izin tanpa gaji
+                        $countL = 0; // Lainnya
 
-$totalLateDays = 0;
-$totalLatePenalty = 0;
-$totalWorkHours = 0;
-$totalOvertimeHours = $empOvertimes->sum('hours');
+                        $totalLateDays = 0;
+                        $totalLatePenalty = 0;
+                        $totalWorkHours = 0;
+                        $totalOvertimeHours = $empOvertimes->sum('hours');
                     @endphp
                     <tr>
-                        <td>{{ $idx + 1 }}</td>
-                        <td><strong>{{ $nik }}</strong></td>
-                        <td class="text-start">
-                            <strong class="text-white">{{ $emp->name }}</strong>
+                        <td class="col-sticky">{{ $idx + 1 }}</td>
+                        <td class="col-sticky-2"><strong>{{ $nik }}</strong></td>
+                        <td class="col-sticky-3 text-start">
+                            <strong class="text-dark">{{ $emp->name }}</strong>
                             <div class="text-muted" style="font-size: 0.65rem;">{{ $emp->position ?? 'Karyawan' }}</div>
                         </td>
                         <td>PST</td>
@@ -538,8 +535,8 @@ $totalOvertimeHours = $empOvertimes->sum('hours');
                 @empty
                     <tr>
                         <td colspan="{{ count($dates) + 17 }}" class="text-center py-5 text-muted">
-                            <div class="fs-4 mb-2"><i class="far fa-folder-open"></i></div>
-                            Tidak ada data karyawan aktif untuk periode ini.
+                            <i class="far fa-folder-open fa-2x mb-3 text-secondary opacity-25"></i>
+                            <p class="mb-0 small">Tidak ada data karyawan aktif untuk periode ini.</p>
                         </td>
                     </tr>
                 @endforelse

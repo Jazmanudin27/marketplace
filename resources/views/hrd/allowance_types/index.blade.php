@@ -6,11 +6,11 @@
     {{-- Filter Row (Terpisah di Atas) --}}
     <div class="row mb-3">
         <div class="col-md-12">
-            <div class="dashboard-card">
+            <div class="card border shadow-sm p-3">
                 <form method="GET" action="{{ route('hr.allowance-types.index') }}">
                     <div class="row g-2 align-items-end">
                         <div class="col-12 col-sm-6 col-md-4 col-lg-3">
-                            <label class="form-label form-label-sm">
+                            <label class="form-label small">
                                 <i class="fas fa-search me-1"></i>Nama Tunjangan
                             </label>
                             <input type="text" name="name" class="form-control form-control-sm"
@@ -19,7 +19,7 @@
 
                         @if ($isSuperAdmin)
                             <div class="col-12 col-sm-6 col-md-3 col-lg-2">
-                                <label class="form-label form-label-sm">
+                                <label class="form-label small">
                                     <i class="fas fa-building me-1"></i>Perusahaan / Toko
                                 </label>
                                 <select name="tenant_id" class="form-select form-select-sm select2">
@@ -53,21 +53,21 @@
     <div class="row">
         <!-- Form Master Tunjangan (Kiri) -->
         <div class="col-md-4 mb-4">
-            <div class="dashboard-card p-0 overflow-hidden">
-                <div class="modal-header d-flex align-items-center gap-3 p-3 bg-primary bg-opacity-10">
+            <div class="card border shadow-sm p-0 overflow-hidden">
+                <div class="card-header bg-primary bg-opacity-10 d-flex align-items-center gap-3 p-3 border-bottom">
                     <div class="bg-primary text-white rounded-3 d-flex align-items-center justify-content-center flex-shrink-0 fs-5 p-2"
                         style="width: 36px; height: 36px;">
                         <i class="fas fa-coins" style="font-size: 1rem;"></i>
                     </div>
-                    <h5 class="mb-0 fw-bold" id="formTitle">Tambah Jenis Tunjangan</h5>
+                    <h6 class="mb-0 fw-bold text-dark" id="formTitle">Tambah Jenis Tunjangan</h6>
                 </div>
 
                 {{-- Validation Errors --}}
                 @if ($errors->any())
-                    <div class="p-4 pb-0">
-                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <div class="p-3 pb-0">
+                        <div class="alert alert-danger alert-dismissible fade show small" role="alert">
                             <strong><i class="fas fa-exclamation-triangle me-2"></i>Periksa inputan Anda:</strong>
-                            <ul class="mb-0 mt-1 ps-3 small">
+                            <ul class="mb-0 mt-1 ps-3">
                                 @foreach ($errors->all() as $error)
                                     <li>{{ $error }}</li>
                                 @endforeach
@@ -77,13 +77,13 @@
                     </div>
                 @endif
 
-                <form id="allowanceTypeForm" method="POST" action="{{ route('hr.allowance-types.store') }}" class="p-4">
+                <form id="allowanceTypeForm" method="POST" action="{{ route('hr.allowance-types.store') }}" class="p-3">
                     @csrf
                     <input type="hidden" name="_method" id="formMethod" value="POST">
 
                     @if ($isSuperAdmin)
                         <div class="mb-3">
-                            <label class="form-label form-label-sm fw-semibold"><i
+                            <label class="form-label fw-bold small text-dark"><i
                                     class="fas fa-building text-primary me-1"></i> Perusahaan / Toko <span
                                     class="text-danger">*</span></label>
                             <select name="tenant_id" id="tenant_id" class="form-select form-select-sm" required>
@@ -95,15 +95,15 @@
                         </div>
                     @endif
 
-                    <div class="mb-4">
-                        <label class="form-label form-label-sm fw-semibold"><i class="fas fa-tag text-primary me-1"></i>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small text-dark"><i class="fas fa-tag text-primary me-1"></i>
                             Nama Tunjangan <span class="text-danger">*</span></label>
                         <input type="text" name="name" id="name" class="form-control form-control-sm"
                             placeholder="Contoh: Tunjangan Makan" required>
                     </div>
 
                     <div class="d-flex gap-2">
-                        <button type="submit" class="btn btn-primary btn-sm px-4">Simpan</button>
+                        <button type="submit" class="btn btn-primary btn-sm px-3 rounded-3">Simpan</button>
                         <button type="button" class="btn btn-secondary btn-sm px-3" id="btnCancel"
                             style="display:none;">Batal</button>
                     </div>
@@ -113,30 +113,28 @@
 
         <!-- Tabel Daftar Jenis Tunjangan (Kanan) -->
         <div class="col-md-8">
-            <div class="dashboard-card p-0 overflow-hidden">
-                <div class="modal-header d-flex align-items-center gap-3 p-3 bg-success bg-opacity-10">
-                    <div class="bg-success text-white rounded-3 d-flex align-items-center justify-content-center flex-shrink-0 fs-5 p-2"
+            <div class="card border shadow-sm p-0 overflow-hidden">
+                <div class="card-header bg-info bg-opacity-10 d-flex align-items-center gap-3 p-3 border-bottom">
+                    <div class="bg-info text-white rounded-3 d-flex align-items-center justify-content-center flex-shrink-0 fs-5 p-2"
                         style="width: 36px; height: 36px;">
                         <i class="fas fa-list" style="font-size: 1rem;"></i>
                     </div>
-                    <h5 class="mb-0 fw-bold">Daftar Tunjangan Aktif</h5>
+                    <h6 class="mb-0 fw-bold text-dark">Daftar Tunjangan Aktif</h6>
                 </div>
 
-                {{-- Alert --}}
-                @if (session('success'))
-                    <div class="p-3 pb-0">
-                        <div class="alert alert-success alert-dismissible fade show" role="alert">
+                <div class="card-body p-3">
+                    {{-- Alert --}}
+                    @if (session('success'))
+                        <div class="alert alert-success alert-dismissible fade show mb-3" role="alert">
                             <i class="fas fa-check-circle me-2"></i>{{ session('success') }}
                             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                         </div>
-                    </div>
-                @endif
+                    @endif
 
-                <div class="p-4">
-                    <div class="table-responsive rounded border border-secondary border-opacity-10">
-                        <table class="table table-sm table-bordered table-premium-dark align-middle mb-0">
+                    <div class="table-responsive rounded border">
+                        <table class="table table-sm table-striped table-bordered align-middle mb-0">
                             <thead>
-                                <tr>
+                                <tr class="small">
                                     @if ($isSuperAdmin)
                                         <th>PERUSAHAAN / TOKO</th>
                                     @endif
@@ -156,12 +154,11 @@
                                                 </span>
                                             </td>
                                         @endif
-                                        <td><strong class="text-white"
-                                                style="font-size:0.82rem;">{{ $type->name }}</strong></td>
+                                        <td><strong class="text-dark small">{{ $type->name }}</strong></td>
                                         <td class="text-center">
                                             <div class="d-flex gap-1 justify-content-center">
                                                 <button type="button"
-                                                    class="btn btn-warning btn-action-sm edit-allowance-btn"
+                                                    class="btn btn-warning btn-sm edit-allowance-btn"
                                                     title="Edit" data-id="{{ $type->id }}"
                                                     data-name="{{ $type->name }}"
                                                     @if ($isSuperAdmin) data-tenant-id="{{ $type->tenant_id }}" @endif>
@@ -172,7 +169,7 @@
                                                     data-message="Hapus jenis tunjangan ini? Semua tunjangan ini yang melekat pada karyawan juga akan terhapus.">
                                                     @csrf
                                                     @method('DELETE')
-                                                    <button type="submit" class="btn btn-danger btn-action-sm"
+                                                    <button type="submit" class="btn btn-danger btn-sm"
                                                         title="Hapus">
                                                         <i class="fas fa-trash"></i>
                                                     </button>
@@ -191,7 +188,7 @@
                             </tbody>
                         </table>
                     </div>
-                </div>
+                </div> {{-- End card-body --}}
             </div>
         </div>
     </div>

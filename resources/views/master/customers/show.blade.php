@@ -18,12 +18,12 @@
     <div class="row g-3">
         {{-- Profil Kiri --}}
         <div class="col-md-5 col-lg-4">
-            <div class="dashboard-card text-center mb-3">
+            <div class="card border shadow-sm p-3 text-center mb-3">
                 <div class="rounded-circle bg-primary bg-opacity-10 text-primary mx-auto mb-3 d-flex align-items-center justify-content-center fw-bold" 
                     style="width:80px; height:80px; font-size:2.5rem; border: 1px solid rgba(59, 130, 246, 0.2);">
                     {{ strtoupper(substr($customer->name, 0, 1)) }}
                 </div>
-                <h5 class="mb-1 fw-bold">{{ $customer->name }}</h5>
+                <h5 class="mb-1 fw-bold text-dark">{{ $customer->name }}</h5>
                 <p class="text-muted mb-3 font-monospace small">{{ $customer->marketplace_username ?? 'No Username' }}</p>
                 
                 @if($customer->orders->count() >= 3)
@@ -44,22 +44,22 @@
                     @method('PUT')
                     
                     <div class="mb-2">
-                        <label class="form-label form-label-sm fw-semibold mb-1">Nama / Alias</label>
+                        <label class="form-label small fw-bold text-dark">Nama / Alias</label>
                         <input type="text" name="name" class="form-control form-control-sm" value="{{ $customer->name }}" required>
                     </div>
 
                     <div class="mb-2">
-                        <label class="form-label form-label-sm fw-semibold mb-1">Nomor Telepon</label>
+                        <label class="form-label small fw-bold text-dark">Nomor Telepon</label>
                         <input type="text" name="phone" class="form-control form-control-sm" value="{{ $customer->phone }}">
                     </div>
 
                     <div class="mb-2">
-                        <label class="form-label form-label-sm fw-semibold mb-1">Alamat Utama</label>
+                        <label class="form-label small fw-bold text-dark">Alamat Utama</label>
                         <textarea name="address" class="form-control form-control-sm" rows="3">{{ $customer->address }}</textarea>
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label form-label-sm fw-semibold mb-1">Tag / Label Tambahan</label>
+                        <label class="form-label small fw-bold text-dark">Tag / Label Tambahan</label>
                         <input type="text" name="tags" class="form-control form-control-sm" value="{{ $customer->tags }}" placeholder="VIP, Reseller, Blacklist">
                         <small class="text-muted d-block mt-1" style="font-size:0.68rem;">Pisahkan dengan koma jika lebih dari satu.</small>
                     </div>
@@ -70,76 +70,78 @@
                 </form>
             </div>
 
-            <div class="dashboard-card">
-                <h5 class="mb-3 fs-6 fw-bold"><i class="fas fa-chart-pie me-2 text-primary"></i>Ringkasan Nilai</h5>
+            <div class="card border shadow-sm p-3">
+                <h6 class="fw-bold mb-3 text-dark"><i class="fas fa-chart-pie me-2 text-info"></i>Ringkasan Nilai</h6>
                 
-                <div class="d-flex justify-content-between align-items-center py-2 border-bottom border-secondary border-opacity-10">
-                    <span class="text-muted small">Total Transaksi</span>
-                    <span class="font-monospace fw-bold small">{{ $customer->orders->count() }}x</span>
+                <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                    <span class="text-secondary small">Total Transaksi</span>
+                    <span class="font-monospace fw-bold small text-dark">{{ $customer->orders->count() }}x</span>
                 </div>
-                <div class="d-flex justify-content-between align-items-center py-2 border-bottom border-secondary border-opacity-10">
-                    <span class="text-muted small">Total Belanja (LTV)</span>
+                <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                    <span class="text-secondary small">Total Belanja (LTV)</span>
                     <span class="font-monospace text-success fw-bold small">Rp {{ number_format($totalSpent, 0, ',', '.') }}</span>
                 </div>
                 <div class="d-flex justify-content-between align-items-center py-2">
-                    <span class="text-muted small">Rata-rata Order</span>
-                    <span class="font-monospace fw-semibold small">Rp {{ number_format($averageOrderValue, 0, ',', '.') }}</span>
+                    <span class="text-secondary small">Rata-rata Order</span>
+                    <span class="font-monospace fw-semibold small text-dark">Rp {{ number_format($averageOrderValue, 0, ',', '.') }}</span>
                 </div>
             </div>
         </div>
 
         {{-- Riwayat Pesanan Kanan --}}
         <div class="col-md-7 col-lg-8">
-            <div class="dashboard-card">
-                <div class="card-header-line">
-                    <h5 class="mb-0"><i class="fas fa-history me-2 text-primary"></i>Riwayat Pesanan</h5>
+            <div class="card border shadow-sm overflow-hidden">
+                <div class="card-header bg-info bg-opacity-10 d-flex justify-content-between align-items-center border-bottom py-2 px-3">
+                    <h6 class="fw-bold mb-0 text-dark"><i class="fas fa-history me-2 text-info"></i>Riwayat Pesanan</h6>
                 </div>
 
-                <div class="table-responsive border border-secondary border-opacity-10 rounded mt-3">
-                    <table class="table table-sm table-bordered table-premium-dark align-middle mb-0">
-                        <thead>
-                            <tr>
-                                <th>TGL PESANAN</th>
-                                <th>NO INVOICE / ID</th>
-                                <th>STATUS</th>
-                                <th class="text-end">NILAI BERSIH (LTV)</th>
-                                <th class="text-center" style="width: 100px;">AKSI</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @forelse($customer->orders as $order)
-                                <tr>
-                                    <td style="font-size:0.78rem;">{{ $order->order_date->format('d M Y, H:i') }}</td>
-                                    <td>
-                                        <div class="fw-semibold" style="font-size:0.82rem;">{{ $order->invoice_number ?? $order->order_marketplace_id }}</div>
-                                        <span class="text-muted small" style="font-size:0.7rem;">
-                                            {{ $order->items->count() }} item produk
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <span class="badge badge-{{ $order->status_badge }}">
-                                            {{ str_replace('_', ' ', $order->order_status) }}
-                                        </span>
-                                    </td>
-                                    <td class="font-monospace fw-semibold text-success text-end" style="font-size:0.78rem;">
-                                        Rp {{ number_format($order->net_amount, 0, ',', '.') }}
-                                    </td>
-                                    <td class="text-center">
-                                        <a href="{{ route('orders.show', $order->id) }}" class="btn btn-info btn-action-sm text-white" title="Detail Pesanan" data-bs-toggle="tooltip">
-                                            <i class="fas fa-eye"></i>
-                                        </a>
-                                    </td>
+                <div class="card-body p-3">
+                    <div class="table-responsive rounded border">
+                        <table class="table table-sm table-striped table-bordered align-middle mb-0">
+                            <thead>
+                                <tr class="small text-uppercase">
+                                    <th>TGL PESANAN</th>
+                                    <th>NO INVOICE / ID</th>
+                                    <th>STATUS</th>
+                                    <th class="text-end">NILAI BERSIH (LTV)</th>
+                                    <th class="text-center" style="width: 100px;">AKSI</th>
                                 </tr>
-                            @empty
-                                <tr>
-                                    <td colspan="5" class="text-center py-5">
-                                        <i class="fas fa-history fa-2x mb-3 d-block text-secondary opacity-25"></i>
-                                        <p class="text-muted mb-0 small">Belum ada riwayat pesanan yang valid.</p>
-                                    </td>
-                                </tr>
-                            @endforelse
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                @forelse($customer->orders as $order)
+                                    <tr>
+                                        <td style="font-size:0.78rem;" class="text-secondary">{{ $order->order_date->format('d M Y, H:i') }}</td>
+                                        <td>
+                                            <div class="fw-semibold text-dark" style="font-size:0.82rem;">{{ $order->invoice_number ?? $order->order_marketplace_id }}</div>
+                                            <span class="text-secondary small" style="font-size:0.7rem;">
+                                                {{ $order->items->count() }} item produk
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-{{ $order->status_badge }} bg-opacity-10 text-{{ $order->status_badge }} border border-{{ $order->status_badge }} border-opacity-10 small text-uppercase">
+                                                {{ str_replace('_', ' ', $order->order_status) }}
+                                            </span>
+                                        </td>
+                                        <td class="font-monospace fw-semibold text-success text-end" style="font-size:0.78rem;">
+                                            Rp {{ number_format($order->net_amount, 0, ',', '.') }}
+                                        </td>
+                                        <td class="text-center">
+                                            <a href="{{ route('orders.show', $order->id) }}" class="btn btn-info btn-sm text-white" title="Detail Pesanan" data-bs-toggle="tooltip">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="5" class="text-center py-5">
+                                            <i class="fas fa-history fa-2x mb-3 d-block text-secondary opacity-25"></i>
+                                            <p class="text-muted mb-0 small">Belum ada riwayat pesanan yang valid.</p>
+                                        </td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>

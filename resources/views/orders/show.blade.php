@@ -6,7 +6,7 @@
     <div class="container-fluid p-0">
         <!-- Back Button -->
         <div class="mb-3">
-            <a href="{{ route('orders.index') }}" class="btn btn-secondary btn-sm">
+            <a href="{{ route('orders.index') }}" class="btn btn-secondary btn-sm rounded-3">
                 <i class="fas fa-arrow-left me-1"></i> Kembali ke Daftar Pesanan
             </a>
         </div>
@@ -18,20 +18,20 @@
             <div class="col-lg-8">
 
                 <!-- Order Detail Card -->
-                <div class="dashboard-card mb-3">
-                    <div class="card-header-line d-flex justify-content-between align-items-center mb-4">
-                        <h5 class="mb-0 text-primary">
-                            <i class="fas fa-receipt me-2"></i>{{ $order->invoice_number ?? $order->order_marketplace_id }}
-                        </h5>
+                <div class="card border shadow-sm mb-3">
+                    <div class="card-header bg-info bg-opacity-10 d-flex justify-content-between align-items-center p-3 border-bottom">
+                        <h6 class="mb-0 fw-bold text-dark">
+                            <i class="fas fa-receipt me-2 text-info"></i>{{ $order->invoice_number ?? $order->order_marketplace_id }}
+                        </h6>
                         <div class="d-flex gap-2 align-items-center">
-                            <span class="badge bg-{{ $order->status_badge }} bg-opacity-10 text-{{ $order->status_badge }} border border-{{ $order->status_badge }} border-opacity-10 small text-uppercase">
+                            <span class="badge bg-{{ $order->status_badge ?? 'secondary' }}-subtle text-{{ $order->status_badge ?? 'secondary' }} border border-{{ $order->status_badge ?? 'secondary' }}-subtle small text-uppercase" style="font-size: 0.7rem; padding: 0.25em 0.5em;">
                                 {{ str_replace('_', ' ', $order->order_status) }}
                             </span>
 
                             @if (!in_array($order->order_status, ['SHIPPED', 'CANCELLED', 'DELIVERED']))
                                 <form action="{{ route('orders.ship', $order->id) }}" method="POST" class="d-inline m-0">
                                     @csrf
-                                    <button type="submit" class="btn btn-success btn-sm px-3"
+                                    <button type="submit" class="btn btn-success btn-sm px-3 rounded-3"
                                         onclick="this.innerHTML='<i class=\'fas fa-spinner fa-spin\'></i> Memproses...'; this.disabled=true; this.form.submit();">
                                         <i class="fas fa-truck-loading me-1"></i> Kirim Pesanan
                                     </button>
@@ -43,7 +43,7 @@
                                     <form action="{{ route('orders.tracking', $order->id) }}" method="POST"
                                         class="d-inline m-0">
                                         @csrf
-                                        <button type="submit" class="btn btn-warning btn-sm text-dark px-3"
+                                        <button type="submit" class="btn btn-warning btn-sm px-3 rounded-3"
                                             onclick="this.innerHTML='<i class=\'fas fa-spinner fa-spin\'></i> Menarik...'; this.disabled=true; this.form.submit();">
                                             <i class="fas fa-sync me-1"></i> Tarik Resi
                                         </button>
@@ -51,92 +51,96 @@
                                 @endif
 
                                 <a href="{{ route('orders.print', $order->id) }}" target="_blank"
-                                    class="btn btn-primary btn-sm px-3 text-white">
+                                    class="btn btn-primary btn-sm px-3 text-white rounded-3">
                                     <i class="fas fa-print me-1"></i> Cetak Invoice
                                 </a>
                             @endif
                         </div>
                     </div>
 
-                    <div class="row g-2">
-                        <div class="col-md-6">
-                            <div class="p-3 border border-secondary border-opacity-10 rounded h-100 bg-black bg-opacity-10">
-                                <small class="text-muted d-block text-uppercase fw-semibold mb-1 small">Pembeli</small>
-                                <span class="fw-bold small">
-                                    @if ($order->customer_id)
-                                        <a href="{{ route('customers.show', $order->customer_id) }}"
-                                            class="text-decoration-none text-primary">
-                                            {{ $order->buyer_name ?? '-' }} <i class="fas fa-external-link-alt ms-1 small"></i>
-                                        </a>
-                                    @else
-                                        {{ $order->buyer_name ?? '-' }}
-                                    @endif
-                                </span>
+                    <div class="card-body p-3">
+                        <div class="row g-2">
+                            <div class="col-md-6">
+                                <div class="p-3 border rounded h-100 bg-light">
+                                    <small class="text-muted d-block text-uppercase fw-semibold mb-1" style="font-size: 0.65rem;">Pembeli</small>
+                                    <span class="fw-bold text-dark small">
+                                        @if ($order->customer_id)
+                                            <a href="{{ route('customers.show', $order->customer_id) }}"
+                                                class="text-decoration-none text-primary">
+                                                {{ $order->buyer_name ?? '-' }} <i class="fas fa-external-link-alt ms-1 small"></i>
+                                            </a>
+                                        @else
+                                            {{ $order->buyer_name ?? '-' }}
+                                        @endif
+                                    </span>
+                                </div>
                             </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="p-3 border border-secondary border-opacity-10 rounded h-100 bg-black bg-opacity-10">
-                                <small class="text-muted d-block text-uppercase fw-semibold mb-1 small">No. Telp</small>
-                                <span class="font-monospace fw-semibold small">{{ $order->buyer_phone ?? '-' }}</span>
+                            <div class="col-md-6">
+                                <div class="p-3 border rounded h-100 bg-light">
+                                    <small class="text-muted d-block text-uppercase fw-semibold mb-1" style="font-size: 0.65rem;">No. Telp</small>
+                                    <span class="font-monospace fw-semibold text-dark small">{{ $order->buyer_phone ?? '-' }}</span>
+                                </div>
                             </div>
-                        </div>
-                        <div class="col-md-12">
-                            <div class="p-3 border border-secondary border-opacity-10 rounded h-100 bg-black bg-opacity-10">
-                                <small class="text-muted d-block text-uppercase fw-semibold mb-1 small">Alamat Pengiriman</small>
-                                <span class="fw-semibold text-wrap small">{{ $order->shipping_address ?? '-' }}</span>
+                            <div class="col-md-12">
+                                <div class="p-3 border rounded h-100 bg-light">
+                                    <small class="text-muted d-block text-uppercase fw-semibold mb-1" style="font-size: 0.65rem;">Alamat Pengiriman</small>
+                                    <span class="fw-semibold text-dark text-wrap small">{{ $order->shipping_address ?? '-' }}</span>
+                                </div>
                             </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="p-3 border border-secondary border-opacity-10 rounded h-100 bg-black bg-opacity-10">
-                                <small class="text-muted d-block text-uppercase fw-semibold mb-1 small">Kurir</small>
-                                <span class="fw-bold text-success small">{{ $order->courier ?? '-' }}</span>
+                            <div class="col-md-4">
+                                <div class="p-3 border rounded h-100 bg-light">
+                                    <small class="text-muted d-block text-uppercase fw-semibold mb-1" style="font-size: 0.65rem;">Kurir</small>
+                                    <span class="fw-bold text-success small">{{ $order->courier ?? '-' }}</span>
+                                </div>
                             </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="p-3 border border-secondary border-opacity-10 rounded h-100 bg-black bg-opacity-10">
-                                <small class="text-muted d-block text-uppercase fw-semibold mb-1 small">No. Resi</small>
-                                <span class="font-monospace fw-bold text-warning small">{{ $order->tracking_number ?? '-' }}</span>
+                            <div class="col-md-4">
+                                <div class="p-3 border rounded h-100 bg-light">
+                                    <small class="text-muted d-block text-uppercase fw-semibold mb-1" style="font-size: 0.65rem;">No. Resi</small>
+                                    <span class="font-monospace fw-bold text-warning small">{{ $order->tracking_number ?? '-' }}</span>
+                                </div>
                             </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="p-3 border border-secondary border-opacity-10 rounded h-100 bg-black bg-opacity-10">
-                                <small class="text-muted d-block text-uppercase fw-semibold mb-1 small">Tanggal Pesanan</small>
-                                <span class="fw-semibold small">{{ $order->order_date->format('d M Y, H:i') }}</span>
+                            <div class="col-md-4">
+                                <div class="p-3 border rounded h-100 bg-light">
+                                    <small class="text-muted d-block text-uppercase fw-semibold mb-1" style="font-size: 0.65rem;">Tanggal Pesanan</small>
+                                    <span class="fw-semibold text-dark small">{{ $order->order_date->format('d M Y, H:i') }}</span>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
 
                 <!-- Order Items Card -->
-                <div class="dashboard-card">
-                    <div class="card-header-line d-flex align-items-center mb-4">
-                        <h5 class="mb-0 text-secondary"><i class="fas fa-box me-2"></i>Item Pesanan</h5>
+                <div class="card border shadow-sm overflow-hidden mb-3">
+                    <div class="card-header bg-primary bg-opacity-10 d-flex align-items-center p-3 border-bottom">
+                        <h6 class="mb-0 fw-bold text-dark"><i class="fas fa-box me-2 text-primary"></i>Item Pesanan</h6>
                     </div>
-                    <div class="table-responsive rounded border border-secondary border-opacity-10 mt-3">
-                        <table class="table table-sm table-bordered table-premium-dark align-middle mb-0">
-                            <thead>
-                                <tr>
-                                    <th>PRODUK</th>
-                                    <th>SKU</th>
-                                    <th class="text-end">HARGA</th>
-                                    <th class="text-center">QTY</th>
-                                    <th class="text-end">SUBTOTAL</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach ($order->items as $item)
-                                    <tr>
-                                        <td>
-                                            <strong class="text-white small">{{ $item->product_name }}</strong>
-                                        </td>
-                                        <td><code class="text-info font-monospace small">{{ $item->sku ?? '-' }}</code></td>
-                                        <td class="text-end font-monospace small">Rp {{ number_format($item->price, 0, ',', '.') }}</td>
-                                        <td class="text-center small">{{ $item->quantity }}</td>
-                                        <td class="text-end font-monospace text-primary small">Rp {{ number_format($item->total_price, 0, ',', '.') }}</td>
+                    <div class="card-body p-3">
+                        <div class="table-responsive rounded border">
+                            <table class="table table-sm table-striped table-bordered align-middle mb-0">
+                                <thead>
+                                    <tr class="small">
+                                        <th>PRODUK</th>
+                                        <th>SKU</th>
+                                        <th class="text-end">HARGA</th>
+                                        <th class="text-center">QTY</th>
+                                        <th class="text-end">SUBTOTAL</th>
                                     </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody>
+                                    @foreach ($order->items as $item)
+                                        <tr>
+                                            <td>
+                                                <strong class="text-dark small">{{ $item->product_name }}</strong>
+                                            </td>
+                                            <td><code class="text-info font-monospace small">{{ $item->sku ?? '-' }}</code></td>
+                                            <td class="text-end font-monospace text-dark small">Rp {{ number_format($item->price, 0, ',', '.') }}</td>
+                                            <td class="text-center text-dark small">{{ $item->quantity }}</td>
+                                            <td class="text-end font-monospace text-primary small">Rp {{ number_format($item->total_price, 0, ',', '.') }}</td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
 
@@ -146,123 +150,127 @@
             <div class="col-lg-4">
 
                 <!-- Payment Breakdown Card -->
-                <div class="dashboard-card mb-3">
-                    <div class="card-header-line mb-3">
-                        <h5 class="mb-0"><i class="fas fa-wallet me-2 text-primary"></i>Ringkasan Pembayaran</h5>
+                <div class="card border shadow-sm mb-3">
+                    <div class="card-header bg-primary bg-opacity-10 p-3 border-bottom">
+                        <h6 class="mb-0 fw-bold text-dark"><i class="fas fa-wallet me-2 text-primary"></i>Ringkasan Pembayaran</h6>
                     </div>
-                    @if ($order->financial_breakdown)
-                        @php $fb = $order->financial_breakdown; @endphp
+                    <div class="card-body p-3">
+                        @if ($order->financial_breakdown)
+                            @php $fb = $order->financial_breakdown; @endphp
 
-                        <div class="d-flex justify-content-between mb-2 align-items-center">
-                            <span class="text-muted small">Total Pembayaran Pembeli</span>
-                            <span class="font-monospace fw-bold small text-white">Rp
-                                {{ number_format($fb['buyer_total_amount'] ?? 0, 0, ',', '.') }}</span>
-                        </div>
-                        <div class="d-flex justify-content-between mb-3 align-items-center">
-                            <span class="text-muted small">(Harga Asli Produk)</span>
-                            <span class="font-monospace small text-muted">Rp
-                                {{ number_format($fb['original_price'] ?? 0, 0, ',', '.') }}</span>
-                        </div>
+                            <div class="d-flex justify-content-between mb-2 align-items-center">
+                                <span class="text-muted small">Total Pembayaran Pembeli</span>
+                                <span class="font-monospace fw-bold small text-dark">Rp
+                                    {{ number_format($fb['buyer_total_amount'] ?? 0, 0, ',', '.') }}</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-3 align-items-center">
+                                <span class="text-muted small">(Harga Asli Produk)</span>
+                                <span class="font-monospace small text-muted">Rp
+                                    {{ number_format($fb['original_price'] ?? 0, 0, ',', '.') }}</span>
+                            </div>
 
-                        <hr class="my-2 border-dashed opacity-50">
+                            <hr class="my-2 border-dashed opacity-50">
 
-                        <div class="d-flex justify-content-between mb-2 align-items-center">
-                            <span class="text-muted small">Ongkir Dibayar Pembeli</span>
-                            <span class="font-monospace small text-white">Rp
-                                {{ number_format($fb['buyer_paid_shipping_fee'] ?? 0, 0, ',', '.') }}</span>
-                        </div>
-                        <div class="d-flex justify-content-between mb-3 align-items-center">
-                            <span class="text-muted small">Ongkir Aktual (Ekspedisi)</span>
-                            <span class="font-monospace text-danger small">- Rp
-                                {{ number_format($fb['actual_shipping_fee'] ?? 0, 0, ',', '.') }}</span>
-                        </div>
+                            <div class="d-flex justify-content-between mb-2 align-items-center">
+                                <span class="text-muted small">Ongkir Dibayar Pembeli</span>
+                                <span class="font-monospace small text-dark">Rp
+                                    {{ number_format($fb['buyer_paid_shipping_fee'] ?? 0, 0, ',', '.') }}</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-3 align-items-center">
+                                <span class="text-muted small">Ongkir Aktual (Ekspedisi)</span>
+                                <span class="font-monospace text-danger small">- Rp
+                                    {{ number_format($fb['actual_shipping_fee'] ?? 0, 0, ',', '.') }}</span>
+                            </div>
 
-                        <hr class="my-2 border-dashed opacity-50">
+                            <hr class="my-2 border-dashed opacity-50">
 
-                        <div class="d-flex justify-content-between mb-2 align-items-center">
-                            <span class="text-muted small">Voucher Toko (Seller)</span>
-                            <span class="font-monospace text-danger small">- Rp
-                                {{ number_format($fb['voucher_from_seller'] ?? 0, 0, ',', '.') }}</span>
-                        </div>
-                        <div class="d-flex justify-content-between mb-3 align-items-center">
-                            <span class="text-muted small">Voucher Shopee (Ditanggung Shopee)</span>
-                            <span class="font-monospace small text-muted">Rp
-                                {{ number_format($fb['voucher_from_shopee'] ?? 0, 0, ',', '.') }}</span>
-                        </div>
+                            <div class="d-flex justify-content-between mb-2 align-items-center">
+                                <span class="text-muted small">Voucher Toko (Seller)</span>
+                                <span class="font-monospace text-danger small">- Rp
+                                    {{ number_format($fb['voucher_from_seller'] ?? 0, 0, ',', '.') }}</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-3 align-items-center">
+                                <span class="text-muted small">Voucher Shopee (Ditanggung Shopee)</span>
+                                <span class="font-monospace small text-muted">Rp
+                                    {{ number_format($fb['voucher_from_shopee'] ?? 0, 0, ',', '.') }}</span>
+                            </div>
 
-                        <hr class="my-2 border-dashed opacity-50">
+                            <hr class="my-2 border-dashed opacity-50">
 
-                        <div class="d-flex justify-content-between mb-2 align-items-center">
-                            <span class="text-muted small">Biaya Layanan (Service Fee)</span>
-                            <span class="font-monospace text-danger small">- Rp
-                                {{ number_format($fb['service_fee'] ?? 0, 0, ',', '.') }}</span>
-                        </div>
-                        <div class="d-flex justify-content-between mb-2 align-items-center">
-                            <span class="text-muted small">Biaya Komisi / Affiliate</span>
-                            <span class="font-monospace text-danger small">- Rp
-                                {{ number_format($fb['commission_fee'] ?? 0, 0, ',', '.') }}</span>
-                        </div>
-                        <div class="d-flex justify-content-between mb-2 align-items-center">
-                            <span class="text-muted small">Biaya Transaksi</span>
-                            <span class="font-monospace text-danger small">- Rp
-                                {{ number_format($fb['seller_transaction_fee'] ?? 0, 0, ',', '.') }}</span>
-                        </div>
-                        <div class="d-flex justify-content-between mb-2 align-items-center">
-                            <span class="text-muted small">Penyesuaian (Adjustment)</span>
-                            <span class="font-monospace small {{ ($fb['adjustment_amount'] ?? 0) < 0 ? 'text-danger' : 'text-success' }}">
-                                {{ ($fb['adjustment_amount'] ?? 0) < 0 ? '-' : '+' }} Rp {{ number_format(abs($fb['adjustment_amount'] ?? 0), 0, ',', '.') }}
+                            <div class="d-flex justify-content-between mb-2 align-items-center">
+                                <span class="text-muted small">Biaya Layanan (Service Fee)</span>
+                                <span class="font-monospace text-danger small">- Rp
+                                    {{ number_format($fb['service_fee'] ?? 0, 0, ',', '.') }}</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2 align-items-center">
+                                <span class="text-muted small">Biaya Komisi / Affiliate</span>
+                                <span class="font-monospace text-danger small">- Rp
+                                    {{ number_format($fb['commission_fee'] ?? 0, 0, ',', '.') }}</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2 align-items-center">
+                                <span class="text-muted small">Biaya Transaksi</span>
+                                <span class="font-monospace text-danger small">- Rp
+                                    {{ number_format($fb['seller_transaction_fee'] ?? 0, 0, ',', '.') }}</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2 align-items-center">
+                                <span class="text-muted small">Biaya Penyesuaian (Adjustment)</span>
+                                <span class="font-monospace small {{ ($fb['adjustment_amount'] ?? 0) < 0 ? 'text-danger' : 'text-success' }}">
+                                    {{ ($fb['adjustment_amount'] ?? 0) < 0 ? '-' : '+' }} Rp {{ number_format(abs($fb['adjustment_amount'] ?? 0), 0, ',', '.') }}
+                                </span>
+                            </div>
+                        @else
+                            <div class="d-flex justify-content-between mb-2 align-items-center">
+                                <span class="text-muted small">Total Produk</span>
+                                <span class="font-monospace small text-dark">Rp {{ number_format($order->total_amount, 0, ',', '.') }}</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2 align-items-center">
+                                <span class="text-muted small">Ongkos Kirim</span>
+                                <span class="font-monospace small text-dark">Rp {{ number_format($order->shipping_fee, 0, ',', '.') }}</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2 align-items-center">
+                                <span class="text-muted small">Diskon Toko</span>
+                                <span class="font-monospace text-danger small">- Rp
+                                    {{ number_format($order->discount_amount, 0, ',', '.') }}</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2 align-items-center">
+                                <span class="text-muted small">Estimasi Komisi Marketplace</span>
+                                <span class="font-monospace text-danger small">- Rp
+                                    {{ number_format($order->marketplace_fee, 0, ',', '.') }}</span>
+                            </div>
+                            @if ($order->order_status !== 'COMPLETED')
+                                <div class="text-muted small mt-2 text-end fst-italic">
+                                    *Rincian pasti akan muncul saat pesanan Selesai.
+                                </div>
+                            @endif
+                        @endif
+
+                        <hr class="my-3">
+
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="fw-bold small">Pendapatan Bersih (Escrow)</span>
+                            <span class="font-monospace text-success fw-bold fs-5">
+                                Rp {{ number_format($order->net_amount, 0, ',', '.') }}
                             </span>
                         </div>
-                    @else
-                        <div class="d-flex justify-content-between mb-2 align-items-center">
-                            <span class="text-muted small">Total Produk</span>
-                            <span class="font-monospace small text-white">Rp {{ number_format($order->total_amount, 0, ',', '.') }}</span>
-                        </div>
-                        <div class="d-flex justify-content-between mb-2 align-items-center">
-                            <span class="text-muted small">Ongkos Kirim</span>
-                            <span class="font-monospace small text-white">Rp {{ number_format($order->shipping_fee, 0, ',', '.') }}</span>
-                        </div>
-                        <div class="d-flex justify-content-between mb-2 align-items-center">
-                            <span class="text-muted small">Diskon Toko</span>
-                            <span class="font-monospace text-danger small">- Rp
-                                {{ number_format($order->discount_amount, 0, ',', '.') }}</span>
-                        </div>
-                        <div class="d-flex justify-content-between mb-2 align-items-center">
-                            <span class="text-muted small">Estimasi Komisi Marketplace</span>
-                            <span class="font-monospace text-danger small">- Rp
-                                {{ number_format($order->marketplace_fee, 0, ',', '.') }}</span>
-                        </div>
-                        @if ($order->order_status !== 'COMPLETED')
-                            <div class="text-muted small mt-2 text-end fst-italic">
-                                *Rincian pasti akan muncul saat pesanan Selesai.
-                            </div>
-                        @endif
-                    @endif
-
-                    <hr class="my-3">
-
-                    <div class="d-flex justify-content-between align-items-center">
-                        <span class="fw-bold small">Pendapatan Bersih (Escrow)</span>
-                        <span class="font-monospace text-success fw-bold fs-5">
-                            Rp {{ number_format($order->net_amount, 0, ',', '.') }}
-                        </span>
                     </div>
                 </div>
 
                 <!-- Store Info Card -->
-                <div class="dashboard-card mb-3">
-                    <div class="card-header-line mb-3">
-                        <h5 class="mb-0"><i class="fas fa-store me-2 text-primary"></i>Info Toko</h5>
+                <div class="card border shadow-sm mb-3">
+                    <div class="card-header bg-primary bg-opacity-10 p-3 border-bottom">
+                        <h6 class="mb-0 fw-bold text-dark"><i class="fas fa-store me-2 text-primary"></i>Info Toko</h6>
                     </div>
-                    <div class="d-flex justify-content-between mb-2.5 align-items-center">
-                        <span class="text-muted small">Platform</span>
-                        <span class="badge bg-secondary channel-{{ $order->store->channel->code }} text-uppercase small">
-                            {{ $order->store->channel->name }}
-                        </span>
-                    </div>
-                    <div class="d-flex justify-content-between align-items-center">
-                        <span class="text-muted small">Nama Toko</span>
-                        <span class="fw-bold text-light small">{{ $order->store->store_name }}</span>
+                    <div class="card-body p-3">
+                        <div class="d-flex justify-content-between mb-2.5 align-items-center">
+                            <span class="text-muted small">Platform</span>
+                            <span class="badge bg-secondary channel-{{ $order->store->channel->code }} text-uppercase small">
+                                {{ $order->store->channel->name }}
+                            </span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="text-muted small">Nama Toko</span>
+                            <span class="fw-bold text-dark small">{{ $order->store->store_name }}</span>
+                        </div>
                     </div>
                 </div>
 
@@ -274,60 +282,62 @@
                     $margin = $order->profit_margin;
                     $profitBadge = $netProfit >= 0 ? 'success' : 'danger';
                 @endphp
-                <div class="dashboard-card mb-3">
-                    <div class="card-header-line mb-3">
-                        <h5 class="mb-0"><i class="fas fa-chart-line me-2 text-primary"></i>Analisis Profit</h5>
+                <div class="card border shadow-sm mb-3">
+                    <div class="card-header bg-primary bg-opacity-10 p-3 border-bottom">
+                        <h6 class="mb-0 fw-bold text-dark"><i class="fas fa-chart-line me-2 text-primary"></i>Analisis Profit</h6>
                     </div>
-                    <div class="d-flex justify-content-between mb-2 align-items-center">
-                        <span class="text-muted small">Pendapatan Bersih (Escrow)</span>
-                        <span class="font-monospace fw-semibold small text-white">Rp {{ number_format($order->net_amount, 0, ',', '.') }}</span>
-                    </div>
-                    <div class="d-flex justify-content-between mb-2 align-items-center">
-                        <span class="text-muted small">HPP Total Item</span>
-                        <span class="font-monospace text-danger small">
-                            @if ($hppTotal > 0)
-                                - Rp {{ number_format($hppTotal, 0, ',', '.') }}
-                            @else
-                                <span class="text-muted small">HPP belum diset</span>
-                            @endif
-                        </span>
-                    </div>
-                    <hr class="my-2">
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <span class="fw-bold small">Net Profit</span>
-                        <span class="font-monospace fw-bold text-{{ $profitBadge }} fs-5">
-                            {{ $netProfit >= 0 ? '' : '-' }}Rp {{ number_format(abs($netProfit), 0, ',', '.') }}
-                        </span>
-                    </div>
-                    <div class="d-flex justify-content-between mb-2 align-items-center">
-                        <span class="text-muted small">Margin</span>
-                        <span class="fw-bold text-{{ $profitBadge }} small">{{ $margin }}%</span>
-                    </div>
-                    @if ($hppTotal <= 0)
-                        <div class="alert alert-warning py-2 px-3 m-0 mt-3 small shadow-sm d-flex align-items-start">
-                            <i class="fas fa-info-circle me-2 mt-1"></i>
-                            <div>
-                                Set <strong>Harga Pokok (HPP)</strong> di Master Produk agar profit dihitung akurat.
-                            </div>
+                    <div class="card-body p-3">
+                        <div class="d-flex justify-content-between mb-2 align-items-center">
+                            <span class="text-muted small">Pendapatan Bersih (Escrow)</span>
+                            <span class="font-monospace fw-semibold small text-dark">Rp {{ number_format($order->net_amount, 0, ',', '.') }}</span>
                         </div>
-                    @endif
+                        <div class="d-flex justify-content-between mb-2 align-items-center">
+                            <span class="text-muted small">HPP Total Item</span>
+                            <span class="font-monospace text-danger small">
+                                @if ($hppTotal > 0)
+                                    - Rp {{ number_format($hppTotal, 0, ',', '.') }}
+                                @else
+                                    <span class="text-muted small">HPP belum diset</span>
+                                @endif
+                            </span>
+                        </div>
+                        <hr class="my-2">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="fw-bold small">Net Profit</span>
+                            <span class="font-monospace fw-bold text-{{ $profitBadge }} fs-5">
+                                {{ $netProfit >= 0 ? '' : '-' }}Rp {{ number_format(abs($netProfit), 0, ',', '.') }}
+                            </span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2 align-items-center">
+                            <span class="text-muted small">Margin</span>
+                            <span class="fw-bold text-{{ $profitBadge }} small">{{ $margin }}%</span>
+                        </div>
+                        @if ($hppTotal <= 0)
+                            <div class="alert alert-warning py-2 px-3 m-0 mt-3 small shadow-sm d-flex align-items-start border-warning border-opacity-25 bg-warning-subtle text-warning-emphasis">
+                                <i class="fas fa-info-circle me-2 mt-1"></i>
+                                <div>
+                                    Set <strong>Harga Pokok (HPP)</strong> di Master Produk agar profit dihitung akurat.
+                                </div>
+                            </div>
+                        @endif
+                    </div>
                 </div>
 
                 <!-- Real-time Tracking Card (Shopee only + tracked status) -->
                 @if (
                     $order->store->channel->code === 'shopee' &&
                         !in_array($order->order_status, ['UNPAID', 'READY_TO_SHIP', 'CANCELLED']))
-                    <div class="dashboard-card mb-3">
-                        <div class="card-header-line d-flex justify-content-between align-items-center mb-3 cursor-pointer"
+                    <div class="card border shadow-sm mb-3">
+                        <div class="card-header bg-info bg-opacity-10 d-flex justify-content-between align-items-center p-3 border-bottom cursor-pointer"
                             onclick="loadTracking()" id="tracking-toggle">
-                            <h5 class="mb-0 text-info">
-                                <i class="fas fa-shipping-fast me-2"></i>Tracking Real-time
-                            </h5>
-                            <button class="btn btn-outline-info btn-sm" id="btn-load-tracking">
+                            <h6 class="mb-0 fw-bold text-dark">
+                                <i class="fas fa-shipping-fast me-2 text-info"></i>Tracking Real-time
+                            </h6>
+                            <button class="btn btn-outline-info btn-sm rounded-3" id="btn-load-tracking">
                                 <i class="fas fa-sync" id="tracking-spin"></i> Muat Tracking
                             </button>
                         </div>
-                        <div id="tracking-panel" style="display:none;" class="pt-0">
+                        <div class="card-body p-3" id="tracking-panel" style="display:none;">
                             <div id="tracking-loading" class="text-center text-muted py-4">
                                 <i class="fas fa-spinner fa-spin fa-2x"></i><br>
                                 <small class="mt-2 d-block">Mengambil data dari Shopee...</small>
@@ -389,7 +399,7 @@
 
                         let html = `<div class="p-1">
                             <div class="mb-3 small text-muted">
-                                <i class="fas fa-barcode me-1"></i> No. Resi: <strong class="text-light">${carrier}</strong>
+                                <i class="fas fa-barcode me-1"></i> No. Resi: <strong class="text-dark">${carrier}</strong>
                             </div>`;
 
                         if (details.length === 0) {
@@ -459,11 +469,11 @@
                 top: 20px;
                 bottom: 0;
                 width: 2px;
-                background: var(--border);
+                background: #dee2e6;
             }
 
             .tracking-step.active::after {
-                background: var(--primary);
+                background: #0d6efd;
             }
 
             .tracking-dot {
@@ -471,17 +481,17 @@
                 height: 20px;
                 border-radius: 50%;
                 flex-shrink: 0;
-                background: var(--border);
+                background: #dee2e6;
                 margin-top: 2px;
                 position: relative;
                 z-index: 1;
-                border: 3px solid var(--bg-card);
-                box-shadow: 0 0 0 2px var(--border);
+                border: 3px solid #ffffff;
+                box-shadow: 0 0 0 2px #dee2e6;
             }
 
             .tracking-dot.dot-active {
-                background: var(--primary);
-                box-shadow: 0 0 0 3px rgba(99, 102, 241, .25);
+                background: #0d6efd;
+                box-shadow: 0 0 0 3px rgba(13, 110, 253, .25);
             }
 
             .tracking-content {
@@ -491,12 +501,12 @@
             .tracking-desc {
                 font-weight: 600;
                 font-size: 0.875rem;
-                color: var(--text-primary);
+                color: #212529;
             }
 
             .tracking-time {
                 font-size: 0.75rem;
-                color: var(--text-secondary);
+                color: #6c757d;
                 margin-top: 2px;
             }
         </style>

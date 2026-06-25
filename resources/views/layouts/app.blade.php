@@ -26,9 +26,6 @@
     <link rel="stylesheet"
         href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" />
 
-    <!-- SweetAlert2 Dark Theme -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@sweetalert2/theme-dark@4/dark.css">
-
     <!-- Custom CSS -->
     <link rel="stylesheet" href="{{ asset('css/app.css') }}">
 
@@ -40,107 +37,106 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 
-<body>
+<body class="bg-body-secondary">
 
-    <div class="overlay" id="sidebarOverlay"></div>
-
-    <!-- Sidebar Component Included Dynamically -->
-    @include('layouts.sidebar')
-
-    <!-- Content -->
-    <div class="content">
-        <!-- Navbar -->
-        <nav class="navbar navbar-custom navbar-expand-lg sticky-top">
-            <div class="container-fluid px-3">
-                <button class="btn btn-sm btn-dark d-flex align-items-center justify-content-center" id="toggleSidebar"
-                    style="height: 32px; width: 32px;">
-                    <i class="bi bi-list fs-5"></i>
-                </button>
-                <div class="ms-2">
-                    <h6 class="mb-0 fw-bold fs-6">
-                        @yield('page-title', 'Dashboard')
-                    </h6>
-                </div>
-                <div class="ms-auto d-flex align-items-center gap-2">
-                    @yield('topbar-actions')
-                    <div class="d-flex align-items-center gap-2">
-                        <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center fw-bold"
-                            style="width: 30px; height: 30px; font-size: 0.8rem; box-shadow: 0 2px 8px rgba(37, 99, 235, 0.15);">
-                            {{ strtoupper(substr(Auth::user()->name, 0, 1)) }}
-                        </div>
-                        <div class="lh-sm d-none d-sm-block">
-                            <span class="text-dark fw-semibold d-block"
-                                style="font-size: 0.75rem;">{{ Auth::user()->name }}</span>
-                            <span class="text-secondary"
-                                style="font-size: 0.65rem;">{{ ucfirst(Auth::user()->role) }}</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </nav>
-
-        <div class="container-fluid p-3">
-
-            <!-- System Session Alerts -->
-            @if (session('success'))
-                <div class="alert alert-success alert-dismissible fade show border-start border-4 border-success d-flex align-items-center gap-2 p-3 mb-4"
-                    role="alert">
-                    <i class="bi bi-check-circle-fill fs-5 text-success"></i>
-                    <div>
-                        {{ session('success') }}
-                    </div>
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-            @endif
-
-            @if (session('error'))
-                <div class="alert alert-danger alert-dismissible fade show border-start border-4 border-danger d-flex align-items-center gap-2 p-3 mb-4"
-                    role="alert">
-                    <i class="bi bi-exclamation-triangle-fill fs-5 text-danger"></i>
-                    <div>
-                        {{ session('error') }}
-                    </div>
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-            @endif
-
-            @if ($errors->any())
-                <div class="alert alert-danger alert-dismissible fade show border-start border-4 border-danger p-3 mb-4"
-                    role="alert">
-                    <div class="d-flex align-items-center gap-2 mb-2">
-                        <i class="bi bi-exclamation-triangle-fill fs-5 text-danger"></i>
-                        <strong class="text-danger">Terjadi kesalahan!</strong>
-                    </div>
-                    <ul class="mb-0 ps-4">
-                        @foreach ($errors->all() as $error)
-                            <li>{{ $error }}</li>
-                        @endforeach
-                    </ul>
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-            @endif
-
-            <!-- Main Content Slot -->
-            @yield('content')
-
+    <!-- Sidebar Navigation for Offcanvas Mobile -->
+    <div class="offcanvas offcanvas-start" tabindex="-1" id="sidebarMenu" aria-labelledby="sidebarMenuLabel"
+        style="width: 260px;">
+        <div class="offcanvas-body p-0">
+            @include('layouts.sidebar')
         </div>
-
     </div>
 
-    <!-- Sidebar Toggling behavior from Mockup -->
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Main Content Area -->
+            <main class="col-12 p-0 d-flex flex-column min-vh-100">
+                <!-- Navbar -->
+                <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom sticky-top py-2 px-3 shadow-sm">
+                    <div class="container-fluid p-0">
+                        <button class="btn btn-sm btn-outline-secondary me-2" type="button"
+                            data-bs-toggle="offcanvas" data-bs-target="#sidebarMenu" aria-controls="sidebarMenu">
+                            <i class="bi bi-list fs-5"></i>
+                        </button>
+                        <div class="ms-1">
+                            <h6 class="mb-0 fw-bold fs-6 text-dark">
+                                @yield('page-title', 'Dashboard')
+                            </h6>
+                        </div>
+
+                        <div class="ms-auto d-flex align-items-center gap-3">
+                            @yield('topbar-actions')
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center fw-bold"
+                                    style="width: 32px; height: 32px; font-size: 0.85rem;">
+                                    {{ strtoupper(substr(Auth::user()->name, 0, 1)) }}
+                                </div>
+                                <div class="lh-sm d-none d-sm-block">
+                                    <span class="text-dark fw-semibold d-block"
+                                        style="font-size: 0.8rem;">{{ Auth::user()->name }}</span>
+                                    <span class="text-muted"
+                                        style="font-size: 0.7rem;">{{ ucfirst(Auth::user()->role) }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </nav>
+
+                <!-- Page content wrapper -->
+                <div class="container-fluid p-4">
+
+                    <!-- System Session Alerts -->
+                    @if (session('success'))
+                        <div class="alert alert-success alert-dismissible fade show border-start border-4 border-success d-flex align-items-center gap-2 p-3 mb-4"
+                            role="alert">
+                            <i class="bi bi-check-circle-fill fs-5 text-success"></i>
+                            <div>
+                                {{ session('success') }}
+                            </div>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"
+                                aria-label="Close"></button>
+                        </div>
+                    @endif
+
+                    @if (session('error'))
+                        <div class="alert alert-danger alert-dismissible fade show border-start border-4 border-danger d-flex align-items-center gap-2 p-3 mb-4"
+                            role="alert">
+                            <i class="bi bi-exclamation-triangle-fill fs-5 text-danger"></i>
+                            <div>
+                                {{ session('error') }}
+                            </div>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"
+                                aria-label="Close"></button>
+                        </div>
+                    @endif
+
+                    @if ($errors->any())
+                        <div class="alert alert-danger alert-dismissible fade show border-start border-4 border-danger p-3 mb-4"
+                            role="alert">
+                            <div class="d-flex align-items-center gap-2 mb-2">
+                                <i class="bi bi-exclamation-triangle-fill fs-5 text-danger"></i>
+                                <strong class="text-danger">Terjadi kesalahan!</strong>
+                            </div>
+                            <ul class="mb-0 ps-4">
+                                @foreach ($errors->all() as $error)
+                                    <li>{{ $error }}</li>
+                                @endforeach
+                            </ul>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"
+                                aria-label="Close"></button>
+                        </div>
+                    @endif
+
+                    <!-- Main Content Slot -->
+                    @yield('content')
+
+                </div>
+            </main>
+        </div>
+    </div>
+
     <script>
         $(document).ready(function() {
-            // Sidebar toggle trigger
-            $('#toggleSidebar').click(function() {
-                $('.sidebar').toggleClass('show');
-                $('.overlay').toggleClass('show');
-            });
-
-            // Click overlay to close
-            $('.overlay').click(function() {
-                $('.sidebar').removeClass('show');
-                $('.overlay').removeClass('show');
-            });
 
             // Initialize Select2
             if ($.fn.select2) {
@@ -165,10 +161,8 @@
                     text: "{{ session('success') }}",
                     timer: 3000,
                     showConfirmButton: false,
-                    background: '#151f2c',
-                    color: '#f8fafc',
                     customClass: {
-                        popup: 'border border-secondary border-opacity-10'
+                        popup: 'border border-light-subtle shadow-sm'
                     }
                 });
             @endif
@@ -178,10 +172,8 @@
                     icon: 'error',
                     title: 'Gagal',
                     text: "{{ session('error') }}",
-                    background: '#151f2c',
-                    color: '#f8fafc',
                     customClass: {
-                        popup: 'border border-secondary border-opacity-10'
+                        popup: 'border border-light-subtle shadow-sm'
                     }
                 });
             @endif
@@ -190,19 +182,19 @@
             $('form[onsubmit*="confirm("]').each(function() {
                 const form = $(this);
                 const onsubmitAttr = form.attr('onsubmit');
-                
+
                 // Extract message from confirm('message') or confirm("message")
                 const match = onsubmitAttr.match(/confirm\(['"](.*?)['"]\)/);
                 if (match && match[1]) {
                     const message = match[1];
-                    
+
                     // Remove inline onsubmit so it doesn't trigger native confirm
                     form.removeAttr('onsubmit');
-                    
+
                     // Attach jQuery submit handler with Swal
                     form.on('submit', function(e) {
                         e.preventDefault();
-                        
+
                         Swal.fire({
                             title: 'Konfirmasi Tindakan',
                             text: message,
@@ -212,10 +204,8 @@
                             cancelButtonColor: '#4b5563',
                             confirmButtonText: 'Ya, Lanjutkan',
                             cancelButtonText: 'Batal',
-                            background: '#151f2c',
-                            color: '#f8fafc',
                             customClass: {
-                                popup: 'border border-secondary border-opacity-10'
+                                popup: 'border border-light-subtle shadow-sm'
                             }
                         }).then((result) => {
                             if (result.isConfirmed) {
@@ -238,7 +228,7 @@
                     element.on('click', function(e) {
                         e.preventDefault();
                         const href = element.attr('href');
-                        
+
                         Swal.fire({
                             title: 'Konfirmasi Tindakan',
                             text: message,
@@ -248,14 +238,13 @@
                             cancelButtonColor: '#4b5563',
                             confirmButtonText: 'Ya, Lanjutkan',
                             cancelButtonText: 'Batal',
-                            background: '#151f2c',
-                            color: '#f8fafc',
                             customClass: {
-                                popup: 'border border-secondary border-opacity-10'
+                                popup: 'border border-light-subtle shadow-sm'
                             }
                         }).then((result) => {
                             if (result.isConfirmed) {
-                                if (href && href !== '#' && !href.startsWith('javascript:')) {
+                                if (href && href !== '#' && !href.startsWith(
+                                        'javascript:')) {
                                     window.location.href = href;
                                 } else {
                                     // Trigger form submit if it's a submit button

@@ -3,7 +3,6 @@
 @section('title', 'Dashboard Karyawan — Presensi & Keuangan')
 
 @section('styles')
-    <link rel="stylesheet" href="{{ asset('css/employee-dashboard.css') }}">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
 @endsection
 
@@ -63,80 +62,57 @@
         $lateMins = $stats['late_minutes'] % 60;
     @endphp
 
-    <!-- Mockup Company Header -->
-    <div class="company-header">
-        <div class="company-left">
-            <div class="company-logo-box">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-                    stroke-linecap="round" stroke-linejoin="round" style="color: #ff4757;">
-                    <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
-                    <path d="M2 17l10 5 10-5"></path>
-                    <path d="M2 12l10 5 10-5"></path>
-                </svg>
+    <!-- Company Header -->
+    <div class="d-flex justify-content-between align-items-center bg-white p-3 border rounded shadow-sm mb-3">
+        <div class="d-flex align-items-center gap-2">
+            <div class="bg-danger bg-opacity-10 p-2 rounded text-danger d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
+                <i class="fas fa-layer-group"></i>
             </div>
-            <span class="company-name">{{ $employee->tenant->name ?? 'PT. Geprek Miber' }}</span>
+            <span class="fw-bold text-dark small">{{ $employee->tenant->name ?? 'PT. Geprek Miber' }}</span>
         </div>
-        <div class="company-right">
-            <span class="badge-lang">ID</span>
-            <span class="badge-status-online">
-                <span class="status-dot-pulse"></span>
+        <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-light text-dark border">ID</span>
+            <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 d-flex align-items-center gap-1.5 py-1.5 px-2">
+                <span class="spinner-grow spinner-grow-sm text-success" role="status" style="width: 8px; height: 8px;"></span>
                 Online
             </span>
         </div>
     </div>
 
-    <!-- Mockup User Header -->
-    <div class="user-header">
-        <div class="user-left">
-            <div class="user-avatar-box">
+    <!-- User Header -->
+    <div class="d-flex justify-content-between align-items-center bg-white p-3 border rounded shadow-sm mb-3">
+        <div class="d-flex align-items-center gap-3">
+            <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center fw-bold fs-4 flex-shrink-0" style="width: 48px; height: 48px;">
                 {{ strtoupper(substr($employee->name, 0, 1)) }}
             </div>
-            <div class="user-info-text">
-                <h3>{{ $employee->name }}</h3>
-                <p>{{ $employee->position ?: 'Supervisor' }} &bull; {{ $employee->username }}</p>
+            <div>
+                <h5 class="fw-bold text-dark mb-0" style="font-size: 1.05rem;">{{ $employee->name }}</h5>
+                <p class="text-muted small mb-0">{{ $employee->position ?: 'Supervisor' }} &bull; {{ $employee->username }}</p>
             </div>
         </div>
-        <button class="btn-mail-icon" type="button" onclick="switchTab('riwayat')" title="Notifikasi Kehadiran">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                stroke-linecap="round" stroke-linejoin="round">
-                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
-                <polyline points="22,6 12,13 2,6"></polyline>
-            </svg>
+        <button class="btn btn-outline-secondary btn-sm p-2 rounded-circle d-flex align-items-center justify-content-center" style="width: 38px; height: 38px;" type="button" onclick="switchTab('riwayat')" title="Notifikasi Kehadiran">
+            <i class="fas fa-envelope"></i>
         </button>
     </div>
 
     <!-- Flash Messages -->
     @if (session('success'))
-        <div class="alert alert-success">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-                stroke-linecap="round" stroke-linejoin="round">
-                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-                <polyline points="22 4 12 14.01 9 11.01"></polyline>
-            </svg>
+        <div class="alert alert-success d-flex align-items-center gap-2 small py-2 mb-3" role="alert">
+            <i class="fas fa-check-circle"></i>
             <span>{{ session('success') }}</span>
         </div>
     @endif
     @if (session('error'))
-        <div class="alert alert-danger">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-                stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="10"></circle>
-                <line x1="12" y1="8" x2="12" y2="12"></line>
-                <line x1="12" y1="16" x2="12.01" y2="16"></line>
-            </svg>
+        <div class="alert alert-danger d-flex align-items-center gap-2 small py-2 mb-3" role="alert">
+            <i class="fas fa-exclamation-circle"></i>
             <span>{{ session('error') }}</span>
         </div>
     @endif
     @if ($errors->any())
-        <div class="alert alert-danger" style="align-items: flex-start;">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-                stroke-linecap="round" stroke-linejoin="round" style="margin-top: 2px; flex-shrink: 0;">
-                <circle cx="12" cy="12" r="10"></circle>
-                <line x1="12" y1="8" x2="12" y2="12"></line>
-                <line x1="12" y1="16" x2="12.01" y2="16"></line>
-            </svg>
-            <div style="flex: 1; padding-left: 8px;">
-                <ul style="margin: 0; padding-left: 16px; font-size: 13px; text-align: left; line-height: 1.5;">
+        <div class="alert alert-danger d-flex align-items-start gap-2 small py-2 mb-3" role="alert">
+            <i class="fas fa-exclamation-triangle mt-1 flex-shrink-0"></i>
+            <div class="flex-grow-1">
+                <ul class="mb-0 ps-3">
                     @foreach ($errors->all() as $error)
                         <li>{{ $error }}</li>
                     @endforeach
@@ -146,51 +122,21 @@
     @endif
 
     <!-- Tab Navigation Menu -->
-    <div class="tab-nav">
-        <button class="tab-btn active" onclick="switchTab('presensi')">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="10"></circle>
-                <polyline points="12 6 12 12 16 14"></polyline>
-            </svg>
-            Presensi
+    <div class="nav nav-pills d-flex bg-white p-1.5 border rounded shadow-sm justify-content-between gap-1 mb-3" role="tablist">
+        <button class="nav-link active flex-fill py-2 text-center tab-btn" onclick="switchTab('presensi')" style="font-size: 0.85rem;">
+            <i class="fas fa-clock d-block mb-1 fs-5"></i> Presensi
         </button>
-        <button class="tab-btn" onclick="switchTab('riwayat')">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                stroke-linecap="round" stroke-linejoin="round">
-                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                <line x1="16" y1="2" x2="16" y2="6"></line>
-                <line x1="8" y1="2" x2="8" y2="6"></line>
-                <line x1="3" y1="10" x2="21" y2="10"></line>
-            </svg>
-            Riwayat
+        <button class="nav-link flex-fill py-2 text-center tab-btn" onclick="switchTab('riwayat')" style="font-size: 0.85rem;">
+            <i class="fas fa-calendar-alt d-block mb-1 fs-5"></i> Riwayat
         </button>
-        <button class="tab-btn" onclick="switchTab('izin')">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                <polyline points="14 2 14 8 20 8"></polyline>
-                <line x1="9" y1="15" x2="15" y2="15"></line>
-                <line x1="9" y1="11" x2="15" y2="11"></line>
-                <line x1="9" y1="18" x2="15" y2="18"></line>
-            </svg>
-            Izin/Cuti
+        <button class="nav-link flex-fill py-2 text-center tab-btn" onclick="switchTab('izin')" style="font-size: 0.85rem;">
+            <i class="fas fa-file-alt d-block mb-1 fs-5"></i> Izin/Cuti
         </button>
-        <button class="tab-btn" onclick="switchTab('kasbon')">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="12" y1="1" x2="12" y2="23"></line>
-                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
-            </svg>
-            Kasbon
+        <button class="nav-link flex-fill py-2 text-center tab-btn" onclick="switchTab('kasbon')" style="font-size: 0.85rem;">
+            <i class="fas fa-hand-holding-usd d-block mb-1 fs-5"></i> Kasbon
         </button>
-        <button class="tab-btn" onclick="switchTab('gaji')">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="2" y="4" width="20" height="16" rx="2" ry="2"></rect>
-                <line x1="12" y1="4" x2="12" y2="20"></line>
-            </svg>
-            Slip Gaji
+        <button class="nav-link flex-fill py-2 text-center tab-btn" onclick="switchTab('gaji')" style="font-size: 0.85rem;">
+            <i class="fas fa-file-invoice-dollar d-block mb-1 fs-5"></i> Slip Gaji
         </button>
     </div>
 
@@ -322,10 +268,10 @@
                     const amt = Number(allow.amount);
                     totalDynamic += amt;
                     const row = document.createElement('div');
-                    row.className = 'payslip-row';
+                    row.className = 'd-flex justify-content-between py-1 border-bottom border-light';
                     row.style.paddingLeft = '12px';
                     row.style.fontSize = '11.5px';
-                    row.style.color = '#9ca3af';
+                    row.style.color = '#6c757d';
                     row.innerHTML = `<span>+ Tunj. ${allow.name}</span> <span>${formatRupiah(amt)}</span>`;
                     dynamicBox.appendChild(row);
                 });
@@ -381,12 +327,9 @@
             document.getElementById('psNetSalary').textContent = formatRupiah(payroll.net_salary);
 
             // Open modal
-            const modal = document.getElementById('payslipModal');
-            modal.style.display = 'flex';
-        }
-
-        function closePayslipModal(event) {
-            document.getElementById('payslipModal').style.display = 'none';
+            const modalElement = document.getElementById('payslipModal');
+            const modal = new bootstrap.Modal(modalElement);
+            modal.show();
         }
 
         // Live Clock precision
@@ -403,7 +346,7 @@
 
             const clockEl = document.getElementById('liveClock');
             if (clockEl) {
-                clockEl.innerHTML = `${hrs}:${mins}<span class="clock-seconds">${secs}</span>`;
+                clockEl.innerHTML = `${hrs}:${mins}<span class="small ms-1 text-muted" style="font-size:0.6em;">${secs}</span>`;
             }
 
             const dateEl = document.getElementById('liveDate');

@@ -19,10 +19,23 @@ class TenantCutoffSettingsTest extends TestCase
     {
         parent::setUp();
 
-        // Create a tenant
+        // Create a system tenant first to occupy ID 1
+        Tenant::create([
+            'name' => 'System Tenant',
+            'status' => 'active',
+        ]);
+
+        // Create a tenant (gets ID 2)
         $this->tenant = Tenant::create([
             'name' => 'Test Company',
             'status' => 'active',
+        ]);
+
+        // Create Spatie roles
+        $adminRole = \Spatie\Permission\Models\Role::create([
+            'tenant_id' => $this->tenant->id,
+            'name' => 'admin',
+            'guard_name' => 'web',
         ]);
 
         // Create an admin user
@@ -33,6 +46,8 @@ class TenantCutoffSettingsTest extends TestCase
             'password' => bcrypt('password'),
             'role' => 'admin',
         ]);
+        setPermissionsTeamId($this->tenant->id);
+        $this->adminUser->assignRole($adminRole);
 
         // Create a regular user (non-admin)
         $this->regularUser = User::create([

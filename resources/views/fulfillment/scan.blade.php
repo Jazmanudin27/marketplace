@@ -6,122 +6,125 @@
     <div class="row">
         <!-- Kolom Kiri: Form & Pemindai -->
         <div class="col-md-5">
-            <div class="dashboard-card mb-4">
-                <div class="card-header-line">
-                    <h3><i class="fas fa-barcode"></i> Langkah 1: Scan Invoice</h3>
-                </div>
-                <div class="mt-3">
-                    <label for="invoice-scan-input" class="form-label fw-bold">Nomor Invoice / Kode Pesanan</label>
-                    <div class="input-group">
-                        <span class="input-group-text bg-dark border-secondary border-opacity-25 text-secondary">
-                            <i class="fas fa-file-invoice"></i>
-                        </span>
-                        <input type="text" id="invoice-scan-input"
-                            class="form-control bg-dark bg-opacity-50 text-white border-secondary border-opacity-25 fs-5 fw-medium"
-                            placeholder="Scan resi/invoice di sini..." autofocus autocomplete="off">
-                    </div>
-                    <div class="form-text text-muted mt-2 small">
-                        Arahkan scanner atau ketik nomor invoice, lalu tekan <strong>Enter</strong>.
-                    </div>
-                </div>
-            </div>
-
-            <div class="dashboard-card d-none" id="product-scan-section">
-                <div class="card-header-line">
-                    <h3><i class="fas fa-box"></i> Langkah 2: Scan SKU Produk</h3>
-                </div>
-                <div class="mt-3">
-                    <label for="sku-scan-input" class="form-label fw-bold text-primary">Scan Barcode / SKU Barang</label>
-                    <div class="input-group">
-                        <span class="input-group-text text-primary bg-dark border-secondary border-opacity-25">
-                            <i class="fas fa-barcode"></i>
-                        </span>
-                        <input type="text" id="sku-scan-input"
-                            class="form-control bg-dark bg-opacity-50 text-white border-secondary border-opacity-25 fs-4 fw-bold font-monospace letter-spacing-1"
-                            placeholder="Scan barcode SKU barang di sini..." autocomplete="off" disabled>
-                    </div>
-
-                    <div class="form-check form-switch mt-3">
-                        <input class="form-check-input" type="checkbox" id="auto-ship-toggle" checked
-                            style="cursor: pointer;">
-                        <label class="form-check-label fw-bold text-white cursor-pointer" for="auto-ship-toggle">
-                            Otomatis Request Kirim & Cetak Resi
-                        </label>
-                    </div>
-                    <div class="form-text text-muted mt-1 small">
-                        Saat scan produk selesai, sistem akan otomatis mengirim status siap kirim ke Shopee/TikTok dan
-                        membuka tab cetak label resi.
+            <div class="card border shadow-sm mb-4">
+                <div class="card-body">
+                    <h5 class="card-title fw-bold text-dark mb-3"><i class="fas fa-barcode"></i> Langkah 1: Scan Invoice</h5>
+                    <div class="mt-3">
+                        <label for="invoice-scan-input" class="form-label fw-bold">Nomor Invoice / Kode Pesanan</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-secondary border-opacity-25 text-secondary">
+                                <i class="fas fa-file-invoice"></i>
+                            </span>
+                            <input type="text" id="invoice-scan-input"
+                                class="form-control border-secondary border-opacity-25 fs-5 fw-medium"
+                                placeholder="Scan resi/invoice di sini..." autofocus autocomplete="off">
+                        </div>
+                        <div class="form-text text-muted mt-2 small">
+                            Arahkan scanner atau ketik nomor invoice, lalu tekan <strong>Enter</strong>.
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <div class="dashboard-card border border-primary border-dashed bg-primary bg-opacity-5 mt-4">
-                <h4 class="h6 fw-bold text-primary mb-2"><i class="fas fa-keyboard"></i> Pintasan Scanner & Tips</h4>
-                <ul class="small text-secondary-emphasis ps-3 mb-0" style="line-height: 1.6;">
-                    <li>Pastikan kursor aktif pada input teks yang dituju (berwarna ungu menyala).</li>
-                    <li>Gunakan scanner yang diprogram mengirim karakter <strong>Enter (CRLF)</strong> di akhir kode.</li>
-                    <li>Jika produk tidak memiliki barcode, Anda bisa mengetik SKU secara manual lalu tekan Enter.</li>
-                </ul>
+            <div class="card border shadow-sm mb-4 d-none" id="product-scan-section">
+                <div class="card-body">
+                    <h5 class="card-title fw-bold text-dark mb-3"><i class="fas fa-box"></i> Langkah 2: Scan SKU Produk</h5>
+                    <div class="mt-3">
+                        <label for="sku-scan-input" class="form-label fw-bold text-primary">Scan Barcode / SKU Barang</label>
+                        <div class="input-group">
+                            <span class="input-group-text text-primary bg-light border-secondary border-opacity-25">
+                                <i class="fas fa-barcode"></i>
+                            </span>
+                            <input type="text" id="sku-scan-input"
+                                class="form-control border-secondary border-opacity-25 fs-4 fw-bold font-monospace letter-spacing-1"
+                                placeholder="Scan barcode SKU barang di sini..." autocomplete="off" disabled>
+                        </div>
+
+                        <div class="form-check form-switch mt-3">
+                            <input class="form-check-input" type="checkbox" id="auto-ship-toggle" checked
+                                style="cursor: pointer;">
+                            <label class="form-check-label fw-bold text-dark cursor-pointer" for="auto-ship-toggle">
+                                Otomatis Request Kirim & Cetak Resi
+                            </label>
+                        </div>
+                        <div class="form-text text-muted mt-1 small">
+                            Saat scan produk selesai, sistem akan otomatis mengirim status siap kirim ke Shopee/TikTok dan
+                            membuka tab cetak label resi.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card border border-primary border-dashed bg-primary bg-opacity-5 mb-4">
+                <div class="card-body">
+                    <h4 class="h6 fw-bold text-primary mb-2"><i class="fas fa-keyboard"></i> Pintasan Scanner & Tips</h4>
+                    <ul class="small text-secondary-emphasis ps-3 mb-0" style="line-height: 1.6;">
+                        <li>Pastikan kursor aktif pada input teks yang dituju (berwarna biru/primary).</li>
+                        <li>Gunakan scanner yang diprogram mengirim karakter <strong>Enter (CRLF)</strong> di akhir kode.</li>
+                        <li>Jika produk tidak memiliki barcode, Anda bisa mengetik SKU secara manual lalu tekan Enter.</li>
+                    </ul>
+                </div>
             </div>
         </div>
 
         <!-- Kolom Kanan: Detail Pesanan yang Sedang Diproses -->
         <div class="col-md-7">
             <!-- Keadaan Kosong (Belum ada pesanan dimuat) -->
-            <div class="dashboard-card text-center py-5 px-4 border border-dashed border-secondary border-opacity-25"
-                id="empty-state">
-                <i class="fas fa-truck-loading text-muted opacity-25 mb-4" style="font-size: 4rem;"></i>
-                <h3 class="h5 fw-bold text-secondary">Silakan Scan Nomor Invoice</h3>
-                <p class="text-muted mx-auto mt-2 small" style="max-width: 380px;">
-                    Scan kode resi pengiriman atau invoice marketplace untuk memuat detail pesanan dan memulai verifikasi
-                    produk.
-                </p>
+            <div class="card border border-dashed text-center py-5 px-4" id="empty-state">
+                <div class="card-body">
+                    <i class="fas fa-truck-loading text-muted opacity-25 mb-4" style="font-size: 4rem;"></i>
+                    <h3 class="h5 fw-bold text-secondary">Silakan Scan Nomor Invoice</h3>
+                    <p class="text-muted mx-auto mt-2 small" style="max-width: 380px;">
+                        Scan kode resi pengiriman atau invoice marketplace untuk memuat detail pesanan dan memulai verifikasi
+                        produk.
+                    </p>
+                </div>
             </div>
 
             <!-- Detail Pesanan (Hidden by default, loaded via JS) -->
-            <div class="dashboard-card d-none" id="order-details-card">
-                <div
-                    class="d-flex justify-content-between align-items-start border-bottom border-secondary border-opacity-25 pb-3">
-                    <div>
-                        <h3 class="h5 fw-bold text-white" id="order-invoice-title">Invoice</h3>
-                        <div class="small text-muted mt-1">
-                            Toko: <span class="fw-bold text-light" id="order-store-name">-</span>
-                            <span class="badge ms-2" id="order-channel-badge"
-                                style="font-size: 0.7rem; padding: 3px 6px;">-</span>
+            <div class="card border shadow-sm mb-4 d-none" id="order-details-card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start border-bottom pb-3">
+                        <div>
+                            <h3 class="h5 fw-bold text-dark" id="order-invoice-title">Invoice</h3>
+                            <div class="small text-muted mt-1">
+                                Toko: <span class="fw-bold text-dark" id="order-store-name">-</span>
+                                <span class="badge ms-2 text-dark border bg-light" id="order-channel-badge"
+                                    style="font-size: 0.7rem; padding: 3px 6px;">-</span>
+                            </div>
+                        </div>
+                        <div class="text-end">
+                            <div class="small text-muted">Pembeli</div>
+                            <div class="fw-bold text-dark" id="order-buyer-name">-</div>
                         </div>
                     </div>
-                    <div class="text-end">
-                        <div class="small text-muted">Pembeli</div>
-                        <div class="fw-bold text-white" id="order-buyer-name">-</div>
+
+                    <div class="d-flex justify-content-between align-items-center bg-light p-3 rounded border my-3">
+                        <div>
+                            <div class="small text-muted">Layanan Ekspedisi</div>
+                            <div class="fw-bold text-dark fs-5" id="order-courier-name">-</div>
+                        </div>
+                        <div class="text-end" id="order-status-wrapper">
+                            <span class="badge bg-warning text-dark px-3 py-2" id="order-packing-status-badge">Sedang
+                                Dikemas</span>
+                        </div>
                     </div>
-                </div>
 
-                <div
-                    class="d-flex justify-content-between align-items-center bg-dark bg-opacity-25 p-3 rounded border border-secondary border-opacity-25 my-3">
-                    <div>
-                        <div class="small text-muted">Layanan Ekspedisi</div>
-                        <div class="fw-bold text-white fs-5" id="order-courier-name">-</div>
+                    <h4 class="h6 fw-bold my-3 text-secondary">
+                        <i class="fas fa-list"></i> Daftar Barang yang Harus Diambil & Diverifikasi
+                    </h4>
+
+                    <div id="items-list-container">
+                        <!-- Items rows will be inserted here dynamically -->
                     </div>
-                    <div class="text-end" id="order-status-wrapper">
-                        <span class="badge bg-warning text-dark px-3 py-2" id="order-packing-status-badge">Sedang
-                            Dikemas</span>
+
+                    <!-- Tombol Konfirmasi Manual -->
+                    <div class="mt-4 border-top pt-3 d-flex justify-content-end gap-2">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" id="btn-reset">Batal / Reset</button>
+                        <button type="button" class="btn btn-primary btn-sm d-none fw-semibold" id="btn-submit-verification">
+                            <i class="fas fa-check-circle"></i> Konfirmasi Kemas
+                        </button>
                     </div>
-                </div>
-
-                <h4 class="h6 fw-bold my-3 text-secondary">
-                    <i class="fas fa-list"></i> Daftar Barang yang Harus Diambil & Diverifikasi
-                </h4>
-
-                <div id="items-list-container">
-                    <!-- Items rows will be inserted here dynamically -->
-                </div>
-
-                <!-- Tombol Konfirmasi Manual -->
-                <div class="mt-4 border-top border-secondary border-opacity-25 pt-3 d-flex justify-content-end gap-2">
-                    <button type="button" class="btn btn-secondary btn-sm" id="btn-reset">Batal / Reset</button>
-                    <button type="button" class="btn btn-primary btn-sm d-none fw-semibold" id="btn-submit-verification">
-                        <i class="fas fa-check-circle"></i> Konfirmasi Kemas
-                    </button>
                 </div>
             </div>
         </div>
@@ -255,12 +258,13 @@
 
                 const badge = document.getElementById('order-channel-badge');
                 badge.innerText = order.channel_name.toUpperCase();
-                badge.className = `badge ms-2 channel-${order.channel_code}`;
+                badge.className = `badge ms-2 text-dark border bg-light channel-${order.channel_code}`;
 
                 const packingBadge = document.getElementById('order-packing-status-badge');
                 packingBadge.innerText = order.packing_status === 'verified' ? 'Selesai Scan' : 'Sedang Dikemas';
                 packingBadge.className =
                     `badge ${order.packing_status === 'verified' ? 'bg-success' : 'bg-warning text-dark'}`;
+
 
                 // Populate items list
                 itemsList.innerHTML = '';
@@ -272,21 +276,21 @@
                     const itemRow = document.createElement('div');
                     itemRow.id = `item-row-${item.id}`;
                     itemRow.className =
-                        'd-flex align-items-center gap-3 p-3 mb-2 rounded item-verification-row bg-dark bg-opacity-10 border border-secondary border-opacity-25';
+                        'd-flex align-items-center gap-3 p-3 mb-2 rounded item-verification-row bg-light border';
                     itemRow.style.transition = 'all 0.2s';
 
                     const imageHtml = item.image ?
-                        `<img src="${item.image}" alt="${item.name}" class="rounded border border-secondary border-opacity-25" style="width: 55px; height: 55px; object-fit: cover;">` :
-                        `<div class="rounded border border-secondary border-opacity-25 bg-dark bg-opacity-50 d-flex align-items-center justify-content-center text-muted" style="width: 55px; height: 55px;"><i class="fas fa-image"></i></div>`;
+                        `<img src="${item.image}" alt="${item.name}" class="rounded border" style="width: 55px; height: 55px; object-fit: cover;">` :
+                        `<div class="rounded border bg-light d-flex align-items-center justify-content-center text-muted" style="width: 55px; height: 55px;"><i class="fas fa-image"></i></div>`;
 
                     itemRow.innerHTML = `
                     ${imageHtml}
                     <div class="flex-grow-1 min-w-0">
-                        <div class="fw-semibold text-white text-truncate">${item.name}</div>
+                        <div class="fw-semibold text-dark text-truncate">${item.name}</div>
                         <div class="small text-muted mt-1 d-flex align-items-center gap-2">
                             <span>SKU: <strong class="text-secondary font-monospace">${item.sku || '-'}</strong></span>
                         </div>
-                        <div class="progress mt-2" style="height: 6px; background: var(--bg);">
+                        <div class="progress mt-2" style="height: 6px;">
                             <div class="progress-bar bg-primary" id="progress-bar-${item.id}" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
                         </div>
                     </div>
@@ -331,12 +335,12 @@
 
                         // Beri efek highlight hijau lembut sekilas
                         const row = document.getElementById(`item-row-${itemId}`);
-                        row.style.background = 'rgba(16, 185, 129, 0.1)';
-                        row.style.borderColor = 'var(--success)';
+                        row.style.background = 'rgba(25, 135, 84, 0.1)';
+                        row.style.borderColor = '#198754';
                         setTimeout(() => {
-                            row.style.background = 'var(--bg-card2)';
+                            row.style.background = '#f8f9fa';
                             row.style.borderColor = scanCounts[itemId] === matchedItem.quantity ?
-                                'var(--success)' : 'var(--border)';
+                                '#198754' : '#dee2e6';
                         }, 400);
 
                         // Fokus kembali
@@ -354,12 +358,11 @@
                 } else {
                     // SKU tidak cocok sama sekali
                     playError();
-                    const originalBackground = skuInput.style.background;
-                    skuInput.style.background = 'rgba(239, 68, 68, 0.2)';
-                    skuInput.style.borderColor = 'var(--danger)';
+                    skuInput.style.background = 'rgba(220, 53, 69, 0.2)';
+                    skuInput.style.borderColor = '#dc3545';
                     setTimeout(() => {
-                        skuInput.style.background = 'var(--bg)';
-                        skuInput.style.borderColor = 'var(--border)';
+                        skuInput.style.background = '#ffffff';
+                        skuInput.style.borderColor = '#dee2e6';
                     }, 500);
                     alert(`Barcode/SKU "${barcode}" tidak ditemukan dalam pesanan ini!`);
                     skuInput.value = '';
@@ -380,14 +383,14 @@
 
                 // Warnai angka & bar sesuai progres
                 if (current === target) {
-                    textQty.style.color = 'var(--success)';
+                    textQty.style.color = '#198754';
                     bar.style.width = '100%';
-                    bar.style.backgroundColor = 'var(--success)';
-                    row.style.borderColor = 'var(--success)';
+                    bar.style.backgroundColor = '#198754';
+                    row.style.borderColor = '#198754';
                 } else {
-                    textQty.style.color = 'var(--primary)';
+                    textQty.style.color = '#0d6efd';
                     bar.style.width = `${percentage}%`;
-                    bar.style.backgroundColor = 'var(--primary)';
+                    bar.style.backgroundColor = '#0d6efd';
                 }
             }
 

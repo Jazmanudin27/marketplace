@@ -7,17 +7,17 @@
         integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
     <style>
         .leaflet-popup-content-wrapper {
-            background: var(--bg-card) !important;
-            border: 1px solid var(--border) !important;
-            color: var(--text-primary) !important;
+            background: #ffffff !important;
+            border: 1px solid #dee2e6 !important;
+            color: #212529 !important;
             font-family: inherit !important;
             border-radius: 8px !important;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4) !important;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
         }
 
         .leaflet-popup-tip {
-            background: var(--bg-card) !important;
-            border: 1px solid var(--border) !important;
+            background: #ffffff !important;
+            border: 1px solid #dee2e6 !important;
         }
     </style>
 @endpush
@@ -26,13 +26,15 @@
     @php
         $isOwner = Auth::user()->hasPermissionTo('approve-attendance-corrections');
     @endphp
+    
+    {{-- Filter Date --}}
     <div class="row mb-3">
         <div class="col-lg-4 col-md-6">
-            <div class="dashboard-card">
+            <div class="card border shadow-sm p-3">
                 <form method="GET" action="{{ route('hr.attendance.index') }}" id="dateFilterForm">
-                    <label class="form-label"><i class="fas fa-calendar-day text-primary me-1"></i> Pilih Tanggal Presensi</label>
-                    <div class="input-group">
-                        <input type="date" name="date" class="form-control"
+                    <label class="form-label fw-bold small text-dark"><i class="fas fa-calendar-day text-primary me-1"></i> Pilih Tanggal Presensi</label>
+                    <div class="input-group input-group-sm">
+                        <input type="date" name="date" class="form-control form-control-sm"
                             value="{{ $date }}" onchange="document.getElementById('dateFilterForm').submit()">
                         <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-search me-1"></i> Tampilkan</button>
                     </div>
@@ -41,266 +43,275 @@
         </div>
     </div>
 
-    <div class="dashboard-card p-0 overflow-hidden">
-        <div class="card-header-line d-flex justify-content-between align-items-center p-3 mb-0">
+    {{-- Main Attendance List --}}
+    <div class="card border shadow-sm overflow-hidden">
+        <div class="card-header bg-info bg-opacity-10 d-flex justify-content-between align-items-center p-3 border-bottom">
             <div class="d-flex align-items-center">
-                <div class="bg-success bg-opacity-10 text-success rounded p-2 me-3 d-flex align-items-center justify-content-center"
+                <div class="bg-info text-white rounded-3 d-flex align-items-center justify-content-center flex-shrink-0 fs-5 p-2 me-3"
                     style="width: 36px; height: 36px;">
-                    <i class="fas fa-calendar-check"></i>
+                    <i class="fas fa-calendar-check" style="font-size: 1rem;"></i>
                 </div>
                 <div>
-                    <h5 class="mb-0 fw-bold text-white">Daftar Kehadiran — {{ date('d M Y', strtotime($date)) }}</h5>
+                    <h6 class="mb-0 fw-bold text-dark">Daftar Kehadiran — {{ date('d M Y', strtotime($date)) }}</h6>
                 </div>
             </div>
             <div class="text-muted small d-none d-md-block"><i class="fas fa-info-circle text-info me-1"></i> Karyawan dengan izin/sakit/cuti yang disetujui ditampilkan terpisah di bawah.</div>
         </div>
         
-        <div class="table-responsive p-3 pt-0">
-            <table class="table table-bordered table-premium-dark align-middle mb-0">
-                <thead>
-                    <tr>
-                        <th style="width: 25%;">Nama Karyawan</th>
-                        <th style="width: 15%;">Jam Masuk</th>
-                        <th style="width: 15%;">Jam Pulang</th>
-                        <th style="width: 25%;">Verifikasi Selfie & GPS</th>
-                        <th style="width: 20%;">Keterangan / Catatan</th>
-                        <th style="width: 10%;" class="text-end">Aksi</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @forelse($employees as $emp)
-                        @php
-                            $approvedLeave = isset($approvedLeaves) ? $approvedLeaves->get($emp->id) : null;
-                            $attendance = $attendances->get($emp->id);
-                        @endphp
-                        @continue($approvedLeave)
-                        @php
-                            $sched = $emp->getScheduleForDate($date);
-
-                            // Default schedule values
-                            $defaultIn = $sched->clock_in ? date('H:i', strtotime($sched->clock_in)) : '';
-                            $defaultOut = $sched->clock_out ? date('H:i', strtotime($sched->clock_out)) : '';
-
-                            // Displayed schedule values (might be overridden on attendance record)
-                            $schedInVal =
-                                $attendance && $attendance->schedule_clock_in
-                                    ? date('H:i', strtotime($attendance->schedule_clock_in))
-                                    : $defaultIn;
-                            $schedOutVal =
-                                $attendance && $attendance->schedule_clock_out
-                                    ? date('H:i', strtotime($attendance->schedule_clock_out))
-                                    : $defaultOut;
-
-                            $clockIn = $attendance
-                                ? ($attendance->clock_in
-                                    ? date('H:i', strtotime($attendance->clock_in))
-                                    : '')
-                                : $defaultIn;
-                            $clockOut = $attendance
-                                ? ($attendance->clock_out
-                                    ? date('H:i', strtotime($attendance->clock_out))
-                                    : '')
-                                : $defaultOut;
-                            $isDeducted = $attendance ? $attendance->is_deducted : false;
-                            $notes = $attendance ? $attendance->notes : '';
-                        @endphp
-                        <tr>
-                            <td>
-                                <input type="hidden" name="attendance[{{ $emp->id }}][status]" value="present">
-                                <div class="d-flex align-items-center">
-                                    @php
-                                        $words = explode(' ', $emp->name);
-                                        $initials = '';
-                                        if (count($words) >= 2) {
-                                            $initials = strtoupper(
-                                                substr($words[0], 0, 1) . substr($words[1], 0, 1),
-                                            );
-                                        } else {
-                                            $initials = strtoupper(substr($emp->name, 0, 2));
-                                        }
-                                        $gradients = [
-                                            'linear-gradient(135deg, #6C63FF, #8B5CF6)',
-                                            'linear-gradient(135deg, #10B981, #059669)',
-                                            'linear-gradient(135deg, #F59E0B, #D97706)',
-                                            'linear-gradient(135deg, #EF4444, #DC2626)',
-                                            'linear-gradient(135deg, #06B6D4, #0891B2)',
-                                            'linear-gradient(135deg, #EC4899, #BE185D)',
-                                        ];
-                                        $grad = $gradients[$emp->id % count($gradients)];
-                                    @endphp
-                                    <div class="avatar-circle me-2"
-                                        style="background: {{ $grad }}; width:30px; height:30px; font-size:0.7rem; flex-shrink:0;">
-                                        {{ $initials }}
-                                    </div>
-                                    <div>
-                                        <strong class="text-white d-block" style="font-size: 0.85rem;">{{ $emp->name }}</strong>
-                                        <span class="text-muted small" style="font-size:0.75rem;">{{ $emp->position ?? 'Karyawan' }}</span>
-                                        <div class="d-flex flex-wrap gap-1 align-items-center mt-1">
-                                            <span class="badge {{ $attendance ? 'badge-success' : 'badge-warning' }} attendance-status-badge"
-                                                id="status_badge_{{ $emp->id }}" style="font-size: 0.7rem;">
-                                                <i class="fas {{ $attendance ? 'fa-check-circle' : 'fa-info-circle' }} me-1"></i>
-                                                {{ $attendance ? 'Tersimpan' : 'Belum Disimpan' }}
-                                            </span>
-                                            @if ($attendance && $attendance->late_minutes > 0)
-                                                <span class="badge badge-danger" style="font-size: 0.7rem;">
-                                                    <i class="fas fa-exclamation-circle me-1"></i> Terlambat {{ $attendance->late_minutes }}m (Denda: Rp {{ number_format($attendance->late_penalty, 0, ',', '.') }})
-                                                </span>
-                                            @endif
-                                        </div>
-                                    </div>
-                                </div>
-                            </td>
-                            <td>
-                                <div class="fw-semibold text-white" style="font-size: 0.85rem;">{{ $clockIn ?: '-' }}</div>
-                                <div class="mt-1 text-secondary" style="font-size: 0.7rem; white-space: nowrap;">Jadwal: {{ $schedInVal ?: '-' }}</div>
-                            </td>
-                            <td>
-                                <div class="fw-semibold text-white" style="font-size: 0.85rem;">{{ $clockOut ?: '-' }}</div>
-                                <div class="mt-1 text-secondary" style="font-size: 0.7rem; white-space: nowrap;">Jadwal: {{ $schedOutVal ?: '-' }}</div>
-                            </td>
-                            <td>
-                                @if ($attendance && ($attendance->photo_in || $attendance->photo_out || $attendance->latitude_in || $attendance->latitude_out))
-                                    <div class="d-flex flex-column gap-1">
-                                        <!-- Check In Proof -->
-                                        @if ($attendance->photo_in || $attendance->latitude_in)
-                                            <div class="d-flex align-items-center gap-2">
-                                                <span class="badge badge-primary py-1" style="font-size: 0.65rem; min-width: 45px;">Masuk:</span>
-                                                @if ($attendance->photo_in)
-                                                    <a href="javascript:void(0)"
-                                                        onclick="showProofModal('{{ asset($attendance->photo_in) }}', {{ $attendance->latitude_in ?? 'null' }}, {{ $attendance->longitude_in ?? 'null' }}, 'Bukti Check In - {{ $emp->name }}')"
-                                                        title="Lihat Foto Selfie">
-                                                        <img src="{{ asset($attendance->photo_in) }}" class="rounded border border-secondary border-opacity-20"
-                                                            style="width: 28px; height: 28px; object-fit: cover; cursor: pointer;">
-                                                    </a>
-                                                @endif
-                                                @if ($attendance->latitude_in && $attendance->longitude_in)
-                                                    <a href="https://www.google.com/maps?q={{ $attendance->latitude_in }},{{ $attendance->longitude_in }}"
-                                                        target="_blank" class="btn btn-outline-info btn-action-sm" title="Google Maps">
-                                                        <i class="fas fa-map-marker-alt" style="font-size: 0.65rem;"></i>
-                                                    </a>
-                                                    <a href="javascript:void(0)"
-                                                        onclick="showMapModal({{ $attendance->latitude_in }}, {{ $attendance->longitude_in }}, 'Peta Check In - {{ $emp->name }}')"
-                                                        class="btn btn-outline-success btn-action-sm" title="Lihat Peta">
-                                                        <i class="fas fa-map" style="font-size: 0.65rem;"></i>
-                                                    </a>
-                                                @endif
-                                            </div>
-                                        @endif
-
-                                        <!-- Check Out Proof -->
-                                        @if ($attendance->photo_out || $attendance->latitude_out)
-                                            <div class="d-flex align-items-center gap-2 mt-1">
-                                                <span class="badge badge-info py-1" style="font-size: 0.65rem; min-width: 45px;">Pulang:</span>
-                                                @if ($attendance->photo_out)
-                                                    <a href="javascript:void(0)"
-                                                        onclick="showProofModal('{{ asset($attendance->photo_out) }}', {{ $attendance->latitude_out ?? 'null' }}, {{ $attendance->longitude_out ?? 'null' }}, 'Bukti Check Out - {{ $emp->name }}')"
-                                                        title="Lihat Foto Selfie">
-                                                        <img src="{{ asset($attendance->photo_out) }}" class="rounded border border-secondary border-opacity-20"
-                                                            style="width: 28px; height: 28px; object-fit: cover; cursor: pointer;">
-                                                    </a>
-                                                @endif
-                                                @if ($attendance->latitude_out && $attendance->longitude_out)
-                                                    <a href="https://www.google.com/maps?q={{ $attendance->latitude_out }},{{ $attendance->longitude_out }}"
-                                                        target="_blank" class="btn btn-outline-info btn-action-sm" title="Google Maps">
-                                                        <i class="fas fa-map-marker-alt" style="font-size: 0.65rem;"></i>
-                                                    </a>
-                                                    <a href="javascript:void(0)"
-                                                        onclick="showMapModal({{ $attendance->latitude_out }}, {{ $attendance->longitude_out }}, 'Peta Check Out - {{ $emp->name }}')"
-                                                        class="btn btn-outline-success btn-action-sm" title="Lihat Peta">
-                                                        <i class="fas fa-map" style="font-size: 0.65rem;"></i>
-                                                    </a>
-                                                @endif
-                                            </div>
-                                        @endif
-                                    </div>
-                                @else
-                                    <span class="text-secondary small font-italic" style="font-size: 0.75rem;">Tidak ada bukti</span>
-                                @endif
-                            </td>
-                            <td>
-                                <span class="text-secondary small">{{ $notes ?: '-' }}</span>
-                            </td>
-                            <td class="text-end">
-                                <button type="button" class="btn btn-sm btn-outline-primary"
-                                    onclick="openProposeCorrectionModal({{ $emp->id }}, '{{ addslashes($emp->name) }}', '{{ $clockIn }}', '{{ $clockOut }}')">
-                                    <i class="fas fa-edit me-1"></i> Koreksi
-                                </button>
-                            </td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="6" class="text-center py-5 text-muted">
-                                <div class="fs-4 mb-2"><i class="far fa-user-circle"></i></div>
-                                Belum ada data karyawan aktif. Tambahkan karyawan terlebih dahulu.
-                            </td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    @if ($pendingCorrections->isNotEmpty())
-        <div class="dashboard-card p-0 overflow-hidden mt-3">
-            <div class="card-header-line d-flex justify-content-between align-items-center p-3 mb-0">
-                <h6 class="mb-0 text-warning fw-bold"><i class="fas fa-edit me-2"></i>Pengajuan Koreksi Kehadiran (Menunggu Persetujuan)</h6>
-                <span class="badge badge-warning">{{ $pendingCorrections->count() }} Pengajuan</span>
-            </div>
-            
-            <div class="table-responsive p-3 pt-0">
-                <table class="table table-bordered table-premium-dark align-middle mb-0">
+        <div class="card-body p-3">
+            <div class="table-responsive rounded border">
+                <table class="table table-sm table-striped table-bordered align-middle mb-0">
                     <thead>
-                        <tr>
+                        <tr class="small">
                             <th style="width: 25%;">Nama Karyawan</th>
-                            <th style="width: 15%;">Tanggal Absen</th>
-                            <th style="width: 20%;">Waktu Koreksi</th>
-                            <th style="width: 25%;">Alasan Pengajuan</th>
-                            <th style="width: 15%;" class="text-end">Aksi</th>
+                            <th style="width: 15%;">Jam Masuk</th>
+                            <th style="width: 15%;">Jam Pulang</th>
+                            <th style="width: 25%;">Verifikasi Selfie & GPS</th>
+                            <th style="width: 20%;">Keterangan / Catatan</th>
+                            <th style="width: 10%;" class="text-end">Aksi</th>
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach ($pendingCorrections as $corr)
+                        @forelse($employees as $emp)
+                            @php
+                                $approvedLeave = isset($approvedLeaves) ? $approvedLeaves->get($emp->id) : null;
+                                $attendance = $attendances->get($emp->id);
+                            @endphp
+                            @continue($approvedLeave)
+                            @php
+                                $sched = $emp->getScheduleForDate($date);
+
+                                // Default schedule values
+                                $defaultIn = $sched->clock_in ? date('H:i', strtotime($sched->clock_in)) : '';
+                                $defaultOut = $sched->clock_out ? date('H:i', strtotime($sched->clock_out)) : '';
+
+                                // Displayed schedule values (might be overridden on attendance record)
+                                $schedInVal =
+                                    $attendance && $attendance->schedule_clock_in
+                                        ? date('H:i', strtotime($attendance->schedule_clock_in))
+                                        : $defaultIn;
+                                $schedOutVal =
+                                    $attendance && $attendance->schedule_clock_out
+                                        ? date('H:i', strtotime($attendance->schedule_clock_out))
+                                        : $defaultOut;
+
+                                $clockIn = $attendance
+                                    ? ($attendance->clock_in
+                                        ? date('H:i', strtotime($attendance->clock_in))
+                                        : '')
+                                    : $defaultIn;
+                                $clockOut = $attendance
+                                    ? ($attendance->clock_out
+                                        ? date('H:i', strtotime($attendance->clock_out))
+                                        : '')
+                                    : $defaultOut;
+                                $isDeducted = $attendance ? $attendance->is_deducted : false;
+                                $notes = $attendance ? $attendance->notes : '';
+                            @endphp
                             <tr>
                                 <td>
-                                    <strong class="text-white d-block" style="font-size: 0.85rem;">{{ $corr->employee->name }}</strong>
-                                    <small class="text-muted" style="font-size: 0.75rem;">{{ $corr->employee->position ?? 'Karyawan' }}</small>
-                                </td>
-                                <td>
-                                    <span class="text-white fw-semibold" style="font-size: 0.85rem;">{{ $corr->date->format('d M Y') }}</span>
-                                </td>
-                                <td>
-                                    <div style="font-size: 0.85rem;">
-                                        @if ($corr->clock_in)
-                                            <span class="badge badge-success py-1">Masuk: {{ date('H:i', strtotime($corr->clock_in)) }}</span>
-                                        @endif
-                                        @if ($corr->clock_out)
-                                            <span class="badge badge-info py-1 {{ $corr->clock_in ? 'mt-1' : '' }}">Pulang: {{ date('H:i', strtotime($corr->clock_out)) }}</span>
-                                        @endif
+                                    <input type="hidden" name="attendance[{{ $emp->id }}][status]" value="present">
+                                    <div class="d-flex align-items-center">
+                                        @php
+                                            $words = explode(' ', $emp->name);
+                                            $initials = '';
+                                            if (count($words) >= 2) {
+                                                $initials = strtoupper(
+                                                    substr($words[0], 0, 1) . substr($words[1], 0, 1),
+                                                );
+                                            } else {
+                                                $initials = strtoupper(substr($emp->name, 0, 2));
+                                            }
+                                            $gradients = [
+                                                '#6C63FF',
+                                                '#10B981',
+                                                '#F59E0B',
+                                                '#EF4444',
+                                                '#06B6D4',
+                                                '#EC4899',
+                                            ];
+                                            $grad = $gradients[$emp->id % count($gradients)];
+                                        @endphp
+                                        <div class="text-white rounded-circle d-flex align-items-center justify-content-center fw-bold me-2"
+                                            style="background: {{ $grad }}; width:30px; height:30px; font-size:0.7rem; flex-shrink:0;">
+                                            {{ $initials }}
+                                        </div>
+                                        <div>
+                                            <strong class="text-dark d-block small">{{ $emp->name }}</strong>
+                                            <span class="text-muted small" style="font-size:0.7rem;">{{ $emp->position ?? 'Karyawan' }}</span>
+                                            <div class="d-flex flex-wrap gap-1 align-items-center mt-1">
+                                                <span class="badge {{ $attendance ? 'bg-success-subtle text-success border border-success-subtle' : 'bg-warning-subtle text-warning border border-warning-subtle' }} attendance-status-badge"
+                                                    id="status_badge_{{ $emp->id }}" style="font-size: 0.65rem; padding: 0.25em 0.5em;">
+                                                    <i class="fas {{ $attendance ? 'fa-check-circle' : 'fa-info-circle' }} me-1"></i>
+                                                    {{ $attendance ? 'Tersimpan' : 'Belum Disimpan' }}
+                                                </span>
+                                                @if ($attendance && $attendance->late_minutes > 0)
+                                                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle" style="font-size: 0.65rem; padding: 0.25em 0.5em;">
+                                                        <i class="fas fa-exclamation-circle me-1"></i> Terlambat {{ $attendance->late_minutes }}m (Denda: Rp {{ number_format($attendance->late_penalty, 0, ',', '.') }})
+                                                    </span>
+                                                @endif
+                                            </div>
+                                        </div>
                                     </div>
                                 </td>
                                 <td>
-                                    <span class="text-muted small italic">"{{ $corr->reason }}"</span>
+                                    <div class="fw-semibold text-dark small">{{ $clockIn ?: '-' }}</div>
+                                    <div class="mt-1 text-muted" style="font-size: 0.7rem; white-space: nowrap;">Jadwal: {{ $schedInVal ?: '-' }}</div>
                                 </td>
-                                <td class="text-end">
-                                    @if ($isOwner)
-                                        <button type="button" class="btn btn-sm btn-outline-success me-1" 
-                                                onclick="openCorrectionActionModal('approve', '{{ route('hr.attendance.corrections.approve', $corr->id) }}', '{{ $corr->employee->name }}', '{{ $corr->date->format('d/m/Y') }}')">
-                                            <i class="fas fa-check"></i>
-                                        </button>
-                                        <button type="button" class="btn btn-sm btn-outline-danger"
-                                                onclick="openCorrectionActionModal('reject', '{{ route('hr.attendance.corrections.reject', $corr->id) }}', '{{ $corr->employee->name }}', '{{ $corr->date->format('d/m/Y') }}')">
-                                            <i class="fas fa-times"></i>
-                                        </button>
+                                <td>
+                                    <div class="fw-semibold text-dark small">{{ $clockOut ?: '-' }}</div>
+                                    <div class="mt-1 text-muted" style="font-size: 0.7rem; white-space: nowrap;">Jadwal: {{ $schedOutVal ?: '-' }}</div>
+                                </td>
+                                <td>
+                                    @if ($attendance && ($attendance->photo_in || $attendance->photo_out || $attendance->latitude_in || $attendance->latitude_out))
+                                        <div class="d-flex flex-column gap-1">
+                                            <!-- Check In Proof -->
+                                            @if ($attendance->photo_in || $attendance->latitude_in)
+                                                <div class="d-flex align-items-center gap-2">
+                                                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle py-1" style="font-size: 0.65rem; min-width: 45px;">Masuk:</span>
+                                                    @if ($attendance->photo_in)
+                                                        <a href="javascript:void(0)"
+                                                            onclick="showProofModal('{{ asset($attendance->photo_in) }}', {{ $attendance->latitude_in ?? 'null' }}, {{ $attendance->longitude_in ?? 'null' }}, 'Bukti Check In - {{ $emp->name }}')"
+                                                            title="Lihat Foto Selfie">
+                                                            <img src="{{ asset($attendance->photo_in) }}" class="rounded border border-secondary-subtle"
+                                                                style="width: 28px; height: 28px; object-fit: cover; cursor: pointer;">
+                                                        </a>
+                                                    @endif
+                                                    @if ($attendance->latitude_in && $attendance->longitude_in)
+                                                        <a href="https://www.google.com/maps?q={{ $attendance->latitude_in }},{{ $attendance->longitude_in }}"
+                                                            target="_blank" class="btn btn-outline-info btn-sm p-1 py-0" title="Google Maps">
+                                                            <i class="fas fa-map-marker-alt" style="font-size: 0.65rem;"></i>
+                                                        </a>
+                                                        <a href="javascript:void(0)"
+                                                            onclick="showMapModal({{ $attendance->latitude_in }}, {{ $attendance->longitude_in }}, 'Peta Check In - {{ $emp->name }}')"
+                                                            class="btn btn-outline-success btn-sm p-1 py-0" title="Lihat Peta">
+                                                            <i class="fas fa-map" style="font-size: 0.65rem;"></i>
+                                                        </a>
+                                                    @endif
+                                                </div>
+                                            @endif
+
+                                            <!-- Check Out Proof -->
+                                            @if ($attendance->photo_out || $attendance->latitude_out)
+                                                <div class="d-flex align-items-center gap-2 mt-1">
+                                                    <span class="badge bg-info-subtle text-info border border-info-subtle py-1" style="font-size: 0.65rem; min-width: 45px;">Pulang:</span>
+                                                    @if ($attendance->photo_out)
+                                                        <a href="javascript:void(0)"
+                                                            onclick="showProofModal('{{ asset($attendance->photo_out) }}', {{ $attendance->latitude_out ?? 'null' }}, {{ $attendance->longitude_out ?? 'null' }}, 'Bukti Check Out - {{ $emp->name }}')"
+                                                            title="Lihat Foto Selfie">
+                                                            <img src="{{ asset($attendance->photo_out) }}" class="rounded border border-secondary-subtle"
+                                                                style="width: 28px; height: 28px; object-fit: cover; cursor: pointer;">
+                                                        </a>
+                                                    @endif
+                                                    @if ($attendance->latitude_out && $attendance->longitude_out)
+                                                        <a href="https://www.google.com/maps?q={{ $attendance->latitude_out }},{{ $attendance->longitude_out }}"
+                                                            target="_blank" class="btn btn-outline-info btn-sm p-1 py-0" title="Google Maps">
+                                                            <i class="fas fa-map-marker-alt" style="font-size: 0.65rem;"></i>
+                                                        </a>
+                                                        <a href="javascript:void(0)"
+                                                            onclick="showMapModal({{ $attendance->latitude_out }}, {{ $attendance->longitude_out }}, 'Peta Check Out - {{ $emp->name }}')"
+                                                            class="btn btn-outline-success btn-sm p-1 py-0" title="Lihat Peta">
+                                                            <i class="fas fa-map" style="font-size: 0.65rem;"></i>
+                                                        </a>
+                                                    @endif
+                                                </div>
+                                            @endif
+                                        </div>
                                     @else
-                                        <span class="badge badge-warning">
-                                            <i class="fas fa-clock me-1"></i> Menunggu Owner
-                                        </span>
+                                        <span class="text-muted small font-italic" style="font-size: 0.75rem;">Tidak ada bukti</span>
                                     @endif
                                 </td>
+                                <td>
+                                    <span class="text-muted small">{{ $notes ?: '-' }}</span>
+                                </td>
+                                <td class="text-end">
+                                    <button type="button" class="btn btn-sm btn-outline-primary py-0 px-2" style="font-size:0.75rem;"
+                                        onclick="openProposeCorrectionModal({{ $emp->id }}, '{{ addslashes($emp->name) }}', '{{ $clockIn }}', '{{ $clockOut }}')">
+                                        <i class="fas fa-edit me-1"></i> Koreksi
+                                    </button>
+                                </td>
                             </tr>
-                        @endforeach
+                        @empty
+                            <tr>
+                                <td colspan="6" class="text-center py-5 text-muted">
+                                    <i class="far fa-user-circle fa-2x mb-3 text-secondary opacity-25"></i>
+                                    <p class="mb-0 small">Belum ada data karyawan aktif. Tambahkan karyawan terlebih dahulu.</p>
+                                </td>
+                            </tr>
+                        @endforelse
                     </tbody>
                 </table>
+            </div>
+        </div>
+    </div>
+
+    {{-- Pending Corrections Section --}}
+    @if ($pendingCorrections->isNotEmpty())
+        <div class="card border shadow-sm overflow-hidden mt-3">
+            <div class="card-header bg-warning bg-opacity-10 d-flex justify-content-between align-items-center p-3 border-bottom">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="fas fa-edit text-warning"></i>
+                    <h6 class="mb-0 fw-bold text-dark">Pengajuan Koreksi Kehadiran (Menunggu Persetujuan)</h6>
+                </div>
+                <span class="badge bg-warning-subtle text-warning border border-warning-subtle">{{ $pendingCorrections->count() }} Pengajuan</span>
+            </div>
+            
+            <div class="card-body p-3">
+                <div class="table-responsive rounded border">
+                    <table class="table table-sm table-striped table-bordered align-middle mb-0">
+                        <thead>
+                            <tr class="small">
+                                <th style="width: 25%;">Nama Karyawan</th>
+                                <th style="width: 15%;">Tanggal Absen</th>
+                                <th style="width: 20%;">Waktu Koreksi</th>
+                                <th style="width: 25%;">Alasan Pengajuan</th>
+                                <th style="width: 15%;" class="text-end">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach ($pendingCorrections as $corr)
+                                <tr>
+                                    <td>
+                                        <strong class="text-dark d-block small">{{ $corr->employee->name }}</strong>
+                                        <small class="text-muted" style="font-size: 0.7rem;">{{ $corr->employee->position ?? 'Karyawan' }}</small>
+                                    </td>
+                                    <td>
+                                        <span class="text-dark fw-semibold small">{{ $corr->date->format('d M Y') }}</span>
+                                    </td>
+                                    <td>
+                                        <div style="font-size: 0.75rem;">
+                                            @if ($corr->clock_in)
+                                                <span class="badge bg-success-subtle text-success border border-success-subtle py-1">Masuk: {{ date('H:i', strtotime($corr->clock_in)) }}</span>
+                                            @endif
+                                            @if ($corr->clock_out)
+                                                <span class="badge bg-info-subtle text-info border border-info-subtle py-1 {{ $corr->clock_in ? 'mt-1' : '' }}">Pulang: {{ date('H:i', strtotime($corr->clock_out)) }}</span>
+                                            @endif
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="text-muted small italic">"{{ $corr->reason }}"</span>
+                                    </td>
+                                    <td class="text-end">
+                                        @if ($isOwner)
+                                            <button type="button" class="btn btn-sm btn-outline-success py-0 px-2 me-1" 
+                                                    onclick="openCorrectionActionModal('approve', '{{ route('hr.attendance.corrections.approve', $corr->id) }}', '{{ $corr->employee->name }}', '{{ $corr->date->format('d/m/Y') }}')">
+                                                <i class="fas fa-check"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-outline-danger py-0 px-2"
+                                                    onclick="openCorrectionActionModal('reject', '{{ route('hr.attendance.corrections.reject', $corr->id) }}', '{{ $corr->employee->name }}', '{{ $corr->date->format('d/m/Y') }}')">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        @else
+                                            <span class="badge bg-warning-subtle text-warning border border-warning-subtle" style="font-size:0.7rem;">
+                                                <i class="fas fa-clock me-1"></i> Menunggu Owner
+                                            </span>
+                                        @endif
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     @endif
@@ -310,50 +321,56 @@
         $leaveEmployees = $employees->filter(fn($e) => isset($approvedLeaves) && $approvedLeaves->has($e->id));
     @endphp
     @if ($leaveEmployees->isNotEmpty())
-        <div class="dashboard-card p-0 overflow-hidden mt-3">
-            <div class="card-header-line p-3 mb-0">
-                <h6 class="mb-0 text-info fw-bold"><i class="fas fa-file-medical me-2"></i>Karyawan dengan Izin / Sakit / Cuti Disetujui — {{ date('d M Y', strtotime($date)) }}</h6>
+        <div class="card border shadow-sm overflow-hidden mt-3">
+            <div class="card-header bg-info bg-opacity-10 d-flex justify-content-between align-items-center p-3 border-bottom">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="fas fa-file-medical text-info"></i>
+                    <h6 class="mb-0 fw-bold text-dark">Karyawan dengan Izin / Sakit / Cuti Disetujui — {{ date('d M Y', strtotime($date)) }}</h6>
+                </div>
             </div>
-            <div class="table-responsive p-3 pt-0">
-                <table class="table table-bordered table-premium-dark align-middle mb-0">
-                    <thead>
-                        <tr>
-                            <th>Nama Karyawan</th>
-                            <th>Jenis</th>
-                            <th>Keterangan</th>
-                            <th>Potong Gaji?</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach ($leaveEmployees as $emp)
-                            @php
-                                $lv = $approvedLeaves->get($emp->id);
-                                $lvLabels = ['sick' => 'Sakit', 'permission' => 'Izin', 'leave' => 'Cuti'];
-                                $lvLabel = $lvLabels[$lv->type] ?? ucfirst($lv->type);
-                                $lvColor = $lv->type === 'leave' ? 'badge-success' : ($lv->type === 'sick' ? 'badge-danger' : 'badge-info');
-                            @endphp
-                            <tr>
-                                <td>
-                                    <strong style="font-size:0.85rem;">{{ $emp->name }}</strong>
-                                    <small class="d-block text-muted" style="font-size:0.75rem;">{{ $emp->position ?? 'Karyawan' }}</small>
-                                </td>
-                                <td>
-                                    <span class="badge {{ $lvColor }}">
-                                        <i class="fas fa-file-medical me-1"></i> {{ $lvLabel }}
-                                    </span>
-                                </td>
-                                <td class="text-muted small">{{ $lv->notes ?: '-' }}</td>
-                                <td>
-                                    @if ($lv->is_deducted)
-                                        <span class="badge badge-danger"><i class="fas fa-minus-circle me-1"></i> Dipotong</span>
-                                    @else
-                                        <span class="badge badge-success"><i class="fas fa-check me-1"></i> Tidak Dipotong</span>
-                                    @endif
-                                </td>
+            
+            <div class="card-body p-3">
+                <div class="table-responsive rounded border">
+                    <table class="table table-sm table-striped table-bordered align-middle mb-0">
+                        <thead>
+                            <tr class="small">
+                                <th>Nama Karyawan</th>
+                                <th>Jenis</th>
+                                <th>Keterangan</th>
+                                <th>Potong Gaji?</th>
                             </tr>
-                        @endforeach
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            @foreach ($leaveEmployees as $emp)
+                                @php
+                                    $lv = $approvedLeaves->get($emp->id);
+                                    $lvLabels = ['sick' => 'Sakit', 'permission' => 'Izin', 'leave' => 'Cuti'];
+                                    $lvLabel = $lvLabels[$lv->type] ?? ucfirst($lv->type);
+                                    $lvColor = $lv->type === 'leave' ? 'bg-success-subtle text-success border border-success-subtle' : ($lv->type === 'sick' ? 'bg-danger-subtle text-danger border border-danger-subtle' : 'bg-info-subtle text-info border border-info-subtle');
+                                @endphp
+                                <tr>
+                                    <td>
+                                        <strong class="text-dark d-block small">{{ $emp->name }}</strong>
+                                        <small class="d-block text-muted" style="font-size:0.7rem;">{{ $emp->position ?? 'Karyawan' }}</small>
+                                    </td>
+                                    <td>
+                                        <span class="badge {{ $lvColor }}" style="font-size: 0.65rem; padding: 0.25em 0.5em;">
+                                            <i class="fas fa-file-medical me-1"></i> {{ $lvLabel }}
+                                        </span>
+                                    </td>
+                                    <td class="text-muted small">{{ $lv->notes ?: '-' }}</td>
+                                    <td>
+                                        @if ($lv->is_deducted)
+                                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle" style="font-size: 0.65rem; padding: 0.25em 0.5em;"><i class="fas fa-minus-circle me-1"></i> Dipotong</span>
+                                        @else
+                                            <span class="badge bg-success-subtle text-success border border-success-subtle" style="font-size: 0.65rem; padding: 0.25em 0.5em;"><i class="fas fa-check me-1"></i> Tidak Dipotong</span>
+                                        @endif
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     @endif
@@ -362,20 +379,20 @@
     <div class="modal fade" id="attendanceProofModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-lg">
             <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="proofModalTitle">Bukti Presensi</h5>
+                <div class="modal-header bg-primary bg-opacity-10 border-bottom py-3">
+                    <h5 class="modal-title fw-bold text-dark fs-6" id="proofModalTitle">Bukti Presensi</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body p-4">
                     <div class="row g-3">
                         <div class="col-md-5 text-center d-flex flex-column align-items-center justify-content-center">
-                            <label class="form-label text-secondary mb-2" style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase;">Foto Selfie Wajah</label>
-                            <img id="proofModalImage" src="" class="img-fluid rounded border border-secondary border-opacity-20"
-                                style="max-height: 280px; object-fit: contain; background: #000;">
+                            <label class="form-label text-muted mb-2 small fw-bold text-uppercase">Foto Selfie Wajah</label>
+                            <img id="proofModalImage" src="" class="img-fluid rounded border border-secondary-subtle"
+                                style="max-height: 280px; object-fit: contain; background: #000; width: 100%;">
                         </div>
                         <div class="col-md-7 d-flex flex-column">
-                            <label class="form-label text-secondary mb-2" style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase;">Lokasi GPS Terkunci</label>
-                            <div id="proofModalMap" class="rounded border border-secondary border-opacity-20" style="height: 280px;"></div>
+                            <label class="form-label text-muted mb-2 small fw-bold text-uppercase">Lokasi GPS Terkunci</label>
+                            <div id="proofModalMap" class="rounded border border-secondary-subtle" style="height: 280px;"></div>
                         </div>
                     </div>
                 </div>
@@ -387,17 +404,17 @@
     <div class="modal fade" id="correctionActionModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="correctionModalTitle">Tindakan Koreksi</h5>
+                <div class="modal-header bg-primary bg-opacity-10 border-bottom py-3">
+                    <h5 class="modal-title fw-bold text-dark fs-6" id="correctionModalTitle">Tindakan Koreksi</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <form id="correctionActionForm" method="POST" action="">
                     @csrf
                     <div class="modal-body p-4">
-                        <p class="text-white mb-3" id="correctionModalText">Apakah Anda yakin ingin memproses pengajuan ini?</p>
+                        <p class="text-dark mb-3 small" id="correctionModalText">Apakah Anda yakin ingin memproses pengajuan ini?</p>
                         <div class="form-group mb-0">
-                            <label class="form-label text-secondary mb-2" style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase;">Catatan Admin (Opsional)</label>
-                            <textarea name="admin_notes" class="form-control" rows="3" placeholder="Masukkan alasan penyetujuan atau penolakan..."></textarea>
+                            <label class="form-label text-muted mb-1 small fw-bold text-uppercase">Catatan Admin (Opsional)</label>
+                            <textarea name="admin_notes" class="form-control form-control-sm" rows="3" placeholder="Masukkan alasan penyetujuan atau penolakan..."></textarea>
                         </div>
                     </div>
                     <div class="modal-footer border-top p-3 d-flex justify-content-end gap-2">
@@ -413,8 +430,8 @@
     <div class="modal fade" id="proposeCorrectionModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title"><i class="fas fa-edit text-primary me-2"></i>Ajukan Koreksi Presensi</h5>
+                <div class="modal-header bg-primary bg-opacity-10 border-bottom py-3">
+                    <h5 class="modal-title fw-bold text-dark fs-6"><i class="fas fa-edit text-primary me-2"></i>Ajukan Koreksi Presensi</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <form id="proposeCorrectionForm" method="POST" action="{{ route('hr.attendance.corrections.store') }}">
@@ -423,26 +440,26 @@
                     <input type="hidden" name="date" value="{{ $date }}">
                     <div class="modal-body p-4">
                         <div class="mb-3">
-                            <label class="form-label text-secondary mb-1" style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase;">Nama Karyawan</label>
-                            <input type="text" id="propose_employee_name" class="form-control" readonly style="background: rgba(255,255,255,0.03); opacity: 0.8;">
+                            <label class="form-label text-muted mb-1 small fw-bold text-uppercase">Nama Karyawan</label>
+                            <input type="text" id="propose_employee_name" class="form-control form-control-sm bg-light text-muted" readonly>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label text-secondary mb-1" style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase;">Tanggal Presensi</label>
-                            <input type="text" class="form-control" value="{{ date('d-m-Y', strtotime($date)) }}" readonly style="background: rgba(255,255,255,0.03); opacity: 0.8;">
+                            <label class="form-label text-muted mb-1 small fw-bold text-uppercase">Tanggal Presensi</label>
+                            <input type="text" class="form-control form-control-sm bg-light text-muted" value="{{ date('d-m-Y', strtotime($date)) }}" readonly>
                         </div>
                         <div class="row g-2 mb-3">
                             <div class="col-6">
-                                <label class="form-label text-secondary mb-1" style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase;">Jam Masuk Baru</label>
-                                <input type="time" name="clock_in" id="propose_clock_in" class="form-control" placeholder="--:--">
+                                <label class="form-label text-muted mb-1 small fw-bold text-uppercase">Jam Masuk Baru</label>
+                                <input type="time" name="clock_in" id="propose_clock_in" class="form-control form-control-sm" placeholder="--:--">
                             </div>
                             <div class="col-6">
-                                <label class="form-label text-secondary mb-1" style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase;">Jam Pulang Baru</label>
-                                <input type="time" name="clock_out" id="propose_clock_out" class="form-control" placeholder="--:--">
+                                <label class="form-label text-muted mb-1 small fw-bold text-uppercase">Jam Pulang Baru</label>
+                                <input type="time" name="clock_out" id="propose_clock_out" class="form-control form-control-sm" placeholder="--:--">
                             </div>
                         </div>
                         <div class="form-group mb-0">
-                            <label class="form-label text-secondary mb-1" style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase;">Alasan Koreksi</label>
-                            <textarea name="reason" class="form-control" rows="3" required placeholder="Masukkan alasan pengajuan koreksi (misal: lupa scan masuk, salah input, dll)..."></textarea>
+                            <label class="form-label text-muted mb-1 small fw-bold text-uppercase">Alasan Koreksi</label>
+                            <textarea name="reason" class="form-control form-control-sm" rows="3" required placeholder="Masukkan alasan pengajuan koreksi (misal: lupa scan masuk, salah input, dll)..."></textarea>
                         </div>
                     </div>
                     <div class="modal-footer border-top p-3 d-flex justify-content-end gap-2">
@@ -453,7 +470,6 @@
             </div>
         </div>
     </div>
-
 
     @push('scripts')
         <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"

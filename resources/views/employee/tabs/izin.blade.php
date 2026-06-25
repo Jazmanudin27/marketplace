@@ -1,146 +1,132 @@
 <div id="tab-izin" class="tab-pane">
     <!-- Form Pengajuan Izin/Sakit/Cuti -->
-    <div class="glass-card" style="margin-bottom: 20px;">
-        <div class="section-title">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-                stroke-linecap="round" stroke-linejoin="round">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                <polyline points="14 2 14 8 20 8"></polyline>
-                <line x1="9" y1="15" x2="15" y2="15"></line>
-                <line x1="9" y1="11" x2="15" y2="11"></line>
-                <line x1="9" y1="18" x2="15" y2="18"></line>
-            </svg>
-            Form Pengajuan Izin / Sakit / Cuti
+    <div class="card border shadow-sm mb-3">
+        <div class="card-header bg-light py-2.5 px-3 border-bottom">
+            <h6 class="m-0 fw-bold text-primary">
+                <i class="fas fa-file-signature me-2"></i> Form Pengajuan Izin / Sakit / Cuti
+            </h6>
         </div>
+        <div class="card-body p-3">
+            <form action="{{ route('employee.leaves.store') }}" method="POST" onsubmit="disableSubmitButton(this)">
+                @csrf
 
-        <form action="{{ route('employee.leaves.store') }}" method="POST" onsubmit="disableSubmitButton(this)">
-            @csrf
-
-            <div class="form-group">
-                <label for="type">Jenis Pengajuan</label>
-                <select name="type" id="type" class="form-control-custom" required>
-                    <option value="permission">Izin</option>
-                    <option value="sick">Sakit</option>
-                    <option value="leave">Cuti</option>
-                </select>
-            </div>
-
-            <div class="form-row-dates" style="margin-bottom: 16px;">
-                <div class="form-group" style="margin-bottom: 0;">
-                    <label for="start_date">Tanggal Mulai</label>
-                    <input type="date" name="start_date" id="start_date" class="form-control-custom"
-                        value="{{ today()->toDateString() }}" required>
+                <div class="mb-3">
+                    <label for="type" class="form-label text-dark small fw-semibold">Jenis Pengajuan</label>
+                    <select name="type" id="type" class="form-select form-select-sm" required>
+                        <option value="permission">Izin</option>
+                        <option value="sick">Sakit</option>
+                        <option value="leave">Cuti</option>
+                    </select>
                 </div>
-                <div class="form-group" style="margin-bottom: 0;">
-                    <label for="end_date">Tanggal Selesai</label>
-                    <input type="date" name="end_date" id="end_date" class="form-control-custom"
-                        value="{{ today()->toDateString() }}" required>
+
+                <div class="row g-2 mb-3">
+                    <div class="col-6">
+                        <label for="start_date" class="form-label text-dark small fw-semibold">Tanggal Mulai</label>
+                        <input type="date" name="start_date" id="start_date" class="form-control form-control-sm"
+                            value="{{ today()->toDateString() }}" required>
+                    </div>
+                    <div class="col-6">
+                        <label for="end_date" class="form-label text-dark small fw-semibold">Tanggal Selesai</label>
+                        <input type="date" name="end_date" id="end_date" class="form-control form-control-sm"
+                            value="{{ today()->toDateString() }}" required>
+                    </div>
                 </div>
-            </div>
 
-            <div class="form-group">
-                <label for="notes">Keterangan / Alasan</label>
-                <textarea name="notes" id="notes" class="form-control-custom" rows="2"
-                    placeholder="Contoh: Mengikuti acara keluarga, sakit demam, dll" required></textarea>
-            </div>
+                <div class="mb-3">
+                    <label for="notes" class="form-label text-dark small fw-semibold">Keterangan / Alasan</label>
+                    <textarea name="notes" id="notes" class="form-control form-control-sm" rows="2"
+                        placeholder="Contoh: Mengikuti acara keluarga, sakit demam, dll" required></textarea>
+                </div>
 
-            <button type="submit" class="btn-submit-custom">
-                Kirim Pengajuan
-            </button>
-        </form>
+                <button type="submit" class="btn btn-primary btn-sm w-100 py-2">
+                    Kirim Pengajuan
+                </button>
+            </form>
+        </div>
     </div>
 
     <!-- Riwayat Pengajuan Izin/Sakit/Cuti -->
-    <div class="glass-card">
-        <div class="section-title">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="8" y1="6" x2="21" y2="6"></line>
-                <line x1="8" y1="12" x2="21" y2="12"></line>
-                <line x1="8" y1="18" x2="21" y2="18"></line>
-                <line x1="3" y1="6" x2="3.01" y2="6"></line>
-                <line x1="3" y1="12" x2="3.01" y2="12"></line>
-                <line x1="3" y1="18" x2="3.01" y2="18"></line>
-            </svg>
-            Riwayat Pengajuan
+    <div class="card border shadow-sm">
+        <div class="card-header bg-light py-2.5 px-3 border-bottom">
+            <h6 class="m-0 fw-bold text-primary">
+                <i class="fas fa-list me-2"></i> Riwayat Pengajuan
+            </h6>
         </div>
+        <div class="card-body p-3">
+            @if ($leaveRequests->isEmpty())
+                <div class="text-center text-muted py-4 small">
+                    Belum ada riwayat pengajuan izin/sakit/cuti.
+                </div>
+            @else
+                <div class="d-flex flex-column gap-3">
+                    @foreach ($leaveRequests as $lr)
+                        @php
+                            $start = \Carbon\Carbon::parse($lr->start_date);
+                            $end = \Carbon\Carbon::parse($lr->end_date);
+                            $diff = $start->diffInDays($end) + 1;
 
-        @if ($leaveRequests->isEmpty())
-            <div style="text-align: center; color: var(--text-muted); padding: 30px 0; font-size: 13px;">
-                Belum ada riwayat pengajuan izin/sakit/cuti.
-            </div>
-        @else
-            <div class="list-wrapper">
-                @foreach ($leaveRequests as $lr)
-                    @php
-                        $start = \Carbon\Carbon::parse($lr->start_date);
-                        $end = \Carbon\Carbon::parse($lr->end_date);
-                        $diff = $start->diffInDays($end) + 1;
+                            $typeLabels = [
+                                'sick' => 'Sakit',
+                                'permission' => 'Izin',
+                                'leave' => 'Cuti',
+                            ];
 
-                        $typeLabels = [
-                            'sick' => 'Sakit',
-                            'permission' => 'Izin',
-                            'leave' => 'Cuti',
-                        ];
+                            $statusLabels = [
+                                'pending' => 'Menunggu',
+                                'approved' => 'Disetujui',
+                                'rejected' => 'Ditolak',
+                            ];
 
-                        $statusLabels = [
-                            'pending' => 'Menunggu',
-                            'approved' => 'Disetujui',
-                            'rejected' => 'Ditolak',
-                        ];
+                            $statusBadgeClasses = [
+                                'pending' => 'bg-warning text-dark',
+                                'approved' => 'bg-success bg-opacity-10 text-success border border-success border-opacity-25',
+                                'rejected' => 'bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25',
+                            ];
 
-                        $typeColors = [
-                            'sick' => '#ef4444',
-                            'permission' => '#7c6af7',
-                            'leave' => '#f59e0b',
-                        ];
-                    @endphp
-                    <div class="item-card">
-                        <div class="item-left">
-                            <div class="item-date-badge"
-                                style="background: rgba(255, 255, 255, 0.03); border-color: {{ $typeColors[$lr->type] ?? 'var(--border-color)' }};">
-                                <span
-                                    style="font-size: 11px; font-weight: 700; color: {{ $typeColors[$lr->type] ?? 'white' }};">
-                                    {{ $diff }}
-                                </span>
-                                <span
-                                    style="font-size: 7.5px; text-transform: uppercase; color: var(--text-secondary); margin-top: 1px;">
-                                    Hari
-                                </span>
-                            </div>
-                            <div>
-                                <div class="item-title">
-                                    {{ $typeLabels[$lr->type] ?? ucfirst($lr->type) }}
+                            $typeBadgeColors = [
+                                'sick' => 'bg-danger text-white',
+                                'permission' => 'bg-primary text-white',
+                                'leave' => 'bg-warning text-dark',
+                            ];
+                        @endphp
+                        <div class="d-flex justify-content-between align-items-center p-3 border rounded bg-light">
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="d-flex flex-column align-items-center justify-content-center border rounded-3 p-1 text-center bg-white" style="width: 46px; height: 46px;">
+                                    <span class="fw-bold text-dark fs-6" style="line-height: 1.1;">{{ $diff }}</span>
+                                    <span class="text-muted" style="font-size: 8px; text-transform: uppercase;">Hari</span>
                                 </div>
-                                <div class="item-subtext">
-                                    @if ($diff === 1)
-                                        {{ $start->format('d M Y') }}
-                                    @else
-                                        {{ $start->format('d M') }} s/d {{ $end->format('d M Y') }}
-                                    @endif
+                                <div>
+                                    <div class="fw-bold text-dark small">
+                                        <span class="badge {{ $typeBadgeColors[$lr->type] ?? 'bg-secondary' }} me-1 small">{{ $typeLabels[$lr->type] ?? ucfirst($lr->type) }}</span>
+                                    </div>
+                                    <div class="text-muted small mt-1">
+                                        @if ($diff === 1)
+                                            {{ $start->format('d M Y') }}
+                                        @else
+                                            {{ $start->format('d M') }} s/d {{ $end->format('d M Y') }}
+                                        @endif
 
-                                    @if ($lr->notes)
-                                        <span
-                                            style="display: block; font-style: italic; margin-top: 2px; color: var(--text-muted);">
-                                            "{{ $lr->notes }}"
-                                        </span>
-                                    @endif
+                                        @if ($lr->notes)
+                                            <span class="d-block fst-italic text-muted mt-1" style="font-size: 0.78rem;">
+                                                "{{ $lr->notes }}"
+                                            </span>
+                                        @endif
 
-                                    @if ($lr->status === 'approved' && $lr->is_deducted)
-                                        <span
-                                            style="display: inline-block; font-size: 9.5px; color: var(--color-danger); font-weight: 600; margin-top: 2px;">
-                                            &bull; Memotong Gaji
-                                        </span>
-                                    @endif
+                                        @if ($lr->status === 'approved' && $lr->is_deducted)
+                                            <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 mt-1 small">
+                                                Memotong Gaji
+                                            </span>
+                                        @endif
+                                    </div>
                                 </div>
                             </div>
+                            <span class="badge {{ $statusBadgeClasses[$lr->status] ?? 'bg-secondary' }} small">
+                                {{ $statusLabels[$lr->status] ?? ucfirst($lr->status) }}
+                            </span>
                         </div>
-                        <span class="status-pill {{ $lr->status }}">
-                            {{ $statusLabels[$lr->status] ?? ucfirst($lr->status) }}
-                        </span>
-                    </div>
-                @endforeach
-            </div>
-        @endif
+                    @endforeach
+                </div>
+            @endif
+        </div>
     </div>
 </div>

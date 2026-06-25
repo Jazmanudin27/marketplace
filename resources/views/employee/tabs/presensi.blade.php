@@ -1,438 +1,327 @@
 <div id="tab-presensi" class="tab-pane active">
-    <!-- Floating Mockup Main Card -->
-    <div class="mockup-main-card">
-
-        <!-- Inner Check In/Out Panel -->
-        <div class="mockup-inner-panel">
-            <div class="mockup-date-banner">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                    <line x1="16" y1="2" x2="16" y2="6"></line>
-                    <line x1="8" y1="2" x2="8" y2="6"></line>
-                    <line x1="3" y1="10" x2="21" y2="10"></line>
-                </svg>
+    <!-- Date and Schedule Banner -->
+    <div class="card mb-3 border rounded shadow-sm bg-white">
+        <div class="card-body text-center py-3">
+            <div class="d-inline-flex align-items-center gap-2 bg-light border px-3 py-1.5 rounded-pill mb-2 small fw-bold text-dark">
+                <i class="fas fa-calendar-day text-primary"></i>
                 <span>{{ date('d') }} {{ $monthNamesIndo[date('m')] ?? '' }} {{ date('Y') }}</span>
             </div>
-
-            <!-- Jam Masuk & Keluar Kerja (Jadwal) -->
-            <div
-                style="text-align: center; margin-top: -8px; margin-bottom: 16px; font-size: 11.5px; color: var(--text-secondary);">
-                Jadwal Kerja: <strong style="color: white; font-family: var(--font-display);">{{ $scheduleIn }} -
-                    {{ $scheduleOut }}</strong>
+            <div class="small text-muted">
+                Jadwal Kerja: <span class="fw-bold text-dark">{{ $scheduleIn }} - {{ $scheduleOut }}</span>
             </div>
+        </div>
+    </div>
 
-            @php
-                $ci = $todayAttendance?->clock_in;
-                $co = $todayAttendance?->clock_out;
-                $late = $todayAttendance?->late_minutes ?? 0;
-            @endphp
+    @php
+        $ci = $todayAttendance?->clock_in;
+        $co = $todayAttendance?->clock_out;
+        $late = $todayAttendance?->late_minutes ?? 0;
+    @endphp
 
-            <div class="mockup-check-grid">
-                <!-- Check In Button/Widget -->
-                @if (!$ci)
-                    <form id="formClockIn" method="POST" action="{{ route('employee.clock-in') }}">
-                        @csrf
-                        <input type="hidden" name="latitude" id="latitudeIn">
-                        <input type="hidden" name="longitude" id="longitudeIn">
-                        <input type="hidden" name="photo" id="photoIn">
-                        <button type="button" class="mockup-box-btn" onclick="startAttendanceVerification('in')">
-                            <div class="mockup-box-content check-in">
-                                <div class="mockup-box-top">
-                                    <span class="mockup-box-time">Belum Scan</span>
-                                    <div class="mockup-box-icon">
-                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-                                            stroke="currentColor" stroke-width="3" stroke-linecap="round"
-                                            stroke-linejoin="round">
-                                            <polyline points="9 11 12 14 22 4"></polyline>
-                                            <path d="M21 12v7a2 2 0 0 1-2-2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
-                                        </svg>
-                                    </div>
-                                </div>
-                                <div class="mockup-box-bottom">Check In</div>
-                            </div>
-                        </button>
-                    </form>
-                @else
-                    <div class="mockup-box-content check-in disabled">
-                        <div class="mockup-box-top">
-                            <span class="mockup-box-time">{{ date('H:i', strtotime($ci)) }} WIB</span>
-                            <div class="mockup-box-icon" style="background: rgba(255,255,255,0.35);">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-                                    stroke="currentColor" stroke-width="3" stroke-linecap="round"
-                                    stroke-linejoin="round">
-                                    <polyline points="20 6 9 17 4 12"></polyline>
-                                </svg>
-                            </div>
-                        </div>
-                        <div class="mockup-box-bottom" style="opacity: 0.9;">Checked In</div>
-                    </div>
-                @endif
+    <!-- Check In/Out Actions -->
+    <div class="row g-2 mb-3">
+        <!-- Check In Button/Widget -->
+        <div class="col-6">
+            @if (!$ci)
+                <form id="formClockIn" method="POST" action="{{ route('employee.clock-in') }}">
+                    @csrf
+                    <input type="hidden" name="latitude" id="latitudeIn">
+                    <input type="hidden" name="longitude" id="longitudeIn">
+                    <input type="hidden" name="photo" id="photoIn">
+                    <button type="button" class="btn btn-outline-success w-100 py-4 d-flex flex-column align-items-center justify-content-center h-100 rounded-3 shadow-sm" onclick="startAttendanceVerification('in')">
+                        <i class="fas fa-sign-in-alt fs-2 mb-2 text-success"></i>
+                        <span class="fw-bold d-block text-dark small">Check In</span>
+                        <small class="text-muted" style="font-size: 0.7rem;">Belum Scan</small>
+                    </button>
+                </form>
+            @else
+                <div class="bg-success bg-opacity-10 border border-success border-opacity-25 rounded-3 py-4 px-2 text-center h-100 d-flex flex-column align-items-center justify-content-center">
+                    <i class="fas fa-check-circle text-success fs-2 mb-2"></i>
+                    <span class="fw-bold d-block text-dark small">Checked In</span>
+                    <span class="text-success fw-bold small" style="font-size: 0.75rem;">{{ date('H:i', strtotime($ci)) }} WIB</span>
+                </div>
+            @endif
+        </div>
 
-                <!-- Check Out Button/Widget -->
-                @if ($co)
-                    <div class="mockup-box-content check-out disabled">
-                        <div class="mockup-box-top">
-                            <span class="mockup-box-time">{{ date('H:i', strtotime($co)) }} WIB</span>
-                            <div class="mockup-box-icon" style="background: rgba(255,255,255,0.35);">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-                                    stroke="currentColor" stroke-width="3" stroke-linecap="round"
-                                    stroke-linejoin="round">
-                                    <polyline points="20 6 9 17 4 12"></polyline>
-                                </svg>
-                            </div>
-                        </div>
-                        <div class="mockup-box-bottom" style="opacity: 0.9;">Checked Out</div>
-                    </div>
-                @elseif ($ci)
-                    <form id="formClockOut" method="POST" action="{{ route('employee.clock-out') }}">
-                        @csrf
-                        <input type="hidden" name="latitude" id="latitudeOut">
-                        <input type="hidden" name="longitude" id="longitudeOut">
-                        <input type="hidden" name="photo" id="photoOut">
-                        <button type="button" class="mockup-box-btn" onclick="startAttendanceVerification('out')">
-                            <div class="mockup-box-content check-out">
-                                <div class="mockup-box-top">
-                                    <span class="mockup-box-time">Belum Scan</span>
-                                    <div class="mockup-box-icon">
-                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-                                            stroke="currentColor" stroke-width="3" stroke-linecap="round"
-                                            stroke-linejoin="round">
-                                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-                                            <polyline points="16 17 21 12 16 7"></polyline>
-                                            <line x1="21" y1="12" x2="9" y2="12">
-                                            </line>
-                                        </svg>
-                                    </div>
-                                </div>
-                                <div class="mockup-box-bottom">Check Out</div>
-                            </div>
-                        </button>
-                    </form>
-                @else
-                    <div class="mockup-box-content inactive">
-                        <div class="mockup-box-top">
-                            <span class="mockup-box-time">Belum Scan</span>
-                            <div class="mockup-box-icon">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-                                    stroke="currentColor" stroke-width="3" stroke-linecap="round"
-                                    stroke-linejoin="round">
-                                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2">
-                                    </rect>
-                                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-                                </svg>
-                            </div>
-                        </div>
-                        <div class="mockup-box-bottom">Check Out</div>
-                    </div>
-                @endif
-            </div>
+        <!-- Check Out Button/Widget -->
+        <div class="col-6">
+            @if ($co)
+                <div class="bg-primary bg-opacity-10 border border-primary border-opacity-25 rounded-3 py-4 px-2 text-center h-100 d-flex flex-column align-items-center justify-content-center">
+                    <i class="fas fa-check-circle text-primary fs-2 mb-2"></i>
+                    <span class="fw-bold d-block text-dark small">Checked Out</span>
+                    <span class="text-primary fw-bold small" style="font-size: 0.75rem;">{{ date('H:i', strtotime($co)) }} WIB</span>
+                </div>
+            @elseif ($ci)
+                <form id="formClockOut" method="POST" action="{{ route('employee.clock-out') }}">
+                    @csrf
+                    <input type="hidden" name="latitude" id="latitudeOut">
+                    <input type="hidden" name="longitude" id="longitudeOut">
+                    <input type="hidden" name="photo" id="photoOut">
+                    <button type="button" class="btn btn-outline-primary w-100 py-4 d-flex flex-column align-items-center justify-content-center h-100 rounded-3 shadow-sm" onclick="startAttendanceVerification('out')">
+                        <i class="fas fa-sign-out-alt fs-2 mb-2 text-primary"></i>
+                        <span class="fw-bold d-block text-dark small">Check Out</span>
+                        <small class="text-muted" style="font-size: 0.7rem;">Belum Scan</small>
+                    </button>
+                </form>
+            @else
+                <div class="bg-light border rounded-3 py-4 px-2 text-center h-100 d-flex flex-column align-items-center justify-content-center text-muted" style="opacity: 0.65;">
+                    <i class="fas fa-lock fs-2 mb-2"></i>
+                    <span class="fw-bold d-block small">Check Out</span>
+                    <small style="font-size: 0.7rem;">Belum Scan</small>
+                </div>
+            @endif
         </div>
     </div>
 
     <!-- GPS & IP Verification Info -->
-    <div class="glass-card" style="margin-bottom: 20px; padding: 12px 16px;">
-        <div class="info-pill-container" style="margin-top: 0;">
-            <div class="info-pill">
-                <div class="info-pulse-dot"></div>
-                <span>GPS: Terdeteksi (Radius)</span>
-            </div>
-            <div class="info-pill">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                    stroke-width="3" stroke-linecap="round" stroke-linejoin="round"
-                    style="color: var(--color-info); flex-shrink: 0;">
-                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
-                </svg>
-                <span>Koneksi Aman</span>
+    <div class="card mb-3 border rounded shadow-sm bg-white">
+        <div class="card-body py-2 px-3">
+            <div class="d-flex align-items-center justify-content-center gap-3 flex-wrap">
+                <div class="d-flex align-items-center gap-1.5 small text-muted">
+                    <span class="spinner-grow spinner-grow-sm text-success" role="status" style="width: 8px; height: 8px;"></span>
+                    <span class="fw-semibold">GPS: Terdeteksi</span>
+                </div>
+                <div class="d-flex align-items-center gap-1.5 small text-muted">
+                    <i class="fas fa-shield-alt text-info" style="font-size: 0.85rem;"></i>
+                    <span class="fw-semibold">Koneksi Aman</span>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- Recent Logs Section (Mockup-inspired) -->
-    <div
-        style="margin-top: 24px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; padding: 0 4px;">
-        <span style="font-family: var(--font-display); font-size: 14px; font-weight: 700; color: white;">Aktivitas
-            Kehadiran Terakhir</span>
-        <a href="#" onclick="switchTab('riwayat')"
-            style="font-size: 12px; color: var(--color-primary); font-weight: 700; text-decoration: none;">Lihat
-            Semua</a>
+    <!-- Aktivitas Kehadiran Terakhir -->
+    <div class="d-flex justify-content-between align-items-center mb-2 px-1">
+        <span class="fw-bold text-dark small">Aktivitas Kehadiran Terakhir</span>
+        <a href="#" onclick="switchTab('riwayat')" class="text-primary fw-bold text-decoration-none small" style="font-size: 0.75rem;">Lihat Semua</a>
     </div>
 
-    <div class="list-wrapper">
-        @php
-            $previewLogs = $history
-                ->sortByDesc('date')
-                ->whereNotIn('status', ['sick', 'permission', 'leave', 'sakit', 'izin', 'cuti'])
-                ->take(3);
-            $statusLabels = [
-                'present' => 'Hadir',
-                'alpha' => 'Alpha',
-                'izin' => 'Izin',
-                'sakit' => 'Sakit',
-                'cuti' => 'Cuti',
-                'sick' => 'Sakit',
-                'permission' => 'Izin',
-                'leave' => 'Cuti',
-            ];
-        @endphp
+    <div class="card mb-3 border rounded shadow-sm bg-white">
+        <div class="card-body">
+            @php
+                $previewLogs = $history
+                    ->sortByDesc('date')
+                    ->whereNotIn('status', ['sick', 'permission', 'leave', 'sakit', 'izin', 'cuti'])
+                    ->take(3);
+                $statusLabels = [
+                    'present' => 'Hadir',
+                    'alpha' => 'Alpha',
+                    'izin' => 'Izin',
+                    'sakit' => 'Sakit',
+                    'cuti' => 'Cuti',
+                    'sick' => 'Sakit',
+                    'permission' => 'Izin',
+                    'leave' => 'Cuti',
+                ];
+            @endphp
 
-        @if ($previewLogs->isEmpty())
-            <div style="text-align: center; color: var(--text-muted); padding: 20px 0; font-size: 12.5px;">
-                Belum ada data presensi terdaftar.
-            </div>
-        @else
-            @foreach ($previewLogs as $att)
-                @php
-                    $d = \Carbon\Carbon::parse($att->date);
-                    $dayShortName = $d->format('D');
-                    $dayNameIndo = $dayNamesIndo[$dayShortName] ?? $dayShortName;
-
-                    // Calculate work hours if check out exists
-                    $jamKerja = '-';
-                    if ($att->clock_in && $att->clock_out) {
-                        $inTime = \Carbon\Carbon::parse($att->clock_in);
-                        $outTime = \Carbon\Carbon::parse($att->clock_out);
-                        $diffInMinutes = abs($outTime->diffInMinutes($inTime, false));
-                        $hours = $diffInMinutes / 60;
-                        $jamKerja = number_format($hours, 2, ',', '.') . ' Jam';
-                    }
-                @endphp
-                <div class="log-item-card">
-                    <div class="log-item-header">
-                        <span>{{ $dayNameIndo }}, {{ $d->format('d') }} {{ $monthNamesIndo[$d->format('m')] ?? '' }}
-                            {{ $d->format('Y') }}</span>
-                        <span class="status-pill {{ $att->status }}" style="font-size: 10px; padding: 2px 8px;">
-                            {{ $statusLabels[$att->status] ?? ucfirst($att->status) }}
-                        </span>
-                    </div>
-                    @if (in_array($att->status, ['present', 'alpha']))
-                        <div class="log-item-grid">
-                            <div class="log-subitem">
-                                <span class="log-subitem-title">
-                                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none"
-                                        stroke="currentColor" stroke-width="3" stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                        style="color: {{ $att->clock_in ? 'var(--color-success)' : 'rgba(255, 255, 255, 0.25)' }};">
-                                        @if ($att->clock_in)
-                                            <polyline points="9 11 12 14 22 4"></polyline>
-                                        @else
-                                            <circle cx="12" cy="12" r="10"></circle>
-                                            <line x1="12" y1="8" x2="12" y2="12">
-                                            </line>
-                                            <line x1="12" y1="16" x2="12.01" y2="16">
-                                            </line>
-                                        @endif
-                                    </svg>
-                                    Check In
-                                </span>
-                                <span class="log-subitem-val"
-                                    style="{{ !$att->clock_in ? 'font-size: 11px; font-weight: 500; color: rgba(255, 255, 255, 0.25); font-style: italic;' : '' }}">
-                                    {{ $att->clock_in ? date('H:i', strtotime($att->clock_in)) : 'Belum Scan' }}
-                                </span>
-                            </div>
-                            <div class="log-subitem">
-                                <span class="log-subitem-title">
-                                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none"
-                                        stroke="currentColor" stroke-width="3" stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                        style="color: {{ $att->clock_out ? 'var(--color-info)' : 'rgba(255, 255, 255, 0.25)' }};">
-                                        @if ($att->clock_out)
-                                            <polyline points="9 11 12 14 22 4"></polyline>
-                                        @else
-                                            <circle cx="12" cy="12" r="10"></circle>
-                                            <line x1="12" y1="8" x2="12" y2="12">
-                                            </line>
-                                            <line x1="12" y1="16" x2="12.01" y2="16">
-                                            </line>
-                                        @endif
-                                    </svg>
-                                    Check Out
-                                </span>
-                                <span class="log-subitem-val"
-                                    style="{{ !$att->clock_out ? 'font-size: 11px; font-weight: 500; color: rgba(255, 255, 255, 0.25); font-style: italic;' : '' }}">
-                                    {{ $att->clock_out ? date('H:i', strtotime($att->clock_out)) : 'Belum Scan' }}
-                                </span>
-                            </div>
-                            <div class="log-subitem">
-                                <span class="log-subitem-title">
-                                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none"
-                                        stroke="currentColor" stroke-width="3" stroke-linecap="round"
-                                        stroke-linejoin="round" style="color: var(--color-primary);">
-                                        <circle cx="12" cy="12" r="10"></circle>
-                                        <polyline points="12 6 12 12 16 14"></polyline>
-                                    </svg>
-                                    Jam Kerja
-                                </span>
-                                <span class="log-subitem-val">{{ $jamKerja }}</span>
-                            </div>
-                        </div>
-                    @else
-                        <div
-                            style="font-size: 11.5px; color: var(--text-secondary); margin-top: 8px; padding-left: 2px; line-height: 1.4;">
-                            <i class="fas fa-info-circle text-primary" style="margin-right: 4px;"></i> Keterangan:
-                            <span
-                                style="color: var(--text-primary);">{{ $att->notes ?: 'Telah disetujui HRD' }}</span>
-                        </div>
-                    @endif
+            @if ($previewLogs->isEmpty())
+                <div class="text-center text-muted py-4 small">
+                    Belum ada data presensi terdaftar.
                 </div>
-            @endforeach
-        @endif
+            @else
+                <div class="list-group list-group-flush">
+                    @foreach ($previewLogs as $att)
+                        @php
+                            $d = \Carbon\Carbon::parse($att->date);
+                            $dayShortName = $d->format('D');
+                            $dayNameIndo = $dayNamesIndo[$dayShortName] ?? $dayShortName;
+
+                            $jamKerja = '-';
+                            if ($att->clock_in && $att->clock_out) {
+                                $inTime = \Carbon\Carbon::parse($att->clock_in);
+                                $outTime = \Carbon\Carbon::parse($att->clock_out);
+                                $diffInMinutes = abs($outTime->diffInMinutes($inTime, false));
+                                $hours = $diffInMinutes / 60;
+                                $jamKerja = number_format($hours, 2, ',', '.') . ' Jam';
+                            }
+
+                            $badgeClass = 'bg-secondary';
+                            if ($att->status === 'present') {
+                                $badgeClass = $att->clock_in ? 'bg-success' : 'bg-warning';
+                            } elseif (in_array($att->status, ['sick', 'sakit'])) {
+                                $badgeClass = 'bg-danger';
+                            } elseif (in_array($att->status, ['permission', 'izin'])) {
+                                $badgeClass = 'bg-primary';
+                            } elseif (in_array($att->status, ['leave', 'cuti'])) {
+                                $badgeClass = 'bg-info';
+                            }
+                        @endphp
+                        <div class="list-group-item px-0 py-3">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="fw-bold text-dark small">{{ $dayNameIndo }}, {{ $d->format('d') }} {{ $monthNamesIndo[$d->format('m')] ?? '' }} {{ $d->format('Y') }}</span>
+                                <span class="badge {{ $badgeClass }}">{{ $statusLabels[$att->status] ?? ucfirst($att->status) }}</span>
+                            </div>
+
+                            @if (in_array($att->status, ['present', 'alpha']))
+                                <div class="row g-2 mt-1">
+                                    <div class="col-4">
+                                        <div class="p-2 border rounded bg-light text-center">
+                                            <small class="text-muted d-block" style="font-size: 0.65rem;">Check In</small>
+                                            <span class="fw-semibold text-dark small" style="font-size: 0.8rem;">
+                                                {{ $att->clock_in ? date('H:i', strtotime($att->clock_in)) : '-' }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div class="col-4">
+                                        <div class="p-2 border rounded bg-light text-center">
+                                            <small class="text-muted d-block" style="font-size: 0.65rem;">Check Out</small>
+                                            <span class="fw-semibold text-dark small" style="font-size: 0.8rem;">
+                                                {{ $att->clock_out ? date('H:i', strtotime($att->clock_out)) : '-' }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div class="col-4">
+                                        <div class="p-2 border rounded bg-light text-center">
+                                            <small class="text-muted d-block" style="font-size: 0.65rem;">Jam Kerja</small>
+                                            <span class="fw-semibold text-dark small" style="font-size: 0.8rem;">
+                                                {{ $jamKerja }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            @else
+                                <div class="text-muted small mt-1">
+                                    <i class="fas fa-info-circle text-primary me-1"></i>
+                                    Keterangan: <span class="text-dark">{{ $att->notes ?: 'Telah disetujui HRD' }}</span>
+                                </div>
+                            @endif
+                        </div>
+                    @endforeach
+                </div>
+            @endif
+        </div>
     </div>
 
-    <!-- Recent Leave Requests Section -->
-    <div
-        style="margin-top: 28px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; padding: 0 4px;">
-        <span style="font-family: var(--font-display); font-size: 14px; font-weight: 700; color: white;">Riwayat
-            Pengajuan Izin / Cuti</span>
-        <a href="#" onclick="switchTab('izin')"
-            style="font-size: 12px; color: var(--color-primary); font-weight: 700; text-decoration: none;">Lihat
-            Semua</a>
+    <!-- Riwayat Pengajuan Izin / Cuti -->
+    <div class="d-flex justify-content-between align-items-center mb-2 px-1">
+        <span class="fw-bold text-dark small">Riwayat Pengajuan Izin / Cuti</span>
+        <a href="#" onclick="switchTab('izin')" class="text-primary fw-bold text-decoration-none small" style="font-size: 0.75rem;">Lihat Semua</a>
     </div>
 
-    <div class="list-wrapper" style="margin-bottom: 30px;">
-        @php
-            $previewLeaves = $leaveRequests->take(3);
-        @endphp
+    <div class="card mb-3 border rounded shadow-sm bg-white">
+        <div class="card-body">
+            @php
+                $previewLeaves = $leaveRequests->take(3);
+            @endphp
 
-        @if ($previewLeaves->isEmpty())
-            <div style="text-align: center; color: var(--text-muted); padding: 20px 0; font-size: 12.5px;">
-                Belum ada riwayat pengajuan izin, sakit, atau cuti.
-            </div>
-        @else
-            @foreach ($previewLeaves as $lr)
-                @php
-                    $start = \Carbon\Carbon::parse($lr->start_date);
-                    $end = \Carbon\Carbon::parse($lr->end_date);
-                    $diff = $start->diffInDays($end) + 1;
+            @if ($previewLeaves->isEmpty())
+                <div class="text-center text-muted py-4 small">
+                    Belum ada riwayat pengajuan izin, sakit, atau cuti.
+                </div>
+            @else
+                <div class="list-group list-group-flush">
+                    @foreach ($previewLeaves as $lr)
+                        @php
+                            $start = \Carbon\Carbon::parse($lr->start_date);
+                            $end = \Carbon\Carbon::parse($lr->end_date);
+                            $diff = $start->diffInDays($end) + 1;
 
-                    $typeLabels = [
-                        'sick' => 'Sakit',
-                        'permission' => 'Izin',
-                        'leave' => 'Cuti',
-                    ];
+                            $typeLabels = [
+                                'sick' => 'Sakit',
+                                'permission' => 'Izin',
+                                'leave' => 'Cuti',
+                             ];
 
-                    $statusLabels = [
-                        'pending' => 'Menunggu',
-                        'approved' => 'Disetujui',
-                        'rejected' => 'Ditolak',
-                    ];
+                            $statusLabels = [
+                                'pending' => 'Menunggu',
+                                'approved' => 'Disetujui',
+                                'rejected' => 'Ditolak',
+                            ];
 
-                    $typeColors = [
-                        'sick' => '#ef4444',
-                        'permission' => '#7c6af7',
-                        'leave' => '#f59e0b',
-                    ];
-                @endphp
-                <div class="item-card" style="margin-bottom: 10px;">
-                    <div class="item-left">
-                        <div class="item-date-badge"
-                            style="background: rgba(255, 255, 255, 0.03); border-color: {{ $typeColors[$lr->type] ?? 'var(--border-color)' }};">
-                            <span
-                                style="font-size: 11px; font-weight: 700; color: {{ $typeColors[$lr->type] ?? 'white' }};">
-                                {{ $diff }}
-                            </span>
-                            <span
-                                style="font-size: 7.5px; text-transform: uppercase; color: var(--text-secondary); margin-top: 1px;">
-                                Hari
+                            $badgeClass = 'bg-warning';
+                            if ($lr->status === 'approved') {
+                                $badgeClass = 'bg-success';
+                            } elseif ($lr->status === 'rejected') {
+                                $badgeClass = 'bg-danger';
+                            }
+
+                            $typeBadgeClass = 'bg-secondary';
+                            if ($lr->type === 'sick') {
+                                $typeBadgeClass = 'bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25';
+                            } elseif ($lr->type === 'permission') {
+                                $typeBadgeClass = 'bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25';
+                            } elseif ($lr->type === 'leave') {
+                                $typeBadgeClass = 'bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25';
+                            }
+                        @endphp
+                        <div class="list-group-item px-0 py-3 d-flex align-items-center justify-content-between gap-2">
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="text-center d-flex flex-column justify-content-center px-2 py-1 rounded small fw-bold {{ $typeBadgeClass }}" style="min-width: 50px; height: 44px;">
+                                    <span class="fs-6 lh-1">{{ $diff }}</span>
+                                    <span style="font-size: 0.6rem; text-transform: uppercase;">Hari</span>
+                                </div>
+                                <div>
+                                    <div class="fw-semibold text-dark small">{{ $typeLabels[$lr->type] ?? ucfirst($lr->type) }}</div>
+                                    <div class="text-muted small">
+                                        @if ($diff === 1)
+                                            {{ $start->format('d M Y') }}
+                                        @else
+                                            {{ $start->format('d M') }} s/d {{ $end->format('d M Y') }}
+                                        @endif
+
+                                        @if ($lr->notes)
+                                            <span class="d-block fst-italic text-muted mt-1">"{{ $lr->notes }}"</span>
+                                        @endif
+                                    </div>
+                                </div>
+                            </div>
+                            <span class="badge {{ $badgeClass }} py-1.5 px-2.5 small flex-shrink-0">
+                                {{ $statusLabels[$lr->status] ?? ucfirst($lr->status) }}
                             </span>
                         </div>
-                        <div>
-                            <div class="item-title">
-                                {{ $typeLabels[$lr->type] ?? ucfirst($lr->type) }}
-                            </div>
-                            <div class="item-subtext">
-                                @if ($diff === 1)
-                                    {{ $start->format('d M Y') }}
-                                @else
-                                    {{ $start->format('d M') }} s/d {{ $end->format('d M Y') }}
-                                @endif
-
-                                @if ($lr->notes)
-                                    <span
-                                        style="display: block; font-style: italic; margin-top: 2px; color: var(--text-muted);">
-                                        "{{ $lr->notes }}"
-                                    </span>
-                                @endif
-                            </div>
-                        </div>
-                    </div>
-                    <span class="status-pill {{ $lr->status }}">
-                        {{ $statusLabels[$lr->status] ?? ucfirst($lr->status) }}
-                    </span>
+                    @endforeach
                 </div>
-            @endforeach
-        @endif
+            @endif
+        </div>
     </div>
 
     <!-- Camera & GPS Verification Modal -->
-    <div id="attendanceCameraModal" class="camera-modal-overlay" style="display: none;">
-        <div class="camera-modal-card">
-            <div class="camera-modal-header">
-                <h3>Verifikasi Kehadiran</h3>
-                <button type="button" class="btn-close-camera" onclick="closeCameraModal()">&times;</button>
-            </div>
-
-            <div class="camera-preview-container">
-                <video id="attendanceVideo" autoplay playsinline muted></video>
-                <div id="attendanceMap" style="position: absolute; inset: 0; display: none; z-index: 10;"></div>
-                <div id="cameraStatusGlow" class="status-glow"></div>
-                <canvas id="attendanceCanvas" style="display: none;"></canvas>
-
-                <div id="cameraLoadingSpinner" class="camera-loading-overlay">
-                    <div class="spinner-neon"></div>
-                    <p style="margin: 0; font-weight: 600;">Mengunci GPS & Kamera...</p>
+    <div id="attendanceCameraModal" class="modal fade" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header bg-light">
+                    <h5 class="modal-title fw-bold text-dark">Verifikasi Kehadiran</h5>
+                    <button type="button" class="btn-close" onclick="closeCameraModal()"></button>
                 </div>
+                <div class="modal-body p-0 position-relative bg-dark" style="aspect-ratio: 4/3; overflow: hidden;">
+                    <video id="attendanceVideo" autoplay playsinline muted class="w-100 h-100 object-fit-cover"></video>
+                    <div id="attendanceMap" class="position-absolute start-0 top-0 w-100 h-100" style="display: none; z-index: 10;"></div>
+                    <canvas id="attendanceCanvas" style="display: none;"></canvas>
 
-                <button type="button" id="btnTogglePreview" class="btn-toggle-preview"
-                    onclick="togglePreviewMode()" style="display: none;">
-                    <svg id="iconMap" width="14" height="14" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2.5">
-                        <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon>
-                        <line x1="8" y1="2" x2="8" y2="18"></line>
-                        <line x1="16" y1="6" x2="16" y2="22"></line>
-                    </svg>
-                    <svg id="iconCamera" width="14" height="14" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2.5" style="display: none;">
-                        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z">
-                        </path>
-                        <circle cx="12" cy="13" r="4"></circle>
-                    </svg>
-                    <span id="textTogglePreview">Lihat Peta</span>
-                </button>
-            </div>
+                    <div id="cameraLoadingSpinner" class="position-absolute start-0 top-0 w-100 h-100 bg-dark bg-opacity-75 d-flex flex-column align-items-center justify-content-center text-white" style="z-index: 15;">
+                        <div class="spinner-border text-primary mb-2" role="status"></div>
+                        <p class="mb-0 fw-bold small">Mengunci GPS & Kamera...</p>
+                    </div>
 
-            <div class="camera-info-pane">
-                <div class="status-indicator" id="statusGps">
-                    <div class="status-dot warning" id="dotGps"></div>
-                    <span id="textGps">Mencari lokasi GPS...</span>
+                    <button type="button" id="btnTogglePreview" class="btn btn-dark btn-sm position-absolute bottom-0 end-0 m-2 opacity-90" onclick="togglePreviewMode()" style="display: none; z-index: 20;">
+                        <i id="iconMap" class="fas fa-map"></i>
+                        <i id="iconCamera" class="fas fa-camera" style="display: none;"></i>
+                        <span id="textTogglePreview" class="ms-1 small">Lihat Peta</span>
+                    </button>
                 </div>
-                <div class="status-indicator" id="statusCamera">
-                    <div class="status-dot warning" id="dotCamera"></div>
-                    <span id="textCamera">Menghubungkan ke kamera...</span>
+                
+                <div class="p-3 border-top bg-light">
+                    <div class="d-flex align-items-center mb-2" id="statusGps">
+                        <span class="spinner-grow spinner-grow-sm text-warning me-2" id="dotGps" style="width: 8px; height: 8px;"></span>
+                        <span id="textGps" class="small text-muted fw-semibold">Mencari lokasi GPS...</span>
+                    </div>
+                    <div class="d-flex align-items-center mb-0" id="statusCamera">
+                        <span class="spinner-grow spinner-grow-sm text-warning me-2" id="dotCamera" style="width: 8px; height: 8px;"></span>
+                        <span id="textCamera" class="small text-muted fw-semibold">Menghubungkan ke kamera...</span>
+                    </div>
+                    <div id="distanceWarning" class="alert alert-danger d-flex align-items-center gap-2 mt-2 py-2 px-3 mb-0" style="display: none !important;">
+                        <i class="fas fa-exclamation-triangle flex-shrink-0"></i>
+                        <span id="textWarning" class="small fw-semibold">Anda berada di luar radius kantor!</span>
+                    </div>
                 </div>
-                <div id="distanceWarning" class="distance-warning-banner" style="display: none;">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                        stroke-width="2.5">
-                        <circle cx="12" cy="12" r="10"></circle>
-                        <line x1="12" y1="8" x2="12" y2="12"></line>
-                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
-                    </svg>
-                    <span id="textWarning">Anda berada di luar radius kantor!</span>
+                
+                <div class="modal-footer justify-content-between bg-light">
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="closeCameraModal()">Batal</button>
+                    <button type="button" id="btnSubmitAttendance" class="btn btn-primary btn-sm d-flex align-items-center gap-2" disabled onclick="captureSelfieAndSubmit()">
+                        <i class="fas fa-camera"></i>
+                        <span>Ambil Foto & Absen</span>
+                    </button>
                 </div>
-            </div>
-
-            <div class="camera-modal-actions">
-                <button type="button" id="btnSubmitAttendance" class="btn-submit-attendance" disabled
-                    onclick="captureSelfieAndSubmit()">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                        stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z">
-                        </path>
-                        <circle cx="12" cy="13" r="4"></circle>
-                    </svg>
-                    Ambil Foto & Absen
-                </button>
-                <button type="button" class="btn-cancel-attendance" onclick="closeCameraModal()">Batal</button>
             </div>
         </div>
     </div>
@@ -449,6 +338,7 @@
         let userMarker = null;
         let officeMarker = null;
         let radiusCircle = null;
+        let bsModal = null;
 
         const OFFICE_LAT = @json($employee->tenant->office_latitude ?? null);
         const OFFICE_LNG = @json($employee->tenant->office_longitude ?? null);
@@ -461,19 +351,23 @@
             userLatitude = null;
             userLongitude = null;
 
-            // Reset UI
-            document.getElementById('attendanceCameraModal').style.display = 'flex';
-            document.getElementById('cameraLoadingSpinner').style.display = 'flex';
-            document.getElementById('btnSubmitAttendance').disabled = true;
-            document.getElementById('distanceWarning').style.display = 'none';
+            if (!bsModal) {
+                bsModal = new bootstrap.Modal(document.getElementById('attendanceCameraModal'), {
+                    keyboard: false
+                });
+            }
+            bsModal.show();
 
-            const glow = document.getElementById('cameraStatusGlow');
-            glow.className = 'status-glow';
+            document.getElementById('cameraLoadingSpinner').style.setProperty('display', 'flex', 'important');
+            document.getElementById('btnSubmitAttendance').disabled = true;
+
+            const distWarning = document.getElementById('distanceWarning');
+            distWarning.style.setProperty('display', 'none', 'important');
+            distWarning.classList.remove('d-flex');
 
             updateStatusIndicator('Gps', 'warning', 'Mencari lokasi GPS...');
             updateStatusIndicator('Camera', 'warning', 'Menghubungkan ke kamera...');
 
-            // Destroy existing map instance to prevent errors on restart
             if (map) {
                 map.remove();
                 map = null;
@@ -485,7 +379,6 @@
             document.getElementById('iconCamera').style.display = 'none';
             document.getElementById('textTogglePreview').textContent = 'Lihat Peta';
 
-            // Start Geolocation
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(onGpsSuccess, onGpsError, {
                     enableHighAccuracy: true,
@@ -494,21 +387,15 @@
                 });
             } else {
                 updateStatusIndicator('Gps', 'danger', 'GPS tidak didukung oleh browser ini.');
-                glow.classList.add('active-error');
             }
 
-            // Start Camera
             const video = document.getElementById('attendanceVideo');
             if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
                 navigator.mediaDevices.getUserMedia({
                     video: {
                         facingMode: 'user',
-                        width: {
-                            ideal: 640
-                        },
-                        height: {
-                            ideal: 480
-                        }
+                        width: { ideal: 640 },
+                        height: { ideal: 480 }
                     },
                     audio: false
                 }).then(stream => {
@@ -522,13 +409,11 @@
                 }).catch(err => {
                     console.error(err);
                     updateStatusIndicator('Camera', 'danger', 'Gagal mengakses kamera: ' + err.message);
-                    document.getElementById('cameraLoadingSpinner').style.display = 'none';
-                    glow.classList.add('active-error');
+                    document.getElementById('cameraLoadingSpinner').style.setProperty('display', 'none', 'important');
                 });
             } else {
                 updateStatusIndicator('Camera', 'danger', 'Kamera tidak didukung oleh browser ini.');
-                document.getElementById('cameraLoadingSpinner').style.display = 'none';
-                glow.classList.add('active-error');
+                document.getElementById('cameraLoadingSpinner').style.setProperty('display', 'none', 'important');
             }
         }
 
@@ -537,9 +422,6 @@
             userLongitude = position.coords.longitude;
             gpsLocked = true;
 
-            const glow = document.getElementById('cameraStatusGlow');
-
-            // If office coordinates are configured, check radius
             if (OFFICE_LAT !== null && OFFICE_LNG !== null) {
                 const distance = calculateHaversineDistance(userLatitude, userLongitude, OFFICE_LAT, OFFICE_LNG);
                 const maxRadius = OFFICE_RADIUS || 20;
@@ -548,30 +430,29 @@
                     updateStatusIndicator('Gps', 'danger', `Di luar radius kantor (${Math.round(distance)} m)`);
                     document.getElementById('textWarning').textContent =
                         `Anda berada di luar radius kantor. Jarak: ${Math.round(distance)} meter. Maksimum: ${maxRadius} meter.`;
-                    document.getElementById('distanceWarning').style.display = 'flex';
-                    glow.className = 'status-glow active-error';
-                    gpsLocked = false; // invalidate GPS lock to prevent submission
+                    const distWarning = document.getElementById('distanceWarning');
+                    distWarning.style.setProperty('display', 'flex', 'important');
+                    distWarning.classList.add('d-flex');
+                    gpsLocked = false;
                 } else {
                     updateStatusIndicator('Gps', 'success', `Lokasi cocok (${Math.round(distance)} m dari kantor)`);
-                    document.getElementById('distanceWarning').style.display = 'none';
-                    glow.className = 'status-glow active-scanning';
+                    const distWarning = document.getElementById('distanceWarning');
+                    distWarning.style.setProperty('display', 'none', 'important');
+                    distWarning.classList.remove('d-flex');
                 }
             } else {
-                // If office coordinates not configured, warning but allow
                 updateStatusIndicator('Gps', 'success', `GPS Terkunci (Kantor belum dikonfigurasi)`);
-                document.getElementById('distanceWarning').style.display = 'none';
-                glow.className = 'status-glow active-scanning';
+                const distWarning = document.getElementById('distanceWarning');
+                distWarning.style.setProperty('display', 'none', 'important');
+                distWarning.classList.remove('d-flex');
             }
 
-            // Show Map toggle button once GPS is locked successfully
             document.getElementById('btnTogglePreview').style.display = 'flex';
-
             checkVerificationStatus();
         }
 
         function onGpsError(error) {
             console.error(error);
-            const glow = document.getElementById('cameraStatusGlow');
             let msg = 'Gagal mendeteksi lokasi GPS.';
             if (error.code === error.PERMISSION_DENIED) {
                 msg = 'Izin lokasi ditolak. Aktifkan lokasi di browser.';
@@ -581,7 +462,6 @@
                 msg = 'Waktu pencarian lokasi habis.';
             }
             updateStatusIndicator('Gps', 'danger', msg);
-            glow.className = 'status-glow active-error';
             checkVerificationStatus();
         }
 
@@ -599,7 +479,6 @@
                 maxZoom: 19
             }).addTo(map);
 
-            // Add Office Marker & Radius Circle if coordinates exist
             if (OFFICE_LAT !== null && OFFICE_LNG !== null) {
                 const officePos = [OFFICE_LAT, OFFICE_LNG];
 
@@ -619,15 +498,13 @@
                 }).addTo(map);
             }
 
-            // Add User Marker
             userMarker = L.circleMarker(mapCenter, {
-                color: '#7c6af7',
-                fillColor: '#7c6af7',
+                color: '#0d6efd',
+                fillColor: '#0d6efd',
                 fillOpacity: 0.8,
                 radius: 8
             }).addTo(map).bindPopup('<b>Lokasi Anda</b>');
 
-            // Fit bounds to show both user and office if office exists
             if (OFFICE_LAT !== null && OFFICE_LNG !== null) {
                 const bounds = L.latLngBounds([mapCenter, [OFFICE_LAT, OFFICE_LNG]]);
                 map.fitBounds(bounds, {
@@ -644,20 +521,17 @@
             const label = document.getElementById('textTogglePreview');
 
             if (mapEl.style.display === 'none') {
-                // Show Map, Hide Video
                 mapEl.style.display = 'block';
-                videoEl.style.visibility = 'hidden'; // hide but keep stream active
+                videoEl.style.visibility = 'hidden';
                 iconMap.style.display = 'none';
                 iconCamera.style.display = 'inline-block';
                 label.textContent = 'Lihat Kamera';
 
-                // Initialize map on show so container sizes are computed correctly
                 initMap();
                 if (map) {
                     setTimeout(() => map.invalidateSize(), 50);
                 }
             } else {
-                // Show Video, Hide Map
                 mapEl.style.display = 'none';
                 videoEl.style.visibility = 'visible';
                 iconMap.style.display = 'inline-block';
@@ -668,7 +542,7 @@
 
         function checkVerificationStatus() {
             if (cameraReady) {
-                document.getElementById('cameraLoadingSpinner').style.display = 'none';
+                document.getElementById('cameraLoadingSpinner').style.setProperty('display', 'none', 'important');
             }
 
             if (cameraReady && gpsLocked) {
@@ -682,12 +556,27 @@
             const dot = document.getElementById('dot' + id);
             const span = document.getElementById('text' + id);
 
-            dot.className = 'status-dot ' + status;
+            if (status === 'success') {
+                dot.className = 'fas fa-check-circle text-success me-2';
+                dot.style.display = 'inline-block';
+                dot.style.width = 'auto';
+                dot.style.height = 'auto';
+            } else if (status === 'danger') {
+                dot.className = 'fas fa-times-circle text-danger me-2';
+                dot.style.display = 'inline-block';
+                dot.style.width = 'auto';
+                dot.style.height = 'auto';
+            } else {
+                dot.className = 'spinner-grow spinner-grow-sm text-warning me-2';
+                dot.style.display = 'inline-block';
+                dot.style.width = '8px';
+                dot.style.height = '8px';
+            }
             span.textContent = text;
         }
 
         function calculateHaversineDistance(lat1, lon1, lat2, lon2) {
-            const R = 6371000; // Earth radius in meters
+            const R = 6371000;
             const dLat = (lat2 - lat1) * Math.PI / 180;
             const dLon = (lon2 - lon1) * Math.PI / 180;
             const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
@@ -698,17 +587,17 @@
         }
 
         function closeCameraModal() {
-            // Stop camera track
             if (mediaStream) {
                 mediaStream.getTracks().forEach(track => track.stop());
                 mediaStream = null;
             }
-            // Destroy existing map instance to prevent errors
             if (map) {
                 map.remove();
                 map = null;
             }
-            document.getElementById('attendanceCameraModal').style.display = 'none';
+            if (bsModal) {
+                bsModal.hide();
+            }
         }
 
         function captureSelfieAndSubmit() {
@@ -716,25 +605,19 @@
             const canvas = document.getElementById('attendanceCanvas');
             const context = canvas.getContext('2d');
 
-            // Disable button and change state
             const btn = document.getElementById('btnSubmitAttendance');
             btn.disabled = true;
-            btn.innerHTML =
-                '<div class="spinner-neon" style="width:16px; height:16px; border-width:2px; margin-right:8px; display:inline-block; vertical-align:middle;"></div>Memproses Absensi...';
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Memproses...';
 
-            // Set canvas size matching the video aspect ratio
             canvas.width = video.videoWidth || 640;
             canvas.height = video.videoHeight || 480;
 
-            // Draw current video frame to canvas
             context.translate(canvas.width, 0);
-            context.scale(-1, 1); // mirror horizontal draw
+            context.scale(-1, 1);
             context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-            // Get Base64 image
             const photoDataUrl = canvas.toDataURL('image/jpeg', 0.85);
 
-            // Set value to forms
             if (attendanceType === 'in') {
                 document.getElementById('latitudeIn').value = userLatitude;
                 document.getElementById('longitudeIn').value = userLongitude;
@@ -747,12 +630,10 @@
                 document.getElementById('formClockOut').submit();
             }
 
-            // Stop camera stream immediately
             if (mediaStream) {
                 mediaStream.getTracks().forEach(track => track.stop());
                 mediaStream = null;
             }
-            // Destroy map instance
             if (map) {
                 map.remove();
                 map = null;

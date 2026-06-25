@@ -9,26 +9,26 @@
     <div class="container-fluid px-0">
         <div class="row">
             <div class="col-md-12">
-                <div class="dashboard-card">
-                    {{-- ── Header ──────────────────────────────────────────── --}}
-                    <div class="card-header-line d-flex justify-content-between align-items-center mb-4">
+                <div class="card border shadow-sm">
+                    <div class="card-header bg-info bg-opacity-10 d-flex justify-content-between align-items-center border-bottom py-2 px-3">
                         <div>
-                            <h5 class="mb-0">
+                            <h6 class="fw-bold mb-0 text-dark">
                                 @if (isset($product->id))
-                                    <i class="fas fa-edit me-2 text-primary"></i> Edit Produk — <span
-                                        class="text-primary font-monospace">{{ $product->sku }}</span>
+                                    <i class="fas fa-edit me-2 text-info"></i> Edit Produk — <span
+                                        class="text-info font-monospace">{{ $product->sku }}</span>
                                 @else
-                                    <i class="fas fa-plus-circle me-2 text-primary"></i> Tambah Produk Baru
+                                    <i class="fas fa-plus-circle me-2 text-info"></i> Tambah Produk Baru
                                 @endif
-                            </h5>
-                            <p class="text-muted mb-0 mt-1" style="font-size:0.75rem;">
+                            </h6>
+                            <small class="text-muted d-block">
                                 {{ isset($product->id) ? 'Perbarui informasi dan rincian produk master' : 'Buat data produk master baru' }}
-                            </p>
+                            </small>
                         </div>
-                        <a href="{{ route('products.index') }}" class="btn btn-secondary btn-sm px-3">
+                        <a href="{{ route('products.index') }}" class="btn btn-secondary btn-sm px-3 rounded-3">
                             <i class="fas fa-arrow-left me-1"></i> Kembali
                         </a>
                     </div>
+                    <div class="card-body p-3">
 
                     {{-- ── Form ────────────────────────────────────────────── --}}
                     <form id="product-form"
@@ -323,8 +323,7 @@
                                         style="cursor: pointer; border-style: dashed !important;">
                                         <i class="fas fa-cloud-upload-alt fs-2 text-muted mb-2 d-block"></i>
                                         <div class="fw-semibold text-secondary small">Klik atau seret gambar ke sini</div>
-                                        <div class="text-muted extra-small" style="font-size: 0.75rem;">JPG, PNG, WEBP —
-                                            maks 5 MB</div>
+                                        <small class="text-muted d-block">JPG, PNG, WEBP — maks 5 MB</small>
                                         <div id="img-filename" class="mt-2 text-primary small" style="display: none;">
                                         </div>
                                     </div>
@@ -358,8 +357,8 @@
                                             class="img-thumbnail"
                                             style="max-width: 180px; max-height: 180px; object-fit: cover; display: block;">
                                         <button type="button" id="btn-clear-img"
-                                            class="btn btn-danger btn-sm rounded-circle position-absolute"
-                                            style="top: -8px; right: -8px; width: 22px; height: 22px; padding: 0; display: flex; align-items: center; justify-content: center; font-size: 0.7rem;">
+                                            class="btn btn-danger btn-sm rounded-circle position-absolute top-0 start-100 translate-middle p-0"
+                                            style="width: 22px; height: 22px; display: flex; align-items: center; justify-content: center;">
                                             <i class="fas fa-times"></i>
                                         </button>
                                     </div>
@@ -420,17 +419,18 @@
                     </form>
 
                     @if (isset($product->id))
-                        <div class="mt-4 pt-3 border-top border-secondary border-opacity-10">
+                        <div class="mt-4 pt-3 border-top">
                             <form action="{{ route('products.destroy', $product) }}" method="POST"
                                 onsubmit="return confirm('Hapus produk ini?')">
                                 @csrf @method('DELETE')
-                                <button type="submit" class="btn btn-outline-danger btn-sm">
+                                <button type="submit" class="btn btn-outline-danger btn-sm rounded-3">
                                     <i class="fas fa-trash me-1"></i> Hapus Produk Ini
                                 </button>
                             </form>
                         </div>
                     @endif
                 </div>
+            </div>
             </div>
         </div>
     </div>
@@ -439,48 +439,43 @@
     <div class="modal fade" id="priceCalculatorModal" tabindex="-1" aria-labelledby="priceCalculatorModalLabel"
         aria-hidden="true">
         <div class="modal-dialog modal-xl modal-dialog-centered">
-            <div class="modal-content"
-                style="background: var(--bg-card); border: 1px solid var(--border); color: var(--text-primary);">
-                <div class="modal-header"
-                    style="border-bottom: 1px solid var(--border); background: rgba(238, 77, 45, 0.05);">
-                    <h5 class="modal-title" id="priceCalculatorModalLabel" style="color: #ee4d2d;">
+            <div class="modal-content">
+                <div class="modal-header bg-danger bg-opacity-10 border-bottom">
+                    <h5 class="modal-title text-danger fw-bold" id="priceCalculatorModalLabel">
                         <i class="fas fa-calculator me-2"></i> KALKULATOR HARGA & PROFIT SHOPEE (DETAIL)
                     </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"
                         aria-label="Close"></button>
                 </div>
                 <div class="modal-body p-4">
                     <div class="row">
                         <!-- Input Column -->
-                        <div class="col-md-5 border-end d-flex flex-column"
-                            style="border-color: var(--border) !important;">
+                        <div class="col-md-5 border-end d-flex flex-column">
                             <div class="overflow-auto pe-2" style="max-height: 70vh;">
 
                                 <!-- Pengaturan Informasi -->
                                 <div class="card bg-transparent border-0 mb-4">
-                                    <div class="text-uppercase fw-bold text-white small mb-2 pb-1 border-bottom"
-                                        style="border-color: rgba(255,255,255,0.08) !important;">
+                                    <div class="text-uppercase fw-bold text-dark small mb-2 pb-1 border-bottom">
                                         <i class="fas fa-info-circle me-1 text-primary"></i> Pengaturan Informasi
                                     </div>
                                     <div class="mb-2">
                                         <label class="form-label extra-small text-secondary mb-1">Nama SKU INDUK</label>
                                         <input type="text" id="calc-sku"
-                                            class="form-control form-control-sm form-control-dark" readonly
-                                            style="background: rgba(255,255,255,0.01);">
+                                            class="form-control form-control-sm bg-light" readonly>
                                     </div>
                                     <div class="row g-2">
                                         <div class="col-6">
                                             <label class="form-label extra-small text-secondary mb-1">COGS / HPP
                                                 (Rp)</label>
                                             <input type="text" id="calc-hpp"
-                                                class="form-control form-control-sm form-control-dark calc-number-format"
+                                                class="form-control form-control-sm calc-number-format"
                                                 placeholder="0">
                                         </div>
                                         <div class="col-6">
                                             <label class="form-label extra-small text-secondary mb-1">Biaya Operasional /
                                                 OPEX (Rp)</label>
                                             <input type="text" id="calc-opex"
-                                                class="form-control form-control-sm form-control-dark calc-number-format"
+                                                class="form-control form-control-sm calc-number-format"
                                                 placeholder="0" value="0">
                                         </div>
                                     </div>
@@ -488,8 +483,7 @@
 
                                 <!-- Persentase Biaya Marketing -->
                                 <div class="card bg-transparent border-0 mb-4">
-                                    <div class="text-uppercase fw-bold text-white small mb-2 pb-1 border-bottom"
-                                        style="border-color: rgba(255,255,255,0.08) !important;">
+                                    <div class="text-uppercase fw-bold text-dark small mb-2 pb-1 border-bottom">
                                         <i class="fas fa-bullhorn me-1 text-primary"></i> Persentase Biaya Marketing
                                     </div>
                                     <div class="row g-2">
@@ -497,21 +491,20 @@
                                             <label class="form-label extra-small text-secondary mb-1">Target ROAS (GMV
                                                 Max)</label>
                                             <input type="number" step="0.1" id="calc-roas-target"
-                                                class="form-control form-control-sm form-control-dark" value="20">
+                                                class="form-control form-control-sm" value="20">
                                         </div>
                                         <div class="col-6">
                                             <label class="form-label extra-small text-secondary mb-1">Komisi Affiliate
                                                 (%)</label>
                                             <input type="number" step="0.1" id="calc-affiliate-pct"
-                                                class="form-control form-control-sm form-control-dark" value="10">
+                                                class="form-control form-control-sm" value="10">
                                         </div>
                                     </div>
                                 </div>
 
                                 <!-- Promosi Seller -->
                                 <div class="card bg-transparent border-0 mb-4">
-                                    <div class="text-uppercase fw-bold text-white small mb-2 pb-1 border-bottom"
-                                        style="border-color: rgba(255,255,255,0.08) !important;">
+                                    <div class="text-uppercase fw-bold text-dark small mb-2 pb-1 border-bottom">
                                         <i class="fas fa-tags me-1 text-primary"></i> Promosi Seller
                                     </div>
                                     <div class="row g-2 mb-2">
@@ -519,14 +512,14 @@
                                             <label class="form-label extra-small text-secondary mb-1">Voucher Toko
                                                 (Rp)</label>
                                             <input type="text" id="calc-voucher-toko"
-                                                class="form-control form-control-sm form-control-dark calc-number-format"
+                                                class="form-control form-control-sm calc-number-format"
                                                 placeholder="0" value="10.000">
                                         </div>
                                         <div class="col-6">
                                             <label class="form-label extra-small text-secondary mb-1">Voucher Produk
                                                 (Rp)</label>
                                             <input type="text" id="calc-voucher-produk"
-                                                class="form-control form-control-sm form-control-dark calc-number-format"
+                                                class="form-control form-control-sm calc-number-format"
                                                 placeholder="0" value="5.000">
                                         </div>
                                     </div>
@@ -534,15 +527,14 @@
                                         <label class="form-label extra-small text-secondary mb-1">Potongan Lain / DLL
                                             (Rp)</label>
                                         <input type="text" id="calc-voucher-dll"
-                                            class="form-control form-control-sm form-control-dark calc-number-format"
+                                            class="form-control form-control-sm calc-number-format"
                                             placeholder="0" value="0">
                                     </div>
                                 </div>
 
                                 <!-- Co-Fund Voucher -->
                                 <div class="card bg-transparent border-0 mb-4">
-                                    <div class="text-uppercase fw-bold text-white small mb-2 pb-1 border-bottom"
-                                        style="border-color: rgba(255,255,255,0.08) !important;">
+                                    <div class="text-uppercase fw-bold text-dark small mb-2 pb-1 border-bottom">
                                         <i class="fas fa-handshake me-1 text-primary"></i> Co-Fund Voucher (Voucher
                                         Bersama)
                                     </div>
@@ -551,13 +543,13 @@
                                             <label class="form-label extra-small text-secondary mb-1">Diskon Voucher
                                                 (%)</label>
                                             <input type="number" step="0.1" id="calc-cofund-pct"
-                                                class="form-control form-control-sm form-control-dark" value="0">
+                                                class="form-control form-control-sm" value="0">
                                         </div>
                                         <div class="col-6">
                                             <label class="form-label extra-small text-secondary mb-1">Batas Maks. Seller
                                                 (Rp)</label>
                                             <input type="text" id="calc-cofund-max-seller"
-                                                class="form-control form-control-sm form-control-dark calc-number-format"
+                                                class="form-control form-control-sm calc-number-format"
                                                 value="0">
                                         </div>
                                     </div>
@@ -566,21 +558,20 @@
                                             <label class="form-label extra-small text-secondary mb-1">Ditanggung Platform
                                                 (%)</label>
                                             <input type="number" step="0.1" id="calc-cofund-plat-pct"
-                                                class="form-control form-control-sm form-control-dark" value="0">
+                                                class="form-control form-control-sm" value="0">
                                         </div>
                                         <div class="col-6">
                                             <label class="form-label extra-small text-secondary mb-1">Ditanggung Penjual
                                                 (%)</label>
                                             <input type="number" step="0.1" id="calc-cofund-seller-pct"
-                                                class="form-control form-control-sm form-control-dark" value="0">
+                                                class="form-control form-control-sm" value="0">
                                         </div>
                                     </div>
                                 </div>
 
                                 <!-- Persentase Biaya Marketplace -->
                                 <div class="card bg-transparent border-0 mb-4">
-                                    <div class="text-uppercase fw-bold text-white small mb-2 pb-1 border-bottom"
-                                        style="border-color: rgba(255,255,255,0.08) !important;">
+                                    <div class="text-uppercase fw-bold text-dark small mb-2 pb-1 border-bottom">
                                         <i class="fas fa-percentage me-1 text-primary"></i> Persentase Biaya Marketplace
                                     </div>
                                     <div class="row g-2 mb-2 align-items-center">
@@ -591,8 +582,8 @@
                                         <div class="col-5">
                                             <div class="input-group input-group-sm">
                                                 <input type="number" step="0.01" id="calc-admin-pct"
-                                                    class="form-control form-control-dark text-end" value="8.25">
-                                                <span class="input-group-text form-control-dark">%</span>
+                                                    class="form-control text-end" value="8.25">
+                                                <span class="input-group-text">%</span>
                                             </div>
                                         </div>
                                     </div>
@@ -607,8 +598,8 @@
                                         <div class="col-5">
                                             <div class="input-group input-group-sm">
                                                 <input type="number" step="0.01" id="calc-mall-pct"
-                                                    class="form-control form-control-dark text-end" value="0.00">
-                                                <span class="input-group-text form-control-dark">%</span>
+                                                    class="form-control text-end" value="0.00">
+                                                <span class="input-group-text">%</span>
                                             </div>
                                         </div>
                                     </div>
@@ -624,8 +615,8 @@
                                         <div class="col-5">
                                             <div class="input-group input-group-sm">
                                                 <input type="number" step="0.01" id="calc-premi-pct"
-                                                    class="form-control form-control-dark text-end" value="0.50">
-                                                <span class="input-group-text form-control-dark">%</span>
+                                                    class="form-control text-end" value="0.50">
+                                                <span class="input-group-text">%</span>
                                             </div>
                                         </div>
                                     </div>
@@ -636,7 +627,7 @@
                                         </div>
                                         <div class="col-5">
                                             <input type="text" id="calc-pesanan-fee"
-                                                class="form-control form-control-sm form-control-dark text-end calc-number-format"
+                                                class="form-control form-control-sm text-end calc-number-format"
                                                 value="1.250">
                                         </div>
                                     </div>
@@ -647,7 +638,7 @@
                                         </div>
                                         <div class="col-5">
                                             <input type="text" id="calc-hemat-ongkir"
-                                                class="form-control form-control-sm form-control-dark text-end calc-number-format"
+                                                class="form-control form-control-sm text-end calc-number-format"
                                                 value="350">
                                         </div>
                                     </div>
@@ -658,7 +649,7 @@
                                         </div>
                                         <div class="col-5">
                                             <input type="text" id="calc-logistik-fee"
-                                                class="form-control form-control-sm form-control-dark text-end calc-number-format"
+                                                class="form-control form-control-sm text-end calc-number-format"
                                                 value="0">
                                         </div>
                                     </div>
@@ -666,8 +657,7 @@
 
                                 <!-- Persentase Program Pemasaran -->
                                 <div class="card bg-transparent border-0 mb-2">
-                                    <div class="text-uppercase fw-bold text-white small mb-2 pb-1 border-bottom"
-                                        style="border-color: rgba(255,255,255,0.08) !important;">
+                                    <div class="text-uppercase fw-bold text-dark small mb-2 pb-1 border-bottom">
                                         <i class="fas fa-shopping-basket me-1 text-primary"></i> Persentase Program
                                         Pemasaran
                                     </div>
@@ -685,8 +675,8 @@
                                         <div class="col-5">
                                             <div class="input-group input-group-sm">
                                                 <input type="number" step="0.01" id="calc-prog-ongkir-pct"
-                                                    class="form-control form-control-dark text-end" value="7.50">
-                                                <span class="input-group-text form-control-dark">%</span>
+                                                    class="form-control text-end" value="7.50">
+                                                <span class="input-group-text">%</span>
                                             </div>
                                         </div>
                                     </div>
@@ -704,8 +694,8 @@
                                         <div class="col-5">
                                             <div class="input-group input-group-sm">
                                                 <input type="number" step="0.01" id="calc-prog-promo-pct"
-                                                    class="form-control form-control-dark text-end" value="4.50">
-                                                <span class="input-group-text form-control-dark">%</span>
+                                                    class="form-control text-end" value="4.50">
+                                                <span class="input-group-text">%</span>
                                             </div>
                                         </div>
                                     </div>
@@ -723,8 +713,8 @@
                                         <div class="col-5">
                                             <div class="input-group input-group-sm">
                                                 <input type="number" step="0.01" id="calc-prog-promo-plus-pct"
-                                                    class="form-control form-control-dark text-end" value="2.00">
-                                                <span class="input-group-text form-control-dark">%</span>
+                                                    class="form-control text-end" value="2.00">
+                                                <span class="input-group-text">%</span>
                                             </div>
                                         </div>
                                     </div>
@@ -742,8 +732,8 @@
                                         <div class="col-5">
                                             <div class="input-group input-group-sm">
                                                 <input type="number" step="0.01" id="calc-prog-live-pct"
-                                                    class="form-control form-control-dark text-end" value="2.00">
-                                                <span class="input-group-text form-control-dark">%</span>
+                                                    class="form-control text-end" value="2.00">
+                                                <span class="input-group-text">%</span>
                                             </div>
                                         </div>
                                     </div>
@@ -760,8 +750,8 @@
                                         <div class="col-5">
                                             <div class="input-group input-group-sm">
                                                 <input type="number" step="0.01" id="calc-prog-video-pct"
-                                                    class="form-control form-control-dark text-end" value="0.00">
-                                                <span class="input-group-text form-control-dark">%</span>
+                                                    class="form-control text-end" value="0.00">
+                                                <span class="input-group-text">%</span>
                                             </div>
                                         </div>
                                     </div>
@@ -779,8 +769,8 @@
                                         <div class="col-5">
                                             <div class="input-group input-group-sm">
                                                 <input type="number" step="0.01" id="calc-prog-preorder-pct"
-                                                    class="form-control form-control-dark text-end" value="3.00">
-                                                <span class="input-group-text form-control-dark">%</span>
+                                                    class="form-control text-end" value="3.00">
+                                                <span class="input-group-text">%</span>
                                             </div>
                                         </div>
                                     </div>
@@ -798,8 +788,8 @@
                                         <div class="col-5">
                                             <div class="input-group input-group-sm">
                                                 <input type="number" step="0.01" id="calc-prog-spaylater3-pct"
-                                                    class="form-control form-control-dark text-end" value="2.50">
-                                                <span class="input-group-text form-control-dark">%</span>
+                                                    class="form-control text-end" value="2.50">
+                                                <span class="input-group-text">%</span>
                                             </div>
                                         </div>
                                     </div>
@@ -817,8 +807,8 @@
                                         <div class="col-5">
                                             <div class="input-group input-group-sm">
                                                 <input type="number" step="0.01" id="calc-prog-spaylater6-pct"
-                                                    class="form-control form-control-dark text-end" value="0.00">
-                                                <span class="input-group-text form-control-dark">%</span>
+                                                    class="form-control text-end" value="0.00">
+                                                <span class="input-group-text">%</span>
                                             </div>
                                         </div>
                                     </div>
@@ -832,26 +822,24 @@
                             <div class="overflow-auto pe-2" style="max-height: 70vh;">
 
                                 <!-- Input Harga Jual Uji (CORE) -->
-                                <div class="p-3 rounded mb-3 border border-primary"
-                                    style="background: rgba(238, 77, 45, 0.03);">
-                                    <label class="form-label small fw-bold text-white mb-2"><i
+                                <div class="p-3 rounded mb-3 border border-danger border-opacity-25 bg-danger bg-opacity-10">
+                                    <label class="form-label small fw-bold text-danger mb-2"><i
                                             class="fas fa-coins me-1 text-warning"></i> HARGA JUAL UJI (IDR)</label>
                                     <div class="input-group">
                                         <span
-                                            class="input-group-text bg-dark border-primary text-white font-monospace fw-bold">Rp</span>
+                                            class="input-group-text font-monospace fw-bold">Rp</span>
                                         <input type="text" id="calc-price"
-                                            class="form-control form-control-lg bg-dark border-primary text-white text-end font-monospace fw-bold calc-number-format"
-                                            placeholder="0" style="font-size: 1.35rem;" value="385.900">
+                                            class="form-control form-control-lg text-end font-monospace fw-bold calc-number-format"
+                                            placeholder="0" value="385.900">
                                     </div>
                                 </div>
 
                                 <!-- Perhitungan Harga Jual -->
                                 <div class="card bg-transparent border-0 mb-4">
-                                    <div class="text-uppercase fw-bold text-white small mb-2 pb-1 border-bottom"
-                                        style="border-color: rgba(255,255,255,0.08) !important;">
+                                    <div class="text-uppercase fw-bold text-dark small mb-2 pb-1 border-bottom">
                                         <i class="fas fa-calculator me-1 text-success"></i> Perhitungan Harga Jual
                                     </div>
-                                    <table class="table table-sm table-borderless text-white mb-0 extra-small">
+                                    <table class="table table-sm table-borderless mb-0 small">
                                         <tbody>
                                             <tr>
                                                 <td class="text-secondary ps-0">Tampil Harga di Pembeli</td>
@@ -859,9 +847,9 @@
                                                     <div class="input-group input-group-sm d-inline-flex"
                                                         style="width: 80px;">
                                                         <input type="number" id="calc-promo-pct"
-                                                            class="form-control form-control-dark p-1 text-end"
+                                                            class="form-control p-1 text-end"
                                                             value="20">
-                                                        <span class="input-group-text form-control-dark p-1">%</span>
+                                                        <span class="input-group-text p-1">%</span>
                                                     </div>
                                                 </td>
                                                 <td class="text-end fw-bold font-monospace text-warning"
@@ -873,9 +861,9 @@
                                                     <div class="input-group input-group-sm d-inline-flex"
                                                         style="width: 80px;">
                                                         <input type="number" id="calc-coret-pct"
-                                                            class="form-control form-control-dark p-1 text-end"
+                                                            class="form-control p-1 text-end"
                                                             value="50">
-                                                        <span class="input-group-text form-control-dark p-1">%</span>
+                                                        <span class="input-group-text p-1">%</span>
                                                     </div>
                                                 </td>
                                                 <td class="text-end fw-bold font-monospace text-secondary text-decoration-line-through"
@@ -887,20 +875,19 @@
                                                     <div class="input-group input-group-sm d-inline-flex"
                                                         style="width: 80px;">
                                                         <input type="number" id="calc-markup-pct"
-                                                            class="form-control form-control-dark p-1 text-end"
+                                                            class="form-control p-1 text-end"
                                                             value="10">
-                                                        <span class="input-group-text form-control-dark p-1">%</span>
+                                                        <span class="input-group-text p-1">%</span>
                                                     </div>
                                                 </td>
                                                 <td class="text-end fw-bold font-monospace text-info"
                                                     id="res-markup-price-rp">Rp 0</td>
                                             </tr>
-                                            <tr class="border-top"
-                                                style="border-color: rgba(255,255,255,0.05) !important;">
+                                            <tr class="border-top">
                                                 <td class="text-secondary ps-0 pt-2">BEP ADS (Break Even Point ROAS)</td>
                                                 <td></td>
                                                 <td class="text-end fw-bold font-monospace text-danger pt-2"
-                                                    id="res-bep-ads-val" style="font-size: 0.9rem;">0.00</td>
+                                                    id="res-bep-ads-val">0.00</td>
                                             </tr>
                                         </tbody>
                                     </table>
@@ -908,18 +895,16 @@
 
                                 <!-- Hasil Penghitungan (Profit Summary) -->
                                 <div class="card bg-transparent border-0 mb-4">
-                                    <div class="text-uppercase fw-bold text-white small mb-2 pb-1 border-bottom"
-                                        style="border-color: rgba(255,255,255,0.08) !important;">
+                                    <div class="text-uppercase fw-bold text-dark small mb-2 pb-1 border-bottom">
                                         <i class="fas fa-chart-pie me-1 text-success"></i> Ringkasan Profit Margin
                                     </div>
 
                                     <!-- Organic -->
-                                    <div class="d-flex align-items-center justify-content-between p-2 rounded mb-2 border"
-                                        id="box-organic"
-                                        style="background: rgba(16, 185, 129, 0.05); border-color: rgba(16, 185, 129, 0.2) !important;">
+                                    <div class="d-flex align-items-center justify-content-between p-2 rounded mb-2 border border-success border-opacity-25 bg-success bg-opacity-10"
+                                        id="box-organic">
                                         <div>
-                                            <div class="fw-bold extra-small text-white">Profit Organik</div>
-                                            <div class="text-muted extra-small" style="font-size: 0.7rem;">Murni non-iklan
+                                            <div class="fw-bold small text-dark">Profit Organik</div>
+                                            <div class="text-muted extra-small">Murni non-iklan
                                                 / non-affiliate</div>
                                         </div>
                                         <div class="text-end">
@@ -931,29 +916,26 @@
                                     </div>
 
                                     <!-- Affiliate -->
-                                    <div class="d-flex align-items-center justify-content-between p-2 rounded mb-2 border"
-                                        id="box-affiliate"
-                                        style="background: rgba(139, 92, 246, 0.05); border-color: rgba(139, 92, 246, 0.2) !important;">
+                                    <div class="d-flex align-items-center justify-content-between p-2 rounded mb-2 border border-primary border-opacity-25 bg-primary bg-opacity-10"
+                                        id="box-affiliate">
                                         <div>
-                                            <div class="fw-bold extra-small text-white">Profit Affiliate</div>
-                                            <div class="text-muted extra-small" style="font-size: 0.7rem;">Potongan Komisi
+                                            <div class="fw-bold small text-dark">Profit Affiliate</div>
+                                            <div class="text-muted extra-small">Potongan Komisi
                                                 & PPN Affiliate</div>
                                         </div>
                                         <div class="text-end">
-                                            <div class="fw-bold font-monospace" id="val-affiliate-profit"
-                                                style="color: #a78bfa;">Rp 0</div>
-                                            <span class="badge bg-purple-subtle text-purple extra-small"
+                                            <div class="fw-bold font-monospace text-primary" id="val-affiliate-profit">Rp 0</div>
+                                            <span class="badge bg-primary-subtle text-primary extra-small"
                                                 id="val-affiliate-pct">0%</span>
                                         </div>
                                     </div>
 
                                     <!-- Ads & Affiliate -->
-                                    <div class="d-flex align-items-center justify-content-between p-2 rounded mb-3 border"
-                                        id="box-ads"
-                                        style="background: rgba(245, 158, 11, 0.05); border-color: rgba(245, 158, 11, 0.2) !important;">
+                                    <div class="d-flex align-items-center justify-content-between p-2 rounded mb-3 border border-warning border-opacity-25 bg-warning bg-opacity-10"
+                                        id="box-ads">
                                         <div>
-                                            <div class="fw-bold extra-small text-white">Profit Ads & Affiliate</div>
-                                            <div class="text-muted extra-small" style="font-size: 0.7rem;">Potongan Iklan
+                                            <div class="fw-bold small text-dark">Profit Ads & Affiliate</div>
+                                            <div class="text-muted extra-small">Potongan Iklan
                                                 GMV Max & Affiliate</div>
                                         </div>
                                         <div class="text-end">
@@ -967,15 +949,14 @@
 
                                 <!-- Target Pasang ROAS Table -->
                                 <div class="card bg-transparent border-0 mb-4">
-                                    <div class="text-uppercase fw-bold text-white small mb-2 pb-1 border-bottom"
-                                        style="border-color: rgba(255,255,255,0.08) !important;">
+                                    <div class="text-uppercase fw-bold text-dark small mb-2 pb-1 border-bottom">
                                         <i class="fas fa-crosshairs me-1 text-warning"></i> Target Pasang ROAS : GMV Max
                                         ROAS
                                     </div>
                                     <table
-                                        class="table table-sm table-bordered border-secondary text-white mb-0 extra-small font-monospace">
+                                        class="table table-sm table-bordered mb-0 small font-monospace">
                                         <thead>
-                                            <tr class="bg-dark text-secondary text-center">
+                                            <tr class="table-light text-center text-muted">
                                                 <th>Ket.</th>
                                                 <th>ROAS</th>
                                                 <th>Biaya Iklan %</th>
@@ -986,7 +967,7 @@
                                         </thead>
                                         <tbody>
                                             <tr>
-                                                <td class="text-white text-center">Aman / Akselerasi ROAS</td>
+                                                <td class="text-center">Aman / Akselerasi ROAS</td>
                                                 <td class="text-center text-success fw-bold" id="res-roas-aman">0.00</td>
                                                 <td class="text-center text-danger" id="res-ads-pct-aman">0.00%</td>
                                                 <td class="text-end" id="res-ads-rp-aman">Rp 0</td>
@@ -995,7 +976,7 @@
                                                 </td>
                                             </tr>
                                             <tr>
-                                                <td class="text-white text-center">Setelah Akselerasi (-30%)</td>
+                                                <td class="text-center">Setelah Akselerasi (-30%)</td>
                                                 <td class="text-center text-warning fw-bold" id="res-roas-akselerasi">0.00
                                                 </td>
                                                 <td class="text-center text-danger" id="res-ads-pct-akselerasi">0.00%</td>
@@ -1011,27 +992,26 @@
 
                                 <!-- BEP (Break Even Point) Kalkulator -->
                                 <div class="card bg-transparent border-0 mb-4">
-                                    <div class="text-uppercase fw-bold text-white small mb-2 pb-1 border-bottom"
-                                        style="border-color: rgba(255,255,255,0.08) !important;">
+                                    <div class="text-uppercase fw-bold text-dark small mb-2 pb-1 border-bottom">
                                         <i class="fas fa-balance-scale me-1 text-danger"></i> BEP (Break Even Point)
                                         Kalkulator
                                     </div>
                                     <table
-                                        class="table table-sm table-bordered border-secondary text-white mb-0 extra-small font-monospace">
+                                        class="table table-sm table-bordered mb-0 small font-monospace">
                                         <thead>
-                                            <tr class="bg-dark text-secondary text-center">
+                                            <tr class="table-light text-center text-muted">
                                                 <th>Ket.</th>
                                                 <th>ROAS</th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             <tr>
-                                                <td class="text-white text-center">Aman / Akselerasi ROAS</td>
+                                                <td class="text-center">Aman / Akselerasi ROAS</td>
                                                 <td class="text-center text-danger fw-bold" id="res-bep-roas-aman">0.00
                                                 </td>
                                             </tr>
                                             <tr>
-                                                <td class="text-white text-center">Setelah Akselerasi (-30%)</td>
+                                                <td class="text-center">Setelah Akselerasi (-30%)</td>
                                                 <td class="text-center text-warning fw-bold" id="res-bep-roas-akselerasi">
                                                     0.00</td>
                                             </tr>
@@ -1041,21 +1021,19 @@
 
                                 <!-- Rincian Biaya (Detail) -->
                                 <div class="card bg-transparent border-0 mb-3">
-                                    <div class="text-uppercase fw-bold text-white small mb-2 pb-1 border-bottom"
-                                        style="border-color: rgba(255,255,255,0.08) !important;">
+                                    <div class="text-uppercase fw-bold text-dark small mb-2 pb-1 border-bottom">
                                         <i class="fas fa-list-ul me-1 text-secondary"></i> Rincian Biaya Lengkap
                                     </div>
-                                    <div class="p-3 rounded border"
-                                        style="background: rgba(255,255,255,0.01); border-color: var(--border);">
+                                    <div class="p-3 rounded border bg-light bg-opacity-50">
                                         <div class="d-flex justify-content-between align-items-center mb-2 font-monospace"
                                             style="font-size: 0.85rem;">
                                             <span class="text-success fw-bold"><i
                                                     class="fas fa-arrow-circle-right me-1"></i> Total Pendapatan Organik
-                                                (Omset)</span>
+                                                 (Omset)</span>
                                             <span class="text-success fw-bold" id="res-net-revenue">Rp 0</span>
                                         </div>
                                         <div class="d-flex justify-content-between align-items-center mb-2 font-monospace border-bottom pb-2"
-                                            style="font-size: 0.85rem; border-color: rgba(255,255,255,0.05) !important;">
+                                            style="font-size: 0.85rem;">
                                             <span class="text-danger fw-bold"><i class="fas fa-minus-circle me-1"></i>
                                                 Total Biaya Marketplace</span>
                                             <span class="text-danger fw-bold" id="res-total-fees">Rp 0</span>
@@ -1075,7 +1053,7 @@
                                             <!-- Admin Fees Breakdown -->
                                             <div class="mb-2">
                                                 <div
-                                                    class="d-flex justify-content-between fw-bold text-white border-bottom border-secondary mb-1">
+                                                    class="d-flex justify-content-between fw-bold text-dark border-bottom mb-1">
                                                     <span>Total Biaya Administrasi</span>
                                                     <span id="res-admin-fees-total">Rp 0</span>
                                                 </div>
@@ -1110,7 +1088,7 @@
                                             <!-- Marketing Programs Breakdown -->
                                             <div class="mb-2">
                                                 <div
-                                                    class="d-flex justify-content-between fw-bold text-white border-bottom border-secondary mb-1">
+                                                    class="d-flex justify-content-between fw-bold text-dark border-bottom mb-1">
                                                     <span>Total Biaya Pemasaran</span>
                                                     <span id="res-marketing-fees-total">Rp 0</span>
                                                 </div>
@@ -1153,7 +1131,7 @@
                                             <!-- Total Biaya Marketing (Ads + Affiliate) -->
                                             <div class="mb-2">
                                                 <div
-                                                    class="d-flex justify-content-between fw-bold text-white border-bottom border-secondary mb-1">
+                                                    class="d-flex justify-content-between fw-bold text-dark border-bottom mb-1">
                                                     <span>Total Biaya Marketing (Ads + Affiliate)</span>
                                                     <span id="res-ads-marketing-total">Rp 0</span>
                                                 </div>
@@ -1180,7 +1158,7 @@
                                             <!-- Co-Found Voucher Breakdown -->
                                             <div class="mb-0">
                                                 <div
-                                                    class="d-flex justify-content-between fw-bold text-white border-bottom border-secondary mb-1">
+                                                    class="d-flex justify-content-between fw-bold text-dark border-bottom mb-1">
                                                     <span>Total Biaya Co-Found</span>
                                                     <span id="res-cofund-fees-total">Rp 0</span>
                                                 </div>
@@ -1202,7 +1180,7 @@
                             </div>
 
                             <!-- Apply Button -->
-                            <div class="mt-auto pt-3 border-top" style="border-color: var(--border) !important;">
+                            <div class="mt-auto pt-3 border-top">
                                 <div class="row g-2">
                                     <div class="col-8">
                                         <button type="button" id="btn-apply-calc-price"

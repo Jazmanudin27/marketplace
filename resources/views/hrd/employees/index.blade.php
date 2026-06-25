@@ -6,17 +6,17 @@
     <div class="row">
         <div class="col-md-12">
             {{-- ── Filter Card ───────────────────────────────────────────── --}}
-            <div class="dashboard-card mb-3 py-3">
+            <div class="card border shadow-sm p-3 mb-3">
                 <div class="row g-2 align-items-end">
                     <div class="col-12 col-sm-6 col-md-4 col-lg-3">
-                        <label class="form-label form-label-sm">
+                        <label class="form-label small">
                             <i class="fas fa-search me-1"></i>Cari Nama / Posisi
                         </label>
                         <input type="text" id="filterSearch" class="form-control form-control-sm"
                             placeholder="Ketik nama atau posisi...">
                     </div>
                     <div class="col-12 col-sm-6 col-md-3 col-lg-2">
-                        <label class="form-label form-label-sm">
+                        <label class="form-label small">
                             <i class="fas fa-toggle-on me-1"></i>Status Keaktifan
                         </label>
                         <select id="filterStatus" class="form-select form-select-sm">
@@ -26,7 +26,7 @@
                         </select>
                     </div>
                     <div class="col-12 col-sm-6 col-md-3 col-lg-2">
-                        <label class="form-label form-label-sm">
+                        <label class="form-label small">
                             <i class="fas fa-money-bill-wave me-1"></i>Jenis Gaji
                         </label>
                         <select id="filterSalaryType" class="form-select form-select-sm">
@@ -44,173 +44,174 @@
             </div>
 
             {{-- ── Table Card ────────────────────────────────────────────── --}}
-            <div class="dashboard-card">
+            <div class="card border shadow-sm overflow-hidden">
 
                 {{-- Header --}}
-                <div class="card-header-line d-flex justify-content-between align-items-center">
+                <div class="card-header bg-info bg-opacity-10 d-flex justify-content-between align-items-center border-bottom py-2 px-3">
                     <div>
-                        <h5 class="mb-0">
-                            <i class="fas fa-users me-2 text-primary"></i>Daftar Karyawan
-                        </h5>
-                        <p class="text-muted mb-0 mt-1 small">Kelola data profil, jadwal kerja, dan penggajian karyawan</p>
+                        <h6 class="fw-bold mb-0 text-dark">
+                            <i class="fas fa-users me-2 text-info"></i>Daftar Karyawan
+                        </h6>
+                        <small class="text-muted d-block">Kelola data profil, jadwal kerja, dan penggajian karyawan</small>
                     </div>
-                    <a href="{{ route('employees.create') }}" class="btn btn-primary btn-sm px-3">
+                    <a href="{{ route('employees.create') }}" class="btn btn-primary btn-sm px-3 rounded-3">
                         <i class="fas fa-plus me-1"></i> Tambah Karyawan
                     </a>
                 </div>
 
-                {{-- Alert --}}
-                @if (session('success'))
-                    <div class="alert alert-success alert-dismissible fade show mt-3" role="alert">
-                        <i class="fas fa-check-circle me-2"></i>{{ session('success') }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                <div class="card-body p-3">
+                    {{-- Alert --}}
+                    @if (session('success'))
+                        <div class="alert alert-success alert-dismissible fade show mt-3" role="alert">
+                            <i class="fas fa-check-circle me-2"></i>{{ session('success') }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    @endif
+
+                    {{-- Validation Errors --}}
+                    @if ($errors->any())
+                        <div class="alert alert-danger alert-dismissible fade show mt-3" role="alert">
+                            <strong><i class="fas fa-exclamation-triangle me-2"></i>Periksa kembali inputan Anda:</strong>
+                            <ul class="mb-0 mt-1 ps-3 small">
+                                @foreach ($errors->all() as $error)
+                                    <li>{{ $error }}</li>
+                                @endforeach
+                            </ul>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    @endif
+
+                    {{-- Info bar --}}
+                    <div class="d-flex justify-content-between align-items-center mt-3 mb-2">
+                        <span class="text-muted small">
+                            Total <strong id="totalKaryawanCount">{{ count($employees) }}</strong> Karyawan
+                        </span>
                     </div>
-                @endif
 
-                {{-- Validation Errors --}}
-                @if ($errors->any())
-                    <div class="alert alert-danger alert-dismissible fade show mt-3" role="alert">
-                        <strong><i class="fas fa-exclamation-triangle me-2"></i>Periksa kembali inputan Anda:</strong>
-                        <ul class="mb-0 mt-1 ps-3 small">
-                            @foreach ($errors->all() as $error)
-                                <li>{{ $error }}</li>
-                            @endforeach
-                        </ul>
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                    </div>
-                @endif
-
-                {{-- Info bar --}}
-                <div class="d-flex justify-content-between align-items-center mt-3 mb-2">
-                    <span class="text-muted small">
-                        Total <strong id="totalKaryawanCount">{{ count($employees) }}</strong> Karyawan
-                    </span>
-                </div>
-
-                {{-- Tabel --}}
-                <div class="table-responsive rounded border border-secondary border-opacity-10 mt-3">
-                    <table class="table table-sm table-bordered table-premium-dark align-middle mb-0">
-                        <thead>
-                            <tr>
-                                <th>KARYAWAN</th>
-                                <th>POSISI</th>
-                                <th class="text-end">GAJI &amp; LEMBUR</th>
-                                <th class="text-center">AKUN MOBILE</th>
-                                <th class="text-center">STATUS</th>
-                                <th class="text-center">AKSI</th>
-                            </tr>
-                        </thead>
-                        <tbody id="employeeTableBody">
-                            @forelse($employees as $emp)
-                                <tr data-name="{{ $emp->name }}" data-position="{{ $emp->position ?? '' }}"
-                                    data-status="{{ $emp->is_active ? 'active' : 'inactive' }}"
-                                    data-salary-type="{{ $emp->salary_type }}">
-                                    <td>
-                                        <strong class="text-white small">{{ $emp->name }}</strong>
-                                        @if ($emp->email)
-                                            <div class="text-muted small mt-1">
-                                                <i class="fas fa-envelope me-1 text-secondary"></i>{{ $emp->email }}
+                    {{-- Tabel --}}
+                    <div class="table-responsive rounded border mt-3">
+                        <table class="table table-sm table-striped table-bordered align-middle mb-0">
+                            <thead>
+                                <tr class="small">
+                                    <th>KARYAWAN</th>
+                                    <th>POSISI</th>
+                                    <th class="text-end">GAJI &amp; LEMBUR</th>
+                                    <th class="text-center">AKUN MOBILE</th>
+                                    <th class="text-center">STATUS</th>
+                                    <th class="text-center">AKSI</th>
+                                </tr>
+                            </thead>
+                            <tbody id="employeeTableBody">
+                                @forelse($employees as $emp)
+                                    <tr data-name="{{ $emp->name }}" data-position="{{ $emp->position ?? '' }}"
+                                        data-status="{{ $emp->is_active ? 'active' : 'inactive' }}"
+                                        data-salary-type="{{ $emp->salary_type }}">
+                                        <td>
+                                            <strong class="text-dark small">{{ $emp->name }}</strong>
+                                            @if ($emp->email)
+                                                <div class="text-muted small mt-1">
+                                                    <i class="fas fa-envelope me-1 text-secondary"></i>{{ $emp->email }}
+                                                </div>
+                                            @endif
+                                            @if ($emp->phone)
+                                                <div class="small mt-1">
+                                                    <a href="tel:{{ $emp->phone }}" class="text-decoration-none text-secondary">
+                                                        <i class="fas fa-phone me-1 text-secondary"></i>{{ $emp->phone }}
+                                                    </a>
+                                                </div>
+                                            @endif
+                                        </td>
+                                        <td>
+                                            <span class="small text-secondary">
+                                                <i class="fas fa-briefcase me-1 text-secondary"></i>{{ $emp->position ?? '—' }}
+                                            </span>
+                                        </td>
+                                        <td class="text-end">
+                                            <div class="lh-sm">
+                                                <span class="badge {{ $emp->salary_type === 'hourly' ? 'bg-info-subtle text-info border border-info-subtle' : 'bg-light text-secondary border small' }} small mb-1">
+                                                    {{ $emp->salary_type === 'hourly' ? 'Per Jam' : 'Per Bulan' }}
+                                                </span>
+                                                <div class="text-secondary small mt-1">
+                                                    Gaji Pokok: <strong class="text-dark">Rp {{ number_format($emp->basic_salary, 0, ',', '.') }}</strong>
+                                                </div>
+                                                <div class="text-secondary small">
+                                                    Tunjangan: <strong class="text-dark">Rp {{ number_format($emp->allowance, 0, ',', '.') }}</strong>
+                                                </div>
+                                                <div class="text-secondary small">
+                                                    Lembur: <strong class="text-dark">Rp {{ number_format($emp->overtime_rate, 0, ',', '.') }}/jam</strong>
+                                                </div>
                                             </div>
-                                        @endif
-                                        @if ($emp->phone)
-                                            <div class="small mt-1">
-                                                <a href="tel:{{ $emp->phone }}" class="text-decoration-none text-light text-opacity-75">
-                                                    <i class="fas fa-phone me-1 text-secondary"></i>{{ $emp->phone }}
+                                        </td>
+                                        <td class="text-center">
+                                            @if ($emp->username)
+                                                <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-10 small">
+                                                    <i class="fas fa-mobile-alt me-1"></i>{{ $emp->username }}
+                                                </span>
+                                            @else
+                                                <span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-10 small">
+                                                    Belum Ada
+                                                </span>
+                                            @endif
+                                        </td>
+                                        <td class="text-center">
+                                            @if ($emp->is_active)
+                                                <span class="badge bg-success-subtle text-success border border-success-subtle small">
+                                                    Aktif
+                                                </span>
+                                            @else
+                                                <span class="badge bg-danger-subtle text-danger border border-danger-subtle small">
+                                                    Nonaktif
+                                                </span>
+                                            @endif
+                                        </td>
+                                        <td class="text-center">
+                                            <div class="d-flex gap-1 justify-content-center">
+                                                <a href="{{ route('employees.edit', $emp->id) }}"
+                                                    class="btn btn-warning btn-sm text-white" title="Edit Profil">
+                                                    <i class="fas fa-pen"></i>
                                                 </a>
-                                            </div>
-                                        @endif
-                                    </td>
-                                    <td>
-                                        <span class="small text-white-50">
-                                            <i class="fas fa-briefcase me-1 text-secondary"></i>{{ $emp->position ?? '—' }}
-                                        </span>
-                                    </td>
-                                    <td class="text-end">
-                                        <div class="lh-sm">
-                                            <span class="badge {{ $emp->salary_type === 'hourly' ? 'bg-info-subtle text-info border border-info-subtle' : 'bg-secondary-subtle text-secondary border border-secondary-subtle' }} small mb-1">
-                                                {{ $emp->salary_type === 'hourly' ? 'Per Jam' : 'Per Bulan' }}
-                                            </span>
-                                            <div class="text-white-50 small mt-1">
-                                                Gaji Pokok: <strong class="text-white">Rp {{ number_format($emp->basic_salary, 0, ',', '.') }}</strong>
-                                            </div>
-                                            <div class="text-white-50 small">
-                                                Tunjangan: <strong>Rp {{ number_format($emp->allowance, 0, ',', '.') }}</strong>
-                                            </div>
-                                            <div class="text-white-50 small">
-                                                Lembur: <strong>Rp {{ number_format($emp->overtime_rate, 0, ',', '.') }}/jam</strong>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td class="text-center">
-                                        @if ($emp->username)
-                                            <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-10 small">
-                                                <i class="fas fa-mobile-alt me-1"></i>{{ $emp->username }}
-                                            </span>
-                                        @else
-                                            <span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-10 small">
-                                                Belum Ada
-                                            </span>
-                                        @endif
-                                    </td>
-                                    <td class="text-center">
-                                        @if ($emp->is_active)
-                                            <span class="badge bg-success-subtle text-success border border-success-subtle small">
-                                                Aktif
-                                            </span>
-                                        @else
-                                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle small">
-                                                Nonaktif
-                                            </span>
-                                        @endif
-                                    </td>
-                                    <td class="text-center">
-                                        <div class="d-flex gap-1 justify-content-center">
-                                            <a href="{{ route('employees.edit', $emp->id) }}"
-                                                class="btn btn-warning btn-action-sm text-white" title="Edit Profil">
-                                                <i class="fas fa-pen"></i>
-                                            </a>
-                                            <button type="button" class="btn btn-success btn-action-sm edit-salary-btn"
-                                                title="Atur Gaji & Tunjangan" data-id="{{ $emp->id }}"
-                                                data-name="{{ $emp->name }}" data-salary-type="{{ $emp->salary_type }}"
-                                                data-schedules="{{ $emp->schedules->toJson() }}"
-                                                data-basic-salary="{{ $emp->basic_salary }}"
-                                                data-allowances="{{ $emp->allowances->pluck('amount', 'allowance_type_id')->toJson() }}"
-                                                data-overtime-rate="{{ $emp->overtime_rate }}">
-                                                <i class="fas fa-money-bill-wave"></i>
-                                            </button>
-                                            <button type="button"
-                                                class="btn btn-info btn-action-sm edit-credential-btn text-white"
-                                                title="Akun Mobile" data-id="{{ $emp->id }}"
-                                                data-name="{{ $emp->name }}"
-                                                data-username="{{ $emp->username ?? '' }}">
-                                                <i class="fas fa-key"></i>
-                                            </button>
-                                            <form action="{{ route('employees.destroy', $emp->id) }}" method="POST"
-                                                class="confirm-delete d-inline"
-                                                data-message="Data karyawan ini akan dihapus secara permanen!">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button type="submit" class="btn btn-danger btn-action-sm"
-                                                    title="Hapus">
-                                                    <i class="fas fa-trash"></i>
+                                                <button type="button" class="btn btn-success btn-sm edit-salary-btn"
+                                                    title="Atur Gaji & Tunjangan" data-id="{{ $emp->id }}"
+                                                    data-name="{{ $emp->name }}" data-salary-type="{{ $emp->salary_type }}"
+                                                    data-schedules="{{ $emp->schedules->toJson() }}"
+                                                    data-basic-salary="{{ $emp->basic_salary }}"
+                                                    data-allowances="{{ $emp->allowances->pluck('amount', 'allowance_type_id')->toJson() }}"
+                                                    data-overtime-rate="{{ $emp->overtime_rate }}">
+                                                    <i class="fas fa-money-bill-wave"></i>
                                                 </button>
-                                            </form>
-                                        </div>
-                                    </td>
-                                </tr>
-                            @empty
-                                <tr>
-                                    <td colspan="6" class="text-center py-5">
-                                        <i class="fas fa-users fa-2x mb-3 d-block text-secondary opacity-25"></i>
-                                        <p class="text-muted mb-0 small">Belum ada data karyawan.</p>
-                                    </td>
-                                </tr>
-                            @endforelse
-                        </tbody>
-                    </table>
-                </div>
-
-            </div>
+                                                <button type="button"
+                                                    class="btn btn-info btn-sm edit-credential-btn text-white"
+                                                    title="Akun Mobile" data-id="{{ $emp->id }}"
+                                                    data-name="{{ $emp->name }}"
+                                                    data-username="{{ $emp->username ?? '' }}">
+                                                    <i class="fas fa-key"></i>
+                                                </button>
+                                                <form action="{{ route('employees.destroy', $emp->id) }}" method="POST"
+                                                    class="confirm-delete d-inline"
+                                                    data-message="Data karyawan ini akan dihapus secara permanen!">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit" class="btn btn-danger btn-sm"
+                                                        title="Hapus">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="6" class="text-center py-5">
+                                            <i class="fas fa-users fa-2x mb-3 d-block text-secondary opacity-25"></i>
+                                            <p class="text-muted mb-0 small">Belum ada data karyawan.</p>
+                                        </td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                </div> {{-- End card-body --}}
+            </div> {{-- End card --}}
         </div>
     </div>
 
@@ -224,7 +225,7 @@
                         <i class="fas fa-money-bill-wave"></i>
                     </div>
                     <div class="flex-grow-1">
-                        <h5 class="modal-title fw-bold fs-6 mb-0" id="salaryModalLabel">Atur Gaji & Tunjangan</h5>
+                        <h5 class="modal-title fw-bold fs-6 mb-0 text-dark" id="salaryModalLabel">Atur Gaji & Tunjangan</h5>
                         <p class="mb-0 text-muted small">Karyawan: <strong id="salaryEmployeeName"
                                 class="text-success"></strong></p>
                     </div>
@@ -236,14 +237,14 @@
                     <div class="modal-body p-4">
                         <div class="row">
                             <div class="col-md-6 mb-3">
-                                <label class="form-label fw-semibold small">Jenis Gaji</label>
+                                <label class="form-label fw-semibold small text-dark">Jenis Gaji</label>
                                 <select name="salary_type" id="salary_salary_type" class="form-select form-select-sm">
                                     <option value="monthly">Per Bulan (Fixed)</option>
                                     <option value="hourly">Per Jam</option>
                                 </select>
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label class="form-label fw-semibold small" id="salary_label_basic_salary">Gaji Pokok
+                                <label class="form-label fw-semibold small text-dark" id="salary_label_basic_salary">Gaji Pokok
                                     (Bulanan)</label>
                                 <div class="input-group input-group-sm">
                                     <span class="input-group-text">Rp</span>
@@ -256,12 +257,12 @@
                         {{-- Jadwal Kerja --}}
                         <div class="row mb-3">
                             <div class="col-md-12">
-                                <label class="form-label fw-semibold small mb-2">Jadwal Kerja Mingguan</label>
-                                <div class="table-responsive border border-secondary border-opacity-10 rounded">
-                                    <table class="table table-sm table-bordered table-premium-dark align-middle mb-0"
+                                <label class="form-label fw-semibold small text-dark mb-2">Jadwal Kerja Mingguan</label>
+                                <div class="table-responsive rounded border">
+                                    <table class="table table-sm table-striped table-bordered align-middle mb-0"
                                         style="font-size: 0.8rem;">
                                         <thead>
-                                            <tr>
+                                            <tr class="small">
                                                 <th>Hari</th>
                                                 <th>Masuk</th>
                                                 <th>Pulang</th>
@@ -286,7 +287,7 @@
                                                         <input type="hidden"
                                                             name="schedules[{{ $dayNum }}][day_of_week]"
                                                             value="{{ $dayNum }}">
-                                                        <strong>{{ $dayName }}</strong>
+                                                        <strong class="text-dark">{{ $dayName }}</strong>
                                                     </td>
                                                     <td>
                                                         <input type="time"
@@ -319,7 +320,7 @@
 
                         <div class="row">
                             <div class="col-md-12 mb-3">
-                                <label class="form-label fw-semibold small">Tarif Lembur (/jam)</label>
+                                <label class="form-label fw-semibold small text-dark">Tarif Lembur (/jam)</label>
                                 <div class="input-group input-group-sm">
                                     <span class="input-group-text">Rp</span>
                                     <input type="text" name="overtime_rate" id="salary_overtime_rate"
@@ -340,7 +341,7 @@
                             <div class="row g-2">
                                 @foreach ($allowanceTypes as $type)
                                     <div class="col-md-6 mb-2">
-                                        <label class="form-label fw-semibold small text-truncate d-block mb-1"
+                                        <label class="form-label fw-semibold small text-truncate text-dark d-block mb-1"
                                             title="{{ $type->name }}">{{ $type->name }}</label>
                                         <div class="input-group input-group-sm">
                                             <span class="input-group-text">Rp</span>
@@ -357,7 +358,7 @@
                     <div class="modal-footer bg-success bg-opacity-10 px-4 py-3 d-flex justify-content-between">
                         <button type="button" class="btn btn-secondary btn-sm px-3"
                             data-bs-dismiss="modal">Batal</button>
-                        <button type="submit" class="btn btn-primary btn-sm px-4">Simpan</button>
+                        <button type="submit" class="btn btn-primary btn-sm px-4 rounded-3">Simpan</button>
                     </div>
                 </form>
             </div>
@@ -375,7 +376,7 @@
                         <i class="fas fa-key"></i>
                     </div>
                     <div class="flex-grow-1">
-                        <h5 class="modal-title fw-bold fs-6 mb-0" id="credentialModalLabel">Akun Mobile</h5>
+                        <h5 class="modal-title fw-bold fs-6 mb-0 text-dark" id="credentialModalLabel">Akun Mobile</h5>
                         <p class="mb-0 text-muted small">Karyawan: <strong id="credEmployeeName"
                                 class="text-warning"></strong></p>
                     </div>
@@ -390,17 +391,17 @@
                             Karyawan akan menggunakan kredensial ini untuk login aplikasi presensi di HP.
                         </div>
                         <div class="mb-3">
-                            <label class="form-label fw-semibold small">Username</label>
+                            <label class="form-label fw-semibold small text-dark">Username</label>
                             <input type="text" name="username" id="cred_username"
                                 class="form-control form-control-sm" required placeholder="budi.santoso">
                         </div>
                         <div class="mb-3">
-                            <label class="form-label fw-semibold small">Password Baru</label>
+                            <label class="form-label fw-semibold small text-dark">Password Baru</label>
                             <input type="password" name="password" id="cred_password"
                                 class="form-control form-control-sm" placeholder="Kosongkan jika tidak ingin diubah">
                         </div>
                         <div class="mb-3">
-                            <label class="form-label fw-semibold small">Konfirmasi Password Baru</label>
+                            <label class="form-label fw-semibold small text-dark">Konfirmasi Password Baru</label>
                             <input type="password" name="password_confirmation" id="cred_password_confirm"
                                 class="form-control form-control-sm" placeholder="Ulangi password baru">
                         </div>
@@ -408,7 +409,7 @@
                     <div class="modal-footer bg-warning bg-opacity-10 px-4 py-3 d-flex justify-content-between">
                         <button type="button" class="btn btn-secondary btn-sm px-3"
                             data-bs-dismiss="modal">Batal</button>
-                        <button type="submit" class="btn btn-primary btn-sm px-4">Simpan Akun</button>
+                        <button type="submit" class="btn btn-primary btn-sm px-4 rounded-3">Simpan Akun</button>
                     </div>
                 </form>
             </div>
@@ -598,7 +599,7 @@
 
                 function updateSalaryLabel(type) {
                     $('#salary_label_basic_salary').text(type === 'hourly' ? 'Gaji Per Jam (Rate)' :
-                        'Gaji Pokok (Bulanan)');
+                         'Gaji Pokok (Bulanan)');
                 }
 
                 $('#salary_salary_type').on('change', function() {

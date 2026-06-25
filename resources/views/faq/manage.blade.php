@@ -2,9 +2,7 @@
 @section('title', 'Kelola Panduan & FAQ')
 @section('page-title', 'Kelola Panduan & FAQ')
 
-@push('styles')
-    <link rel="stylesheet" href="{{ asset('css/faq-manage.css') }}">
-@endpush
+
 
 @section('content')
     <div class="manage-wrapper">
@@ -45,194 +43,192 @@
         <div class="row g-4">
             <!-- Sidebar Kategori -->
             <div class="col-lg-4">
-                <div class="dashboard-card h-100">
-                    <div class="card-header-line mb-3">
-                        <h3><i class="fas fa-folder"></i> Daftar Kategori</h3>
-                    </div>
+                <div class="card border shadow-sm h-100">
+                    <div class="card-body">
+                        <h5 class="card-title fw-bold text-dark mb-3"><i class="fas fa-folder text-primary me-2"></i>Daftar Kategori</h5>
 
-                    @if ($categories->isEmpty())
-                        <div class="text-center py-4 text-muted">
-                            <i class="fas fa-folder-open mb-2" style="font-size: 2rem;"></i>
-                            <p>Belum ada kategori.</p>
-                        </div>
-                    @else
-                        <div class="category-list-wrapper">
-                            @foreach ($categories as $index => $category)
-                                <div class="category-item-card {{ $index === 0 ? 'active' : '' }}"
-                                    data-category-slug="{{ $category->slug }}" data-category-id="{{ $category->id }}"
-                                    style="--cat-color: {{ $category->color }}; --cat-color-rgb: {{ $category->color_rgb }};">
-                                    <div class="d-flex justify-content-between align-items-start">
-                                        <div class="d-flex align-items-center gap-3">
-                                            <div class="cat-icon-wrap"
-                                                style="width: 36px; height: 36px; background: rgba({{ $category->color_rgb }}, 0.12); color: {{ $category->color }}; border-radius: 8px; display: flex; align-items: center; justify-content: center;">
-                                                <i class="{{ $category->icon }}"></i>
+                        @if ($categories->isEmpty())
+                            <div class="text-center py-4 text-muted">
+                                <i class="fas fa-folder-open mb-2" style="font-size: 2rem;"></i>
+                                <p>Belum ada kategori.</p>
+                            </div>
+                        @else
+                            <div class="category-list-wrapper">
+                                @foreach ($categories as $index => $category)
+                                    <div class="category-item-card card border mb-2 p-3 {{ $index === 0 ? 'active bg-light border-primary' : 'bg-white' }}"
+                                        data-category-slug="{{ $category->slug }}" data-category-id="{{ $category->id }}"
+                                        style="cursor: pointer; border-left: 4px solid {{ $category->color }} !important;">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div class="d-flex align-items-center gap-3">
+                                                <div class="cat-icon-wrap fs-4" style="color: {{ $category->color }};">
+                                                    <i class="{{ $category->icon }}"></i>
+                                                </div>
+                                                <div>
+                                                    <h6 class="mb-0 fw-bold text-dark">{{ $category->name }}</h6>
+                                                    <small class="text-muted">{{ $category->subtitle ?? 'Tidak ada deskripsi' }}</small>
+                                                </div>
                                             </div>
-                                            <div>
-                                                <h5 class="mb-0 text-white" style="font-size: 0.95rem; font-weight: 700;">
-                                                    {{ $category->name }}</h5>
-                                                <small
-                                                    class="text-muted">{{ $category->subtitle ?? 'Tidak ada deskripsi' }}</small>
-                                            </div>
-                                        </div>
-                                        <div class="d-flex gap-1">
-                                            <button class="btn btn-outline-info btn-xs p-1 edit-category-btn"
-                                                data-id="{{ $category->id }}" data-name="{{ $category->name }}"
-                                                data-subtitle="{{ $category->subtitle }}"
-                                                data-icon="{{ $category->icon }}" data-color="{{ $category->color }}"
-                                                data-color-rgb="{{ $category->color_rgb }}"
-                                                data-read-time="{{ $category->read_time }}"
-                                                data-workflow-title="{{ $category->workflow_title }}"
-                                                data-sort-order="{{ $category->sort_order }}" data-bs-toggle="modal"
-                                                data-bs-target="#editCategoryModal">
-                                                <i class="fas fa-edit"></i>
-                                            </button>
-                                            <form action="{{ route('faq.categories.destroy', $category) }}" method="POST"
-                                                onsubmit="return confirm('Hapus kategori ini beserta seluruh isinya?')">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button type="submit" class="btn btn-outline-danger btn-xs p-1">
-                                                    <i class="fas fa-trash"></i>
+                                            <div class="d-flex gap-1">
+                                                <button class="btn btn-outline-info btn-xs p-1 edit-category-btn"
+                                                    data-id="{{ $category->id }}" data-name="{{ $category->name }}"
+                                                    data-subtitle="{{ $category->subtitle }}"
+                                                    data-icon="{{ $category->icon }}" data-color="{{ $category->color }}"
+                                                    data-color-rgb="{{ $category->color_rgb }}"
+                                                    data-read-time="{{ $category->read_time }}"
+                                                    data-workflow-title="{{ $category->workflow_title }}"
+                                                    data-sort-order="{{ $category->sort_order }}" data-bs-toggle="modal"
+                                                    data-bs-target="#editCategoryModal">
+                                                    <i class="fas fa-edit"></i>
                                                 </button>
-                                            </form>
+                                                <form action="{{ route('faq.categories.destroy', $category) }}" method="POST"
+                                                    onsubmit="return confirm('Hapus kategori ini beserta seluruh isinya?')">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit" class="btn btn-outline-danger btn-xs p-1">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </form>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            @endforeach
-                        </div>
-                    @endif
+                                @endforeach
+                            </div>
+                        @endif
+                    </div>
                 </div>
             </div>
 
             <!-- List Item (Workflow & FAQ) -->
             <div class="col-lg-8">
-                <div class="dashboard-card h-100">
-                    @foreach ($categories as $index => $category)
-                        <div class="item-tab-content {{ $index === 0 ? 'active' : '' }}"
-                            id="items-for-{{ $category->slug }}">
-                            <div class="card-header-line mb-3">
-                                <h3><i class="fas fa-list-ul"></i> Panduan untuk: {{ $category->name }}</h3>
-                            </div>
+                <div class="card border shadow-sm h-100">
+                    <div class="card-body">
+                        @foreach ($categories as $index => $category)
+                            <div class="item-tab-content"
+                                id="items-for-{{ $category->slug }}"
+                                style="display: {{ $index === 0 ? 'block' : 'none' }};">
+                                <h5 class="fw-bold text-dark mb-4 border-bottom pb-2">
+                                    <i class="fas fa-list-ul text-primary me-2"></i>Panduan untuk: {{ $category->name }}
+                                </h5>
 
-                            <!-- Section Workflow -->
-                            <div class="mb-4">
-                                <h4 class="text-white border-bottom border-secondary pb-2 mb-3"
-                                    style="font-size: 1.1rem; font-weight: 700;">
-                                    <i class="fas fa-project-diagram me-1 text-primary"></i> Workflow
-                                    ({{ $category->workflow_title }})
-                                </h4>
-                                @if ($category->workflows->isEmpty())
-                                    <p class="text-muted small">Belum ada langkah workflow untuk kategori ini.</p>
-                                @else
-                                    <div class="table-responsive">
-                                        <table class="table table-bordered table-premium-dark align-middle mb-0">
-                                            <thead>
-                                                <tr>
-                                                    <th width="80" class="text-center">Langkah</th>
-                                                    <th>Judul</th>
-                                                    <th>Deskripsi</th>
-                                                    <th width="100" class="text-end">Aksi</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                @foreach ($category->workflows as $step)
+                                <!-- Section Workflow -->
+                                <div class="mb-4">
+                                    <h6 class="fw-bold text-dark border-bottom pb-2 mb-3">
+                                        <i class="fas fa-project-diagram me-1 text-primary"></i> Workflow
+                                        ({{ $category->workflow_title }})
+                                    </h6>
+                                    @if ($category->workflows->isEmpty())
+                                        <p class="text-muted small">Belum ada langkah workflow untuk kategori ini.</p>
+                                    @else
+                                        <div class="table-responsive">
+                                            <table class="table table-bordered table-striped align-middle mb-0 small">
+                                                <thead class="table-light text-dark">
                                                     <tr>
-                                                        <td class="text-center font-monospace font-weight-bold text-info">
-                                                            {{ $step->sort_order }}</td>
-                                                        <td class="text-white font-weight-bold">{{ $step->title }}</td>
-                                                        <td class="text-muted">
-                                                            {{ Str::limit(strip_tags($step->content), 80) }}</td>
-                                                        <td class="text-end">
-                                                            <div class="d-inline-flex gap-1">
-                                                                <button class="btn btn-outline-warning btn-sm edit-item-btn"
-                                                                    data-id="{{ $step->id }}"
-                                                                    data-category-id="{{ $category->id }}"
-                                                                    data-type="workflow" data-title="{{ $step->title }}"
-                                                                    data-content="{{ $step->content }}"
-                                                                    data-sort-order="{{ $step->sort_order }}"
-                                                                    data-bs-toggle="modal"
-                                                                    data-bs-target="#editItemModal">
-                                                                    <i class="fas fa-edit"></i>
-                                                                </button>
-                                                                <form action="{{ route('faq.items.destroy', $step) }}"
-                                                                    method="POST"
-                                                                    onsubmit="return confirm('Hapus item ini?')">
-                                                                    @csrf
-                                                                    @method('DELETE')
-                                                                    <button type="submit"
-                                                                        class="btn btn-outline-danger btn-sm">
-                                                                        <i class="fas fa-trash"></i>
-                                                                    </button>
-                                                                </form>
-                                                            </div>
-                                                        </td>
+                                                        <th width="80" class="text-center">Langkah</th>
+                                                        <th>Judul</th>
+                                                        <th>Deskripsi</th>
+                                                        <th width="100" class="text-end">Aksi</th>
                                                     </tr>
-                                                @endforeach
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                @endif
-                            </div>
+                                                </thead>
+                                                <tbody>
+                                                    @foreach ($category->workflows as $step)
+                                                        <tr>
+                                                            <td class="text-center font-monospace fw-bold text-info">
+                                                                {{ $step->sort_order }}</td>
+                                                            <td class="text-dark fw-bold">{{ $step->title }}</td>
+                                                            <td class="text-muted">
+                                                                {{ Str::limit(strip_tags($step->content), 80) }}</td>
+                                                            <td class="text-end">
+                                                                <div class="d-inline-flex gap-1">
+                                                                    <button class="btn btn-outline-warning btn-sm edit-item-btn"
+                                                                        data-id="{{ $step->id }}"
+                                                                        data-category-id="{{ $category->id }}"
+                                                                        data-type="workflow" data-title="{{ $step->title }}"
+                                                                        data-content="{{ $step->content }}"
+                                                                        data-sort-order="{{ $step->sort_order }}"
+                                                                        data-bs-toggle="modal"
+                                                                        data-bs-target="#editItemModal">
+                                                                        <i class="fas fa-edit"></i>
+                                                                    </button>
+                                                                    <form action="{{ route('faq.items.destroy', $step) }}"
+                                                                        method="POST"
+                                                                        onsubmit="return confirm('Hapus item ini?')">
+                                                                        @csrf
+                                                                        @method('DELETE')
+                                                                        <button type="submit"
+                                                                            class="btn btn-outline-danger btn-sm">
+                                                                            <i class="fas fa-trash"></i>
+                                                                        </button>
+                                                                    </form>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    @endforeach
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    @endif
+                                </div>
 
-                            <!-- Section FAQ -->
-                            <div>
-                                <h4 class="text-white border-bottom border-secondary pb-2 mb-3"
-                                    style="font-size: 1.1rem; font-weight: 700;">
-                                    <i class="fas fa-question-circle me-1 text-warning"></i> Tanya Jawab (FAQ)
-                                </h4>
-                                @if ($category->faqs->isEmpty())
-                                    <p class="text-muted small">Belum ada FAQ untuk kategori ini.</p>
-                                @else
-                                    <div class="table-responsive">
-                                        <table class="table table-bordered table-premium-dark align-middle mb-0">
-                                            <thead>
-                                                <tr>
-                                                    <th width="60" class="text-center">No</th>
-                                                    <th>Pertanyaan</th>
-                                                    <th>Jawaban</th>
-                                                    <th width="100" class="text-end">Aksi</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                @foreach ($category->faqs as $indexFaq => $faq)
+                                <!-- Section FAQ -->
+                                <div>
+                                    <h6 class="fw-bold text-dark border-bottom pb-2 mb-3">
+                                        <i class="fas fa-question-circle me-1 text-warning"></i> Tanya Jawab (FAQ)
+                                    </h6>
+                                    @if ($category->faqs->isEmpty())
+                                        <p class="text-muted small">Belum ada FAQ untuk kategori ini.</p>
+                                    @else
+                                        <div class="table-responsive">
+                                            <table class="table table-bordered table-striped align-middle mb-0 small">
+                                                <thead class="table-light text-dark">
                                                     <tr>
-                                                        <td class="text-center text-muted">{{ $indexFaq + 1 }}</td>
-                                                        <td class="text-white font-weight-bold">{{ $faq->title }}</td>
-                                                        <td class="text-muted">
-                                                            {{ Str::limit(strip_tags($faq->content), 80) }}</td>
-                                                        <td class="text-end">
-                                                            <div class="d-inline-flex gap-1">
-                                                                <button
-                                                                    class="btn btn-outline-warning btn-sm edit-item-btn"
-                                                                    data-id="{{ $faq->id }}"
-                                                                    data-category-id="{{ $category->id }}"
-                                                                    data-type="faq" data-title="{{ $faq->title }}"
-                                                                    data-content="{{ $faq->content }}"
-                                                                    data-sort-order="{{ $faq->sort_order }}"
-                                                                    data-bs-toggle="modal"
-                                                                    data-bs-target="#editItemModal">
-                                                                    <i class="fas fa-edit"></i>
-                                                                </button>
-                                                                <form action="{{ route('faq.items.destroy', $faq) }}"
-                                                                    method="POST"
-                                                                    onsubmit="return confirm('Hapus item ini?')">
-                                                                    @csrf
-                                                                    @method('DELETE')
-                                                                    <button type="submit"
-                                                                        class="btn btn-outline-danger btn-sm">
-                                                                        <i class="fas fa-trash"></i>
-                                                                    </button>
-                                                                </form>
-                                                            </div>
-                                                        </td>
+                                                        <th width="60" class="text-center">No</th>
+                                                        <th>Pertanyaan</th>
+                                                        <th>Jawaban</th>
+                                                        <th width="100" class="text-end">Aksi</th>
                                                     </tr>
-                                                @endforeach
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                @endif
+                                                </thead>
+                                                <tbody>
+                                                    @foreach ($category->faqs as $indexFaq => $faq)
+                                                        <tr>
+                                                            <td class="text-center text-muted">{{ $indexFaq + 1 }}</td>
+                                                            <td class="text-dark fw-bold">{{ $faq->title }}</td>
+                                                            <td class="text-muted">
+                                                                {{ Str::limit(strip_tags($faq->content), 80) }}</td>
+                                                            <td class="text-end">
+                                                                <div class="d-inline-flex gap-1">
+                                                                    <button
+                                                                        class="btn btn-outline-warning btn-sm edit-item-btn"
+                                                                        data-id="{{ $faq->id }}"
+                                                                        data-category-id="{{ $category->id }}"
+                                                                        data-type="faq" data-title="{{ $faq->title }}"
+                                                                        data-content="{{ $faq->content }}"
+                                                                        data-sort-order="{{ $faq->sort_order }}"
+                                                                        data-bs-toggle="modal"
+                                                                        data-bs-target="#editItemModal">
+                                                                        <i class="fas fa-edit"></i>
+                                                                    </button>
+                                                                    <form action="{{ route('faq.items.destroy', $faq) }}"
+                                                                        method="POST"
+                                                                        onsubmit="return confirm('Hapus item ini?')">
+                                                                        @csrf
+                                                                        @method('DELETE')
+                                                                        <button type="submit"
+                                                                            class="btn btn-outline-danger btn-sm">
+                                                                            <i class="fas fa-trash"></i>
+                                                                        </button>
+                                                                    </form>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    @endforeach
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    @endif
+                                </div>
                             </div>
-                        </div>
-                    @endforeach
+                        @endforeach
+                    </div>
                 </div>
             </div>
         </div>
@@ -471,81 +467,73 @@
 
 @push('scripts')
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
+        $(document).ready(function() {
+            const $catCards = $('.category-item-card');
+            const $itemTabs = $('.item-tab-content');
+
             // 1. Sidebar Category Click Handler (Tabs)
-            const catCards = document.querySelectorAll('.category-item-card');
-            const itemTabs = document.querySelectorAll('.item-tab-content');
+            $catCards.on('click', function(e) {
+                // If clicked edit or delete button/form, don't trigger tab switch
+                if ($(e.target).closest('.edit-category-btn, form').length) {
+                    return;
+                }
 
-            catCards.forEach(card => {
-                card.addEventListener('click', function() {
-                    catCards.forEach(c => c.classList.remove('active'));
-                    this.classList.add('active');
-
-                    const slug = this.getAttribute('data-category-slug');
-                    itemTabs.forEach(tab => {
-                        if (tab.id === 'items-for-' + slug) {
-                            tab.classList.add('active');
-                        } else {
-                            tab.classList.remove('active');
-                        }
-                    });
+                $catCards.each(function() {
+                    $(this).removeClass('active bg-light border-primary').addClass('bg-white');
                 });
+                $(this).addClass('active bg-light border-primary').removeClass('bg-white');
+
+                const slug = $(this).data('category-slug');
+                $itemTabs.hide();
+                $('#items-for-' + slug).show();
             });
 
             // 2. Populate Modal Form for Category Edit
-            const editCategoryBtn = document.querySelectorAll('.edit-category-btn');
-            const editCategoryForm = document.getElementById('editCategoryForm');
+            $('.edit-category-btn').on('click', function() {
+                const $btn = $(this);
+                const id = $btn.data('id');
+                const name = $btn.data('name');
+                const subtitle = $btn.data('subtitle');
+                const icon = $btn.data('icon');
+                const color = $btn.data('color');
+                const colorRgb = $btn.data('color-rgb');
+                const readTime = $btn.data('read-time');
+                const workflowTitle = $btn.data('workflow-title');
+                const sortOrder = $btn.data('sort-order');
 
-            editCategoryBtn.forEach(btn => {
-                btn.addEventListener('click', function() {
-                    const id = this.getAttribute('data-id');
-                    const name = this.getAttribute('data-name');
-                    const subtitle = this.getAttribute('data-subtitle');
-                    const icon = this.getAttribute('data-icon');
-                    const color = this.getAttribute('data-color');
-                    const colorRgb = this.getAttribute('data-color-rgb');
-                    const readTime = this.getAttribute('data-read-time');
-                    const workflowTitle = this.getAttribute('data-workflow-title');
-                    const sortOrder = this.getAttribute('data-sort-order');
+                // Set Form Action
+                $('#editCategoryForm').attr('action', `/faq/categories/${id}`);
 
-                    // Set Form Action
-                    editCategoryForm.action = `/faq/categories/${id}`;
-
-                    // Set inputs
-                    document.getElementById('edit_cat_name').value = name;
-                    document.getElementById('edit_cat_subtitle').value = subtitle;
-                    document.getElementById('edit_cat_icon').value = icon;
-                    document.getElementById('edit_cat_color').value = color;
-                    document.getElementById('edit_cat_color_rgb').value = colorRgb;
-                    document.getElementById('edit_cat_read_time').value = readTime;
-                    document.getElementById('edit_cat_workflow_title').value = workflowTitle;
-                    document.getElementById('edit_cat_sort_order').value = sortOrder;
-                });
+                // Set inputs
+                $('#edit_cat_name').val(name);
+                $('#edit_cat_subtitle').val(subtitle);
+                $('#edit_cat_icon').val(icon);
+                $('#edit_cat_color').val(color);
+                $('#edit_cat_color_rgb').val(colorRgb);
+                $('#edit_cat_read_time').val(readTime);
+                $('#edit_cat_workflow_title').val(workflowTitle);
+                $('#edit_cat_sort_order').val(sortOrder);
             });
 
             // 3. Populate Modal Form for Item Edit
-            const editItemBtn = document.querySelectorAll('.edit-item-btn');
-            const editItemForm = document.getElementById('editItemForm');
+            $('.edit-item-btn').on('click', function() {
+                const $btn = $(this);
+                const id = $btn.data('id');
+                const categoryId = $btn.data('category-id');
+                const type = $btn.data('type');
+                const title = $btn.data('title');
+                const content = $btn.data('content');
+                const sortOrder = $btn.data('sort-order');
 
-            editItemBtn.forEach(btn => {
-                btn.addEventListener('click', function() {
-                    const id = this.getAttribute('data-id');
-                    const categoryId = this.getAttribute('data-category-id');
-                    const type = this.getAttribute('data-type');
-                    const title = this.getAttribute('data-title');
-                    const content = this.getAttribute('data-content');
-                    const sortOrder = this.getAttribute('data-sort-order');
+                // Set Form Action
+                $('#editItemForm').attr('action', `/faq/items/${id}`);
 
-                    // Set Form Action
-                    editItemForm.action = `/faq/items/${id}`;
-
-                    // Set inputs
-                    document.getElementById('edit_item_category_id').value = categoryId;
-                    document.getElementById('edit_item_type').value = type;
-                    document.getElementById('edit_item_title').value = title;
-                    document.getElementById('edit_item_content').value = content;
-                    document.getElementById('edit_item_sort_order').value = sortOrder;
-                });
+                // Set inputs
+                $('#edit_item_category_id').val(categoryId);
+                $('#edit_item_type').val(type);
+                $('#edit_item_title').val(title);
+                $('#edit_item_content').val(content);
+                $('#edit_item_sort_order').val(sortOrder);
             });
         });
     </script>

@@ -9,3 +9,36 @@
     --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
 }
+
+/* Font Sizing Tweaks */
+body {
+    font-size: 0.85rem !important;
+}
+
+h1, .h1 { font-size: 1.6rem !important; }
+h2, .h2 { font-size: 1.4rem !important; }
+h3, .h3 { font-size: 1.2rem !important; }
+h4, .h4 { font-size: 1.05rem !important; }
+h5, .h5 { font-size: 0.9rem !important; }
+h6, .h6 { font-size: 0.8rem !important; }
+
+p, span, a {
+    font-size: 0.825rem !important;
+}
+
+small, .small {
+    font-size: 0.75rem !important;
+}
+
+.table th, .table td {
+    font-size: 0.8rem !important;
+}
+
+.btn, .badge {
+    font-size: 0.8rem !important;
+}
+
+.form-control, .form-select, .form-label, label {
+    font-size: 0.8rem !important;
+}
+

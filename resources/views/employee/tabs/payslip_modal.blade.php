@@ -1,136 +1,125 @@
-<div id="payslipModal" class="modal-overlay" onclick="closePayslipModal(event)">
-    <div class="modal-card" onclick="event.stopPropagation()">
-        <div class="modal-header">
-            <h3 class="modal-title">Rincian Slip Gaji</h3>
-            <button class="modal-close" onclick="closePayslipModal()">&times;</button>
-        </div>
-
-        <div class="modal-body">
-            <div class="payslip-wrap" id="printablePayslip">
-                <div class="payslip-header-text">
-                    <div class="payslip-title" id="psTenantName">{{ $employee->tenant->name ?? 'ERP Marketplace' }}
-                    </div>
-                    <div class="payslip-meta">SLIP GAJI KARYAWAN RESMI</div>
-                    <div class="payslip-meta" id="psPeriod" style="font-weight: 700; color: white; margin-top: 4px;">
-                        Periode</div>
+<div class="modal fade" id="payslipModal" tabindex="-1" aria-labelledby="payslipModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content overflow-hidden">
+            <div class="modal-header d-flex align-items-center gap-3 p-3 bg-primary bg-opacity-10 border-bottom">
+                <div class="bg-primary text-white rounded-3 d-flex align-items-center justify-content-center flex-shrink-0 p-2 fs-5" style="width: 40px; height: 40px;">
+                    <i class="fas fa-file-invoice-dollar"></i>
                 </div>
-
-                <div class="payslip-info-grid">
-                    <div>
-                        <span
-                            style="color: var(--text-secondary); display:block; font-size: 9px; text-transform: uppercase;">Nama
-                            Karyawan</span>
-                        <strong id="psEmployeeName" style="color: white;">-</strong>
-                    </div>
-                    <div>
-                        <span
-                            style="color: var(--text-secondary); display:block; font-size: 9px; text-transform: uppercase;">Jabatan</span>
-                        <strong id="psPosition" style="color: white;">-</strong>
-                    </div>
-                    <div>
-                        <span
-                            style="color: var(--text-secondary); display:block; font-size: 9px; text-transform: uppercase;">Metode
-                            Gaji</span>
-                        <strong id="psSalaryType" style="color: white; text-transform: capitalize;">-</strong>
-                    </div>
-                    <div>
-                        <span
-                            style="color: var(--text-secondary); display:block; font-size: 9px; text-transform: uppercase;">Tgl
-                            Pembayaran</span>
-                        <strong id="psPaymentDate" style="color: white;">-</strong>
-                    </div>
+                <div class="flex-grow-1">
+                    <h5 class="modal-title fw-bold fs-6 mb-0 text-dark" id="payslipModalLabel">Rincian Slip Gaji</h5>
+                    <p class="mb-0 text-muted small">Rincian penerimaan dan potongan gaji</p>
                 </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
 
-                <!-- PENDAPATAN -->
-                <div class="payslip-section">
-                    <div class="payslip-section-title">A. Pendapatan / Penerimaan</div>
-                    <div class="payslip-row">
-                        <span>Gaji Pokok</span>
-                        <span id="psBasicSalary">Rp 0</span>
-                    </div>
-                    <div class="payslip-row" id="psHoursWorkedRow" style="display:none;">
-                        <span>Jumlah Jam Kerja</span>
-                        <span id="psHoursWorked">0 jam</span>
-                    </div>
-                    <div class="payslip-row">
-                        <span>Tunjangan (Master)</span>
-                        <span id="psAllowance">Rp 0</span>
+            <div class="modal-body p-4">
+                <div id="printablePayslip" class="p-3 border rounded bg-white">
+                    <div class="text-center mb-3 pb-2 border-bottom">
+                        <h6 class="fw-bold text-dark mb-0" id="psTenantName">{{ $employee->tenant->name ?? 'ERP Marketplace' }}</h6>
+                        <small class="text-muted text-uppercase tracking-wider" style="font-size: 0.68rem; letter-spacing: 0.05em;">SLIP GAJI KARYAWAN RESMI</small>
+                        <div class="fw-bold text-primary small mt-1" id="psPeriod">Periode</div>
                     </div>
 
-                    <!-- Dynamic Allowances Breakdown -->
-                    <div id="psDynamicAllowancesBox"></div>
+                    <div class="row g-2 mb-3 bg-light p-2.5 rounded text-center small border">
+                        <div class="col-6 mb-1 text-start">
+                            <span class="text-muted d-block" style="font-size: 9px; text-transform: uppercase;">Nama Karyawan</span>
+                            <strong id="psEmployeeName" class="text-dark small">-</strong>
+                        </div>
+                        <div class="col-6 mb-1 text-start">
+                            <span class="text-muted d-block" style="font-size: 9px; text-transform: uppercase;">Jabatan</span>
+                            <strong id="psPosition" class="text-dark small">-</strong>
+                        </div>
+                        <div class="col-6 text-start">
+                            <span class="text-muted d-block" style="font-size: 9px; text-transform: uppercase;">Metode Gaji</span>
+                            <strong id="psSalaryType" class="text-dark small text-capitalize">-</strong>
+                        </div>
+                        <div class="col-6 text-start">
+                            <span class="text-muted d-block" style="font-size: 9px; text-transform: uppercase;">Tgl Pembayaran</span>
+                            <strong id="psPaymentDate" class="text-dark small">-</strong>
+                        </div>
+                    </div>
 
-                    <div class="payslip-row">
-                        <span>Uang Lembur</span>
-                        <span id="psOvertimePay">Rp 0</span>
-                    </div>
-                    <div class="payslip-row" id="psAdjustmentAdditionRow" style="display:none;">
-                        <span>Penyesuaian Penambah</span>
-                        <span id="psAdjustmentAddition" style="color: var(--color-success);">Rp 0</span>
-                    </div>
-                    <div class="payslip-row total">
-                        <span>Total Penerimaan Kotor</span>
-                        <span id="psTotalGross">Rp 0</span>
-                    </div>
-                </div>
+                    <!-- PENDAPATAN -->
+                    <div class="mb-3">
+                        <div class="fw-bold text-dark small mb-2 border-bottom pb-1">A. Pendapatan / Penerimaan</div>
+                        <div class="d-flex justify-content-between py-1 small border-bottom border-light">
+                            <span class="text-secondary">Gaji Pokok</span>
+                            <span id="psBasicSalary" class="text-dark fw-semibold">Rp 0</span>
+                        </div>
+                        <div class="d-flex justify-content-between py-1 small border-bottom border-light" id="psHoursWorkedRow" style="display:none;">
+                            <span class="text-secondary">Jumlah Jam Kerja</span>
+                            <span id="psHoursWorked" class="text-dark fw-semibold">0 jam</span>
+                        </div>
+                        <div class="d-flex justify-content-between py-1 small border-bottom border-light">
+                            <span class="text-secondary">Tunjangan (Master)</span>
+                            <span id="psAllowance" class="text-dark fw-semibold">Rp 0</span>
+                        </div>
 
-                <!-- POTONGAN -->
-                <div class="payslip-section">
-                    <div class="payslip-section-title">B. Potongan / Pemotongan</div>
-                    <div class="payslip-row">
-                        <span>Potongan Kasbon</span>
-                        <span id="psCashAdvanceDeduction" style="color: var(--color-danger);">Rp 0</span>
-                    </div>
-                    <div class="payslip-row">
-                        <span>Potongan Absensi</span>
-                        <span id="psAttendanceDeduction" style="color: var(--color-danger);">Rp 0</span>
-                    </div>
-                    <div class="payslip-row">
-                        <span>Denda Keterlambatan</span>
-                        <span id="psLateDeduction" style="color: var(--color-danger);">Rp 0</span>
-                    </div>
-                    <div class="payslip-row">
-                        <span>Potongan Lainnya</span>
-                        <span id="psOtherDeductions" style="color: var(--color-danger);">Rp 0</span>
-                    </div>
-                    <div class="payslip-row" id="psAdjustmentDeductionRow" style="display:none;">
-                        <span>Penyesuaian Pengurang</span>
-                        <span id="psAdjustmentDeduction" style="color: var(--color-danger);">Rp 0</span>
-                    </div>
-                    <div class="payslip-row total">
-                        <span>Total Potongan</span>
-                        <span id="psTotalDeductions" style="color: var(--color-danger);">Rp 0</span>
-                    </div>
-                </div>
+                        <!-- Dynamic Allowances Breakdown -->
+                        <div id="psDynamicAllowancesBox"></div>
 
-                <div class="payslip-section" id="psNotesSection"
-                    style="display:none; margin-top: 12px; border-top: 1px dashed var(--border-color); padding-top: 10px;">
-                    <div class="payslip-section-title" style="color: var(--text-secondary); font-size: 10px;">Catatan
-                        Penyesuaian</div>
-                    <p id="psAdjustmentNotes"
-                        style="font-size: 11px; color: var(--text-secondary); line-height: 1.4; margin: 4px 0 0; font-style: italic;">
-                    </p>
-                </div>
+                        <div class="d-flex justify-content-between py-1 small border-bottom border-light">
+                            <span class="text-secondary">Uang Lembur</span>
+                            <span id="psOvertimePay" class="text-dark fw-semibold">Rp 0</span>
+                        </div>
+                        <div class="d-flex justify-content-between py-1 small border-bottom border-light" id="psAdjustmentAdditionRow" style="display:none;">
+                            <span class="text-secondary">Penyesuaian Penambah</span>
+                            <span id="psAdjustmentAddition" class="text-success fw-semibold">Rp 0</span>
+                        </div>
+                        <div class="d-flex justify-content-between py-1.5 fw-bold text-dark border-bottom small bg-light px-2 rounded-2 mt-1">
+                            <span>Total Penerimaan Kotor</span>
+                            <span id="psTotalGross">Rp 0</span>
+                        </div>
+                    </div>
 
-                <!-- TOTAL BERSIH -->
-                <div class="payslip-row grand-total">
-                    <span>GAJI BERSIH (NETTO)</span>
-                    <span id="psNetSalary">Rp 0</span>
+                    <!-- POTONGAN -->
+                    <div class="mb-3">
+                        <div class="fw-bold text-dark small mb-2 border-bottom pb-1">B. Potongan / Pemotongan</div>
+                        <div class="d-flex justify-content-between py-1 small border-bottom border-light">
+                            <span class="text-secondary">Potongan Kasbon</span>
+                            <span id="psCashAdvanceDeduction" class="text-danger fw-semibold">Rp 0</span>
+                        </div>
+                        <div class="d-flex justify-content-between py-1 small border-bottom border-light">
+                            <span class="text-secondary">Potongan Absensi</span>
+                            <span id="psAttendanceDeduction" class="text-danger fw-semibold">Rp 0</span>
+                        </div>
+                        <div class="d-flex justify-content-between py-1 small border-bottom border-light">
+                            <span class="text-secondary">Denda Keterlambatan</span>
+                            <span id="psLateDeduction" class="text-danger fw-semibold">Rp 0</span>
+                        </div>
+                        <div class="d-flex justify-content-between py-1 small border-bottom border-light">
+                            <span class="text-secondary">Potongan Lainnya</span>
+                            <span id="psOtherDeductions" class="text-danger fw-semibold">Rp 0</span>
+                        </div>
+                        <div class="d-flex justify-content-between py-1 small border-bottom border-light" id="psAdjustmentDeductionRow" style="display:none;">
+                            <span class="text-secondary">Penyesuaian Pengurang</span>
+                            <span id="psAdjustmentDeduction" class="text-danger fw-semibold">Rp 0</span>
+                        </div>
+                        <div class="d-flex justify-content-between py-1.5 fw-bold text-danger border-bottom small bg-light px-2 rounded-2 mt-1">
+                            <span>Total Potongan</span>
+                            <span id="psTotalDeductions">Rp 0</span>
+                        </div>
+                    </div>
+
+                    <div id="psNotesSection" style="display:none;" class="mt-2 border-top border-dashed pt-2">
+                        <div class="text-muted small" style="font-size: 10px; font-weight: 600;">Catatan Penyesuaian</div>
+                        <p id="psAdjustmentNotes" class="text-muted fst-italic mb-0 small mt-1" style="font-size: 11px; line-height: 1.4;"></p>
+                    </div>
+
+                    <!-- TOTAL BERSIH -->
+                    <div class="d-flex justify-content-between py-2 border-top border-dark border-2 fw-bold text-primary mt-3" style="font-size: 1rem;">
+                        <span>GAJI BERSIH (NETTO)</span>
+                        <span id="psNetSalary">Rp 0</span>
+                    </div>
                 </div>
             </div>
-        </div>
 
-        <div class="modal-actions">
-            <button class="btn-modal btn-modal-close" onclick="closePayslipModal()">Tutup</button>
-            <button class="btn-modal btn-modal-print" onclick="window.print()">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="6 9 6 2 18 2 18 9"></polyline>
-                    <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
-                    <rect x="6" y="14" width="12" height="8"></rect>
-                </svg>
-                Cetak Slip
-            </button>
+            <div class="modal-footer bg-light px-4 py-3 d-flex justify-content-between border-top">
+                <button type="button" class="btn btn-secondary btn-sm px-3" data-bs-dismiss="modal">Tutup</button>
+                <button type="button" class="btn btn-primary btn-sm px-3" onclick="window.print()">
+                    <i class="fas fa-print me-1"></i> Cetak Slip
+                </button>
+            </div>
         </div>
     </div>
 </div>
