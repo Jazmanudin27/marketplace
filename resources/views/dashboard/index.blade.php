@@ -331,7 +331,7 @@
                     <a href="{{ route('orders.index') }}"
                         class="btn btn-link btn-sm text-decoration-none p-0 fw-bold text-primary">Lihat Semua</a>
                 </div>
-                <div class="card-body p-0">
+                <div class="card-body p-2">
                     <div class="table-responsive">
                         <table class="table table-sm table-striped align-middle mb-0">
                             <thead>
