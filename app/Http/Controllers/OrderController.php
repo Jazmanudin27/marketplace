@@ -257,10 +257,10 @@ class OrderController extends Controller
     public function sync(Request $request)
     {
         $tenantId = Auth::user()->tenant_id;
-        // Ambil semua toko shopee & tiktok milik tenant ini
+        // Ambil semua toko shopee, tiktok & tokopedia milik tenant ini
         $stores = \App\Models\Store::where('tenant_id', $tenantId)
             ->whereHas('channel', function($q) {
-                $q->whereIn('code', ['shopee', 'tiktok']);
+                $q->whereIn('code', ['shopee', 'tiktok', 'tokopedia']);
             })->get();
 
         if ($stores->isEmpty()) {
