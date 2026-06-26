@@ -2,263 +2,660 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Form Pengaduan Barang Rusak - {{ $tenant->name }}</title>
-    <!-- Google Fonts: Outfit -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+    <title>Pengaduan {{ $tenant->name }}</title>
+    <meta name="description" content="Laporkan barang rusak dari {{ $tenant->name }} dengan mudah dan cepat.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Bootstrap 5 CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- FontAwesome Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <style>
-        body {
-            font-family: 'Outfit', sans-serif;
-            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-            min-height: 100vh;
-            color: #333;
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --primary-light: #a5b4fc;
+            --accent: #f59e0b;
+            --danger: #ef4444;
+            --success: #10b981;
+            --text-dark: #0f172a;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --bg-soft: #f8fafc;
         }
-        .mobile-container {
-            max-width: 500px;
-            margin: 0 auto;
-            background-color: #ffffff;
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: #0f0f1a;
             min-height: 100vh;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+            color: var(--text-dark);
+        }
+
+        .mobile-wrap {
+            max-width: 430px;
+            margin: 0 auto;
+            min-height: 100vh;
+            background: #ffffff;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* ─── Hero Header ─── */
+        .hero {
+            background: linear-gradient(145deg, #4f46e5 0%, #7c3aed 50%, #a855f7 100%);
+            padding: 3rem 1.5rem 4.5rem;
+            position: relative;
+            overflow: hidden;
+        }
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: -40px; right: -40px;
+            width: 200px; height: 200px;
+            background: rgba(255,255,255,0.07);
+            border-radius: 50%;
+        }
+        .hero::after {
+            content: '';
+            position: absolute;
+            bottom: -60px; left: -30px;
+            width: 250px; height: 250px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 50%;
+        }
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            background: rgba(255,255,255,0.15);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: #fff;
+            border-radius: 50px;
+            padding: 0.35rem 0.9rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            letter-spacing: 0.03em;
+            margin-bottom: 1rem;
+        }
+        .hero h1 {
+            font-size: 1.75rem;
+            font-weight: 800;
+            color: #fff;
+            line-height: 1.2;
+            letter-spacing: -0.02em;
+            margin-bottom: 0.5rem;
+        }
+        .hero p {
+            color: rgba(255,255,255,0.75);
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+        .hero-icon-bubble {
+            position: absolute;
+            top: 1.5rem; right: 1.5rem;
+            width: 56px; height: 56px;
+            background: rgba(255,255,255,0.15);
+            backdrop-filter: blur(8px);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+            color: #fff;
+            animation: float 3s ease-in-out infinite;
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-6px); }
+        }
+
+        /* ─── Form Card ─── */
+        .form-sheet {
+            background: #fff;
+            border-radius: 2rem 2rem 0 0;
+            margin-top: -2rem;
+            padding: 1.75rem 1.25rem 6rem;
+            position: relative;
+            z-index: 1;
+            box-shadow: 0 -4px 30px rgba(0,0,0,0.06);
+        }
+
+        /* ─── Step Indicator ─── */
+        .step-bar {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 1.75rem;
+        }
+        .step-line { flex: 1; height: 3px; background: var(--border); border-radius: 99px; }
+        .step-line.active { background: var(--primary); }
+        .step-label {
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        /* ─── Section Label ─── */
+        .section-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--primary);
+            background: #ede9fe;
+            padding: 0.3rem 0.75rem;
+            border-radius: 50px;
+            margin-bottom: 1rem;
+        }
+
+        /* ─── Input Fields ─── */
+        .field-group { margin-bottom: 1.1rem; }
+        .field-label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: var(--text-dark);
+            margin-bottom: 0.4rem;
+        }
+        .field-label span.req { color: var(--danger); font-weight: 700; }
+        .field-label span.opt {
+            font-size: 0.72rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            background: var(--bg-soft);
+            padding: 0.15rem 0.5rem;
+            border-radius: 50px;
+        }
+
+        .input-box {
             position: relative;
         }
-        .header-banner {
-            background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%);
-            color: #ffffff;
-            padding: 2.5rem 1.5rem;
-            border-bottom-left-radius: 2rem;
-            border-bottom-right-radius: 2rem;
-            box-shadow: 0 4px 20px rgba(59, 130, 246, 0.2);
+        .input-icon {
+            position: absolute;
+            left: 0.9rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            pointer-events: none;
+            z-index: 2;
         }
-        .form-card {
-            margin-top: -1.5rem;
-            background: #ffffff;
-            border-radius: 1.5rem;
-            padding: 2rem 1.5rem;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.04);
-        }
+        .input-icon.top { top: 1rem; transform: none; }
+
         .form-control, .form-select {
-            border: 1.5px solid #e2e8f0;
-            padding: 0.75rem 1rem;
-            border-radius: 0.75rem;
-            font-size: 0.95rem;
-            transition: all 0.2s ease-in-out;
+            border: 1.5px solid var(--border);
+            border-radius: 0.875rem;
+            padding: 0.8rem 1rem 0.8rem 2.5rem;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-size: 0.9rem;
+            color: var(--text-dark);
+            background: var(--bg-soft);
+            transition: all 0.25s cubic-bezier(0.4,0,0.2,1);
+            width: 100%;
         }
         .form-control:focus, .form-select:focus {
-            border-color: #3b82f6;
-            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+            outline: none;
+            border-color: var(--primary);
+            background: #fff;
+            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.12);
         }
-        .input-group-text {
-            background-color: transparent;
-            border: 1.5px solid #e2e8f0;
-            border-right: none;
-            border-radius: 0.75rem 0 0 0.75rem;
-            color: #64748b;
+        .form-control.is-invalid {
+            border-color: var(--danger);
+            background: #fef2f2;
+            box-shadow: 0 0 0 3px rgba(239,68,68,0.1);
         }
-        .input-group .form-control {
-            border-left: none;
-            border-radius: 0 0.75rem 0.75rem 0;
+        textarea.form-control { padding-top: 0.85rem; resize: none; }
+        .field-err {
+            font-size: 0.78rem;
+            color: var(--danger);
+            margin-top: 0.35rem;
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
         }
-        .btn-submit {
-            background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%);
-            border: none;
-            color: white;
-            font-weight: 600;
-            padding: 0.9rem;
-            border-radius: 0.75rem;
-            font-size: 1rem;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
-        }
-        .btn-submit:hover {
-            opacity: 0.95;
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
-        }
-        .file-upload-wrapper {
-            position: relative;
-            width: 100%;
-            border: 2px dashed #cbd5e1;
-            border-radius: 0.75rem;
-            padding: 1.5rem;
+
+        /* ─── Photo Upload Zone ─── */
+        .upload-zone {
+            border: 2px dashed var(--border);
+            border-radius: 1.25rem;
+            padding: 1.5rem 1rem;
             text-align: center;
-            background-color: #f8fafc;
+            background: var(--bg-soft);
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
         }
-        .file-upload-wrapper:hover {
-            border-color: #3b82f6;
-            background-color: #eff6ff;
+        .upload-zone.drag-over {
+            border-color: var(--primary);
+            background: #ede9fe;
         }
-        .file-upload-input {
+        .upload-zone input[type="file"] {
             position: absolute;
-            left: 0;
-            top: 0;
-            height: 100%;
-            width: 100%;
+            inset: 0;
             opacity: 0;
             cursor: pointer;
+            z-index: 3;
         }
-        .file-upload-preview {
-            display: flex;
+        .upload-icon-wrap {
+            width: 52px;
+            height: 52px;
+            background: linear-gradient(135deg, #ede9fe, #ddd6fe);
+            border-radius: 14px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.35rem;
+            color: var(--primary);
+            margin-bottom: 0.75rem;
+        }
+        .upload-title {
+            font-size: 0.88rem;
+            font-weight: 700;
+            color: var(--text-dark);
+            margin-bottom: 0.2rem;
+        }
+        .upload-hint {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+        .upload-hint strong { color: var(--primary); }
+
+        /* ─── Photo Preview Grid ─── */
+        .preview-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
             gap: 0.5rem;
-            flex-wrap: wrap;
-            margin-top: 1rem;
+            margin-top: 0.75rem;
         }
-        .preview-img-container {
-            position: relative;
-            width: 70px;
-            height: 70px;
-            border-radius: 0.5rem;
+        .preview-item {
+            aspect-ratio: 1;
+            border-radius: 0.75rem;
             overflow: hidden;
-            border: 1px solid #e2e8f0;
+            position: relative;
+            border: 2px solid var(--border);
+            animation: fadeInScale 0.3s ease;
         }
-        .preview-img-container img {
+        .preview-item img {
             width: 100%;
             height: 100%;
             object-fit: cover;
         }
+        .preview-item .remove-btn {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            width: 22px;
+            height: 22px;
+            background: rgba(0,0,0,0.6);
+            color: #fff;
+            border: none;
+            border-radius: 50%;
+            font-size: 0.65rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 5;
+            backdrop-filter: blur(4px);
+        }
+        .photo-count-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--success);
+            background: #d1fae5;
+            padding: 0.25rem 0.6rem;
+            border-radius: 50px;
+            margin-top: 0.5rem;
+        }
+        @keyframes fadeInScale {
+            from { opacity: 0; transform: scale(0.8); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        /* ─── Fixed Submit Bar ─── */
+        .submit-bar {
+            position: fixed;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100%;
+            max-width: 430px;
+            padding: 1rem 1.25rem;
+            background: rgba(255,255,255,0.92);
+            backdrop-filter: blur(16px);
+            border-top: 1px solid var(--border);
+            z-index: 100;
+        }
+        .btn-submit {
+            width: 100%;
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            border: none;
+            color: #fff;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-size: 0.95rem;
+            font-weight: 700;
+            padding: 0.95rem;
+            border-radius: 1rem;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
+            box-shadow: 0 8px 20px rgba(79, 70, 229, 0.35);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            letter-spacing: 0.01em;
+        }
+        .btn-submit:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 28px rgba(79, 70, 229, 0.45);
+        }
+        .btn-submit:active {
+            transform: translateY(0);
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+        }
+        .btn-submit.loading { opacity: 0.8; pointer-events: none; }
+
+        /* ─── Alert Error ─── */
+        .alert-err {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            border-radius: 0.875rem;
+            padding: 0.85rem 1rem;
+            display: flex;
+            align-items: flex-start;
+            gap: 0.6rem;
+            margin-bottom: 1.25rem;
+            font-size: 0.83rem;
+            color: #dc2626;
+        }
+
+        /* ─── Footer ─── */
+        .page-footer {
+            text-align: center;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            padding: 0.5rem 0 1rem;
+        }
+        .page-footer strong { color: var(--primary); }
+
+        /* ─── Info Cards ─── */
+        .info-card {
+            background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+            border: 1px solid #bbf7d0;
+            border-radius: 1rem;
+            padding: 0.85rem 1rem;
+            margin-bottom: 1.25rem;
+            display: flex;
+            align-items: flex-start;
+            gap: 0.7rem;
+        }
+        .info-card .icon { font-size: 1.1rem; color: var(--success); margin-top: 1px; }
+        .info-card p { font-size: 0.8rem; color: #15803d; line-height: 1.5; margin: 0; }
     </style>
 </head>
 <body>
 
-<div class="mobile-container d-flex flex-column">
-    <!-- Header Banner -->
-    <div class="header-banner text-center">
-        <h4 class="fw-bold mb-1">Pengaduan Barang</h4>
-        <p class="mb-0 text-white-50 small">Laporkan barang rusak atau tidak sesuai dengan mudah</p>
-        <div class="badge bg-white bg-opacity-20 text-white rounded-pill px-3 py-1.5 mt-2 fw-semibold small">
-            <i class="fas fa-store me-1"></i> {{ $tenant->name }}
+<div class="mobile-wrap">
+
+    {{-- ─── Hero Header ─── --}}
+    <div class="hero">
+        <div class="hero-icon-bubble">
+            <i class="fas fa-shield-halved"></i>
         </div>
+        <div class="hero-badge">
+            <i class="fas fa-store"></i>
+            {{ $tenant->name }}
+        </div>
+        <h1>Laporan<br>Barang Rusak</h1>
+        <p>Isi formulir berikut dan kami akan segera<br>menindaklanjuti laporan Anda.</p>
     </div>
 
-    <!-- Form Content -->
-    <div class="form-card mx-3 mb-4">
+    {{-- ─── Form Sheet ─── --}}
+    <div class="form-sheet">
+
+        {{-- Error Alert --}}
         @if ($errors->any())
-            <div class="alert alert-danger rounded-3 mb-3 small" role="alert">
-                <i class="fas fa-exclamation-circle me-1"></i> Mohon periksa kembali inputan Anda.
+        <div class="alert-err">
+            <i class="fas fa-circle-exclamation"></i>
+            <div>
+                <strong>Ada yang perlu diperbaiki:</strong><br>
+                @foreach ($errors->all() as $error)
+                    {{ $error }}<br>
+                @endforeach
             </div>
+        </div>
         @endif
 
-        <form action="{{ route('complaints.mobile.store', $tenant->id) }}" method="POST" enctype="multipart/form-data" id="mobile-complaint-form" class="needs-validation" novalidate>
+        {{-- Info Card --}}
+        <div class="info-card">
+            <span class="icon"><i class="fas fa-circle-info"></i></span>
+            <p>Laporan Anda akan <strong>langsung diterima</strong> dan tim kami akan menghubungi Anda via WhatsApp untuk tindak lanjut.</p>
+        </div>
+
+        <form action="{{ route('complaints.mobile.store', $tenant->id) }}" method="POST"
+              enctype="multipart/form-data" id="complaint-form" novalidate>
             @csrf
 
-            <!-- Nama Pengadu -->
-            <div class="mb-3">
-                <label for="name" class="form-label fw-semibold text-dark small mb-1">Nama Lengkap <span class="text-danger">*</span></label>
-                <div class="input-group">
-                    <span class="input-group-text"><i class="fas fa-user"></i></span>
-                    <input type="text" name="name" id="name" class="form-control @error('name') is-invalid @enderror" value="{{ old('name') }}" placeholder="Nama Anda" required>
+            {{-- ── Bagian Data Diri ── --}}
+            <div class="section-tag"><i class="fas fa-user-circle"></i> Data Diri</div>
+
+            {{-- Nama --}}
+            <div class="field-group">
+                <div class="field-label">
+                    Nama Lengkap <span class="req">*</span>
+                </div>
+                <div class="input-box">
+                    <i class="fas fa-user input-icon"></i>
+                    <input type="text" name="name" id="name"
+                           class="form-control @error('name') is-invalid @enderror"
+                           value="{{ old('name') }}"
+                           placeholder="Nama lengkap Anda" required autocomplete="name">
                 </div>
                 @error('name')
-                    <div class="invalid-feedback d-block small mt-1">{{ $message }}</div>
+                <div class="field-err"><i class="fas fa-circle-xmark"></i> {{ $message }}</div>
                 @enderror
             </div>
 
-            <!-- Nomor HP -->
-            <div class="mb-3">
-                <label for="phone" class="form-label fw-semibold text-dark small mb-1">Nomor WhatsApp/HP <span class="text-danger">*</span></label>
-                <div class="input-group">
-                    <span class="input-group-text"><i class="fas fa-phone-alt"></i></span>
-                    <input type="text" name="phone" id="phone" class="form-control @error('phone') is-invalid @enderror" value="{{ old('phone') }}" placeholder="Contoh: 0812XXXXXXXX" required>
+            {{-- Nomor HP --}}
+            <div class="field-group">
+                <div class="field-label">
+                    Nomor WhatsApp / HP <span class="req">*</span>
+                </div>
+                <div class="input-box">
+                    <i class="fas fa-mobile-screen input-icon"></i>
+                    <input type="tel" name="phone" id="phone"
+                           class="form-control @error('phone') is-invalid @enderror"
+                           value="{{ old('phone') }}"
+                           placeholder="Contoh: 08123456789" required autocomplete="tel">
                 </div>
                 @error('phone')
-                    <div class="invalid-feedback d-block small mt-1">{{ $message }}</div>
+                <div class="field-err"><i class="fas fa-circle-xmark"></i> {{ $message }}</div>
                 @enderror
             </div>
 
-            <!-- Alamat -->
-            <div class="mb-3">
-                <label for="address" class="form-label fw-semibold text-dark small mb-1">Alamat Pengiriman/Lengkap <span class="text-danger">*</span></label>
-                <textarea name="address" id="address" rows="3" class="form-control @error('address') is-invalid @enderror" placeholder="Alamat lengkap penerimaan barang" required>{{ old('address') }}</textarea>
-                @error('address')
-                    <div class="invalid-feedback d-block small mt-1">{{ $message }}</div>
-                @enderror
-            </div>
-
-            <!-- Deskripsi Kerusakan -->
-            <div class="mb-3">
-                <label for="description" class="form-label fw-semibold text-dark small mb-1">Deskripsi Kerusakan <span class="text-danger">*</span></label>
-                <textarea name="description" id="description" rows="4" class="form-control @error('description') is-invalid @enderror" placeholder="Jelaskan detail produk yang rusak dan jenis kerusakannya..." required>{{ old('description') }}</textarea>
-                @error('description')
-                    <div class="invalid-feedback d-block small mt-1">{{ $message }}</div>
-                @enderror
-            </div>
-
-            <!-- File Upload -->
-            <div class="mb-4">
-                <label class="form-label fw-semibold text-dark small mb-1">Foto Bukti Kerusakan (Maksimal 3) <span class="text-secondary">(Opsional)</span></label>
-                <div class="file-upload-wrapper">
-                    <i class="fas fa-cloud-upload-alt text-primary fs-3 mb-2"></i>
-                    <p class="mb-1 fw-medium small text-dark">Ketuk untuk memilih foto</p>
-                    <p class="mb-0 text-muted" style="font-size: 0.75rem;">Maks. 3 file, masing-masing maks. 2MB</p>
-                    <input type="file" name="photos[]" id="photos-input" class="file-upload-input" multiple accept="image/*">
+            {{-- Alamat --}}
+            <div class="field-group">
+                <div class="field-label">
+                    Alamat Lengkap <span class="req">*</span>
                 </div>
-                <div class="file-upload-preview" id="preview-container"></div>
+                <div class="input-box">
+                    <i class="fas fa-location-dot input-icon top" style="top:0.95rem;"></i>
+                    <textarea name="address" id="address" rows="3"
+                              class="form-control @error('address') is-invalid @enderror"
+                              placeholder="Jalan, kota, dan kode pos..." required
+                              autocomplete="street-address">{{ old('address') }}</textarea>
+                </div>
+                @error('address')
+                <div class="field-err"><i class="fas fa-circle-xmark"></i> {{ $message }}</div>
+                @enderror
+            </div>
+
+            {{-- ── Bagian Laporan ── --}}
+            <div class="section-tag mt-2"><i class="fas fa-triangle-exclamation"></i> Detail Kerusakan</div>
+
+            {{-- Deskripsi --}}
+            <div class="field-group">
+                <div class="field-label">
+                    Deskripsi Kerusakan <span class="req">*</span>
+                </div>
+                <div class="input-box">
+                    <i class="fas fa-pen-to-square input-icon top" style="top:0.95rem;"></i>
+                    <textarea name="description" id="description" rows="5"
+                              class="form-control @error('description') is-invalid @enderror"
+                              placeholder="Ceritakan barang apa yang rusak, bagaimana kondisinya, kapan terjadinya..." required>{{ old('description') }}</textarea>
+                </div>
+                @error('description')
+                <div class="field-err"><i class="fas fa-circle-xmark"></i> {{ $message }}</div>
+                @enderror
+            </div>
+
+            {{-- ── Upload Foto ── --}}
+            <div class="field-group">
+                <div class="field-label">
+                    Foto Bukti Kerusakan <span class="opt">Maks. 3 Foto</span>
+                </div>
+
+                <div class="upload-zone" id="upload-zone">
+                    <input type="file" name="photos[]" id="photos-input" multiple accept="image/*">
+                    <div class="upload-icon-wrap">
+                        <i class="fas fa-camera-retro"></i>
+                    </div>
+                    <div class="upload-title">Tap untuk ambil / pilih foto</div>
+                    <div class="upload-hint">JPG, PNG, GIF &bull; maks. <strong>2MB</strong> per foto</div>
+                </div>
+
+                <div class="preview-grid" id="preview-grid"></div>
+                <div id="photo-count" style="display:none;" class="photo-count-badge">
+                    <i class="fas fa-check-circle"></i>
+                    <span id="count-text"></span>
+                </div>
+
                 @error('photos')
-                    <div class="invalid-feedback d-block small mt-1">{{ $message }}</div>
+                <div class="field-err"><i class="fas fa-circle-xmark"></i> {{ $message }}</div>
                 @enderror
                 @error('photos.*')
-                    <div class="invalid-feedback d-block small mt-1">{{ $message }}</div>
+                <div class="field-err"><i class="fas fa-circle-xmark"></i> {{ $message }}</div>
                 @enderror
             </div>
 
-            <!-- Submit Button -->
-            <button type="submit" class="btn btn-submit w-100 mt-2">
-                <i class="fas fa-paper-plane me-1"></i> Kirim Laporan Pengaduan
-            </button>
+            <div class="page-footer">
+                Powered by <strong>ASPARTECH</strong> &bull; Sistem ERP Marketplace
+            </div>
+
         </form>
     </div>
 
-    <!-- Footer -->
-    <div class="text-center pb-4 mt-auto text-muted" style="font-size: 0.8rem;">
-        Powered by <span class="fw-semibold text-primary">ASPARTECH</span>
-    </div>
 </div>
 
-<!-- Bootstrap JS -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+{{-- ─── Fixed Submit Bar ─── --}}
+<div class="submit-bar">
+    <button type="submit" form="complaint-form" class="btn-submit" id="submit-btn">
+        <i class="fas fa-paper-plane"></i>
+        Kirim Laporan Sekarang
+    </button>
+</div>
 
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script>
     const photosInput = document.getElementById('photos-input');
-    const previewContainer = document.getElementById('preview-container');
-    const form = document.getElementById('mobile-complaint-form');
+    const previewGrid  = document.getElementById('preview-grid');
+    const countBadge   = document.getElementById('photo-count');
+    const countText    = document.getElementById('count-text');
+    const uploadZone   = document.getElementById('upload-zone');
+    const submitBtn    = document.getElementById('submit-btn');
+    const form         = document.getElementById('complaint-form');
 
-    photosInput.addEventListener('change', function() {
-        previewContainer.innerHTML = '';
-        const files = Array.from(this.files);
+    let selectedFiles  = [];
 
-        if (files.length > 3) {
-            alert('Maksimal foto yang diperbolehkan untuk diunggah adalah 3 foto. Silakan pilih ulang foto Anda.');
-            this.value = '';
-            return false;
-        }
-
-        files.forEach(file => {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const imgContainer = document.createElement('div');
-                imgContainer.className = 'preview-img-container';
-                imgContainer.innerHTML = `<img src="${e.target.result}" alt="Preview">`;
-                previewContainer.appendChild(imgContainer);
-            }
-            reader.readAsDataURL(file);
-        });
+    // ── Drag & Drop visual feedback ──
+    uploadZone.addEventListener('dragover', e => {
+        e.preventDefault();
+        uploadZone.classList.add('drag-over');
+    });
+    uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
+    uploadZone.addEventListener('drop', e => {
+        e.preventDefault();
+        uploadZone.classList.remove('drag-over');
     });
 
-    form.addEventListener('submit', function(e) {
-        if (photosInput.files.length > 3) {
-            alert('Maksimal foto yang diperbolehkan untuk diunggah adalah 3 foto. Silakan pilih ulang foto Anda.');
-            photosInput.value = '';
-            e.preventDefault();
-            return false;
+    // ── File change handler ──
+    photosInput.addEventListener('change', function () {
+        const newFiles = Array.from(this.files);
+        const combined = [...selectedFiles, ...newFiles];
+
+        if (combined.length > 3) {
+            alert('Maksimal 3 foto yang diperbolehkan. Silakan pilih ulang.');
+            this.value = '';
+            return;
         }
+
+        selectedFiles = combined;
+        renderPreviews();
+        this.value = ''; // reset so same file can be re-added after removal
+    });
+
+    function renderPreviews() {
+        previewGrid.innerHTML = '';
+
+        // rebuild the DataTransfer to keep selectedFiles in sync with input
+        const dt = new DataTransfer();
+        selectedFiles.forEach(f => dt.items.add(f));
+        photosInput.files = dt.files;
+
+        if (selectedFiles.length === 0) {
+            countBadge.style.display = 'none';
+            return;
+        }
+
+        countText.textContent = selectedFiles.length + ' foto dipilih';
+        countBadge.style.display = 'inline-flex';
+
+        selectedFiles.forEach((file, idx) => {
+            const reader = new FileReader();
+            reader.onload = e => {
+                const item = document.createElement('div');
+                item.className = 'preview-item';
+                item.innerHTML = `
+                    <img src="${e.target.result}" alt="Foto ${idx+1}">
+                    <button class="remove-btn" type="button" data-index="${idx}" aria-label="Hapus foto">
+                        <i class="fas fa-xmark"></i>
+                    </button>`;
+                previewGrid.appendChild(item);
+
+                item.querySelector('.remove-btn').addEventListener('click', function () {
+                    const i = parseInt(this.dataset.index);
+                    selectedFiles.splice(i, 1);
+                    renderPreviews();
+                });
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+
+    // ── Form submit guard ──
+    form.addEventListener('submit', function (e) {
+        if (selectedFiles.length > 3) {
+            alert('Maksimal 3 foto yang diperbolehkan.');
+            e.preventDefault();
+            return;
+        }
+        // Loading state
+        submitBtn.classList.add('loading');
+        submitBtn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Mengirim...';
     });
 </script>
 </body>
