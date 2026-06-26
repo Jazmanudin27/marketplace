@@ -49,8 +49,10 @@ class PullReturnsFromShopee implements ShouldQueue
             $timeFrom = now()->subDays(7)->timestamp;
             $timeTo = now()->timestamp;
 
+            $accessToken = $this->store->getValidAccessToken();
+
             $returnListResponse = $shopeeService->getReturnList(
-                $this->store->access_token,
+                $accessToken,
                 (int) $this->store->marketplace_store_id,
                 0, // page_no
                 50, // page_size
@@ -65,7 +67,7 @@ class PullReturnsFromShopee implements ShouldQueue
                 
                 // Get more details
                 $returnDetailResponse = $shopeeService->getReturnDetail(
-                    $this->store->access_token,
+                    $accessToken,
                     (int) $this->store->marketplace_store_id,
                     $returnSn
                 );

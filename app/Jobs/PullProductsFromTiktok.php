@@ -41,7 +41,7 @@ class PullProductsFromTiktok implements ShouldQueue
         }
 
         try {
-            $accessToken = $this->store->access_token;
+            $accessToken = $this->store->getValidAccessToken();
             $shopCipher = $this->store->shop_cipher;
 
             if (empty($shopCipher)) {
