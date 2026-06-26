@@ -10,7 +10,7 @@ class LazadaService
     protected $appKey;
     protected $appSecret;
     protected $redirectUri;
-    protected $baseUrl = 'https://api.lazada.com/rest';
+    protected $baseUrl = 'https://api.lazada.co.id/rest';
     protected $authUrl = 'https://auth.lazada.com/oauth/authorize';
 
     public function __construct()
@@ -82,7 +82,7 @@ class LazadaService
         $response = Http::withOptions([
             'verify' => false,
             'timeout' => 30,
-        ])->get($this->baseUrl . $path, $queryParams);
+        ])->get('https://auth.lazada.com/rest' . $path, $queryParams);
 
         if ($response->failed()) {
             throw new \RuntimeException('Gagal mendapatkan token Lazada: ' . $response->body());
@@ -127,7 +127,8 @@ class LazadaService
         $response = Http::withOptions([
             'verify' => false,
             'timeout' => 30,
-        ])->get($this->baseUrl . $path, $queryParams);
+        ])->get('https://auth.lazada.com/rest' . $path, $queryParams);
+
 
         if ($response->failed()) {
             throw new \RuntimeException('Gagal menyegarkan token Lazada: ' . $response->body());
