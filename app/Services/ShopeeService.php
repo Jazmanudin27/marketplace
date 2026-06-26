@@ -112,7 +112,7 @@ class ShopeeService
 
         $url = $this->baseUrl . $path . '?' . $queryString;
 
-        $response = Http::asJson()->post($url, [
+        $response = Http::timeout(30)->retry(3, 1000)->asJson()->post($url, [
             'refresh_token' => $refreshToken,
             'shop_id' => $shopId,
             'partner_id' => $this->partnerId,
@@ -259,7 +259,7 @@ class ShopeeService
         $timestamp = time();
         $sign = $this->signShopRequest($path, $timestamp, $accessToken, $shopId);
 
-        $response = Http::get($this->baseUrl . $path, [
+        $response = Http::timeout(30)->retry(3, 1000)->get($this->baseUrl . $path, [
             'partner_id' => $this->partnerId,
             'timestamp' => $timestamp,
             'sign' => $sign,
@@ -291,7 +291,7 @@ class ShopeeService
         $timestamp = time();
         $sign = $this->signShopRequest($path, $timestamp, $accessToken, $shopId);
 
-        $response = Http::get($this->baseUrl . $path, [
+        $response = Http::timeout(30)->retry(3, 1000)->get($this->baseUrl . $path, [
             'partner_id' => $this->partnerId,
             'timestamp' => $timestamp,
             'sign' => $sign,
@@ -329,7 +329,7 @@ class ShopeeService
             'order_sn' => $orderSn,
         ];
 
-        $response = Http::get($this->baseUrl . $path . '?' . http_build_query($queryParams));
+        $response = Http::timeout(30)->retry(3, 1000)->get($this->baseUrl . $path . '?' . http_build_query($queryParams));
 
         if ($response->failed()) {
             throw new \RuntimeException('Gagal ambil escrow detail pesanan Shopee: ' . $response->body());
