@@ -13,6 +13,9 @@ Schedule::command('shopee:refresh-tokens')->everyFifteenMinutes();
 Schedule::command('shopee:sync-orders')->everyFifteenMinutes();
 Schedule::command('shopee:sync-returns')->everyFifteenMinutes();
 
+Schedule::command('tiktok:refresh-tokens')->everyFifteenMinutes();
+Schedule::command('tiktok:sync-orders')->everyFifteenMinutes();
+
 // Sinkronisasi chat masuk dari marketplace setiap 5 menit
 // [DIMATIKAN] Aktifkan kembali jika fitur chat dipakai
 // Schedule::job(new \App\Jobs\PullChatsFromShopee())->everyFiveMinutes();

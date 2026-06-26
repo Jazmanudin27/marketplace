@@ -85,6 +85,33 @@ class Store extends Model
                     $this->update(['status' => 'expired']);
                 }
             }
+        } elseif ($this->channel && in_array($this->channel->code, ['tiktok', 'tokopedia'])) {
+            $isExpired = $force ||
+                         !$this->access_token ||
+                         !$this->token_expires_at ||
+                         $this->token_expires_at->subMinutes(5)->isPast();
+
+            if ($isExpired && !empty($this->refresh_token)) {
+                try {
+                    $tiktok = app(\App\Services\TiktokService::class);
+                    $tokenData = $tiktok->refreshAccessToken($this->refresh_token);
+
+                    $this->update([
+                        'access_token' => $tokenData['access_token'],
+                        'refresh_token' => $tokenData['refresh_token'] ?? $this->refresh_token,
+                        'token_expires_at' => now()->addSeconds($tokenData['access_token_expire_in'] ?? 86400),
+                        'status' => 'connected',
+                    ]);
+
+                    $this->refresh();
+                } catch (\Throwable $e) {
+                    \Illuminate\Support\Facades\Log::error('Auto-refresh TikTok/Tokopedia token failed inside Store model', [
+                        'store_id' => $this->id,
+                        'message' => $e->getMessage()
+                    ]);
+                    $this->update(['status' => 'expired']);
+                }
+            }
         }
 
         return $this->access_token;

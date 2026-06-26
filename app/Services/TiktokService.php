@@ -69,6 +69,41 @@ class TiktokService
     }
 
     /**
+     * Mendapatkan Access Token baru menggunakan Refresh Token
+     */
+    public function refreshAccessToken(string $refreshToken)
+    {
+        $path = '/api/v2/token/refresh';
+        
+        $url = 'https://auth.tiktok-shops.com' . $path . '?' . http_build_query([
+            'app_key' => $this->appKey,
+            'app_secret' => $this->appSecret,
+            'refresh_token' => $refreshToken,
+            'grant_type' => 'refresh_token'
+        ]);
+
+        $response = Http::withOptions([
+            'verify' => false,
+            'timeout' => 30,
+            'curl' => [
+                CURLOPT_IPRESOLVE => CURL_IPRESOLVE_V4,
+            ]
+        ])->get($url);
+
+        if ($response->failed()) {
+            throw new \RuntimeException('Gagal me-refresh token TikTok: ' . $response->body());
+        }
+
+        $data = $response->json();
+
+        if ($data['code'] !== 0) {
+            throw new \RuntimeException('TikTok API Error: ' . ($data['message'] ?? 'Unknown Error'));
+        }
+
+        return $data['data']; // Berisi access_token, refresh_token, dll
+    }
+
+    /**
      * Mendapatkan daftar toko (shop info) untuk mendapatkan shop_id dan shop_cipher
      */
     public function getShopInfo(string $accessToken)
