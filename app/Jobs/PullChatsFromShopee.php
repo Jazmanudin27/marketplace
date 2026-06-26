@@ -18,7 +18,7 @@ class PullChatsFromShopee implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public int $timeout = 120;
-    public int $tries = 2;
+    public int $tries   = 1; // Tidak perlu retry — fitur belum diaktifkan
 
     public function __construct(public readonly ?int $storeId = null)
     {
@@ -47,7 +47,8 @@ class PullChatsFromShopee implements ShouldQueue
         }
 
         if (!empty($errors)) {
-            throw new \RuntimeException(implode('; ', $errors));
+            // Hanya log, tidak throw — fitur chat belum di-approve marketplace
+            Log::warning('[PullChatsFromShopee] Beberapa toko gagal pull chat', ['errors' => $errors]);
         }
     }
 
