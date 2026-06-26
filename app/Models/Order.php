@@ -27,6 +27,7 @@ class Order extends Model
         'courier',
         'tracking_number',
         'order_date',
+        'ship_before_date',
         'packed_at',
         'is_stock_deducted',
         'is_stock_returned',
@@ -35,6 +36,7 @@ class Order extends Model
 
     protected $casts = [
         'order_date' => 'datetime',
+        'ship_before_date' => 'datetime',
         'packed_at' => 'datetime',
         'financial_breakdown' => 'array',
         'total_amount' => 'decimal:2',
@@ -217,5 +219,35 @@ class Order extends Model
             return 0.0;
         }
         return round(($this->net_profit / (float) $this->net_amount) * 100, 2);
+    }
+    /**
+     * Apakah pesanan mendekati / sudah melewati batas pengiriman.
+     * true jika ship_before_date ada dan <= 24 jam dari sekarang (termasuk sudah lewat).
+     */
+    public function getIsShipUrgentAttribute(): bool
+    {
+        if (!$this->ship_before_date) {
+            return false;
+        }
+        return $this->ship_before_date->isPast() || $this->ship_before_date->diffInHours(now()) <= 24;
+    }
+
+    /**
+     * Apakah pesanan sudah melewati batas pengiriman.
+     */
+    public function getIsShipOverdueAttribute(): bool
+    {
+        return $this->ship_before_date && $this->ship_before_date->isPast();
+    }
+
+    /**
+     * Scope: pesanan READY_TO_SHIP dengan deadline dalam 24 jam atau sudah lewat.
+     */
+    public function scopeDeadlineUrgent($query)
+    {
+        return $query
+            ->where('order_status', self::STATUS_READY_TO_SHIP)
+            ->whereNotNull('ship_before_date')
+            ->where('ship_before_date', '<=', now()->addHours(24));
     }
 }

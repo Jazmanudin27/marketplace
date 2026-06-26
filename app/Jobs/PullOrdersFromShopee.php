@@ -154,17 +154,20 @@ class PullOrdersFromShopee implements ShouldQueue
             [
                 'customer_id' => $customer->id,
                 'order_status' => $shopeeOrder['order_status'],
-                'buyer_name' => $shopeeOrder['buyer_username'] ?? 'Buyer', // fallback if username not provided
+                'buyer_name' => $shopeeOrder['buyer_username'] ?? 'Buyer',
                 'buyer_phone' => $shopeeOrder['recipient_address']['phone'] ?? null,
                 'shipping_address' => $shopeeOrder['recipient_address']['full_address'] ?? null,
                 'total_amount' => $shopeeOrder['total_amount'] ?? 0,
                 'shipping_fee' => $shopeeOrder['actual_shipping_fee'] ?? $shopeeOrder['estimated_shipping_fee'] ?? 0,
                 'discount_amount' => $shopeeOrder['seller_discount_amount'] ?? 0,
                 'net_amount' => $shopeeOrder['escrow_amount'] ?? 0,
-                'marketplace_fee' => ($shopeeOrder['total_amount'] ?? 0) - ($shopeeOrder['escrow_amount'] ?? 0) - ($shopeeOrder['actual_shipping_fee'] ?? $shopeeOrder['estimated_shipping_fee'] ?? 0), // Rough estimation or exact
+                'marketplace_fee' => ($shopeeOrder['total_amount'] ?? 0) - ($shopeeOrder['escrow_amount'] ?? 0) - ($shopeeOrder['actual_shipping_fee'] ?? $shopeeOrder['estimated_shipping_fee'] ?? 0),
                 'courier' => $shopeeOrder['shipping_carrier'] ?? null,
                 'tracking_number' => current($shopeeOrder['package_list'] ?? [])['tracking_number'] ?? current($shopeeOrder['package_list'] ?? [])['package_number'] ?? null,
                 'order_date' => date('Y-m-d H:i:s', $shopeeOrder['create_time'] ?? time()),
+                'ship_before_date' => isset($shopeeOrder['ship_by_date']) && $shopeeOrder['ship_by_date']
+                    ? date('Y-m-d H:i:s', $shopeeOrder['ship_by_date'])
+                    : null,
                 'financial_breakdown' => $financialBreakdown,
             ]
         );

@@ -54,8 +54,8 @@
                 <!-- Navbar -->
                 <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom sticky-top py-2 px-3 shadow-sm">
                     <div class="container-fluid p-0">
-                        <button class="btn btn-sm btn-outline-secondary me-2" type="button"
-                            data-bs-toggle="offcanvas" data-bs-target="#sidebarMenu" aria-controls="sidebarMenu">
+                        <button class="btn btn-sm btn-outline-secondary me-2" type="button" data-bs-toggle="offcanvas"
+                            data-bs-target="#sidebarMenu" aria-controls="sidebarMenu">
                             <i class="bi bi-list fs-5"></i>
                         </button>
                         <div class="ms-1">
@@ -140,17 +140,25 @@
 
             // Initialize Select2
             if ($.fn.select2) {
-                $('.form-select').each(function() {
-                    const select = $(this);
-                    const parent = select.parent();
-                    parent.css('position', 'relative');
-                    select.select2({
-                        theme: 'bootstrap-5',
-                        width: '100%',
-                        dropdownParent: parent,
-                        placeholder: select.data('placeholder') || 'Pilih opsi...'
+                setTimeout(function() {
+                    $('.form-select').each(function() {
+                        const select = $(this);
+                        if (!select.hasClass('select2-hidden-accessible')) {
+                            const modal = select.closest('.modal');
+                            const options = {
+                                theme: 'bootstrap-5',
+                                width: '100%',
+                                placeholder: select.data('placeholder') || 'Pilih opsi...'
+                            };
+                            
+                            if (modal.length) {
+                                options.dropdownParent = modal;
+                            }
+                            
+                            select.select2(options);
+                        }
                     });
-                });
+                }, 50);
             }
 
             // SweetAlert2 Session Messages

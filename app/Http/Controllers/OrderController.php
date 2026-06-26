@@ -65,7 +65,14 @@ class OrderController extends Controller
             ->distinct()
             ->pluck('order_status');
 
-        return view('orders.index', compact('orders', 'channels', 'stores', 'couriers', 'statuses'));
+        // Pesanan mendekati/melewati batas pengiriman
+        $urgentOrders = Order::with('store')
+            ->where('tenant_id', $tenantId)
+            ->deadlineUrgent()
+            ->orderBy('ship_before_date')
+            ->get();
+
+        return view('orders.index', compact('orders', 'channels', 'stores', 'couriers', 'statuses', 'urgentOrders'));
     }
 
     public function show(Order $order)

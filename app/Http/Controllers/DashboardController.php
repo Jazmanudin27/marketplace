@@ -47,6 +47,13 @@ class DashboardController extends Controller
                                          ->limit(8)
                                          ->get();
 
+        // Pesanan mendekati/melewati batas pengiriman (deadline ≤ 24 jam dari sekarang)
+        $urgentOrders = Order::with('store.channel')
+                             ->where('tenant_id', $tenant->id)
+                             ->deadlineUrgent()
+                             ->orderBy('ship_before_date')
+                             ->get();
+
         // Statistik per channel
         $stores = Store::with('channel')
                        ->where('tenant_id', $tenant->id)
@@ -57,8 +64,8 @@ class DashboardController extends Controller
 
         return view('dashboard.index', compact(
             'totalStores', 'totalProducts', 'todayOrders', 'todayRevenue',
-            'monthRevenue', 'pendingOrders', 'recentOrders', 'lowStockProducts', 'stores',
-            'initialChartData'
+            'monthRevenue', 'pendingOrders', 'recentOrders', 'lowStockProducts',
+            'urgentOrders', 'stores', 'initialChartData'
         ));
     }
 

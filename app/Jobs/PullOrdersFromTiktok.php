@@ -199,6 +199,7 @@ class PullOrdersFromTiktok implements ShouldQueue
                 'courier' => $courier,
                 'tracking_number' => $trackingNumber,
                 'order_date' => date('Y-m-d H:i:s', $createTime),
+                'ship_before_date' => $this->resolveShipBeforeDate($tiktokOrder),
                 'financial_breakdown' => $financialBreakdown,
             ]
         );
@@ -258,5 +259,23 @@ class PullOrdersFromTiktok implements ShouldQueue
 
         // Process stock deduction or return
         $order->processStockDeduction();
+    }
+
+    /**
+     * Resolve ship_before_date dari berbagai nama field TikTok API.
+     * TikTok mengembalikan batas pengiriman sebagai unix timestamp pada beberapa field.
+     */
+    protected function resolveShipBeforeDate(array $tiktokOrder): ?string
+    {
+        $timestamp = $tiktokOrder['ship_deadline_time']
+            ?? $tiktokOrder['ship_by_date']
+            ?? $tiktokOrder['shipping_deadline']
+            ?? null;
+
+        if (!$timestamp || !is_numeric($timestamp)) {
+            return null;
+        }
+
+        return date('Y-m-d H:i:s', (int) $timestamp);
     }
 }
