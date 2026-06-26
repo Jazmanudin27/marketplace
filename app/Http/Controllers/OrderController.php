@@ -267,9 +267,9 @@ class OrderController extends Controller
             return back()->with('error', 'Anda belum mengintegrasikan toko.');
         }
 
-        // Tarik pesanan 7 hari terakhir sebagai default
+        // Tarik pesanan 14 hari terakhir sebagai default (Shopee max limit adalah 15 hari)
         $timeTo = time();
-        $timeFrom = strtotime('-7 days', $timeTo);
+        $timeFrom = strtotime('-14 days', $timeTo);
 
         foreach ($stores as $store) {
             if ($store->channel->code === 'shopee') {

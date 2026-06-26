@@ -480,23 +480,13 @@ class MasterProductController extends Controller
 
             foreach ($stores as $store) {
                 $shopId      = (int) $store->marketplace_store_id;
-                $accessToken = $store->getAttributes()['access_token'];
 
-                // Coba refresh jika token sudah expired
-                if ($store->isTokenExpired() && !empty($store->getAttributes()['refresh_token'])) {
-                    try {
-                        $refreshed = $shopee->refreshAccessToken($store->getAttributes()['refresh_token'], $shopId);
-                        $store->update([
-                            'access_token'     => $refreshed['access_token'],
-                            'refresh_token'    => $refreshed['refresh_token'] ?? $store->getAttributes()['refresh_token'],
-                            'token_expires_at' => now()->addSeconds($refreshed['expire_in'] ?? 14400),
-                        ]);
-                        $accessToken = $refreshed['access_token'];
-                    } catch (\Throwable $refreshErr) {
-                        \Illuminate\Support\Facades\Log::warning("[shopeeCategories] Refresh token gagal untuk store {$store->id}: " . $refreshErr->getMessage());
-                        $lastError = 'Token expired dan gagal refresh: ' . $refreshErr->getMessage();
-                        continue; // Coba toko berikutnya
-                    }
+                try {
+                    $accessToken = $store->getValidAccessToken();
+                } catch (\Throwable $refreshErr) {
+                    \Illuminate\Support\Facades\Log::warning("[shopeeCategories] Refresh token gagal untuk store {$store->id}: " . $refreshErr->getMessage());
+                    $lastError = 'Token expired dan gagal refresh: ' . $refreshErr->getMessage();
+                    continue; // Coba toko berikutnya
                 }
 
                 // Hapus cache lama

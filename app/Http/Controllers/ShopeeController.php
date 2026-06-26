@@ -153,7 +153,7 @@ class ShopeeController extends Controller
 
         try {
             $shopId = (int) $store->marketplace_store_id;
-            $accessToken = $store->access_token;
+            $accessToken = $store->getValidAccessToken();
 
             $offset = 0;
             $pageSize = 50;
@@ -284,7 +284,7 @@ class ShopeeController extends Controller
 
         try {
             $shopId = (int) $store->marketplace_store_id;
-            $accessToken = $store->access_token;
+            $accessToken = $store->getValidAccessToken();
 
             $timeTo = time();
             $timeFrom = $timeTo - (15 * 86400); // 15 hari terakhir
