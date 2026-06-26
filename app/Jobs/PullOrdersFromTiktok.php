@@ -178,6 +178,9 @@ class PullOrdersFromTiktok implements ShouldQueue
         $courier = $tiktokOrder['shipping_provider'] ?? $tiktokOrder['shipping_provider_name'] ?? null;
         $trackingNumber = $tiktokOrder['tracking_number'] ?? $tiktokOrder['tracking_no'] ?? null;
         $createTime = $tiktokOrder['create_time'] ?? $tiktokOrder['create_time_ge'] ?? time();
+        if (is_numeric($createTime) && strlen((string)$createTime) >= 13) {
+            $createTime = (int)($createTime / 1000);
+        }
 
         $order = Order::updateOrCreate(
             [
@@ -267,17 +270,32 @@ class PullOrdersFromTiktok implements ShouldQueue
      */
     protected function resolveShipBeforeDate(array $tiktokOrder): ?string
     {
-        $timestamp = $tiktokOrder['rts_sla']
+        $timestamp = $tiktokOrder['rts_sla_time']
+            ?? $tiktokOrder['tts_sla_time']
+            ?? $tiktokOrder['rts_sla']
             ?? $tiktokOrder['tts_sla']
             ?? $tiktokOrder['ship_deadline_time']
             ?? $tiktokOrder['ship_by_date']
             ?? $tiktokOrder['shipping_deadline']
             ?? null;
 
+        Log::info('[TikTok Debug] resolving ship_before_date', [
+            'order_id' => $tiktokOrder['order_id'] ?? $tiktokOrder['id'] ?? null,
+            'rts_sla_time' => $tiktokOrder['rts_sla_time'] ?? null,
+            'tts_sla_time' => $tiktokOrder['tts_sla_time'] ?? null,
+            'resolved_timestamp' => $timestamp,
+        ]);
+
         if (!$timestamp || !is_numeric($timestamp)) {
             return null;
         }
 
-        return date('Y-m-d H:i:s', (int) $timestamp);
+        $timestamp = (int) $timestamp;
+        // Jika timestamp dalam milidetik (13 digit atau lebih), konversi ke detik
+        if (strlen((string)$timestamp) >= 13) {
+            $timestamp = (int)($timestamp / 1000);
+        }
+
+        return date('Y-m-d H:i:s', $timestamp);
     }
 }

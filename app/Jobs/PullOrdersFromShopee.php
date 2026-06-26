@@ -165,9 +165,7 @@ class PullOrdersFromShopee implements ShouldQueue
                 'courier' => $shopeeOrder['shipping_carrier'] ?? null,
                 'tracking_number' => current($shopeeOrder['package_list'] ?? [])['tracking_number'] ?? current($shopeeOrder['package_list'] ?? [])['package_number'] ?? null,
                 'order_date' => date('Y-m-d H:i:s', $shopeeOrder['create_time'] ?? time()),
-                'ship_before_date' => isset($shopeeOrder['ship_by_date']) && $shopeeOrder['ship_by_date']
-                    ? date('Y-m-d H:i:s', $shopeeOrder['ship_by_date'])
-                    : null,
+                'ship_before_date' => $this->resolveShipBeforeDate($shopeeOrder),
                 'financial_breakdown' => $financialBreakdown,
             ]
         );
@@ -229,5 +227,32 @@ class PullOrdersFromShopee implements ShouldQueue
 
         // Process stock deduction or return
         $order->processStockDeduction();
+    }
+
+    /**
+     * Resolve ship_before_date dari Shopee API response.
+     */
+    protected function resolveShipBeforeDate(array $shopeeOrder): ?string
+    {
+        $timestamp = $shopeeOrder['ship_by_date']
+            ?? $shopeeOrder['ship_before_date']
+            ?? null;
+
+        Log::info('[Shopee Debug] resolving ship_before_date', [
+            'order_sn' => $shopeeOrder['order_sn'] ?? null,
+            'ship_by_date_raw' => $shopeeOrder['ship_by_date'] ?? null,
+            'resolved_timestamp' => $timestamp,
+        ]);
+
+        if (!$timestamp || !is_numeric($timestamp)) {
+            return null;
+        }
+
+        $timestamp = (int) $timestamp;
+        if (strlen((string)$timestamp) >= 13) {
+            $timestamp = (int)($timestamp / 1000);
+        }
+
+        return date('Y-m-d H:i:s', $timestamp);
     }
 }
