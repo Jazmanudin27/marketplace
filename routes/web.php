@@ -99,6 +99,13 @@ Route::get('/tiktok/auth', [TiktokController::class, 'authorizeTiktok'])->name('
 Route::get('/tiktok/callback', [TiktokController::class, 'callback'])->name('tiktok.callback');
 Route::get('/callback/tiktok', [TiktokController::class, 'callback']);
 
+// =========================================================================
+// Mobile Complaint Form (Publik — tanpa login, identifikasi via tenant_id)
+// =========================================================================
+Route::get('/m/complaint/{tenant_id}', [ComplaintController::class, 'mobileCreate'])->name('complaints.mobile.create');
+Route::post('/m/complaint/{tenant_id}', [ComplaintController::class, 'mobileStore'])->name('complaints.mobile.store');
+Route::get('/m/complaint/{tenant_id}/success', [ComplaintController::class, 'mobileSuccess'])->name('complaints.mobile.success');
+
 // DEBUG — Verifikasi sign (hapus sebelum production!)
 Route::get('/shopee/debug-sign', function () {
     $shopee = app(\App\Services\ShopeeService::class);

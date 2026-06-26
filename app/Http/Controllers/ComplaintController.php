@@ -125,4 +125,48 @@ class ComplaintController extends Controller
         return redirect()->route('complaints.index')
             ->with('success', 'Pengaduan barang rusak berhasil dihapus.');
     }
+
+    public function mobileCreate($tenant_id)
+    {
+        $tenant = \App\Models\Tenant::findOrFail($tenant_id);
+        return view('complaints.mobile_create', compact('tenant'));
+    }
+
+    public function mobileStore(Request $request, $tenant_id)
+    {
+        $tenant = \App\Models\Tenant::findOrFail($tenant_id);
+
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'address' => 'required|string',
+            'phone' => 'required|string|max:20',
+            'description' => 'required|string',
+            'photos' => 'nullable|array|max:3',
+            'photos.*' => 'image|mimes:jpeg,png,jpg,gif|max:2048',
+        ]);
+
+        $data = $request->only(['name', 'address', 'phone', 'description']);
+        $data['tenant_id'] = $tenant->id;
+        $data['status'] = 'Pending';
+
+        if ($request->hasFile('photos')) {
+            $photos = $request->file('photos');
+            foreach ($photos as $index => $photo) {
+                if ($index < 3) {
+                    $path = $photo->store('complaints', 'public');
+                    $data['photo_' . ($index + 1)] = $path;
+                }
+            }
+        }
+
+        Complaint::create($data);
+
+        return redirect()->route('complaints.mobile.success', $tenant->id);
+    }
+
+    public function mobileSuccess($tenant_id)
+    {
+        $tenant = \App\Models\Tenant::findOrFail($tenant_id);
+        return view('complaints.mobile_success', compact('tenant'));
+    }
 }
