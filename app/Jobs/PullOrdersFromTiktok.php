@@ -267,7 +267,9 @@ class PullOrdersFromTiktok implements ShouldQueue
      */
     protected function resolveShipBeforeDate(array $tiktokOrder): ?string
     {
-        $timestamp = $tiktokOrder['ship_deadline_time']
+        $timestamp = $tiktokOrder['rts_sla']
+            ?? $tiktokOrder['tts_sla']
+            ?? $tiktokOrder['ship_deadline_time']
             ?? $tiktokOrder['ship_by_date']
             ?? $tiktokOrder['shipping_deadline']
             ?? null;
