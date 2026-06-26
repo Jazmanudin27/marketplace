@@ -16,7 +16,7 @@ class CustomerController extends Controller
         $search = $request->query('search');
         $tag = $request->query('tag');
         $loyalty = $request->query('loyalty');
-        $tenantIdQuery = $request->query('tenant_id');
+        $tenantIdQuery = $request->query('tenant_id', $user->tenant_id);
         $channelId = $request->query('channel_id');
         $storeId = $request->query('store_id');
 
@@ -26,7 +26,7 @@ class CustomerController extends Controller
         if (!$isSuperAdmin) {
             $query->where('tenant_id', $user->tenant_id);
         } else {
-            if ($request->filled('tenant_id')) {
+            if ($tenantIdQuery && $tenantIdQuery > 1) {
                 $query->where('tenant_id', $tenantIdQuery);
             }
         }
@@ -83,7 +83,7 @@ class CustomerController extends Controller
         if (!$isSuperAdmin) {
             $storesQuery->where('tenant_id', $user->tenant_id);
         } else {
-            if ($request->filled('tenant_id')) {
+            if ($tenantIdQuery && $tenantIdQuery > 1) {
                 $storesQuery->where('tenant_id', $tenantIdQuery);
             }
         }
@@ -91,10 +91,15 @@ class CustomerController extends Controller
 
         // Get unique tags list
         $allTags = [];
-        $rawTags = Customer::where('tenant_id', $isSuperAdmin && $tenantIdQuery ? $tenantIdQuery : $user->tenant_id)
-            ->whereNotNull('tags')
-            ->pluck('tags')
-            ->toArray();
+        $tagsQuery = Customer::whereNotNull('tags');
+        if (!$isSuperAdmin) {
+            $tagsQuery->where('tenant_id', $user->tenant_id);
+        } else {
+            if ($tenantIdQuery && $tenantIdQuery > 1) {
+                $tagsQuery->where('tenant_id', $tenantIdQuery);
+            }
+        }
+        $rawTags = $tagsQuery->pluck('tags')->toArray();
             
         foreach ($rawTags as $rt) {
             foreach (explode(',', $rt) as $subt) {

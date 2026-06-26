@@ -36,13 +36,18 @@ class CustomQueryBuilder extends QueryBuilder
             // If user is authenticated and belongs to Tenant ID 1 (or is super-admin)
             if (Auth::check()) {
                 $user = Auth::user();
-                $isSuperTenant = ($user->tenant_id == 1 || $user->role === 'super-admin');
+                $isSuperTenant = ($user->role === 'super-admin' || ($user->attributes['tenant_id'] ?? null) == 1);
 
                 if ($isSuperTenant) {
-                    // Ignore the default filter of tenant_id = 1 (or tenant_id = user's tenant_id)
-                    // If they want to specifically filter for another tenant (e.g. tenant_id = 2), keep it.
-                    if ($actualValue == 1 || $actualValue == $user->tenant_id || $actualValue === null) {
-                        return $this;
+                    $selectedTenantId = session('selected_tenant_id');
+                    if ($selectedTenantId && $selectedTenantId > 1) {
+                        // Do not ignore the filter. Enforce filtering by the selected tenant.
+                    } else {
+                        // Ignore the default filter of tenant_id = 1 (or tenant_id = user's tenant_id)
+                        // If they want to specifically filter for another tenant (e.g. tenant_id = 2), keep it.
+                        if ($actualValue == 1 || $actualValue == $user->tenant_id || $actualValue === null) {
+                            return $this;
+                        }
                     }
                 }
             }

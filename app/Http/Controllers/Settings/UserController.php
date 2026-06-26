@@ -192,15 +192,16 @@ class UserController extends Controller
         if ($authUser->isSuperAdmin()) {
             // Super Admin: bisa lihat semua tenant
             $tenants = Tenant::where('id', '!=', 1)->orderBy('name')->get();
-            $selectedTenantId = $request->get('tenant_id');
+            $selectedTenantId = $request->get('tenant_id', $authUser->tenant_id);
 
             $query = User::with(['roles', 'permissions'])->where('tenant_id', '!=', 1);
 
-            if ($selectedTenantId) {
+            if ($selectedTenantId && $selectedTenantId > 1) {
                 $query->where('tenant_id', $selectedTenantId);
                 $tenantId = $selectedTenantId;
             } else {
                 $tenantId = null;
+                $selectedTenantId = null;
             }
         } else {
             // Admin biasa: hanya lihat tenant sendiri

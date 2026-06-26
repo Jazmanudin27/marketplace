@@ -22,8 +22,8 @@ class RoleMiddleware
 
         $userRole = Auth::user()->role;
 
-        // Admin and Owner have full access
-        if ($userRole === 'admin' || $userRole === 'owner') {
+        // Admin, Owner, and Super Admin have full access
+        if ($userRole === 'admin' || $userRole === 'owner' || $userRole === 'super-admin') {
             return $next($request);
         }
 

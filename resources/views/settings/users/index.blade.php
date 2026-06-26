@@ -30,7 +30,7 @@
                                                     <option value="">-- Semua Perusahaan --</option>
                                                     @foreach ($tenants as $t)
                                                         <option value="{{ $t->id }}"
-                                                            {{ request('tenant_id') == $t->id ? 'selected' : '' }}>
+                                                            {{ $selectedTenantId == $t->id ? 'selected' : '' }}>
                                                             {{ $t->name }}
                                                         </option>
                                                     @endforeach

@@ -50,6 +50,31 @@ class User extends Authenticatable
         return $this->belongsTo(Tenant::class);
     }
 
+    public function getTenantIdAttribute($value)
+    {
+        if ($this->role === 'super-admin') {
+            return session('selected_tenant_id', $value);
+        }
+        return $value;
+    }
+
+    public function getTenantAttribute()
+    {
+        if ($this->role === 'super-admin') {
+            $selectedTenantId = session('selected_tenant_id');
+            if ($selectedTenantId) {
+                $loaded = $this->getRelationValue('tenant');
+                if ($loaded && $loaded->id == $selectedTenantId) {
+                    return $loaded;
+                }
+                $tenant = Tenant::find($selectedTenantId);
+                $this->setRelation('tenant', $tenant);
+                return $tenant;
+            }
+        }
+        return $this->getRelationValue('tenant') ?? $this->tenant()->getResults();
+    }
+
     // =========================================================================
     // Role / Permission Helpers
     // =========================================================================
@@ -62,7 +87,7 @@ class User extends Authenticatable
      */
     public function isSuperAdmin(): bool
     {
-        return $this->role === 'super-admin' || $this->tenant_id == 1;
+        return $this->role === 'super-admin' || ($this->attributes['tenant_id'] ?? null) == 1;
     }
 
     /**

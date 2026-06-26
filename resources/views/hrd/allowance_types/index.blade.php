@@ -26,7 +26,7 @@
                                     <option value="">-- Semua --</option>
                                     @foreach ($tenants as $t)
                                         <option value="{{ $t->id }}"
-                                            {{ request('tenant_id') == $t->id ? 'selected' : '' }}>
+                                            {{ $selectedTenantId == $t->id ? 'selected' : '' }}>
                                             {{ $t->name }}
                                         </option>
                                     @endforeach
@@ -89,7 +89,7 @@
                             <select name="tenant_id" id="tenant_id" class="form-select form-select-sm" required>
                                 <option value="">-- Pilih Perusahaan --</option>
                                 @foreach ($tenants as $t)
-                                    <option value="{{ $t->id }}">{{ $t->name }}</option>
+                                    <option value="{{ $t->id }}" {{ $selectedTenantId == $t->id ? 'selected' : '' }}>{{ $t->name }}</option>
                                 @endforeach
                             </select>
                         </div>

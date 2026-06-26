@@ -32,22 +32,22 @@ class TenantCutoffSettingsTest extends TestCase
         ]);
 
         // Create Spatie roles
-        $adminRole = \Spatie\Permission\Models\Role::create([
+        $ownerRole = \Spatie\Permission\Models\Role::create([
             'tenant_id' => $this->tenant->id,
-            'name' => 'admin',
+            'name' => 'owner',
             'guard_name' => 'web',
         ]);
 
-        // Create an admin user
+        // Create an owner user (previously adminUser, kept variable name for compatibility)
         $this->adminUser = User::create([
             'tenant_id' => $this->tenant->id,
-            'name' => 'Admin User',
-            'email' => 'admin@test.com',
+            'name' => 'Owner User',
+            'email' => 'owner@test.com',
             'password' => bcrypt('password'),
-            'role' => 'admin',
+            'role' => 'owner',
         ]);
         setPermissionsTeamId($this->tenant->id);
-        $this->adminUser->assignRole($adminRole);
+        $this->adminUser->assignRole($ownerRole);
 
         // Create a regular user (non-admin)
         $this->regularUser = User::create([
@@ -85,7 +85,37 @@ class TenantCutoffSettingsTest extends TestCase
         $response->assertStatus(403);
     }
 
-    public function test_admin_can_access_tenant_settings_page(): void
+    public function test_admin_cannot_access_tenant_settings_page(): void
+    {
+        // Create an admin role and user
+        $adminRole = \Spatie\Permission\Models\Role::create([
+            'tenant_id' => $this->tenant->id,
+            'name' => 'admin',
+            'guard_name' => 'web',
+        ]);
+        $adminUser = User::create([
+            'tenant_id' => $this->tenant->id,
+            'name' => 'Admin User',
+            'email' => 'admin@test.com',
+            'password' => bcrypt('password'),
+            'role' => 'admin',
+        ]);
+        setPermissionsTeamId($this->tenant->id);
+        $adminUser->assignRole($adminRole);
+
+        $this->actingAs($adminUser);
+
+        $response = $this->get(route('settings.tenant.edit'));
+        $response->assertStatus(403);
+
+        $response = $this->put(route('settings.tenant.update'), [
+            'name' => 'New Name',
+            'cutoff_start_day' => 25,
+        ]);
+        $response->assertStatus(403);
+    }
+
+    public function test_owner_can_access_tenant_settings_page(): void
     {
         $this->actingAs($this->adminUser);
 
@@ -95,7 +125,7 @@ class TenantCutoffSettingsTest extends TestCase
         $response->assertSee('Hari Mulai Cut-off Presensi & Gaji', false);
     }
 
-    public function test_admin_can_update_cutoff_settings(): void
+    public function test_owner_can_update_cutoff_settings(): void
     {
         $this->actingAs($this->adminUser);
 

@@ -230,8 +230,10 @@ Route::middleware('auth')->group(function () {
     });
 
     // Pengaturan Perusahaan (Tenant Settings)
-    Route::get('/settings/tenant', [\App\Http\Controllers\Settings\TenantSettingsController::class, 'edit'])->name('settings.tenant.edit');
-    Route::put('/settings/tenant', [\App\Http\Controllers\Settings\TenantSettingsController::class, 'update'])->name('settings.tenant.update');
+    Route::middleware('permission:settings.tenant.edit')->group(function () {
+        Route::get('/settings/tenant', [\App\Http\Controllers\Settings\TenantSettingsController::class, 'edit'])->name('settings.tenant.edit');
+        Route::put('/settings/tenant', [\App\Http\Controllers\Settings\TenantSettingsController::class, 'update'])->name('settings.tenant.update');
+    });
 
 
 
@@ -454,6 +456,18 @@ Route::middleware('auth')->group(function () {
         Route::post('/mobile/produksi/{order}/complete', [\App\Http\Controllers\MobileController::class, 'produksiComplete'])->name('mobile.produksi.complete');
         Route::post('/mobile/produksi/{order}/cancel', [\App\Http\Controllers\MobileController::class, 'produksiCancel'])->name('mobile.produksi.cancel');
     });
+
+    // Tenant Switcher (Super Admin)
+    Route::post('/settings/switch-tenant', function (\Illuminate\Http\Request $request) {
+        if (auth()->user() && auth()->user()->isSuperAdmin()) {
+            $tenantId = $request->input('tenant_id');
+            if (\App\Models\Tenant::where('id', $tenantId)->exists()) {
+                session(['selected_tenant_id' => $tenantId]);
+                return back()->with('success', 'Berhasil beralih perusahaan.');
+            }
+        }
+        return back()->with('error', 'Gagal beralih perusahaan.');
+    })->name('switch-tenant');
 });
 
 

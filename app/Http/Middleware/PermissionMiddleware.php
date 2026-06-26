@@ -22,9 +22,20 @@ class PermissionMiddleware
 
         $user = Auth::user();
 
-        // Admin (Owner) memiliki akses penuh tanpa terkecuali
-        if ($user->role === 'admin' || $user->hasRole('admin') || $user->role === 'owner' || $user->hasRole('owner')) {
+        // Super Admin and Owner have full access to everything
+        if ($user->role === 'super-admin' || $user->role === 'owner' || $user->hasRole('owner')) {
             return $next($request);
+        }
+
+        // Admin has full access EXCEPT for company settings
+        if ($permission !== 'settings.tenant.edit') {
+            if ($user->role === 'admin' || $user->hasRole('admin')) {
+                return $next($request);
+            }
+        } else {
+            if ($user->role === 'admin' || $user->hasRole('admin')) {
+                abort(403, 'Akses Ditolak: Administrator tidak diizinkan mengakses halaman ini.');
+            }
         }
 
         // Periksa apakah user memiliki permission yang dibutuhkan

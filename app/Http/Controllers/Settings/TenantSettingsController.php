@@ -16,7 +16,8 @@ class TenantSettingsController extends Controller
         if ($user->isSuperAdmin()) {
             // Super Admin: bisa memilih tenant mana yang akan dikonfigurasi
             $tenants = Tenant::where('id', '!=', 1)->orderBy('name')->get();
-            $selectedTenantId = $request->get('tenant_id', $tenants->first()?->id);
+            $defaultTenantId = ($user->tenant_id && $user->tenant_id > 1) ? $user->tenant_id : $tenants->first()?->id;
+            $selectedTenantId = $request->get('tenant_id', $defaultTenantId);
             $tenant = Tenant::find($selectedTenantId);
 
             if (!$tenant) {

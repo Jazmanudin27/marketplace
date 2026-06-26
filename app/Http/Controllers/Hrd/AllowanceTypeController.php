@@ -15,12 +15,13 @@ class AllowanceTypeController extends Controller
         $isSuperAdmin = $user->isSuperAdmin();
 
         $query = AllowanceType::with('tenant')->orderBy('name');
+        $selectedTenantId = $isSuperAdmin ? $request->get('tenant_id', $user->tenant_id) : $user->tenant_id;
 
         if (!$isSuperAdmin) {
             $query->where('tenant_id', $user->tenant_id);
         } else {
-            if ($request->filled('tenant_id')) {
-                $query->where('tenant_id', $request->tenant_id);
+            if ($selectedTenantId && $selectedTenantId > 1) {
+                $query->where('tenant_id', $selectedTenantId);
             }
         }
 
@@ -35,7 +36,7 @@ class AllowanceTypeController extends Controller
             $tenants = \App\Models\Tenant::orderBy('name')->get();
         }
 
-        return view('hrd.allowance_types.index', compact('allowanceTypes', 'isSuperAdmin', 'tenants'));
+        return view('hrd.allowance_types.index', compact('allowanceTypes', 'isSuperAdmin', 'tenants', 'selectedTenantId'));
     }
 
     public function store(Request $request)

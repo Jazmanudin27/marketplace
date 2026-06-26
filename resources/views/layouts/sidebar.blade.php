@@ -4,7 +4,9 @@
         request()->routeIs('brands.*') ||
         request()->routeIs('suppliers.*') ||
         request()->routeIs('customers.*') ||
-        request()->routeIs('users.*');
+        request()->routeIs('users.*') ||
+        request()->routeIs('roles.*') ||
+        request()->routeIs('settings.tenant.*');
 
     $isTransaksiActive =
         request()->routeIs('incoming_goods.*') ||
@@ -42,19 +44,48 @@
     </div>
 
     <!-- Tenant Card -->
-    <div class="card border p-2 mb-3 bg-light">
-        <div class="d-flex align-items-center gap-2">
-            <div class="bg-primary bg-gradient text-white rounded p-2 d-flex align-items-center justify-content-center fw-bold">
-                {{ strtoupper(substr(Auth::user()->tenant->name, 0, 1)) }}
-            </div>
-            <div class="lh-sm overflow-hidden small">
-                <span class="d-block fw-semibold text-dark text-truncate" title="{{ Auth::user()->tenant->name }}">{{ Auth::user()->tenant->name }}</span>
+    @if (Auth::user()->isSuperAdmin())
+        @php
+            $tenants = \App\Models\Tenant::orderBy('name')->get();
+        @endphp
+        <div class="card border p-2 mb-3 bg-light">
+            <div class="small fw-bold text-muted mb-1 text-uppercase" style="font-size: 0.75rem;">Pilih Perusahaan</div>
+            <form action="{{ route('switch-tenant') }}" method="POST" id="switch-tenant-form">
+                @csrf
+                <select name="tenant_id" class="form-select form-select-sm text-truncate fw-semibold"
+                    onchange="document.getElementById('switch-tenant-form').submit()">
+                    @foreach ($tenants as $t)
+                        <option value="{{ $t->id }}" {{ Auth::user()->tenant_id == $t->id ? 'selected' : '' }}>
+                            {{ $t->name }}
+                        </option>
+                    @endforeach
+                </select>
+            </form>
+            <div class="lh-sm mt-1 small">
                 <small class="text-muted d-block">
+                    Role:
                     {{ Auth::user()->roles->first() ? ucfirst(Auth::user()->roles->first()->name) : ucfirst(Auth::user()->role) }}
+                    (Super Admin)
                 </small>
             </div>
         </div>
-    </div>
+    @else
+        <div class="card border p-2 mb-3 bg-light">
+            <div class="d-flex align-items-center gap-2">
+                <div
+                    class="bg-primary bg-gradient text-white rounded p-2 d-flex align-items-center justify-content-center fw-bold">
+                    {{ strtoupper(substr(Auth::user()->tenant->name, 0, 1)) }}
+                </div>
+                <div class="lh-sm overflow-hidden small">
+                    <span class="d-block fw-semibold text-dark text-truncate"
+                        title="{{ Auth::user()->tenant->name }}">{{ Auth::user()->tenant->name }}</span>
+                    <small class="text-muted d-block">
+                        {{ Auth::user()->roles->first() ? ucfirst(Auth::user()->roles->first()->name) : ucfirst(Auth::user()->role) }}
+                    </small>
+                </div>
+            </div>
+        </div>
+    @endif
 
     <!-- Navigation Menu -->
     <div class="nav flex-column nav-pills gap-1 small">
@@ -62,13 +93,15 @@
         <!-- UTAMA -->
         <div class="text-uppercase text-muted fw-bold mb-1 mt-2 small">Utama</div>
 
-        <a href="{{ route('dashboard') }}" class="nav-link d-flex align-items-center gap-2 {{ request()->routeIs('dashboard') ? 'active text-white' : 'text-dark' }}">
+        <a href="{{ route('dashboard') }}"
+            class="nav-link d-flex align-items-center gap-2 {{ request()->routeIs('dashboard') ? 'active text-white' : 'text-dark' }}">
             <i class="bi bi-grid"></i>
             <span>Dashboard</span>
         </a>
 
         <!-- MASTER DATA -->
-        @if (auth()->user()->role === 'admin' ||
+        @if (auth()->user()->isSuperAdmin() ||
+                auth()->user()->role === 'admin' ||
                 auth()->user()->hasAnyPermission([
                         'manage-categories',
                         'manage-brands',
@@ -78,10 +111,12 @@
                         'manage-users',
                         'manage-products',
                         'manage-stores',
+                        'settings.tenant.edit',
                     ]))
             <div class="text-uppercase text-muted fw-bold mb-1 mt-3 small">Master</div>
 
-            @if (auth()->user()->role === 'admin' ||
+            @if (auth()->user()->isSuperAdmin() ||
+                    auth()->user()->role === 'admin' ||
                     auth()->user()->hasAnyPermission([
                             'manage-categories',
                             'manage-brands',
@@ -89,14 +124,13 @@
                             'manage-employees',
                             'manage-customers',
                             'manage-users',
+                            'settings.tenant.edit',
                         ]))
                 <div>
-                    <a class="nav-link d-flex align-items-center justify-content-between text-dark {{ $isMasterDataActive ? '' : 'collapsed' }}" 
-                       data-bs-toggle="collapse" 
-                       data-bs-target="#collapseMasterData" 
-                       role="button" 
-                       aria-expanded="{{ $isMasterDataActive ? 'true' : 'false' }}" 
-                       aria-controls="collapseMasterData">
+                    <a class="nav-link d-flex align-items-center justify-content-between text-dark {{ $isMasterDataActive ? '' : 'collapsed' }}"
+                        data-bs-toggle="collapse" data-bs-target="#collapseMasterData" role="button"
+                        aria-expanded="{{ $isMasterDataActive ? 'true' : 'false' }}"
+                        aria-controls="collapseMasterData">
                         <div class="d-flex align-items-center gap-2">
                             <i class="bi bi-database"></i>
                             <span>Master Data</span>
@@ -129,7 +163,12 @@
                                 <a href="{{ route('users.index') }}"
                                     class="nav-link py-1 {{ request()->routeIs('users.*') ? 'active text-white' : 'text-secondary' }}">Pengguna</a>
                                 <a href="{{ route('roles.index') }}"
-                                    class="nav-link py-1 {{ request()->routeIs('roles.*') ? 'active text-white' : 'text-secondary' }}">Hak Akses</a>
+                                    class="nav-link py-1 {{ request()->routeIs('roles.*') ? 'active text-white' : 'text-secondary' }}">Hak
+                                    Akses</a>
+                            @endcan
+                            @can('settings.tenant.edit')
+                                <a href="{{ route('settings.tenant.edit') }}"
+                                    class="nav-link py-1 {{ request()->routeIs('settings.tenant.*') ? 'active text-white' : 'text-secondary' }}">Perusahaan</a>
                             @endcan
                         </div>
                     </div>
@@ -137,12 +176,14 @@
             @endif
 
             @can('manage-products')
-                <a href="{{ route('products.index') }}" class="nav-link d-flex align-items-center gap-2 {{ request()->routeIs('products.*') ? 'active text-white' : 'text-dark' }}">
+                <a href="{{ route('products.index') }}"
+                    class="nav-link d-flex align-items-center gap-2 {{ request()->routeIs('products.*') ? 'active text-white' : 'text-dark' }}">
                     <i class="bi bi-box-seam"></i>
                     <span>Master Produk</span>
                 </a>
 
-                <a href="{{ route('marketplace_products.index') }}" class="nav-link d-flex align-items-center gap-2 {{ request()->routeIs('marketplace_products.*') ? 'active text-white' : 'text-dark' }}">
+                <a href="{{ route('marketplace_products.index') }}"
+                    class="nav-link d-flex align-items-center gap-2 {{ request()->routeIs('marketplace_products.*') ? 'active text-white' : 'text-dark' }}">
                     <i class="bi bi-shop"></i>
                     <span>Marketplace Produk</span>
                 </a>
@@ -150,7 +191,8 @@
         @endif
 
         <!-- TRANSAKSI -->
-        @if (auth()->user()->role === 'admin' ||
+        @if (auth()->user()->isSuperAdmin() ||
+                auth()->user()->role === 'admin' ||
                 auth()->user()->hasAnyPermission([
                         'manage-incoming-goods',
                         'manage-orders',
@@ -162,7 +204,8 @@
                     ]))
             <div class="text-uppercase text-muted fw-bold mb-1 mt-3 small">Transaksi</div>
 
-            @if (auth()->user()->role === 'admin' ||
+            @if (auth()->user()->isSuperAdmin() ||
+                    auth()->user()->role === 'admin' ||
                     auth()->user()->hasAnyPermission([
                             'manage-incoming-goods',
                             'manage-orders',
@@ -172,12 +215,9 @@
                             'manage-chats',
                         ]))
                 <div>
-                    <a class="nav-link d-flex align-items-center justify-content-between text-dark {{ $isTransaksiActive ? '' : 'collapsed' }}" 
-                       data-bs-toggle="collapse" 
-                       data-bs-target="#collapseTransaksi" 
-                       role="button" 
-                       aria-expanded="{{ $isTransaksiActive ? 'true' : 'false' }}" 
-                       aria-controls="collapseTransaksi">
+                    <a class="nav-link d-flex align-items-center justify-content-between text-dark {{ $isTransaksiActive ? '' : 'collapsed' }}"
+                        data-bs-toggle="collapse" data-bs-target="#collapseTransaksi" role="button"
+                        aria-expanded="{{ $isTransaksiActive ? 'true' : 'false' }}" aria-controls="collapseTransaksi">
                         <div class="d-flex align-items-center gap-2">
                             <i class="bi bi-receipt"></i>
                             <span>Transaksi</span>
@@ -188,7 +228,8 @@
                         <div class="nav flex-column ms-3 mt-1 gap-1 border-start ps-2">
                             @can('manage-incoming-goods')
                                 <a href="{{ route('incoming_goods.index') }}"
-                                    class="nav-link py-1 {{ request()->routeIs('incoming_goods.*') ? 'active text-white' : 'text-secondary' }}">Barang Masuk</a>
+                                    class="nav-link py-1 {{ request()->routeIs('incoming_goods.*') ? 'active text-white' : 'text-secondary' }}">Barang
+                                    Masuk</a>
                             @endcan
                             @can('manage-orders')
                                 <a href="{{ route('orders.index') }}"
@@ -201,26 +242,32 @@
                             @endcan
                             @can('manage-fulfillment')
                                 <a href="{{ route('fulfillment.index') }}"
-                                    class="nav-link py-1 {{ request()->routeIs('fulfillment.*') ? 'active text-white' : 'text-secondary' }}">Kemas Pesanan (Scan)</a>
+                                    class="nav-link py-1 {{ request()->routeIs('fulfillment.*') ? 'active text-white' : 'text-secondary' }}">Kemas
+                                    Pesanan (Scan)</a>
                             @endcan
                             @can('manage-returns')
                                 <a href="{{ route('returns.index') }}"
-                                    class="nav-link py-1 {{ request()->routeIs('returns.*') ? 'active text-white' : 'text-secondary' }}">Pesanan Retur</a>
+                                    class="nav-link py-1 {{ request()->routeIs('returns.*') ? 'active text-white' : 'text-secondary' }}">Pesanan
+                                    Retur</a>
                             @endcan
                             @can('manage-offline-sales')
                                 <a href="{{ route('offline_sales.index') }}"
-                                    class="nav-link py-1 {{ request()->routeIs('offline_sales.*') ? 'active text-white' : 'text-secondary' }}">Penjualan Offline</a>
+                                    class="nav-link py-1 {{ request()->routeIs('offline_sales.*') ? 'active text-white' : 'text-secondary' }}">Penjualan
+                                    Offline</a>
                             @endcan
                             @can('manage-chats')
                                 <a href="{{ route('chats.index') }}"
-                                    class="nav-link py-1 {{ request()->routeIs('chats.*') ? 'active text-white' : 'text-secondary' }}">Inbox Chat</a>
+                                    class="nav-link py-1 {{ request()->routeIs('chats.*') ? 'active text-white' : 'text-secondary' }}">Inbox
+                                    Chat</a>
                             @endcan
                         </div>
                     </div>
                 </div>
             @endif
 
-            @if (auth()->user()->role === 'admin' || auth()->user()->hasPermissionTo('manage-inventory'))
+            @if (auth()->user()->isSuperAdmin() ||
+                    auth()->user()->role === 'admin' ||
+                    auth()->user()->hasPermissionTo('manage-inventory'))
                 @php
                     $lowStockCount = \App\Models\MasterProduct::where('tenant_id', Auth::user()->tenant_id)
                         ->whereColumn('stock', '<=', 'min_stock')
@@ -228,12 +275,9 @@
                         ->count();
                 @endphp
                 <div>
-                    <a class="nav-link d-flex align-items-center justify-content-between text-dark {{ $isInventoryActive ? '' : 'collapsed' }}" 
-                       data-bs-toggle="collapse" 
-                       data-bs-target="#collapseInventory" 
-                       role="button" 
-                       aria-expanded="{{ $isInventoryActive ? 'true' : 'false' }}" 
-                       aria-controls="collapseInventory">
+                    <a class="nav-link d-flex align-items-center justify-content-between text-dark {{ $isInventoryActive ? '' : 'collapsed' }}"
+                        data-bs-toggle="collapse" data-bs-target="#collapseInventory" role="button"
+                        aria-expanded="{{ $isInventoryActive ? 'true' : 'false' }}" aria-controls="collapseInventory">
                         <div class="d-flex align-items-center gap-2">
                             <i class="bi bi-boxes"></i>
                             <span>Inventory Stok</span>
@@ -246,9 +290,11 @@
                     <div class="collapse {{ $isInventoryActive ? 'show' : '' }}" id="collapseInventory">
                         <div class="nav flex-column ms-3 mt-1 gap-1 border-start ps-2">
                             <a href="{{ route('inventory.index') }}"
-                                class="nav-link py-1 {{ request()->routeIs('inventory.index') || request()->routeIs('inventory.ledger') ? 'active text-white' : 'text-secondary' }}">Stok Gudang</a>
+                                class="nav-link py-1 {{ request()->routeIs('inventory.index') || request()->routeIs('inventory.ledger') ? 'active text-white' : 'text-secondary' }}">Stok
+                                Gudang</a>
                             <a href="{{ route('stock_opnames.index') }}"
-                                class="nav-link py-1 {{ request()->routeIs('stock_opnames.*') ? 'active text-white' : 'text-secondary' }}">Opname Stok</a>
+                                class="nav-link py-1 {{ request()->routeIs('stock_opnames.*') ? 'active text-white' : 'text-secondary' }}">Opname
+                                Stok</a>
                         </div>
                     </div>
                 </div>
@@ -256,16 +302,15 @@
         @endif
 
         <!-- LAPORAN -->
-        @if (auth()->user()->role === 'admin' || auth()->user()->hasPermissionTo('view-warehouse-reports'))
+        @if (auth()->user()->isSuperAdmin() ||
+                auth()->user()->role === 'admin' ||
+                auth()->user()->hasPermissionTo('view-warehouse-reports'))
             <div class="text-uppercase text-muted fw-bold mb-1 mt-3 small">Laporan</div>
 
             <div>
-                <a class="nav-link d-flex align-items-center justify-content-between text-dark {{ $isReportActive ? '' : 'collapsed' }}" 
-                   data-bs-toggle="collapse" 
-                   data-bs-target="#collapseReports" 
-                   role="button" 
-                   aria-expanded="{{ $isReportActive ? 'true' : 'false' }}" 
-                   aria-controls="collapseReports">
+                <a class="nav-link d-flex align-items-center justify-content-between text-dark {{ $isReportActive ? '' : 'collapsed' }}"
+                    data-bs-toggle="collapse" data-bs-target="#collapseReports" role="button"
+                    aria-expanded="{{ $isReportActive ? 'true' : 'false' }}" aria-controls="collapseReports">
                     <div class="d-flex align-items-center gap-2">
                         <i class="bi bi-bar-chart"></i>
                         <span>Laporan Gudang</span>
@@ -275,31 +320,35 @@
                 <div class="collapse {{ $isReportActive ? 'show' : '' }}" id="collapseReports">
                     <div class="nav flex-column ms-3 mt-1 gap-1 border-start ps-2">
                         <a href="{{ route('reports.summary') }}"
-                            class="nav-link py-1 {{ request()->routeIs('reports.summary*') ? 'active text-white' : 'text-secondary' }}">Rekap Persediaan</a>
+                            class="nav-link py-1 {{ request()->routeIs('reports.summary*') ? 'active text-white' : 'text-secondary' }}">Rekap
+                            Persediaan</a>
                         <a href="{{ route('reports.stock') }}"
-                            class="nav-link py-1 {{ request()->routeIs('reports.stock*') ? 'active text-white' : 'text-secondary' }}">Stok Barang</a>
+                            class="nav-link py-1 {{ request()->routeIs('reports.stock*') ? 'active text-white' : 'text-secondary' }}">Stok
+                            Barang</a>
                         <a href="{{ route('reports.ledger') }}"
-                            class="nav-link py-1 {{ request()->routeIs('reports.ledger*') ? 'active text-white' : 'text-secondary' }}">Kartu Stok</a>
+                            class="nav-link py-1 {{ request()->routeIs('reports.ledger*') ? 'active text-white' : 'text-secondary' }}">Kartu
+                            Stok</a>
                         <a href="{{ route('reports.opname') }}"
-                            class="nav-link py-1 {{ request()->routeIs('reports.opname*') ? 'active text-white' : 'text-secondary' }}">Riwayat Opname</a>
+                            class="nav-link py-1 {{ request()->routeIs('reports.opname*') ? 'active text-white' : 'text-secondary' }}">Riwayat
+                            Opname</a>
                         <a href="{{ route('reports.analytics') }}"
-                            class="nav-link py-1 {{ request()->routeIs('reports.analytics*') ? 'active text-white' : 'text-secondary' }}">Analitik Inventori</a>
+                            class="nav-link py-1 {{ request()->routeIs('reports.analytics*') ? 'active text-white' : 'text-secondary' }}">Analitik
+                            Inventori</a>
                     </div>
                 </div>
             </div>
         @endif
 
         <!-- HRD -->
-        @if (auth()->user()->role === 'admin' || auth()->user()->hasPermissionTo('manage-employees'))
+        @if (auth()->user()->isSuperAdmin() ||
+                auth()->user()->role === 'admin' ||
+                auth()->user()->hasPermissionTo('manage-employees'))
             <div class="text-uppercase text-muted fw-bold mb-1 mt-3 small">HRD & Kepegawaian</div>
 
             <div>
-                <a class="nav-link d-flex align-items-center justify-content-between text-dark {{ $isHrdActive ? '' : 'collapsed' }}" 
-                   data-bs-toggle="collapse" 
-                   data-bs-target="#collapseHrd" 
-                   role="button" 
-                   aria-expanded="{{ $isHrdActive ? 'true' : 'false' }}" 
-                   aria-controls="collapseHrd">
+                <a class="nav-link d-flex align-items-center justify-content-between text-dark {{ $isHrdActive ? '' : 'collapsed' }}"
+                    data-bs-toggle="collapse" data-bs-target="#collapseHrd" role="button"
+                    aria-expanded="{{ $isHrdActive ? 'true' : 'false' }}" aria-controls="collapseHrd">
                     <div class="d-flex align-items-center gap-2">
                         <i class="bi bi-person-badge"></i>
                         <span>Kepegawaian (HRD)</span>
@@ -310,28 +359,38 @@
                     <div class="nav flex-column ms-3 mt-1 gap-1 border-start ps-2">
                         @can('manage-employees')
                             <a href="{{ route('employees.index') }}"
-                                class="nav-link py-1 {{ request()->routeIs('employees.*') ? 'active text-white' : 'text-secondary' }}">Daftar Karyawan</a>
+                                class="nav-link py-1 {{ request()->routeIs('employees.*') ? 'active text-white' : 'text-secondary' }}">Daftar
+                                Karyawan</a>
                         @endcan
-                        @if (auth()->user()->role === 'admin' ||
+                        @if (auth()->user()->isSuperAdmin() ||
+                                auth()->user()->role === 'admin' ||
                                 auth()->user()->hasAnyPermission(['view-attendance', 'manage-employees']))
                             <a href="{{ route('hr.attendance.index') }}"
-                                class="nav-link py-1 {{ request()->routeIs('hr.attendance.*') ? 'active text-white' : 'text-secondary' }}">Presensi / Absensi</a>
+                                class="nav-link py-1 {{ request()->routeIs('hr.attendance.*') ? 'active text-white' : 'text-secondary' }}">Presensi
+                                / Absensi</a>
                         @endif
                         @can('manage-employees')
                             <a href="{{ route('hr.leaves.index') }}"
-                                class="nav-link py-1 {{ request()->routeIs('hr.leaves.*') ? 'active text-white' : 'text-secondary' }}">Pengajuan Izin & Cuti</a>
+                                class="nav-link py-1 {{ request()->routeIs('hr.leaves.*') ? 'active text-white' : 'text-secondary' }}">Pengajuan
+                                Izin & Cuti</a>
                             <a href="{{ route('hr.overtime.index') }}"
-                                class="nav-link py-1 {{ request()->routeIs('hr.overtime.*') ? 'active text-white' : 'text-secondary' }}">Lembur / Overtime</a>
+                                class="nav-link py-1 {{ request()->routeIs('hr.overtime.*') ? 'active text-white' : 'text-secondary' }}">Lembur
+                                / Overtime</a>
                             <a href="{{ route('hr.cash-advances.index') }}"
-                                class="nav-link py-1 {{ request()->routeIs('hr.cash-advances.*') ? 'active text-white' : 'text-secondary' }}">Kasbon (Cash Advance)</a>
+                                class="nav-link py-1 {{ request()->routeIs('hr.cash-advances.*') ? 'active text-white' : 'text-secondary' }}">Kasbon
+                                (Cash Advance)</a>
                             <a href="{{ route('hr.payroll.index') }}"
-                                class="nav-link py-1 {{ request()->routeIs('hr.payroll.*') ? 'active text-white' : 'text-secondary' }}">Gaji / Payroll</a>
+                                class="nav-link py-1 {{ request()->routeIs('hr.payroll.*') ? 'active text-white' : 'text-secondary' }}">Gaji
+                                / Payroll</a>
                             <a href="{{ route('hr.allowance-types.index') }}"
-                                class="nav-link py-1 {{ request()->routeIs('hr.allowance-types.*') ? 'active text-white' : 'text-secondary' }}">Master Tunjangan</a>
+                                class="nav-link py-1 {{ request()->routeIs('hr.allowance-types.*') ? 'active text-white' : 'text-secondary' }}">Master
+                                Tunjangan</a>
                             <a href="{{ route('hr.late-penalties.index') }}"
-                                class="nav-link py-1 {{ request()->routeIs('hr.late-penalties.*') ? 'active text-white' : 'text-secondary' }}">Aturan Terlambat</a>
+                                class="nav-link py-1 {{ request()->routeIs('hr.late-penalties.*') ? 'active text-white' : 'text-secondary' }}">Aturan
+                                Terlambat</a>
                             <a href="{{ route('hr.holidays.index') }}"
-                                class="nav-link py-1 {{ request()->routeIs('hr.holidays.*') ? 'active text-white' : 'text-secondary' }}">Hari Libur</a>
+                                class="nav-link py-1 {{ request()->routeIs('hr.holidays.*') ? 'active text-white' : 'text-secondary' }}">Hari
+                                Libur</a>
                         @endcan
                     </div>
                 </div>
@@ -339,17 +398,15 @@
         @endif
 
         <!-- KEUANGAN -->
-        @if (auth()->user()->role === 'admin' ||
+        @if (auth()->user()->isSuperAdmin() ||
+                auth()->user()->role === 'admin' ||
                 auth()->user()->hasAnyPermission(['view-financial-reports', 'manage-finance']))
             <div class="text-uppercase text-muted fw-bold mb-1 mt-3 small">Keuangan</div>
 
             <div>
-                <a class="nav-link d-flex align-items-center justify-content-between text-dark {{ $isFinanceActive ? '' : 'collapsed' }}" 
-                   data-bs-toggle="collapse" 
-                   data-bs-target="#collapseFinance" 
-                   role="button" 
-                   aria-expanded="{{ $isFinanceActive ? 'true' : 'false' }}" 
-                   aria-controls="collapseFinance">
+                <a class="nav-link d-flex align-items-center justify-content-between text-dark {{ $isFinanceActive ? '' : 'collapsed' }}"
+                    data-bs-toggle="collapse" data-bs-target="#collapseFinance" role="button"
+                    aria-expanded="{{ $isFinanceActive ? 'true' : 'false' }}" aria-controls="collapseFinance">
                     <div class="d-flex align-items-center gap-2">
                         <i class="bi bi-cash-stack"></i>
                         <span>Keuangan</span>
@@ -360,19 +417,24 @@
                     <div class="nav flex-column ms-3 mt-1 gap-1 border-start ps-2">
                         @can('view-financial-reports')
                             <a href="{{ route('finance.profit_loss') }}"
-                                class="nav-link py-1 {{ request()->routeIs('finance.profit_loss') ? 'active text-white' : 'text-secondary' }}">Laba Rugi</a>
+                                class="nav-link py-1 {{ request()->routeIs('finance.profit_loss') ? 'active text-white' : 'text-secondary' }}">Laba
+                                Rugi</a>
                             <a href="{{ route('profit.index') }}"
-                                class="nav-link py-1 {{ request()->routeIs('profit.*') ? 'active text-white' : 'text-secondary' }}">Profit Pesanan</a>
+                                class="nav-link py-1 {{ request()->routeIs('profit.*') ? 'active text-white' : 'text-secondary' }}">Profit
+                                Pesanan</a>
                         @endcan
                         @can('manage-finance')
                             <a href="{{ route('finance.reconciliation') }}"
                                 class="nav-link py-1 {{ request()->routeIs('finance.reconciliation') ? 'active text-white' : 'text-secondary' }}">Rekonsiliasi</a>
                             <a href="{{ route('finance.incomes.index') }}"
-                                class="nav-link py-1 {{ request()->routeIs('finance.incomes.*') ? 'active text-white' : 'text-secondary' }}">Pemasukan Lain</a>
+                                class="nav-link py-1 {{ request()->routeIs('finance.incomes.*') ? 'active text-white' : 'text-secondary' }}">Pemasukan
+                                Lain</a>
                             <a href="{{ route('finance.expenses.index') }}"
-                                class="nav-link py-1 {{ request()->routeIs('finance.expenses.*') ? 'active text-white' : 'text-secondary' }}">Pengeluaran & Biaya</a>
+                                class="nav-link py-1 {{ request()->routeIs('finance.expenses.*') ? 'active text-white' : 'text-secondary' }}">Pengeluaran
+                                & Biaya</a>
                             <a href="{{ route('finance.transfers.index') }}"
-                                class="nav-link py-1 {{ request()->routeIs('finance.transfers.*') ? 'active text-white' : 'text-secondary' }}">Transfer Dana</a>
+                                class="nav-link py-1 {{ request()->routeIs('finance.transfers.*') ? 'active text-white' : 'text-secondary' }}">Transfer
+                                Dana</a>
                         @endcan
                     </div>
                 </div>
@@ -380,10 +442,13 @@
         @endif
 
         <!-- INTEGRASI -->
-        @if (auth()->user()->role === 'admin' || auth()->user()->hasPermissionTo('manage-stores'))
+        @if (auth()->user()->isSuperAdmin() ||
+                auth()->user()->role === 'admin' ||
+                auth()->user()->hasPermissionTo('manage-stores'))
             <div class="text-uppercase text-muted fw-bold mb-1 mt-3 small">Integrasi</div>
             @can('manage-stores')
-                <a href="{{ route('stores.index') }}" class="nav-link d-flex align-items-center gap-2 {{ request()->routeIs('stores.*') ? 'active text-white' : 'text-dark' }}">
+                <a href="{{ route('stores.index') }}"
+                    class="nav-link d-flex align-items-center gap-2 {{ request()->routeIs('stores.*') ? 'active text-white' : 'text-dark' }}">
                     <i class="bi bi-plug"></i>
                     <span>Kelola Toko</span>
                 </a>
@@ -392,7 +457,8 @@
 
         <!-- BANTUAN -->
         <div class="text-uppercase text-muted fw-bold mb-1 mt-3 small">Bantuan</div>
-        <a href="{{ route('faq.index') }}" class="nav-link d-flex align-items-center gap-2 {{ request()->routeIs('faq.*') ? 'active text-white' : 'text-dark' }}">
+        <a href="{{ route('faq.index') }}"
+            class="nav-link d-flex align-items-center gap-2 {{ request()->routeIs('faq.*') ? 'active text-white' : 'text-dark' }}">
             <i class="bi bi-question-circle"></i>
             <span>Panduan & FAQ</span>
         </a>
@@ -403,7 +469,8 @@
     <div class="mt-4 pt-3 border-top w-100">
         <form action="{{ route('logout') }}" method="POST" class="m-0">
             @csrf
-            <button type="submit" class="btn btn-outline-danger w-100 d-flex align-items-center justify-content-center gap-2 py-2 rounded-3">
+            <button type="submit"
+                class="btn btn-outline-danger w-100 d-flex align-items-center justify-content-center gap-2 py-2 rounded-3">
                 <i class="bi bi-box-arrow-right"></i>
                 <span>Keluar</span>
             </button>

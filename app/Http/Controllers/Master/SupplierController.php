@@ -19,6 +19,10 @@ class SupplierController extends Controller
 
         if (! $isSuperAdmin) {
             $query->where('tenant_id', $user->tenant_id);
+        } else {
+            if ($user->tenant_id && $user->tenant_id > 1) {
+                $query->where('tenant_id', $user->tenant_id);
+            }
         }
 
         // Filter terpisah per field

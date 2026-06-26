@@ -19,6 +19,23 @@ class AppServiceProvider extends ServiceProvider
     {
         Paginator::useBootstrapFive();
 
+        // Super Admin, Admin, and Owner bypass for permissions/gates
+        \Illuminate\Support\Facades\Gate::before(function ($user, $ability) {
+            if (method_exists($user, 'isSuperAdmin') && $user->isSuperAdmin()) {
+                return true;
+            }
+            if ($user->role === 'owner' || $user->hasRole('owner')) {
+                return true;
+            }
+            if ($user->role === 'admin' || $user->hasRole('admin')) {
+                if ($ability === 'settings.tenant.edit') {
+                    return false;
+                }
+                return true;
+            }
+            return null;
+        });
+
         if (str_contains(config('app.url'), 'https://')) {
             if (!app()->runningInConsole() && !in_array(request()->getHost(), ['127.0.0.1', 'localhost'])) {
                 URL::forceScheme('https');
