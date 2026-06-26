@@ -173,7 +173,7 @@ class ShopeeService
         $timestamp = time();
         $sign = $this->signShopRequest($path, $timestamp, $accessToken, $shopId);
 
-        $response = Http::get($this->baseUrl . $path, [
+        $response = Http::timeout(30)->retry(3, 1000)->get($this->baseUrl . $path, [
             'partner_id' => $this->partnerId,
             'timestamp' => $timestamp,
             'sign' => $sign,
@@ -203,7 +203,7 @@ class ShopeeService
         $timestamp = time();
         $sign = $this->signShopRequest($path, $timestamp, $accessToken, $shopId);
 
-        $response = Http::get($this->baseUrl . $path, [
+        $response = Http::timeout(30)->retry(3, 1000)->get($this->baseUrl . $path, [
             'partner_id' => $this->partnerId,
             'timestamp' => $timestamp,
             'sign' => $sign,
@@ -231,7 +231,7 @@ class ShopeeService
         $timestamp = time();
         $sign = $this->signShopRequest($path, $timestamp, $accessToken, $shopId);
 
-        $response = Http::get($this->baseUrl . $path, [
+        $response = Http::timeout(30)->retry(3, 1000)->get($this->baseUrl . $path, [
             'partner_id' => $this->partnerId,
             'timestamp' => $timestamp,
             'sign' => $sign,
