@@ -283,124 +283,15 @@ class ShopeeController extends Controller
         abort_if($store->status !== 'connected', 400, 'Toko belum terhubung.');
 
         try {
-            $shopId = (int) $store->marketplace_store_id;
-            $accessToken = $store->getValidAccessToken();
-
             $timeTo = time();
             $timeFrom = $timeTo - (15 * 86400); // 15 hari terakhir
 
-            $cursor = '';
-            $hasMore = true;
-            $totalSynced = 0;
+            \App\Jobs\PullOrdersFromShopee::dispatch($store, $timeFrom, $timeTo);
 
-            while ($hasMore) {
-                // 1. Get Order List
-                $listData = $this->shopee->getOrderList($accessToken, $shopId, $timeFrom, $timeTo, 'create_time', $cursor);
-                $orders = $listData['order_list'] ?? [];
-
-                if (empty($orders)) {
-                    break;
-                }
-
-                $orderSns = collect($orders)->pluck('order_sn')->toArray();
-
-                // 2. Get Order Detail
-                $detailData = $this->shopee->getOrderDetail($accessToken, $shopId, $orderSns);
-                $orderList = $detailData['order_list'] ?? [];
-
-                // 3. Save to database
-                foreach ($orderList as $order) {
-                    \Illuminate\Support\Facades\DB::transaction(function () use ($order, $store) {
-                        $orderDate = \Carbon\Carbon::createFromTimestamp($order['create_time']);
-
-                        $addressData = $order['recipient_address'] ?? [];
-                        $address = ($addressData['full_address'] ?? '') . ', ' . ($addressData['city'] ?? '') . ', ' . ($addressData['state'] ?? '') . ' ' . ($addressData['zipcode'] ?? '');
-                        $phone = $addressData['phone'] ?? null;
-
-                        // Buat atau update order
-                        $localOrder = \App\Models\Order::updateOrCreate(
-                            [
-                                'tenant_id' => $store->tenant_id,
-                                'store_id' => $store->id,
-                                'order_marketplace_id' => $order['order_sn'],
-                            ],
-                            [
-                                'order_status' => $order['order_status'],
-                                'buyer_name' => $order['buyer_username'] ?? $addressData['name'] ?? null,
-                                'buyer_phone' => $phone,
-                                'shipping_address' => $address,
-                                'total_amount' => $order['total_amount'] ?? 0,
-                                'shipping_fee' => $order['actual_shipping_fee'] ?? $order['estimated_shipping_fee'] ?? 0,
-                                'courier' => $order['shipping_carrier'] ?? null,
-                                'tracking_number' => $order['tracking_no'] ?? null,
-                                'order_date' => $orderDate,
-                            ]
-                        );
-
-                        // Simpan order items
-                        $itemList = $order['item_list'] ?? [];
-                        foreach ($itemList as $item) {
-                            $modelId = $item['model_id'] ?? null;
-                            $query = \App\Models\MarketplaceProduct::where('store_id', $store->id)
-                                ->where('marketplace_product_id', (string) $item['item_id']);
-                            if ($modelId) {
-                                $query->where('marketplace_variant_id', (string) $modelId);
-                            }
-                            $marketplaceProduct = $query->first();
-
-                            // Fallback without model_id
-                            if (!$marketplaceProduct && $modelId) {
-                                $marketplaceProduct = \App\Models\MarketplaceProduct::where('store_id', $store->id)
-                                    ->where('marketplace_product_id', (string) $item['item_id'])
-                                    ->first();
-                            }
-
-                            $price = $item['model_discounted_price'] ?? $item['model_original_price'] ?? 0;
-                            $qty = $item['model_quantity_purchased'] ?? 1;
-                            $itemSku = $item['model_sku'] ?: ($item['item_sku'] ?? null);
-
-                            // Resolve MasterProduct
-                            $masterProduct = $marketplaceProduct ? $marketplaceProduct->masterProduct : null;
-                            
-                            // Fallback to SKU matching if mapping not resolved yet
-                            if (!$masterProduct && $itemSku) {
-                                $masterProduct = \App\Models\MasterProduct::where('tenant_id', $store->tenant_id)
-                                    ->where('sku', $itemSku)
-                                    ->first();
-                            }
-
-                            $masterProductId = $masterProduct ? $masterProduct->id : null;
-
-                            \App\Models\OrderItem::updateOrCreate(
-                                [
-                                    'order_id' => $localOrder->id,
-                                    'sku' => $itemSku,
-                                ],
-                                [
-                                    'marketplace_product_id' => $marketplaceProduct ? $marketplaceProduct->id : null,
-                                    'master_product_id' => $masterProductId,
-                                    'product_name' => $item['item_name'] . (!empty($item['model_name']) ? ' - ' . $item['model_name'] : ''),
-                                    'price' => $price,
-                                    'quantity' => $qty,
-                                    'total_price' => $price * $qty,
-                                ]
-                            );
-                        }
-                    });
-                    $totalSynced++;
-                }
-
-                $hasMore = $listData['more'] ?? false;
-                $cursor = $listData['next_cursor'] ?? '';
-            }
-
-            return redirect()->route('stores.index')
-                ->with('success', "Berhasil menarik $totalSynced pesanan dari {$store->store_name}.");
-
+            return back()->with('success', 'Sinkronisasi pesanan Shopee sedang berjalan di latar belakang.');
         } catch (\Throwable $e) {
             Log::error('Gagal sync pesanan Shopee', ['store_id' => $store->id, 'error' => $e->getMessage()]);
-            return redirect()->route('stores.index')
-                ->with('error', 'Gagal sync pesanan: ' . $e->getMessage());
+            return back()->with('error', 'Gagal sync pesanan: ' . $e->getMessage());
         }
     }
 }
