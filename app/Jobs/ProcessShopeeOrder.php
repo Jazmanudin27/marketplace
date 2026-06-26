@@ -15,15 +15,24 @@ class ProcessShopeeOrder implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    protected $order;
+    protected int $orderId;
 
     public function __construct(Order $order)
     {
-        $this->order = $order;
+        $this->orderId = $order->id;
     }
 
     public function handle(ShopeeService $shopeeService): void
     {
+        $order = Order::find($this->orderId);
+
+        if (! $order) {
+            Log::warning('[Shopee] ProcessShopeeOrder: Order #' . $this->orderId . ' no longer exists. Discarding job.');
+            return;
+        }
+
+        $this->order = $order;
+
         Log::info('[Shopee] Starting ProcessShopeeOrder', [
             'order_id' => $this->order->id,
             'order_sn' => $this->order->order_marketplace_id,

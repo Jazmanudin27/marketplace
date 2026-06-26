@@ -16,15 +16,25 @@ class PullProductsFromTiktok implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    protected $store;
+    protected int $storeId;
 
     public function __construct(Store $store)
     {
-        $this->store = $store;
+        $this->storeId = $store->id;
     }
 
     public function handle(TiktokService $tiktokService): void
     {
+        // Safely fetch the store — it may have been deleted since the job was queued.
+        $store = Store::find($this->storeId);
+
+        if (! $store) {
+            Log::warning('[TikTok] PullProductsFromTiktok: Store #' . $this->storeId . ' no longer exists. Discarding job.');
+            return;
+        }
+
+        $this->store = $store;
+
         if ($this->store->status !== 'connected' || empty($this->store->access_token)) {
             Log::warning("[TikTok] Toko {$this->store->store_name} tidak terhubung.");
             return;

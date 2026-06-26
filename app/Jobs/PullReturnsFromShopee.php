@@ -18,14 +18,11 @@ class PullReturnsFromShopee implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    protected $store;
+    protected int $storeId;
 
-    /**
-     * Create a new job instance.
-     */
     public function __construct(Store $store)
     {
-        $this->store = $store;
+        $this->storeId = $store->id;
     }
 
     /**
@@ -33,6 +30,16 @@ class PullReturnsFromShopee implements ShouldQueue
      */
     public function handle(ShopeeService $shopeeService): void
     {
+        // Safely fetch the store — it may have been deleted since the job was queued.
+        $store = Store::find($this->storeId);
+
+        if (! $store) {
+            Log::warning('[Shopee] PullReturnsFromShopee: Store #' . $this->storeId . ' no longer exists. Discarding job.');
+            return;
+        }
+
+        $this->store = $store;
+
         if ($this->store->status !== 'connected' || !$this->store->access_token) {
             return;
         }

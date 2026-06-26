@@ -17,28 +17,39 @@ class PullOrdersFromShopee implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    protected $store;
-    protected $timeFrom;
-    protected $timeTo;
+    protected int $storeId;
+    protected int $timeFrom;
+    protected int $timeTo;
 
     public function __construct(Store $store, int $timeFrom, int $timeTo)
     {
-        $this->store = $store;
-        $this->timeFrom = $timeFrom;
-        $this->timeTo = $timeTo;
+        $this->storeId   = $store->id;
+        $this->timeFrom  = $timeFrom;
+        $this->timeTo    = $timeTo;
     }
 
     public function handle(ShopeeService $shopeeService): void
     {
+        // Safely fetch the store — it may have been deleted since the job was queued.
+        $store = Store::find($this->storeId);
+
+        if (! $store) {
+            Log::warning('[Shopee] PullOrdersFromShopee: Store #' . $this->storeId . ' no longer exists. Discarding job.');
+            return;
+        }
+
+        // Expose as $this->store so saveOrder() can use it without changes.
+        $this->store = $store;
+
         Log::info('[Shopee] Starting PullOrdersFromShopee', [
-            'store_id' => $this->store->id,
+            'store_id'  => $this->store->id,
             'time_from' => $this->timeFrom,
-            'time_to' => $this->timeTo,
+            'time_to'   => $this->timeTo,
         ]);
 
         try {
-            $cursor = '';
-            $hasMore = true;
+            $cursor     = '';
+            $hasMore    = true;
             $allOrderSn = [];
 
             // 1. Fetch Order List
@@ -61,7 +72,7 @@ class PullOrdersFromShopee implements ShouldQueue
                 }
 
                 $hasMore = $response['more'] ?? false;
-                $cursor = $response['next_cursor'] ?? '';
+                $cursor  = $response['next_cursor'] ?? '';
             }
 
             if (empty($allOrderSn)) {
