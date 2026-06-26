@@ -17,7 +17,7 @@
                                 <div class="col-12">
                                     <div class="d-flex align-items-center gap-3 flex-wrap">
                                         <span
-                                            class="badge bg-primary bg-opacity-15 text-primary border border-primary border-opacity-25 flex-shrink-0 small">
+                                            class="badge bg-primary bg-opacity-15 text-white border border-primary border-opacity-25 flex-shrink-0 small">
                                             <i class="fas fa-shield-alt me-1"></i>Super Admin
                                         </span>
                                         <div class="d-flex align-items-center gap-2 flex-grow-1">
@@ -94,7 +94,8 @@
             {{-- ── Tabel Utama ─────────────────────────────────────── --}}
             <div class="card border shadow-sm">
                 {{-- Header --}}
-                <div class="card-header bg-light d-flex justify-content-between align-items-center py-2.5 px-3 border-bottom">
+                <div
+                    class="card-header bg-light d-flex justify-content-between align-items-center py-2.5 px-3 border-bottom">
                     <div>
                         <h6 class="m-0 fw-bold text-primary"><i class="fas fa-user-cog me-2"></i>Daftar Pengguna Sistem</h6>
                         <p class="text-muted mb-0 small mt-1">
@@ -196,8 +197,10 @@
                                                 <div class="mt-1">
                                                     <span
                                                         class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-10 small"
-                                                        style="font-size: 0.7rem;" title="Hak akses khusus bypass/tambahan">
-                                                        <i class="fas fa-user-shield me-1"></i>+{{ $u->permissions->count() }}
+                                                        style="font-size: 0.7rem;"
+                                                        title="Hak akses khusus bypass/tambahan">
+                                                        <i
+                                                            class="fas fa-user-shield me-1"></i>+{{ $u->permissions->count() }}
                                                         Izin Khusus
                                                     </span>
                                                 </div>
@@ -264,7 +267,8 @@
 
                 <div class="modal-content overflow-hidden">
                     <div class="modal-header d-flex align-items-center gap-3 p-3 bg-primary bg-opacity-10 border-bottom">
-                        <div class="bg-primary text-white rounded-3 d-flex align-items-center justify-content-center flex-shrink-0 p-2 fs-5" style="width: 40px; height: 40px;">
+                        <div class="bg-primary text-white rounded-3 d-flex align-items-center justify-content-center flex-shrink-0 p-2 fs-5"
+                            style="width: 40px; height: 40px;">
                             <i class="fas fa-user"></i>
                         </div>
                         <div class="flex-grow-1">
