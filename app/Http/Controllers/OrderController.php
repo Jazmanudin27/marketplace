@@ -274,7 +274,7 @@ class OrderController extends Controller
         foreach ($stores as $store) {
             if ($store->channel->code === 'shopee') {
                 \App\Jobs\PullOrdersFromShopee::dispatch($store, $timeFrom, $timeTo);
-            } elseif ($store->channel->code === 'tiktok') {
+            } elseif (in_array($store->channel->code, ['tiktok', 'tokopedia'])) {
                 \App\Jobs\PullOrdersFromTiktok::dispatch($store, $timeFrom, $timeTo);
             }
         }
@@ -291,7 +291,7 @@ class OrderController extends Controller
 
         // Coba untuk fetch dokumen pengiriman dari marketplace API
         try {
-            if ($store->channel->code === 'tiktok') {
+            if (in_array($store->channel->code, ['tiktok', 'tokopedia'])) {
                 $response = $tiktokService->getShippingDocument(
                     $store->access_token,
                     $store->marketplace_store_id,
