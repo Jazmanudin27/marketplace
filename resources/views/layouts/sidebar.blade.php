@@ -12,6 +12,7 @@
         request()->routeIs('incoming_goods.*') ||
         request()->routeIs('orders.*') ||
         request()->routeIs('returns.*') ||
+        request()->routeIs('complaints.*') ||
         request()->routeIs('chats.*') ||
         request()->routeIs('offline_sales.*') ||
         request()->routeIs('fulfillment.*');
@@ -198,6 +199,7 @@
                         'manage-orders',
                         'manage-fulfillment',
                         'manage-returns',
+                        'manage-complaints',
                         'manage-offline-sales',
                         'manage-chats',
                         'manage-inventory',
@@ -211,6 +213,7 @@
                             'manage-orders',
                             'manage-fulfillment',
                             'manage-returns',
+                            'manage-complaints',
                             'manage-offline-sales',
                             'manage-chats',
                         ]))
@@ -249,6 +252,11 @@
                                 <a href="{{ route('returns.index') }}"
                                     class="nav-link py-1 {{ request()->routeIs('returns.*') ? 'active text-white' : 'text-secondary' }}">Pesanan
                                     Retur</a>
+                            @endcan
+                            @can('manage-complaints')
+                                <a href="{{ route('complaints.index') }}"
+                                    class="nav-link py-1 {{ request()->routeIs('complaints.*') ? 'active text-white' : 'text-secondary' }}">Pengaduan
+                                    Barang</a>
                             @endcan
                             @can('manage-offline-sales')
                                 <a href="{{ route('offline_sales.index') }}"

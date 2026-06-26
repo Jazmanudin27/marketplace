@@ -6,6 +6,7 @@ use App\Http\Controllers\MasterProductController;
 use App\Http\Controllers\MarketplaceProductController;
 use App\Http\Controllers\ChatController;
 use App\Http\Controllers\ReturnOrderController;
+use App\Http\Controllers\ComplaintController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\ReconciliationController;
 use App\Http\Controllers\FulfillmentController;
@@ -356,6 +357,11 @@ Route::middleware('auth')->group(function () {
         Route::get('/returns', [ReturnOrderController::class, 'index'])->name('returns.index');
         Route::post('/returns/sync', [ReturnOrderController::class, 'sync'])->name('returns.sync');
         Route::post('/returns/{returnOrder}/restock', [ReturnOrderController::class, 'restock'])->name('returns.restock');
+    });
+
+    // Pengaduan Barang Rusak
+    Route::middleware('permission:manage-complaints')->group(function () {
+        Route::resource('complaints', ComplaintController::class);
     });
 
     // Penjualan Offline (Manual Order)
