@@ -99,7 +99,7 @@ class Store extends Model
                     $this->update([
                         'access_token' => $tokenData['access_token'],
                         'refresh_token' => $tokenData['refresh_token'] ?? $this->refresh_token,
-                        'token_expires_at' => now()->addSeconds($tokenData['access_token_expire_in'] ?? 86400),
+                        'token_expires_at' => date('Y-m-d H:i:s', $tokenData['access_token_expire_in'] ?? (time() + 86400)),
                         'status' => 'connected',
                     ]);
 
