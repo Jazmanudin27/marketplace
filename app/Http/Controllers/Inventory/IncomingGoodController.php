@@ -72,10 +72,11 @@ class IncomingGoodController extends Controller
         if ($sourceType === 'supplier') {
             $supplierLabel = '';
             if ($request->filled('supplier_id')) {
-                $supplier = Supplier::find($request->supplier_id);
-                if ($supplier) {
-                    $supplierLabel = " (" . $supplier->name . ")";
+                $supplier = Supplier::where('tenant_id', $tenantId)->find($request->supplier_id);
+                if (!$supplier) {
+                    return back()->withErrors(['supplier_id' => 'Supplier tidak valid untuk perusahaan Anda.']);
                 }
+                $supplierLabel = " (" . $supplier->name . ")";
             }
             $reference = "Pembelian - " . $request->reference . $supplierLabel;
         } elseif ($sourceType === 'return') {

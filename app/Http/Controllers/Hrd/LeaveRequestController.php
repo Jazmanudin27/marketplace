@@ -41,6 +41,11 @@ class LeaveRequestController extends Controller
             'notes' => 'nullable|string|max:500',
         ]);
 
+        $employeeExists = Employee::where('tenant_id', $tenantId)->where('id', $request->employee_id)->exists();
+        if (!$employeeExists) {
+            return back()->withErrors(['employee_id' => 'Karyawan tidak valid untuk perusahaan Anda.']);
+        }
+
         $isDeducted = $request->has('is_deducted');
 
         LeaveRequest::create([
@@ -68,6 +73,11 @@ class LeaveRequestController extends Controller
             'end_date' => 'required|date|after_or_equal:start_date',
             'notes' => 'nullable|string|max:500',
         ]);
+
+        $employeeExists = Employee::where('tenant_id', Auth::user()->tenant_id)->where('id', $request->employee_id)->exists();
+        if (!$employeeExists) {
+            return back()->withErrors(['employee_id' => 'Karyawan tidak valid untuk perusahaan Anda.']);
+        }
 
         $isDeducted = $request->has('is_deducted');
 

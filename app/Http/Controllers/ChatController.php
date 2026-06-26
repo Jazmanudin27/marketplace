@@ -174,8 +174,19 @@ class ChatController extends Controller
                 }
             } else {
                 // Jalankan sync untuk semua toko secara berurutan
-                PullChatsFromShopee::dispatchSync();
-                PullChatsFromTiktok::dispatchSync();
+                if (Auth::user()->isSuperAdmin() && $tenantId == 1) {
+                    PullChatsFromShopee::dispatchSync();
+                    PullChatsFromTiktok::dispatchSync();
+                } else {
+                    $stores = Store::where('tenant_id', $tenantId)->with('channel')->get();
+                    foreach ($stores as $store) {
+                        if ($store->channel->code === 'shopee') {
+                            PullChatsFromShopee::dispatchSync($store->id);
+                        } elseif ($store->channel->code === 'tiktok') {
+                            PullChatsFromTiktok::dispatchSync($store->id);
+                        }
+                    }
+                }
             }
 
             if ($request->expectsJson()) {

@@ -64,8 +64,8 @@ class StockOpnameController extends Controller
 
         $products = $query->paginate(50)->withQueryString();
 
-        $categories = \App\Models\Category::orderBy('name')->get();
-        $brands = \App\Models\Brand::orderBy('name')->get();
+        $categories = \App\Models\Category::where('tenant_id', $tenantId)->orderBy('name')->get();
+        $brands = \App\Models\Brand::where('tenant_id', $tenantId)->orderBy('name')->get();
 
         return view('inventory.stock_opnames.create', compact('products', 'categories', 'brands'));
     }

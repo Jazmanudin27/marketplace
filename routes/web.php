@@ -235,6 +235,24 @@ Route::middleware('auth')->group(function () {
         Route::put('/settings/tenant', [\App\Http\Controllers\Settings\TenantSettingsController::class, 'update'])->name('settings.tenant.update');
     });
 
+    // Vouchers (Voucher POS)
+    Route::middleware('permission:vouchers.index')->group(function () {
+        Route::get('/vouchers', [\App\Http\Controllers\VoucherController::class, 'index'])->name('vouchers.index');
+    });
+    Route::middleware('permission:vouchers.create')->group(function () {
+        Route::get('/vouchers/create', [\App\Http\Controllers\VoucherController::class, 'create'])->name('vouchers.create');
+        Route::post('/vouchers', [\App\Http\Controllers\VoucherController::class, 'store'])->name('vouchers.store');
+    });
+    Route::middleware('permission:vouchers.edit')->group(function () {
+        Route::get('/vouchers/{voucher}/edit', [\App\Http\Controllers\VoucherController::class, 'edit'])->name('vouchers.edit');
+        Route::put('/vouchers/{voucher}', [\App\Http\Controllers\VoucherController::class, 'update'])->name('vouchers.update');
+        Route::post('/vouchers/{voucher}/sync-shopee', [\App\Http\Controllers\VoucherController::class, 'syncToShopee'])->name('vouchers.sync_shopee');
+        Route::post('/vouchers/{voucher}/end-shopee', [\App\Http\Controllers\VoucherController::class, 'endOnShopee'])->name('vouchers.end_shopee');
+    });
+    Route::middleware('permission:vouchers.destroy')->group(function () {
+        Route::delete('/vouchers/{voucher}', [\App\Http\Controllers\VoucherController::class, 'destroy'])->name('vouchers.destroy');
+    });
+
 
 
     // Stores (Toko)

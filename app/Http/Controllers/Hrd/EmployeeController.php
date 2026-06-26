@@ -143,7 +143,11 @@ class EmployeeController extends Controller
         $totalAllowance = 0;
         EmployeeAllowance::where('employee_id', $employee->id)->delete();
         if ($request->has('allowances')) {
+            $allowedTypeIds = AllowanceType::where('tenant_id', Auth::user()->tenant_id)->pluck('id')->toArray();
             foreach ($request->allowances as $typeId => $amount) {
+                if (!in_array($typeId, $allowedTypeIds)) {
+                    return back()->withErrors(['allowances' => 'Tipe tunjangan tidak valid untuk perusahaan Anda.']);
+                }
                 if ($amount > 0) {
                     $totalAllowance += $amount;
                     EmployeeAllowance::create([

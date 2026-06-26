@@ -64,6 +64,13 @@ class ExpenseController extends Controller
             'description' => 'nullable|string',
         ]);
 
+        if ($request->filled('employee_id')) {
+            $employeeExists = Employee::where('tenant_id', $tenantId)->where('id', $request->employee_id)->exists();
+            if (!$employeeExists) {
+                return back()->withErrors(['employee_id' => 'Karyawan tidak valid untuk perusahaan Anda.']);
+            }
+        }
+
         $validated['tenant_id'] = $tenantId;
 
         Expense::create($validated);
@@ -86,6 +93,13 @@ class ExpenseController extends Controller
             'employee_id' => 'nullable|exists:employees,id',
             'description' => 'nullable|string',
         ]);
+
+        if ($request->filled('employee_id')) {
+            $employeeExists = Employee::where('tenant_id', Auth::user()->tenant_id)->where('id', $request->employee_id)->exists();
+            if (!$employeeExists) {
+                return back()->withErrors(['employee_id' => 'Karyawan tidak valid untuk perusahaan Anda.']);
+            }
+        }
 
         $expense->update($validated);
 

@@ -12,7 +12,7 @@ class FaqManagementController extends Controller
     private function authorizeAdmin(): void
     {
         $user = auth()->user();
-        if (!$user || ($user->role !== 'admin' && !$user->hasRole('admin'))) {
+        if (!$user || ($user->role !== 'admin' && $user->role !== 'super-admin' && !$user->hasRole('admin'))) {
             abort(403, 'Hanya Administrator yang dapat mengelola Bantuan & FAQ.');
         }
     }

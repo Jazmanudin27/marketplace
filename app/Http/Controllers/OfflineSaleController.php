@@ -104,6 +104,13 @@ class OfflineSaleController extends Controller
 
         $tenantId = Auth::user()->tenant_id;
 
+        if ($request->filled('customer_id')) {
+            $customerExists = \App\Models\Customer::where('tenant_id', $tenantId)->where('id', $request->customer_id)->exists();
+            if (!$customerExists) {
+                return back()->withErrors(['customer_id' => 'Pelanggan tidak valid untuk perusahaan Anda.']);
+            }
+        }
+
         DB::transaction(function () use ($request, $tenantId) {
             $totalAmount    = 0;
             $discountAmount = (float) ($request->discount_amount ?? 0);
@@ -167,7 +174,7 @@ class OfflineSaleController extends Controller
                 }
                 $customerId = $customer->id;
             } elseif ($customerId && $request->filled('buyer_address')) {
-                $customer = \App\Models\Customer::find($customerId);
+                $customer = \App\Models\Customer::where('tenant_id', $tenantId)->find($customerId);
                 if ($customer && empty($customer->address)) {
                     $customer->update(['address' => $request->buyer_address]);
                 }

@@ -71,6 +71,15 @@ class HolidayController extends Controller
             'employee_ids.*' => 'exists:employees,id',
         ]);
 
+        if ($request->filled('employee_ids')) {
+            $allowedCount = \App\Models\Employee::where('tenant_id', Auth::user()->tenant_id)
+                ->whereIn('id', $request->employee_ids)
+                ->count();
+            if ($allowedCount !== count($request->employee_ids)) {
+                return back()->withErrors(['employee_ids' => 'Karyawan tidak valid untuk perusahaan Anda.']);
+            }
+        }
+
         $holiday->employees()->sync($request->employee_ids ?? []);
 
         return back()->with('success', 'Daftar karyawan libur berhasil diperbarui.');

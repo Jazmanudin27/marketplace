@@ -48,6 +48,13 @@ class VoucherController extends Controller
             'store_id'     => 'nullable|exists:stores,id',
         ]);
 
+        if ($request->filled('store_id')) {
+            $storeExists = Store::where('tenant_id', Auth::user()->tenant_id)->where('id', $request->store_id)->exists();
+            if (!$storeExists) {
+                return back()->withErrors(['store_id' => 'Toko tidak valid untuk perusahaan Anda.']);
+            }
+        }
+
         $voucher = Voucher::create([
             'tenant_id'    => Auth::user()->tenant_id,
             'store_id'     => $request->store_id ?: null,
@@ -97,6 +104,13 @@ class VoucherController extends Controller
             'store_id'     => 'nullable|exists:stores,id',
             'is_active'    => 'boolean',
         ]);
+
+        if ($request->filled('store_id')) {
+            $storeExists = Store::where('tenant_id', Auth::user()->tenant_id)->where('id', $request->store_id)->exists();
+            if (!$storeExists) {
+                return back()->withErrors(['store_id' => 'Toko tidak valid untuk perusahaan Anda.']);
+            }
+        }
 
         $voucher->update([
             'store_id'     => $request->store_id ?: null,

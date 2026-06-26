@@ -45,7 +45,8 @@ class ReportController extends Controller
 
     public function opnameReport(Request $request)
     {
-        $categories = \App\Models\Category::orderBy('name')->get();
+        $tenantId = Auth::user()->tenant_id;
+        $categories = \App\Models\Category::where('tenant_id', $tenantId)->orderBy('name')->get();
         return view('reports.opname', compact('categories'));
     }
 
@@ -120,8 +121,9 @@ class ReportController extends Controller
 
     public function summaryReport(Request $request)
     {
-        $categories = \App\Models\Category::orderBy('name')->get();
-        $brands = \App\Models\Brand::orderBy('name')->get();
+        $tenantId = Auth::user()->tenant_id;
+        $categories = \App\Models\Category::where('tenant_id', $tenantId)->orderBy('name')->get();
+        $brands = \App\Models\Brand::where('tenant_id', $tenantId)->orderBy('name')->get();
         return view('reports.summary', compact('categories', 'brands'));
     }
 

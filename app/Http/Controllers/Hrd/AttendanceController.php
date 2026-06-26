@@ -56,7 +56,10 @@ class AttendanceController extends Controller
 
             $isDeducted = true;
 
-            $emp = Employee::find($employeeId);
+            $emp = Employee::where('tenant_id', $tenantId)->find($employeeId);
+            if (!$emp) {
+                continue;
+            }
             $scheduleClockIn = null;
             $scheduleClockOut = null;
             $scheduleIsOff = false;
@@ -355,6 +358,11 @@ class AttendanceController extends Controller
             'clock_out' => 'nullable|date_format:H:i',
             'reason' => 'required|string|max:1000',
         ]);
+
+        $employeeExists = Employee::where('tenant_id', $tenantId)->where('id', $request->employee_id)->exists();
+        if (!$employeeExists) {
+            return back()->withErrors(['employee_id' => 'Karyawan tidak valid untuk perusahaan Anda.']);
+        }
 
         if (!$request->clock_in && !$request->clock_out) {
             return back()->with('error', 'Harap isi salah satu atau kedua jam masuk / pulang untuk dikoreksi.');
