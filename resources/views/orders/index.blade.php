@@ -226,21 +226,28 @@
                                             </td>
                                             <td class="small text-center">
                                                 @if ($order->ship_before_date)
+                                                    <div class="fw-bold text-dark mb-1" style="font-size: 0.72rem;">
+                                                        {{ $order->ship_before_date->format('d/m/Y H:i') }}
+                                                    </div>
                                                     @if ($order->is_ship_overdue)
-                                                        <span class="badge bg-danger"
-                                                            title="{{ $order->ship_before_date->format('d/m/Y H:i') }}">
+                                                        <span
+                                                            class="badge bg-danger-subtle text-danger border border-danger-subtle"
+                                                            style="font-size: 0.65rem; padding: 0.25em 0.5em;">
                                                             <i class="bi bi-exclamation-circle me-1"></i>Overdue
                                                         </span>
                                                     @elseif ($order->is_ship_urgent)
-                                                        <span class="badge bg-warning text-dark"
-                                                            title="{{ $order->ship_before_date->format('d/m/Y H:i') }}">
+                                                        <span
+                                                            class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle"
+                                                            style="font-size: 0.65rem; padding: 0.25em 0.5em;">
                                                             <i
                                                                 class="bi bi-clock me-1"></i>{{ $order->ship_before_date->diffForHumans() }}
                                                         </span>
                                                     @else
-                                                        <span class="text-muted" style="font-size:0.7rem;"
-                                                            title="{{ $order->ship_before_date->format('d/m/Y H:i') }}">
-                                                            {{ $order->ship_before_date->format('d/m/Y') }}
+                                                        <span
+                                                            class="badge bg-success-subtle text-success border border-success-subtle"
+                                                            style="font-size: 0.65rem; padding: 0.25em 0.5em;">
+                                                            <i
+                                                                class="bi bi-check-circle me-1"></i>{{ $order->ship_before_date->diffForHumans() }}
                                                         </span>
                                                     @endif
                                                 @else

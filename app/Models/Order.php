@@ -229,7 +229,7 @@ class Order extends Model
         if (!$this->ship_before_date) {
             return false;
         }
-        return $this->ship_before_date->isPast() || $this->ship_before_date->diffInHours(now()) <= 24;
+        return $this->ship_before_date->isFuture() && now()->diffInHours($this->ship_before_date) <= 24;
     }
 
     /**
