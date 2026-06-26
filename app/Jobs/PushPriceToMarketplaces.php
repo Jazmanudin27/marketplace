@@ -81,7 +81,18 @@ class PushPriceToMarketplaces implements ShouldQueue
                         $this->newPrice
                     );
                     Log::info("[Tokopedia] Berhasil update harga untuk MP Product ID: {$mp->id} menjadi {$this->newPrice}");
+                } elseif ($mp->store->channel->code === 'lazada') {
+                    $lazadaService = app(\App\Services\LazadaService::class);
+                    $lazadaService->updatePrice(
+                        $mp->store->getValidAccessToken(),
+                        $mp->store->marketplace_store_id,
+                        $mp->marketplace_product_id,
+                        $mp->marketplace_variant_id,
+                        $this->newPrice
+                    );
+                    Log::info("[Lazada] Berhasil update harga untuk MP Product ID: {$mp->id} menjadi {$this->newPrice}");
                 }
+
 
                 // Update local price in marketplace_products table
                 $mp->update([

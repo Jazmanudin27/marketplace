@@ -41,4 +41,11 @@ return [
         'redirect_uri' => env('TIKTOK_REDIRECT_URI'),
     ],
 
+    'lazada' => [
+        'app_key' => env('LAZADA_APP_KEY'),
+        'app_secret' => env('LAZADA_APP_SECRET'),
+        'redirect_uri' => env('LAZADA_REDIRECT_URI'),
+    ],
+
 ];
+

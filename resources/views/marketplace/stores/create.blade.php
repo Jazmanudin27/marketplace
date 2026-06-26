@@ -118,30 +118,34 @@
                         </div>
 
                         {{-- LAZADA --}}
-                        <div class="card border rounded-3 p-3 bg-light bg-opacity-50" style="opacity: 0.7;">
+                        <div class="card border rounded-3 p-3">
                             <div class="row align-items-center g-3">
                                 <div class="col-12 col-md-8 d-flex align-items-start gap-3">
-                                    <div class="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0 fs-5 p-2 bg-secondary bg-opacity-10 text-secondary"
+                                    <div class="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0 fs-5 p-2 bg-primary bg-opacity-10 text-primary"
                                         style="width: 48px; height: 48px;">
-                                        <i class="fas fa-tag"></i>
+                                        <i class="fas fa-shopping-bag"></i>
                                     </div>
                                     <div>
-                                        <h6 class="fw-bold text-muted mb-1">Lazada</h6>
-                                        <p class="text-muted small mb-2">Integrasi Lazada Open Platform API segera tersedia.</p>
+                                        <h6 class="fw-bold text-dark mb-1">Lazada</h6>
+                                        <p class="text-muted small mb-2">Hubungkan toko Lazada Anda secara otomatis via OAuth resmi.</p>
                                         <div class="d-flex gap-2 flex-wrap">
-                                            <span class="badge bg-secondary-subtle text-secondary border border-secondary border-opacity-10 rounded-pill px-2" style="font-size: 0.65rem;">
-                                                <i class="fas fa-clock me-1"></i>Coming Soon
+                                            <span class="badge bg-success-subtle text-success border border-success border-opacity-10 rounded-pill px-2" style="font-size: 0.65rem;">
+                                                <i class="fas fa-bolt me-1"></i>Otomatis
+                                            </span>
+                                            <span class="badge bg-primary-subtle text-primary border border-primary border-opacity-10 rounded-pill px-2" style="font-size: 0.65rem;">
+                                                <i class="fas fa-shield-alt me-1"></i>OAuth 2.0
                                             </span>
                                         </div>
                                     </div>
                                 </div>
                                 <div class="col-12 col-md-4 text-md-end">
-                                    <button class="btn btn-sm btn-outline-secondary w-100 w-md-auto py-2 px-3 fw-semibold rounded-3" disabled>
-                                        <i class="fas fa-lock me-1"></i> Segera Hadir
-                                    </button>
+                                    <a href="{{ route('lazada.authorize') }}" class="btn btn-primary btn-sm w-100 w-md-auto py-2 px-3 fw-semibold rounded-3 shadow-sm" style="background-color: #0f146d; border-color: #0f146d;">
+                                        <i class="fas fa-plug me-1"></i> Hubungkan Lazada
+                                    </a>
                                 </div>
                             </div>
                         </div>
+
 
                     </div>
 

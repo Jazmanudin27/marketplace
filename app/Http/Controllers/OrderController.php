@@ -194,10 +194,41 @@ class OrderController extends Controller
             } catch (\Exception $e) {
                 return back()->with('error', 'Gagal memproses pengiriman TikTok: ' . $e->getMessage());
             }
+        } elseif ($store->channel->code === 'lazada') {
+            try {
+                $lazadaService = app(\App\Services\LazadaService::class);
+                $lazadaService->shipOrder(
+                    $store->getValidAccessToken(),
+                    $store->marketplace_store_id,
+                    $order->order_marketplace_id,
+                    $handoverMethod
+                );
+                
+                try {
+                    $trackRes = $lazadaService->getTrackingNumber(
+                        $store->getValidAccessToken(),
+                        $store->marketplace_store_id,
+                        $order->order_marketplace_id
+                    );
+                    if (!empty($trackRes['tracking_number'])) {
+                        $order->tracking_number = $trackRes['tracking_number'];
+                    }
+                } catch (\Exception $e) {
+                    // Ignore tracking fetch error
+                }
+                
+                $order->order_status = Order::STATUS_SHIPPED;
+                $order->save();
+                
+                return back()->with('success', 'Pesanan Lazada berhasil diproses pengirimannya.');
+            } catch (\Exception $e) {
+                return back()->with('error', 'Gagal memproses pengiriman Lazada: ' . $e->getMessage());
+            }
         }
 
         return back()->with('error', 'Channel tidak didukung.');
     }
+
 
     public function fetchTracking(Order $order, \App\Services\ShopeeService $shopeeService, \App\Services\TiktokService $tiktokService)
     {
@@ -239,10 +270,30 @@ class OrderController extends Controller
             } catch (\Exception $e) {
                 return back()->with('error', 'Gagal menarik resi: ' . $e->getMessage());
             }
+        } elseif ($store->channel->code === 'lazada') {
+            try {
+                $lazadaService = app(\App\Services\LazadaService::class);
+                $response = $lazadaService->getTrackingNumber(
+                    $store->getValidAccessToken(),
+                    $store->marketplace_store_id,
+                    $order->order_marketplace_id
+                );
+                
+                if (!empty($response['tracking_number'])) {
+                    $order->tracking_number = $response['tracking_number'];
+                    $order->save();
+                    return back()->with('success', 'Resi Lazada berhasil ditarik: ' . $order->tracking_number);
+                }
+                
+                return back()->with('error', 'Resi belum tersedia dari kurir.');
+            } catch (\Exception $e) {
+                return back()->with('error', 'Gagal menarik resi Lazada: ' . $e->getMessage());
+            }
         }
 
         return back()->with('error', 'Channel tidak didukung.');
     }
+
 
     /**
      * Ambil detail tracking resi secara real-time dari Shopee API (AJAX/JSON).
@@ -280,10 +331,10 @@ class OrderController extends Controller
     public function sync(Request $request)
     {
         $tenantId = Auth::user()->tenant_id;
-        // Ambil semua toko shopee, tiktok & tokopedia milik tenant ini
+        // Ambil semua toko shopee, tiktok, tokopedia & lazada milik tenant ini
         $stores = \App\Models\Store::where('tenant_id', $tenantId)
             ->whereHas('channel', function($q) {
-                $q->whereIn('code', ['shopee', 'tiktok', 'tokopedia']);
+                $q->whereIn('code', ['shopee', 'tiktok', 'tokopedia', 'lazada']);
             })->get();
 
         if ($stores->isEmpty()) {
@@ -299,11 +350,14 @@ class OrderController extends Controller
                 \App\Jobs\PullOrdersFromShopee::dispatch($store, $timeFrom, $timeTo);
             } elseif (in_array($store->channel->code, ['tiktok', 'tokopedia'])) {
                 \App\Jobs\PullOrdersFromTiktok::dispatch($store, $timeFrom, $timeTo);
+            } elseif ($store->channel->code === 'lazada') {
+                \App\Jobs\PullOrdersFromLazada::dispatch($store, $timeFrom, $timeTo);
             }
         }
 
         return back()->with('success', 'Perintah tarik pesanan telah dikirim. Pesanan akan segera muncul dalam beberapa saat.');
     }
+
 
     public function print(Order $order, \App\Services\ShopeeService $shopeeService, \App\Services\TiktokService $tiktokService)
     {

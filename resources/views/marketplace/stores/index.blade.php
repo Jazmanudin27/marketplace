@@ -95,14 +95,17 @@
                                         'shopee'    => 'bg-danger bg-opacity-10 text-danger',
                                         'tiktok'    => 'bg-dark bg-opacity-10 text-dark',
                                         'tokopedia' => 'bg-success bg-opacity-10 text-success',
+                                        'lazada'    => 'bg-primary bg-opacity-10 text-primary',
                                         default     => 'bg-secondary bg-opacity-10 text-secondary',
                                     };
                                     $iconClass = match($store->channel->code) {
                                         'shopee'    => 'fas fa-shopping-bag',
                                         'tiktok'    => 'fab fa-tiktok',
                                         'tokopedia' => 'fas fa-store',
+                                        'lazada'    => 'fas fa-shopping-bag',
                                         default     => 'fas fa-globe',
                                     };
+
                                 @endphp
                                 <div class="rounded-3 d-flex align-items-center justify-content-center {{ $logoBgClass }} shadow-sm" style="width: 46px; height: 46px; font-size: 1.25rem;">
                                     <i class="{{ $iconClass }}"></i>
@@ -173,12 +176,14 @@
                                         'shopee'    => route('shopee.sync_products', $store->id),
                                         'tiktok'    => route('tiktok.sync_products', $store->id),
                                         'tokopedia' => route('tokopedia.sync_products', $store->id),
+                                        'lazada'    => route('lazada.sync_products', $store->id),
                                         default     => null,
                                     };
                                     $syncOrderRoute = match($store->channel->code) {
                                         'shopee'    => route('shopee.sync_orders', $store->id),
                                         'tiktok'    => route('tiktok.sync_orders', $store->id),
                                         'tokopedia' => route('tokopedia.sync_orders', $store->id),
+                                        'lazada'    => route('lazada.sync_orders', $store->id),
                                         default     => null,
                                     };
                                 @endphp
@@ -213,6 +218,7 @@
                                         'shopee'    => route('shopee.authorize'),
                                         'tiktok'    => route('tiktok.auth'),
                                         'tokopedia' => route('tiktok.auth', ['channel' => 'tokopedia']),
+                                        'lazada'    => route('lazada.authorize'),
                                         default     => null,
                                     };
                                 @endphp
@@ -221,6 +227,7 @@
                                         <i class="fas fa-sync-alt me-1"></i>Hubungkan Ulang
                                     </a>
                                 @endif
+
                             </div>
                         @endif
                     </div>

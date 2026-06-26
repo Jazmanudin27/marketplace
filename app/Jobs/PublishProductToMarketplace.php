@@ -426,8 +426,47 @@ class PublishProductToMarketplace implements ShouldQueue
                     'marketplace_product_id' => (string)$marketplaceProductId,
                     'error_message' => null
                 ]);
+            } elseif ($store->channel->code === 'lazada') {
+                $lazadaService = app(\App\Services\LazadaService::class);
+                
+                $productData = [
+                    'category_id' => $catId,
+                    'name' => $product->name,
+                    'sku' => $product->sku ?: ('SKU-' . time()),
+                    'price' => (float) $product->price,
+                    'stock' => (int) $product->stock,
+                ];
+
+                $res = $lazadaService->addProduct($store->getValidAccessToken(), $store->marketplace_store_id, $productData);
+                $marketplaceProductId = $res['product_id'] ?? null;
+                $marketplaceVariantId = $res['skus'][0]['id'] ?? null;
+
+                if (!$marketplaceProductId) {
+                    throw new \RuntimeException('Gagal mendapatkan ID Produk dari respons Lazada.');
+                }
+
+                MarketplaceProduct::create([
+                    'store_id' => $store->id,
+                    'master_product_id' => $product->id,
+                    'marketplace_product_id' => (string) $marketplaceProductId,
+                    'marketplace_variant_id' => $marketplaceVariantId ? (string) $marketplaceVariantId : null,
+                    'marketplace_sku' => $product->sku,
+                    'name' => $product->name,
+                    'price' => $product->price,
+                    'stock' => $product->stock,
+                    'image_url' => $fallbackImageUrl,
+                    'sync_stock' => true,
+                    'last_synced_at' => now(),
+                ]);
+
+                $log->update([
+                    'status' => 'success',
+                    'marketplace_product_id' => (string)$marketplaceProductId,
+                    'error_message' => null
+                ]);
             }
         } catch (\Exception $e) {
+
             $translatedError = $this->translateErrorMessage($e->getMessage());
             Log::error("Failed to publish product ID {$this->logId} via Job: " . $e->getMessage());
             $log->update([

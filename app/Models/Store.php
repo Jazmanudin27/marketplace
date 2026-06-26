@@ -112,7 +112,35 @@ class Store extends Model
                     $this->update(['status' => 'expired']);
                 }
             }
+        } elseif ($this->channel && $this->channel->code === 'lazada') {
+            $isExpired = $force ||
+                         !$this->access_token ||
+                         !$this->token_expires_at ||
+                         $this->token_expires_at->subMinutes(5)->isPast();
+
+            if ($isExpired && !empty($this->refresh_token)) {
+                try {
+                    $lazada = app(\App\Services\LazadaService::class);
+                    $tokenData = $lazada->refreshAccessToken($this->refresh_token);
+
+                    $this->update([
+                        'access_token' => $tokenData['access_token'],
+                        'refresh_token' => $tokenData['refresh_token'] ?? $this->refresh_token,
+                        'token_expires_at' => now()->addSeconds($tokenData['expires_in'] ?? 604800),
+                        'status' => 'connected',
+                    ]);
+
+                    $this->refresh();
+                } catch (\Throwable $e) {
+                    \Illuminate\Support\Facades\Log::error('Auto-refresh Lazada token failed inside Store model', [
+                        'store_id' => $this->id,
+                        'message' => $e->getMessage()
+                    ]);
+                    $this->update(['status' => 'expired']);
+                }
+            }
         }
+
 
         return $this->access_token;
     }

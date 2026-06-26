@@ -20,6 +20,7 @@ use App\Http\Controllers\OrderController;
 use App\Http\Controllers\OrderPrintController;
 use App\Http\Controllers\ShopeeController;
 use App\Http\Controllers\TiktokController;
+use App\Http\Controllers\LazadaController;
 use App\Http\Controllers\Hrd\PayrollController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\WebhookController;
@@ -98,6 +99,12 @@ Route::get('/shopee/callback', [ShopeeController::class, 'callback'])->name('sho
 Route::get('/tiktok/auth', [TiktokController::class, 'authorizeTiktok'])->name('tiktok.auth')->middleware('auth');
 Route::get('/tiktok/callback', [TiktokController::class, 'callback'])->name('tiktok.callback');
 Route::get('/callback/tiktok', [TiktokController::class, 'callback']);
+
+// =========================================================================
+// Lazada OAuth Callback
+// =========================================================================
+Route::get('/lazada/callback', [LazadaController::class, 'callback'])->name('lazada.callback');
+
 
 // =========================================================================
 // Mobile Complaint Form (Publik — tanpa login, identifikasi via tenant_id)
@@ -285,7 +292,13 @@ Route::middleware('auth')->group(function () {
             ->name('tokopedia.connect');
         Route::post('/tokopedia/{store}/sync-products', [TiktokController::class, 'syncProducts'])->name('tokopedia.sync_products');
         Route::post('/tokopedia/{store}/sync-orders', [TiktokController::class, 'syncOrders'])->name('tokopedia.sync_orders');
+
+        // Lazada
+        Route::get('/lazada/auth', [LazadaController::class, 'authorizeLazada'])->name('lazada.authorize');
+        Route::post('/lazada/{store}/sync-products', [LazadaController::class, 'syncProducts'])->name('lazada.sync_products');
+        Route::post('/lazada/{store}/sync-orders', [LazadaController::class, 'syncOrders'])->name('lazada.sync_orders');
     });
+
 
 
     // =========================================================================
