@@ -38,6 +38,22 @@ class OrderController extends Controller
             $query->where('order_status', $request->status);
         }
 
+        // Filter Batas Kirim (Deadline Status)
+        if ($request->filled('deadline_status')) {
+            $deadlineStatus = $request->deadline_status;
+            if ($deadlineStatus === 'overdue') {
+                $query->whereNotNull('ship_before_date')
+                    ->where('ship_before_date', '<', now());
+            } elseif ($deadlineStatus === 'urgent') {
+                $query->whereNotNull('ship_before_date')
+                    ->where('ship_before_date', '>', now())
+                    ->where('ship_before_date', '<=', now()->addHours(24));
+            } elseif ($deadlineStatus === 'safe') {
+                $query->whereNotNull('ship_before_date')
+                    ->where('ship_before_date', '>', now()->addHours(24));
+            }
+        }
+
         // Filter Tanggal
         if ($request->filled('start_date')) {
             $query->whereDate('order_date', '>=', $request->start_date);

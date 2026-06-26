@@ -99,6 +99,20 @@
                                 @endforeach
                             </select>
                         </div>
+                        <div class="col-12 col-sm-6 col-md-2">
+                            <label class="form-label fw-bold small text-dark mb-1">
+                                <i class="fas fa-hourglass-half me-1 text-secondary"></i>Batas Kirim
+                            </label>
+                            <select name="deadline_status" class="form-select form-select-sm">
+                                <option value="">Semua Batas Kirim</option>
+                                <option value="overdue" {{ request('deadline_status') == 'overdue' ? 'selected' : '' }}>
+                                    Overdue</option>
+                                <option value="urgent" {{ request('deadline_status') == 'urgent' ? 'selected' : '' }}>
+                                    Urgent (&lt; 24 Jam)</option>
+                                <option value="safe" {{ request('deadline_status') == 'safe' ? 'selected' : '' }}>Aman
+                                    (&gt; 24 Jam)</option>
+                            </select>
+                        </div>
                         <div class="col-12 col-sm-6 col-md-3">
                             <label class="form-label fw-bold small text-dark mb-1">
                                 <i class="fas fa-calendar-alt me-1 text-secondary"></i>Rentang Tanggal
@@ -114,7 +128,7 @@
                             <button type="submit" class="btn btn-primary btn-sm px-3 rounded-3">
                                 <i class="fas fa-search me-1"></i> Cari
                             </button>
-                            @if (request()->anyFilled(['channel_id', 'store_id', 'courier', 'status', 'start_date', 'end_date']))
+                            @if (request()->anyFilled(['channel_id', 'store_id', 'courier', 'status', 'start_date', 'end_date', 'deadline_status']))
                                 <a href="{{ route('orders.index') }}" class="btn btn-secondary btn-sm px-3 rounded-3">
                                     <i class="fas fa-times me-1"></i> Reset
                                 </a>
