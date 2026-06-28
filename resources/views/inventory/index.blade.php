@@ -80,8 +80,8 @@
                             <i class="fas fa-search me-1"></i>Cari Produk
                         </label>
                         <input type="text" name="search" class="form-control form-control-sm"
-                            placeholder="Cari SKU, Nama, Kategori, atau SKU Induk…"
-                            value="{{ request('search') }}" id="inventorySearch">
+                            placeholder="Cari SKU, Nama, Kategori, atau SKU Induk…" value="{{ request('search') }}"
+                            id="inventorySearch">
                     </div>
                     <div class="col-6 col-md-2 col-lg-1">
                         <button type="submit" class="btn btn-primary btn-sm w-100">
@@ -105,8 +105,14 @@
                         <span class="text-muted small"><i class="fas fa-filter me-1"></i>Filter Aktif:</span>
                         @if (request('status'))
                             @php
-                                $statusLabel = ['low' => 'Stok Menipis', 'empty' => 'Stok Habis', 'safe' => 'Stok Aman'][request('status')] ?? request('status');
-                                $statusClass = ['low' => 'bg-warning text-dark', 'empty' => 'bg-danger', 'safe' => 'bg-success'][request('status')] ?? 'bg-secondary';
+                                $statusLabel =
+                                    ['low' => 'Stok Menipis', 'empty' => 'Stok Habis', 'safe' => 'Stok Aman'][
+                                        request('status')
+                                    ] ?? request('status');
+                                $statusClass =
+                                    ['low' => 'bg-warning text-dark', 'empty' => 'bg-danger', 'safe' => 'bg-success'][
+                                        request('status')
+                                    ] ?? 'bg-secondary';
                             @endphp
                             <span class="badge {{ $statusClass }} d-inline-flex align-items-center gap-1 py-1 px-2">
                                 Status: {{ $statusLabel }}
@@ -175,28 +181,38 @@
                                         @endif
                                         <div>
                                             <div class="d-flex align-items-center gap-1 flex-wrap mb-1">
-                                                <code class="bg-light text-secondary px-1 rounded small border" style="font-size:.75rem">{{ $product->sku }}</code>
+                                                <code class="bg-light text-secondary px-1 rounded small border"
+                                                    style="font-size:.75rem">{{ $product->sku }}</code>
                                                 @if ($product->sku_induk)
-                                                    <code class="text-muted small" style="font-size:.7rem;">Induk: {{ $product->sku_induk }}</code>
+                                                    <code class="text-muted small" style="font-size:.7rem;">Induk:
+                                                        {{ $product->sku_induk }}</code>
                                                 @endif
                                             </div>
                                             <div class="fw-semibold small">{{ $product->name }}</div>
                                             <div class="d-flex flex-wrap gap-1 mt-1">
                                                 @if ($product->category)
-                                                    <span class="badge bg-secondary bg-opacity-25 text-secondary border small" style="font-size:.68rem;">
-                                                        <i class="fas fa-folder me-1 opacity-75"></i>{{ $product->category->name }}
+                                                    <span
+                                                        class="badge bg-secondary bg-opacity-25 text-secondary border small"
+                                                        style="font-size:.68rem;">
+                                                        <i
+                                                            class="fas fa-folder me-1 opacity-75"></i>{{ $product->category->name }}
                                                     </span>
                                                 @endif
                                                 @if ($product->brand)
-                                                    <span class="badge bg-secondary bg-opacity-25 text-secondary border small" style="font-size:.68rem;">
-                                                        <i class="fas fa-tag me-1 opacity-75"></i>{{ $product->brand->name }}
+                                                    <span
+                                                        class="badge bg-secondary bg-opacity-25 text-secondary border small"
+                                                        style="font-size:.68rem;">
+                                                        <i
+                                                            class="fas fa-tag me-1 opacity-75"></i>{{ $product->brand->name }}
                                                     </span>
                                                 @endif
                                                 @if ($product->ukuran)
-                                                    <span class="badge bg-info bg-opacity-25 text-info border small" style="font-size:.68rem;">{{ $product->ukuran }}</span>
+                                                    <span class="badge bg-info bg-opacity-25 text-info border small"
+                                                        style="font-size:.68rem;">{{ $product->ukuran }}</span>
                                                 @endif
                                                 @if ($product->warna)
-                                                    <span class="badge bg-warning bg-opacity-25 text-warning border small" style="font-size:.68rem;">{{ $product->warna }}</span>
+                                                    <span class="badge bg-warning bg-opacity-25 text-warning border small"
+                                                        style="font-size:.68rem;">{{ $product->warna }}</span>
                                                 @endif
                                             </div>
                                         </div>
@@ -210,19 +226,25 @@
                                 </td>
                                 <td class="text-center">
                                     @if ($product->stock <= 0)
-                                        <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 px-2 py-1 small">
+                                        <span
+                                            class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 px-2 py-1 small">
                                             <i class="fas fa-times-circle me-1"></i>Habis (0)
                                         </span>
                                     @elseif ($product->stock <= $product->min_stock)
-                                        <span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25 px-2 py-1 small">
-                                            <i class="fas fa-exclamation-triangle me-1"></i>Menipis ({{ number_format($product->stock) }})
+                                        <span
+                                            class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25 px-2 py-1 small">
+                                            <i class="fas fa-exclamation-triangle me-1"></i>Menipis
+                                            ({{ number_format($product->stock) }})
                                         </span>
                                     @else
-                                        <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-2 py-1 small">
-                                            <i class="fas fa-check-circle me-1"></i>Aman ({{ number_format($product->stock) }})
+                                        <span
+                                            class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-2 py-1 small">
+                                            <i class="fas fa-check-circle me-1"></i>Aman
+                                            ({{ number_format($product->stock) }})
                                         </span>
                                     @endif
-                                    <div class="text-muted mt-1" style="font-size:.7rem">Min. Stok: {{ number_format($product->min_stock) }}</div>
+                                    <div class="text-muted mt-1" style="font-size:.7rem">Min. Stok:
+                                        {{ number_format($product->min_stock) }}</div>
                                 </td>
                                 <td class="text-center pe-3">
                                     <a href="{{ route('inventory.ledger', $product->id) }}"

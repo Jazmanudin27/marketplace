@@ -83,6 +83,7 @@ class Store extends Model
                         'message' => $e->getMessage()
                     ]);
                     $this->update(['status' => 'expired']);
+                    throw new \RuntimeException("Gagal memperbarui token Shopee untuk toko '{$this->store_name}': " . $e->getMessage(), 0, $e);
                 }
             }
         } elseif ($this->channel && in_array($this->channel->code, ['tiktok', 'tokopedia'])) {
@@ -110,6 +111,7 @@ class Store extends Model
                         'message' => $e->getMessage()
                     ]);
                     $this->update(['status' => 'expired']);
+                    throw new \RuntimeException("Gagal memperbarui token TikTok/Tokopedia untuk toko '{$this->store_name}': " . $e->getMessage(), 0, $e);
                 }
             }
         } elseif ($this->channel && $this->channel->code === 'lazada') {
@@ -137,10 +139,14 @@ class Store extends Model
                         'message' => $e->getMessage()
                     ]);
                     $this->update(['status' => 'expired']);
+                    throw new \RuntimeException("Gagal memperbarui token Lazada untuk toko '{$this->store_name}': " . $e->getMessage(), 0, $e);
                 }
             }
         }
 
+        if (empty($this->access_token)) {
+            throw new \RuntimeException("Access token untuk toko '{$this->store_name}' (ID: {$this->id}) kosong. Silakan hubungkan kembali toko Anda di menu integrasi.");
+        }
 
         return $this->access_token;
     }

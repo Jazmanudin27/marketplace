@@ -39,104 +39,6 @@
                 </div>
             @endif
 
-            {{-- ── Filter Card ───────────────────────────────────────────── --}}
-            <div class="card border shadow-sm p-3 mb-3">
-                <form method="GET" action="{{ route('orders.index') }}">
-                    <div class="row g-2 align-items-end">
-                        <div class="col-12 col-sm-6 col-md-2">
-                            <label class="form-label fw-bold small text-dark mb-1">
-                                <i class="fas fa-shopping-bag me-1 text-secondary"></i>Channel
-                            </label>
-                            <select name="channel_id" class="form-select form-select-sm">
-                                <option value="">Semua Channel</option>
-                                @foreach ($channels as $channel)
-                                    <option value="{{ $channel->id }}"
-                                        {{ request('channel_id') == $channel->id ? 'selected' : '' }}>
-                                        {{ $channel->name }}
-                                    </option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div class="col-12 col-sm-6 col-md-2">
-                            <label class="form-label fw-bold small text-dark mb-1">
-                                <i class="fas fa-store me-1 text-secondary"></i>Toko
-                            </label>
-                            <select name="store_id" class="form-select form-select-sm">
-                                <option value="">Semua Toko</option>
-                                @foreach ($stores as $store)
-                                    <option value="{{ $store->id }}"
-                                        {{ request('store_id') == $store->id ? 'selected' : '' }}>
-                                        {{ $store->store_name }}
-                                    </option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div class="col-12 col-sm-6 col-md-2">
-                            <label class="form-label fw-bold small text-dark mb-1">
-                                <i class="fas fa-truck me-1 text-secondary"></i>Kurir
-                            </label>
-                            <select name="courier" class="form-select form-select-sm">
-                                <option value="">Semua Kurir</option>
-                                @foreach ($couriers as $courier)
-                                    <option value="{{ $courier }}"
-                                        {{ request('courier') == $courier ? 'selected' : '' }}>
-                                        {{ $courier }}
-                                    </option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div class="col-12 col-sm-6 col-md-2">
-                            <label class="form-label fw-bold small text-dark mb-1">
-                                <i class="fas fa-info-circle me-1 text-secondary"></i>Status
-                            </label>
-                            <select name="status" class="form-select form-select-sm">
-                                <option value="">Semua Status</option>
-                                @foreach ($statuses as $status)
-                                    <option value="{{ $status }}"
-                                        {{ request('status') == $status ? 'selected' : '' }}>
-                                        {{ str_replace('_', ' ', $status) }}
-                                    </option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div class="col-12 col-sm-6 col-md-2">
-                            <label class="form-label fw-bold small text-dark mb-1">
-                                <i class="fas fa-hourglass-half me-1 text-secondary"></i>Batas Kirim
-                            </label>
-                            <select name="deadline_status" class="form-select form-select-sm">
-                                <option value="">Semua Batas Kirim</option>
-                                <option value="overdue" {{ request('deadline_status') == 'overdue' ? 'selected' : '' }}>
-                                    Overdue</option>
-                                <option value="urgent" {{ request('deadline_status') == 'urgent' ? 'selected' : '' }}>
-                                    Urgent (&lt; 24 Jam)</option>
-                                <option value="safe" {{ request('deadline_status') == 'safe' ? 'selected' : '' }}>Aman
-                                    (&gt; 24 Jam)</option>
-                            </select>
-                        </div>
-                        <div class="col-12 col-sm-6 col-md-3">
-                            <label class="form-label fw-bold small text-dark mb-1">
-                                <i class="fas fa-calendar-alt me-1 text-secondary"></i>Rentang Tanggal
-                            </label>
-                            <div class="d-flex gap-2">
-                                <input type="date" name="start_date" class="form-control form-control-sm"
-                                    value="{{ request('start_date') }}">
-                                <input type="date" name="end_date" class="form-control form-control-sm"
-                                    value="{{ request('end_date') }}">
-                            </div>
-                        </div>
-                        <div class="col-12 col-sm-6 col-md-auto d-flex gap-2">
-                            <button type="submit" class="btn btn-primary btn-sm px-3 rounded-3">
-                                <i class="fas fa-search me-1"></i> Cari
-                            </button>
-                            @if (request()->anyFilled(['channel_id', 'store_id', 'courier', 'status', 'start_date', 'end_date', 'deadline_status']))
-                                <a href="{{ route('orders.index') }}" class="btn btn-secondary btn-sm px-3 rounded-3">
-                                    <i class="fas fa-times me-1"></i> Reset
-                                </a>
-                            @endif
-                        </div>
-                    </div>
-                </form>
-            </div>
 
             {{-- ── Table Card ────────────────────────────────────────────── --}}
             <div class="card border shadow-sm overflow-hidden">
@@ -161,20 +63,109 @@
                 </div>
 
                 <div class="card-body p-3">
-                    {{-- Alert --}}
-                    @if (session('success'))
-                        <div class="alert alert-success alert-dismissible fade show mb-3" role="alert">
-                            <i class="fas fa-check-circle me-2"></i>{{ session('success') }}
-                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                        </div>
-                    @endif
-                    @if (session('error'))
-                        <div class="alert alert-danger alert-dismissible fade show mb-3" role="alert">
-                            <i class="fas fa-exclamation-circle me-2"></i>{{ session('error') }}
-                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                        </div>
-                    @endif
 
+                    {{-- ── Filter Card ───────────────────────────────────────────── --}}
+                    <div class="card border shadow-sm p-3 mb-3">
+                        <form method="GET" action="{{ route('orders.index') }}">
+                            <div class="row g-2 align-items-end">
+                                <div class="col-12 col-sm-6 col-md-2">
+                                    <label class="form-label fw-bold small text-dark mb-1">
+                                        <i class="fas fa-shopping-bag me-1 text-secondary"></i>Channel
+                                    </label>
+                                    <select name="channel_id" class="form-select form-select-sm">
+                                        <option value="">Semua Channel</option>
+                                        @foreach ($channels as $channel)
+                                            <option value="{{ $channel->id }}"
+                                                {{ request('channel_id') == $channel->id ? 'selected' : '' }}>
+                                                {{ $channel->name }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="col-12 col-sm-6 col-md-2">
+                                    <label class="form-label fw-bold small text-dark mb-1">
+                                        <i class="fas fa-store me-1 text-secondary"></i>Toko
+                                    </label>
+                                    <select name="store_id" class="form-select form-select-sm">
+                                        <option value="">Semua Toko</option>
+                                        @foreach ($stores as $store)
+                                            <option value="{{ $store->id }}"
+                                                {{ request('store_id') == $store->id ? 'selected' : '' }}>
+                                                {{ $store->store_name }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="col-12 col-sm-6 col-md-2">
+                                    <label class="form-label fw-bold small text-dark mb-1">
+                                        <i class="fas fa-truck me-1 text-secondary"></i>Kurir
+                                    </label>
+                                    <select name="courier" class="form-select form-select-sm">
+                                        <option value="">Semua Kurir</option>
+                                        @foreach ($couriers as $courier)
+                                            <option value="{{ $courier }}"
+                                                {{ request('courier') == $courier ? 'selected' : '' }}>
+                                                {{ $courier }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="col-12 col-sm-6 col-md-2">
+                                    <label class="form-label fw-bold small text-dark mb-1">
+                                        <i class="fas fa-info-circle me-1 text-secondary"></i>Status
+                                    </label>
+                                    <select name="status" class="form-select form-select-sm">
+                                        <option value="">Semua Status</option>
+                                        @foreach ($statuses as $status)
+                                            <option value="{{ $status }}"
+                                                {{ request('status') == $status ? 'selected' : '' }}>
+                                                {{ str_replace('_', ' ', $status) }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="col-12 col-sm-6 col-md-2">
+                                    <label class="form-label fw-bold small text-dark mb-1">
+                                        <i class="fas fa-hourglass-half me-1 text-secondary"></i>Batas Kirim
+                                    </label>
+                                    <select name="deadline_status" class="form-select form-select-sm">
+                                        <option value="">Semua Batas Kirim</option>
+                                        <option value="overdue"
+                                            {{ request('deadline_status') == 'overdue' ? 'selected' : '' }}>
+                                            Overdue</option>
+                                        <option value="urgent"
+                                            {{ request('deadline_status') == 'urgent' ? 'selected' : '' }}>
+                                            Urgent (&lt; 24 Jam)</option>
+                                        <option value="safe"
+                                            {{ request('deadline_status') == 'safe' ? 'selected' : '' }}>Aman
+                                            (&gt; 24 Jam)</option>
+                                    </select>
+                                </div>
+                                <div class="col-12 col-sm-6 col-md-3">
+                                    <label class="form-label fw-bold small text-dark mb-1">
+                                        <i class="fas fa-calendar-alt me-1 text-secondary"></i>Rentang Tanggal
+                                    </label>
+                                    <div class="d-flex gap-2">
+                                        <input type="date" name="start_date" class="form-control form-control-sm"
+                                            value="{{ request('start_date') }}">
+                                        <input type="date" name="end_date" class="form-control form-control-sm"
+                                            value="{{ request('end_date') }}">
+                                    </div>
+                                </div>
+                                <div class="col-12 col-sm-6 col-md-auto d-flex gap-2">
+                                    <button type="submit" class="btn btn-primary btn-sm px-3 rounded-3">
+                                        <i class="fas fa-search me-1"></i> Cari
+                                    </button>
+                                    @if (request()->anyFilled(['channel_id', 'store_id', 'courier', 'status', 'start_date', 'end_date', 'deadline_status']))
+                                        <a href="{{ route('orders.index') }}"
+                                            class="btn btn-secondary btn-sm px-3 rounded-3">
+                                            <i class="fas fa-times me-1"></i> Reset
+                                        </a>
+                                    @endif
+                                </div>
+                            </div>
+                        </form>
+                    </div>
                     <div class="table-responsive rounded border">
                         <form id="mass-print-form" action="{{ route('orders.mass_print') }}" method="POST"
                             target="_blank">
