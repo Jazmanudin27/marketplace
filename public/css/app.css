@@ -196,3 +196,181 @@ label {
     font-size: 0.75rem !important;
     letter-spacing: 0.03em;
 }
+
+/* ==========================================================================
+   Lazada-style Blue Theme Stylesheet Overrides
+   ========================================================================== */
+:root {
+    --lazada-primary: #006cff;
+    --lazada-primary-dark: #0056cc;
+    --lazada-hover: rgba(255, 255, 255, 0.12);
+    --lazada-active: rgba(255, 255, 255, 0.2);
+    --lazada-border: rgba(255, 255, 255, 0.15);
+    --lazada-text-muted: rgba(255, 255, 255, 0.7);
+    --lazada-text-white: #ffffff;
+}
+
+/* Sidebar Offcanvas Container */
+#sidebarMenu.offcanvas {
+    background-color: var(--lazada-primary) !important;
+    border-right: none !important;
+}
+
+/* Sidebar Container */
+#sidebar {
+    background-color: var(--lazada-primary) !important;
+    color: var(--lazada-text-white) !important;
+}
+
+/* Sidebar Title and Text overrides */
+#sidebar h6,
+#sidebar .text-dark,
+#sidebar .fw-bold {
+    color: var(--lazada-text-white) !important;
+}
+
+#sidebar .text-muted {
+    color: var(--lazada-text-muted) !important;
+}
+
+#sidebar .border-bottom {
+    border-color: var(--lazada-border) !important;
+}
+
+/* Icons */
+#sidebar i {
+    color: inherit;
+}
+
+/* Rocket icon and badge shapes */
+#sidebar .bg-primary {
+    background-color: var(--lazada-text-white) !important;
+    color: var(--lazada-primary) !important;
+}
+
+#sidebar .bg-primary i {
+    color: var(--lazada-primary) !important;
+}
+
+/* Tenant Card container */
+#sidebar .card.bg-light,
+#sidebar .card.border {
+    background-color: rgba(255, 255, 255, 0.08) !important;
+    border-color: var(--lazada-border) !important;
+    color: var(--lazada-text-white) !important;
+}
+
+#sidebar .card .text-muted {
+    color: var(--lazada-text-muted) !important;
+}
+
+#sidebar .card .bg-primary.bg-gradient {
+    background: var(--lazada-text-white) !important;
+    color: var(--lazada-primary) !important;
+}
+
+/* Dropdown select box in Tenant Card */
+#sidebar .card select.form-select {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+    color: var(--lazada-text-white) !important;
+    border-color: rgba(255, 255, 255, 0.25) !important;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23ffffff' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e") !important;
+}
+
+#sidebar .card select.form-select option {
+    background-color: var(--lazada-primary) !important;
+    color: var(--lazada-text-white) !important;
+}
+
+/* Nav Links inside Sidebar */
+#sidebar .nav-link,
+#sidebar .nav-link.text-dark,
+#sidebar .nav-link.text-secondary {
+    color: var(--lazada-text-muted) !important;
+    transition: all 0.2s ease;
+    border-radius: 8px;
+}
+
+#sidebar .nav-link:hover {
+    background-color: var(--lazada-hover) !important;
+    color: var(--lazada-text-white) !important;
+}
+
+#sidebar .nav-link.active,
+#sidebar .nav-link:not(.collapsed)[data-bs-toggle="collapse"] {
+    background-color: var(--lazada-active) !important;
+    color: var(--lazada-text-white) !important;
+    font-weight: 600;
+}
+
+/* Category Title Separators (UTAMA, MASTER, etc.) */
+#sidebar .text-uppercase.text-muted {
+    color: rgba(255, 255, 255, 0.5) !important;
+    font-size: 0.65rem !important;
+    letter-spacing: 0.05em;
+    font-weight: 700 !important;
+}
+
+/* Submenu Border start */
+#sidebar .collapse .border-start {
+    border-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+#sidebar .collapse .nav-link,
+#sidebar .collapse .nav-link.text-secondary {
+    color: var(--lazada-text-muted) !important;
+}
+
+#sidebar .collapse .nav-link:hover,
+#sidebar .collapse .nav-link.active {
+    color: var(--lazada-text-white) !important;
+    background-color: var(--lazada-hover) !important;
+}
+
+#sidebar .collapse .nav-link.active {
+    font-weight: 600;
+}
+
+/* Logout Button */
+#sidebar .btn-outline-danger {
+    color: var(--lazada-text-white) !important;
+    border-color: rgba(255, 255, 255, 0.3) !important;
+}
+
+#sidebar .btn-outline-danger:hover {
+    background-color: rgba(239, 68, 68, 0.2) !important;
+    border-color: rgb(239, 68, 68) !important;
+}
+
+/* Header Navbar Custom Styling */
+#main-navbar.navbar {
+    background-color: var(--lazada-primary) !important;
+    border-bottom: 1px solid var(--lazada-border) !important;
+    color: var(--lazada-text-white) !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05) !important;
+}
+
+#main-navbar .text-dark,
+#main-navbar h6 {
+    color: var(--lazada-text-white) !important;
+}
+
+#main-navbar .text-muted {
+    color: var(--lazada-text-muted) !important;
+}
+
+#main-navbar .btn-outline-secondary {
+    color: var(--lazada-text-white) !important;
+    border-color: rgba(255, 255, 255, 0.3) !important;
+}
+
+#main-navbar .btn-outline-secondary:hover {
+    background-color: var(--lazada-hover) !important;
+    color: var(--lazada-text-white) !important;
+    border-color: var(--lazada-text-white) !important;
+}
+
+#main-navbar .bg-primary.text-white {
+    background-color: var(--lazada-text-white) !important;
+    color: var(--lazada-primary) !important;
+}
