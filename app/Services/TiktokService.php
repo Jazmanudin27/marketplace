@@ -193,6 +193,8 @@ class TiktokService
         $body = [
             'create_time_ge' => $createTimeFrom,
             'create_time_lt' => $createTimeTo,
+            'sort_field' => 'create_time',
+            'sort_order' => 'DESC',
         ];
 
         $bodyJson = json_encode($body);
