@@ -58,6 +58,8 @@ class PullOrdersFromTiktok implements ShouldQueue
 
             $cursor = '';
             $orderIds = [];
+            $pageCount = 0;
+            $previousCursor = null;
 
             do {
                 $response = $tiktokService->getOrderList(
@@ -77,8 +79,14 @@ class PullOrdersFromTiktok implements ShouldQueue
                     }
                 }
 
+                $previousCursor = $cursor;
                 $cursor = $response['next_cursor'] ?? '';
                 $hasMore = $response['more'] ?? false;
+                
+                // Break if page repeats or limit reached to prevent OOM / Timeout
+                if ($cursor === $previousCursor || ++$pageCount > 50) {
+                    break;
+                }
                 
             } while ($hasMore && $cursor);
 

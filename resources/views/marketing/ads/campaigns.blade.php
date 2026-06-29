@@ -121,7 +121,8 @@
                                                 </span>
                                             </td>
                                             <td class="px-3 py-3">
-                                                <strong>{{ number_format($camp->target_roas, 2) }}x</strong></td>
+                                                <strong>{{ number_format($camp->target_roas, 2) }}x</strong>
+                                            </td>
                                             <td class="px-3 py-3">Rp {{ number_format($camp->target_omzet, 0, ',', '.') }}
                                             </td>
                                             <td class="px-3 py-3">
