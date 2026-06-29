@@ -67,13 +67,28 @@ class MobileController extends Controller
             ->limit(10)
             ->get();
 
+        // Calculate Ads stats for mobile owner
+        $monthSpend = \App\Models\AdsPerformanceLog::where('tenant_id', $tenantId)
+            ->where('date', '>=', $startOfMonth)
+            ->sum('ad_spend');
+
+        $monthAdsRevenue = Order::where('tenant_id', $tenantId)
+            ->whereNotNull('ads_campaign_id')
+            ->where('order_date', '>=', $startOfMonth)
+            ->whereNotIn('order_status', [Order::STATUS_CANCELLED])
+            ->sum('net_amount');
+
+        $monthRoas = $monthSpend > 0 ? (float)($monthAdsRevenue / $monthSpend) : 0.0;
+
         return view('mobile.owner', compact(
             'todayRevenue', 
             'monthRevenue', 
             'totalStockValue', 
             'lowStockCount', 
             'recentOrders', 
-            'lowStockProducts'
+            'lowStockProducts',
+            'monthSpend',
+            'monthRoas'
         ));
     }
 

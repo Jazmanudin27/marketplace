@@ -93,6 +93,50 @@
                 </div>
             </div>
         </div>
+
+        <!-- Spend Iklan Bulan Ini -->
+        <div class="col-6">
+            <div class="glass-card h-100 p-3 d-flex flex-column justify-content-between position-relative overflow-hidden"
+                style="min-height: 110px;">
+                <div class="position-absolute top-0 end-0 p-3 opacity-10"
+                    style="font-size: 3rem; transform: translate(20%, -20%);">
+                    <i class="fas fa-ad text-warning" style="color: #f59e0b;"></i>
+                </div>
+                <div>
+                    <small class="text-white-50 text-uppercase fw-bold d-block"
+                        style="font-size: 0.65rem; letter-spacing: 0.5px;">Biaya Iklan (Spend)</small>
+                    <h3 class="mt-2 mb-0 fw-bold text-warning fs-5" style="color: #fbbf24;">
+                        Rp {{ number_format($monthSpend, 0, ',', '.') }}
+                    </h3>
+                </div>
+                <div class="mt-3 d-flex align-items-center gap-1 small fw-medium"
+                    style="font-size: 0.7rem; color: #fbbf24 !important;">
+                    <i class="fas fa-wallet"></i> Bulan ini
+                </div>
+            </div>
+        </div>
+
+        <!-- ROAS Iklan Bulan Ini -->
+        <div class="col-6">
+            <div class="glass-card h-100 p-3 d-flex flex-column justify-content-between position-relative overflow-hidden"
+                style="min-height: 110px;">
+                <div class="position-absolute top-0 end-0 p-3 opacity-10"
+                    style="font-size: 3rem; transform: translate(20%, -20%);">
+                    <i class="fas fa-crosshairs text-success" style="color: #10b981;"></i>
+                </div>
+                <div>
+                    <small class="text-white-50 text-uppercase fw-bold d-block"
+                        style="font-size: 0.65rem; letter-spacing: 0.5px;">Rata-Rata ROAS</small>
+                    <h3 class="mt-2 mb-0 fw-bold text-success fs-5">
+                        {{ number_format($monthRoas, 2) }}x
+                    </h3>
+                </div>
+                <div class="mt-3 d-flex align-items-center gap-1 text-success-emphasis small fw-medium"
+                    style="font-size: 0.7rem; color: var(--accent-green) !important;">
+                    <i class="fas fa-chart-line"></i> ROI Target
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Recent Orders Card -->
