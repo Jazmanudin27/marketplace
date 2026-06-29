@@ -213,7 +213,7 @@ class TiktokService
         $queryParams['sign'] = $sign;
         $queryParams['access_token'] = $accessToken;
 
-        $response = Http::withHeaders([
+        $response = Http::timeout(15)->withHeaders([
             'x-tts-access-token' => $accessToken,
             'Content-Type' => 'application/json',
         ])->post($this->baseUrl . $path . '?' . http_build_query($queryParams), $body);
@@ -257,7 +257,7 @@ class TiktokService
         $queryParams['sign'] = $sign;
         $queryParams['access_token'] = $accessToken;
 
-        $response = Http::withHeaders([
+        $response = Http::timeout(15)->withHeaders([
             'x-tts-access-token' => $accessToken,
         ])->get($this->baseUrl . $path, $queryParams);
 

@@ -84,7 +84,7 @@ class PullOrdersFromTiktok implements ShouldQueue
                 $hasMore = $response['more'] ?? false;
                 
                 // Break if page repeats or limit reached to prevent OOM / Timeout
-                if ($cursor === $previousCursor || ++$pageCount > 50) {
+                if ($cursor === $previousCursor || ++$pageCount > 10) {
                     break;
                 }
                 

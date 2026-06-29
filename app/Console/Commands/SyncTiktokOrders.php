@@ -40,9 +40,9 @@ class SyncTiktokOrders extends Command
             return;
         }
 
-        // Tarik pesanan 3 hari terakhir (lebih pendek karena ditarik otomatis sering)
+        // Tarik pesanan 1 hari terakhir (lebih pendek karena ditarik otomatis sering)
         $timeTo = time();
-        $timeFrom = strtotime('-3 days', $timeTo);
+        $timeFrom = strtotime('-1 day', $timeTo);
 
         foreach ($stores as $store) {
             $this->info("Mengirim job untuk toko: {$store->store_name}");
