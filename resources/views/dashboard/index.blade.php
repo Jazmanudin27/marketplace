@@ -28,12 +28,13 @@
     @if ($urgentOrders->isNotEmpty())
         @php
             $overdueCount = $urgentOrders->filter(fn($o) => $o->ship_before_date->isPast())->count();
-            $soonCount    = $urgentOrders->count() - $overdueCount;
+            $soonCount = $urgentOrders->count() - $overdueCount;
         @endphp
         <div class="alert alert-dismissible fade show border-start border-4 p-0 mb-3 overflow-hidden shadow-sm {{ $overdueCount > 0 ? 'alert-danger border-danger' : 'alert-warning border-warning' }}"
             role="alert">
             <div class="d-flex align-items-stretch">
-                <div class="d-flex align-items-center justify-content-center px-3 {{ $overdueCount > 0 ? 'bg-danger' : 'bg-warning' }}" style="min-width:52px;">
+                <div class="d-flex align-items-center justify-content-center px-3 {{ $overdueCount > 0 ? 'bg-danger' : 'bg-warning' }}"
+                    style="min-width:52px;">
                     <i class="bi bi-clock-fill fs-4 text-white"></i>
                 </div>
                 <div class="flex-grow-1 p-2 px-3">
@@ -52,7 +53,7 @@
                     <div class="d-flex flex-wrap gap-1 mt-1">
                         @foreach ($urgentOrders->take(5) as $uo)
                             <a href="{{ route('orders.show', $uo->id) }}"
-                               class="badge text-decoration-none {{ $uo->is_ship_overdue ? 'bg-danger' : 'bg-warning text-dark' }}">
+                                class="badge text-decoration-none {{ $uo->is_ship_overdue ? 'bg-danger' : 'bg-warning text-dark' }}">
                                 {{ $uo->order_marketplace_id }}
                                 &bull; {{ $uo->ship_before_date->diffForHumans() }}
                             </a>
@@ -66,7 +67,7 @@
                 </div>
                 <div class="d-flex align-items-center pe-3">
                     <a href="{{ route('orders.index', ['status' => 'READY_TO_SHIP']) }}"
-                       class="btn btn-sm {{ $overdueCount > 0 ? 'btn-danger' : 'btn-warning' }} fw-semibold me-2">
+                        class="btn btn-sm {{ $overdueCount > 0 ? 'btn-danger' : 'btn-warning' }} fw-semibold me-2">
                         Lihat Pesanan
                     </a>
                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
@@ -650,11 +651,10 @@
                 }
             });
 
-            // AJAX scope filtering
-            const chartScope = document.getElementById('chartScope');
-            chartScope.addEventListener('change', function() {
-                const scope = this.value;
-                fetch(`/dashboard/chart-data?scope=${scope}`)
+            // AJAX scope filtering (using jQuery to support Select2 event triggering)
+            $('#chartScope').on('change', function() {
+                const scope = $(this).val();
+                fetch("{{ route('dashboard.chart-data') }}?scope=" + scope)
                     .then(response => response.json())
                     .then(data => {
                         revenueChart.data.labels = data.labels;

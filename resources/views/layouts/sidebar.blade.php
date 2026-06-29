@@ -30,6 +30,11 @@
         request()->routeIs('finance.transfers.*') ||
         request()->routeIs('finance.reconciliation') ||
         request()->routeIs('profit.*');
+
+    $isMarketingActive =
+        request()->routeIs('marketing.ads.index') ||
+        request()->routeIs('marketing.ads.campaigns') ||
+        request()->routeIs('marketing.ads.logs');
 @endphp
 
 <div class="d-flex flex-column p-3 bg-primary text-white w-100" id="sidebar">
@@ -447,6 +452,35 @@
                                 class="nav-link py-1 {{ request()->routeIs('finance.transfers.*') ? 'active text-white' : 'text-secondary' }}">Transfer
                                 Dana</a>
                         @endcan
+                    </div>
+                </div>
+            </div>
+        @endif
+
+        <!-- PEMASARAN -->
+        @if (auth()->user()->isSuperAdmin() ||
+                auth()->user()->role === 'admin' ||
+                auth()->user()->hasAnyPermission(['view-financial-reports', 'manage-finance']))
+            <div class="text-uppercase text-muted fw-bold mb-1 mt-3 small">Pemasaran</div>
+
+            <div>
+                <a class="nav-link d-flex align-items-center justify-content-between text-dark {{ $isMarketingActive ? '' : 'collapsed' }}"
+                    data-bs-toggle="collapse" data-bs-target="#collapseMarketing" role="button"
+                    aria-expanded="{{ $isMarketingActive ? 'true' : 'false' }}" aria-controls="collapseMarketing">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-megaphone"></i>
+                        <span>Pemasaran & Iklan</span>
+                    </div>
+                    <i class="bi bi-chevron-down small"></i>
+                </a>
+                <div class="collapse {{ $isMarketingActive ? 'show' : '' }}" id="collapseMarketing">
+                    <div class="nav flex-column ms-3 mt-1 gap-1 border-start ps-2">
+                        <a href="{{ route('marketing.ads.index') }}"
+                            class="nav-link py-1 {{ request()->routeIs('marketing.ads.index') ? 'active text-white' : 'text-secondary' }}">Dashboard Keputusan</a>
+                        <a href="{{ route('marketing.ads.campaigns') }}"
+                            class="nav-link py-1 {{ request()->routeIs('marketing.ads.campaigns') ? 'active text-white' : 'text-secondary' }}">Target Campaign</a>
+                        <a href="{{ route('marketing.ads.logs') }}"
+                            class="nav-link py-1 {{ request()->routeIs('marketing.ads.logs') ? 'active text-white' : 'text-secondary' }}">Input Biaya Harian</a>
                     </div>
                 </div>
             </div>

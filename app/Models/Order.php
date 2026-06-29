@@ -72,6 +72,11 @@ class Order extends Model
         return $this->belongsTo(Customer::class);
     }
 
+    public function adsCampaign(): BelongsTo
+    {
+        return $this->belongsTo(AdsCampaign::class, 'ads_campaign_id');
+    }
+
     public function items(): HasMany
     {
         return $this->hasMany(OrderItem::class);

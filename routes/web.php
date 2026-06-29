@@ -49,6 +49,7 @@ use App\Http\Controllers\Marketplace\StoreController;
 // Settings
 use App\Http\Controllers\Settings\UserController;
 use App\Http\Controllers\Settings\RoleController;
+use App\Http\Controllers\Marketing\AdsController;
 
 
 // =========================================================================
@@ -461,6 +462,19 @@ Route::middleware('auth')->group(function () {
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/dashboard/chart-data', [DashboardController::class, 'getChartData'])->name('dashboard.chart-data');
+
+    // Marketing & Ads Tracking
+    Route::middleware('permission:view-warehouse-reports|manage-finance')->group(function () {
+        Route::get('/marketing/ads', [AdsController::class, 'index'])->name('marketing.ads.index');
+        Route::get('/marketing/ads/campaigns', [AdsController::class, 'campaigns'])->name('marketing.ads.campaigns');
+        Route::post('/marketing/ads/campaigns', [AdsController::class, 'storeCampaign'])->name('marketing.ads.campaigns.store');
+        Route::put('/marketing/ads/campaigns/{campaign}', [AdsController::class, 'updateCampaign'])->name('marketing.ads.campaigns.update');
+        Route::delete('/marketing/ads/campaigns/{campaign}', [AdsController::class, 'destroyCampaign'])->name('marketing.ads.campaigns.destroy');
+        Route::post('/marketing/ads/campaigns/{campaign}/toggle', [AdsController::class, 'toggleCampaign'])->name('marketing.ads.toggle');
+        Route::get('/marketing/ads/logs', [AdsController::class, 'logs'])->name('marketing.ads.logs');
+        Route::post('/marketing/ads/logs', [AdsController::class, 'storeLog'])->name('marketing.ads.logs.store');
+        Route::post('/marketing/ads/attribute-order', [AdsController::class, 'attributeOrder'])->name('marketing.ads.attribute');
+    });
 
 
     // FAQ & Tutorials
