@@ -52,7 +52,7 @@
             <!-- Main Content Area -->
             <main class="col-12 p-0 d-flex flex-column min-vh-100">
                 <!-- Navbar -->
-                <nav id="main-navbar" class="navbar navbar-expand-lg navbar-light bg-white border-bottom sticky-top py-2 px-3 shadow-sm">
+                <nav id="main-navbar" class="navbar navbar-expand-lg navbar-dark bg-primary border-bottom sticky-top py-2 px-3 shadow-sm">
                     <div class="container-fluid p-0">
                         <button class="btn btn-sm btn-outline-secondary me-2" type="button" data-bs-toggle="offcanvas"
                             data-bs-target="#sidebarMenu" aria-controls="sidebarMenu">

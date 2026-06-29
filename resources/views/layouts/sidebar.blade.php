@@ -32,15 +32,16 @@
         request()->routeIs('profit.*');
 @endphp
 
-<div class="d-flex flex-column p-3 bg-white w-100" id="sidebar">
+<div class="d-flex flex-column p-3 bg-primary text-white w-100" id="sidebar">
 
     <div class="d-flex align-items-center gap-2 mb-3 pb-3 border-bottom">
-        <div class="bg-primary text-white rounded p-2 d-flex align-items-center justify-content-center shadow-sm">
+        <div class="bg-white text-primary rounded p-2 d-flex align-items-center justify-content-center shadow-sm"
+            style="width: 38px; height: 38px;">
             <i class="bi bi-rocket-takeoff-fill fs-5"></i>
         </div>
         <div class="lh-sm">
-            <h6 class="mb-0 fw-bold text-dark">ASPARTECH</h6>
-            <small class="text-muted text-uppercase fw-bold">ERP Marketplace</small>
+            <h6 class="mb-0 fw-bold text-white">ASPARTECH</h6>
+            <small class="text-white text-opacity-75 text-uppercase fw-bold">ERP Marketplace</small>
         </div>
     </div>
 
@@ -49,8 +50,9 @@
         @php
             $tenants = \App\Models\Tenant::orderBy('name')->get();
         @endphp
-        <div class="card border p-2 mb-3 bg-light">
-            <div class="small fw-bold text-muted mb-1 text-uppercase" style="font-size: 0.75rem;">Pilih Perusahaan</div>
+        <div class="card border border-white border-opacity-10 p-2 mb-3 bg-white bg-opacity-10 text-white">
+            <div class="small fw-bold text-white text-opacity-75 mb-1 text-uppercase" style="font-size: 0.75rem;">Pilih
+                Perusahaan</div>
             <form action="{{ route('switch-tenant') }}" method="POST" id="switch-tenant-form">
                 @csrf
                 <select name="tenant_id" class="form-select form-select-sm text-truncate fw-semibold"
@@ -63,7 +65,7 @@
                 </select>
             </form>
             <div class="lh-sm mt-1 small">
-                <small class="text-muted d-block">
+                <small class="text-white text-opacity-75 d-block">
                     Role:
                     {{ Auth::user()->roles->first() ? ucfirst(Auth::user()->roles->first()->name) : ucfirst(Auth::user()->role) }}
                     (Super Admin)
@@ -71,16 +73,16 @@
             </div>
         </div>
     @else
-        <div class="card border p-2 mb-3 bg-light">
+        <div class="card border border-white border-opacity-10 p-2 mb-3 bg-white bg-opacity-10 text-white">
             <div class="d-flex align-items-center gap-2">
-                <div
-                    class="bg-primary bg-gradient text-white rounded p-2 d-flex align-items-center justify-content-center fw-bold">
+                <div class="bg-white text-primary rounded p-2 d-flex align-items-center justify-content-center fw-bold"
+                    style="width: 32px; height: 32px;">
                     {{ strtoupper(substr(Auth::user()->tenant->name, 0, 1)) }}
                 </div>
                 <div class="lh-sm overflow-hidden small">
-                    <span class="d-block fw-semibold text-dark text-truncate"
+                    <span class="d-block fw-semibold text-white text-truncate"
                         title="{{ Auth::user()->tenant->name }}">{{ Auth::user()->tenant->name }}</span>
-                    <small class="text-muted d-block">
+                    <small class="text-white text-opacity-75 d-block">
                         {{ Auth::user()->roles->first() ? ucfirst(Auth::user()->roles->first()->name) : ucfirst(Auth::user()->role) }}
                     </small>
                 </div>
@@ -285,7 +287,8 @@
                 <div>
                     <a class="nav-link d-flex align-items-center justify-content-between text-dark {{ $isInventoryActive ? '' : 'collapsed' }}"
                         data-bs-toggle="collapse" data-bs-target="#collapseInventory" role="button"
-                        aria-expanded="{{ $isInventoryActive ? 'true' : 'false' }}" aria-controls="collapseInventory">
+                        aria-expanded="{{ $isInventoryActive ? 'true' : 'false' }}"
+                        aria-controls="collapseInventory">
                         <div class="d-flex align-items-center gap-2">
                             <i class="bi bi-boxes"></i>
                             <span>Inventory Stok</span>
