@@ -25,3 +25,6 @@ Schedule::command('tiktok:sync-orders')->everyFifteenMinutes();
 
 // Cek stok menipis setiap hari jam 08:00
 Schedule::command('stock:check-low')->dailyAt('08:00')->withoutOverlapping();
+
+// Auto-atribusi pesanan ke campaign iklan setiap jam (setelah sync order selesai)
+Schedule::command('marketing:auto-attribute')->hourly()->withoutOverlapping();

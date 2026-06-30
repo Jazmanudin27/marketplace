@@ -9,6 +9,7 @@ use App\Models\AdsPerformanceLog;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Store;
+use App\Services\AutoAttributionService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -135,7 +136,11 @@ class AdsController extends Controller
 
         $accounts = AdsAccount::where('tenant_id', $tenantId)->get();
 
-        return view('marketing.ads.campaigns', compact('campaigns', 'accounts'));
+        $stores = Store::with(['channel', 'defaultCampaign'])
+            ->where('tenant_id', $tenantId)
+            ->get();
+
+        return view('marketing.ads.campaigns', compact('campaigns', 'accounts', 'stores'));
     }
 
     public function storeCampaign(Request $request)
@@ -263,6 +268,46 @@ class AdsController extends Controller
         ]);
 
         return redirect()->back()->with('success', 'Pesanan berhasil dikaitkan ke Campaign iklan.');
+    }
+
+    /**
+     * Jalankan auto-attribution on-demand dari UI.
+     */
+    public function autoAttributeNow(AutoAttributionService $service)
+    {
+        $tenantId = Auth::user()->tenant_id;
+
+        try {
+            $result = $service->attributeBatch($tenantId, 200);
+
+            $message = "Auto-atribusi selesai: {$result['attributed']} dari {$result['total']} pesanan berhasil ditautkan ke campaign iklan.";
+            if ($result['skipped'] > 0) {
+                $message .= " {$result['skipped']} pesanan tidak dapat dicocokkan (tidak ada campaign yang sesuai).";
+            }
+
+            return redirect()->back()->with('success', $message);
+        } catch (\Exception $e) {
+            Log::error('[AutoAttribution] On-demand error', ['message' => $e->getMessage()]);
+            return redirect()->back()->with('error', 'Gagal menjalankan auto-atribusi: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Simpan default campaign untuk sebuah toko.
+     */
+    public function setStoreDefaultCampaign(Request $request)
+    {
+        $request->validate([
+            'store_id'            => 'required|exists:stores,id',
+            'default_campaign_id' => 'nullable|exists:ads_campaigns,id',
+        ]);
+
+        $store = Store::where('tenant_id', Auth::user()->tenant_id)
+            ->findOrFail($request->store_id);
+
+        $store->update(['default_campaign_id' => $request->default_campaign_id ?: null]);
+
+        return redirect()->back()->with('success', 'Default campaign toko berhasil disimpan.');
     }
 
     public function syncAll()

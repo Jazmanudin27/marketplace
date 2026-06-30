@@ -32,6 +32,9 @@ class Order extends Model
         'is_stock_deducted',
         'is_stock_returned',
         'financial_breakdown',
+        'utm_campaign',
+        'utm_source',
+        'ads_campaign_id',
     ];
 
     protected $casts = [

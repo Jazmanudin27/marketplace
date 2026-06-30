@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Models\AdsCampaign;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
@@ -19,6 +20,7 @@ class Store extends Model
         'token_expires_at',
         'status',
         'shipping_handover_method',
+        'default_campaign_id',
     ];
 
     protected $hidden = [
@@ -48,6 +50,11 @@ class Store extends Model
     public function orders(): HasMany
     {
         return $this->hasMany(Order::class);
+    }
+
+    public function defaultCampaign(): BelongsTo
+    {
+        return $this->belongsTo(AdsCampaign::class, 'default_campaign_id');
     }
 
     public function isTokenExpired(): bool

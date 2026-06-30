@@ -474,6 +474,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/marketing/ads/logs', [AdsController::class, 'logs'])->name('marketing.ads.logs');
         Route::post('/marketing/ads/logs', [AdsController::class, 'storeLog'])->name('marketing.ads.logs.store');
         Route::post('/marketing/ads/attribute-order', [AdsController::class, 'attributeOrder'])->name('marketing.ads.attribute');
+        Route::post('/marketing/ads/auto-attribute', [AdsController::class, 'autoAttributeNow'])->name('marketing.ads.auto_attribute');
+        Route::post('/marketing/ads/store-default-campaign', [AdsController::class, 'setStoreDefaultCampaign'])->name('marketing.ads.store_default_campaign');
         Route::post('/marketing/ads/sync', [AdsController::class, 'syncAll'])->name('marketing.ads.sync');
         Route::get('/marketing/ads/tiktok/connect', [\App\Http\Controllers\Marketing\TiktokAdsAuthController::class, 'connect'])->name('marketing.ads.tiktok.connect');
         Route::get('/marketing/ads/tiktok/callback', [\App\Http\Controllers\Marketing\TiktokAdsAuthController::class, 'callback'])->name('marketing.ads.tiktok.callback');
