@@ -23,148 +23,183 @@
         <div class="col-md-12">
 
             <!-- Navigation Shortcut Cards -->
-            <div class="row g-2 mb-3">
-                <div class="col-6 col-md-4 col-lg-3">
+            <div class="row g-3 mb-4">
+                <!-- 1. Atur Target -->
+                <div class="col-12 col-md-6 col-lg-4">
                     <a href="{{ route('marketing.ads.campaigns') }}"
-                        class="card text-decoration-none border shadow-sm h-100 bg-white"
-                        style="transition: transform 0.2s, box-shadow 0.2s;"
-                        onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 .5rem 1rem rgba(0,0,0,.1)';"
-                        onmouseout="this.style.transform='none'; this.style.boxShadow='none';">
-                        <div
-                            class="card-body p-2.5 text-center d-flex flex-column align-items-center justify-content-center">
-                            <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center mb-2"
-                                style="width: 40px; height: 40px;">
-                                <i class="bi bi-gear-fill fs-5"></i>
+                        class="card text-decoration-none border shadow-sm h-100 bg-white rounded-3"
+                        style="transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;"
+                        onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 .5rem 1.25rem rgba(13,110,253,.1)'; this.style.borderColor='#0d6efd';"
+                        onmouseout="this.style.transform='none'; this.style.boxShadow='none'; this.style.borderColor='rgba(0,0,0,.125)';">
+                        <div class="card-body p-3 d-flex align-items-center gap-3">
+                            <div class="bg-primary bg-opacity-10 text-primary rounded-3 d-flex align-items-center justify-content-center"
+                                style="width: 46px; height: 46px; flex-shrink: 0;">
+                                <i class="bi bi-gear-fill fs-4"></i>
                             </div>
-                            <strong class="text-dark small text-truncate w-100" style="font-size: 0.75rem;">Atur Target</strong>
+                            <div class="text-start text-truncate">
+                                <h6 class="mb-0 fw-bold text-dark" style="font-size: 0.85rem;">Atur Target</h6>
+                                <small class="text-muted d-block text-truncate" style="font-size: 0.72rem;">Set target omzet & ROAS iklan</small>
+                            </div>
                         </div>
                     </a>
                 </div>
-                <div class="col-6 col-md-4 col-lg-3">
+
+                <!-- 2. Biaya Harian -->
+                <div class="col-12 col-md-6 col-lg-4">
                     <a href="{{ route('marketing.ads.logs') }}"
-                        class="card text-decoration-none border shadow-sm h-100 bg-white"
-                        style="transition: transform 0.2s, box-shadow 0.2s;"
-                        onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 .5rem 1rem rgba(0,0,0,.1)';"
-                        onmouseout="this.style.transform='none'; this.style.boxShadow='none';">
-                        <div
-                            class="card-body p-2.5 text-center d-flex flex-column align-items-center justify-content-center">
-                            <div class="bg-success bg-opacity-10 text-success rounded-circle d-flex align-items-center justify-content-center mb-2"
-                                style="width: 40px; height: 40px;">
-                                <i class="bi bi-plus-circle-fill fs-5"></i>
+                        class="card text-decoration-none border shadow-sm h-100 bg-white rounded-3"
+                        style="transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;"
+                        onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 .5rem 1.25rem rgba(25,135,84,.1)'; this.style.borderColor='#198754';"
+                        onmouseout="this.style.transform='none'; this.style.boxShadow='none'; this.style.borderColor='rgba(0,0,0,.125)';">
+                        <div class="card-body p-3 d-flex align-items-center gap-3">
+                            <div class="bg-success bg-opacity-10 text-success rounded-3 d-flex align-items-center justify-content-center"
+                                style="width: 46px; height: 46px; flex-shrink: 0;">
+                                <i class="bi bi-plus-circle-fill fs-4"></i>
                             </div>
-                            <strong class="text-dark small text-truncate w-100" style="font-size: 0.75rem;">Biaya Harian</strong>
+                            <div class="text-start text-truncate">
+                                <h6 class="mb-0 fw-bold text-dark" style="font-size: 0.85rem;">Biaya Harian</h6>
+                                <small class="text-muted d-block text-truncate" style="font-size: 0.72rem;">Catat pengeluaran iklan harian</small>
+                            </div>
                         </div>
                     </a>
                 </div>
-                <div class="col-6 col-md-4 col-lg-3">
+
+                <!-- 3. Budget Rules -->
+                <div class="col-12 col-md-6 col-lg-4">
                     <a href="{{ route('marketing.ads.budget_rules') }}"
-                        class="card text-decoration-none border shadow-sm h-100 bg-white"
-                        style="transition: transform 0.2s, box-shadow 0.2s;"
-                        onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 .5rem 1rem rgba(0,0,0,.1)';"
-                        onmouseout="this.style.transform='none'; this.style.boxShadow='none';">
-                        <div
-                            class="card-body p-2.5 text-center d-flex flex-column align-items-center justify-content-center">
-                            <div class="bg-danger bg-opacity-10 text-danger rounded-circle d-flex align-items-center justify-content-center mb-2"
-                                style="width: 40px; height: 40px;">
-                                <i class="bi bi-alarm-fill fs-5"></i>
+                        class="card text-decoration-none border shadow-sm h-100 bg-white rounded-3"
+                        style="transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;"
+                        onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 .5rem 1.25rem rgba(220,53,69,.1)'; this.style.borderColor='#dc3545';"
+                        onmouseout="this.style.transform='none'; this.style.boxShadow='none'; this.style.borderColor='rgba(0,0,0,.125)';">
+                        <div class="card-body p-3 d-flex align-items-center gap-3">
+                            <div class="bg-danger bg-opacity-10 text-danger rounded-3 d-flex align-items-center justify-content-center"
+                                style="width: 46px; height: 46px; flex-shrink: 0;">
+                                <i class="bi bi-alarm-fill fs-4"></i>
                             </div>
-                            <strong class="text-dark small text-truncate w-100" style="font-size: 0.75rem;">Budget Rules</strong>
+                            <div class="text-start text-truncate">
+                                <h6 class="mb-0 fw-bold text-dark" style="font-size: 0.85rem;">Budget Rules</h6>
+                                <small class="text-muted d-block text-truncate" style="font-size: 0.72rem;">Atur auto-budget & aturan otomatis</small>
+                            </div>
                         </div>
                     </a>
                 </div>
-                <div class="col-6 col-md-4 col-lg-3">
+
+                <!-- 4. TikTok Audience -->
+                <div class="col-12 col-md-6 col-lg-4">
                     <a href="{{ route('marketing.ads.audiences') }}"
-                        class="card text-decoration-none border shadow-sm h-100 bg-white"
-                        style="transition: transform 0.2s, box-shadow 0.2s;"
-                        onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 .5rem 1rem rgba(0,0,0,.1)';"
-                        onmouseout="this.style.transform='none'; this.style.boxShadow='none';">
-                        <div
-                            class="card-body p-2.5 text-center d-flex flex-column align-items-center justify-content-center">
-                            <div class="bg-info bg-opacity-10 text-info rounded-circle d-flex align-items-center justify-content-center mb-2"
-                                style="width: 40px; height: 40px;">
-                                <i class="bi bi-people-fill fs-5"></i>
+                        class="card text-decoration-none border shadow-sm h-100 bg-white rounded-3"
+                        style="transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;"
+                        onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 .5rem 1.25rem rgba(13,202,240,.1)'; this.style.borderColor='#0dcaf0';"
+                        onmouseout="this.style.transform='none'; this.style.boxShadow='none'; this.style.borderColor='rgba(0,0,0,.125)';">
+                        <div class="card-body p-3 d-flex align-items-center gap-3">
+                            <div class="bg-info bg-opacity-10 text-info rounded-3 d-flex align-items-center justify-content-center"
+                                style="width: 46px; height: 46px; flex-shrink: 0;">
+                                <i class="bi bi-people-fill fs-4"></i>
                             </div>
-                            <strong class="text-dark small text-truncate w-100" style="font-size: 0.75rem;">TikTok Audience</strong>
+                            <div class="text-start text-truncate">
+                                <h6 class="mb-0 fw-bold text-dark" style="font-size: 0.85rem;">TikTok Audience</h6>
+                                <small class="text-muted d-block text-truncate" style="font-size: 0.72rem;">Kelola audiens khusus iklan</small>
+                            </div>
                         </div>
                     </a>
                 </div>
-                <div class="col-6 col-md-4 col-lg-3">
+
+                <!-- 5. TikTok LIVE -->
+                <div class="col-12 col-md-6 col-lg-4">
                     <a href="{{ route('marketing.ads.live_sessions') }}"
-                        class="card text-decoration-none border shadow-sm h-100 bg-white"
-                        style="transition: transform 0.2s, box-shadow 0.2s;"
-                        onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 .5rem 1rem rgba(0,0,0,.1)';"
-                        onmouseout="this.style.transform='none'; this.style.boxShadow='none';">
-                        <div
-                            class="card-body p-2.5 text-center d-flex flex-column align-items-center justify-content-center">
-                            <div class="bg-warning bg-opacity-10 text-warning rounded-circle d-flex align-items-center justify-content-center mb-2"
-                                style="width: 40px; height: 40px;">
-                                <i class="bi bi-broadcast fs-5 text-warning-emphasis"></i>
+                        class="card text-decoration-none border shadow-sm h-100 bg-white rounded-3"
+                        style="transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;"
+                        onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 .5rem 1.25rem rgba(255,193,7,.15)'; this.style.borderColor='#ffc107';"
+                        onmouseout="this.style.transform='none'; this.style.boxShadow='none'; this.style.borderColor='rgba(0,0,0,.125)';">
+                        <div class="card-body p-3 d-flex align-items-center gap-3">
+                            <div class="bg-warning bg-opacity-10 text-warning rounded-3 d-flex align-items-center justify-content-center"
+                                style="width: 46px; height: 46px; flex-shrink: 0;">
+                                <i class="bi bi-broadcast fs-4 text-warning-emphasis"></i>
                             </div>
-                            <strong class="text-dark small text-truncate w-100" style="font-size: 0.75rem;">TikTok LIVE</strong>
+                            <div class="text-start text-truncate">
+                                <h6 class="mb-0 fw-bold text-dark" style="font-size: 0.85rem;">TikTok LIVE</h6>
+                                <small class="text-muted d-block text-truncate" style="font-size: 0.72rem;">Pantau sesi live streaming</small>
+                            </div>
                         </div>
                     </a>
                 </div>
-                <div class="col-6 col-md-4 col-lg-3">
+
+                <!-- 6. Affiliate Tracker -->
+                <div class="col-12 col-md-6 col-lg-4">
                     <a href="{{ route('marketing.ads.affiliates') }}"
-                        class="card text-decoration-none border shadow-sm h-100 bg-white"
-                        style="transition: transform 0.2s, box-shadow 0.2s;"
-                        onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 .5rem 1rem rgba(0,0,0,.1)';"
-                        onmouseout="this.style.transform='none'; this.style.boxShadow='none';">
-                        <div
-                            class="card-body p-2.5 text-center d-flex flex-column align-items-center justify-content-center">
-                            <div class="bg-secondary bg-opacity-10 text-secondary rounded-circle d-flex align-items-center justify-content-center mb-2"
-                                style="width: 40px; height: 40px;">
-                                <i class="bi bi-award-fill fs-5 text-secondary-emphasis"></i>
+                        class="card text-decoration-none border shadow-sm h-100 bg-white rounded-3"
+                        style="transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;"
+                        onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 .5rem 1.25rem rgba(108,117,125,.1)'; this.style.borderColor='#6c757d';"
+                        onmouseout="this.style.transform='none'; this.style.boxShadow='none'; this.style.borderColor='rgba(0,0,0,.125)';">
+                        <div class="card-body p-3 d-flex align-items-center gap-3">
+                            <div class="bg-secondary bg-opacity-10 text-secondary rounded-3 d-flex align-items-center justify-content-center"
+                                style="width: 46px; height: 46px; flex-shrink: 0;">
+                                <i class="bi bi-award-fill fs-4 text-secondary-emphasis"></i>
                             </div>
-                            <strong class="text-dark small text-truncate w-100" style="font-size: 0.75rem;">Affiliate Tracker</strong>
+                            <div class="text-start text-truncate">
+                                <h6 class="mb-0 fw-bold text-dark" style="font-size: 0.85rem;">Affiliate Tracker</h6>
+                                <small class="text-muted" style="font-size: 0.72rem;">Lacak performa affiliate</small>
+                            </div>
                         </div>
                     </a>
                 </div>
-                <div class="col-6 col-md-4 col-lg-3">
+
+                <!-- 7. RFM Segment -->
+                <div class="col-12 col-md-6 col-lg-4">
                     <a href="{{ route('marketing.ads.rfm') }}"
-                        class="card text-decoration-none border shadow-sm h-100 bg-white"
-                        style="transition: transform 0.2s, box-shadow 0.2s;"
-                        onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 .5rem 1rem rgba(0,0,0,.1)';"
-                        onmouseout="this.style.transform='none'; this.style.boxShadow='none';">
-                        <div
-                            class="card-body p-2.5 text-center d-flex flex-column align-items-center justify-content-center">
-                            <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center mb-2"
-                                style="width: 40px; height: 40px; background-color: rgba(111, 66, 193, 0.1) !important; color: rgb(111, 66, 193) !important;">
-                                <i class="bi bi-funnel-fill fs-5"></i>
+                        class="card text-decoration-none border shadow-sm h-100 bg-white rounded-3"
+                        style="transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;"
+                        onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 .5rem 1.25rem rgba(111,66,193,.1)'; this.style.borderColor='#6f42c1';"
+                        onmouseout="this.style.transform='none'; this.style.boxShadow='none'; this.style.borderColor='rgba(0,0,0,.125)';">
+                        <div class="card-body p-3 d-flex align-items-center gap-3">
+                            <div class="rounded-3 d-flex align-items-center justify-content-center"
+                                style="width: 46px; height: 46px; flex-shrink: 0; background-color: rgba(111, 66, 193, 0.1); color: rgb(111, 66, 193);">
+                                <i class="bi bi-funnel-fill fs-4"></i>
                             </div>
-                            <strong class="text-dark small text-truncate w-100" style="font-size: 0.75rem;">RFM Segment</strong>
+                            <div class="text-start text-truncate">
+                                <h6 class="mb-0 fw-bold text-dark" style="font-size: 0.85rem;">RFM Segment</h6>
+                                <small class="text-muted d-block text-truncate" style="font-size: 0.72rem;">Segmentasi pembeli loyal vs pasif</small>
+                            </div>
                         </div>
                     </a>
                 </div>
-                <div class="col-6 col-md-4 col-lg-3">
+
+                <!-- 8. A/B Calculator -->
+                <div class="col-12 col-md-6 col-lg-4">
                     <a href="{{ route('marketing.ads.ab_test') }}"
-                        class="card text-decoration-none border shadow-sm h-100 bg-white"
-                        style="transition: transform 0.2s, box-shadow 0.2s;"
-                        onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 .5rem 1rem rgba(0,0,0,.1)';"
-                        onmouseout="this.style.transform='none'; this.style.boxShadow='none';">
-                        <div
-                            class="card-body p-2.5 text-center d-flex flex-column align-items-center justify-content-center">
-                            <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center mb-2"
-                                style="width: 40px; height: 40px; background-color: rgba(23, 162, 184, 0.1) !important; color: rgb(23, 162, 184) !important;">
-                                <i class="bi bi-calculator fs-5"></i>
+                        class="card text-decoration-none border shadow-sm h-100 bg-white rounded-3"
+                        style="transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;"
+                        onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 .5rem 1.25rem rgba(32,201,151,.1)'; this.style.borderColor='#20c997';"
+                        onmouseout="this.style.transform='none'; this.style.boxShadow='none'; this.style.borderColor='rgba(0,0,0,.125)';">
+                        <div class="card-body p-3 d-flex align-items-center gap-3">
+                            <div class="rounded-3 d-flex align-items-center justify-content-center"
+                                style="width: 46px; height: 46px; flex-shrink: 0; background-color: rgba(32, 201, 151, 0.1); color: rgb(32, 201, 151);">
+                                <i class="bi bi-calculator fs-4"></i>
                             </div>
-                            <strong class="text-dark small text-truncate w-100" style="font-size: 0.75rem;">A/B Calculator</strong>
+                            <div class="text-start text-truncate">
+                                <h6 class="mb-0 fw-bold text-dark" style="font-size: 0.85rem;">A/B Calculator</h6>
+                                <small class="text-muted d-block text-truncate" style="font-size: 0.72rem;">Uji signifikansi hasil iklan A/B</small>
+                            </div>
                         </div>
                     </a>
                 </div>
-                <div class="col-6 col-md-4 col-lg-3">
+
+                <!-- 9. Kalkulator ROAS & BEP -->
+                <div class="col-12 col-md-6 col-lg-4">
                     <a href="{{ route('marketing.ads.roas_calculator') }}"
-                        class="card text-decoration-none border shadow-sm h-100 bg-white"
-                        style="transition: transform 0.2s, box-shadow 0.2s;"
-                        onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 .5rem 1rem rgba(0,0,0,.1)';"
-                        onmouseout="this.style.transform='none'; this.style.boxShadow='none';">
-                        <div
-                            class="card-body p-2.5 text-center d-flex flex-column align-items-center justify-content-center">
-                            <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center mb-2"
-                                style="width: 40px; height: 40px; background-color: rgba(253, 126, 20, 0.1) !important; color: rgb(253, 126, 20) !important;">
-                                <i class="bi bi-percent fs-5"></i>
+                        class="card text-decoration-none border shadow-sm h-100 bg-white rounded-3"
+                        style="transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;"
+                        onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 .5rem 1.25rem rgba(253,126,20,.1)'; this.style.borderColor='#fd7e14';"
+                        onmouseout="this.style.transform='none'; this.style.boxShadow='none'; this.style.borderColor='rgba(0,0,0,.125)';">
+                        <div class="card-body p-3 d-flex align-items-center gap-3">
+                            <div class="rounded-3 d-flex align-items-center justify-content-center"
+                                style="width: 46px; height: 46px; flex-shrink: 0; background-color: rgba(253, 126, 20, 0.1); color: rgb(253, 126, 20);">
+                                <i class="bi bi-percent fs-4"></i>
                             </div>
-                            <strong class="text-dark small text-truncate w-100" style="font-size: 0.75rem;">Kalkulator ROAS & BEP</strong>
+                            <div class="text-start text-truncate">
+                                <h6 class="mb-0 fw-bold text-dark" style="font-size: 0.85rem;">Kalkulator ROAS & BEP</h6>
+                                <small class="text-muted d-block text-truncate" style="font-size: 0.72rem;">Simulasi target margin & ROAS BEP</small>
+                            </div>
                         </div>
                     </a>
                 </div>
