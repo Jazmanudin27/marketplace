@@ -508,6 +508,9 @@ Route::middleware('auth')->group(function () {
 
         // A/B Testing Calculator
         Route::get('/marketing/ads/ab-test', [AdsController::class, 'abTest'])->name('marketing.ads.ab_test');
+
+        // ROAS Calculator
+        Route::get('/marketing/ads/roas-calculator', [AdsController::class, 'roasCalculator'])->name('marketing.ads.roas_calculator');
     });
 
 

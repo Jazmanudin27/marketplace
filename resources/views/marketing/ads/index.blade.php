@@ -24,7 +24,7 @@
 
             <!-- Navigation Shortcut Cards -->
             <div class="row g-2 mb-3">
-                <div class="col-6 col-md-4 col-lg-2">
+                <div class="col-6 col-md-4 col-lg-3">
                     <a href="{{ route('marketing.ads.campaigns') }}"
                         class="card text-decoration-none border shadow-sm h-100 bg-white"
                         style="transition: transform 0.2s, box-shadow 0.2s;"
@@ -36,12 +36,11 @@
                                 style="width: 40px; height: 40px;">
                                 <i class="bi bi-gear-fill fs-5"></i>
                             </div>
-                            <strong class="text-dark small text-truncate w-100" style="font-size: 0.75rem;">Atur
-                                Target</strong>
+                            <strong class="text-dark small text-truncate w-100" style="font-size: 0.75rem;">Atur Target</strong>
                         </div>
                     </a>
                 </div>
-                <div class="col-6 col-md-4 col-lg-2">
+                <div class="col-6 col-md-4 col-lg-3">
                     <a href="{{ route('marketing.ads.logs') }}"
                         class="card text-decoration-none border shadow-sm h-100 bg-white"
                         style="transition: transform 0.2s, box-shadow 0.2s;"
@@ -53,12 +52,11 @@
                                 style="width: 40px; height: 40px;">
                                 <i class="bi bi-plus-circle-fill fs-5"></i>
                             </div>
-                            <strong class="text-dark small text-truncate w-100" style="font-size: 0.75rem;">Biaya
-                                Harian</strong>
+                            <strong class="text-dark small text-truncate w-100" style="font-size: 0.75rem;">Biaya Harian</strong>
                         </div>
                     </a>
                 </div>
-                <div class="col-6 col-md-4 col-lg-2">
+                <div class="col-6 col-md-4 col-lg-3">
                     <a href="{{ route('marketing.ads.budget_rules') }}"
                         class="card text-decoration-none border shadow-sm h-100 bg-white"
                         style="transition: transform 0.2s, box-shadow 0.2s;"
@@ -70,12 +68,11 @@
                                 style="width: 40px; height: 40px;">
                                 <i class="bi bi-alarm-fill fs-5"></i>
                             </div>
-                            <strong class="text-dark small text-truncate w-100" style="font-size: 0.75rem;">Budget
-                                Rules</strong>
+                            <strong class="text-dark small text-truncate w-100" style="font-size: 0.75rem;">Budget Rules</strong>
                         </div>
                     </a>
                 </div>
-                <div class="col-6 col-md-4 col-lg-2">
+                <div class="col-6 col-md-4 col-lg-3">
                     <a href="{{ route('marketing.ads.audiences') }}"
                         class="card text-decoration-none border shadow-sm h-100 bg-white"
                         style="transition: transform 0.2s, box-shadow 0.2s;"
@@ -87,12 +84,11 @@
                                 style="width: 40px; height: 40px;">
                                 <i class="bi bi-people-fill fs-5"></i>
                             </div>
-                            <strong class="text-dark small text-truncate w-100" style="font-size: 0.75rem;">TikTok
-                                Audience</strong>
+                            <strong class="text-dark small text-truncate w-100" style="font-size: 0.75rem;">TikTok Audience</strong>
                         </div>
                     </a>
                 </div>
-                <div class="col-6 col-md-4 col-lg-2">
+                <div class="col-6 col-md-4 col-lg-3">
                     <a href="{{ route('marketing.ads.live_sessions') }}"
                         class="card text-decoration-none border shadow-sm h-100 bg-white"
                         style="transition: transform 0.2s, box-shadow 0.2s;"
@@ -104,12 +100,11 @@
                                 style="width: 40px; height: 40px;">
                                 <i class="bi bi-broadcast fs-5 text-warning-emphasis"></i>
                             </div>
-                            <strong class="text-dark small text-truncate w-100" style="font-size: 0.75rem;">TikTok
-                                LIVE</strong>
+                            <strong class="text-dark small text-truncate w-100" style="font-size: 0.75rem;">TikTok LIVE</strong>
                         </div>
                     </a>
                 </div>
-                <div class="col-6 col-md-4 col-lg-2">
+                <div class="col-6 col-md-4 col-lg-3">
                     <a href="{{ route('marketing.ads.affiliates') }}"
                         class="card text-decoration-none border shadow-sm h-100 bg-white"
                         style="transition: transform 0.2s, box-shadow 0.2s;"
@@ -121,12 +116,11 @@
                                 style="width: 40px; height: 40px;">
                                 <i class="bi bi-award-fill fs-5 text-secondary-emphasis"></i>
                             </div>
-                            <strong class="text-dark small text-truncate w-100" style="font-size: 0.75rem;">Affiliate
-                                Tracker</strong>
+                            <strong class="text-dark small text-truncate w-100" style="font-size: 0.75rem;">Affiliate Tracker</strong>
                         </div>
                     </a>
                 </div>
-                <div class="col-6 col-md-4 col-lg-2">
+                <div class="col-6 col-md-4 col-lg-3">
                     <a href="{{ route('marketing.ads.rfm') }}"
                         class="card text-decoration-none border shadow-sm h-100 bg-white"
                         style="transition: transform 0.2s, box-shadow 0.2s;"
@@ -142,7 +136,7 @@
                         </div>
                     </a>
                 </div>
-                <div class="col-6 col-md-4 col-lg-2">
+                <div class="col-6 col-md-4 col-lg-3">
                     <a href="{{ route('marketing.ads.ab_test') }}"
                         class="card text-decoration-none border shadow-sm h-100 bg-white"
                         style="transition: transform 0.2s, box-shadow 0.2s;"
@@ -155,6 +149,22 @@
                                 <i class="bi bi-calculator fs-5"></i>
                             </div>
                             <strong class="text-dark small text-truncate w-100" style="font-size: 0.75rem;">A/B Calculator</strong>
+                        </div>
+                    </a>
+                </div>
+                <div class="col-6 col-md-4 col-lg-3">
+                    <a href="{{ route('marketing.ads.roas_calculator') }}"
+                        class="card text-decoration-none border shadow-sm h-100 bg-white"
+                        style="transition: transform 0.2s, box-shadow 0.2s;"
+                        onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 .5rem 1rem rgba(0,0,0,.1)';"
+                        onmouseout="this.style.transform='none'; this.style.boxShadow='none';">
+                        <div
+                            class="card-body p-2.5 text-center d-flex flex-column align-items-center justify-content-center">
+                            <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center mb-2"
+                                style="width: 40px; height: 40px; background-color: rgba(253, 126, 20, 0.1) !important; color: rgb(253, 126, 20) !important;">
+                                <i class="bi bi-percent fs-5"></i>
+                            </div>
+                            <strong class="text-dark small text-truncate w-100" style="font-size: 0.75rem;">Kalkulator ROAS & BEP</strong>
                         </div>
                     </a>
                 </div>

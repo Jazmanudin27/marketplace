@@ -773,4 +773,9 @@ class AdsController extends Controller
     {
         return view('marketing.ads.ab_test');
     }
+
+    public function roasCalculator()
+    {
+        return view('marketing.ads.roas_calculator');
+    }
 }
