@@ -11,51 +11,80 @@
 
 @section('content')
 <div class="row g-3">
-    <!-- Summary Header Cards -->
+    <!-- Summary Header Cards (Stripe Style Premium Layout) -->
     <div class="col-12">
-        <div class="row g-2">
+        <div class="row g-3">
+            <!-- Champions -->
             <div class="col-md-2.4 col-lg col-6">
-                <div class="card border-0 shadow-sm bg-primary bg-opacity-10 text-primary h-100">
-                    <div class="card-body p-3 text-center">
-                        <i class="bi bi-trophy-fill fs-3 mb-2 d-block"></i>
-                        <h6 class="mb-1 fw-bold">Champions</h6>
-                        <h4 class="mb-0 fw-extrabold">{{ count($segments['Champions'] ?? []) }}</h4>
+                <div class="card border-0 shadow-sm bg-white h-100" style="border-left: 4px solid #0d6efd !important; transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform='none'">
+                    <div class="card-body p-3 d-flex align-items-center justify-content-between">
+                        <div>
+                            <span class="text-uppercase fw-bold text-secondary" style="font-size: 0.68rem; letter-spacing: 0.5px;">Champions</span>
+                            <h3 class="mb-0 fw-extrabold text-dark mt-1">{{ count($segments['Champions'] ?? []) }}</h3>
+                        </div>
+                        <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 42px; height: 42px; flex-shrink: 0;">
+                            <i class="bi bi-trophy-fill fs-5"></i>
+                        </div>
                     </div>
                 </div>
             </div>
+
+            <!-- Loyal -->
             <div class="col-md-2.4 col-lg col-6">
-                <div class="card border-0 shadow-sm bg-success bg-opacity-10 text-success h-100">
-                    <div class="card-body p-3 text-center">
-                        <i class="bi bi-heart-fill fs-3 mb-2 d-block"></i>
-                        <h6 class="mb-1 fw-bold">Loyal Customers</h6>
-                        <h4 class="mb-0 fw-extrabold">{{ count($segments['Loyal'] ?? []) }}</h4>
+                <div class="card border-0 shadow-sm bg-white h-100" style="border-left: 4px solid #198754 !important; transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform='none'">
+                    <div class="card-body p-3 d-flex align-items-center justify-content-between">
+                        <div>
+                            <span class="text-uppercase fw-bold text-secondary" style="font-size: 0.68rem; letter-spacing: 0.5px;">Loyal</span>
+                            <h3 class="mb-0 fw-extrabold text-dark mt-1">{{ count($segments['Loyal'] ?? []) }}</h3>
+                        </div>
+                        <div class="bg-success bg-opacity-10 text-success rounded-circle d-flex align-items-center justify-content-center" style="width: 42px; height: 42px; flex-shrink: 0;">
+                            <i class="bi bi-heart-fill fs-5"></i>
+                        </div>
                     </div>
                 </div>
             </div>
+
+            <!-- At Risk -->
             <div class="col-md-2.4 col-lg col-6">
-                <div class="card border-0 shadow-sm bg-warning bg-opacity-10 text-warning-emphasis h-100">
-                    <div class="card-body p-3 text-center">
-                        <i class="bi bi-exclamation-triangle-fill fs-3 mb-2 d-block"></i>
-                        <h6 class="mb-1 fw-bold">At Risk</h6>
-                        <h4 class="mb-0 fw-extrabold">{{ count($segments['At Risk'] ?? []) }}</h4>
+                <div class="card border-0 shadow-sm bg-white h-100" style="border-left: 4px solid #ffc107 !important; transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform='none'">
+                    <div class="card-body p-3 d-flex align-items-center justify-content-between">
+                        <div>
+                            <span class="text-uppercase fw-bold text-secondary" style="font-size: 0.68rem; letter-spacing: 0.5px;">At Risk</span>
+                            <h3 class="mb-0 fw-extrabold text-dark mt-1">{{ count($segments['At Risk'] ?? []) }}</h3>
+                        </div>
+                        <div class="bg-warning bg-opacity-10 text-warning rounded-circle d-flex align-items-center justify-content-center" style="width: 42px; height: 42px; flex-shrink: 0;">
+                            <i class="bi bi-exclamation-triangle-fill fs-5 text-warning-emphasis"></i>
+                        </div>
                     </div>
                 </div>
             </div>
+
+            <!-- Hibernating -->
             <div class="col-md-2.4 col-lg col-6">
-                <div class="card border-0 shadow-sm bg-danger bg-opacity-10 text-danger h-100">
-                    <div class="card-body p-3 text-center">
-                        <i class="bi bi-moon-stars-fill fs-3 mb-2 d-block"></i>
-                        <h6 class="mb-1 fw-bold">Hibernating</h6>
-                        <h4 class="mb-0 fw-extrabold">{{ count($segments['Hibernating'] ?? []) }}</h4>
+                <div class="card border-0 shadow-sm bg-white h-100" style="border-left: 4px solid #dc3545 !important; transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform='none'">
+                    <div class="card-body p-3 d-flex align-items-center justify-content-between">
+                        <div>
+                            <span class="text-uppercase fw-bold text-secondary" style="font-size: 0.68rem; letter-spacing: 0.5px;">Hibernating</span>
+                            <h3 class="mb-0 fw-extrabold text-dark mt-1">{{ count($segments['Hibernating'] ?? []) }}</h3>
+                        </div>
+                        <div class="bg-danger bg-opacity-10 text-danger rounded-circle d-flex align-items-center justify-content-center" style="width: 42px; height: 42px; flex-shrink: 0;">
+                            <i class="bi bi-moon-stars-fill fs-5"></i>
+                        </div>
                     </div>
                 </div>
             </div>
+
+            <!-- New Customers -->
             <div class="col-md-2.4 col-lg col-12">
-                <div class="card border-0 shadow-sm bg-secondary bg-opacity-10 text-secondary h-100">
-                    <div class="card-body p-3 text-center">
-                        <i class="bi bi-person-plus-fill fs-3 mb-2 d-block"></i>
-                        <h6 class="mb-1 fw-bold">New Customers</h6>
-                        <h4 class="mb-0 fw-extrabold">{{ count($segments['New Customers'] ?? []) }}</h4>
+                <div class="card border-0 shadow-sm bg-white h-100" style="border-left: 4px solid #6c757d !important; transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform='none'">
+                    <div class="card-body p-3 d-flex align-items-center justify-content-between">
+                        <div>
+                            <span class="text-uppercase fw-bold text-secondary" style="font-size: 0.68rem; letter-spacing: 0.5px;">New Customers</span>
+                            <h3 class="mb-0 fw-extrabold text-dark mt-1">{{ count($segments['New Customers'] ?? []) }}</h3>
+                        </div>
+                        <div class="bg-secondary bg-opacity-10 text-secondary rounded-circle d-flex align-items-center justify-content-center" style="width: 42px; height: 42px; flex-shrink: 0;">
+                            <i class="bi bi-person-plus-fill fs-5"></i>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -65,7 +94,7 @@
     <!-- Main Content Tab Layout -->
     <div class="col-12">
         <div class="card border shadow-sm rounded-4 bg-white">
-            <div class="card-header bg-light py-3 px-4 border-bottom d-flex align-items-center justify-content-between flex-wrap gap-2">
+            <div class="card-header bg-light py-3 px-4 border-bottom d-flex align-items-center justify-content-between flex-wrap gap-3">
                 <div class="d-flex align-items-center gap-2">
                     <span class="bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
                         <i class="bi bi-funnel-fill"></i>
@@ -75,6 +104,15 @@
                         <small class="text-muted" style="font-size: 0.72rem;">Kelompokkan customer loyal vs pasif dan targetkan langsung lewat iklan retargeting.</small>
                     </div>
                 </div>
+                
+                <!-- Search & Filters (Interactive Dynamic Filter) -->
+                <div class="d-flex align-items-center gap-2 flex-grow-1 flex-md-grow-0 justify-content-end">
+                    <div class="input-group input-group-sm" style="max-width: 250px;">
+                        <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+                        <input type="text" id="customerSearch" class="form-control border-start-0 ps-0 rounded-end-3" placeholder="Cari Nama / HP...">
+                    </div>
+                </div>
+
                 <!-- Navigation Tabs -->
                 <ul class="nav nav-pills card-header-pills" id="rfmTab" role="tablist">
                     <li class="nav-item" role="presentation">
@@ -167,12 +205,12 @@
                                             </thead>
                                             <tbody>
                                                 @forelse($tabCustomers as $cust)
-                                                    <tr>
+                                                    <tr class="customer-row">
                                                         <td>
-                                                            <div class="fw-semibold text-dark">{{ $cust['name'] }}</div>
+                                                            <div class="fw-semibold text-dark search-name">{{ $cust['name'] }}</div>
                                                         </td>
                                                         <td>
-                                                            <code>{{ substr($cust['phone'], 0, 5) }}****{{ substr($cust['phone'], -4) }}</code>
+                                                            <code class="search-phone">{{ substr($cust['phone'], 0, 5) }}****{{ substr($cust['phone'], -4) }}</code>
                                                         </td>
                                                         <td class="text-center">
                                                             <span class="badge bg-light text-dark rounded-pill border">
@@ -207,4 +245,43 @@
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const searchInput = document.getElementById('customerSearch');
+    
+    // Live Search Filter
+    searchInput.addEventListener('input', function() {
+        const query = this.value.toLowerCase().trim();
+        const activeTabPane = document.querySelector('.tab-pane.active');
+        if (!activeTabPane) return;
+        
+        const rows = activeTabPane.querySelectorAll('.customer-row');
+        
+        rows.forEach(row => {
+            const name = row.querySelector('.search-name').textContent.toLowerCase();
+            const phone = row.querySelector('.search-phone').textContent.toLowerCase();
+            
+            if (name.includes(query) || phone.includes(query)) {
+                row.style.setProperty('display', '', 'important');
+            } else {
+                row.style.setProperty('display', 'none', 'important');
+            }
+        });
+    });
+
+    // Clear search input when switching tabs
+    const tabButtons = document.querySelectorAll('button[data-bs-toggle="tab"]');
+    tabButtons.forEach(btn => {
+        btn.addEventListener('shown.bs.tab', function() {
+            searchInput.value = '';
+            const activeTabPane = document.querySelector('.tab-pane.active');
+            if (activeTabPane) {
+                const rows = activeTabPane.querySelectorAll('.customer-row');
+                rows.forEach(row => row.style.setProperty('display', '', 'important'));
+            }
+        });
+    });
+});
+</script>
 @endsection
