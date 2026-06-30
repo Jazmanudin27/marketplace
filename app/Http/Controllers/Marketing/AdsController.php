@@ -667,4 +667,63 @@ class AdsController extends Controller
         $session->delete();
         return redirect()->back()->with('success', 'Sesi LIVE berhasil dihapus.');
     }
+
+    public function rfm(\App\Services\RfmService $rfmService)
+    {
+        $tenantId = Auth::user()->tenant_id;
+        $segments = $rfmService->analyze($tenantId);
+
+        // Ambil akun iklan tiktok untuk opsi sinkronisasi
+        $adsAccounts = AdsAccount::where('tenant_id', $tenantId)
+            ->where('platform', 'tiktok')
+            ->where('is_active', true)
+            ->get();
+
+        return view('marketing.ads.rfm', compact('segments', 'adsAccounts'));
+    }
+
+    public function syncRfmSegment(Request $request, \App\Services\RfmService $rfmService, TiktokAudienceService $syncService)
+    {
+        $request->validate([
+            'segment_name' => 'required|string',
+            'ads_account_id' => 'required|exists:ads_accounts,id',
+        ]);
+
+        $tenantId = Auth::user()->tenant_id;
+        $segments = $rfmService->analyze($tenantId);
+        $segmentName = $request->segment_name;
+
+        if (!isset($segments[$segmentName])) {
+            return redirect()->back()->with('error', 'Segmen tidak ditemukan.');
+        }
+
+        $customers = $segments[$segmentName];
+        if ($customers->isEmpty()) {
+            return redirect()->back()->with('error', 'Tidak ada pelanggan dalam segmen ini untuk disinkronisasikan.');
+        }
+
+        // Ambil daftar nomor telepon
+        $phones = $customers->pluck('phone')->toArray();
+
+        // Cari atau buat TiktokAudience
+        $audience = TiktokAudience::firstOrCreate([
+            'tenant_id' => $tenantId,
+            'ads_account_id' => $request->ads_account_id,
+            'name' => 'RFM - ' . $segmentName . ' (' . now()->format('d M Y') . ')',
+        ], [
+            'type' => 'customer_list',
+            'status' => TiktokAudience::STATUS_PENDING,
+        ]);
+
+        try {
+            $success = $syncService->syncAudience($audience, $phones);
+            if ($success) {
+                return redirect()->route('marketing.ads.audiences')->with('success', "Segmen RFM {$segmentName} berhasil dikirim ke TikTok Custom Audience!");
+            } else {
+                return redirect()->back()->with('error', 'Gagal mengirim data ke TikTok: ' . ($audience->error_message ?? 'Unknown error'));
+            }
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Gagal sinkronisasi: ' . $e->getMessage());
+        }
+    }
 }

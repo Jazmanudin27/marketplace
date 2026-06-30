@@ -53,7 +53,7 @@ class TiktokAudienceService
     /**
      * Sync data pembeli ke TikTok Custom Audience
      */
-    public function syncAudience(TiktokAudience $audience): bool
+    public function syncAudience(TiktokAudience $audience, array $customPhones = null): bool
     {
         $account = $audience->adsAccount;
         if (!$account || empty($account->events_access_token) || empty($account->advertiser_id)) {
@@ -78,18 +78,41 @@ class TiktokAudienceService
             }
         }
 
-        // 2. Ambil data pembeli berdasarkan tipe audience
-        $query = Order::where('tenant_id', $audience->tenant_id)
-            ->whereNotNull('buyer_phone');
+        // 2. Format dan hash data pembeli
+        $userList = [];
 
-        if ($audience->type === TiktokAudience::TYPE_HIGH_VALUE) {
-            // Nilai total order >= Rp 500.000
-            $query->where('net_amount', '>=', 500000);
+        if (is_array($customPhones)) {
+            foreach ($customPhones as $phone) {
+                $normalized = $this->normalizePhone($phone);
+                if (!empty($normalized)) {
+                    $userList[] = [
+                        'id_type' => 'PHONE_SHA256',
+                        'id_value' => hash('sha256', $normalized),
+                    ];
+                }
+            }
+        } else {
+            $query = Order::where('tenant_id', $audience->tenant_id)
+                ->whereNotNull('buyer_phone');
+
+            if ($audience->type === TiktokAudience::TYPE_HIGH_VALUE) {
+                $query->where('net_amount', '>=', 500000);
+            }
+
+            $orders = $query->get(['buyer_phone', 'buyer_name']);
+
+            foreach ($orders as $order) {
+                $phone = $this->normalizePhone($order->buyer_phone);
+                if (!empty($phone)) {
+                    $userList[] = [
+                        'id_type' => 'PHONE_SHA256',
+                        'id_value' => hash('sha256', $phone),
+                    ];
+                }
+            }
         }
 
-        $orders = $query->get(['buyer_phone', 'buyer_name']);
-
-        if ($orders->isEmpty()) {
+        if (empty($userList)) {
             $audience->update([
                 'status' => TiktokAudience::STATUS_ACTIVE,
                 'last_synced_at' => now(),
@@ -97,18 +120,6 @@ class TiktokAudienceService
                 'error_message' => 'Tidak ada data pembeli untuk di-upload.',
             ]);
             return true;
-        }
-
-        // 3. Format dan hash data pembeli
-        $userList = [];
-        foreach ($orders as $order) {
-            $phone = $this->normalizePhone($order->buyer_phone);
-            if (!empty($phone)) {
-                $userList[] = [
-                    'id_type' => 'PHONE_SHA256',
-                    'id_value' => hash('sha256', $phone),
-                ];
-            }
         }
 
         // Buat data unique

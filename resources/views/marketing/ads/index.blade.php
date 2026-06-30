@@ -25,111 +25,156 @@
             <!-- Navigation Shortcut Cards -->
             <div class="row g-2 mb-3">
                 <div class="col-6 col-md-4 col-lg-2">
-                    <a href="{{ route('marketing.ads.campaigns') }}" class="card text-decoration-none border shadow-sm h-100 bg-white"
-                        style="transition: transform 0.2s, box-shadow 0.2s;" 
-                        onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 .5rem 1rem rgba(0,0,0,.1)';" 
+                    <a href="{{ route('marketing.ads.campaigns') }}"
+                        class="card text-decoration-none border shadow-sm h-100 bg-white"
+                        style="transition: transform 0.2s, box-shadow 0.2s;"
+                        onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 .5rem 1rem rgba(0,0,0,.1)';"
                         onmouseout="this.style.transform='none'; this.style.boxShadow='none';">
-                        <div class="card-body p-2.5 text-center d-flex flex-column align-items-center justify-content-center">
-                            <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center mb-2" style="width: 40px; height: 40px;">
+                        <div
+                            class="card-body p-2.5 text-center d-flex flex-column align-items-center justify-content-center">
+                            <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center mb-2"
+                                style="width: 40px; height: 40px;">
                                 <i class="bi bi-gear-fill fs-5"></i>
                             </div>
-                            <strong class="text-dark small text-truncate w-100" style="font-size: 0.75rem;">Atur Target</strong>
+                            <strong class="text-dark small text-truncate w-100" style="font-size: 0.75rem;">Atur
+                                Target</strong>
                         </div>
                     </a>
                 </div>
                 <div class="col-6 col-md-4 col-lg-2">
-                    <a href="{{ route('marketing.ads.logs') }}" class="card text-decoration-none border shadow-sm h-100 bg-white"
-                        style="transition: transform 0.2s, box-shadow 0.2s;" 
-                        onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 .5rem 1rem rgba(0,0,0,.1)';" 
+                    <a href="{{ route('marketing.ads.logs') }}"
+                        class="card text-decoration-none border shadow-sm h-100 bg-white"
+                        style="transition: transform 0.2s, box-shadow 0.2s;"
+                        onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 .5rem 1rem rgba(0,0,0,.1)';"
                         onmouseout="this.style.transform='none'; this.style.boxShadow='none';">
-                        <div class="card-body p-2.5 text-center d-flex flex-column align-items-center justify-content-center">
-                            <div class="bg-success bg-opacity-10 text-success rounded-circle d-flex align-items-center justify-content-center mb-2" style="width: 40px; height: 40px;">
+                        <div
+                            class="card-body p-2.5 text-center d-flex flex-column align-items-center justify-content-center">
+                            <div class="bg-success bg-opacity-10 text-success rounded-circle d-flex align-items-center justify-content-center mb-2"
+                                style="width: 40px; height: 40px;">
                                 <i class="bi bi-plus-circle-fill fs-5"></i>
                             </div>
-                            <strong class="text-dark small text-truncate w-100" style="font-size: 0.75rem;">Biaya Harian</strong>
+                            <strong class="text-dark small text-truncate w-100" style="font-size: 0.75rem;">Biaya
+                                Harian</strong>
                         </div>
                     </a>
                 </div>
                 <div class="col-6 col-md-4 col-lg-2">
-                    <a href="{{ route('marketing.ads.budget_rules') }}" class="card text-decoration-none border shadow-sm h-100 bg-white"
-                        style="transition: transform 0.2s, box-shadow 0.2s;" 
-                        onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 .5rem 1rem rgba(0,0,0,.1)';" 
+                    <a href="{{ route('marketing.ads.budget_rules') }}"
+                        class="card text-decoration-none border shadow-sm h-100 bg-white"
+                        style="transition: transform 0.2s, box-shadow 0.2s;"
+                        onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 .5rem 1rem rgba(0,0,0,.1)';"
                         onmouseout="this.style.transform='none'; this.style.boxShadow='none';">
-                        <div class="card-body p-2.5 text-center d-flex flex-column align-items-center justify-content-center">
-                            <div class="bg-danger bg-opacity-10 text-danger rounded-circle d-flex align-items-center justify-content-center mb-2" style="width: 40px; height: 40px;">
+                        <div
+                            class="card-body p-2.5 text-center d-flex flex-column align-items-center justify-content-center">
+                            <div class="bg-danger bg-opacity-10 text-danger rounded-circle d-flex align-items-center justify-content-center mb-2"
+                                style="width: 40px; height: 40px;">
                                 <i class="bi bi-alarm-fill fs-5"></i>
                             </div>
-                            <strong class="text-dark small text-truncate w-100" style="font-size: 0.75rem;">Budget Rules</strong>
+                            <strong class="text-dark small text-truncate w-100" style="font-size: 0.75rem;">Budget
+                                Rules</strong>
                         </div>
                     </a>
                 </div>
                 <div class="col-6 col-md-4 col-lg-2">
-                    <a href="{{ route('marketing.ads.audiences') }}" class="card text-decoration-none border shadow-sm h-100 bg-white"
-                        style="transition: transform 0.2s, box-shadow 0.2s;" 
-                        onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 .5rem 1rem rgba(0,0,0,.1)';" 
+                    <a href="{{ route('marketing.ads.audiences') }}"
+                        class="card text-decoration-none border shadow-sm h-100 bg-white"
+                        style="transition: transform 0.2s, box-shadow 0.2s;"
+                        onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 .5rem 1rem rgba(0,0,0,.1)';"
                         onmouseout="this.style.transform='none'; this.style.boxShadow='none';">
-                        <div class="card-body p-2.5 text-center d-flex flex-column align-items-center justify-content-center">
-                            <div class="bg-info bg-opacity-10 text-info rounded-circle d-flex align-items-center justify-content-center mb-2" style="width: 40px; height: 40px;">
+                        <div
+                            class="card-body p-2.5 text-center d-flex flex-column align-items-center justify-content-center">
+                            <div class="bg-info bg-opacity-10 text-info rounded-circle d-flex align-items-center justify-content-center mb-2"
+                                style="width: 40px; height: 40px;">
                                 <i class="bi bi-people-fill fs-5"></i>
                             </div>
-                            <strong class="text-dark small text-truncate w-100" style="font-size: 0.75rem;">TikTok Audience</strong>
+                            <strong class="text-dark small text-truncate w-100" style="font-size: 0.75rem;">TikTok
+                                Audience</strong>
                         </div>
                     </a>
                 </div>
                 <div class="col-6 col-md-4 col-lg-2">
-                    <a href="{{ route('marketing.ads.live_sessions') }}" class="card text-decoration-none border shadow-sm h-100 bg-white"
-                        style="transition: transform 0.2s, box-shadow 0.2s;" 
-                        onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 .5rem 1rem rgba(0,0,0,.1)';" 
+                    <a href="{{ route('marketing.ads.live_sessions') }}"
+                        class="card text-decoration-none border shadow-sm h-100 bg-white"
+                        style="transition: transform 0.2s, box-shadow 0.2s;"
+                        onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 .5rem 1rem rgba(0,0,0,.1)';"
                         onmouseout="this.style.transform='none'; this.style.boxShadow='none';">
-                        <div class="card-body p-2.5 text-center d-flex flex-column align-items-center justify-content-center">
-                            <div class="bg-warning bg-opacity-10 text-warning rounded-circle d-flex align-items-center justify-content-center mb-2" style="width: 40px; height: 40px;">
+                        <div
+                            class="card-body p-2.5 text-center d-flex flex-column align-items-center justify-content-center">
+                            <div class="bg-warning bg-opacity-10 text-warning rounded-circle d-flex align-items-center justify-content-center mb-2"
+                                style="width: 40px; height: 40px;">
                                 <i class="bi bi-broadcast fs-5 text-warning-emphasis"></i>
                             </div>
-                            <strong class="text-dark small text-truncate w-100" style="font-size: 0.75rem;">TikTok LIVE</strong>
+                            <strong class="text-dark small text-truncate w-100" style="font-size: 0.75rem;">TikTok
+                                LIVE</strong>
                         </div>
                     </a>
                 </div>
                 <div class="col-6 col-md-4 col-lg-2">
-                    <a href="{{ route('marketing.ads.affiliates') }}" class="card text-decoration-none border shadow-sm h-100 bg-white"
-                        style="transition: transform 0.2s, box-shadow 0.2s;" 
-                        onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 .5rem 1rem rgba(0,0,0,.1)';" 
+                    <a href="{{ route('marketing.ads.affiliates') }}"
+                        class="card text-decoration-none border shadow-sm h-100 bg-white"
+                        style="transition: transform 0.2s, box-shadow 0.2s;"
+                        onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 .5rem 1rem rgba(0,0,0,.1)';"
                         onmouseout="this.style.transform='none'; this.style.boxShadow='none';">
-                        <div class="card-body p-2.5 text-center d-flex flex-column align-items-center justify-content-center">
-                            <div class="bg-secondary bg-opacity-10 text-secondary rounded-circle d-flex align-items-center justify-content-center mb-2" style="width: 40px; height: 40px;">
+                        <div
+                            class="card-body p-2.5 text-center d-flex flex-column align-items-center justify-content-center">
+                            <div class="bg-secondary bg-opacity-10 text-secondary rounded-circle d-flex align-items-center justify-content-center mb-2"
+                                style="width: 40px; height: 40px;">
                                 <i class="bi bi-award-fill fs-5 text-secondary-emphasis"></i>
                             </div>
-                            <strong class="text-dark small text-truncate w-100" style="font-size: 0.75rem;">Affiliate Tracker</strong>
+                            <strong class="text-dark small text-truncate w-100" style="font-size: 0.75rem;">Affiliate
+                                Tracker</strong>
+                        </div>
+                    </a>
+                </div>
+                <div class="col-6 col-md-4 col-lg-2">
+                    <a href="{{ route('marketing.ads.rfm') }}"
+                        class="card text-decoration-none border shadow-sm h-100 bg-white"
+                        style="transition: transform 0.2s, box-shadow 0.2s;"
+                        onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 .5rem 1rem rgba(0,0,0,.1)';"
+                        onmouseout="this.style.transform='none'; this.style.boxShadow='none';">
+                        <div
+                            class="card-body p-2.5 text-center d-flex flex-column align-items-center justify-content-center">
+                            <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center mb-2"
+                                style="width: 40px; height: 40px; background-color: rgba(111, 66, 193, 0.1) !important; color: rgb(111, 66, 193) !important;">
+                                <i class="bi bi-funnel-fill fs-5"></i>
+                            </div>
+                            <strong class="text-dark small text-truncate w-100" style="font-size: 0.75rem;">RFM Segment</strong>
                         </div>
                     </a>
                 </div>
             </div>
 
             <!-- Unread Budget Alerts -->
-            @if(isset($unreadAlerts) && $unreadAlerts->count() > 0)
+            @if (isset($unreadAlerts) && $unreadAlerts->count() > 0)
                 <div class="alert alert-danger border shadow-sm rounded-3 mb-3 d-flex flex-column gap-2" role="alert">
                     <div class="d-flex align-items-center justify-content-between">
                         <strong class="d-flex align-items-center gap-2 text-danger-emphasis">
                             <i class="bi bi-exclamation-triangle-fill fs-5"></i>
                             Batas Anggaran & ROAS Terlampaui ({{ $unreadAlerts->count() }} Alert Baru)
                         </strong>
-                        <a href="{{ route('marketing.ads.budget_rules') }}" class="btn btn-sm btn-outline-danger rounded-pill fw-bold px-3" style="font-size:.72rem;">
+                        <a href="{{ route('marketing.ads.budget_rules') }}"
+                            class="btn btn-sm btn-outline-danger rounded-pill fw-bold px-3" style="font-size:.72rem;">
                             Kelola Budget Rules
                         </a>
                     </div>
                     <div class="row g-2 mt-1">
-                        @foreach($unreadAlerts as $alert)
+                        @foreach ($unreadAlerts as $alert)
                             <div class="col-12 col-md-6">
-                                <div class="bg-white bg-opacity-75 p-2 rounded-3 border border-danger border-opacity-25 d-flex align-items-start justify-content-between gap-2">
+                                <div
+                                    class="bg-white bg-opacity-75 p-2 rounded-3 border border-danger border-opacity-25 d-flex align-items-start justify-content-between gap-2">
                                     <div style="font-size: .8rem;">
-                                        <span class="badge bg-danger rounded-pill text-uppercase px-2 py-0.5 me-1" style="font-size: .65rem;">
+                                        <span class="badge bg-danger rounded-pill text-uppercase px-2 py-0.5 me-1"
+                                            style="font-size: .65rem;">
                                             {{ strtoupper($alert->campaign->adsAccount->platform) }}
                                         </span>
                                         <strong class="text-dark">{{ $alert->campaign->name }}</strong>
                                         <div class="text-muted mt-1">{{ $alert->message }}</div>
                                     </div>
-                                    <form action="{{ route('marketing.ads.budget_alerts.read', $alert->id) }}" method="POST" class="d-inline">
+                                    <form action="{{ route('marketing.ads.budget_alerts.read', $alert->id) }}"
+                                        method="POST" class="d-inline">
                                         @csrf
-                                        <button type="submit" class="btn btn-sm btn-outline-secondary border-0 p-1" title="Tandai Dibaca">
+                                        <button type="submit" class="btn btn-sm btn-outline-secondary border-0 p-1"
+                                            title="Tandai Dibaca">
                                             <i class="bi bi-check-lg"></i>
                                         </button>
                                     </form>
@@ -218,7 +263,8 @@
                                 <div>
                                     <small class="text-secondary text-uppercase fw-bold">Total Biaya Iklan</small>
                                     <div class="d-flex align-items-center mt-1">
-                                        <h5 class="fw-bold mb-0 text-dark">Rp {{ number_format($totalSpend, 0, ',', '.') }}
+                                        <h5 class="fw-bold mb-0 text-dark">Rp
+                                            {{ number_format($totalSpend, 0, ',', '.') }}
                                         </h5>
                                     </div>
                                 </div>
@@ -468,21 +514,24 @@
                 <div class="card-body p-3">
                     <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
                         <div class="d-flex align-items-center gap-2">
-                            <span class="bg-primary bg-opacity-10 text-primary rounded-circle d-inline-flex align-items-center justify-content-center"
+                            <span
+                                class="bg-primary bg-opacity-10 text-primary rounded-circle d-inline-flex align-items-center justify-content-center"
                                 style="width:36px;height:36px;flex-shrink:0;">
                                 <i class="bi bi-rss-fill"></i>
                             </span>
                             <div>
                                 <h6 class="mb-0 fw-bold text-dark">TikTok & Meta Ads Catalog Feed (XML)</h6>
                                 <small class="text-muted" style="font-size:0.75rem;">
-                                    Copy URL di bawah dan tempelkan di TikTok Shop Catalog Manager atau Facebook Commerce Manager.
+                                    Copy URL di bawah dan tempelkan di TikTok Shop Catalog Manager atau Facebook Commerce
+                                    Manager.
                                 </small>
                             </div>
                         </div>
                         <div class="input-group input-group-sm w-auto flex-grow-1" style="max-width: 480px;">
-                            <input type="text" class="form-control bg-light rounded-start-3" id="catalogFeedUrl" 
+                            <input type="text" class="form-control bg-light rounded-start-3" id="catalogFeedUrl"
                                 value="{{ route('marketing.ads.catalog_feed', Auth::user()->tenant_id) }}" readonly>
-                            <button class="btn btn-primary rounded-end-3" type="button" onclick="navigator.clipboard.writeText(document.getElementById('catalogFeedUrl').value); alert('Link berhasil disalin ke clipboard!');">
+                            <button class="btn btn-primary rounded-end-3" type="button"
+                                onclick="navigator.clipboard.writeText(document.getElementById('catalogFeedUrl').value); alert('Link berhasil disalin ke clipboard!');">
                                 <i class="bi bi-clipboard"></i> Copy Link
                             </button>
                         </div>
