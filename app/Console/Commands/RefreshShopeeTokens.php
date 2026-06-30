@@ -34,7 +34,7 @@ class RefreshShopeeTokens extends Command
         $stores = Store::whereHas('channel', function ($query) {
             $query->where('code', 'shopee');
         })
-        ->where('status', 'connected')
+        ->where('status', '!=', 'disconnected')
         ->whereNotNull('refresh_token')
         ->where('token_expires_at', '<=', now()->addMinutes(30))
         ->get();

@@ -52,6 +52,12 @@ class PublishProductToMarketplace implements ShouldQueue
                 throw new \RuntimeException('Product or Store not found.');
             }
 
+            if ($store->status === 'disconnected') {
+                throw new \RuntimeException("Toko '{$store->store_name}' sedang dinonaktifkan (disconnected).");
+            }
+
+            $accessToken = $store->getValidAccessToken();
+
             // Check if already mapped
             $existingMapping = MarketplaceProduct::where('store_id', $store->id)
                 ->where(function($q) use ($product) {
@@ -93,7 +99,7 @@ class PublishProductToMarketplace implements ShouldQueue
 
             if ($store->channel->code === 'shopee') {
                 // 1. Get enabled shipping options
-                $channels = $shopeeService->getChannelList($store->access_token, (int)$store->marketplace_store_id);
+                $channels = $shopeeService->getChannelList($accessToken, (int)$store->marketplace_store_id);
                 $logisticInfo = [];
                 foreach ($channels as $chan) {
                     if (!empty($chan['enabled'])) {
@@ -116,7 +122,7 @@ class PublishProductToMarketplace implements ShouldQueue
                     if ($localImgPath) {
                         // Shopee: disarankan minimal 500x500
                         $localImgPath = $this->ensureMinImageSize($localImgPath, 500);
-                        $imgRes = $shopeeService->uploadImage($store->access_token, (int)$store->marketplace_store_id, $localImgPath);
+                        $imgRes = $shopeeService->uploadImage($accessToken, (int)$store->marketplace_store_id, $localImgPath);
                         Log::info("Shopee uploadImage response: " . json_encode($imgRes));
                         $imageId = $imgRes['image_info']['image_id'] ?? $imgRes['image_id'] ?? null;
                         @unlink($localImgPath);
@@ -167,7 +173,7 @@ class PublishProductToMarketplace implements ShouldQueue
                 // Auto-fill mandatory attributes
                 $attributes = [];
                 try {
-                    $attributes = $shopeeService->getCategoryAttributes($store->access_token, (int)$store->marketplace_store_id, (int)$catId);
+                    $attributes = $shopeeService->getCategoryAttributes($accessToken, (int)$store->marketplace_store_id, (int)$catId);
                 } catch (\Exception $e) {
                     Log::warning('Failed to get Shopee category attributes in Job: ' . $e->getMessage());
                 }
@@ -254,7 +260,7 @@ class PublishProductToMarketplace implements ShouldQueue
                     $itemData['attribute_list'] = $attributeList;
                 }
 
-                $res = $shopeeService->addItem($store->access_token, (int)$store->marketplace_store_id, $itemData);
+                $res = $shopeeService->addItem($accessToken, (int)$store->marketplace_store_id, $itemData);
                 $marketplaceProductId = $res['item_id'] ?? null;
 
                 if (!$marketplaceProductId) {
@@ -283,7 +289,7 @@ class PublishProductToMarketplace implements ShouldQueue
 
             } elseif ($store->channel->code === 'tiktok') {
                 // 1. Get Warehouses
-                $warehousesData = $tiktokService->getWarehouses($store->access_token, $store->shop_cipher);
+                $warehousesData = $tiktokService->getWarehouses($accessToken, $store->shop_cipher);
                 $warehouses = $warehousesData['warehouses'] ?? [];
                 $warehouseId = null;
                 if (!empty($warehouses)) {
@@ -318,7 +324,7 @@ class PublishProductToMarketplace implements ShouldQueue
                     if ($localImgPath) {
                         // TikTok: wajib minimal 300x300
                         $localImgPath = $this->ensureMinImageSize($localImgPath, 300);
-                        $imgRes = $tiktokService->uploadImage($store->access_token, $store->shop_cipher, $localImgPath);
+                        $imgRes = $tiktokService->uploadImage($accessToken, $store->shop_cipher, $localImgPath);
                         $imgUri = $imgRes['uri'] ?? null;
                         if ($imgUri) {
                             $mainImages[] = ['uri' => $imgUri];
@@ -330,7 +336,7 @@ class PublishProductToMarketplace implements ShouldQueue
                 // 3. Prepare product attributes
                 $productAttributes = [];
                 try {
-                    $rawAttributes = $tiktokService->getCategoryAttributes($store->access_token, $store->shop_cipher, (string)$catId);
+                    $rawAttributes = $tiktokService->getCategoryAttributes($accessToken, $store->shop_cipher, (string)$catId);
                     foreach ($rawAttributes as $attr) {
                         if (!empty($attr['is_requried'])) {
                             $attrId = (string) $attr['id'];
@@ -399,7 +405,7 @@ class PublishProductToMarketplace implements ShouldQueue
                     ]
                 ];
 
-                $res = $tiktokService->addProduct($store->access_token, $store->shop_cipher, $productData);
+                $res = $tiktokService->addProduct($accessToken, $store->shop_cipher, $productData);
                 $marketplaceProductId = $res['product_id'] ?? null;
                 $marketplaceVariantId = $res['skus'][0]['id'] ?? null;
 

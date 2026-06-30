@@ -32,7 +32,7 @@ class PullProductsFromLazada implements ShouldQueue
             return;
         }
 
-        if ($store->status !== 'connected' || empty($store->access_token)) {
+        if ($store->status === 'disconnected' || (empty($store->access_token) && empty($store->refresh_token))) {
             Log::warning("[Lazada] Toko {$store->store_name} tidak terhubung.");
             return;
         }

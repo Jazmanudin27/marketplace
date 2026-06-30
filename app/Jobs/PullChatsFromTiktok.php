@@ -28,7 +28,7 @@ class PullChatsFromTiktok implements ShouldQueue
     {
         $query = Store::with('channel')
             ->whereHas('channel', fn($q) => $q->where('code', 'tiktok'))
-            ->where('status', 'connected')
+            ->where('status', '!=', 'disconnected')
             ->whereNotNull('access_token');
 
         if ($this->storeId) {
@@ -54,7 +54,7 @@ class PullChatsFromTiktok implements ShouldQueue
 
     private function pullForStore(TiktokService $tiktok, Store $store): void
     {
-        $accessToken = $store->access_token;
+        $accessToken = $store->getValidAccessToken();
         $shopCipher = $store->shop_cipher ?? '';
 
         if (!$accessToken || !$shopCipher) {

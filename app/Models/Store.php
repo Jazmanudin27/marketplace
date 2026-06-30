@@ -61,7 +61,7 @@ class Store extends Model
             $isExpired = $force ||
                          !$this->access_token ||
                          !$this->token_expires_at ||
-                         $this->token_expires_at->subMinutes(5)->isPast();
+                         $this->token_expires_at->copy()->subMinutes(5)->isPast();
 
             if ($isExpired && !empty($this->refresh_token)) {
                 try {
@@ -90,7 +90,7 @@ class Store extends Model
             $isExpired = $force ||
                          !$this->access_token ||
                          !$this->token_expires_at ||
-                         $this->token_expires_at->subMinutes(5)->isPast();
+                         $this->token_expires_at->copy()->subMinutes(5)->isPast();
 
             if ($isExpired && !empty($this->refresh_token)) {
                 try {
@@ -118,7 +118,7 @@ class Store extends Model
             $isExpired = $force ||
                          !$this->access_token ||
                          !$this->token_expires_at ||
-                         $this->token_expires_at->subMinutes(5)->isPast();
+                         $this->token_expires_at->copy()->subMinutes(5)->isPast();
 
             if ($isExpired && !empty($this->refresh_token)) {
                 try {

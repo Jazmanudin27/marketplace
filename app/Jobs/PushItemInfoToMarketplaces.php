@@ -56,13 +56,15 @@ class PushItemInfoToMarketplaces implements ShouldQueue
             try {
                 $store = $mpProduct->store;
 
-                if (!$store || $store->status !== 'connected') {
+                if (!$store || $store->status === 'disconnected') {
                     continue;
                 }
 
+                $accessToken = $store->getValidAccessToken();
+
                 if ($store->channel->code === 'shopee') {
                     $shopeeService->updateItemBaseInfo(
-                        $store->access_token,
+                        $accessToken,
                         (int) $store->marketplace_store_id,
                         (int) $mpProduct->marketplace_product_id,
                         $this->data

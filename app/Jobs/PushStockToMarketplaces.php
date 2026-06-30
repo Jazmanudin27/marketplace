@@ -53,16 +53,18 @@ class PushStockToMarketplaces implements ShouldQueue
             try {
                 $store = $mpProduct->store;
 
-                if (!$store || $store->status !== 'connected') {
+                if (!$store || $store->status === 'disconnected') {
                     continue;
                 }
+
+                $accessToken = $store->getValidAccessToken();
 
                 $safetyStock = (int) ($mpProduct->safety_stock ?? 0);
                 $pushedStock = max(0, $masterProduct->stock - $safetyStock);
 
                 if ($store->channel->code === 'shopee') {
                     $shopeeService->updateStock(
-                        $store->access_token,
+                        $accessToken,
                         (int) $store->marketplace_store_id,
                         (int) $mpProduct->marketplace_product_id,
                         $pushedStock,
@@ -79,7 +81,7 @@ class PushStockToMarketplaces implements ShouldQueue
                 } elseif ($store->channel->code === 'tiktok') {
                     $tiktokService = app(\App\Services\TiktokService::class);
                     $tiktokService->updateStock(
-                        $store->access_token,
+                        $accessToken,
                         $store->shop_cipher,
                         $mpProduct->marketplace_product_id,
                         $mpProduct->marketplace_variant_id,
@@ -96,7 +98,7 @@ class PushStockToMarketplaces implements ShouldQueue
                 } elseif ($store->channel->code === 'tokopedia') {
                     $tokopediaService = app(\App\Services\TokopediaService::class);
                     $tokopediaService->updateStock(
-                        $store->access_token,
+                        $accessToken,
                         $store->marketplace_store_id,
                         $mpProduct->marketplace_product_id,
                         $mpProduct->marketplace_variant_id,
@@ -113,7 +115,7 @@ class PushStockToMarketplaces implements ShouldQueue
                 } elseif ($store->channel->code === 'lazada') {
                     $lazadaService = app(\App\Services\LazadaService::class);
                     $lazadaService->updateStock(
-                        $store->getValidAccessToken(),
+                        $accessToken,
                         $store->marketplace_store_id,
                         $mpProduct->marketplace_product_id,
                         $mpProduct->marketplace_variant_id,

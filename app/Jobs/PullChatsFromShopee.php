@@ -28,7 +28,7 @@ class PullChatsFromShopee implements ShouldQueue
     {
         $query = Store::with('channel')
             ->whereHas('channel', fn ($q) => $q->where('code', 'shopee'))
-            ->where('status', 'connected')
+            ->where('status', '!=', 'disconnected')
             ->whereNotNull('access_token');
 
         if ($this->storeId) {

@@ -40,7 +40,7 @@ class PullReturnsFromShopee implements ShouldQueue
 
         $this->store = $store;
 
-        if ($this->store->status !== 'connected' || !$this->store->access_token) {
+        if ($this->store->status === 'disconnected' || (empty($this->store->access_token) && empty($this->store->refresh_token))) {
             return;
         }
 

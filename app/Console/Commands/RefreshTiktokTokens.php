@@ -34,7 +34,7 @@ class RefreshTiktokTokens extends Command
         $stores = Store::whereHas('channel', function ($query) {
             $query->whereIn('code', ['tiktok', 'tokopedia']);
         })
-        ->where('status', 'connected')
+        ->where('status', '!=', 'disconnected')
         ->whereNotNull('refresh_token')
         ->where('token_expires_at', '<=', now()->addMinutes(30))
         ->get();

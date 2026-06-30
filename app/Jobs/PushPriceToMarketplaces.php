@@ -48,13 +48,15 @@ class PushPriceToMarketplaces implements ShouldQueue
 
         foreach ($marketplaceProducts as $mp) {
             try {
-                if ($mp->store->status !== 'connected' || empty($mp->store->access_token)) {
+                if ($mp->store->status === 'disconnected' || (empty($mp->store->access_token) && empty($mp->store->refresh_token))) {
                     continue;
                 }
 
+                $accessToken = $mp->store->getValidAccessToken();
+
                 if ($mp->store->channel->code === 'shopee') {
                     $shopeeService->updatePrice(
-                        $mp->store->access_token,
+                        $accessToken,
                         (int) $mp->store->marketplace_store_id,
                         (int) $mp->marketplace_product_id,
                         $this->newPrice,
@@ -64,7 +66,7 @@ class PushPriceToMarketplaces implements ShouldQueue
                 } elseif ($mp->store->channel->code === 'tiktok') {
                     $tiktokService = app(\App\Services\TiktokService::class);
                     $tiktokService->updatePrice(
-                        $mp->store->access_token,
+                        $accessToken,
                         $mp->store->shop_cipher,
                         $mp->marketplace_product_id,
                         $mp->marketplace_variant_id,
@@ -74,7 +76,7 @@ class PushPriceToMarketplaces implements ShouldQueue
                 } elseif ($mp->store->channel->code === 'tokopedia') {
                     $tokopediaService = app(\App\Services\TokopediaService::class);
                     $tokopediaService->updatePrice(
-                        $mp->store->access_token,
+                        $accessToken,
                         $mp->store->marketplace_store_id,
                         $mp->marketplace_product_id,
                         $mp->marketplace_variant_id,
@@ -84,7 +86,7 @@ class PushPriceToMarketplaces implements ShouldQueue
                 } elseif ($mp->store->channel->code === 'lazada') {
                     $lazadaService = app(\App\Services\LazadaService::class);
                     $lazadaService->updatePrice(
-                        $mp->store->getValidAccessToken(),
+                        $accessToken,
                         $mp->store->marketplace_store_id,
                         $mp->marketplace_product_id,
                         $mp->marketplace_variant_id,

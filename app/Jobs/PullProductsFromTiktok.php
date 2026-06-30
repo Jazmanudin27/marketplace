@@ -35,7 +35,7 @@ class PullProductsFromTiktok implements ShouldQueue
 
         $this->store = $store;
 
-        if ($this->store->status !== 'connected' || empty($this->store->access_token)) {
+        if ($this->store->status === 'disconnected' || (empty($this->store->access_token) && empty($this->store->refresh_token))) {
             Log::warning("[TikTok] Toko {$this->store->store_name} tidak terhubung.");
             return;
         }
