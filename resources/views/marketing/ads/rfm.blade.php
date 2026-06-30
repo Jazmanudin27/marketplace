@@ -225,7 +225,7 @@
                                                     </div>
 
                                                     <button type="submit"
-                                                        class="btn btn-{{ $themeColor }} btn-sm w-100 rounded-pill fw-bold"
+                                                        class="btn btn-success btn-sm w-100 rounded-pill fw-bold"
                                                         @if ($tabCustomers->isEmpty() || $adsAccounts->isEmpty()) disabled @endif>
                                                         <i class="bi bi-send-fill me-1"></i> Sync ke Custom Audience
                                                     </button>
