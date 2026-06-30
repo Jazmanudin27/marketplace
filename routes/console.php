@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Schedule;
 Schedule::command('shopee:refresh-tokens')->everyFifteenMinutes();
 Schedule::command('shopee:sync-orders')->everyFifteenMinutes();
 Schedule::command('shopee:sync-returns')->everyFifteenMinutes();
+Schedule::command('shopee-ads:sync --days=3')->dailyAt('01:00')->withoutOverlapping();
 
 Schedule::command('tiktok:refresh-tokens')->everyFifteenMinutes();
 Schedule::command('tiktok:sync-orders')->everyFifteenMinutes();
