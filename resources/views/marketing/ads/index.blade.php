@@ -361,7 +361,7 @@
                                     <h6 class="mb-0 fw-bold text-dark">Atribusi Pesanan ke Campaign Iklan</h6>
                                     <small class="text-muted" style="font-size:0.72rem;">
                                         Otomatis berjalan setiap jam &bull; Tersisa
-                                        <span class="fw-bold text-danger">{{ $unattributedOrders->total() ?? count($unattributedOrders) }}</span>
+                                        <span class="fw-bold text-danger">{{ count($unattributedOrders) }}</span>
                                         pesanan belum terhubung
                                     </small>
                                 </div>
@@ -401,7 +401,9 @@
                                             </span>
                                         </div>
                                         <div class="text-muted mt-1">
-                                            Atur <a href="{{ route('marketing.ads.campaigns') }}" class="text-primary fw-semibold text-decoration-none">Default Campaign per Toko</a>
+                                            Atur <a href="{{ route('marketing.ads.campaigns') }}"
+                                                class="text-primary fw-semibold text-decoration-none">Default Campaign per
+                                                Toko</a>
                                             untuk meningkatkan akurasi atribusi.
                                         </div>
                                     </div>
@@ -409,7 +411,7 @@
                             </div>
 
                             {{-- Tabel pesanan belum teratribusi (Manual Fallback) --}}
-                            @if(count($unattributedOrders) > 0)
+                            @if (count($unattributedOrders) > 0)
                                 <p class="text-muted small mb-2">
                                     <i class="bi bi-hand-index me-1"></i>
                                     Pesanan di bawah ini tidak dapat dicocokkan otomatis — tautkan secara manual:
@@ -428,7 +430,7 @@
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            @foreach($unattributedOrders as $ord)
+                                            @foreach ($unattributedOrders as $ord)
                                                 <tr class="border-bottom border-light">
                                                     <td class="px-3 py-3">{{ $ord->order_date->format('d/m/Y H:i') }}</td>
                                                     <td class="px-3 py-3">
@@ -446,17 +448,20 @@
                                                         </strong>
                                                     </td>
                                                     <td class="px-3 py-3 text-end">
-                                                        <form action="{{ route('marketing.ads.attribute') }}" method="POST"
+                                                        <form action="{{ route('marketing.ads.attribute') }}"
+                                                            method="POST"
                                                             class="d-flex gap-2 align-items-center justify-content-end">
                                                             @csrf
-                                                            <input type="hidden" name="order_id" value="{{ $ord->id }}">
+                                                            <input type="hidden" name="order_id"
+                                                                value="{{ $ord->id }}">
                                                             <select name="ads_campaign_id"
                                                                 class="form-select form-select-sm rounded-3 w-auto border-secondary border-opacity-25"
                                                                 required
                                                                 style="font-size: 0.8rem; padding: 0.35rem 2rem 0.35rem 0.75rem;">
                                                                 <option value="">-- Pilih Campaign --</option>
                                                                 @foreach ($campaigns as $cp)
-                                                                    <option value="{{ $cp->id }}">{{ $cp->name }}
+                                                                    <option value="{{ $cp->id }}">
+                                                                        {{ $cp->name }}
                                                                         ({{ strtoupper($cp->adsAccount->platform) }})
                                                                     </option>
                                                                 @endforeach
