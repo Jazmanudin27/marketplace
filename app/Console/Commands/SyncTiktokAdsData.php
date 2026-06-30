@@ -61,6 +61,29 @@ class SyncTiktokAdsData extends Command
             ]);
 
             try {
+                // Ambil daftar campaign sekali saja untuk akun ini
+                $isSandbox = config('services.tiktok_ads.sandbox', false);
+                $apiBaseUrl = $isSandbox
+                    ? 'https://sandbox-ads.tiktok.com/open_api/v1.3/'
+                    : 'https://business-api.tiktok.com/open_api/v1.3/';
+
+                // Ambil nama campaign dari endpoint campaign/get/
+                $campaignNames = [];
+                $campaignResponse = Http::timeout(30)
+                    ->withHeaders(['Access-Token' => $account->access_token])
+                    ->get($apiBaseUrl . 'campaign/get/', [
+                        'advertiser_id' => $account->account_id,
+                        'page_size'     => 100,
+                    ]);
+
+                if ($campaignResponse->successful()) {
+                    $cData = $campaignResponse->json();
+                    foreach ($cData['data']['list'] ?? [] as $c) {
+                        $campaignNames[(string)$c['campaign_id']] = $c['campaign_name'];
+                    }
+                    $this->info("  Loaded " . count($campaignNames) . " campaign name(s).");
+                }
+
                 // Loop untuk setiap hari
                 for ($i = 0; $i < $days; $i++) {
                     $dateObj = now()->subDays($i);
@@ -69,29 +92,27 @@ class SyncTiktokAdsData extends Command
                     $this->info("- Fetching data for date: {$dateStr}");
 
                     // Panggil API integrated report TikTok Ads
-                    $isSandbox = config('services.tiktok_ads.sandbox', false);
-                    $apiBaseUrl = $isSandbox ? 'https://sandbox-ads.tiktok.com/open_api/v1.3/' : 'https://business-api.tiktok.com/open_api/v1.3/';
                     $reportUrl = $apiBaseUrl . "report/integrated/get/";
-                    
+
                     $response = Http::timeout(30)
                         ->withHeaders(['Access-Token' => $account->access_token])
                         ->get($reportUrl, [
-                            'app_id' => $appId,
-                            'secret' => $secret,
-                            'advertiser_id' => $account->account_id,
-                            'report_type' => 'BASIC',
-                            'data_level' => 'AUCTION_CAMPAIGN',
-                            'dimensions' => json_encode(['stat_time_day', 'campaign_id', 'campaign_name']),
-                            'metrics' => json_encode(['spend', 'clicks', 'impressions']),
-                            'start_date' => $dateStr,
-                            'end_date' => $dateStr,
-                            'page_size' => 100,
+                            'app_id'          => $appId,
+                            'secret'          => $secret,
+                            'advertiser_id'   => $account->account_id,
+                            'report_type'     => 'BASIC',
+                            'data_level'      => 'AUCTION_CAMPAIGN',
+                            'dimensions'      => json_encode(['stat_time_day', 'campaign_id']),
+                            'metrics'         => json_encode(['spend', 'clicks', 'impressions']),
+                            'start_date'      => $dateStr,
+                            'end_date'        => $dateStr,
+                            'page_size'       => 100,
                         ]);
 
                     if ($response->failed()) {
                         Log::error('[TikTok Ads Sync] Report API failed', [
                             'status' => $response->status(),
-                            'body' => $response->body()
+                            'body'   => $response->body()
                         ]);
                         continue;
                     }
@@ -112,53 +133,57 @@ class SyncTiktokAdsData extends Command
 
                     foreach ($campaignsList as $item) {
                         $dimensions = $item['dimensions'] ?? [];
-                        $metrics = $item['metrics'] ?? [];
+                        $metrics    = $item['metrics'] ?? [];
 
                         $platformCampaignId = (string)($dimensions['campaign_id'] ?? '');
                         if (empty($platformCampaignId)) {
                             continue;
                         }
 
-                        $campaignName = $dimensions['campaign_name'] ?? ('TikTok Ads ' . $platformCampaignId);
+                        // Gunakan nama dari cache, fallback ke ID
+                        $campaignName = $campaignNames[$platformCampaignId]
+                            ?? ('TikTok Campaign ' . $platformCampaignId);
 
                         // 1. Dapatkan atau buat AdsCampaign
                         $adsCampaign = AdsCampaign::firstOrCreate(
                             [
-                                'tenant_id' => $account->tenant_id,
-                                'ads_account_id' => $account->id,
+                                'tenant_id'            => $account->tenant_id,
+                                'ads_account_id'       => $account->id,
                                 'campaign_id_platform' => $platformCampaignId,
                             ],
                             [
-                                'name' => $campaignName,
-                                'target_roas' => 2.00,
+                                'name'         => $campaignName,
+                                'target_roas'  => 2.00,
                                 'target_omzet' => 0,
-                                'status' => 'ACTIVE',
-                                'is_active' => true,
+                                'status'       => 'ACTIVE',
+                                'is_active'    => true,
                             ]
                         );
 
-                        // Update nama campaign jika berbeda
-                        if (isset($dimensions['campaign_name']) && $adsCampaign->name !== $dimensions['campaign_name']) {
-                            $adsCampaign->update(['name' => $dimensions['campaign_name']]);
+                        // Update nama campaign jika sudah ada di cache
+                        if (isset($campaignNames[$platformCampaignId]) && $adsCampaign->name !== $campaignName) {
+                            $adsCampaign->update(['name' => $campaignName]);
                         }
 
                         // 2. Simpan logs performa harian
-                        $spend = (float)($metrics['spend'] ?? 0);
-                        $clicks = (int)($metrics['clicks'] ?? 0);
+                        $spend       = (float)($metrics['spend'] ?? 0);
+                        $clicks      = (int)($metrics['clicks'] ?? 0);
                         $impressions = (int)($metrics['impressions'] ?? 0);
 
                         AdsPerformanceLog::updateOrCreate(
                             [
-                                'tenant_id' => $account->tenant_id,
+                                'tenant_id'       => $account->tenant_id,
                                 'ads_campaign_id' => $adsCampaign->id,
-                                'date' => $dateStr,
+                                'date'            => $dateStr,
                             ],
                             [
-                                'ad_spend' => $spend,
-                                'clicks' => $clicks,
+                                'ad_spend'    => $spend,
+                                'clicks'      => $clicks,
                                 'impressions' => $impressions,
                             ]
                         );
+
+                        $this->info("  ✓ Saved: {$campaignName} | Spend: {$spend} | Clicks: {$clicks}");
                     }
                 }
             } catch (\Exception $e) {
