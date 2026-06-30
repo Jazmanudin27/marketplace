@@ -101,6 +101,11 @@ class TiktokAdsAuthController extends Controller
             }
 
             $advData = $advResponse->json();
+            Log::info('[TikTok Ads Auth] Raw Advertiser Response', [
+                'response' => $advData,
+                'access_token_prefix' => substr($accessToken, 0, 10) . '...'
+            ]);
+
             if (($advData['code'] ?? 0) !== 0) {
                 Log::error('[TikTok Ads Auth] Fetch advertisers API error', ['data' => $advData]);
                 return redirect()->route('marketing.ads.campaigns')
