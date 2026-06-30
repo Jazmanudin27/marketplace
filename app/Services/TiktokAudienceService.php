@@ -18,19 +18,22 @@ class TiktokAudienceService
     public function createAudience(TiktokAudience $audience): string
     {
         $account = $audience->adsAccount;
-        if (!$account || empty($account->events_access_token) || empty($account->advertiser_id)) {
-            throw new \RuntimeException("TikTok credentials (Events Access Token atau Advertiser ID) belum dikonfigurasi.");
+        $token = $account ? ($account->events_access_token ?: $account->access_token) : null;
+        $advertiserId = $account ? ($account->advertiser_id ?: $account->account_id) : null;
+
+        if (!$account || empty($token) || empty($advertiserId)) {
+            throw new \RuntimeException("TikTok credentials (Access Token atau Advertiser ID) belum dikonfigurasi.");
         }
 
         $url = self::BASE_URL . '/dmp/custom_audience/create/';
 
         $response = Http::withoutVerifying()
             ->withHeaders([
-                'Access-Token' => $account->events_access_token,
+                'Access-Token' => $token,
                 'Content-Type' => 'application/json',
             ])
             ->post($url, [
-                'advertiser_id' => $account->advertiser_id,
+                'advertiser_id' => $advertiserId,
                 'custom_audience_name' => $audience->name,
                 'calculate_type' => 'MANUAL',
             ]);
@@ -56,7 +59,10 @@ class TiktokAudienceService
     public function syncAudience(TiktokAudience $audience, array $customPhones = null): bool
     {
         $account = $audience->adsAccount;
-        if (!$account || empty($account->events_access_token) || empty($account->advertiser_id)) {
+        $token = $account ? ($account->events_access_token ?: $account->access_token) : null;
+        $advertiserId = $account ? ($account->advertiser_id ?: $account->account_id) : null;
+
+        if (!$account || empty($token) || empty($advertiserId)) {
             throw new \RuntimeException("TikTok credentials belum dikonfigurasi.");
         }
 
@@ -135,11 +141,11 @@ class TiktokAudienceService
             try {
                 $response = Http::withoutVerifying()
                     ->withHeaders([
-                        'Access-Token' => $account->events_access_token,
+                        'Access-Token' => $token,
                         'Content-Type' => 'application/json',
                     ])
                     ->post($url, [
-                        'advertiser_id' => $account->advertiser_id,
+                        'advertiser_id' => $advertiserId,
                         'custom_audience_id' => $audience->tiktok_audience_id,
                         'action' => 'ADD',
                         'user_list' => $chunk,
