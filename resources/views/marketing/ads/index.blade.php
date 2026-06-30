@@ -395,7 +395,8 @@
                                                             <option value="">-- Pilih Campaign --</option>
                                                             @foreach ($campaigns as $cp)
                                                                 <option value="{{ $cp->id }}">{{ $cp->name }}
-                                                                    ({{ strtoupper($cp->adsAccount->platform) }})</option>
+                                                                    ({{ strtoupper($cp->adsAccount->platform) }})
+                                                                </option>
                                                             @endforeach
                                                         </select>
                                                         <button type="submit"

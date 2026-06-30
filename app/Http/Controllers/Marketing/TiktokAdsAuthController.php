@@ -33,7 +33,7 @@ class TiktokAdsAuthController extends Controller
         }
 
         $state = csrf_token();
-        $authUrl = "https://ads.tiktok.com/marketing_api/auth?" . http_build_query([
+        $authUrl = "https://business-api.tiktok.com/portal/auth?" . http_build_query([
             'app_id' => $this->appId,
             'state' => $state,
             'redirect_uri' => $this->redirectUri,

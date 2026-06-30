@@ -54,6 +54,10 @@ class TiktokController extends Controller
      */
     public function callback(Request $request)
     {
+        if ($request->has('auth_code')) {
+            return app(\App\Http\Controllers\Marketing\TiktokAdsAuthController::class)->callback($request);
+        }
+
         try {
             $code = $request->query('code');
             $stateRaw = $request->query('state');
