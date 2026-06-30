@@ -768,4 +768,9 @@ class AdsController extends Controller
             return redirect()->back()->with('error', 'Gagal sinkronisasi: ' . $e->getMessage());
         }
     }
+
+    public function abTest()
+    {
+        return view('marketing.ads.ab_test');
+    }
 }

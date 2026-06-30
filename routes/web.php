@@ -505,6 +505,9 @@ Route::middleware('auth')->group(function () {
         // Customer RFM Segments Sync
         Route::get('/marketing/ads/rfm', [AdsController::class, 'rfm'])->name('marketing.ads.rfm');
         Route::post('/marketing/ads/rfm/sync', [AdsController::class, 'syncRfmSegment'])->name('marketing.ads.rfm.sync');
+
+        // A/B Testing Calculator
+        Route::get('/marketing/ads/ab-test', [AdsController::class, 'abTest'])->name('marketing.ads.ab_test');
     });
 
 

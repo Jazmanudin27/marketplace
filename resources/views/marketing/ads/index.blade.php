@@ -142,6 +142,22 @@
                         </div>
                     </a>
                 </div>
+                <div class="col-6 col-md-4 col-lg-2">
+                    <a href="{{ route('marketing.ads.ab_test') }}"
+                        class="card text-decoration-none border shadow-sm h-100 bg-white"
+                        style="transition: transform 0.2s, box-shadow 0.2s;"
+                        onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 .5rem 1rem rgba(0,0,0,.1)';"
+                        onmouseout="this.style.transform='none'; this.style.boxShadow='none';">
+                        <div
+                            class="card-body p-2.5 text-center d-flex flex-column align-items-center justify-content-center">
+                            <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center mb-2"
+                                style="width: 40px; height: 40px; background-color: rgba(23, 162, 184, 0.1) !important; color: rgb(23, 162, 184) !important;">
+                                <i class="bi bi-calculator fs-5"></i>
+                            </div>
+                            <strong class="text-dark small text-truncate w-100" style="font-size: 0.75rem;">A/B Calculator</strong>
+                        </div>
+                    </a>
+                </div>
             </div>
 
             <!-- Unread Budget Alerts -->
