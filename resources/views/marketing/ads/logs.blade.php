@@ -76,9 +76,11 @@
                 <!-- Log History -->
                 <div class="col-lg-8 col-md-12">
                     <div class="card border shadow-sm bg-white">
-                        <div class="card-header bg-info bg-opacity-10 p-3 border-bottom">
-                            <h6 class="m-0 fw-bold text-dark"><i class="bi bi-history text-info me-2"></i> Riwayat
-                                Pengeluaran Iklan</h6>
+                        <div class="card-header bg-info bg-opacity-10 p-3 border-bottom d-flex align-items-center justify-content-between flex-wrap gap-2">
+                            <h6 class="m-0 fw-bold text-dark"><i class="bi bi-history text-info me-2"></i> Riwayat Pengeluaran Iklan</h6>
+                            <a href="{{ route('marketing.ads.logs.export') }}" class="btn btn-sm btn-outline-info rounded-pill fw-bold px-3" style="font-size: .72rem;">
+                                <i class="bi bi-download me-1"></i> Export CSV
+                            </a>
                         </div>
                         <div class="card-body p-3">
                             <div class="table-responsive">

@@ -239,6 +239,48 @@ class AdsController extends Controller
         return view('marketing.ads.logs', compact('logs', 'campaigns'));
     }
 
+    public function exportCsv()
+    {
+        $tenantId = \Illuminate\Support\Facades\Auth::user()->tenant_id;
+        $logs = \App\Models\AdsPerformanceLog::with('campaign')
+            ->where('tenant_id', $tenantId)
+            ->orderByDesc('date')
+            ->get();
+
+        $headers = [
+            'Content-type'        => 'text/csv',
+            'Content-Disposition' => 'attachment; filename=ads_performance_report_' . date('Y-m-d') . '.csv',
+            'Pragma'              => 'no-cache',
+            'Cache-Control'       => 'must-revalidate, post-check=0, pre-check=0',
+            'Expires'             => '0'
+        ];
+
+        $columns = ['Tanggal', 'Campaign', 'Platform', 'Spend (Rp)', 'Attributed Revenue (Rp)', 'ROAS', 'Clicks', 'Impressions'];
+
+        $callback = function() use($logs, $columns) {
+            $file = fopen('php://output', 'w');
+            fputcsv($file, $columns);
+
+            foreach ($logs as $log) {
+                $roas = $log->ad_spend > 0 ? round($log->attributed_revenue / $log->ad_spend, 2) : 0;
+                fputcsv($file, [
+                    $log->date->format('Y-m-d'),
+                    $log->campaign->name ?? 'Deleted Campaign',
+                    strtoupper($log->campaign->adsAccount->platform ?? 'MANUAL'),
+                    $log->ad_spend,
+                    $log->attributed_revenue,
+                    $roas . 'x',
+                    $log->clicks ?? 0,
+                    $log->impressions ?? 0
+                ]);
+            }
+
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
+    }
+
     public function storeLog(Request $request)
     {
         $request->validate([

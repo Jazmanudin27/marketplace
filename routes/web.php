@@ -474,6 +474,7 @@ Route::middleware('auth')->group(function () {
         Route::delete('/marketing/ads/campaigns/{campaign}', [AdsController::class, 'destroyCampaign'])->name('marketing.ads.campaigns.destroy');
         Route::post('/marketing/ads/campaigns/{campaign}/toggle', [AdsController::class, 'toggleCampaign'])->name('marketing.ads.toggle');
         Route::get('/marketing/ads/logs', [AdsController::class, 'logs'])->name('marketing.ads.logs');
+        Route::get('/marketing/ads/logs/export', [AdsController::class, 'exportCsv'])->name('marketing.ads.logs.export');
         Route::post('/marketing/ads/logs', [AdsController::class, 'storeLog'])->name('marketing.ads.logs.store');
         Route::post('/marketing/ads/attribute-order', [AdsController::class, 'attributeOrder'])->name('marketing.ads.attribute');
         Route::post('/marketing/ads/auto-attribute', [AdsController::class, 'autoAttributeNow'])->name('marketing.ads.auto_attribute');
