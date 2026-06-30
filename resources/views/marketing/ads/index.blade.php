@@ -10,6 +10,12 @@
             <i class="bi bi-arrow-repeat me-1"></i> Sync Semua Iklan
         </button>
     </form>
+    <form action="{{ route('marketing.ads.auto_attribute') }}" method="POST" class="d-inline">
+        @csrf
+        <button type="submit" class="btn btn-sm btn-light text-primary fw-bold px-3 me-2">
+            <i class="bi bi-lightning-charge me-1"></i> Run Auto-Atribusi
+        </button>
+    </form>
     <a href="{{ route('marketing.ads.logs') }}" class="btn btn-sm btn-light text-primary fw-bold px-3">
         <i class="bi bi-plus-circle me-1"></i> Input Biaya Harian
     </a>
@@ -419,156 +425,6 @@
                     </div>
                 </div>
             </div>
-
-            {{-- Manual Order Attribution Panel (Auto-Attribution Upgraded) --}}
-            <div class="row mb-3">
-                <div class="col-12">
-                    <div class="card border shadow-sm">
-                        {{-- Header --}}
-                        <div class="card-header p-3 border-bottom d-flex justify-content-between align-items-center"
-                            style="background: linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%);">
-                            <div class="d-flex align-items-center gap-2">
-                                <div class="rounded-circle d-flex align-items-center justify-content-center"
-                                    style="width:36px;height:36px;background:linear-gradient(135deg,#3b82f6,#06b6d4);">
-                                    <i class="bi bi-robot text-white" style="font-size:1rem;"></i>
-                                </div>
-                                <div>
-                                    <h6 class="mb-0 fw-bold text-dark">Atribusi Pesanan ke Campaign Iklan</h6>
-                                    <small class="text-muted" style="font-size:0.72rem;">
-                                        Otomatis berjalan setiap jam &bull; Tersisa
-                                        <span class="fw-bold text-danger">{{ count($unattributedOrders) }}</span>
-                                        pesanan belum terhubung
-                                    </small>
-                                </div>
-                            </div>
-                            <form action="{{ route('marketing.ads.auto_attribute') }}" method="POST" class="d-inline">
-                                @csrf
-                                <button type="submit"
-                                    class="btn btn-sm fw-bold px-3 py-1.5 rounded-3 d-flex align-items-center gap-1"
-                                    style="background:linear-gradient(135deg,#3b82f6,#06b6d4);color:#fff;font-size:0.82rem;border:none;">
-                                    <i class="bi bi-lightning-charge-fill"></i> Jalankan Sekarang
-                                </button>
-                            </form>
-                        </div>
-
-                        <div class="card-body p-3" style="zoom:90%">
-                            {{-- Cara kerja sistem --}}
-                            <div class="alert alert-light border border-info border-opacity-25 rounded-3 py-2 px-3 mb-3"
-                                style="font-size:0.8rem;">
-                                <div class="d-flex align-items-start gap-2">
-                                    <i class="bi bi-info-circle-fill text-info mt-0.5"></i>
-                                    <div>
-                                        <strong class="text-dark">Cara Kerja Atribusi Otomatis (3 Lapisan):</strong>
-                                        <div class="d-flex flex-wrap gap-2 mt-1.5">
-                                            <span class="badge rounded-pill px-2.5 py-1"
-                                                style="background:#eff6ff;color:#1d4ed8;font-size:0.72rem;">
-                                                <i class="bi bi-1-circle-fill me-1"></i> UTM Tracking
-                                            </span>
-                                            <span class="text-muted">→</span>
-                                            <span class="badge rounded-pill px-2.5 py-1"
-                                                style="background:#f0fdf4;color:#15803d;font-size:0.72rem;">
-                                                <i class="bi bi-2-circle-fill me-1"></i> Default Campaign Toko
-                                            </span>
-                                            <span class="text-muted">→</span>
-                                            <span class="badge rounded-pill px-2.5 py-1"
-                                                style="background:#fef3c7;color:#92400e;font-size:0.72rem;">
-                                                <i class="bi bi-3-circle-fill me-1"></i> Cocokkan Platform (Shopee/TikTok)
-                                            </span>
-                                        </div>
-                                        <div class="text-muted mt-1">
-                                            Atur <a href="{{ route('marketing.ads.campaigns') }}"
-                                                class="text-primary fw-semibold text-decoration-none">Default Campaign per
-                                                Toko</a>
-                                            untuk meningkatkan akurasi atribusi.
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {{-- Tabel pesanan belum teratribusi (Manual Fallback) --}}
-                            @if (count($unattributedOrders) > 0)
-                                <p class="text-muted small mb-2">
-                                    <i class="bi bi-hand-index me-1"></i>
-                                    Pesanan di bawah ini tidak dapat dicocokkan otomatis — tautkan secara manual:
-                                </p>
-                                <div class="table-responsive">
-                                    <table class="table table-sm table-hover align-middle mb-0"
-                                        style="font-size:0.85rem;">
-                                        <thead class="table-light text-uppercase fs-7 text-muted"
-                                            style="letter-spacing: 0.5px; font-size: 0.75rem;">
-                                            <tr>
-                                                <th class="border-0 px-3 py-3">Tanggal Order</th>
-                                                <th class="border-0 px-3 py-3">No Invoice</th>
-                                                <th class="border-0 px-3 py-3">Toko</th>
-                                                <th class="border-0 px-3 py-3">Pembeli</th>
-                                                <th class="border-0 px-3 py-3">Nominal Bersih</th>
-                                                <th class="border-0 px-3 py-3 text-end">Pilih Campaign Iklan</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            @foreach ($unattributedOrders as $ord)
-                                                <tr class="border-bottom border-light">
-                                                    <td class="px-3 py-3">{{ $ord->order_date->format('d/m/Y H:i') }}</td>
-                                                    <td class="px-3 py-3">
-                                                        <strong class="text-dark">{{ $ord->invoice_number }}</strong>
-                                                    </td>
-                                                    <td class="px-3 py-3">
-                                                        <span class="badge bg-light text-dark border px-2 py-1 rounded">
-                                                            {{ $ord->store->store_name }}
-                                                        </span>
-                                                    </td>
-                                                    <td class="px-3 py-3">{{ $ord->buyer_name }}</td>
-                                                    <td class="px-3 py-3">
-                                                        <strong class="text-success">
-                                                            Rp {{ number_format($ord->net_amount, 0, ',', '.') }}
-                                                        </strong>
-                                                    </td>
-                                                    <td class="px-3 py-3 text-end">
-                                                        <form action="{{ route('marketing.ads.attribute') }}"
-                                                            method="POST"
-                                                            class="d-flex gap-2 align-items-center justify-content-end">
-                                                            @csrf
-                                                            <input type="hidden" name="order_id"
-                                                                value="{{ $ord->id }}">
-                                                            <select name="ads_campaign_id"
-                                                                class="form-select form-select-sm rounded-3 w-auto border-secondary border-opacity-25"
-                                                                required
-                                                                style="font-size: 0.8rem; padding: 0.35rem 2rem 0.35rem 0.75rem;">
-                                                                <option value="">-- Pilih Campaign --</option>
-                                                                @foreach ($campaigns as $cp)
-                                                                    <option value="{{ $cp->id }}">
-                                                                        {{ $cp->name }}
-                                                                        ({{ strtoupper($cp->adsAccount->platform) }})
-                                                                    </option>
-                                                                @endforeach
-                                                            </select>
-                                                            <button type="submit"
-                                                                class="btn btn-sm btn-primary rounded-3 px-3 py-1.5 fw-semibold"
-                                                                style="font-size: 0.8rem;">Tautkan</button>
-                                                        </form>
-                                                    </td>
-                                                </tr>
-                                            @endforeach
-                                        </tbody>
-                                    </table>
-                                </div>
-                            @else
-                                <div class="text-center py-4">
-                                    <div class="rounded-circle mx-auto d-flex align-items-center justify-content-center mb-3"
-                                        style="width:56px;height:56px;background:linear-gradient(135deg,#d1fae5,#a7f3d0);">
-                                        <i class="bi bi-check-circle-fill text-success fs-4"></i>
-                                    </div>
-                                    <h6 class="fw-bold text-dark mb-1">Semua Pesanan Sudah Teratribusi!</h6>
-                                    <p class="text-muted small mb-0">
-                                        Tidak ada pesanan yang perlu ditautkan secara manual saat ini.
-                                    </p>
-                                </div>
-                            @endif
-                        </div>
-                    </div>
-                </div>
-            </div>
-
 
         </div>
     </div>

@@ -19,7 +19,17 @@ class VoucherController extends Controller
             ->orderByDesc('created_at')
             ->paginate(20);
 
-        return view('vouchers.index', compact('vouchers'));
+        // Agregasi performa voucher dari tabel orders
+        $voucherStats = \App\Models\Order::where('tenant_id', $tenantId)
+            ->whereNotNull('voucher_code')
+            ->selectRaw('voucher_code, count(id) as total_uses, sum(discount_amount) as total_discounts, sum(net_amount) as total_revenue')
+            ->groupBy('voucher_code')
+            ->get()
+            ->keyBy(function($item) {
+                return strtoupper($item->voucher_code);
+            });
+
+        return view('vouchers.index', compact('vouchers', 'voucherStats'));
     }
 
     public function create()

@@ -40,6 +40,8 @@ class Order extends Model
         'tiktok_creator_id',
         'affiliate_commission',
         'tiktok_live_session_id',
+        'voucher_code',
+        'shopee_utm_keyword',
     ];
 
     protected $casts = [

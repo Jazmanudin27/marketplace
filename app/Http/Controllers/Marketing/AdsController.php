@@ -544,7 +544,7 @@ class AdsController extends Controller
     {
         $tenantId = Auth::user()->tenant_id;
 
-        // Ambil data performa affiliate kreator
+        // Ambil data performa affiliate kreator TikTok
         $affiliates = Order::where('tenant_id', $tenantId)
             ->whereNotNull('tiktok_creator_id')
             ->selectRaw('tiktok_creator_id, tiktok_creator_name, count(id) as total_orders, sum(net_amount) as total_revenue, sum(affiliate_commission) as total_commission')
@@ -552,15 +552,26 @@ class AdsController extends Controller
             ->orderByDesc('total_revenue')
             ->get();
 
-        // Ambil daftar pesanan terbaru yang dihasilkan affiliate
-        $recentOrders = Order::where('tenant_id', $tenantId)
-            ->whereNotNull('tiktok_creator_id')
-            ->with('store')
-            ->orderByDesc('order_date')
-            ->limit(15)
+        // Ambil data performa affiliate Shopee (UTM Keyword / Sub-ID)
+        $shopeeAffiliates = Order::where('tenant_id', $tenantId)
+            ->whereNotNull('shopee_utm_keyword')
+            ->selectRaw('shopee_utm_keyword, count(id) as total_orders, sum(net_amount) as total_revenue, sum(discount_amount) as total_discounts')
+            ->groupBy('shopee_utm_keyword')
+            ->orderByDesc('total_revenue')
             ->get();
 
-        return view('marketing.ads.affiliates', compact('affiliates', 'recentOrders'));
+        // Ambil daftar pesanan terbaru yang dihasilkan affiliate (TikTok & Shopee)
+        $recentOrders = Order::where('tenant_id', $tenantId)
+            ->where(function($q) {
+                $q->whereNotNull('tiktok_creator_id')
+                  ->orWhereNotNull('shopee_utm_keyword');
+            })
+            ->with('store')
+            ->orderByDesc('order_date')
+            ->limit(20)
+            ->get();
+
+        return view('marketing.ads.affiliates', compact('affiliates', 'shopeeAffiliates', 'recentOrders'));
     }
 
     public function liveSessions()

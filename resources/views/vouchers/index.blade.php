@@ -72,6 +72,7 @@
                         <th>Min. Belanja</th>
                         <th>Masa Berlaku</th>
                         <th>Penggunaan</th>
+                        <th>Performa Penjualan (ROI)</th>
                         <th>Toko</th>
                         <th>Status</th>
                         <th>Status Sync</th>
@@ -108,6 +109,26 @@
                                 / {{ number_format($voucher->usage_limit) }}
                             @else
                                 / ∞
+                            @endif
+                        </td>
+                        <td>
+                            @php
+                                $stat = $voucherStats->get(strtoupper($voucher->code)) ?? null;
+                                $uses = $stat ? $stat->total_uses : 0;
+                                $revenue = $stat ? $stat->total_revenue : 0;
+                                $discounts = $stat ? $stat->total_discounts : 0;
+                                $roi = $discounts > 0 ? $revenue / $discounts : 0;
+                            @endphp
+                            @if($uses > 0)
+                                <div style="font-size:0.8rem;">
+                                    <span class="text-success fw-bold">Rp {{ number_format($revenue, 0, ',', '.') }}</span>
+                                    <div class="text-muted" style="font-size:0.72rem;">Cost: Rp {{ number_format($discounts, 0, ',', '.') }}</div>
+                                    <span class="badge bg-success bg-opacity-10 text-success rounded-pill fw-bold" style="font-size:0.65rem; padding: 2px 6px;">
+                                        {{ number_format($roi, 1) }}x ROI
+                                    </span>
+                                </div>
+                            @else
+                                <span class="text-muted small">Belum terpakai</span>
                             @endif
                         </td>
                         <td>
