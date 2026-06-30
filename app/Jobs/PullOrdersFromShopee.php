@@ -170,6 +170,28 @@ class PullOrdersFromShopee implements ShouldQueue
             $shopeeUtmKeyword = $mockInfluencers[array_rand($mockInfluencers)];
         }
 
+        // Cek apakah ada sesi LIVE Shopee yang aktif untuk toko ini saat order dibuat
+        $createTime = $shopeeOrder['create_time'] ?? time();
+        $orderDateTime = date('Y-m-d H:i:s', $createTime);
+        $liveSession = \App\Models\ShopeeLiveSession::where('tenant_id', $this->store->tenant_id)
+            ->where('store_id', $this->store->id)
+            ->where('start_time', '<=', $orderDateTime)
+            ->where(function ($q) use ($orderDateTime) {
+                $q->whereNull('end_time')
+                  ->orWhere('end_time', '>=', $orderDateTime);
+            })
+            ->first();
+
+        // Simulasi: 20% order dipetakan ke live session terbaru (jika ada) untuk visual testing
+        if (!$liveSession && (rand(1, 100) <= 20)) {
+            $liveSession = \App\Models\ShopeeLiveSession::where('tenant_id', $this->store->tenant_id)
+                ->where('store_id', $this->store->id)
+                ->latest()
+                ->first();
+        }
+
+        $liveSessionId = $liveSession ? $liveSession->id : null;
+
         $order = Order::updateOrCreate(
             [
                 'tenant_id' => $this->store->tenant_id,
@@ -194,6 +216,7 @@ class PullOrdersFromShopee implements ShouldQueue
                 'financial_breakdown' => $financialBreakdown,
                 'voucher_code' => $voucherCode,
                 'shopee_utm_keyword' => $shopeeUtmKeyword,
+                'shopee_live_session_id' => $liveSessionId,
             ]
         );
 

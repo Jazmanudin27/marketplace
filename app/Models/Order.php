@@ -92,6 +92,11 @@ class Order extends Model
         return $this->belongsTo(TiktokLiveSession::class, 'tiktok_live_session_id');
     }
 
+    public function shopeeLiveSession(): BelongsTo
+    {
+        return $this->belongsTo(ShopeeLiveSession::class, 'shopee_live_session_id');
+    }
+
     public function items(): HasMany
     {
         return $this->hasMany(OrderItem::class);

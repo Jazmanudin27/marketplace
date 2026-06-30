@@ -38,7 +38,8 @@
                             </div>
                             <div class="text-start text-truncate">
                                 <h6 class="mb-0 fw-bold text-dark" style="font-size: 0.85rem;">Atur Target</h6>
-                                <small class="text-muted d-block text-truncate" style="font-size: 0.72rem;">Set target omzet & ROAS iklan</small>
+                                <small class="text-muted d-block text-truncate" style="font-size: 0.72rem;">Set target omzet
+                                    & ROAS iklan</small>
                             </div>
                         </div>
                     </a>
@@ -58,7 +59,8 @@
                             </div>
                             <div class="text-start text-truncate">
                                 <h6 class="mb-0 fw-bold text-dark" style="font-size: 0.85rem;">Biaya Harian</h6>
-                                <small class="text-muted d-block text-truncate" style="font-size: 0.72rem;">Catat pengeluaran iklan harian</small>
+                                <small class="text-muted d-block text-truncate" style="font-size: 0.72rem;">Catat
+                                    pengeluaran iklan harian</small>
                             </div>
                         </div>
                     </a>
@@ -78,7 +80,8 @@
                             </div>
                             <div class="text-start text-truncate">
                                 <h6 class="mb-0 fw-bold text-dark" style="font-size: 0.85rem;">Budget Rules</h6>
-                                <small class="text-muted d-block text-truncate" style="font-size: 0.72rem;">Atur auto-budget & aturan otomatis</small>
+                                <small class="text-muted d-block text-truncate" style="font-size: 0.72rem;">Atur auto-budget
+                                    & aturan otomatis</small>
                             </div>
                         </div>
                     </a>
@@ -98,7 +101,8 @@
                             </div>
                             <div class="text-start text-truncate">
                                 <h6 class="mb-0 fw-bold text-dark" style="font-size: 0.85rem;">TikTok Audience</h6>
-                                <small class="text-muted d-block text-truncate" style="font-size: 0.72rem;">Kelola audiens khusus iklan</small>
+                                <small class="text-muted d-block text-truncate" style="font-size: 0.72rem;">Kelola audiens
+                                    khusus iklan</small>
                             </div>
                         </div>
                     </a>
@@ -118,7 +122,28 @@
                             </div>
                             <div class="text-start text-truncate">
                                 <h6 class="mb-0 fw-bold text-dark" style="font-size: 0.85rem;">TikTok LIVE</h6>
-                                <small class="text-muted d-block text-truncate" style="font-size: 0.72rem;">Pantau sesi live streaming</small>
+                                <small class="text-muted d-block text-truncate" style="font-size: 0.72rem;">Pantau sesi live
+                                    streaming</small>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+
+                <!-- 6. Shopee LIVE -->
+                <div class="col-12 col-md-6 col-lg-4">
+                    <a href="{{ route('marketing.ads.shopee_live') }}"
+                        class="card text-decoration-none border shadow-sm h-100 bg-white rounded-3"
+                        style="transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;"
+                        onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 .5rem 1.25rem rgba(253,126,20,.1)'; this.style.borderColor='#fd7e14';"
+                        onmouseout="this.style.transform='none'; this.style.boxShadow='none'; this.style.borderColor='rgba(0,0,0,.125)';">
+                        <div class="card-body p-3 d-flex align-items-center gap-3">
+                            <div class="rounded-3 d-flex align-items-center justify-content-center"
+                                style="width: 46px; height: 46px; flex-shrink: 0; background-color: rgba(253, 126, 20, 0.1); color: rgb(253, 126, 20);">
+                                <i class="bi bi-broadcast fs-4"></i>
+                            </div>
+                            <div class="text-start text-truncate">
+                                <h6 class="mb-0 fw-bold text-dark" style="font-size: 0.85rem;">Shopee LIVE</h6>
+                                <small class="text-muted d-block text-truncate" style="font-size: 0.72rem;">Pantau sesi live streaming Shopee</small>
                             </div>
                         </div>
                     </a>
@@ -158,7 +183,8 @@
                             </div>
                             <div class="text-start text-truncate">
                                 <h6 class="mb-0 fw-bold text-dark" style="font-size: 0.85rem;">RFM Segment</h6>
-                                <small class="text-muted d-block text-truncate" style="font-size: 0.72rem;">Segmentasi pembeli loyal vs pasif</small>
+                                <small class="text-muted d-block text-truncate" style="font-size: 0.72rem;">Segmentasi
+                                    pembeli loyal vs pasif</small>
                             </div>
                         </div>
                     </a>
@@ -178,7 +204,8 @@
                             </div>
                             <div class="text-start text-truncate">
                                 <h6 class="mb-0 fw-bold text-dark" style="font-size: 0.85rem;">A/B Calculator</h6>
-                                <small class="text-muted d-block text-truncate" style="font-size: 0.72rem;">Uji signifikansi hasil iklan A/B</small>
+                                <small class="text-muted d-block text-truncate" style="font-size: 0.72rem;">Uji
+                                    signifikansi hasil iklan A/B</small>
                             </div>
                         </div>
                     </a>
@@ -198,7 +225,8 @@
                             </div>
                             <div class="text-start text-truncate">
                                 <h6 class="mb-0 fw-bold text-dark" style="font-size: 0.85rem;">Kalkulator ROAS & BEP</h6>
-                                <small class="text-muted d-block text-truncate" style="font-size: 0.72rem;">Simulasi target margin & ROAS BEP</small>
+                                <small class="text-muted d-block text-truncate" style="font-size: 0.72rem;">Simulasi
+                                    target margin & ROAS BEP</small>
                             </div>
                         </div>
                     </a>

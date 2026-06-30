@@ -774,6 +774,100 @@ class AdsController extends Controller
         return view('marketing.ads.ab_test');
     }
 
+    public function shopeeLiveSessions()
+    {
+        $tenantId = Auth::user()->tenant_id;
+
+        // Ambil toko Shopee yang connected
+        $stores = Store::where('tenant_id', $tenantId)
+            ->whereHas('channel', function ($q) {
+                $q->where('code', 'shopee');
+            })->get();
+
+        // Ambil semua sesi live
+        $sessions = \App\Models\ShopeeLiveSession::where('tenant_id', $tenantId)
+            ->with('store')
+            ->latest()
+            ->get();
+
+        // Agregasi performa host menggunakan PHP collection
+        $hosts = [];
+        foreach ($sessions as $session) {
+            $host = $session->host_name;
+            if (!isset($hosts[$host])) {
+                $hosts[$host] = [
+                    'host_name' => $host,
+                    'total_sessions' => 0,
+                    'total_orders' => 0,
+                    'total_revenue' => 0,
+                ];
+            }
+            $hosts[$host]['total_sessions']++;
+            $hosts[$host]['total_orders'] += $session->total_orders;
+            $hosts[$host]['total_revenue'] += $session->total_revenue;
+        }
+
+        $hosts = collect($hosts)->sortByDesc('total_revenue');
+
+        return view('marketing.ads.shopee_live', compact('stores', 'sessions', 'hosts'));
+    }
+
+    public function startShopeeLiveSession(Request $request)
+    {
+        $request->validate([
+            'store_id' => 'required|exists:stores,id',
+            'title' => 'required|string|max:255',
+            'host_name' => 'required|string|max:255',
+        ]);
+
+        $tenantId = Auth::user()->tenant_id;
+
+        // Pastikan tidak ada sesi live yang sedang aktif untuk toko yang sama
+        $activeExists = \App\Models\ShopeeLiveSession::where('tenant_id', $tenantId)
+            ->where('store_id', $request->store_id)
+            ->where('status', \App\Models\ShopeeLiveSession::STATUS_LIVE)
+            ->exists();
+
+        if ($activeExists) {
+            return redirect()->back()->with('error', 'Sesi LIVE Shopee untuk toko ini sedang berjalan. Selesaikan sesi sebelumnya terlebih dahulu.');
+        }
+
+        \App\Models\ShopeeLiveSession::create([
+            'tenant_id' => $tenantId,
+            'store_id' => $request->store_id,
+            'title' => $request->title,
+            'host_name' => $request->host_name,
+            'start_time' => now(),
+            'status' => \App\Models\ShopeeLiveSession::STATUS_LIVE,
+        ]);
+
+        return redirect()->back()->with('success', 'Sesi LIVE Shopee berhasil dimulai! Pesanan masuk akan otomatis ditautkan.');
+    }
+
+    public function endShopeeLiveSession(\App\Models\ShopeeLiveSession $session)
+    {
+        if ($session->tenant_id !== Auth::user()->tenant_id) {
+            abort(403);
+        }
+
+        $session->update([
+            'status' => \App\Models\ShopeeLiveSession::STATUS_COMPLETED,
+            'end_time' => now(),
+        ]);
+
+        return redirect()->back()->with('success', 'Sesi LIVE Shopee berhasil diakhiri. Performa host tercatat.');
+    }
+
+    public function destroyShopeeLiveSession(\App\Models\ShopeeLiveSession $session)
+    {
+        if ($session->tenant_id !== Auth::user()->tenant_id) {
+            abort(403);
+        }
+
+        $session->delete();
+        return redirect()->back()->with('success', 'Sesi LIVE Shopee berhasil dihapus.');
+    }
+
     public function roasCalculator()
     {
         $tenantId = Auth::user()->tenant_id;

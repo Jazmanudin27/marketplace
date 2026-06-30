@@ -502,6 +502,12 @@ Route::middleware('auth')->group(function () {
         Route::post('/marketing/ads/live-sessions/{session}/end', [AdsController::class, 'endLiveSession'])->name('marketing.ads.live_sessions.end');
         Route::delete('/marketing/ads/live-sessions/{session}', [AdsController::class, 'destroyLiveSession'])->name('marketing.ads.live_sessions.destroy');
 
+        // Shopee LIVE Tracker
+        Route::get('/marketing/ads/shopee-live', [AdsController::class, 'shopeeLiveSessions'])->name('marketing.ads.shopee_live');
+        Route::post('/marketing/ads/shopee-live', [AdsController::class, 'startShopeeLiveSession'])->name('marketing.ads.shopee_live.start');
+        Route::post('/marketing/ads/shopee-live/{session}/end', [AdsController::class, 'endShopeeLiveSession'])->name('marketing.ads.shopee_live.end');
+        Route::delete('/marketing/ads/shopee-live/{session}', [AdsController::class, 'destroyShopeeLiveSession'])->name('marketing.ads.shopee_live.destroy');
+
         // Customer RFM Segments Sync
         Route::get('/marketing/ads/rfm', [AdsController::class, 'rfm'])->name('marketing.ads.rfm');
         Route::post('/marketing/ads/rfm/sync', [AdsController::class, 'syncRfmSegment'])->name('marketing.ads.rfm.sync');
