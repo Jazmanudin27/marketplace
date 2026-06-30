@@ -47,5 +47,11 @@ return [
         'redirect_uri' => env('LAZADA_REDIRECT_URI'),
     ],
 
+    'tiktok_ads' => [
+        'app_id' => env('TIKTOK_ADS_APP_ID'),
+        'secret' => env('TIKTOK_ADS_SECRET'),
+        'redirect_uri' => env('TIKTOK_ADS_REDIRECT_URI'),
+    ],
+
 ];
 

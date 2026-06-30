@@ -4,10 +4,18 @@
 @section('page-title', 'Dashboard Keputusan Iklan')
 
 @section('topbar-actions')
+    <!-- Sync Shopee -->
     <form action="{{ route('marketing.ads.shopee.sync') }}" method="POST" class="d-inline">
         @csrf
         <button type="submit" class="btn btn-sm btn-light text-primary fw-bold px-3 me-2">
             <i class="bi bi-arrow-repeat me-1"></i> Sync Iklan Shopee
+        </button>
+    </form>
+    <!-- Sync TikTok -->
+    <form action="{{ route('marketing.ads.tiktok.sync') }}" method="POST" class="d-inline">
+        @csrf
+        <button type="submit" class="btn btn-sm btn-light text-primary fw-bold px-3 me-2">
+            <i class="bi bi-arrow-repeat me-1"></i> Sync Iklan TikTok
         </button>
     </form>
     <a href="{{ route('marketing.ads.logs') }}" class="btn btn-sm btn-light text-primary fw-bold px-3">

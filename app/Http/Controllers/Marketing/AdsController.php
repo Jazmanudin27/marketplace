@@ -279,4 +279,19 @@ class AdsController extends Controller
             return redirect()->back()->with('error', 'Gagal melakukan sinkronisasi iklan Shopee: ' . $e->getMessage());
         }
     }
+
+    public function syncTiktok()
+    {
+        try {
+            \Illuminate\Support\Facades\Artisan::call('tiktok-ads:sync', ['--days' => 14]);
+            $output = \Illuminate\Support\Facades\Artisan::output();
+
+            Log::info('[TikTok Ads Web Sync] Manually triggered sync', ['output' => $output]);
+
+            return redirect()->back()->with('success', 'Sinkronisasi data iklan TikTok 14 hari terakhir berhasil dilakukan!');
+        } catch (\Exception $e) {
+            Log::error('[TikTok Ads Web Sync] Error', ['message' => $e->getMessage()]);
+            return redirect()->back()->with('error', 'Gagal melakukan sinkronisasi iklan TikTok: ' . $e->getMessage());
+        }
+    }
 }

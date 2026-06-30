@@ -4,10 +4,18 @@
 @section('page-title', 'Target Campaign Iklan')
 
 @section('topbar-actions')
+    <!-- Sync Shopee -->
     <form action="{{ route('marketing.ads.shopee.sync') }}" method="POST" class="d-inline">
         @csrf
         <button type="submit" class="btn btn-sm btn-light text-primary fw-bold px-3 me-2">
             <i class="bi bi-arrow-repeat me-1"></i> Sync Iklan Shopee
+        </button>
+    </form>
+    <!-- Sync TikTok -->
+    <form action="{{ route('marketing.ads.tiktok.sync') }}" method="POST" class="d-inline">
+        @csrf
+        <button type="submit" class="btn btn-sm btn-light text-primary fw-bold px-3 me-2">
+            <i class="bi bi-arrow-repeat me-1"></i> Sync Iklan TikTok
         </button>
     </form>
     <a href="{{ route('marketing.ads.index') }}" class="btn btn-sm btn-light text-primary fw-bold px-3">
@@ -19,8 +27,52 @@
 <div class="row">
     <div class="col-md-12">
         <div class="row g-3">
-            <!-- Form Add Campaign -->
+            <!-- Form Add Campaign & Integrations -->
             <div class="col-lg-4 col-md-12">
+                <!-- Ads Integrations Card -->
+                <div class="card border shadow-sm bg-white mb-3">
+                    <div class="card-header bg-primary bg-opacity-10 p-3 border-bottom">
+                        <h6 class="m-0 fw-bold text-dark"><i class="bi bi-link-45deg text-primary me-2"></i> Koneksi Akun Iklan (Integrasi)</h6>
+                    </div>
+                    <div class="card-body p-3">
+                        <div class="d-flex flex-column gap-3">
+                            <!-- Shopee Connection -->
+                            <div class="d-flex justify-content-between align-items-center pb-2 border-bottom border-light">
+                                <div>
+                                    <strong class="text-dark small d-block">Shopee Ads</strong>
+                                    <span class="badge bg-success bg-opacity-10 text-success rounded-pill small" style="font-size:0.7rem;">Otomatis Aktif</span>
+                                </div>
+                                <div class="text-success fs-4"><i class="bi bi-check-circle-fill"></i></div>
+                            </div>
+                            
+                            <!-- TikTok Connection -->
+                            @php
+                                $tiktokAccount = $accounts->where('platform', 'tiktok')->where('is_active', true)->first();
+                            @endphp
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong class="text-dark small d-block">TikTok Ads</strong>
+                                    @if($tiktokAccount)
+                                        <span class="badge bg-success bg-opacity-10 text-success rounded-pill small" style="font-size:0.7rem;">Terhubung: {{ $tiktokAccount->account_name }}</span>
+                                    @else
+                                        <span class="badge bg-secondary bg-opacity-10 text-secondary rounded-pill small" style="font-size:0.7rem;">Belum Terhubung</span>
+                                    @endif
+                                </div>
+                                <div>
+                                    @if($tiktokAccount)
+                                        <a href="{{ route('marketing.ads.tiktok.connect') }}" class="btn btn-xs btn-outline-secondary py-1 px-2.5 rounded-3 fw-bold" style="font-size: 0.75rem;">
+                                            Ganti Akun
+                                        </a>
+                                    @else
+                                        <a href="{{ route('marketing.ads.tiktok.connect') }}" class="btn btn-xs btn-primary py-1 px-2.5 rounded-3 fw-bold" style="font-size: 0.75rem;">
+                                            Hubungkan
+                                        </a>
+                                    @endif
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
                 <div class="card border shadow-sm bg-white mb-3">
                     <div class="card-header bg-primary bg-opacity-10 p-3 border-bottom">
                         <h6 class="m-0 fw-bold text-dark"><i class="bi bi-plus-circle-fill text-primary me-2"></i> Tambah Campaign Baru</h6>
