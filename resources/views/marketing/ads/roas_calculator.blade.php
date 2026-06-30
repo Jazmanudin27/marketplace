@@ -31,7 +31,7 @@
                         <select id="productSelect" class="form-select form-select-sm rounded-3 border-primary">
                             <option value="">-- Input Manual --</option>
                             @foreach($products as $prod)
-                                <option value="{{ $prod->id }}" data-price="{{ $prod->price }}" data-cost="{{ $prod->cost ?: 0 }}">
+                                <option value="{{ $prod->id }}" data-price="{{ $prod->price }}" data-cost="{{ $prod->cost_price ?: 0 }}">
                                     {{ $prod->name }} (SKU: {{ $prod->sku ?: '-' }})
                                 </option>
                             @endforeach
