@@ -55,56 +55,79 @@
                         </div>
                     </div>
 
-                    <!-- Marketplace Fees & Programs Accordion -->
-                    <div class="accordion border rounded-3 mb-4" id="feeAccordion">
-                        <div class="accordion-item border-0">
-                            <h2 class="accordion-header">
-                                <button class="accordion-button bg-light py-2.5 px-3 fw-bold text-dark collapsed" style="font-size: 0.78rem;" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFees" aria-expanded="false" aria-controls="collapseFees">
-                                    <i class="bi bi-wallet2 text-primary me-2"></i> Rincian Potongan Marketplace (Shopee/TikTok)
-                                </button>
-                            </h2>
-                            <div id="collapseFees" class="accordion-collapse collapse" data-bs-parent="#feeAccordion">
-                                <div class="accordion-body p-3 bg-light bg-opacity-25" style="font-size: 0.8rem;">
-                                    <h6 class="fw-bold text-secondary small text-uppercase border-bottom pb-1 mb-2" style="font-size:.65rem;">Biaya Administrasi & Layanan</h6>
-                                    <div class="row g-2 mb-3">
-                                        <div class="col-6">
-                                            <label class="form-label text-muted small mb-1">Biaya Admin (%)</label>
-                                            <input type="number" id="adminFee" class="form-control form-control-sm" value="8.25" step="0.01">
-                                        </div>
-                                        <div class="col-6">
-                                            <label class="form-label text-muted small mb-1">Premi (%)</label>
-                                            <input type="number" id="premiFee" class="form-control form-control-sm" value="0.50" step="0.01">
-                                        </div>
-                                        <div class="col-12">
-                                            <label class="form-label text-muted small mb-1">Biaya Tetap Per Pesanan (Rp)</label>
-                                            <input type="number" id="fixedFee" class="form-control form-control-sm" value="1250">
-                                        </div>
-                                    </div>
+                    <!-- Mode Selector: Simpel vs Detail -->
+                    <div class="mb-3 d-flex justify-content-between align-items-center bg-light p-2 rounded-3 border">
+                        <label class="form-label fw-bold text-secondary small text-uppercase mb-0" style="font-size:.65rem;"><i class="bi bi-gear-wide-connected me-1"></i> Mode Potongan Marketplace</label>
+                        <div class="btn-group btn-group-sm" role="group">
+                            <input type="radio" class="btn-check" name="feeCalculationMode" id="modeSimple" autocomplete="off" checked>
+                            <label class="btn btn-outline-primary px-3 fw-bold btn-sm" style="font-size:0.7rem;" for="modeSimple">Simpel</label>
+                            
+                            <input type="radio" class="btn-check" name="feeCalculationMode" id="modeDetail" autocomplete="off">
+                            <label class="btn btn-outline-primary px-3 fw-bold btn-sm" style="font-size:0.7rem;" for="modeDetail">Detail Program</label>
+                        </div>
+                    </div>
 
-                                    <h6 class="fw-bold text-secondary small text-uppercase border-bottom pb-1 mb-2" style="font-size:.65rem;">Program Pemasaran (Ikut Serta)</h6>
-                                    <div class="row g-2">
-                                        <div class="col-6">
-                                            <label class="form-label text-muted small mb-1">Gratis Ongkir Xtra (%)</label>
-                                            <input type="number" id="ongkirXtra" class="form-control form-control-sm" value="7.50" step="0.01">
-                                        </div>
-                                        <div class="col-6">
-                                            <label class="form-label text-muted small mb-1">Promo Xtra (%)</label>
-                                            <input type="number" id="promoXtra" class="form-control form-control-sm" value="4.50" step="0.01">
-                                        </div>
-                                        <div class="col-6">
-                                            <label class="form-label text-muted small mb-1">Promo Xtra+ / Plus (%)</label>
-                                            <input type="number" id="promoPlus" class="form-control form-control-sm" value="2.00" step="0.01">
-                                        </div>
-                                        <div class="col-6">
-                                            <label class="form-label text-muted small mb-1">Live Xtra (%)</label>
-                                            <input type="number" id="liveXtra" class="form-control form-control-sm" value="2.00" step="0.01">
-                                        </div>
-                                        <div class="col-12">
-                                            <label class="form-label text-muted small mb-1">Spaylater Buyer (3 Bulan) (%)</label>
-                                            <input type="number" id="spaylater" class="form-control form-control-sm" value="2.50" step="0.01">
-                                        </div>
-                                    </div>
+                    <!-- Simple Mode Container -->
+                    <div id="simpleFeeContainer" class="p-3 bg-light rounded-3 mb-4 border">
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <label class="form-label fw-bold text-secondary small text-uppercase" style="font-size:.6rem;">Estimasi Potongan (%)</label>
+                                <div class="input-group input-group-sm">
+                                    <input type="number" id="simpleFeePct" class="form-control" value="15.00" step="0.1">
+                                    <span class="input-group-text bg-white">%</span>
                                 </div>
+                                <div class="form-text text-muted" style="font-size:.58rem; line-height:1.2;">Total perkiraan potongan admin & ongkir.</div>
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label fw-bold text-secondary small text-uppercase" style="font-size:.6rem;">Tetap per Order (Rp)</label>
+                                <div class="input-group input-group-sm">
+                                    <span class="input-group-text bg-white">Rp</span>
+                                    <input type="number" id="simpleFixedFee" class="form-control" value="1250">
+                                </div>
+                                <div class="form-text text-muted" style="font-size:.58rem; line-height:1.2;">Biaya admin tetap per transaksi.</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Detail Mode Container (Initially Hidden) -->
+                    <div id="detailFeeContainer" class="p-3 bg-light rounded-3 mb-4 border d-none">
+                        <h6 class="fw-bold text-secondary small text-uppercase border-bottom pb-1 mb-2" style="font-size:.65rem;">Biaya Administrasi & Layanan</h6>
+                        <div class="row g-2 mb-3">
+                            <div class="col-6">
+                                <label class="form-label text-muted small mb-1">Biaya Admin (%)</label>
+                                <input type="number" id="adminFee" class="form-control form-control-sm" value="8.25" step="0.01">
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label text-muted small mb-1">Premi (%)</label>
+                                <input type="number" id="premiFee" class="form-control form-control-sm" value="0.50" step="0.01">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label text-muted small mb-1">Biaya Tetap Per Pesanan (Rp)</label>
+                                <input type="number" id="fixedFee" class="form-control form-control-sm" value="1250">
+                            </div>
+                        </div>
+
+                        <h6 class="fw-bold text-secondary small text-uppercase border-bottom pb-1 mb-2" style="font-size:.65rem;">Program Pemasaran (Ikut Serta)</h6>
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <label class="form-label text-muted small mb-1">Gratis Ongkir Xtra (%)</label>
+                                <input type="number" id="ongkirXtra" class="form-control form-control-sm" value="7.50" step="0.01">
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label text-muted small mb-1">Promo Xtra (%)</label>
+                                <input type="number" id="promoXtra" class="form-control form-control-sm" value="4.50" step="0.01">
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label text-muted small mb-1">Promo Xtra+ / Plus (%)</label>
+                                <input type="number" id="promoPlus" class="form-control form-control-sm" value="2.00" step="0.01">
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label text-muted small mb-1">Live Xtra (%)</label>
+                                <input type="number" id="liveXtra" class="form-control form-control-sm" value="2.00" step="0.01">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label text-muted small mb-1">Spaylater Buyer (3 Bulan) (%)</label>
+                                <input type="number" id="spaylater" class="form-control form-control-sm" value="2.50" step="0.01">
                             </div>
                         </div>
                     </div>
@@ -328,12 +351,17 @@
 document.addEventListener("DOMContentLoaded", function() {
     const inputs = [
         'salePrice', 'cogs', 'simRoas',
+        'simpleFeePct', 'simpleFixedFee',
         'adminFee', 'premiFee', 'fixedFee',
         'ongkirXtra', 'promoXtra', 'promoPlus', 'liveXtra', 'spaylater'
     ];
     inputs.forEach(id => {
         document.getElementById(id).addEventListener('input', calculateMatrix);
     });
+
+    // Toggle calculation mode simple vs detail
+    document.getElementById('modeSimple').addEventListener('change', toggleCalculationMode);
+    document.getElementById('modeDetail').addEventListener('change', toggleCalculationMode);
 
     // Event listener untuk dropdown produk
     document.getElementById('productSelect').addEventListener('change', function() {
@@ -351,26 +379,47 @@ document.addEventListener("DOMContentLoaded", function() {
     calculateMatrix();
 });
 
+function toggleCalculationMode() {
+    const isSimple = document.getElementById('modeSimple').checked;
+    if (isSimple) {
+        document.getElementById('simpleFeeContainer').classList.remove('d-none');
+        document.getElementById('detailFeeContainer').classList.add('d-none');
+    } else {
+        document.getElementById('simpleFeeContainer').classList.add('d-none');
+        document.getElementById('detailFeeContainer').classList.remove('d-none');
+    }
+    calculateMatrix();
+}
+
 function calculateMatrix() {
     const price = parseFloat(document.getElementById('salePrice').value) || 0;
     const cogs = parseFloat(document.getElementById('cogs').value) || 0;
     const simRoas = parseFloat(document.getElementById('simRoas').value) || 0.1;
 
-    // Ambil semua persentase biaya marketplace
-    const adminPct = parseFloat(document.getElementById('adminFee').value) || 0;
-    const premiPct = parseFloat(document.getElementById('premiFee').value) || 0;
-    const fixedFee = parseFloat(document.getElementById('fixedFee').value) || 0;
+    const isSimple = document.getElementById('modeSimple').checked;
+    let totalFeePct = 0;
+    let totalFeeNominal = 0;
 
-    // Ambil persentase program pemasaran
-    const ongkirXtra = parseFloat(document.getElementById('ongkirXtra').value) || 0;
-    const promoXtra = parseFloat(document.getElementById('promoXtra').value) || 0;
-    const promoPlus = parseFloat(document.getElementById('promoPlus').value) || 0;
-    const liveXtra = parseFloat(document.getElementById('liveXtra').value) || 0;
-    const spaylater = parseFloat(document.getElementById('spaylater').value) || 0;
+    if (isSimple) {
+        totalFeePct = parseFloat(document.getElementById('simpleFeePct').value) || 0;
+        const simpleFixed = parseFloat(document.getElementById('simpleFixedFee').value) || 0;
+        totalFeeNominal = ((totalFeePct / 100) * price) + simpleFixed;
+    } else {
+        // Ambil semua persentase biaya marketplace
+        const adminPct = parseFloat(document.getElementById('adminFee').value) || 0;
+        const premiPct = parseFloat(document.getElementById('premiFee').value) || 0;
+        const fixedFee = parseFloat(document.getElementById('fixedFee').value) || 0;
 
-    // Total persentase potongan marketplace
-    const totalFeePct = adminPct + premiPct + ongkirXtra + promoXtra + promoPlus + liveXtra + spaylater;
-    const totalFeeNominal = ((totalFeePct / 100) * price) + fixedFee;
+        // Ambil persentase program pemasaran
+        const ongkirXtra = parseFloat(document.getElementById('ongkirXtra').value) || 0;
+        const promoXtra = parseFloat(document.getElementById('promoXtra').value) || 0;
+        const promoPlus = parseFloat(document.getElementById('promoPlus').value) || 0;
+        const liveXtra = parseFloat(document.getElementById('liveXtra').value) || 0;
+        const spaylater = parseFloat(document.getElementById('spaylater').value) || 0;
+
+        totalFeePct = adminPct + premiPct + ongkirXtra + promoXtra + promoPlus + liveXtra + spaylater;
+        totalFeeNominal = ((totalFeePct / 100) * price) + fixedFee;
+    }
 
     // 1. Organik GPM (Profit Organik) = Harga Jual - HPP - Biaya Marketplace
     const gpmNominal = price - cogs - totalFeeNominal;
