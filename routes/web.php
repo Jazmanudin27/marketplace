@@ -474,11 +474,10 @@ Route::middleware('auth')->group(function () {
         Route::get('/marketing/ads/logs', [AdsController::class, 'logs'])->name('marketing.ads.logs');
         Route::post('/marketing/ads/logs', [AdsController::class, 'storeLog'])->name('marketing.ads.logs.store');
         Route::post('/marketing/ads/attribute-order', [AdsController::class, 'attributeOrder'])->name('marketing.ads.attribute');
-        Route::post('/marketing/ads/shopee/sync', [AdsController::class, 'syncShopee'])->name('marketing.ads.shopee.sync');
+        Route::post('/marketing/ads/sync', [AdsController::class, 'syncAll'])->name('marketing.ads.sync');
         Route::get('/marketing/ads/tiktok/connect', [\App\Http\Controllers\Marketing\TiktokAdsAuthController::class, 'connect'])->name('marketing.ads.tiktok.connect');
         Route::get('/marketing/ads/tiktok/callback', [\App\Http\Controllers\Marketing\TiktokAdsAuthController::class, 'callback'])->name('marketing.ads.tiktok.callback');
         Route::post('/marketing/ads/tiktok/select', [\App\Http\Controllers\Marketing\TiktokAdsAuthController::class, 'selectAccount'])->name('marketing.ads.tiktok.select');
-        Route::post('/marketing/ads/tiktok/sync', [AdsController::class, 'syncTiktok'])->name('marketing.ads.tiktok.sync');
     });
 
 

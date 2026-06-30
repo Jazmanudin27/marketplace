@@ -4,18 +4,10 @@
 @section('page-title', 'Target Campaign Iklan')
 
 @section('topbar-actions')
-    <!-- Sync Shopee -->
-    <form action="{{ route('marketing.ads.shopee.sync') }}" method="POST" class="d-inline">
+    <form action="{{ route('marketing.ads.sync') }}" method="POST" class="d-inline">
         @csrf
         <button type="submit" class="btn btn-sm btn-light text-primary fw-bold px-3 me-2">
-            <i class="bi bi-arrow-repeat me-1"></i> Sync Iklan Shopee
-        </button>
-    </form>
-    <!-- Sync TikTok -->
-    <form action="{{ route('marketing.ads.tiktok.sync') }}" method="POST" class="d-inline">
-        @csrf
-        <button type="submit" class="btn btn-sm btn-light text-primary fw-bold px-3 me-2">
-            <i class="bi bi-arrow-repeat me-1"></i> Sync Iklan TikTok
+            <i class="bi bi-arrow-repeat me-1"></i> Sync Semua Iklan
         </button>
     </form>
     <a href="{{ route('marketing.ads.index') }}" class="btn btn-sm btn-light text-primary fw-bold px-3">
