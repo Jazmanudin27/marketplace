@@ -31,10 +31,7 @@
         request()->routeIs('finance.reconciliation') ||
         request()->routeIs('profit.*');
 
-    $isMarketingActive =
-        request()->routeIs('marketing.ads.index') ||
-        request()->routeIs('marketing.ads.campaigns') ||
-        request()->routeIs('marketing.ads.logs');
+    $isMarketingActive = request()->routeIs('marketing.ads.index');
 @endphp
 
 <div class="d-flex flex-column p-3 bg-primary text-white w-100" id="sidebar">
@@ -478,12 +475,6 @@
                         <a href="{{ route('marketing.ads.index') }}"
                             class="nav-link py-1 {{ request()->routeIs('marketing.ads.index') ? 'active text-white' : 'text-secondary' }}">Dashboard
                             Keputusan</a>
-                        <a href="{{ route('marketing.ads.campaigns') }}"
-                            class="nav-link py-1 {{ request()->routeIs('marketing.ads.campaigns') ? 'active text-white' : 'text-secondary' }}">Target
-                            Campaign</a>
-                        <a href="{{ route('marketing.ads.logs') }}"
-                            class="nav-link py-1 {{ request()->routeIs('marketing.ads.logs') ? 'active text-white' : 'text-secondary' }}">Input
-                            Biaya Harian</a>
                     </div>
                 </div>
             </div>
