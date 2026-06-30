@@ -36,6 +36,8 @@ class AdsBudgetRule extends Model
     const ACTION_NOTIFY              = 'notify';
     const ACTION_PAUSE_SUGGESTION    = 'pause_suggestion';
     const ACTION_INCREASE_SUGGESTION = 'increase_suggestion';
+    const ACTION_PAUSE_CAMPAIGN_AUTO = 'pause_campaign_auto';
+    const ACTION_ADJUST_BUDGET_AUTO  = 'adjust_budget_auto';
 
     public static function conditionLabels(): array
     {
@@ -51,8 +53,10 @@ class AdsBudgetRule extends Model
     {
         return [
             self::ACTION_NOTIFY              => 'Beri Notifikasi',
-            self::ACTION_PAUSE_SUGGESTION    => 'Saran: Pause Campaign',
-            self::ACTION_INCREASE_SUGGESTION => 'Saran: Tingkatkan Budget',
+            self::ACTION_PAUSE_SUGGESTION    => 'Saran: Pause Campaign (Manual)',
+            self::ACTION_INCREASE_SUGGESTION => 'Saran: Tingkatkan Budget (Manual)',
+            self::ACTION_PAUSE_CAMPAIGN_AUTO => '🔴 Otomatis Pause Campaign (API)',
+            self::ACTION_ADJUST_BUDGET_AUTO  => '⚙️ Otomatis Sesuaikan Budget -20% (API)',
         ];
     }
 

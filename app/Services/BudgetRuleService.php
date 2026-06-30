@@ -128,6 +128,43 @@ class BudgetRuleService
         }
 
         if ($triggered) {
+            // Jalankan Aksi Otomatis via API jika dikonfigurasi
+            if ($rule->action === AdsBudgetRule::ACTION_PAUSE_CAMPAIGN_AUTO) {
+                if ($campaign->adsAccount && $campaign->adsAccount->platform === 'tiktok') {
+                    $apiService = app(\App\Services\TiktokAdsApiService::class);
+                    $success = $apiService->updateCampaignStatus($campaign, 'paused');
+                    
+                    if ($success) {
+                        $campaign->update(['status' => 'PAUSED', 'is_active' => false]);
+                        $message .= " [API ACTION: Campaign otomatis dinonaktifkan di TikTok Ads Manager]";
+                    } else {
+                        $message .= " [API ACTION: Gagal mematikan campaign di TikTok via API]";
+                    }
+                } else {
+                    // Simulasi untuk non-tiktok
+                    $campaign->update(['status' => 'PAUSED', 'is_active' => false]);
+                    $message .= " [API ACTION: Campaign otomatis di-jeda di database (API " . ucfirst($campaign->adsAccount->platform) . " disimulasikan)]";
+                }
+            } elseif ($rule->action === AdsBudgetRule::ACTION_ADJUST_BUDGET_AUTO) {
+                // Untuk penyesuaian budget, kita turunkan 20%
+                $currentSpend = $campaign->target_omzet > 0 ? (float) $campaign->target_omzet : 500000;
+                $newBudget = $currentSpend * 0.80; // Turun 20%
+                
+                if ($campaign->adsAccount && $campaign->adsAccount->platform === 'tiktok') {
+                    $apiService = app(\App\Services\TiktokAdsApiService::class);
+                    $success = $apiService->updateCampaignBudget($campaign, $newBudget);
+                    
+                    if ($success) {
+                        $message .= " [API ACTION: Budget harian otomatis disesuaikan dari Rp " . number_format($currentSpend, 0, ',', '.') . " menjadi Rp " . number_format($newBudget, 0, ',', '.') . " (-20%) di TikTok Ads Manager]";
+                    } else {
+                        $message .= " [API ACTION: Gagal menyesuaikan budget di TikTok via API]";
+                    }
+                } else {
+                    // Simulasi non-tiktok
+                    $message .= " [API ACTION: Budget harian diturunkan dari Rp " . number_format($currentSpend, 0, ',', '.') . " menjadi Rp " . number_format($newBudget, 0, ',', '.') . " (-20% API " . ucfirst($campaign->adsAccount->platform) . " disimulasikan)]";
+                }
+            }
+
             // Buat record alert
             AdsBudgetAlert::create([
                 'tenant_id' => $rule->tenant_id,

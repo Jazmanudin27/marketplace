@@ -75,8 +75,10 @@
                             style="letter-spacing:.5px;font-size:.7rem;">Tindakan Otomatis</label>
                         <select name="action" class="form-select form-select-sm rounded-3" required>
                             <option value="notify">🔔 Kirim Alert & Dashboard Notifikasi</option>
-                            <option value="pause_suggestion">⚠️ Tampilkan Saran Jeda Iklan (Pause)</option>
-                            <option value="increase_suggestion">📈 Tampilkan Saran Naikkan Budget (Scale)</option>
+                            <option value="pause_suggestion">⚠️ Tampilkan Saran Jeda Iklan (Pause - Manual)</option>
+                            <option value="increase_suggestion">📈 Tampilkan Saran Naikkan Budget (Scale - Manual)</option>
+                            <option value="pause_campaign_auto">🔴 Otomatis Jeda Campaign di TikTok Ads Manager (API)</option>
+                            <option value="adjust_budget_auto">⚙️ Otomatis Kurangi Budget Iklan -20% di TikTok Ads (API)</option>
                         </select>
                     </div>
 
