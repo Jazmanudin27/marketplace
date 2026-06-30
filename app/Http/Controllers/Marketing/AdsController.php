@@ -776,6 +776,8 @@ class AdsController extends Controller
 
     public function roasCalculator()
     {
-        return view('marketing.ads.roas_calculator');
+        $tenantId = Auth::user()->tenant_id;
+        $products = \App\Models\Product::where('tenant_id', $tenantId)->get(['id', 'name', 'sku', 'price', 'cost']);
+        return view('marketing.ads.roas_calculator', compact('products'));
     }
 }
