@@ -263,4 +263,19 @@ class AdsController extends Controller
 
         return redirect()->back()->with('success', 'Pesanan berhasil dikaitkan ke Campaign iklan.');
     }
+
+    public function syncShopee()
+    {
+        try {
+            \Illuminate\Support\Facades\Artisan::call('shopee-ads:sync', ['--days' => 14]);
+            $output = \Illuminate\Support\Facades\Artisan::output();
+
+            Log::info('[Shopee Ads Web Sync] Manually triggered sync', ['output' => $output]);
+
+            return redirect()->back()->with('success', 'Sinkronisasi data iklan Shopee 14 hari terakhir berhasil dilakukan!');
+        } catch (\Exception $e) {
+            Log::error('[Shopee Ads Web Sync] Error', ['message' => $e->getMessage()]);
+            return redirect()->back()->with('error', 'Gagal melakukan sinkronisasi iklan Shopee: ' . $e->getMessage());
+        }
+    }
 }

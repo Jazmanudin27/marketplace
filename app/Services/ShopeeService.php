@@ -1169,4 +1169,56 @@ class ShopeeService
         return $data['response']['list'][0]['attribute_tree'] ?? [];
     }
 
+    /**
+     * Ambil data performa iklan Shopee (GMV Max/Search Ads).
+     *
+     * @param string $accessToken
+     * @param int $shopId
+     * @param string $startDate YYYY-MM-DD
+     * @param string $endDate YYYY-MM-DD
+     * @return array
+     */
+    public function getAdsPerformance(string $accessToken, int $shopId, string $startDate, string $endDate): array
+    {
+        $path = '/api/v2/ads/get_gms_campaign_performance';
+        $timestamp = time();
+        $sign = $this->signShopRequest($path, $timestamp, $accessToken, $shopId);
+
+        $queryParams = [
+            'partner_id' => $this->partnerId,
+            'timestamp' => $timestamp,
+            'sign' => $sign,
+            'access_token' => $accessToken,
+            'shop_id' => $shopId,
+        ];
+
+        try {
+            $response = Http::timeout(30)->post($this->baseUrl . $path . '?' . http_build_query($queryParams), [
+                'start_date' => $startDate,
+                'end_date' => $endDate,
+                'page_no' => 1,
+                'page_size' => 50,
+            ]);
+
+            if ($response->failed()) {
+                Log::error('[Shopee Ads] API call failed', [
+                    'status' => $response->status(),
+                    'body' => $response->body()
+                ]);
+                return [];
+            }
+
+            $data = $response->json();
+            if (($data['error'] ?? '') !== '' && ($data['error'] ?? 'OK') !== 'OK') {
+                Log::warning('[Shopee Ads] API error response', ['data' => $data]);
+                return [];
+            }
+
+            return $data['response']['campaign_performance_list'] ?? [];
+        } catch (\Exception $e) {
+            Log::error('[Shopee Ads] Exception during API call', ['message' => $e->getMessage()]);
+            return [];
+        }
+    }
+
 }

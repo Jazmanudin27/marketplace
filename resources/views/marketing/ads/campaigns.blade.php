@@ -4,6 +4,12 @@
 @section('page-title', 'Target Campaign Iklan')
 
 @section('topbar-actions')
+    <form action="{{ route('marketing.ads.shopee.sync') }}" method="POST" class="d-inline">
+        @csrf
+        <button type="submit" class="btn btn-sm btn-light text-primary fw-bold px-3 me-2">
+            <i class="bi bi-arrow-repeat me-1"></i> Sync Iklan Shopee
+        </button>
+    </form>
     <a href="{{ route('marketing.ads.index') }}" class="btn btn-sm btn-light text-primary fw-bold px-3">
         <i class="bi bi-arrow-left me-1"></i> Kembali ke Dashboard Iklan
     </a>

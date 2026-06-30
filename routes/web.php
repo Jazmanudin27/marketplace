@@ -474,6 +474,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/marketing/ads/logs', [AdsController::class, 'logs'])->name('marketing.ads.logs');
         Route::post('/marketing/ads/logs', [AdsController::class, 'storeLog'])->name('marketing.ads.logs.store');
         Route::post('/marketing/ads/attribute-order', [AdsController::class, 'attributeOrder'])->name('marketing.ads.attribute');
+        Route::post('/marketing/ads/shopee/sync', [AdsController::class, 'syncShopee'])->name('marketing.ads.shopee.sync');
     });
 
 
