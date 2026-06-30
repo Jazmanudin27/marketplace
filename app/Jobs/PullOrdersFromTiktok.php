@@ -62,6 +62,13 @@ class PullOrdersFromTiktok implements ShouldQueue
             $previousCursor = null;
 
             do {
+                Log::info('[TikTok Debug] Querying order list from API', [
+                    'store_name' => $this->store->store_name,
+                    'time_from' => date('Y-m-d H:i:s', $this->timeFrom),
+                    'time_to' => date('Y-m-d H:i:s', $this->timeTo),
+                    'cursor' => $cursor
+                ]);
+
                 $response = $tiktokService->getOrderList(
                     $accessToken,
                     $shopCipher,
@@ -72,6 +79,12 @@ class PullOrdersFromTiktok implements ShouldQueue
 
                 $orders = $response['orders'] ?? [];
                 
+                Log::info('[TikTok Debug] Received order list response', [
+                    'count' => count($orders),
+                    'next_cursor' => $response['next_cursor'] ?? null,
+                    'more' => $response['more'] ?? null,
+                ]);
+
                 foreach ($orders as $o) {
                     $id = $o['id'] ?? $o['order_id'] ?? null;
                     if ($id) {
