@@ -14,12 +14,15 @@ class TiktokAdsAuthController extends Controller
     private $appId;
     private $secret;
     private $redirectUri;
+    private $apiBaseUrl;
 
     public function __construct()
     {
         $this->appId = config('services.tiktok_ads.app_id');
         $this->secret = config('services.tiktok_ads.secret');
         $this->redirectUri = config('services.tiktok_ads.redirect_uri');
+        $isSandbox = config('services.tiktok_ads.sandbox', false);
+        $this->apiBaseUrl = $isSandbox ? 'https://sandbox-ads.tiktok.com/open_api/v1.3/' : 'https://business-api.tiktok.com/open_api/v1.3/';
     }
 
     /**
@@ -56,7 +59,7 @@ class TiktokAdsAuthController extends Controller
 
         try {
             // 1. Tukar auth_code dengan access_token
-            $tokenUrl = "https://business-api.tiktok.com/open_api/v1.3/oauth2/access_token/";
+            $tokenUrl = $this->apiBaseUrl . "oauth2/access_token/";
             $response = Http::timeout(30)->post($tokenUrl, [
                 'app_id' => $this->appId,
                 'secret' => $this->secret,
@@ -83,7 +86,7 @@ class TiktokAdsAuthController extends Controller
             }
 
             // 2. Tarik daftar Advertiser Accounts menggunakan access_token
-            $advUrl = "https://business-api.tiktok.com/open_api/v1.3/oauth2/advertiser/get/";
+            $advUrl = $this->apiBaseUrl . "oauth2/advertiser/get/";
             $advResponse = Http::timeout(30)
                 ->withHeaders(['Access-Token' => $accessToken])
                 ->get($advUrl, [

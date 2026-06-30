@@ -51,6 +51,7 @@ return [
         'app_id' => env('TIKTOK_ADS_APP_ID'),
         'secret' => env('TIKTOK_ADS_SECRET'),
         'redirect_uri' => env('TIKTOK_ADS_REDIRECT_URI'),
+        'sandbox' => (bool) env('TIKTOK_ADS_SANDBOX', false),
     ],
 
 ];

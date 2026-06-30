@@ -69,7 +69,9 @@ class SyncTiktokAdsData extends Command
                     $this->info("- Fetching data for date: {$dateStr}");
 
                     // Panggil API integrated report TikTok Ads
-                    $reportUrl = "https://business-api.tiktok.com/open_api/v1.3/reports/integrated/get/";
+                    $isSandbox = config('services.tiktok_ads.sandbox', false);
+                    $apiBaseUrl = $isSandbox ? 'https://sandbox-ads.tiktok.com/open_api/v1.3/' : 'https://business-api.tiktok.com/open_api/v1.3/';
+                    $reportUrl = $apiBaseUrl . "reports/integrated/get/";
                     
                     $response = Http::timeout(30)
                         ->withHeaders(['Access-Token' => $account->access_token])
