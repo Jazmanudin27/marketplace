@@ -130,7 +130,7 @@ class LazadaController extends Controller
     {
         abort_unless($store->tenant_id === Auth::user()->tenant_id, 403);
         abort_unless($store->channel->code === 'lazada', 400, 'Bukan toko Lazada.');
-        abort_if($store->status !== 'connected', 400, 'Toko belum terhubung.');
+        abort_if($store->status === 'disconnected', 400, 'Toko telah dinonaktifkan.');
 
         try {
             PullProductsFromLazada::dispatch($store);
@@ -151,7 +151,7 @@ class LazadaController extends Controller
     {
         abort_unless($store->tenant_id === Auth::user()->tenant_id, 403);
         abort_unless($store->channel->code === 'lazada', 400, 'Bukan toko Lazada.');
-        abort_if($store->status !== 'connected', 400, 'Toko belum terhubung.');
+        abort_if($store->status === 'disconnected', 400, 'Toko telah dinonaktifkan.');
 
         try {
             $timeFrom = now()->subDays(15)->timestamp;

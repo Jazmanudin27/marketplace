@@ -149,7 +149,7 @@ class ShopeeController extends Controller
     {
         abort_unless($store->tenant_id === Auth::user()->tenant_id, 403);
         abort_unless($store->channel->code === 'shopee', 400, 'Bukan toko Shopee.');
-        abort_if($store->status !== 'connected', 400, 'Toko belum terhubung.');
+        abort_if($store->status === 'disconnected', 400, 'Toko telah dinonaktifkan.');
 
         try {
             $shopId = (int) $store->marketplace_store_id;
@@ -280,7 +280,7 @@ class ShopeeController extends Controller
     {
         abort_unless($store->tenant_id === Auth::user()->tenant_id, 403);
         abort_unless($store->channel->code === 'shopee', 400, 'Bukan toko Shopee.');
-        abort_if($store->status !== 'connected', 400, 'Toko belum terhubung.');
+        abort_if($store->status === 'disconnected', 400, 'Toko telah dinonaktifkan.');
 
         try {
             $timeTo = time();

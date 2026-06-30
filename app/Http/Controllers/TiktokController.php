@@ -154,7 +154,7 @@ class TiktokController extends Controller
     {
         abort_unless($store->tenant_id === Auth::user()->tenant_id, 403);
         abort_unless(in_array($store->channel->code, ['tiktok', 'tokopedia']), 400, 'Bukan toko TikTok/Tokopedia.');
-        abort_if($store->status !== 'connected', 400, 'Toko belum terhubung.');
+        abort_if($store->status === 'disconnected', 400, 'Toko telah dinonaktifkan.');
 
         try {
             PullProductsFromTiktok::dispatch($store);
@@ -178,7 +178,7 @@ class TiktokController extends Controller
     {
         abort_unless($store->tenant_id === Auth::user()->tenant_id, 403);
         abort_unless(in_array($store->channel->code, ['tiktok', 'tokopedia']), 400, 'Bukan toko TikTok/Tokopedia.');
-        abort_if($store->status !== 'connected', 400, 'Toko belum terhubung.');
+        abort_if($store->status === 'disconnected', 400, 'Toko telah dinonaktifkan.');
 
         try {
             $timeFrom = now()->subDays(15)->timestamp;

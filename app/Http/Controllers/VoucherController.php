@@ -156,11 +156,12 @@ class VoucherController extends Controller
             return back()->with('error', 'Toko yang dipilih bukan toko Shopee.');
         }
 
-        if ($store->status !== 'connected') {
-            return back()->with('error', 'Toko Shopee tidak terhubung. Silakan hubungkan ulang.');
+        if ($store->status === 'disconnected') {
+            return back()->with('error', 'Toko Shopee sedang dinonaktifkan.');
         }
 
         try {
+            $accessToken = $store->getValidAccessToken();
             $payload = [
                 'voucher_name'       => $voucher->name,
                 'voucher_code'       => $voucher->code,
@@ -177,7 +178,7 @@ class VoucherController extends Controller
             ];
 
             $result = $shopeeService->createVoucher(
-                $store->access_token,
+                $accessToken,
                 (int) $store->marketplace_store_id,
                 $payload
             );
@@ -207,8 +208,13 @@ class VoucherController extends Controller
         $store = $voucher->store()->with('channel')->first();
 
         try {
+            if ($store->status === 'disconnected') {
+                return back()->with('error', 'Toko Shopee sedang dinonaktifkan.');
+            }
+            $accessToken = $store->getValidAccessToken();
+
             $shopeeService->endVoucher(
-                $store->access_token,
+                $accessToken,
                 (int) $store->marketplace_store_id,
                 (int) $voucher->marketplace_voucher_id
             );
