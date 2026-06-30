@@ -43,14 +43,14 @@
                             <label class="form-label fw-bold text-secondary small text-uppercase" style="font-size:.65rem;">Harga Jual Produk (Rp)</label>
                             <div class="input-group input-group-sm">
                                 <span class="input-group-text bg-light">Rp</span>
-                                <input type="number" id="salePrice" class="form-control rounded-end-3" value="229900" min="1" required>
+                                <input type="text" id="salePrice" class="form-control rounded-end-3 input-rupiah" value="229.900" required>
                             </div>
                         </div>
                         <div class="col-6">
                             <label class="form-label fw-bold text-secondary small text-uppercase" style="font-size:.65rem;">COGS / HPP Produk (Rp)</label>
                             <div class="input-group input-group-sm">
                                 <span class="input-group-text bg-light">Rp</span>
-                                <input type="number" id="cogs" class="form-control rounded-end-3" value="85000" min="0" required>
+                                <input type="text" id="cogs" class="form-control rounded-end-3 input-rupiah" value="85.000" required>
                             </div>
                         </div>
                     </div>
@@ -82,7 +82,7 @@
                                 <label class="form-label fw-bold text-secondary small text-uppercase" style="font-size:.6rem;">Tetap per Order (Rp)</label>
                                 <div class="input-group input-group-sm">
                                     <span class="input-group-text bg-white">Rp</span>
-                                    <input type="number" id="simpleFixedFee" class="form-control" value="1250">
+                                    <input type="text" id="simpleFixedFee" class="form-control input-rupiah" value="1.250">
                                 </div>
                                 <div class="form-text text-muted" style="font-size:.58rem; line-height:1.2;">Biaya admin tetap per transaksi.</div>
                             </div>
@@ -103,7 +103,7 @@
                             </div>
                             <div class="col-12">
                                 <label class="form-label text-muted small mb-1">Biaya Tetap Per Pesanan (Rp)</label>
-                                <input type="number" id="fixedFee" class="form-control form-control-sm" value="1250">
+                                <input type="text" id="fixedFee" class="form-control form-control-sm input-rupiah" value="1.250">
                             </div>
                         </div>
 
@@ -349,10 +349,19 @@
 
 <script>
 document.addEventListener("DOMContentLoaded", function() {
+    // Terapkan masking format rupiah pada input kelas input-rupiah
+    const rupiahInputs = document.querySelectorAll('.input-rupiah');
+    rupiahInputs.forEach(input => {
+        input.addEventListener('input', function() {
+            let rawValue = this.value.replace(/\D/g, "");
+            this.value = formatNumber(rawValue);
+            calculateMatrix();
+        });
+    });
+
     const inputs = [
-        'salePrice', 'cogs', 'simRoas',
-        'simpleFeePct', 'simpleFixedFee',
-        'adminFee', 'premiFee', 'fixedFee',
+        'simRoas', 'simpleFeePct',
+        'adminFee', 'premiFee',
         'ongkirXtra', 'promoXtra', 'promoPlus', 'liveXtra', 'spaylater'
     ];
     inputs.forEach(id => {
@@ -369,8 +378,13 @@ document.addEventListener("DOMContentLoaded", function() {
         if (selectedOption.value) {
             const price = parseFloat(selectedOption.getAttribute('data-price')) || 0;
             const cost = parseFloat(selectedOption.getAttribute('data-cost')) || 0;
-            document.getElementById('salePrice').value = Math.round(price);
-            document.getElementById('cogs').value = Math.round(cost);
+            
+            const salePriceInput = document.getElementById('salePrice');
+            const cogsInput = document.getElementById('cogs');
+            
+            salePriceInput.value = formatNumber(Math.round(price));
+            cogsInput.value = formatNumber(Math.round(cost));
+            
             calculateMatrix();
         }
     });
@@ -378,6 +392,17 @@ document.addEventListener("DOMContentLoaded", function() {
     // Inisiasi pertama
     calculateMatrix();
 });
+
+function formatNumber(num) {
+    if (!num) return "";
+    return num.toString().replace(/\D/g, "").replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+}
+
+function getRawValue(id) {
+    const el = document.getElementById(id);
+    if (!el) return 0;
+    return parseFloat(el.value.replace(/\./g, '')) || 0;
+}
 
 function toggleCalculationMode() {
     const isSimple = document.getElementById('modeSimple').checked;
@@ -392,8 +417,8 @@ function toggleCalculationMode() {
 }
 
 function calculateMatrix() {
-    const price = parseFloat(document.getElementById('salePrice').value) || 0;
-    const cogs = parseFloat(document.getElementById('cogs').value) || 0;
+    const price = getRawValue('salePrice');
+    const cogs = getRawValue('cogs');
     const simRoas = parseFloat(document.getElementById('simRoas').value) || 0.1;
 
     const isSimple = document.getElementById('modeSimple').checked;
@@ -402,13 +427,13 @@ function calculateMatrix() {
 
     if (isSimple) {
         totalFeePct = parseFloat(document.getElementById('simpleFeePct').value) || 0;
-        const simpleFixed = parseFloat(document.getElementById('simpleFixedFee').value) || 0;
+        const simpleFixed = getRawValue('simpleFixedFee');
         totalFeeNominal = ((totalFeePct / 100) * price) + simpleFixed;
     } else {
         // Ambil semua persentase biaya marketplace
         const adminPct = parseFloat(document.getElementById('adminFee').value) || 0;
         const premiPct = parseFloat(document.getElementById('premiFee').value) || 0;
-        const fixedFee = parseFloat(document.getElementById('fixedFee').value) || 0;
+        const fixedFee = getRawValue('fixedFee');
 
         // Ambil persentase program pemasaran
         const ongkirXtra = parseFloat(document.getElementById('ongkirXtra').value) || 0;
