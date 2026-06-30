@@ -365,43 +365,61 @@ document.addEventListener("DOMContentLoaded", function() {
         'ongkirXtra', 'promoXtra', 'promoPlus', 'liveXtra', 'spaylater'
     ];
     inputs.forEach(id => {
-        document.getElementById(id).addEventListener('input', calculateMatrix);
+        const el = document.getElementById(id);
+        if (el) {
+            el.addEventListener('input', calculateMatrix);
+        }
     });
 
     // Toggle calculation mode simple vs detail
-    document.getElementById('modeSimple').addEventListener('change', toggleCalculationMode);
-    document.getElementById('modeDetail').addEventListener('change', toggleCalculationMode);
+    const modeSimpleEl = document.getElementById('modeSimple');
+    const modeDetailEl = document.getElementById('modeDetail');
+    if (modeSimpleEl) modeSimpleEl.addEventListener('change', toggleCalculationMode);
+    if (modeDetailEl) modeDetailEl.addEventListener('change', toggleCalculationMode);
 
     // Event listener untuk dropdown produk
-    document.getElementById('productSelect').addEventListener('change', function() {
-        const selectedOption = this.options[this.selectedIndex];
-        if (selectedOption.value) {
-            const price = parseFloat(selectedOption.getAttribute('data-price')) || 0;
-            const cost = parseFloat(selectedOption.getAttribute('data-cost')) || 0;
-            
-            const salePriceInput = document.getElementById('salePrice');
-            const cogsInput = document.getElementById('cogs');
-            
-            salePriceInput.value = formatNumber(Math.round(price));
-            cogsInput.value = formatNumber(Math.round(cost));
-            
-            calculateMatrix();
-        }
-    });
+    const productSelectEl = document.getElementById('productSelect');
+    if (productSelectEl) {
+        productSelectEl.addEventListener('change', function() {
+            const selectedOption = this.options[this.selectedIndex];
+            if (selectedOption && selectedOption.value) {
+                const priceAttr = selectedOption.getAttribute('data-price');
+                const costAttr = selectedOption.getAttribute('data-cost');
+                
+                const price = parseFloat(priceAttr) || 0;
+                const cost = parseFloat(costAttr) || 0;
+                
+                const salePriceInput = document.getElementById('salePrice');
+                const cogsInput = document.getElementById('cogs');
+                
+                if (salePriceInput) salePriceInput.value = formatNumber(Math.round(price));
+                if (cogsInput) cogsInput.value = formatNumber(Math.round(cost));
+                
+                calculateMatrix();
+            }
+        });
+    }
 
     // Inisiasi pertama
     calculateMatrix();
 });
 
 function formatNumber(num) {
-    if (!num) return "";
-    return num.toString().replace(/\D/g, "").replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+    if (num === null || num === undefined) return "";
+    let str = num.toString().replace(/[^0-9]/g, "");
+    if (!str) return "0";
+    // Hapus leading zero kecuali jika nilainya memang "0"
+    if (str.length > 1 && str.startsWith("0")) {
+        str = str.replace(/^0+/, "");
+    }
+    return str.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
 }
 
 function getRawValue(id) {
     const el = document.getElementById(id);
     if (!el) return 0;
-    return parseFloat(el.value.replace(/\./g, '')) || 0;
+    let valStr = el.value.toString().replace(/[^0-9]/g, '');
+    return parseInt(valStr, 10) || 0;
 }
 
 function toggleCalculationMode() {
@@ -419,28 +437,46 @@ function toggleCalculationMode() {
 function calculateMatrix() {
     const price = getRawValue('salePrice');
     const cogs = getRawValue('cogs');
-    const simRoas = parseFloat(document.getElementById('simRoas').value) || 0.1;
+    
+    const simRoasEl = document.getElementById('simRoas');
+    const simRoas = simRoasEl ? (parseFloat(simRoasEl.value) || 0.1) : 0.1;
 
-    const isSimple = document.getElementById('modeSimple').checked;
+    const modeSimpleEl = document.getElementById('modeSimple');
+    const isSimple = modeSimpleEl ? modeSimpleEl.checked : true;
+    
     let totalFeePct = 0;
     let totalFeeNominal = 0;
 
     if (isSimple) {
-        totalFeePct = parseFloat(document.getElementById('simpleFeePct').value) || 0;
+        const simpleFeePctEl = document.getElementById('simpleFeePct');
+        totalFeePct = simpleFeePctEl ? (parseFloat(simpleFeePctEl.value) || 0) : 0;
         const simpleFixed = getRawValue('simpleFixedFee');
         totalFeeNominal = ((totalFeePct / 100) * price) + simpleFixed;
     } else {
         // Ambil semua persentase biaya marketplace
-        const adminPct = parseFloat(document.getElementById('adminFee').value) || 0;
-        const premiPct = parseFloat(document.getElementById('premiFee').value) || 0;
+        const adminPctEl = document.getElementById('adminFee');
+        const adminPct = adminPctEl ? (parseFloat(adminPctEl.value) || 0) : 0;
+        
+        const premiPctEl = document.getElementById('premiFee');
+        const premiPct = premiPctEl ? (parseFloat(premiPctEl.value) || 0) : 0;
+        
         const fixedFee = getRawValue('fixedFee');
 
         // Ambil persentase program pemasaran
-        const ongkirXtra = parseFloat(document.getElementById('ongkirXtra').value) || 0;
-        const promoXtra = parseFloat(document.getElementById('promoXtra').value) || 0;
-        const promoPlus = parseFloat(document.getElementById('promoPlus').value) || 0;
-        const liveXtra = parseFloat(document.getElementById('liveXtra').value) || 0;
-        const spaylater = parseFloat(document.getElementById('spaylater').value) || 0;
+        const ongkirXtraEl = document.getElementById('ongkirXtra');
+        const ongkirXtra = ongkirXtraEl ? (parseFloat(ongkirXtraEl.value) || 0) : 0;
+        
+        const promoXtraEl = document.getElementById('promoXtra');
+        const promoXtra = promoXtraEl ? (parseFloat(promoXtraEl.value) || 0) : 0;
+        
+        const promoPlusEl = document.getElementById('promoPlus');
+        const promoPlus = promoPlusEl ? (parseFloat(promoPlusEl.value) || 0) : 0;
+        
+        const liveXtraEl = document.getElementById('liveXtra');
+        const liveXtra = liveXtraEl ? (parseFloat(liveXtraEl.value) || 0) : 0;
+        
+        const spaylaterEl = document.getElementById('spaylater');
+        const spaylater = spaylaterEl ? (parseFloat(spaylaterEl.value) || 0) : 0;
 
         totalFeePct = adminPct + premiPct + ongkirXtra + promoXtra + promoPlus + liveXtra + spaylater;
         totalFeeNominal = ((totalFeePct / 100) * price) + fixedFee;
@@ -454,10 +490,17 @@ function calculateMatrix() {
     const bepRoas = gpmNominal > 0 ? (price / gpmNominal) : 0;
 
     // Render BEP Box
-    document.getElementById('bepRoasVal').innerText = bepRoas > 0 ? bepRoas.toFixed(2) : '-';
-    document.getElementById('gpmVal').innerText = 'Rp ' + Math.round(gpmNominal).toLocaleString('id-ID');
-    document.getElementById('gpmPct').innerText = gpmPercentage.toFixed(2) + '%';
-    document.getElementById('totalFeeNomVal').innerText = Math.round(totalFeeNominal).toLocaleString('id-ID');
+    const bepRoasValEl = document.getElementById('bepRoasVal');
+    if (bepRoasValEl) bepRoasValEl.innerText = bepRoas > 0 ? bepRoas.toFixed(2) : '-';
+    
+    const gpmValEl = document.getElementById('gpmVal');
+    if (gpmValEl) gpmValEl.innerText = 'Rp ' + Math.round(gpmNominal).toLocaleString('id-ID');
+    
+    const gpmPctEl = document.getElementById('gpmPct');
+    if (gpmPctEl) gpmPctEl.innerText = gpmPercentage.toFixed(2) + '%';
+    
+    const totalFeeNomValEl = document.getElementById('totalFeeNomVal');
+    if (totalFeeNomValEl) totalFeeNomValEl.innerText = Math.round(totalFeeNominal).toLocaleString('id-ID');
 
     // 3. Skenario Multipliers
     const multipliers = {
@@ -488,19 +531,41 @@ function calculateMatrix() {
         const bepCalcAcc = profitNomAcc > 0 ? (price / profitNomAcc) : 0;
 
         // Update DOM Strategy Matrix Tables
-        document.getElementById(`${prefix}Roas`).innerText = targetRoas.toFixed(2);
-        document.getElementById(`${prefix}AdCostPct`).innerText = adCostPct.toFixed(2) + '%';
-        document.getElementById(`${prefix}AdCostNom`).innerText = 'Rp ' + Math.round(adCostNom).toLocaleString('id-ID');
-        document.getElementById(`${prefix}ProfitPct`).innerText = profitPct.toFixed(2) + '%';
-        document.getElementById(`${prefix}ProfitNom`).innerText = 'Rp ' + Math.round(profitNom).toLocaleString('id-ID');
-        document.getElementById(`${prefix}Bep`).innerText = bepCalc.toFixed(2);
+        const roasEl = document.getElementById(`${prefix}Roas`);
+        if (roasEl) roasEl.innerText = targetRoas.toFixed(2);
+        
+        const adCostPctEl = document.getElementById(`${prefix}AdCostPct`);
+        if (adCostPctEl) adCostPctEl.innerText = adCostPct.toFixed(2) + '%';
+        
+        const adCostNomEl = document.getElementById(`${prefix}AdCostNom`);
+        if (adCostNomEl) adCostNomEl.innerText = 'Rp ' + Math.round(adCostNom).toLocaleString('id-ID');
+        
+        const profitPctEl = document.getElementById(`${prefix}ProfitPct`);
+        if (profitPctEl) profitPctEl.innerText = profitPct.toFixed(2) + '%';
+        
+        const profitNomEl = document.getElementById(`${prefix}ProfitNom`);
+        if (profitNomEl) profitNomEl.innerText = 'Rp ' + Math.round(profitNom).toLocaleString('id-ID');
+        
+        const bepEl = document.getElementById(`${prefix}Bep`);
+        if (bepEl) bepEl.innerText = bepCalc.toFixed(2);
 
-        document.getElementById(`${prefix}RoasAcc`).innerText = targetRoasAcc.toFixed(2);
-        document.getElementById(`${prefix}AdCostPctAcc`).innerText = adCostPctAcc.toFixed(2) + '%';
-        document.getElementById(`${prefix}AdCostNomAcc`).innerText = 'Rp ' + Math.round(adCostNomAcc).toLocaleString('id-ID');
-        document.getElementById(`${prefix}ProfitPctAcc`).innerText = profitPctAcc.toFixed(2) + '%';
-        document.getElementById(`${prefix}ProfitNomAcc`).innerText = 'Rp ' + Math.round(profitNomAcc).toLocaleString('id-ID');
-        document.getElementById(`${prefix}BepAcc`).innerText = bepCalcAcc.toFixed(2);
+        const roasAccEl = document.getElementById(`${prefix}RoasAcc`);
+        if (roasAccEl) roasAccEl.innerText = targetRoasAcc.toFixed(2);
+        
+        const adCostPctAccEl = document.getElementById(`${prefix}AdCostPctAcc`);
+        if (adCostPctAccEl) adCostPctAccEl.innerText = adCostPctAcc.toFixed(2) + '%';
+        
+        const adCostNomAccEl = document.getElementById(`${prefix}AdCostNomAcc`);
+        if (adCostNomAccEl) adCostNomAccEl.innerText = 'Rp ' + Math.round(adCostNomAcc).toLocaleString('id-ID');
+        
+        const profitPctAccEl = document.getElementById(`${prefix}ProfitPctAcc`);
+        if (profitPctAccEl) profitPctAccEl.innerText = profitPctAcc.toFixed(2) + '%';
+        
+        const profitNomAccEl = document.getElementById(`${prefix}ProfitNomAcc`);
+        if (profitNomAccEl) profitNomAccEl.innerText = 'Rp ' + Math.round(profitNomAcc).toLocaleString('id-ID');
+        
+        const bepAccEl = document.getElementById(`${prefix}BepAcc`);
+        if (bepAccEl) bepAccEl.innerText = bepCalcAcc.toFixed(2);
     });
 
     // 4. Simulator Estimasi
@@ -516,21 +581,47 @@ function calculateMatrix() {
     const simProfitPctValAcc = gpmPercentage - simAdCostPctValAcc;
     const simProfitNomValAcc = (simProfitPctValAcc / 100) * price;
 
-    document.getElementById('simRoasLbl').innerText = simRoas.toFixed(1);
-    document.getElementById('simAdCostPct').innerText = simAdCostPctVal.toFixed(2) + '%';
-    document.getElementById('simAdCostNom').innerText = 'Rp ' + Math.round(simAdCostNomVal).toLocaleString('id-ID');
-    document.getElementById('simProfitPct').innerText = simProfitPctVal.toFixed(2) + '%';
-    document.getElementById('simProfitPct').className = simProfitPctVal >= 0 ? 'text-success' : 'text-danger';
-    document.getElementById('simProfitNom').innerText = 'Rp ' + Math.round(simProfitNomVal).toLocaleString('id-ID');
-    document.getElementById('simProfitNom').className = simProfitNomVal >= 0 ? 'text-success fw-bold' : 'text-danger fw-bold';
+    const simRoasLblEl = document.getElementById('simRoasLbl');
+    if (simRoasLblEl) simRoasLblEl.innerText = simRoas.toFixed(1);
+    
+    const simAdCostPctEl = document.getElementById('simAdCostPct');
+    if (simAdCostPctEl) simAdCostPctEl.innerText = simAdCostPctVal.toFixed(2) + '%';
+    
+    const simAdCostNomEl = document.getElementById('simAdCostNom');
+    if (simAdCostNomEl) simAdCostNomEl.innerText = 'Rp ' + Math.round(simAdCostNomVal).toLocaleString('id-ID');
+    
+    const simProfitPctEl = document.getElementById('simProfitPct');
+    if (simProfitPctEl) {
+        simProfitPctEl.innerText = simProfitPctVal.toFixed(2) + '%';
+        simProfitPctEl.className = simProfitPctVal >= 0 ? 'text-success' : 'text-danger';
+    }
+    
+    const simProfitNomEl = document.getElementById('simProfitNom');
+    if (simProfitNomEl) {
+        simProfitNomEl.innerText = 'Rp ' + Math.round(simProfitNomVal).toLocaleString('id-ID');
+        simProfitNomEl.className = simProfitNomVal >= 0 ? 'text-success fw-bold' : 'text-danger fw-bold';
+    }
 
-    document.getElementById('simRoasAccLbl').innerText = simRoasAcc.toFixed(1);
-    document.getElementById('simAdCostPctAcc').innerText = simAdCostPctValAcc.toFixed(2) + '%';
-    document.getElementById('simAdCostNomAcc').innerText = 'Rp ' + Math.round(simAdCostNomValAcc).toLocaleString('id-ID');
-    document.getElementById('simProfitPctAcc').innerText = simProfitPctValAcc.toFixed(2) + '%';
-    document.getElementById('simProfitPctAcc').className = simProfitPctValAcc >= 0 ? 'text-success' : 'text-danger';
-    document.getElementById('simProfitNomAcc').innerText = 'Rp ' + Math.round(simProfitNomValAcc).toLocaleString('id-ID');
-    document.getElementById('simProfitNomAcc').className = simProfitNomValAcc >= 0 ? 'text-success fw-bold' : 'text-danger fw-bold';
+    const simRoasAccLblEl = document.getElementById('simRoasAccLbl');
+    if (simRoasAccLblEl) simRoasAccLblEl.innerText = simRoasAcc.toFixed(1);
+    
+    const simAdCostPctAccEl = document.getElementById('simAdCostPctAcc');
+    if (simAdCostPctAccEl) simAdCostPctAccEl.innerText = simAdCostPctValAcc.toFixed(2) + '%';
+    
+    const simAdCostNomAccEl = document.getElementById('simAdCostNomAcc');
+    if (simAdCostNomAccEl) simAdCostNomAccEl.innerText = 'Rp ' + Math.round(simAdCostNomValAcc).toLocaleString('id-ID');
+    
+    const simProfitPctAccEl = document.getElementById('simProfitPctAcc');
+    if (simProfitPctAccEl) {
+        simProfitPctAccEl.innerText = simProfitPctValAcc.toFixed(2) + '%';
+        simProfitPctAccEl.className = simProfitPctValAcc >= 0 ? 'text-success' : 'text-danger';
+    }
+    
+    const simProfitNomAccEl = document.getElementById('simProfitNomAcc');
+    if (simProfitNomAccEl) {
+        simProfitNomAccEl.innerText = 'Rp ' + Math.round(simProfitNomValAcc).toLocaleString('id-ID');
+        simProfitNomAccEl.className = simProfitNomValAcc >= 0 ? 'text-success fw-bold' : 'text-danger fw-bold';
+    }
 }
 </script>
 @endsection
