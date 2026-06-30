@@ -377,26 +377,37 @@ document.addEventListener("DOMContentLoaded", function() {
     if (modeSimpleEl) modeSimpleEl.addEventListener('change', toggleCalculationMode);
     if (modeDetailEl) modeDetailEl.addEventListener('change', toggleCalculationMode);
 
-    // Event listener untuk dropdown produk
+    function handleProductChange(selectEl) {
+        const selectedOption = selectEl.options[selectEl.selectedIndex];
+        if (selectedOption && selectedOption.value) {
+            const priceAttr = selectedOption.getAttribute('data-price');
+            const costAttr = selectedOption.getAttribute('data-cost');
+            
+            const price = parseFloat(priceAttr) || 0;
+            const cost = parseFloat(costAttr) || 0;
+            
+            const salePriceInput = document.getElementById('salePrice');
+            const cogsInput = document.getElementById('cogs');
+            
+            if (salePriceInput) salePriceInput.value = formatNumber(Math.round(price));
+            if (cogsInput) cogsInput.value = formatNumber(Math.round(cost));
+            
+            calculateMatrix();
+        }
+    }
+
+    // Event listener untuk dropdown produk (Native Change)
     const productSelectEl = document.getElementById('productSelect');
     if (productSelectEl) {
         productSelectEl.addEventListener('change', function() {
-            const selectedOption = this.options[this.selectedIndex];
-            if (selectedOption && selectedOption.value) {
-                const priceAttr = selectedOption.getAttribute('data-price');
-                const costAttr = selectedOption.getAttribute('data-cost');
-                
-                const price = parseFloat(priceAttr) || 0;
-                const cost = parseFloat(costAttr) || 0;
-                
-                const salePriceInput = document.getElementById('salePrice');
-                const cogsInput = document.getElementById('cogs');
-                
-                if (salePriceInput) salePriceInput.value = formatNumber(Math.round(price));
-                if (cogsInput) cogsInput.value = formatNumber(Math.round(cost));
-                
-                calculateMatrix();
-            }
+            handleProductChange(this);
+        });
+    }
+
+    // Fallback bindings if jQuery & Select2 wrapper is used on productSelect dropdown
+    if (window.jQuery) {
+        window.jQuery('#productSelect').on('change select2:select', function() {
+            handleProductChange(this);
         });
     }
 
