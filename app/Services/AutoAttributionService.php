@@ -46,6 +46,7 @@ class AutoAttributionService
                     'campaign_id' => $campaign->id,
                     'utm'         => $order->utm_campaign,
                 ]);
+                $this->triggerTiktokCapi($order);
                 return ['attributed' => true, 'layer' => 1, 'reason' => "UTM match: {$order->utm_campaign}"];
             }
         }
@@ -67,6 +68,7 @@ class AutoAttributionService
                     'campaign_id' => $campaign->id,
                     'store_id'    => $store->id,
                 ]);
+                $this->triggerTiktokCapi($order);
                 return ['attributed' => true, 'layer' => 2, 'reason' => "Store default: {$store->store_name}"];
             }
         }
@@ -108,6 +110,7 @@ class AutoAttributionService
                         'campaign_id' => $campaign->id,
                         'platform'    => $platform,
                     ]);
+                    $this->triggerTiktokCapi($order);
                     return ['attributed' => true, 'layer' => 3, 'reason' => "Platform match (1 campaign): {$platform}"];
 
                 } elseif ($campaigns->count() > 1) {
@@ -121,6 +124,7 @@ class AutoAttributionService
                             'platform'    => $platform,
                             'roas'        => $best->actual_roas,
                         ]);
+                        $this->triggerTiktokCapi($order);
                         return ['attributed' => true, 'layer' => 3, 'reason' => "Platform match (best ROAS): {$platform} → {$best->name}"];
                     }
                 }
@@ -129,6 +133,28 @@ class AutoAttributionService
 
         return ['attributed' => false, 'layer' => null, 'reason' => 'Tidak ada campaign yang cocok'];
     }
+
+    /**
+     * Kirim event Purchase ke TikTok CAPI jika platform campaign = tiktok
+     */
+    private function triggerTiktokCapi(Order $order)
+    {
+        try {
+            $campaign = $order->adsCampaign;
+            if (!$campaign) {
+                $campaign = AdsCampaign::find($order->ads_campaign_id);
+            }
+            if ($campaign) {
+                $account = $campaign->adsAccount;
+                if ($account && $account->platform === 'tiktok') {
+                    app(\App\Services\TiktokCapiService::class)->sendPurchaseEvent($order);
+                }
+            }
+        } catch (\Throwable $e) {
+            Log::error("[AutoAttribution] Gagal kirim TikTok CAPI: " . $e->getMessage());
+        }
+    }
+
 
     /**
      * Jalankan auto-attribution untuk semua order yang belum teratribusi milik satu tenant.

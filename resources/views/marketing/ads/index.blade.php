@@ -13,6 +13,18 @@
     <a href="{{ route('marketing.ads.logs') }}" class="btn btn-sm btn-light text-primary fw-bold px-3">
         <i class="bi bi-plus-circle me-1"></i> Input Biaya Harian
     </a>
+    <a href="{{ route('marketing.ads.audiences') }}" class="btn btn-sm btn-light text-primary fw-bold px-3 ms-2">
+        <i class="bi bi-people me-1"></i> TikTok Audience
+    </a>
+    <a href="{{ route('marketing.ads.budget_rules') }}" class="btn btn-sm btn-light text-primary fw-bold px-3 ms-2">
+        <i class="bi bi-alarm me-1"></i> Smart Budget Rules
+    </a>
+    <a href="{{ route('marketing.ads.affiliates') }}" class="btn btn-sm btn-light text-primary fw-bold px-3 ms-2">
+        <i class="bi bi-award me-1"></i> TikTok Affiliate Tracker
+    </a>
+    <a href="{{ route('marketing.ads.live_sessions') }}" class="btn btn-sm btn-light text-primary fw-bold px-3 ms-2">
+        <i class="bi bi-broadcast me-1"></i> TikTok LIVE Tracker
+    </a>
     <a href="{{ route('marketing.ads.campaigns') }}" class="btn btn-sm btn-outline-light fw-bold px-3 ms-2">
         <i class="bi bi-gear me-1"></i> Atur Target Campaign
     </a>
@@ -21,6 +33,42 @@
 @section('content')
     <div class="row">
         <div class="col-md-12">
+
+            <!-- Unread Budget Alerts -->
+            @if(isset($unreadAlerts) && $unreadAlerts->count() > 0)
+                <div class="alert alert-danger border shadow-sm rounded-3 mb-3 d-flex flex-column gap-2" role="alert">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <strong class="d-flex align-items-center gap-2 text-danger-emphasis">
+                            <i class="bi bi-exclamation-triangle-fill fs-5"></i>
+                            Batas Anggaran & ROAS Terlampaui ({{ $unreadAlerts->count() }} Alert Baru)
+                        </strong>
+                        <a href="{{ route('marketing.ads.budget_rules') }}" class="btn btn-sm btn-outline-danger rounded-pill fw-bold px-3" style="font-size:.72rem;">
+                            Kelola Budget Rules
+                        </a>
+                    </div>
+                    <div class="row g-2 mt-1">
+                        @foreach($unreadAlerts as $alert)
+                            <div class="col-12 col-md-6">
+                                <div class="bg-white bg-opacity-75 p-2 rounded-3 border border-danger border-opacity-25 d-flex align-items-start justify-content-between gap-2">
+                                    <div style="font-size: .8rem;">
+                                        <span class="badge bg-danger rounded-pill text-uppercase px-2 py-0.5 me-1" style="font-size: .65rem;">
+                                            {{ strtoupper($alert->campaign->adsAccount->platform) }}
+                                        </span>
+                                        <strong class="text-dark">{{ $alert->campaign->name }}</strong>
+                                        <div class="text-muted mt-1">{{ $alert->message }}</div>
+                                    </div>
+                                    <form action="{{ route('marketing.ads.budget_alerts.read', $alert->id) }}" method="POST" class="d-inline">
+                                        @csrf
+                                        <button type="submit" class="btn btn-sm btn-outline-secondary border-0 p-1" title="Tandai Dibaca">
+                                            <i class="bi bi-check-lg"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+            @endif
 
             <!-- Alert / Recommendations -->
             @if (count($recommendations) > 0)
@@ -345,6 +393,33 @@
                 </div>
             </div>
 
+            {{-- TikTok & Meta Catalog Feed Link --}}
+            <div class="card border shadow-sm mb-3">
+                <div class="card-body p-3">
+                    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="bg-primary bg-opacity-10 text-primary rounded-circle d-inline-flex align-items-center justify-content-center"
+                                style="width:36px;height:36px;flex-shrink:0;">
+                                <i class="bi bi-rss-fill"></i>
+                            </span>
+                            <div>
+                                <h6 class="mb-0 fw-bold text-dark">TikTok & Meta Ads Catalog Feed (XML)</h6>
+                                <small class="text-muted" style="font-size:0.75rem;">
+                                    Copy URL di bawah dan tempelkan di TikTok Shop Catalog Manager atau Facebook Commerce Manager.
+                                </small>
+                            </div>
+                        </div>
+                        <div class="input-group input-group-sm w-auto flex-grow-1" style="max-width: 480px;">
+                            <input type="text" class="form-control bg-light rounded-start-3" id="catalogFeedUrl" 
+                                value="{{ route('marketing.ads.catalog_feed', Auth::user()->tenant_id) }}" readonly>
+                            <button class="btn btn-primary rounded-end-3" type="button" onclick="navigator.clipboard.writeText(document.getElementById('catalogFeedUrl').value); alert('Link berhasil disalin ke clipboard!');">
+                                <i class="bi bi-clipboard"></i> Copy Link
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             {{-- Manual Order Attribution Panel (Auto-Attribution Upgraded) --}}
             <div class="row mb-3">
                 <div class="col-12">
@@ -376,7 +451,7 @@
                             </form>
                         </div>
 
-                        <div class="card-body p-3">
+                        <div class="card-body p-3" style="zoom:90%">
                             {{-- Cara kerja sistem --}}
                             <div class="alert alert-light border border-info border-opacity-25 rounded-3 py-2 px-3 mb-3"
                                 style="font-size:0.8rem;">
@@ -417,7 +492,8 @@
                                     Pesanan di bawah ini tidak dapat dicocokkan otomatis — tautkan secara manual:
                                 </p>
                                 <div class="table-responsive">
-                                    <table class="table table-hover align-middle mb-0" style="font-size:0.85rem;">
+                                    <table class="table table-sm table-hover align-middle mb-0"
+                                        style="font-size:0.85rem;">
                                         <thead class="table-light text-uppercase fs-7 text-muted"
                                             style="letter-spacing: 0.5px; font-size: 0.75rem;">
                                             <tr>

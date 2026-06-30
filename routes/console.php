@@ -28,3 +28,10 @@ Schedule::command('stock:check-low')->dailyAt('08:00')->withoutOverlapping();
 
 // Auto-atribusi pesanan ke campaign iklan setiap jam (setelah sync order selesai)
 Schedule::command('marketing:auto-attribute')->hourly()->withoutOverlapping();
+
+// Evaluasi budget rules setiap jam
+Schedule::command('ads:evaluate-rules')->hourly()->withoutOverlapping();
+
+// Sinkronisasi TikTok Custom Audience setiap hari jam 02:00 pagi
+Schedule::command('ads:sync-tiktok-audiences')->dailyAt('02:00')->withoutOverlapping();
+

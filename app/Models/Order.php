@@ -35,6 +35,11 @@ class Order extends Model
         'utm_campaign',
         'utm_source',
         'ads_campaign_id',
+        'capi_sent_at',
+        'tiktok_creator_name',
+        'tiktok_creator_id',
+        'affiliate_commission',
+        'tiktok_live_session_id',
     ];
 
     protected $casts = [
@@ -78,6 +83,11 @@ class Order extends Model
     public function adsCampaign(): BelongsTo
     {
         return $this->belongsTo(AdsCampaign::class, 'ads_campaign_id');
+    }
+
+    public function tiktokLiveSession(): BelongsTo
+    {
+        return $this->belongsTo(TiktokLiveSession::class, 'tiktok_live_session_id');
     }
 
     public function items(): HasMany

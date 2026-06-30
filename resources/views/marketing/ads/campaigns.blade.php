@@ -16,334 +16,439 @@
 @endsection
 
 @section('content')
-    <div class="row">
-        <div class="col-md-12">
-            <div class="row g-3">
-                <!-- Form Add Campaign & Integrations -->
-                <div class="col-lg-4 col-md-12">
-                    <!-- Ads Integrations Card -->
-                    <div class="card border shadow-sm bg-white mb-3">
-                        <div class="card-header bg-primary bg-opacity-10 p-3 border-bottom">
-                            <h6 class="m-0 fw-bold text-dark"><i class="bi bi-link-45deg text-primary me-2"></i> Koneksi
-                                Akun Iklan (Integrasi)</h6>
-                        </div>
-                        <div class="card-body p-3">
-                            <div class="d-flex flex-column gap-3">
-                                <!-- Shopee Connection -->
-                                <div
-                                    class="d-flex justify-content-between align-items-center pb-2 border-bottom border-light">
-                                    <div>
-                                        <strong class="text-dark small d-block">Shopee Ads</strong>
-                                        <span class="badge bg-success bg-opacity-10 text-success rounded-pill small"
-                                            style="font-size:0.7rem;">Otomatis Aktif</span>
-                                    </div>
-                                    <div class="text-success fs-4"><i class="bi bi-check-circle-fill"></i></div>
-                                </div>
+    <div class="row g-3">
 
-                                <!-- TikTok Connection -->
-                                @php
-                                    $tiktokAccount = $accounts
-                                        ->where('platform', 'tiktok')
-                                        ->where('is_active', true)
-                                        ->first();
-                                @endphp
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <div>
-                                        <strong class="text-dark small d-block">TikTok Ads</strong>
-                                        @if ($tiktokAccount)
-                                            <span class="badge bg-success bg-opacity-10 text-success rounded-pill small"
-                                                style="font-size:0.7rem;">Terhubung:
-                                                {{ $tiktokAccount->account_name }}</span>
-                                        @else
-                                            <span class="badge bg-secondary bg-opacity-10 text-secondary rounded-pill small"
-                                                style="font-size:0.7rem;">Belum Terhubung</span>
-                                        @endif
-                                    </div>
-                                    <div>
-                                        @if ($tiktokAccount)
-                                            <a href="{{ route('marketing.ads.tiktok.connect') }}"
-                                                class="btn btn-xs btn-outline-secondary py-1 px-2.5 rounded-3 fw-bold"
-                                                style="font-size: 0.75rem;">
-                                                Ganti Akun
-                                            </a>
-                                        @else
-                                            <a href="{{ route('marketing.ads.tiktok.connect') }}"
-                                                class="btn btn-xs btn-primary py-1 px-2.5 rounded-3 fw-bold"
-                                                style="font-size: 0.75rem;">
-                                                Hubungkan
-                                            </a>
-                                        @endif
-                                    </div>
-                                </div>
+        {{-- ══ LEFT SIDEBAR ══ --}}
+        <div class="col-lg-4">
+
+            {{-- 1. Koneksi Akun Iklan --}}
+            <div class="card border shadow-sm rounded-3 mb-3">
+                <div class="card-header bg-primary bg-opacity-10 border-bottom py-2 px-3 d-flex align-items-center gap-2">
+                    <span class="bg-primary rounded-circle d-inline-flex align-items-center justify-content-center"
+                        style="width:28px;height:28px;flex-shrink:0;">
+                        <i class="bi bi-plug-fill text-white small"></i>
+                    </span>
+                    <div>
+                        <div class="fw-bold text-dark small lh-sm">Koneksi Akun Iklan</div>
+                        <div class="text-muted" style="font-size:.72rem;">Integrasi platform ads</div>
+                    </div>
+                </div>
+                <div class="card-body p-3">
+
+                    {{-- Shopee --}}
+                    <div class="d-flex justify-content-between align-items-center py-2">
+                        <div class="d-flex align-items-center gap-2">
+                            <span
+                                class="bg-warning bg-opacity-10 rounded-2 d-inline-flex align-items-center justify-content-center"
+                                style="width:34px;height:34px;">
+                                <i class="bi bi-bag-fill text-warning"></i>
+                            </span>
+                            <div>
+                                <div class="fw-semibold text-dark small">Shopee Ads</div>
+                                <span class="badge bg-success bg-opacity-10 text-success fw-semibold rounded-pill"
+                                    style="font-size:.68rem;">
+                                    <i class="bi bi-circle-fill me-1" style="font-size:.4rem;"></i>Otomatis Aktif
+                                </span>
                             </div>
                         </div>
+                        <i class="bi bi-check-circle-fill text-success fs-5"></i>
                     </div>
 
-                    {{-- Default Campaign per Toko (untuk Auto-Attribution Layer 2) --}}
-                    <div class="card border shadow-sm bg-white mb-3">
-                        <div class="card-header p-3 border-bottom"
-                            style="background: linear-gradient(135deg, #f0fdf4 0%, #eff6ff 100%);">
-                            <h6 class="m-0 fw-bold text-dark">
-                                <i class="bi bi-shop me-2 text-success"></i> Default Campaign per Toko
-                            </h6>
-                            <small class="text-muted" style="font-size:0.72rem;">
-                                Digunakan oleh Auto-Atribusi Layer 2 jika pesanan tidak memiliki UTM
-                            </small>
+                    <hr class="my-1 opacity-25">
+
+                    {{-- TikTok --}}
+                    @php
+                        $tiktokAccount = $accounts->where('platform', 'tiktok')->where('is_active', true)->first();
+                    @endphp
+                    <div class="d-flex justify-content-between align-items-center py-2">
+                        <div class="d-flex align-items-center gap-2">
+                            <span
+                                class="bg-dark bg-opacity-10 rounded-2 d-inline-flex align-items-center justify-content-center"
+                                style="width:34px;height:34px;">
+                                <i class="bi bi-tiktok text-dark"></i>
+                            </span>
+                            <div>
+                                <div class="fw-semibold text-dark small">TikTok Ads</div>
+                                @if ($tiktokAccount)
+                                    <span class="badge bg-success bg-opacity-10 text-success fw-semibold rounded-pill"
+                                        style="font-size:.68rem;">
+                                        <i class="bi bi-circle-fill me-1"
+                                            style="font-size:.4rem;"></i>{{ $tiktokAccount->account_name }}
+                                    </span>
+                                @else
+                                    <span class="badge bg-secondary bg-opacity-10 text-secondary fw-semibold rounded-pill"
+                                        style="font-size:.68rem;">
+                                        <i class="bi bi-circle me-1" style="font-size:.4rem;"></i>Belum Terhubung
+                                    </span>
+                                @endif
+                            </div>
                         </div>
-                        <div class="card-body p-3">
-                            @forelse($stores as $store)
-                                <form action="{{ route('marketing.ads.store_default_campaign') }}" method="POST"
-                                    class="d-flex align-items-center gap-2 mb-2">
-                                    @csrf
-                                    <input type="hidden" name="store_id" value="{{ $store->id }}">
-                                    <div class="flex-grow-1">
-                                        <label class="form-label fw-semibold text-dark mb-0"
-                                            style="font-size:0.8rem;">{{ $store->store_name }}</label>
-                                        @if($store->channel)
-                                            <span class="badge bg-secondary bg-opacity-10 text-secondary rounded-pill ms-1"
-                                                style="font-size:0.65rem;">{{ strtoupper($store->channel->code) }}</span>
-                                        @endif
-                                        <select name="default_campaign_id"
-                                            class="form-select form-select-sm rounded-3 mt-1 border-secondary border-opacity-25"
-                                            style="font-size:0.78rem;">
-                                            <option value="">-- Tidak Ada Default --</option>
-                                            @foreach($campaigns as $cp)
-                                                <option value="{{ $cp->id }}"
-                                                    {{ $store->default_campaign_id == $cp->id ? 'selected' : '' }}>
-                                                    {{ $cp->name }} ({{ strtoupper($cp->adsAccount->platform) }})
-                                                </option>
-                                            @endforeach
-                                        </select>
-                                    </div>
-                                    <button type="submit"
-                                        class="btn btn-sm btn-outline-success rounded-3 fw-semibold align-self-end"
-                                        style="font-size:0.78rem;white-space:nowrap;">
-                                        <i class="bi bi-check2 me-1"></i>Simpan
-                                    </button>
-                                </form>
-                                @if(!$loop->last)<hr class="my-1 border-light">@endif
-                            @empty
-                                <div class="text-center text-muted small py-2">
-                                    <i class="bi bi-shop me-1"></i> Belum ada toko terdaftar.
-                                </div>
-                            @endforelse
-                        </div>
+                        @if ($tiktokAccount)
+                            <a href="{{ route('marketing.ads.tiktok.connect') }}"
+                                class="btn btn-sm btn-outline-secondary rounded-pill fw-semibold px-3">Ganti</a>
+                        @else
+                            <a href="{{ route('marketing.ads.tiktok.connect') }}"
+                                class="btn btn-sm btn-dark rounded-pill fw-semibold px-3">Hubungkan</a>
+                        @endif
                     </div>
 
-                    <div class="card border shadow-sm bg-white mb-3">
-                        <div class="card-header bg-primary bg-opacity-10 p-3 border-bottom">
-                            <h6 class="m-0 fw-bold text-dark"><i class="bi bi-plus-circle-fill text-primary me-2"></i>
-                                Tambah Campaign Baru</h6>
-                        </div>
-
-                        <div class="card-body p-3">
-                            <form action="{{ route('marketing.ads.campaigns.store') }}" method="POST">
+                    @if ($tiktokAccount)
+                        <div class="mt-2 p-2 bg-light rounded-3">
+                            <form action="{{ route('marketing.ads.tiktok.capi_settings') }}" method="POST">
                                 @csrf
-                                <div class="mb-3">
-                                    <label for="name" class="form-label fw-bold text-secondary small">Nama
-                                        Campaign</label>
-                                    <input type="text" name="name" id="name"
-                                        class="form-control form-control-sm rounded-3"
-                                        placeholder="Contoh: Meta Ads Promo Hijab Syari" required>
+                                <div class="mb-2">
+                                    <label class="form-label fw-bold text-secondary text-uppercase mb-1" style="font-size:.65rem; letter-spacing:.5px;">TikTok Pixel ID</label>
+                                    <input type="text" name="pixel_id" class="form-control form-control-sm rounded-3" 
+                                        placeholder="Contoh: CD83JBKC8..." value="{{ $tiktokAccount->pixel_id }}">
                                 </div>
-                                <div class="mb-3">
-                                    <label for="platform" class="form-label fw-bold text-secondary small">Platform
-                                        Iklan</label>
-                                    <select name="platform" id="platform" class="form-select form-select-sm rounded-3"
-                                        required>
-                                        <option value="meta">Meta Ads (Facebook & Instagram)</option>
-                                        <option value="google">Google Ads</option>
-                                        <option value="tiktok">TikTok Ads</option>
-                                        <option value="manual">Platform Lain (Manual Log)</option>
-                                    </select>
+                                <div class="mb-2">
+                                    <label class="form-label fw-bold text-secondary text-uppercase mb-1" style="font-size:.65rem; letter-spacing:.5px;">Events Access Token</label>
+                                    <textarea name="events_access_token" rows="2" class="form-control form-control-sm rounded-3" 
+                                        placeholder="TikTok Developer Events Access Token...">{{ $tiktokAccount->events_access_token }}</textarea>
                                 </div>
-                                <div class="mb-3">
-                                    <label for="target_roas" class="form-label fw-bold text-secondary small">Target ROAS
-                                        Minimum (x)</label>
-                                    <input type="number" name="target_roas" id="target_roas"
-                                        class="form-control form-control-sm rounded-3" placeholder="Contoh: 3.50"
-                                        step="0.01" min="0.1" value="2.00" required>
-                                    <div class="form-text text-muted" style="font-size:0.7rem;">Sistem akan memberi
-                                        peringatan jika ROAS riil berada di bawah angka target ini.</div>
+                                <div class="mb-2">
+                                    <label class="form-label fw-bold text-secondary text-uppercase mb-1" style="font-size:.65rem; letter-spacing:.5px;">Advertiser ID</label>
+                                    <input type="text" name="advertiser_id" class="form-control form-control-sm rounded-3" 
+                                        placeholder="TikTok Ads Advertiser ID..." value="{{ $tiktokAccount->advertiser_id }}">
                                 </div>
-                                <div class="mb-3">
-                                    <label for="target_omzet" class="form-label fw-bold text-secondary small">Target Omzet
-                                        (Rp)</label>
-                                    <input type="number" name="target_omzet" id="target_omzet"
-                                        class="form-control form-control-sm rounded-3" placeholder="Contoh: 50000000"
-                                        min="0" value="0">
-                                </div>
-                                <button type="submit" class="btn btn-primary w-100 rounded-3 py-2 fw-bold shadow-sm">
-                                    <i class="bi bi-save me-1"></i> Simpan Campaign
+                                <button type="submit" class="btn btn-sm btn-primary w-100 rounded-pill fw-semibold mt-1" style="font-size:.72rem;">
+                                    <i class="bi bi-save2 me-1"></i> Simpan CAPI & DMP
                                 </button>
                             </form>
                         </div>
+                    @endif
+                </div>
+            </div>
+
+            {{-- 2. Default Campaign per Toko --}}
+            <div class="card border shadow-sm rounded-3 mb-3">
+                <div class="card-header bg-success bg-opacity-10 border-bottom py-2 px-3 d-flex align-items-center gap-2">
+                    <span class="bg-success rounded-circle d-inline-flex align-items-center justify-content-center"
+                        style="width:28px;height:28px;flex-shrink:0;">
+                        <i class="bi bi-shop-window text-white small"></i>
+                    </span>
+                    <div>
+                        <div class="fw-bold text-dark small lh-sm">Default Campaign per Toko</div>
+                        <div class="text-muted" style="font-size:.72rem;">Auto-Atribusi Layer 2</div>
                     </div>
                 </div>
-
-                <!-- Campaign Lists Table -->
-                <div class="col-lg-8 col-md-12">
-                    <div class="card border shadow-sm bg-white">
-                        <div class="card-header bg-info bg-opacity-10 p-3 border-bottom">
-                            <h6 class="m-0 fw-bold text-dark"><i class="bi bi-card-list text-info me-2"></i> Daftar Campaign
-                                & Konfigurasi KPI</h6>
+                <div class="card-body p-3">
+                    @forelse($stores as $store)
+                        <form action="{{ route('marketing.ads.store_default_campaign') }}" method="POST" class="mb-2">
+                            @csrf
+                            <input type="hidden" name="store_id" value="{{ $store->id }}">
+                            <div class="d-flex align-items-center justify-content-between mb-1">
+                                <div class="d-flex align-items-center gap-1 flex-wrap">
+                                    <i class="bi bi-shop text-success small"></i>
+                                    <span class="fw-semibold text-dark small">{{ $store->store_name }}</span>
+                                    @if ($store->channel)
+                                        <span class="badge bg-secondary bg-opacity-10 text-secondary rounded-pill"
+                                            style="font-size:.65rem;">{{ strtoupper($store->channel->code) }}</span>
+                                    @endif
+                                </div>
+                                <button type="submit" class="btn btn-sm btn-success rounded-pill fw-semibold px-3 ms-2">
+                                    <i class="bi bi-check2"></i> Set
+                                </button>
+                            </div>
+                            <select name="default_campaign_id" class="form-select form-select-sm rounded-3">
+                                <option value="">— Tidak Ada Default —</option>
+                                @foreach ($campaigns as $cp)
+                                    <option value="{{ $cp->id }}"
+                                        {{ $store->default_campaign_id == $cp->id ? 'selected' : '' }}>
+                                        {{ $cp->name }} · {{ strtoupper($cp->adsAccount->platform) }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </form>
+                        @if (!$loop->last)
+                            <hr class="my-2 opacity-25">
+                        @endif
+                    @empty
+                        <div class="text-center text-muted py-3 small">
+                            <i class="bi bi-shop d-block fs-3 mb-1 opacity-25"></i>
+                            Belum ada toko terdaftar
                         </div>
-                        <div class="card-body p-3">
-                            <div class="table-responsive">
-                                <table class="table table-hover align-middle mb-0">
-                                    <thead class="table-light text-uppercase fs-7 text-muted"
-                                        style="letter-spacing: 0.5px; font-size: 0.75rem;">
-                                        <tr>
-                                            <th class="border-0 px-3 py-3">Nama Campaign</th>
-                                            <th class="border-0 px-3 py-3">Platform</th>
-                                            <th class="border-0 px-3 py-3">Target ROAS</th>
-                                            <th class="border-0 px-3 py-3">Target Omzet</th>
-                                            <th class="border-0 px-3 py-3">Status Iklan</th>
-                                            <th class="border-0 px-3 py-3 text-end">Aksi</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        @forelse($campaigns as $camp)
-                                            <tr class="border-bottom border-light">
-                                                <td class="px-3 py-3">
-                                                    <strong class="text-dark">{{ $camp->name }}</strong>
-                                                    <div class="text-muted small" style="font-size:0.75rem;">ID Akun:
-                                                        {{ $camp->adsAccount->account_name }}</div>
-                                                </td>
-                                                <td class="px-3 py-3">
-                                                    @php
-                                                        $pf = $camp->adsAccount->platform;
-                                                        $pfBadge = 'bg-secondary';
-                                                        if ($pf === 'meta') {
-                                                            $pfBadge = 'bg-primary';
-                                                        } elseif ($pf === 'google') {
-                                                            $pfBadge = 'bg-danger';
-                                                        } elseif ($pf === 'tiktok') {
-                                                            $pfBadge = 'bg-dark';
-                                                        }
-                                                    @endphp
-                                                    <span
-                                                        class="badge {{ $pfBadge }} text-uppercase px-2.5 py-1 rounded"
-                                                        style="font-size:0.65rem;">
-                                                        {{ $pf }}
-                                                    </span>
-                                                </td>
-                                                <td class="px-3 py-3">
-                                                    <strong>{{ number_format($camp->target_roas, 2) }}x</strong>
-                                                </td>
-                                                <td class="px-3 py-3">Rp
-                                                    {{ number_format($camp->target_omzet, 0, ',', '.') }}
-                                                </td>
-                                                <td class="px-3 py-3">
-                                                    @if ($camp->status === 'ACTIVE')
-                                                        <span
-                                                            class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-2.5 py-1 rounded">ACTIVE</span>
-                                                    @else
-                                                        <span
-                                                            class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-25 px-2.5 py-1 rounded">PAUSED</span>
-                                                    @endif
-                                                </td>
-                                                <td class="px-3 py-3 text-end">
-                                                    <div class="d-flex gap-2 justify-content-end">
-                                                        <!-- Button to open Update Targets modal -->
-                                                        <button
-                                                            class="btn btn-sm btn-outline-primary rounded-3 px-2.5 py-1 fw-semibold"
-                                                            data-bs-toggle="modal"
-                                                            data-bs-target="#editModal-{{ $camp->id }}"
-                                                            title="Edit Target" style="font-size: 0.8rem;">
-                                                            <i class="bi bi-pencil-square"></i> Edit
-                                                        </button>
-                                                        <!-- Delete button -->
-                                                        <form
-                                                            action="{{ route('marketing.ads.campaigns.destroy', $camp->id) }}"
-                                                            method="POST"
-                                                            onsubmit="return confirm('Apakah Anda yakin ingin menghapus campaign ini? Log biaya iklan akan ikut terhapus.')"
-                                                            class="d-inline">
-                                                            @csrf
-                                                            @method('DELETE')
-                                                            <button type="submit"
-                                                                class="btn btn-sm btn-outline-danger rounded-3 px-2.5 py-1 fw-semibold"
-                                                                title="Hapus" style="font-size: 0.8rem;">
-                                                                <i class="bi bi-trash"></i>
-                                                            </button>
-                                                        </form>
-                                                    </div>
+                    @endforelse
+                </div>
+            </div>
 
-                                                    <!-- Edit Targets Modal -->
-                                                    <div class="modal fade text-start" id="editModal-{{ $camp->id }}"
-                                                        tabindex="-1"
-                                                        aria-labelledby="editModalLabel-{{ $camp->id }}"
-                                                        aria-hidden="true">
-                                                        <div class="modal-dialog modal-dialog-centered">
-                                                            <div class="modal-content border-0 shadow rounded-4">
-                                                                <div
-                                                                    class="modal-header border-bottom border-light px-4 py-3">
-                                                                    <h5 class="modal-title fw-bold text-dark"
-                                                                        id="editModalLabel-{{ $camp->id }}">Update
-                                                                        Target
-                                                                        KPI: {{ $camp->name }}</h5>
-                                                                    <button type="button" class="btn-close"
-                                                                        data-bs-dismiss="modal"
-                                                                        aria-label="Close"></button>
-                                                                </div>
-                                                                <form
-                                                                    action="{{ route('marketing.ads.campaigns.update', $camp->id) }}"
-                                                                    method="POST">
-                                                                    @csrf
-                                                                    @method('PUT')
-                                                                    <div class="modal-body p-4">
-                                                                        <div class="mb-3">
-                                                                            <label for="target_roas-{{ $camp->id }}"
-                                                                                class="form-label fw-bold text-secondary small">Target
-                                                                                ROAS Minimum (x)</label>
-                                                                            <input type="number" name="target_roas"
-                                                                                id="target_roas-{{ $camp->id }}"
-                                                                                class="form-control rounded-3"
-                                                                                value="{{ $camp->target_roas }}"
-                                                                                step="0.01" min="0.1" required>
-                                                                        </div>
-                                                                        <div class="mb-0">
-                                                                            <label for="target_omzet-{{ $camp->id }}"
-                                                                                class="form-label fw-bold text-secondary small">Target
-                                                                                Omzet (Rp)</label>
-                                                                            <input type="number" name="target_omzet"
-                                                                                id="target_omzet-{{ $camp->id }}"
-                                                                                class="form-control rounded-3"
-                                                                                value="{{ (int) $camp->target_omzet }}"
-                                                                                min="0" required>
-                                                                        </div>
-                                                                    </div>
-                                                                    <div
-                                                                        class="modal-footer border-top border-light px-4 py-3">
-                                                                        <button type="button"
-                                                                            class="btn btn-light rounded-3 fw-semibold px-3 py-2"
-                                                                            data-bs-dismiss="modal">Batal</button>
-                                                                        <button type="submit"
-                                                                            class="btn btn-primary rounded-3 fw-semibold px-4 py-2">Simpan
-                                                                            Perubahan</button>
-                                                                    </div>
-                                                                </form>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        @empty
-                                            <tr>
-                                                <td colspan="6" class="text-center py-4 text-muted">
-                                                    Belum ada Campaign iklan terdaftar. Silakan buat campaign baru melalui
-                                                    form
-                                                    di samping.
-                                                </td>
-                                            </tr>
-                                        @endforelse
-                                    </tbody>
-                                </table>
+            {{-- 3. Tambah Campaign Baru --}}
+            <div class="card border shadow-sm rounded-3">
+                <div class="card-header bg-info bg-opacity-10 border-bottom py-2 px-3 d-flex align-items-center gap-2">
+                    <span class="bg-info rounded-circle d-inline-flex align-items-center justify-content-center"
+                        style="width:28px;height:28px;flex-shrink:0;">
+                        <i class="bi bi-plus-lg text-white small"></i>
+                    </span>
+                    <div>
+                        <div class="fw-bold text-dark small lh-sm">Tambah Campaign Baru</div>
+                        <div class="text-muted" style="font-size:.72rem;">Daftarkan campaign iklan</div>
+                    </div>
+                </div>
+                <div class="card-body p-3">
+                    <form action="{{ route('marketing.ads.campaigns.store') }}" method="POST">
+                        @csrf
+                        <div class="mb-3">
+                            <label for="name" class="form-label fw-bold text-secondary small text-uppercase"
+                                style="letter-spacing:.5px;font-size:.7rem;">Nama Campaign</label>
+                            <input type="text" name="name" id="name"
+                                class="form-control form-control-sm rounded-3"
+                                placeholder="Contoh: Meta Ads Promo Ramadhan" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="platform" class="form-label fw-bold text-secondary small text-uppercase"
+                                style="letter-spacing:.5px;font-size:.7rem;">Platform Iklan</label>
+                            <select name="platform" id="platform" class="form-select form-select-sm rounded-3" required>
+                                <option value="meta">📘 Meta Ads (Facebook & Instagram)</option>
+                                <option value="google">🔴 Google Ads</option>
+                                <option value="tiktok">⚫ TikTok Ads</option>
+                                <option value="shopee">🟠 Shopee Ads</option>
+                                <option value="manual">⚙️ Platform Lain (Manual)</option>
+                            </select>
+                        </div>
+                        <div class="row g-2 mb-2">
+                            <div class="col-6">
+                                <label for="target_roas" class="form-label fw-bold text-secondary small text-uppercase"
+                                    style="letter-spacing:.5px;font-size:.7rem;">Target ROAS (×)</label>
+                                <input type="number" name="target_roas" id="target_roas"
+                                    class="form-control form-control-sm rounded-3" placeholder="2.00" step="0.01"
+                                    min="0.1" value="2.00" required>
+                            </div>
+                            <div class="col-6">
+                                <label for="target_omzet" class="form-label fw-bold text-secondary small text-uppercase"
+                                    style="letter-spacing:.5px;font-size:.7rem;">Target Omzet (Rp)</label>
+                                <input type="number" name="target_omzet" id="target_omzet"
+                                    class="form-control form-control-sm rounded-3" placeholder="0" min="0"
+                                    value="0">
+                            </div>
+                        </div>
+                        <div class="form-text text-muted mb-3">
+                            <i class="bi bi-info-circle me-1 text-info"></i>
+                            Peringatan muncul jika ROAS riil di bawah target.
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100 rounded-3 fw-bold py-2">
+                            <i class="bi bi-save2 me-1"></i> Simpan Campaign
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+        </div>{{-- /col-lg-4 --}}
+
+
+        {{-- ══ RIGHT: CAMPAIGN TABLE ══ --}}
+        <div class="col-lg-8">
+            <div class="card border shadow-sm rounded-3 h-100">
+
+                {{-- Header --}}
+                <div
+                    class="card-header bg-white border-bottom py-2 px-3 d-flex align-items-center justify-content-between">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="bg-primary rounded-circle d-inline-flex align-items-center justify-content-center"
+                            style="width:28px;height:28px;">
+                            <i class="bi bi-grid-3x3-gap-fill text-white small"></i>
+                        </span>
+                        <div>
+                            <div class="fw-bold text-dark small lh-sm">Daftar Campaign & KPI</div>
+                            <div class="text-muted" style="font-size:.7rem;">
+                                {{ $campaigns->count() }} campaign terdaftar
                             </div>
                         </div>
                     </div>
+                    <span class="badge bg-success bg-opacity-10 text-success fw-semibold rounded-pill px-3 py-2">
+                        <i class="bi bi-activity me-1"></i>Live Tracking
+                    </span>
                 </div>
+
+                {{-- Table --}}
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr class="text-uppercase text-muted"
+                                    style="font-size:.72rem;letter-spacing:.6px;font-weight:700;">
+                                    <th class="border-0 px-3 py-3">Campaign</th>
+                                    <th class="border-0 px-3 py-3">Platform</th>
+                                    <th class="border-0 px-3 py-3">Target ROAS</th>
+                                    <th class="border-0 px-3 py-3">Target Omzet</th>
+                                    <th class="border-0 px-3 py-3">Status</th>
+                                    <th class="border-0 px-3 py-3 text-end">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse($campaigns as $camp)
+                                    @php
+                                        $pf = $camp->adsAccount->platform;
+                                        [$pfBg, $pfText] = match ($pf) {
+                                            'meta' => ['bg-primary', 'text-primary'],
+                                            'google' => ['bg-danger', 'text-danger'],
+                                            'tiktok' => ['bg-dark', 'text-dark'],
+                                            'shopee' => ['bg-warning', 'text-warning'],
+                                            default => ['bg-secondary', 'text-secondary'],
+                                        };
+                                        $pfIcon = match ($pf) {
+                                            'meta' => '📘',
+                                            'google' => '🔴',
+                                            'tiktok' => '⚫',
+                                            'shopee' => '🟠',
+                                            default => '⚙️',
+                                        };
+                                    @endphp
+                                    <tr>
+                                        {{-- Campaign Name --}}
+                                        <td class="px-3 py-3">
+                                            <div class="fw-bold text-dark small">{{ $camp->name }}</div>
+                                            <div class="text-muted" style="font-size:.73rem;">
+                                                <i class="bi bi-building me-1"></i>{{ $camp->adsAccount->account_name }}
+                                            </div>
+                                        </td>
+
+                                        {{-- Platform --}}
+                                        <td class="px-3 py-3">
+                                            <span
+                                                class="badge {{ $pfBg }} bg-opacity-10 {{ $pfText }} fw-bold rounded-pill px-2 py-1 border border-opacity-25"
+                                                style="font-size:.68rem;letter-spacing:.4px;text-transform:uppercase;">
+                                                {{ $pfIcon }} {{ strtoupper($pf) }}
+                                            </span>
+                                        </td>
+
+                                        {{-- Target ROAS --}}
+                                        <td class="px-3 py-3">
+                                            <span
+                                                class="badge bg-success bg-opacity-10 text-success fw-bold rounded-pill px-2 py-1">
+                                                <i
+                                                    class="bi bi-bullseye me-1"></i>{{ number_format($camp->target_roas, 2) }}×
+                                            </span>
+                                        </td>
+
+                                        {{-- Target Omzet --}}
+                                        <td class="px-3 py-3">
+                                            <span class="fw-semibold text-dark small">
+                                                Rp {{ number_format($camp->target_omzet, 0, ',', '.') }}
+                                            </span>
+                                        </td>
+
+                                        {{-- Status --}}
+                                        <td class="px-3 py-3">
+                                            @if ($camp->status === 'ACTIVE')
+                                                <span
+                                                    class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 fw-bold rounded-pill px-2 py-1"
+                                                    style="font-size:.7rem;">
+                                                    <i class="bi bi-circle-fill me-1" style="font-size:.45rem;"></i>ACTIVE
+                                                </span>
+                                            @else
+                                                <span
+                                                    class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-25 fw-bold rounded-pill px-2 py-1"
+                                                    style="font-size:.7rem;">
+                                                    <i class="bi bi-circle me-1" style="font-size:.45rem;"></i>PAUSED
+                                                </span>
+                                            @endif
+                                        </td>
+
+                                        {{-- Actions --}}
+                                        <td class="px-3 py-3 text-end">
+                                            <div class="d-flex gap-1 justify-content-end">
+                                                <button class="btn btn-sm btn-outline-primary rounded-3 px-2"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#editModal-{{ $camp->id }}" title="Edit Target">
+                                                    <i class="bi bi-pencil-fill"></i>
+                                                </button>
+                                                <form action="{{ route('marketing.ads.campaigns.destroy', $camp->id) }}"
+                                                    method="POST"
+                                                    onsubmit="return confirm('Yakin hapus campaign ini? Log biaya iklan ikut terhapus.')"
+                                                    class="d-inline">
+                                                    @csrf @method('DELETE')
+                                                    <button type="submit"
+                                                        class="btn btn-sm btn-outline-danger rounded-3 px-2"
+                                                        title="Hapus">
+                                                        <i class="bi bi-trash-fill"></i>
+                                                    </button>
+                                                </form>
+                                            </div>
+
+                                            {{-- Edit Modal --}}
+                                            <div class="modal fade text-start" id="editModal-{{ $camp->id }}"
+                                                tabindex="-1" aria-hidden="true">
+                                                <div class="modal-dialog modal-dialog-centered">
+                                                    <div class="modal-content border-0 shadow-lg rounded-4">
+                                                        <div
+                                                            class="modal-header bg-primary bg-opacity-10 border-bottom px-4 py-3">
+                                                            <div>
+                                                                <h5 class="modal-title fw-bold text-dark mb-0"
+                                                                    id="editModalLabel-{{ $camp->id }}">
+                                                                    Edit Target KPI
+                                                                </h5>
+                                                                <div class="text-muted small">
+                                                                    {{ $camp->name }}
+                                                                    <span
+                                                                        class="badge {{ $pfBg }} bg-opacity-10 {{ $pfText }} rounded-pill ms-1"
+                                                                        style="font-size:.65rem;">{{ strtoupper($pf) }}</span>
+                                                                </div>
+                                                            </div>
+                                                            <button type="button" class="btn-close"
+                                                                data-bs-dismiss="modal"></button>
+                                                        </div>
+                                                        <form
+                                                            action="{{ route('marketing.ads.campaigns.update', $camp->id) }}"
+                                                            method="POST">
+                                                            @csrf @method('PUT')
+                                                            <div class="modal-body p-4">
+                                                                <div class="mb-3">
+                                                                    <label for="target_roas-{{ $camp->id }}"
+                                                                        class="form-label fw-bold text-secondary small text-uppercase"
+                                                                        style="letter-spacing:.5px;font-size:.7rem;">
+                                                                        Target ROAS Minimum (×)
+                                                                    </label>
+                                                                    <input type="number" name="target_roas"
+                                                                        id="target_roas-{{ $camp->id }}"
+                                                                        class="form-control rounded-3"
+                                                                        value="{{ $camp->target_roas }}" step="0.01"
+                                                                        min="0.1" required>
+                                                                </div>
+                                                                <div class="mb-0">
+                                                                    <label for="target_omzet-{{ $camp->id }}"
+                                                                        class="form-label fw-bold text-secondary small text-uppercase"
+                                                                        style="letter-spacing:.5px;font-size:.7rem;">
+                                                                        Target Omzet (Rp)
+                                                                    </label>
+                                                                    <input type="number" name="target_omzet"
+                                                                        id="target_omzet-{{ $camp->id }}"
+                                                                        class="form-control rounded-3"
+                                                                        value="{{ (int) $camp->target_omzet }}"
+                                                                        min="0" required>
+                                                                </div>
+                                                            </div>
+                                                            <div class="modal-footer border-top px-4 py-3">
+                                                                <button type="button"
+                                                                    class="btn btn-light rounded-3 fw-semibold px-4"
+                                                                    data-bs-dismiss="modal">Batal</button>
+                                                                <button type="submit"
+                                                                    class="btn btn-primary rounded-3 fw-bold px-4">
+                                                                    <i class="bi bi-save2 me-1"></i>Simpan
+                                                                </button>
+                                                            </div>
+                                                        </form>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                        </td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="6" class="text-center py-5 text-muted">
+                                            <i class="bi bi-megaphone d-block fs-1 mb-2 opacity-25"></i>
+                                            <div class="fw-bold text-dark small mb-1">Belum Ada Campaign Terdaftar</div>
+                                            <div class="small">Buat campaign baru melalui form di sebelah kiri.</div>
+                                        </td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
             </div>
-        </div>
+        </div>{{-- /col-lg-8 --}}
+
     </div>
 @endsection

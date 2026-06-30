@@ -110,4 +110,111 @@ class WebhookController extends Controller
 
         return response()->json(['message' => 'success'], 200);
     }
+
+    /**
+     * Handle TikTok Lead Generation push notification
+     */
+    public function tiktokLeads(Request $request)
+    {
+        Log::info('[Webhook] Received TikTok Lead push notification', $request->all());
+
+        // TikTok Lead Generation Webhook Payload
+        $advertiserId = $request->input('advertiser_id');
+        if (!$advertiserId) {
+            $advertiserId = $request->input('data.advertiser_id');
+        }
+
+        if (!$advertiserId) {
+            Log::warning('[Webhook] TikTok Lead: advertiser_id tidak ditemukan di payload.');
+            return response()->json(['message' => 'invalid_payload'], 400);
+        }
+
+        // Cari AdsAccount dengan advertiser_id ini untuk mendapatkan tenant_id
+        $account = \App\Models\AdsAccount::where('advertiser_id', $advertiserId)->first();
+        if (!$account) {
+            Log::warning("[Webhook] TikTok Lead: Tidak ada akun iklan ERP dengan Advertiser ID {$advertiserId}");
+            return response()->json(['message' => 'account_not_mapped'], 404);
+        }
+
+        $tenantId = $account->tenant_id;
+
+        // Ambil data form
+        $name = '';
+        $phone = '';
+        $email = '';
+        $notes = [];
+
+        // Parsing lead form data
+        $formData = $request->input('lead_form_data') ?: $request->input('data.lead_form_data') ?: [];
+
+        foreach ($formData as $field) {
+            $key = strtolower($field['key'] ?? '');
+            $val = $field['value'] ?? '';
+
+            if (str_contains($key, 'name') || str_contains($key, 'nama')) {
+                $name = $val;
+            } elseif (str_contains($key, 'phone') || str_contains($key, 'telp') || str_contains($key, 'handphone') || str_contains($key, 'wa')) {
+                $phone = $val;
+            } elseif (str_contains($key, 'email') || str_contains($key, 'surel')) {
+                $email = $val;
+            } else {
+                $notes[] = ($field['key'] ?? '') . ': ' . $val;
+            }
+        }
+
+        // Fallback jika format berbeda
+        if (empty($name)) $name = $request->input('name') ?: $request->input('data.name') ?: 'TikTok Lead';
+        if (empty($phone)) $phone = $request->input('phone') ?: $request->input('data.phone') ?: '';
+        if (empty($email)) $email = $request->input('email') ?: $request->input('data.email') ?: '';
+
+        if (empty($phone)) {
+            Log::warning('[Webhook] TikTok Lead: No telepon kosong, abaikan lead.');
+            return response()->json(['message' => 'phone_required'], 400);
+        }
+
+        // Normalisasi nomor telepon
+        $phone = preg_replace('/\D/', '', $phone);
+        if (str_starts_with($phone, '0')) {
+            $phone = '62' . substr($phone, 1);
+        } elseif (!str_starts_with($phone, '62')) {
+            $phone = '62' . $phone;
+        }
+
+        // Cek/buat Customer baru di database
+        $customer = \App\Models\Customer::firstOrCreate(
+            [
+                'tenant_id' => $tenantId,
+                'phone' => $phone
+            ],
+            [
+                'name' => $name,
+                'tags' => 'tiktok_lead',
+                'address' => implode(', ', $notes) ?: 'Berasal dari TikTok Lead Ad',
+            ]
+        );
+
+        Log::info("[Webhook] TikTok Lead disimpan sebagai Customer #{$customer->id}");
+
+        // Kirim WhatsApp notifikasi jika dikonfigurasi di .env
+        $recipient = env('WHATSAPP_ALERT_RECIPIENT');
+        if ($recipient) {
+            $campaignName = $request->input('campaign_name') ?: $request->input('data.campaign_name') ?: 'Unknown Campaign';
+            $waMessage = "⚡ *NEW TIKTOK ADS LEAD* ⚡\n\n"
+                . "Ada prospek baru yang mengisi formulir iklan Anda!\n\n"
+                . "Nama: *" . $name . "*\n"
+                . "WA: *" . $phone . "*\n"
+                . "Email: *" . ($email ?: '—') . "*\n"
+                . "Campaign: *" . $campaignName . "*\n"
+                . "Keterangan: " . ($customer->address) . "\n\n"
+                . "Segera hubungi leads ini via WhatsApp untuk follow-up!";
+
+            try {
+                \App\Services\WhatsAppService::send($recipient, $waMessage);
+            } catch (\Throwable $e) {
+                Log::error("Gagal mengirim WA notifikasi lead baru: " . $e->getMessage());
+            }
+        }
+
+        return response()->json(['message' => 'success', 'customer_id' => $customer->id], 200);
+    }
 }

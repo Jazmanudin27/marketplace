@@ -87,6 +87,8 @@ Route::middleware('guest')->group(function () {
 // =========================================================================
 Route::post('/api/webhooks/shopee', [WebhookController::class, 'shopee'])->name('webhooks.shopee');
 Route::post('/api/webhooks/tiktok', [WebhookController::class, 'tiktok'])->name('webhooks.tiktok');
+Route::post('/api/webhooks/tiktok-leads', [WebhookController::class, 'tiktokLeads'])->name('webhooks.tiktok_leads');
+Route::get('/marketing/ads/catalog-feed/{tenant_id}', [\App\Http\Controllers\Marketing\AdsController::class, 'catalogFeed'])->name('marketing.ads.catalog_feed');
 
 // =========================================================================
 // Shopee OAuth Callback
@@ -480,6 +482,24 @@ Route::middleware('auth')->group(function () {
         Route::get('/marketing/ads/tiktok/connect', [\App\Http\Controllers\Marketing\TiktokAdsAuthController::class, 'connect'])->name('marketing.ads.tiktok.connect');
         Route::get('/marketing/ads/tiktok/callback', [\App\Http\Controllers\Marketing\TiktokAdsAuthController::class, 'callback'])->name('marketing.ads.tiktok.callback');
         Route::post('/marketing/ads/tiktok/select', [\App\Http\Controllers\Marketing\TiktokAdsAuthController::class, 'selectAccount'])->name('marketing.ads.tiktok.select');
+        Route::post('/marketing/ads/tiktok/capi-settings', [AdsController::class, 'saveTiktokCapiSettings'])->name('marketing.ads.tiktok.capi_settings');
+
+        // Budget Rules
+        Route::get('/marketing/ads/budget-rules', [AdsController::class, 'budgetRules'])->name('marketing.ads.budget_rules');
+        Route::post('/marketing/ads/budget-rules', [AdsController::class, 'storeBudgetRule'])->name('marketing.ads.budget_rules.store');
+        Route::delete('/marketing/ads/budget-rules/{rule}', [AdsController::class, 'destroyBudgetRule'])->name('marketing.ads.budget_rules.destroy');
+        Route::post('/marketing/ads/budget-alerts/{alert}/read', [AdsController::class, 'markAlertRead'])->name('marketing.ads.budget_alerts.read');
+
+        // TikTok Custom Audiences
+        Route::get('/marketing/ads/audiences', [AdsController::class, 'audiences'])->name('marketing.ads.audiences');
+        Route::post('/marketing/ads/audiences', [AdsController::class, 'storeAudience'])->name('marketing.ads.audiences.store');
+        Route::post('/marketing/ads/audiences/{audience}/sync', [AdsController::class, 'syncAudience'])->name('marketing.ads.audiences.sync');
+        Route::delete('/marketing/ads/audiences/{audience}', [AdsController::class, 'destroyAudience'])->name('marketing.ads.audiences.destroy');
+        Route::get('/marketing/ads/affiliates', [AdsController::class, 'affiliates'])->name('marketing.ads.affiliates');
+        Route::get('/marketing/ads/live-sessions', [AdsController::class, 'liveSessions'])->name('marketing.ads.live_sessions');
+        Route::post('/marketing/ads/live-sessions', [AdsController::class, 'startLiveSession'])->name('marketing.ads.live_sessions.start');
+        Route::post('/marketing/ads/live-sessions/{session}/end', [AdsController::class, 'endLiveSession'])->name('marketing.ads.live_sessions.end');
+        Route::delete('/marketing/ads/live-sessions/{session}', [AdsController::class, 'destroyLiveSession'])->name('marketing.ads.live_sessions.destroy');
     });
 
 

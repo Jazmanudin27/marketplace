@@ -10,6 +10,10 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Store;
 use App\Services\AutoAttributionService;
+use App\Models\AdsBudgetRule;
+use App\Models\AdsBudgetAlert;
+use App\Models\TiktokAudience;
+use App\Services\TiktokAudienceService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -120,10 +124,18 @@ class AdsController extends Controller
             $chartRevenue[] = (float)$revOnDay;
         }
 
+        // Unread Budget alerts
+        $unreadAlerts = AdsBudgetAlert::where('tenant_id', $tenantId)
+            ->where('is_read', false)
+            ->with('campaign.adsAccount')
+            ->latest()
+            ->get();
+
         return view('marketing.ads.index', compact(
             'campaigns', 'totalSpend', 'totalRevenue', 'totalConversions',
             'overallRoas', 'topCampaigns', 'recommendations', 'topProducts',
-            'unattributedOrders', 'chartLabels', 'chartSpend', 'chartRevenue'
+            'unattributedOrders', 'chartLabels', 'chartSpend', 'chartRevenue',
+            'unreadAlerts'
         ));
     }
 
@@ -331,5 +343,317 @@ class AdsController extends Controller
             Log::error('[Ads Web Sync] Error', ['message' => $e->getMessage()]);
             return redirect()->back()->with('error', 'Gagal melakukan sinkronisasi iklan: ' . $e->getMessage());
         }
+    }
+
+    public function catalogFeed($tenantId)
+    {
+        $tenant = \App\Models\Tenant::findOrFail($tenantId);
+        $products = \App\Models\MasterProduct::where('tenant_id', $tenantId)
+            ->where('is_active', true)
+            ->with(['brand', 'category'])
+            ->get();
+
+        $xml = new \SimpleXMLElement('<?xml version="1.0" encoding="UTF-8"?><rss version="2.0" xmlns:g="http://base.google.com/ns/1.0"/>');
+        $channel = $xml->addChild('channel');
+        $channel->addChild('title', htmlspecialchars($tenant->name . ' Product Catalog'));
+        $channel->addChild('link', config('app.url'));
+        $channel->addChild('description', 'Auto-generated product feed for TikTok and Meta Ads');
+
+        foreach ($products as $product) {
+            $item = $channel->addChild('item');
+            $item->addChild('g:id', 'prod_' . $product->id, 'http://base.google.com/ns/1.0');
+            $item->addChild('g:title', htmlspecialchars($product->name), 'http://base.google.com/ns/1.0');
+            $item->addChild('g:description', htmlspecialchars($product->description ?? 'Produk ' . $product->name), 'http://base.google.com/ns/1.0');
+            
+            // availability
+            $availability = $product->stock > $product->min_stock ? 'in stock' : 'out of stock';
+            $item->addChild('g:availability', $availability, 'http://base.google.com/ns/1.0');
+            
+            // price (example: 150000 IDR)
+            $item->addChild('g:price', ((int)$product->price) . ' IDR', 'http://base.google.com/ns/1.0');
+            
+            // link & image_link
+            $item->addChild('g:link', config('app.url') . '/products/' . $product->id, 'http://base.google.com/ns/1.0');
+            
+            $imageUrl = $product->image_url ?: 'https://placehold.co/600x600/png?text=' . urlencode($product->name);
+            if (!str_starts_with($imageUrl, 'http')) {
+                $imageUrl = asset($imageUrl);
+            }
+            $item->addChild('g:image_link', $imageUrl, 'http://base.google.com/ns/1.0');
+            
+            // brand
+            $brandName = $product->brand ? $product->brand->name : 'Generic';
+            $item->addChild('g:brand', htmlspecialchars($brandName), 'http://base.google.com/ns/1.0');
+            
+            // condition
+            $item->addChild('g:condition', 'new', 'http://base.google.com/ns/1.0');
+        }
+
+        return response($xml->asXML(), 200, [
+            'Content-Type' => 'application/xml',
+        ]);
+    }
+
+    public function saveTiktokCapiSettings(Request $request)
+    {
+        $request->validate([
+            'pixel_id' => 'nullable|string|max:255',
+            'events_access_token' => 'nullable|string',
+            'advertiser_id' => 'nullable|string|max:255',
+        ]);
+
+        $tenantId = Auth::user()->tenant_id;
+        $account = AdsAccount::firstOrCreate(
+            ['tenant_id' => $tenantId, 'platform' => 'tiktok'],
+            ['account_name' => 'Akun TikTok Ads', 'is_active' => true]
+        );
+
+        $account->update([
+            'pixel_id' => $request->pixel_id,
+            'events_access_token' => $request->events_access_token,
+            'advertiser_id' => $request->advertiser_id,
+        ]);
+
+        return redirect()->back()->with('success', 'Pengaturan TikTok CAPI & Advertiser ID berhasil disimpan.');
+    }
+
+    public function budgetRules()
+    {
+        $tenantId = Auth::user()->tenant_id;
+        $rules = AdsBudgetRule::where('tenant_id', $tenantId)->with('campaign')->get();
+        $campaigns = AdsCampaign::where('tenant_id', $tenantId)->get();
+        $alerts = AdsBudgetAlert::where('tenant_id', $tenantId)->with('campaign')->latest()->get();
+
+        return view('marketing.ads.budget_rules', compact('rules', 'campaigns', 'alerts'));
+    }
+
+    public function storeBudgetRule(Request $request)
+    {
+        $request->validate([
+            'ads_campaign_id' => 'required|exists:ads_campaigns,id',
+            'name' => 'required|string|max:255',
+            'condition' => 'required|string',
+            'threshold_value' => 'required|numeric|min:0',
+            'action' => 'required|string',
+            'whatsapp_recipient' => 'nullable|string|max:50',
+        ]);
+
+        $tenantId = Auth::user()->tenant_id;
+
+        // Normalisasi nomor telepon jika diisi
+        $recipient = $request->whatsapp_recipient;
+        if (!empty($recipient)) {
+            $recipient = preg_replace('/\D/', '', $recipient);
+            if (str_starts_with($recipient, '0')) {
+                $recipient = '62' . substr($recipient, 1);
+            } elseif (!str_starts_with($recipient, '62')) {
+                $recipient = '62' . $recipient;
+            }
+        }
+
+        AdsBudgetRule::create([
+            'tenant_id' => $tenantId,
+            'ads_campaign_id' => $request->ads_campaign_id,
+            'name' => $request->name,
+            'condition' => $request->condition,
+            'threshold_value' => $request->threshold_value,
+            'action' => $request->action,
+            'whatsapp_recipient' => $recipient ?: null,
+            'is_active' => true,
+        ]);
+
+        return redirect()->back()->with('success', 'Aturan budget berhasil ditambahkan.');
+    }
+
+    public function destroyBudgetRule(AdsBudgetRule $rule)
+    {
+        if ($rule->tenant_id !== Auth::user()->tenant_id) {
+            abort(403);
+        }
+        $rule->delete();
+        return redirect()->back()->with('success', 'Aturan budget berhasil dihapus.');
+    }
+
+    public function markAlertRead(AdsBudgetAlert $alert)
+    {
+        if ($alert->tenant_id !== Auth::user()->tenant_id) {
+            abort(403);
+        }
+        $alert->markAsRead();
+        return redirect()->back()->with('success', 'Alert ditandai sebagai dibaca.');
+    }
+
+    public function audiences()
+    {
+        $tenantId = Auth::user()->tenant_id;
+        $audiences = TiktokAudience::where('tenant_id', $tenantId)->with('adsAccount')->get();
+        $accounts = AdsAccount::where('tenant_id', $tenantId)->where('platform', 'tiktok')->get();
+
+        return view('marketing.ads.audiences', compact('audiences', 'accounts'));
+    }
+
+    public function storeAudience(Request $request)
+    {
+        $request->validate([
+            'ads_account_id' => 'required|exists:ads_accounts,id',
+            'name' => 'required|string|max:255',
+            'type' => 'required|string',
+        ]);
+
+        $tenantId = Auth::user()->tenant_id;
+
+        TiktokAudience::create([
+            'tenant_id' => $tenantId,
+            'ads_account_id' => $request->ads_account_id,
+            'name' => $request->name,
+            'type' => $request->type,
+            'status' => TiktokAudience::STATUS_PENDING,
+        ]);
+
+        return redirect()->back()->with('success', 'Custom Audience baru berhasil ditambahkan di ERP. Klik Sync untuk sinkronisasi ke TikTok.');
+    }
+
+    public function syncAudience(TiktokAudience $audience, TiktokAudienceService $service)
+    {
+        if ($audience->tenant_id !== Auth::user()->tenant_id) {
+            abort(403);
+        }
+
+        try {
+            $success = $service->syncAudience($audience);
+            if ($success) {
+                return redirect()->back()->with('success', 'Sinkronisasi ke TikTok Custom Audience berhasil!');
+            } else {
+                return redirect()->back()->with('error', 'Gagal sinkronisasi: ' . ($audience->error_message ?? 'Unknown error'));
+            }
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Gagal sinkronisasi: ' . $e->getMessage());
+        }
+    }
+
+    public function destroyAudience(TiktokAudience $audience)
+    {
+        if ($audience->tenant_id !== Auth::user()->tenant_id) {
+            abort(403);
+        }
+        $audience->delete();
+        return redirect()->back()->with('success', 'Audience berhasil dihapus dari ERP.');
+    }
+
+    public function affiliates()
+    {
+        $tenantId = Auth::user()->tenant_id;
+
+        // Ambil data performa affiliate kreator
+        $affiliates = Order::where('tenant_id', $tenantId)
+            ->whereNotNull('tiktok_creator_id')
+            ->selectRaw('tiktok_creator_id, tiktok_creator_name, count(id) as total_orders, sum(net_amount) as total_revenue, sum(affiliate_commission) as total_commission')
+            ->groupBy('tiktok_creator_id', 'tiktok_creator_name')
+            ->orderByDesc('total_revenue')
+            ->get();
+
+        // Ambil daftar pesanan terbaru yang dihasilkan affiliate
+        $recentOrders = Order::where('tenant_id', $tenantId)
+            ->whereNotNull('tiktok_creator_id')
+            ->with('store')
+            ->orderByDesc('order_date')
+            ->limit(15)
+            ->get();
+
+        return view('marketing.ads.affiliates', compact('affiliates', 'recentOrders'));
+    }
+
+    public function liveSessions()
+    {
+        $tenantId = Auth::user()->tenant_id;
+
+        // Ambil toko TikTok yang connected
+        $stores = Store::where('tenant_id', $tenantId)
+            ->whereHas('channel', function ($q) {
+                $q->where('code', 'tiktok');
+            })->get();
+
+        // Ambil semua sesi live
+        $sessions = \App\Models\TiktokLiveSession::where('tenant_id', $tenantId)
+            ->with('store')
+            ->latest()
+            ->get();
+
+        // Agregasi performa host menggunakan PHP collection
+        $hosts = [];
+        foreach ($sessions as $session) {
+            $host = $session->host_name;
+            if (!isset($hosts[$host])) {
+                $hosts[$host] = [
+                    'host_name' => $host,
+                    'total_sessions' => 0,
+                    'total_orders' => 0,
+                    'total_revenue' => 0,
+                ];
+            }
+            $hosts[$host]['total_sessions']++;
+            $hosts[$host]['total_orders'] += $session->total_orders;
+            $hosts[$host]['total_revenue'] += $session->total_revenue;
+        }
+
+        $hosts = collect($hosts)->sortByDesc('total_revenue');
+
+        return view('marketing.ads.live_sessions', compact('stores', 'sessions', 'hosts'));
+    }
+
+    public function startLiveSession(Request $request)
+    {
+        $request->validate([
+            'store_id' => 'required|exists:stores,id',
+            'title' => 'required|string|max:255',
+            'host_name' => 'required|string|max:255',
+        ]);
+
+        $tenantId = Auth::user()->tenant_id;
+
+        // Pastikan tidak ada sesi live yang sedang aktif untuk toko yang sama
+        $activeExists = \App\Models\TiktokLiveSession::where('tenant_id', $tenantId)
+            ->where('store_id', $request->store_id)
+            ->where('status', \App\Models\TiktokLiveSession::STATUS_LIVE)
+            ->exists();
+
+        if ($activeExists) {
+            return redirect()->back()->with('error', 'Sesi LIVE untuk toko ini sedang berjalan. Selesaikan sesi sebelumnya terlebih dahulu.');
+        }
+
+        \App\Models\TiktokLiveSession::create([
+            'tenant_id' => $tenantId,
+            'store_id' => $request->store_id,
+            'title' => $request->title,
+            'host_name' => $request->host_name,
+            'start_time' => now(),
+            'status' => \App\Models\TiktokLiveSession::STATUS_LIVE,
+        ]);
+
+        return redirect()->back()->with('success', 'Sesi LIVE TikTok berhasil dimulai! Pesanan masuk akan otomatis ditautkan.');
+    }
+
+    public function endLiveSession(\App\Models\TiktokLiveSession $session)
+    {
+        if ($session->tenant_id !== Auth::user()->tenant_id) {
+            abort(403);
+        }
+
+        $session->update([
+            'status' => \App\Models\TiktokLiveSession::STATUS_COMPLETED,
+            'end_time' => now(),
+        ]);
+
+        return redirect()->back()->with('success', 'Sesi LIVE TikTok berhasil diakhiri. Performa host tercatat.');
+    }
+
+    public function destroyLiveSession(\App\Models\TiktokLiveSession $session)
+    {
+        if ($session->tenant_id !== Auth::user()->tenant_id) {
+            abort(403);
+        }
+
+        $session->delete();
+        return redirect()->back()->with('success', 'Sesi LIVE berhasil dihapus.');
     }
 }
