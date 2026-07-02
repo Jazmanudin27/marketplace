@@ -196,6 +196,9 @@ class PullOrdersFromShopee implements ShouldQueue
         $dropshipperPhone = isset($shopeeOrder['dropshipper_phone']) ? trim($shopeeOrder['dropshipper_phone']) : null;
         $isDropship = !empty($dropshipperName);
 
+        $cancelReason = $shopeeOrder['cancel_reason'] ?? $shopeeOrder['buyer_cancel_reason'] ?? null;
+        $cancelledBy = $shopeeOrder['cancel_by'] ?? null;
+
         $order = Order::updateOrCreate(
             [
                 'tenant_id' => $this->store->tenant_id,
@@ -224,6 +227,8 @@ class PullOrdersFromShopee implements ShouldQueue
                 'is_dropship' => $isDropship,
                 'dropshipper_name' => $dropshipperName,
                 'dropshipper_phone' => $dropshipperPhone,
+                'cancel_reason' => $cancelReason,
+                'cancelled_by' => $cancelledBy,
             ]
         );
 

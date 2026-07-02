@@ -36,6 +36,9 @@
                                         <i class="fas fa-truck-loading me-1"></i> Kirim Pesanan
                                     </button>
                                 </form>
+                                <button type="button" class="btn btn-danger btn-sm px-3 rounded-3" data-bs-toggle="modal" data-bs-target="#cancelOrderModal">
+                                    <i class="fas fa-times-circle me-1"></i> Batalkan Pesanan
+                                </button>
                             @endif
 
                             @if (in_array($order->order_status, ['SHIPPED', 'READY_TO_SHIP']))
@@ -60,6 +63,26 @@
 
                     <div class="card-body p-3">
                         <div class="row g-2">
+                            @if ($order->order_status === 'CANCELLED')
+                                <div class="col-md-12 mb-2">
+                                    <div class="p-3 border border-danger rounded bg-danger bg-opacity-10">
+                                        <small class="text-danger d-block text-uppercase fw-bold mb-2" style="font-size: 0.7rem;">
+                                            <i class="fas fa-times-circle me-1"></i> Informasi Pembatalan Pesanan
+                                        </small>
+                                        <div class="row g-2">
+                                            @if ($order->cancelled_by)
+                                                <div class="col-md-6 text-dark small">
+                                                    <span class="text-muted">Dibatalkan Oleh:</span> <strong>{{ $order->cancelled_by }}</strong>
+                                                </div>
+                                            @endif
+                                            <div class="col-md-12 text-dark small">
+                                                <span class="text-muted">Alasan Pembatalan:</span>
+                                                <strong class="text-danger-emphasis">{{ $order->cancel_reason ?? 'Tidak ada detail alasan dari marketplace' }}</strong>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            @endif
                             <div class="col-md-6">
                                 <div class="p-3 border rounded h-100 bg-light">
                                     <small class="text-muted d-block text-uppercase fw-semibold mb-1" style="font-size: 0.65rem;">Pembeli</small>
@@ -528,4 +551,33 @@
             }
         </style>
     @endpush
+
+    <!-- Cancel Order Modal -->
+    <div class="modal fade" id="cancelOrderModal" tabindex="-1" aria-labelledby="cancelOrderModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form action="{{ route('orders.cancel', $order->id) }}" method="POST">
+                    @csrf
+                    <div class="modal-header">
+                        <h5 class="modal-title fw-bold text-danger" id="cancelOrderModalLabel">
+                            <i class="fas fa-exclamation-triangle me-1"></i> Batalkan Pesanan
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p class="small text-muted">Apakah Anda yakin ingin membatalkan pesanan ini secara manual? Stok produk yang dialokasikan akan dikembalikan secara otomatis.</p>
+                        
+                        <div class="mb-3">
+                            <label for="cancel_reason" class="form-label fw-bold small">Alasan Pembatalan <span class="text-danger">*</span></label>
+                            <textarea name="cancel_reason" id="cancel_reason" class="form-control" rows="3" required placeholder="Contoh: Stok barang di gudang kosong / Buyer meminta cancel..."></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary btn-sm rounded-3" data-bs-dismiss="modal">Tutup</button>
+                        <button type="submit" class="btn btn-danger btn-sm rounded-3">Ya, Batalkan Pesanan</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 @endsection

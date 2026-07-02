@@ -50,6 +50,11 @@
                         <small class="text-muted d-block mt-1">Kelola pesanan dari toko online dan marketplace</small>
                     </div>
                     <div class="d-flex gap-2">
+                        @can('orders.export')
+                            <a href="{{ route('orders.export', request()->all()) }}" class="btn btn-outline-secondary btn-sm px-3 rounded-3">
+                                <i class="fas fa-file-export me-1"></i> Ekspor CSV
+                            </a>
+                        @endcan
                         <button type="submit" form="mass-print-form" class="btn btn-success btn-sm px-3 rounded-3">
                             <i class="fas fa-print me-1"></i> Cetak Massal
                         </button>
@@ -162,11 +167,17 @@
                                             value="{{ request('end_date') }}">
                                     </div>
                                 </div>
+                                <div class="col-12 col-sm-6 col-md-3">
+                                    <label class="form-label fw-bold small text-dark mb-1">
+                                        <i class="fas fa-comment-slash me-1 text-secondary"></i>Alasan Batal
+                                    </label>
+                                    <input type="text" name="cancel_reason" class="form-control form-control-sm" placeholder="Cari alasan pembatalan..." value="{{ request('cancel_reason') }}">
+                                </div>
                                 <div class="col-12 col-sm-6 col-md-auto d-flex gap-2">
                                     <button type="submit" class="btn btn-primary btn-sm px-3 rounded-3">
                                         <i class="fas fa-search me-1"></i> Cari
                                     </button>
-                                    @if (request()->anyFilled(['channel_id', 'store_id', 'courier', 'status', 'start_date', 'end_date', 'deadline_status', 'is_dropship']))
+                                    @if (request()->anyFilled(['channel_id', 'store_id', 'courier', 'status', 'start_date', 'end_date', 'deadline_status', 'is_dropship', 'cancel_reason']))
                                         <a href="{{ route('orders.index') }}"
                                             class="btn btn-secondary btn-sm px-3 rounded-3">
                                             <i class="fas fa-times me-1"></i> Reset
@@ -275,9 +286,15 @@
                                             <td class="text-center">
                                                 <span
                                                     class="badge bg-{{ $order->status_badge ?? 'secondary' }}-subtle text-{{ $order->status_badge ?? 'secondary' }} border border-{{ $order->status_badge ?? 'secondary' }}-subtle"
-                                                    style="font-size:0.7rem; padding: 0.25em 0.5em;">
+                                                    style="font-size:0.7rem; padding: 0.25em 0.5em;"
+                                                    @if ($order->order_status === 'CANCELLED' && $order->cancel_reason) data-bs-toggle="tooltip" title="{{ $order->cancel_reason }}" @endif>
                                                     {{ str_replace('_', ' ', $order->order_status) }}
                                                 </span>
+                                                @if ($order->order_status === 'CANCELLED' && $order->cancel_reason)
+                                                    <div class="text-danger small mt-1 text-truncate mx-auto" style="max-width: 120px; font-size: 0.65rem;" title="{{ $order->cancel_reason }}">
+                                                        {{ $order->cancel_reason }}
+                                                    </div>
+                                                @endif
                                             </td>
                                         </tr>
                                     @empty

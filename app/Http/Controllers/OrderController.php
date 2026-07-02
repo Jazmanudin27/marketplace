@@ -67,6 +67,11 @@ class OrderController extends Controller
             $query->where('is_dropship', $request->is_dropship);
         }
 
+        // Filter Alasan Pembatalan
+        if ($request->filled('cancel_reason')) {
+            $query->where('cancel_reason', 'like', '%' . $request->cancel_reason . '%');
+        }
+
         $orders = $query->orderByDesc('order_date')
             ->paginate(20)
             ->withQueryString();
@@ -388,5 +393,123 @@ class OrderController extends Controller
         }
 
         return view('orders.print', compact('order'));
+    }
+
+    public function cancel(Order $order, Request $request)
+    {
+        abort_unless($order->tenant_id === Auth::user()->tenant_id, 403);
+        
+        $request->validate([
+            'cancel_reason' => 'required|string|max:500',
+        ]);
+        
+        $order->order_status = Order::STATUS_CANCELLED;
+        $order->cancel_reason = $request->cancel_reason;
+        $order->cancelled_by = Auth::user()->name . ' (ERP Admin)';
+        $order->save();
+        
+        // Kembalikan stok jika belum dikembalikan
+        $order->processStockDeduction();
+        
+        return back()->with('success', 'Pesanan berhasil dibatalkan secara manual.');
+    }
+
+    public function export(Request $request)
+    {
+        $tenantId = Auth::user()->tenant_id;
+
+        $query = Order::with('store.channel')
+            ->where('tenant_id', $tenantId);
+
+        // Filter Channel
+        if ($request->filled('channel_id')) {
+            $query->whereHas('store', function ($q) use ($request) {
+                $q->where('channel_id', $request->channel_id);
+            });
+        }
+
+        // Filter Toko
+        if ($request->filled('store_id')) {
+            $query->where('store_id', $request->store_id);
+        }
+
+        // Filter Kurir
+        if ($request->filled('courier')) {
+            $query->where('courier', 'like', '%' . $request->courier . '%');
+        }
+
+        // Filter Status
+        if ($request->filled('status')) {
+            $query->where('order_status', $request->status);
+        }
+
+        // Filter Batas Kirim (Deadline Status)
+        if ($request->filled('deadline_status')) {
+            $deadlineStatus = $request->deadline_status;
+            if ($deadlineStatus === 'overdue') {
+                $query->whereNotNull('ship_before_date')
+                    ->where('ship_before_date', '<', now());
+            } elseif ($deadlineStatus === 'urgent') {
+                $query->whereNotNull('ship_before_date')
+                    ->where('ship_before_date', '>', now())
+                    ->where('ship_before_date', '<=', now()->addHours(24));
+            } elseif ($deadlineStatus === 'safe') {
+                $query->whereNotNull('ship_before_date')
+                    ->where('ship_before_date', '>', now()->addHours(24));
+            }
+        }
+
+        // Filter Tanggal
+        if ($request->filled('start_date')) {
+            $query->whereDate('order_date', '>=', $request->start_date);
+        }
+        if ($request->filled('end_date')) {
+            $query->whereDate('order_date', '<=', $request->end_date);
+        }
+
+        // Filter Dropship
+        if ($request->filled('is_dropship')) {
+            $query->where('is_dropship', $request->is_dropship);
+        }
+
+        // Filter Alasan Pembatalan
+        if ($request->filled('cancel_reason')) {
+            $query->where('cancel_reason', 'like', '%' . $request->cancel_reason . '%');
+        }
+
+        $orders = $query->orderByDesc('order_date')->get();
+
+        $headers = [
+            'Content-type'        => 'text/csv',
+            'Content-Disposition' => 'attachment; filename=orders_report_' . date('Y-m-d') . '.csv',
+            'Pragma'              => 'no-cache',
+            'Cache-Control'       => 'must-revalidate, post-check=0, pre-check=0',
+            'Expires'             => '0'
+        ];
+
+        $columns = ['Tanggal', 'Invoice / ID Marketplace', 'Toko', 'Channel', 'Pembeli', 'Total (Rp)', 'Status', 'Alasan Batal', 'Dibatalkan Oleh'];
+
+        $callback = function() use ($orders, $columns) {
+            $file = fopen('php://output', 'w');
+            fputcsv($file, $columns);
+
+            foreach ($orders as $order) {
+                fputcsv($file, [
+                    $order->order_date ? $order->order_date->format('Y-m-d H:i:s') : '-',
+                    $order->invoice_number ?? $order->order_marketplace_id,
+                    $order->store->store_name,
+                    $order->store->channel->name,
+                    $order->buyer_name ?? '-',
+                    $order->total_amount,
+                    $order->order_status,
+                    $order->cancel_reason ?? '-',
+                    $order->cancelled_by ?? '-'
+                ]);
+            }
+
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
     }
 }

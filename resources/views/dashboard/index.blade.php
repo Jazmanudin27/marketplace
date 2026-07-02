@@ -521,9 +521,9 @@
             </div>
         </div>
 
-        <!-- Column: Low Stock Products list -->
-        <div class="col-12 col-xxl-4">
-            <div class="card border rounded-3 h-100">
+        <!-- Column: Low Stock Products list & Cancel Reasons -->
+        <div class="col-12 col-xxl-4 d-flex flex-column gap-3">
+            <div class="card border rounded-3">
                 <div class="card-header d-flex align-items-center justify-content-between py-2 px-3">
                     <div class="d-flex align-items-center gap-2">
                         <i class="bi bi-exclamation-triangle text-warning fs-6"></i>
@@ -571,6 +571,35 @@
                         <div class="text-center py-4 text-secondary">
                             <i class="bi bi-check-circle-fill fs-3 text-success opacity-75 mb-2 d-block"></i>
                             <p class="mb-0 small">Semua stok aman! ✅</p>
+                        </div>
+                    @endforelse
+                </div>
+            </div>
+
+            <!-- Card: Top Alasan Pembatalan -->
+            <div class="card border rounded-3 shadow-sm">
+                <div class="card-header d-flex align-items-center justify-content-between py-2 px-3">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-x-octagon text-danger fs-6"></i>
+                        <span class="fw-bold text-dark">Top Alasan Pembatalan</span>
+                    </div>
+                </div>
+                <div class="card-body p-3">
+                    @forelse($topCancelReasons as $reason)
+                        <div class="d-flex align-items-center justify-content-between py-2 border-bottom border-light">
+                            <div class="flex-grow-1 min-width-0 pe-3">
+                                <div class="fw-semibold text-truncate text-dark small" title="{{ $reason->cancel_reason }}">
+                                    {{ $reason->cancel_reason }}
+                                </div>
+                            </div>
+                            <div class="text-end flex-shrink-0">
+                                <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 fw-bold">{{ $reason->count }}x</span>
+                            </div>
+                        </div>
+                    @empty
+                        <div class="text-center py-4 text-secondary text-muted">
+                            <i class="bi bi-emoji-smile fs-3 text-success opacity-75 mb-2 d-block"></i>
+                            <p class="mb-0 small">Belum ada pesanan yang batal! 🌟</p>
                         </div>
                     @endforelse
                 </div>

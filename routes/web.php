@@ -339,6 +339,7 @@ Route::middleware('auth')->group(function () {
     // Orders (Pesanan Masuk)
     Route::middleware('permission:manage-orders')->group(function () {
         Route::get('/orders', [OrderController::class, 'index'])->name('orders.index');
+        Route::get('/orders/export', [OrderController::class, 'export'])->name('orders.export')->middleware('permission:orders.export');
         Route::post('/orders/sync', [OrderController::class, 'sync'])->name('orders.sync');
         Route::post('/orders/mass-print', [OrderPrintController::class, 'massPrint'])->name('orders.mass_print');
         Route::get('/orders/{order}', [OrderController::class, 'show'])->name('orders.show');
@@ -347,6 +348,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/orders/{order}/tracking', [OrderController::class, 'fetchTracking'])->name('orders.tracking');
         Route::get('/orders/{order}/tracking-detail', [OrderController::class, 'trackingDetail'])->name('orders.tracking.detail');
         Route::get('/orders/{order}/print', [OrderController::class, 'print'])->name('orders.print');
+        Route::post('/orders/{order}/cancel', [OrderController::class, 'cancel'])->name('orders.cancel');
     });
 
     // Fulfillment (Kemas Pesanan)

@@ -121,6 +121,9 @@ class PullOrdersFromLazada implements ShouldQueue
         // 14 days standard shipping limit
         $shipBefore = date('Y-m-d H:i:s', $orderData['create_time'] + (86400 * 3));
 
+        $cancelReason = $orderData['cancel_reason'] ?? $orderData['reason'] ?? null;
+        $cancelledBy = $orderData['cancelled_by'] ?? null;
+
         $order = Order::updateOrCreate(
             [
                 'tenant_id' => $store->tenant_id,
@@ -143,6 +146,8 @@ class PullOrdersFromLazada implements ShouldQueue
                 'order_date' => date('Y-m-d H:i:s', $orderData['create_time']),
                 'ship_before_date' => $shipBefore,
                 'financial_breakdown' => $financialBreakdown,
+                'cancel_reason' => $cancelReason,
+                'cancelled_by' => $cancelledBy,
             ]
         );
 

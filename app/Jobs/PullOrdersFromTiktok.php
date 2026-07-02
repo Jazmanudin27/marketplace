@@ -242,6 +242,9 @@ class PullOrdersFromTiktok implements ShouldQueue
 
         $liveSessionId = $liveSession ? $liveSession->id : null;
 
+        $cancelReason = $tiktokOrder['cancel_reason'] ?? $tiktokOrder['cancellation_reason'] ?? null;
+        $cancelledBy = $tiktokOrder['cancel_user'] ?? $tiktokOrder['cancel_by'] ?? null;
+
         $order = Order::updateOrCreate(
             [
                 'tenant_id' => $this->store->tenant_id,
@@ -268,6 +271,8 @@ class PullOrdersFromTiktok implements ShouldQueue
                 'tiktok_creator_id' => $tiktokCreatorId,
                 'affiliate_commission' => $affiliateCommission,
                 'tiktok_live_session_id' => $liveSessionId,
+                'cancel_reason' => $cancelReason,
+                'cancelled_by' => $cancelledBy,
             ]
         );
 

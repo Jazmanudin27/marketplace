@@ -87,13 +87,24 @@ class DashboardController extends Controller
         $totalDropshipOrders = $onlineDropshipCount + $offlineDropshipCount;
         $dropshipRatio = $totalAllOrders > 0 ? round(($totalDropshipOrders / $totalAllOrders) * 100, 1) : 0;
 
+        // Top Cancel Reasons
+        $topCancelReasons = Order::where('tenant_id', $tenant->id)
+            ->where('order_status', Order::STATUS_CANCELLED)
+            ->whereNotNull('cancel_reason')
+            ->where('cancel_reason', '!=', '')
+            ->selectRaw('cancel_reason, count(*) as count')
+            ->groupBy('cancel_reason')
+            ->orderByDesc('count')
+            ->limit(5)
+            ->get();
+
         return view('dashboard.index', compact(
             'totalStores', 'totalProducts', 'todayOrders', 'todayRevenue',
             'monthRevenue', 'pendingOrders', 'recentOrders', 'lowStockProducts',
             'urgentOrders', 'stores', 'initialChartData',
             'onlineDropshipCount', 'onlineDropshipRevenue',
             'offlineDropshipCount', 'offlineDropshipRevenue',
-            'dropshipRatio'
+            'dropshipRatio', 'topCancelReasons'
         ));
     }
 

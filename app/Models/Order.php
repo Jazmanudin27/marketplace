@@ -47,6 +47,8 @@ class Order extends Model
         'dropshipper_phone',
         'recon_status',
         'recon_notes',
+        'cancel_reason',
+        'cancelled_by',
     ];
 
     protected $casts = [
