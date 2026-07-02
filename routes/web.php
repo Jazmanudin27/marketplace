@@ -404,6 +404,7 @@ Route::middleware('auth')->group(function () {
 
     // Pesanan Retur
     Route::middleware('permission:manage-returns')->group(function () {
+        Route::get('/returns/export', [ReturnOrderController::class, 'export'])->name('returns.export');
         Route::get('/returns', [ReturnOrderController::class, 'index'])->name('returns.index');
         Route::post('/returns/sync', [ReturnOrderController::class, 'sync'])->name('returns.sync');
         Route::post('/returns/{returnOrder}/restock', [ReturnOrderController::class, 'restock'])->name('returns.restock');

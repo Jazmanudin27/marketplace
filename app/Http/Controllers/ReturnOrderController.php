@@ -68,6 +68,11 @@ class ReturnOrderController extends Controller
             ->distinct()
             ->pluck('status');
 
+        $totalReturns = ReturnOrder::where('tenant_id', $tenantId)->count();
+        $pendingQc = ReturnOrder::where('tenant_id', $tenantId)->where('is_restocked', false)->count();
+        $goodCount = ReturnOrder::where('tenant_id', $tenantId)->where('is_restocked', true)->where('inspection_status', 'GOOD')->count();
+        $defectiveCount = ReturnOrder::where('tenant_id', $tenantId)->where('is_restocked', true)->where('inspection_status', 'DEFECTIVE')->count();
+
         return view('returns.index', compact(
             'returns',
             'search',
@@ -77,8 +82,117 @@ class ReturnOrderController extends Controller
             'channelId',
             'storeId',
             'status',
-            'isRestocked'
+            'isRestocked',
+            'totalReturns',
+            'pendingQc',
+            'goodCount',
+            'defectiveCount'
         ));
+    }
+
+    public function export(Request $request)
+    {
+        $tenantId = Auth::user()->tenant_id;
+        $search = $request->query('search');
+        $channelId = $request->query('channel_id');
+        $storeId = $request->query('store_id');
+        $status = $request->query('status');
+        $isRestocked = $request->query('is_restocked');
+
+        $query = ReturnOrder::with(['order', 'store.channel', 'items.orderItem'])
+            ->where('tenant_id', $tenantId);
+
+        // Apply filters (same logic as index)
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('return_sn', 'like', "%{$search}%")
+                  ->orWhereHas('order', function ($o) use ($search) {
+                      $o->where('invoice_number', 'like', "%{$search}%")
+                        ->orWhere('order_marketplace_id', 'like', "%{$search}%");
+                  });
+            });
+        }
+        if ($channelId) {
+            $query->whereHas('store', function ($q) use ($channelId) {
+                $q->where('channel_id', $channelId);
+            });
+        }
+        if ($storeId) {
+            $query->where('store_id', $storeId);
+        }
+        if ($status) {
+            $query->where('status', $status);
+        }
+        if ($isRestocked !== null && $isRestocked !== '') {
+            $query->where('is_restocked', $isRestocked);
+        }
+
+        $returns = $query->orderByDesc('created_at')->get();
+
+        $headers = [
+            'Content-Type' => 'text/csv; charset=utf-8',
+            'Content-Disposition' => 'attachment; filename="data_retur_pesanan_' . date('Ymd_His') . '.csv"',
+            'Pragma' => 'no-cache',
+            'Cache-Control' => 'must-revalidate, post-check=0, pre-check=0',
+            'Expires' => '0',
+        ];
+
+        $callback = function () use ($returns) {
+            $file = fopen('php://output', 'w');
+            
+            // Add UTF-8 BOM for Excel compliance
+            fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF));
+            
+            // CSV Headers
+            fputcsv($file, [
+                'WAKTU DIBUAT',
+                'SN RETUR',
+                'CHANNEL',
+                'TOKO',
+                'INVOICE ASLI',
+                'MARKETPLACE ORDER ID',
+                'PEMBELI',
+                'BARANG YANG DIRETUR',
+                'ALASAN RETUR',
+                'STATUS RETUR',
+                'NOMINAL REFUND',
+                'STATUS INSPEKSI GUDANG',
+                'CATATAN INSPEKSI'
+            ]);
+
+            foreach ($returns as $ret) {
+                $itemsStr = '';
+                foreach ($ret->items as $rItem) {
+                    $itemsStr .= $rItem->quantity . 'x ' . ($rItem->orderItem->product_name ?? 'Item') . '; ';
+                }
+                $itemsStr = rtrim($itemsStr, '; ');
+
+                $qcStatus = 'Belum QC';
+                if ($ret->is_restocked) {
+                    $qcStatus = $ret->inspection_status === 'GOOD' ? 'Layak Jual' : 'Rusak / Cacat';
+                }
+
+                fputcsv($file, [
+                    $ret->created_at->format('Y-m-d H:i:s'),
+                    $ret->return_sn,
+                    $ret->store->channel->name ?? '-',
+                    $ret->store->store_name ?? '-',
+                    $ret->order->invoice_number ?? '-',
+                    $ret->order->order_marketplace_id ?? '-',
+                    $ret->order->buyer_name ?? '-',
+                    $itemsStr,
+                    $ret->reason ?? '-',
+                    $ret->status ?? '-',
+                    $ret->refund_amount,
+                    $qcStatus,
+                    $ret->inspection_notes ?? '-'
+                ]);
+            }
+
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
     }
 
     public function sync()
