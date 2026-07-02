@@ -206,14 +206,16 @@ class ReturnOrderAndReconciliationTest extends TestCase
                 'code' => 0,
                 'message' => 'success',
                 'data' => [
-                    'returns' => [
+                    'return_orders' => [
                         [
                             'return_id' => 'TT-RET-999',
                             'order_id' => 'TT-ORD-888',
-                            'return_reason' => 'Buyer changed mind',
-                            'status' => 'REQUESTED',
-                            'refund_amount' => 75000,
-                            'return_items' => [
+                            'return_reason_text' => 'Buyer changed mind',
+                            'return_status' => 'REQUESTED',
+                            'refund_amount' => [
+                                'refund_total' => 75000,
+                            ],
+                            'return_line_items' => [
                                 [
                                     'quantity' => 1,
                                 ]

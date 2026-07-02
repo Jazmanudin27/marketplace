@@ -71,7 +71,7 @@ class PullReturnsFromTiktok implements ShouldQueue
                 }
             }
 
-            $returns = $response['returns'] ?? [];
+            $returns = $response['return_orders'] ?? [];
 
             foreach ($returns as $rItem) {
                 $this->saveReturnOrder($rItem);
@@ -108,18 +108,29 @@ class PullReturnsFromTiktok implements ShouldQueue
                 'return_sn' => $tiktokReturn['return_id'],
             ],
             [
-                'reason' => $tiktokReturn['return_reason'] ?? $tiktokReturn['reason'] ?? null,
-                'status' => $tiktokReturn['status'] ?? 'REQUESTED',
-                'refund_amount' => $tiktokReturn['refund_amount'] ?? 0,
+                'reason' => $tiktokReturn['return_reason_text'] ?? $tiktokReturn['return_reason'] ?? $tiktokReturn['reason'] ?? null,
+                'status' => $tiktokReturn['return_status'] ?? $tiktokReturn['status'] ?? 'REQUESTED',
+                'refund_amount' => $tiktokReturn['refund_amount']['refund_total'] ?? $tiktokReturn['refund_amount'] ?? 0,
             ]
         );
 
         $order->update(['order_status' => Order::STATUS_RETURN]);
 
-        if (isset($tiktokReturn['return_items']) && is_array($tiktokReturn['return_items'])) {
-            foreach ($tiktokReturn['return_items'] as $item) {
+        if (isset($tiktokReturn['return_line_items']) && is_array($tiktokReturn['return_line_items'])) {
+            foreach ($tiktokReturn['return_line_items'] as $item) {
                 // Find order item by SKU or product ID
-                $orderItem = $order->items()->first(); // fallback
+                $orderItem = null;
+                if (isset($item['seller_sku'])) {
+                    $orderItem = $order->items()
+                        ->whereHas('marketplaceProduct', function($q) use ($item) {
+                            $q->where('sku', $item['seller_sku']);
+                        })->first();
+                }
+                
+                if (!$orderItem) {
+                    $orderItem = $order->items()->first(); // fallback
+                }
+
                 if ($orderItem) {
                     ReturnOrderItem::updateOrCreate(
                         [
