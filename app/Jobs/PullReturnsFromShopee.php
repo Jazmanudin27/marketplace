@@ -67,6 +67,12 @@ class PullReturnsFromShopee implements ShouldQueue
                 // If it is an invalid access token error, try to force-refresh and retry once
                 if (str_contains($e->getMessage(), 'invalid_access_token') || str_contains($e->getMessage(), 'invalid_acceess_token')) {
                     Log::info("[Shopee] Access token invalid for store #{$this->storeId}. Attempting force refresh...");
+                    
+                    if (empty($this->store->refresh_token)) {
+                        Log::warning("[Shopee] Refresh token is empty for store '{$this->store->store_name}' (ID #{$this->storeId}). Cannot auto-refresh. Please re-authenticate this store in Settings.");
+                        throw $e;
+                    }
+
                     $accessToken = $this->store->getValidAccessToken(true);
                     
                     // Retry

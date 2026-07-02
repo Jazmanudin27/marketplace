@@ -54,14 +54,16 @@ class PullOrdersFromShopee implements ShouldQueue
 
             // 1. Fetch Order List
             while ($hasMore) {
-                $response = $shopeeService->getOrderList(
-                    $this->store->getValidAccessToken(),
-                    (int) $this->store->marketplace_store_id,
-                    $this->timeFrom,
-                    $this->timeTo,
-                    'create_time',
-                    $cursor
-                );
+                $response = $this->getValidAccessTokenWithRetry(function($token) use ($shopeeService, $cursor) {
+                    return $shopeeService->getOrderList(
+                        $token,
+                        (int) $this->store->marketplace_store_id,
+                        $this->timeFrom,
+                        $this->timeTo,
+                        'create_time',
+                        $cursor
+                    );
+                });
 
                 if (empty($response['order_list'])) {
                     break;
@@ -83,11 +85,13 @@ class PullOrdersFromShopee implements ShouldQueue
             // 2. Fetch Order Details (Max 50 per request)
             $chunks = array_chunk($allOrderSn, 50);
             foreach ($chunks as $chunk) {
-                $detailsResponse = $shopeeService->getOrderDetail(
-                    $this->store->getValidAccessToken(),
-                    (int) $this->store->marketplace_store_id,
-                    $chunk
-                );
+                $detailsResponse = $this->getValidAccessTokenWithRetry(function($token) use ($shopeeService, $chunk) {
+                    return $shopeeService->getOrderDetail(
+                        $token,
+                        (int) $this->store->marketplace_store_id,
+                        $chunk
+                    );
+                });
 
                 if (empty($detailsResponse['order_list'])) {
                     continue;
@@ -126,11 +130,13 @@ class PullOrdersFromShopee implements ShouldQueue
         if ($shopeeOrder['order_status'] === 'COMPLETED') {
             try {
                 $shopeeService = app(\App\Services\ShopeeService::class);
-                $escrowResponse = $shopeeService->getEscrowDetail(
-                    $this->store->getValidAccessToken(),
-                    (int) $this->store->marketplace_store_id,
-                    $shopeeOrder['order_sn']
-                );
+                $escrowResponse = $this->getValidAccessTokenWithRetry(function($token) use ($shopeeService, $shopeeOrder) {
+                    return $shopeeService->getEscrowDetail(
+                        $token,
+                        (int) $this->store->marketplace_store_id,
+                        $shopeeOrder['order_sn']
+                    );
+                });
                 
                 if (!empty($escrowResponse['order_income'])) {
                     $financialBreakdown = $escrowResponse['order_income'];
@@ -316,5 +322,25 @@ class PullOrdersFromShopee implements ShouldQueue
         }
 
         return date('Y-m-d H:i:s', $timestamp);
+    }
+
+    private function getValidAccessTokenWithRetry(callable $apiCall)
+    {
+        try {
+            return $apiCall($this->store->getValidAccessToken());
+        } catch (\RuntimeException $e) {
+            if (str_contains($e->getMessage(), 'invalid_access_token') || str_contains($e->getMessage(), 'invalid_acceess_token')) {
+                Log::info("[Shopee] Access token invalid in PullOrdersFromShopee for store #{$this->storeId}. Attempting force refresh...");
+                
+                if (empty($this->store->refresh_token)) {
+                    Log::warning("[Shopee] Refresh token is empty for store '{$this->store->store_name}' (ID #{$this->storeId}). Cannot auto-refresh. Please re-authenticate this store in Settings.");
+                    throw $e;
+                }
+
+                $accessToken = $this->store->getValidAccessToken(true);
+                return $apiCall($accessToken);
+            }
+            throw $e;
+        }
     }
 }
