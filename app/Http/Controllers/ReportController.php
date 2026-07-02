@@ -380,4 +380,241 @@ class ReportController extends Controller
             'totalReorderAlerts'
         ));
     }
+
+    public function storeSalesReport(Request $request)
+    {
+        $tenantId = Auth::user()->tenant_id;
+        
+        $dateFrom = $request->get('date_from', now()->subDays(30)->toDateString());
+        $dateTo   = $request->get('date_to', now()->toDateString());
+
+        // A. Group by Store
+        $onlineStores = \App\Models\Store::where('tenant_id', $tenantId)->with('channel')->get();
+        
+        $storeStats = [];
+        foreach ($onlineStores as $store) {
+            $orders = \App\Models\Order::where('tenant_id', $tenantId)
+                ->where('store_id', $store->id)
+                ->whereNotIn('order_status', ['CANCELLED'])
+                ->whereDate('order_date', '>=', $dateFrom)
+                ->whereDate('order_date', '<=', $dateTo)
+                ->get();
+                
+            $salesVal = (float) $orders->sum('net_amount');
+            $orderCount = $orders->count();
+            $qtySold = 0;
+            foreach ($orders as $order) {
+                $qtySold += $order->items()->sum('quantity');
+            }
+            
+            $storeStats[] = [
+                'name' => $store->store_name,
+                'channel' => $store->channel->name,
+                'sales' => $salesVal,
+                'orders' => $orderCount,
+                'quantity' => $qtySold,
+                'aov' => $orderCount > 0 ? $salesVal / $orderCount : 0.0,
+            ];
+        }
+
+        // Add POS Offline
+        $offlineSales = \App\Models\OfflineSale::where('tenant_id', $tenantId)
+            ->where('status', \App\Models\OfflineSale::STATUS_COMPLETED)
+            ->whereDate('sold_at', '>=', $dateFrom)
+            ->whereDate('sold_at', '<=', $dateTo)
+            ->get();
+            
+        $offlineSalesVal = (float) $offlineSales->sum('grand_total');
+        $offlineOrderCount = $offlineSales->count();
+        $offlineQtySold = 0;
+        foreach ($offlineSales as $sale) {
+            $offlineQtySold += $sale->items()->sum('quantity');
+        }
+        
+        $storeStats[] = [
+            'name' => 'POS Offline (Toko Fisik)',
+            'channel' => 'Offline POS',
+            'sales' => $offlineSalesVal,
+            'orders' => $offlineOrderCount,
+            'quantity' => $offlineQtySold,
+            'aov' => $offlineOrderCount > 0 ? $offlineSalesVal / $offlineOrderCount : 0.0,
+        ];
+
+        usort($storeStats, fn($a, $b) => $b['sales'] <=> $a['sales']);
+
+        // B. Group by Channel
+        $channelStats = [];
+        foreach ($storeStats as $stat) {
+            $ch = $stat['channel'];
+            if (!isset($channelStats[$ch])) {
+                $channelStats[$ch] = [
+                    'name' => $ch,
+                    'sales' => 0.0,
+                    'orders' => 0,
+                    'quantity' => 0,
+                ];
+            }
+            $channelStats[$ch]['sales'] += $stat['sales'];
+            $channelStats[$ch]['orders'] += $stat['orders'];
+            $channelStats[$ch]['quantity'] += $stat['quantity'];
+        }
+        foreach ($channelStats as &$ch) {
+            $ch['aov'] = $ch['orders'] > 0 ? $ch['sales'] / $ch['orders'] : 0.0;
+        }
+        unset($ch);
+
+        // C. Top 5 Products sold per Channel/Store
+        $topProducts = \App\Models\OrderItem::whereHas('order', function($q) use ($tenantId, $dateFrom, $dateTo) {
+                $q->where('tenant_id', $tenantId)
+                  ->whereNotIn('order_status', ['CANCELLED'])
+                  ->whereDate('order_date', '>=', $dateFrom)
+                  ->whereDate('order_date', '<=', $dateTo);
+            })
+            ->select('master_product_id', \DB::raw('SUM(quantity) as total_qty'), \DB::raw('SUM(total_price) as total_rev'))
+            ->groupBy('master_product_id')
+            ->orderByDesc('total_qty')
+            ->limit(5)
+            ->with('masterProduct')
+            ->get();
+
+        return view('reports.store_sales', compact('storeStats', 'channelStats', 'topProducts', 'dateFrom', 'dateTo'));
+    }
+
+    public function resellerReceivablesReport(Request $request)
+    {
+        $tenantId = Auth::user()->tenant_id;
+
+        // A. Reseller Balances
+        $resellers = \App\Models\Customer::where('tenant_id', $tenantId)
+            ->where('balance', '>', 0)
+            ->orderByDesc('balance')
+            ->get();
+            
+        $totalResellerBalance = (float) $resellers->sum('balance');
+
+        // B. Receivables
+        $receivableSales = \App\Models\OfflineSale::with('customer')
+            ->where('tenant_id', $tenantId)
+            ->where('status', \App\Models\OfflineSale::STATUS_COMPLETED)
+            ->where('payment_method', 'piutang')
+            ->whereRaw('grand_total > paid_amount')
+            ->get();
+
+        $agingSummary = [
+            'current' => 0.0,
+            '31_60'   => 0.0,
+            '61_90'   => 0.0,
+            '90_plus' => 0.0,
+            'total'   => 0.0,
+        ];
+
+        $customerAging = [];
+
+        foreach ($receivableSales as $sale) {
+            $receivableVal = (float) ($sale->grand_total - $sale->paid_amount);
+            $days = (int) abs(now()->diffInDays($sale->sold_at));
+            
+            $category = 'current';
+            if ($days > 90) {
+                $category = '90_plus';
+            } elseif ($days > 60) {
+                $category = '61_90';
+            } elseif ($days > 30) {
+                $category = '31_60';
+            }
+
+            $agingSummary[$category] += $receivableVal;
+            $agingSummary['total'] += $receivableVal;
+
+            $cId = $sale->customer_id ?: 0;
+            $cName = $sale->customer ? $sale->customer->name : ($sale->buyer_name ?: 'General Buyer');
+            
+            if (!isset($customerAging[$cId])) {
+                $customerAging[$cId] = [
+                    'name' => $cName,
+                    'phone' => $sale->customer ? $sale->customer->phone : ($sale->buyer_phone ?: '-'),
+                    'current' => 0.0,
+                    '31_60' => 0.0,
+                    '61_90' => 0.0,
+                    '90_plus' => 0.0,
+                    'total' => 0.0,
+                ];
+            }
+
+            $customerAging[$cId][$category] += $receivableVal;
+            $customerAging[$cId]['total'] += $receivableVal;
+        }
+
+        return view('reports.reseller_receivables', compact('resellers', 'totalResellerBalance', 'customerAging', 'agingSummary'));
+    }
+
+    public function inventoryTurnoverReport(Request $request)
+    {
+        $tenantId = Auth::user()->tenant_id;
+        
+        $dateFrom = $request->get('date_from', now()->subDays(30)->toDateString());
+        $dateTo   = $request->get('date_to', now()->toDateString());
+
+        $daysInPeriod = max(1, (int) abs(\Carbon\Carbon::parse($dateFrom)->diffInDays(\Carbon\Carbon::parse($dateTo))));
+
+        $products = \App\Models\MasterProduct::where('tenant_id', $tenantId)->get();
+
+        $turnoverData = [];
+        $totalCogsValue = 0.0;
+        $totalAvgStockValue = 0.0;
+
+        foreach ($products as $product) {
+            $costPrice = (float) ($product->cost_price ?: 0.0);
+
+            $movements = \App\Models\StockMovement::where('master_product_id', $product->id)
+                ->where('tenant_id', $tenantId)
+                ->whereDate('created_at', '>=', $dateFrom)
+                ->whereDate('created_at', '<=', $dateTo)
+                ->get();
+
+            $inQty = (int) $movements->filter(fn($m) => $m->quantity > 0)->sum('quantity');
+            $outQty = (int) abs($movements->filter(fn($m) => $m->quantity < 0)->sum('quantity'));
+
+            $movementsAfter = \App\Models\StockMovement::where('master_product_id', $product->id)
+                ->where('tenant_id', $tenantId)
+                ->whereDate('created_at', '>', $dateTo)
+                ->sum('quantity');
+                
+            $endingStock = max(0, $product->stock - $movementsAfter);
+            $startingStock = max(0, $endingStock - $inQty + $outQty);
+            $avgStock = ($startingStock + $endingStock) / 2.0;
+
+            $avgStockValue = $avgStock * $costPrice;
+            $cogs = $outQty * $costPrice;
+
+            $turnoverRatio = $avgStockValue > 0 ? $cogs / $avgStockValue : 0.0;
+            $dsi = $turnoverRatio > 0 ? $daysInPeriod / $turnoverRatio : 999.0;
+
+            $totalCogsValue += $cogs;
+            $totalAvgStockValue += $avgStockValue;
+
+            $turnoverData[] = [
+                'sku' => $product->sku,
+                'name' => $product->name,
+                'cost_price' => $costPrice,
+                'starting_stock' => $startingStock,
+                'ending_stock' => $endingStock,
+                'avg_stock' => $avgStock,
+                'qty_sold' => $outQty,
+                'cogs' => $cogs,
+                'ratio' => $turnoverRatio,
+                'dsi' => $dsi,
+            ];
+        }
+
+        $totalTurnoverRatio = $totalAvgStockValue > 0 ? $totalCogsValue / $totalAvgStockValue : 0.0;
+        $totalDsi = $totalTurnoverRatio > 0 ? $daysInPeriod / $totalTurnoverRatio : 999.0;
+
+        usort($turnoverData, fn($a, $b) => $b['cogs'] <=> $a['cogs']);
+
+        return view('reports.inventory_turnover', compact(
+            'turnoverData', 'totalCogsValue', 'totalAvgStockValue', 
+            'totalTurnoverRatio', 'totalDsi', 'dateFrom', 'dateTo', 'daysInPeriod'
+        ));
+    }
 }

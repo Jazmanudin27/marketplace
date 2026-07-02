@@ -553,7 +553,14 @@
                         <div class="info-row">
                             <div class="info-label">Pengirim</div>
                             <div class="info-value">
-                                <span class="fw-bold">{{ $order->store->store_name }}</span>
+                                @if ($order->is_dropship && $order->dropshipper_name)
+                                    <span class="fw-bold">{{ $order->dropshipper_name }} (Dropship)</span>
+                                    @if ($order->dropshipper_phone)
+                                        <br>{{ $order->dropshipper_phone }}
+                                    @endif
+                                @else
+                                    <span class="fw-bold">{{ $order->store->store_name }}</span>
+                                @endif
                             </div>
                         </div>
 

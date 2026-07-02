@@ -13,6 +13,7 @@ class OfflineSale extends Model
         'buyer_name', 'buyer_phone', 'payment_method',
         'total_amount', 'discount_amount', 'grand_total',
         'paid_amount', 'change_amount', 'notes', 'sold_at',
+        'is_dropship', 'dropshipper_name', 'dropshipper_phone',
     ];
 
     protected $casts = [
@@ -22,17 +23,19 @@ class OfflineSale extends Model
         'paid_amount'     => 'decimal:2',
         'change_amount'   => 'decimal:2',
         'sold_at'         => 'datetime',
+        'is_dropship'     => 'boolean',
     ];
 
     const STATUS_COMPLETED = 'completed';
     const STATUS_CANCELLED = 'cancelled';
 
     const PAYMENT_METHODS = [
-        'tunai'    => 'Tunai',
-        'transfer' => 'Transfer Bank',
-        'qris'     => 'QRIS',
-        'kartu'    => 'Kartu Debit/Kredit',
-        'piutang'  => 'Piutang / Bayar Nanti',
+        'tunai'            => 'Tunai',
+        'transfer'         => 'Transfer Bank',
+        'qris'             => 'QRIS',
+        'kartu'            => 'Kartu Debit/Kredit',
+        'reseller_balance' => 'Saldo Reseller',
+        'piutang'          => 'Piutang / Bayar Nanti',
     ];
 
     public function tenant(): BelongsTo

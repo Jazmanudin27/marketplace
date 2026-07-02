@@ -80,13 +80,16 @@ class OfflineSaleController extends Controller
             'items.*.master_product_id' => 'required|exists:master_products,id',
             'items.*.quantity'          => 'required|integer|min:1',
             'items.*.unit_price'        => 'required|numeric|min:0',
-            'payment_method'            => 'required|in:tunai,transfer,qris,kartu,piutang',
+            'payment_method'            => 'required|in:tunai,transfer,qris,kartu,reseller_balance,piutang',
             'paid_amount'               => 'required|numeric|min:0',
             'discount_amount'           => 'nullable|numeric|min:0',
             'buyer_name'                => 'nullable|string|max:100',
             'buyer_phone'               => 'nullable|string|max:20',
             'buyer_address'             => 'nullable|string|max:500',
             'notes'                     => 'nullable|string|max:500',
+            'is_dropship'               => 'nullable|boolean',
+            'dropshipper_name'          => 'nullable|required_if:is_dropship,1|string|max:100',
+            'dropshipper_phone'         => 'nullable|required_if:is_dropship,1|string|max:20',
         ];
 
         if ($request->payment_method === 'piutang') {
@@ -196,7 +199,19 @@ class OfflineSaleController extends Controller
                 'change_amount'   => $changeAmount,
                 'notes'           => $request->notes,
                 'sold_at'         => now(),
+                'is_dropship'      => (bool) $request->is_dropship,
+                'dropshipper_name'  => $request->is_dropship ? $request->dropshipper_name : null,
+                'dropshipper_phone' => $request->is_dropship ? $request->dropshipper_phone : null,
             ]);
+
+            // Potong saldo jika menggunakan metode pembayaran 'reseller_balance'
+            if ($request->payment_method === 'reseller_balance') {
+                $customerObj = \App\Models\Customer::where('tenant_id', $tenantId)->find($customerId);
+                if (!$customerObj || $customerObj->balance < $grandTotal) {
+                    abort(422, 'Saldo reseller tidak mencukupi.');
+                }
+                $customerObj->adjustBalance($grandTotal, 'out', "Pembayaran transaksi kasir #{$sale->sale_number}", Auth::id());
+            }
 
             foreach ($itemsData as $itemData) {
                 $sale->items()->create($itemData);

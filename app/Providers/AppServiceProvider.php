@@ -50,5 +50,52 @@ class AppServiceProvider extends ServiceProvider
         } catch (\Exception $e) {
             // Abaikan error jika database belum siap
         }
+
+        // Kirim notifikasi WA otomatis ke dropshipper jika pesanan online dikirim (SHIPPED)
+        \App\Models\Order::updated(function ($order) {
+            if ($order->isDirty('order_status') && $order->order_status === \App\Models\Order::STATUS_SHIPPED) {
+                if ($order->is_dropship && $order->dropshipper_phone) {
+                    $resi = $order->tracking_number ?? 'belum tersedia';
+                    $msg = "Halo *{$order->dropshipper_name}*! 👋\n\n"
+                        . "Pesanan dropship Anda dengan invoice *#{$order->invoice_number}* (Penerima: {$order->buyer_name}) telah dikirim!\n"
+                        . "📦 Kurir: {$order->courier}\n"
+                        . "🔖 No. Resi: *{$resi}*\n\n"
+                        . "Terima kasih atas kerja samanya! 🙏";
+
+                    \App\Services\WhatsAppService::send($order->dropshipper_phone, $msg);
+                }
+            }
+        });
+
+        // Kirim notifikasi WA otomatis ke dropshipper jika transaksi manual/offline baru dibuat
+        \App\Models\OfflineSale::created(function ($sale) {
+            if ($sale->is_dropship && $sale->dropshipper_phone) {
+                $msg = "Halo *{$sale->dropshipper_name}*! 👋\n\n"
+                    . "Transaksi manual dropship Anda *#{$sale->sale_number}* (Penerima: {$sale->buyer_name}) berhasil dicatat!\n"
+                    . "💰 Total Pembayaran: Rp " . number_format($sale->grand_total, 0, ',', '.') . "\n"
+                    . "💳 Metode: " . $sale->payment_method_label . "\n\n"
+                    . "Pesanan Anda sedang dipersiapkan untuk dikirim. Terima kasih! 🙏";
+
+                \App\Services\WhatsAppService::send($sale->dropshipper_phone, $msg);
+            }
+        });
+
+        // Kirim notifikasi WA otomatis ke dropshipper jika retur diproses (restocked)
+        \App\Models\ReturnOrder::updated(function ($returnOrder) {
+            if ($returnOrder->isDirty('is_restocked') && $returnOrder->is_restocked) {
+                $order = $returnOrder->order;
+                if ($order && $order->is_dropship && $order->dropshipper_phone) {
+                    $kondisi = $returnOrder->inspection_status === 'GOOD' ? 'Layak Jual (Stok Dikembalikan)' : 'Rusak / Cacat';
+                    $catatan = $returnOrder->inspection_notes ? "\nCatatan Inspeksi: " . $returnOrder->inspection_notes : '';
+                    
+                    $msg = "Halo *{$order->dropshipper_name}*! 👋\n\n"
+                        . "Pengembalian barang (retur) dari pembeli Anda *{$order->buyer_name}* dengan No. Retur *{$returnOrder->return_sn}* (Invoice: *#{$order->invoice_number}*) telah kami terima di gudang.\n"
+                        . "🔍 Status Inspeksi: *{$kondisi}*{$catatan}\n\n"
+                        . "Silakan memproses refund/penukaran barang untuk pelanggan Anda. Terima kasih! 🙏";
+
+                    \App\Services\WhatsAppService::send($order->dropshipper_phone, $msg);
+                }
+            }
+        });
     }
 }

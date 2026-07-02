@@ -22,6 +22,29 @@
     <div class="row">
         <div class="col-md-12">
 
+            <!-- Filter Bar -->
+            <div class="card border shadow-sm mb-4 bg-white">
+                <div class="card-body py-2 px-3">
+                    <form method="GET" action="{{ route('marketing.ads.index') }}">
+                        <div class="row g-2 align-items-center">
+                            <div class="col-12 col-md-4">
+                                <div class="d-flex align-items-center gap-2">
+                                    <label class="form-label fw-bold text-secondary mb-0 small text-uppercase" style="font-size: 0.72rem; min-width: 120px;">Platform Iklan:</label>
+                                    <select name="platform" class="form-select form-select-sm rounded-3" onchange="this.form.submit()">
+                                        <option value="">🌐 Semua Platform</option>
+                                        <option value="shopee" {{ ($platform ?? '') === 'shopee' ? 'selected' : '' }}>🟠 Shopee Ads</option>
+                                        <option value="tiktok" {{ ($platform ?? '') === 'tiktok' ? 'selected' : '' }}>⚫ TikTok Ads</option>
+                                        <option value="meta" {{ ($platform ?? '') === 'meta' ? 'selected' : '' }}>📘 Meta Ads</option>
+                                        <option value="google" {{ ($platform ?? '') === 'google' ? 'selected' : '' }}>🔴 Google Ads</option>
+                                        <option value="manual" {{ ($platform ?? '') === 'manual' ? 'selected' : '' }}>⚙️ Manual/Lainnya</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
             <!-- Navigation Shortcut Cards -->
             <div class="row g-3 mb-4">
                 <!-- 1. Atur Target -->
@@ -421,6 +444,82 @@
                 </div>
             </div>
 
+            <!-- Platform Performance Table & Donut Chart -->
+            <div class="row g-3 mb-3">
+                <!-- Platform Comparison Table -->
+                <div class="col-lg-8">
+                    <div class="card border shadow-sm h-100">
+                        <div class="card-header bg-light p-3 border-bottom">
+                            <h6 class="mb-0 fw-bold text-dark"><i class="bi bi-bar-chart-steps me-2 text-primary"></i> Perbandingan Performa Iklan Antar Platform</h6>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-striped table-hover align-middle mb-0" style="font-size: 0.82rem;">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th class="ps-3">Platform</th>
+                                            <th class="text-end">Biaya Iklan (Spend)</th>
+                                            <th class="text-end">Omset Teratribusi</th>
+                                            <th class="text-center">Closing</th>
+                                            <th class="text-center">ROAS</th>
+                                            <th class="text-end pe-3">Cost / Conversion</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach(['shopee' => 'Shopee Ads', 'tiktok' => 'TikTok Ads', 'meta' => 'Meta Ads (FB/IG)', 'google' => 'Google Ads', 'manual' => 'Manual Tracking'] as $key => $name)
+                                            @php
+                                                $stats = $platformStats[$key] ?? ['spend' => 0, 'revenue' => 0, 'conversions' => 0, 'roas' => 0, 'cpc' => 0];
+                                                $badgeClass = [
+                                                    'shopee' => 'bg-warning text-dark',
+                                                    'tiktok' => 'bg-dark text-white',
+                                                    'meta' => 'bg-primary text-white',
+                                                    'google' => 'bg-danger text-white',
+                                                    'manual' => 'bg-secondary text-white'
+                                                ][$key] ?? 'bg-secondary text-white';
+                                            @endphp
+                                            <tr>
+                                                <td class="ps-3">
+                                                    <span class="badge {{ $badgeClass }} text-uppercase px-2.5 py-1 rounded" style="font-size: 0.65rem; letter-spacing: 0.3px;">
+                                                        {{ $name }}
+                                                    </span>
+                                                </td>
+                                                <td class="text-end font-monospace text-dark">Rp {{ number_format($stats['spend'], 0, ',', '.') }}</td>
+                                                <td class="text-end font-monospace text-success">Rp {{ number_format($stats['revenue'], 0, ',', '.') }}</td>
+                                                <td class="text-center fw-semibold text-dark">{{ $stats['conversions'] }} Order</td>
+                                                <td class="text-center font-monospace fw-bold {{ $stats['roas'] >= 2 ? 'text-success' : ($stats['roas'] > 0 ? 'text-warning' : 'text-muted') }}">
+                                                    {{ number_format($stats['roas'], 2) }}x
+                                                </td>
+                                                <td class="text-end font-monospace pe-3 text-secondary">
+                                                    @if($stats['conversions'] > 0)
+                                                        Rp {{ number_format($stats['cpc'], 0, ',', '.') }}
+                                                    @else
+                                                        —
+                                                    @endif
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Platform Spend Share Donut Chart -->
+                <div class="col-lg-4">
+                    <div class="card border shadow-sm h-100">
+                        <div class="card-header bg-light p-3 border-bottom">
+                            <h6 class="mb-0 fw-bold text-dark"><i class="bi bi-pie-chart me-2 text-dark"></i> Distribusi Biaya Iklan (Spend Share)</h6>
+                        </div>
+                        <div class="card-body d-flex align-items-center justify-content-center p-3" style="min-height: 200px;">
+                            <div style="width: 100%; max-width: 220px; max-height: 220px;">
+                                <canvas id="platformSpendShareChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Chart & Top Products -->
             <div class="row g-3 mb-3">
                 <!-- Chart: Spend vs Revenue -->
@@ -686,6 +785,47 @@
                             ticks: {
                                 callback: function(value) {
                                     return 'Rp ' + value.toLocaleString('id-ID');
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Platform Spend Share Donut Chart
+            const platformCtx = document.getElementById('platformSpendShareChart').getContext('2d');
+            const shopeeSpend = {{ $platformStats['shopee']['spend'] ?? 0 }};
+            const tiktokSpend = {{ $platformStats['tiktok']['spend'] ?? 0 }};
+            const metaSpend = {{ $platformStats['meta']['spend'] ?? 0 }};
+            const googleSpend = {{ $platformStats['google']['spend'] ?? 0 }};
+            const manualSpend = {{ $platformStats['manual']['spend'] ?? 0 }};
+            
+            new Chart(platformCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Shopee Ads', 'TikTok Ads', 'Meta Ads', 'Google Ads', 'Manual'],
+                    datasets: [{
+                        data: [shopeeSpend, tiktokSpend, metaSpend, googleSpend, manualSpend],
+                        backgroundColor: [
+                            '#fd7e14', // orange (shopee)
+                            '#111827', // dark (tiktok)
+                            '#0d6efd', // primary (meta)
+                            '#dc3545', // danger (google)
+                            '#6c757d'  // secondary (manual)
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                boxWidth: 12,
+                                font: {
+                                    size: 10
                                 }
                             }
                         }

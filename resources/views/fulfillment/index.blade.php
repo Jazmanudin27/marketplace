@@ -67,22 +67,30 @@
                     </div>
                 </div>
 
-                <div class="table-responsive">
-                    <table class="table table-striped table-hover border align-middle mb-0">
-                        <thead class="table-light">
-                            <tr>
-                                <th>INVOICE / ID</th>
-                                <th>TOKO / CHANNEL</th>
-                                <th>PEMBELI</th>
-                                <th>DETAIL BARANG</th>
-                                <th>KURIR</th>
-                                <th>STATUS KEMAS</th>
-                                <th>AKSI</th>
-                            </tr>
-                        </thead>
-                        <tbody>
+                <form method="POST" id="batch-form">
+                    @csrf
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover border align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width: 45px;" class="text-center">
+                                        <input type="checkbox" id="check-all" class="form-check-input">
+                                    </th>
+                                    <th>INVOICE / ID</th>
+                                    <th>TOKO / CHANNEL</th>
+                                    <th>PEMBELI</th>
+                                    <th>DETAIL BARANG</th>
+                                    <th>KURIR</th>
+                                    <th>STATUS KEMAS</th>
+                                    <th>AKSI</th>
+                                </tr>
+                            </thead>
+                            <tbody>
                             @forelse($orders as $order)
                                 <tr>
+                                    <td class="text-center">
+                                        <input type="checkbox" name="ids[]" value="{{ $order->id }}" class="form-check-input order-checkbox">
+                                    </td>
                                     <td class="font-monospace">
                                         <span class="fw-bold text-dark">{{ $order->invoice_number ?? $order->order_marketplace_id }}</span>
                                         <div class="small text-muted mt-1">ID: {{ $order->order_marketplace_id }}</div>
@@ -164,7 +172,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="7" class="text-center text-muted p-5">
+                                    <td colspan="8" class="text-center text-muted p-5">
                                         <i class="fas fa-box-open fs-1 text-muted opacity-25 mb-3 d-block"></i>
                                         Tidak ada pesanan Siap Kirim saat ini.
                                     </td>
@@ -173,6 +181,7 @@
                         </tbody>
                     </table>
                 </div>
+                </form>
 
                 <div class="mt-4">
                     {{ $orders->appends(request()->query())->links('pagination::bootstrap-5') }}
@@ -182,4 +191,81 @@
 
     </div>
 </div>
+
+{{-- Floating Sticky Batch Action Toolbar --}}
+<div id="batch-action-toolbar" class="position-fixed bottom-0 start-50 translate-middle-x bg-dark text-white p-3 rounded-top shadow-lg d-flex align-items-center gap-3 border border-secondary border-bottom-0" style="z-index: 1050; display: none; min-width: 550px; transition: all 0.3s ease; box-shadow: 0 -4px 20px rgba(0,0,0,0.5);">
+    <div class="d-flex align-items-center gap-2">
+        <span class="badge bg-primary fs-6" id="selected-count">0</span>
+        <span class="small text-muted fw-semibold">Pesanan Terpilih</span>
+    </div>
+    <div class="ms-auto d-flex gap-2">
+        <button type="button" id="btn-batch-pick" class="btn btn-sm btn-outline-light fw-semibold">
+            <i class="fas fa-print me-1"></i> Pick List
+        </button>
+        <button type="button" id="btn-batch-verify" class="btn btn-sm btn-warning text-dark fw-semibold">
+            <i class="fas fa-check me-1"></i> Packing Selesai
+        </button>
+        <button type="button" id="btn-batch-ship" class="btn btn-sm btn-success fw-semibold">
+            <i class="fas fa-paper-plane me-1"></i> Kirim Resi (Ship)
+        </button>
+    </div>
+</div>
 @endsection
+
+@push('scripts')
+<script>
+    $(document).ready(function() {
+        const batchForm = $('#batch-form');
+        const checkAll = $('#check-all');
+        const checkboxes = $('.order-checkbox');
+        const toolbar = $('#batch-action-toolbar');
+        const selectedCount = $('#selected-count');
+
+        function updateToolbar() {
+            const checked = $('.order-checkbox:checked');
+            if (checked.length > 0) {
+                selectedCount.text(checked.length);
+                toolbar.slideDown(150);
+            } else {
+                toolbar.slideUp(150);
+                checkAll.prop('checked', false);
+            }
+        }
+
+        checkAll.on('change', function() {
+            checkboxes.prop('checked', this.checked);
+            updateToolbar();
+        });
+
+        checkboxes.on('change', function() {
+            checkAll.prop('checked', checkboxes.length === $('.order-checkbox:checked').length);
+            updateToolbar();
+        });
+
+        $('#btn-batch-pick').on('click', function() {
+            batchForm.attr('action', "{{ route('fulfillment.batch_picklist') }}");
+            batchForm.attr('method', "GET");
+            batchForm.attr('target', "_blank");
+            batchForm.submit();
+        });
+
+        $('#btn-batch-verify').on('click', function() {
+            if (confirm('Konfirmasi verifikasi packing massal untuk pesanan terpilih?')) {
+                batchForm.attr('action', "{{ route('fulfillment.batch_verify') }}");
+                batchForm.attr('method', "POST");
+                batchForm.removeAttr('target');
+                batchForm.submit();
+            }
+        });
+
+        $('#btn-batch-ship').on('click', function() {
+            if (confirm('Kirim resi massal ke marketplace untuk pesanan terpilih?')) {
+                batchForm.attr('action', "{{ route('fulfillment.batch_ship') }}");
+                batchForm.attr('method', "POST");
+                batchForm.removeAttr('target');
+                batchForm.submit();
+            }
+        });
+    });
+</script>
+@endpush

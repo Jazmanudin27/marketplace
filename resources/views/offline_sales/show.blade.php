@@ -102,6 +102,23 @@
                                 </div>
                             </div>
                         @endif
+                        @if ($offlineSale->is_dropship)
+                            <div class="col-md-12">
+                                <div class="p-3 border border-warning rounded h-100 bg-warning bg-opacity-10">
+                                    <small class="text-warning-emphasis d-block text-uppercase fw-bold mb-2" style="font-size: 0.65rem;">
+                                        <i class="fas fa-shipping-fast me-1"></i> Informasi Dropshipper
+                                    </small>
+                                    <div class="row g-2">
+                                        <div class="col-md-6 text-white small">
+                                            <span class="text-muted">Nama Pengirim:</span> <strong>{{ $offlineSale->dropshipper_name ?? '-' }}</strong>
+                                        </div>
+                                        <div class="col-md-6 text-white small">
+                                            <span class="text-muted">No. Telepon:</span> <strong class="font-monospace text-white">{{ $offlineSale->dropshipper_phone ?? '-' }}</strong>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        @endif
                         @if($offlineSale->notes)
                             <div class="col-md-12">
                                 <div class="p-3 border border-secondary border-opacity-10 rounded h-100 bg-black bg-opacity-10">

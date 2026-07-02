@@ -5,8 +5,8 @@
 @section('content')
     {{-- KPI Summary Cards --}}
     <div class="row g-3 mb-3">
-
-        <div class="col-6 col-md-3">
+        <!-- Card 1: Total Transaksi -->
+        <div class="col-6 col-md-4 col-lg">
             <div class="card h-100 border-0 shadow-sm">
                 <div class="card-body py-3 px-3">
                     <div class="text-muted small fw-semibold text-uppercase mb-1">
@@ -18,46 +18,63 @@
             </div>
         </div>
 
-        <div class="col-6 col-md-3">
+        <!-- Card 2: Total Pendapatan Bersih -->
+        <div class="col-6 col-md-4 col-lg">
             <div class="card h-100 border-0 shadow-sm">
                 <div class="card-body py-3 px-3">
                     <div class="text-muted small fw-semibold text-uppercase mb-1">
-                        <i class="fas fa-money-bill-wave me-1"></i> Total Pendapatan Bersih
+                        <i class="fas fa-money-bill-wave me-1"></i> Omset Bersih (Net Revenue)
                     </div>
                     <div class="fw-bold fs-5 text-primary">Rp {{ number_format($totalRevenue, 0, ',', '.') }}</div>
-                    <div class="small text-muted mt-1">Pencairan bersih + Offline</div>
+                    <div class="small text-muted mt-1">Pencairan + Offline</div>
                 </div>
             </div>
         </div>
 
-        <div class="col-6 col-md-3">
+        <!-- Card 3: HPP (COGS) -->
+        <div class="col-6 col-md-4 col-lg">
             <div class="card h-100 border-0 shadow-sm">
                 <div class="card-body py-3 px-3">
                     <div class="text-muted small fw-semibold text-uppercase mb-1">
                         <i class="fas fa-box me-1"></i> Total HPP (COGS)
                     </div>
                     <div class="fw-bold fs-5 text-danger">Rp {{ number_format($totalHpp, 0, ',', '.') }}</div>
-                    <div class="small text-muted mt-1">Harga pokok produk terjual</div>
+                    <div class="small text-muted mt-1">Harga pokok produk</div>
                 </div>
             </div>
         </div>
 
-        <div class="col-6 col-md-3">
+        <!-- Card 4: Laba Kotor (Gross Profit) -->
+        <div class="col-6 col-md-6 col-lg">
             <div class="card h-100 border-0 shadow-sm">
                 <div class="card-body py-3 px-3">
                     <div class="text-muted small fw-semibold text-uppercase mb-1">
-                        <i class="fas fa-chart-line me-1"></i> Laba Bersih (Net Profit)
+                        <i class="fas fa-chart-pie me-1"></i> Laba Kotor
                     </div>
-                    <div class="fw-bold fs-5 {{ $totalProfit >= 0 ? 'text-success' : 'text-danger' }}">
-                        {{ $totalProfit >= 0 ? '' : '-' }}Rp {{ number_format(abs($totalProfit), 0, ',', '.') }}
-                    </div>
+                    <div class="fw-bold fs-5 text-warning">Rp {{ number_format($totalProfit, 0, ',', '.') }}</div>
                     <div class="small text-muted mt-1">
-                        Margin rata-rata: <strong class="{{ $avgMargin >= 0 ? 'text-success' : 'text-danger' }}">{{ $avgMargin }}%</strong>
+                        Margin: <strong>{{ $avgMargin }}%</strong>
                     </div>
                 </div>
             </div>
         </div>
 
+        <!-- Card 5: Laba Bersih Riil (Net Profit) -->
+        <div class="col-6 col-md-6 col-lg">
+            <div class="card h-100 border-0 shadow-sm bg-success text-white">
+                <div class="card-body py-3 px-3">
+                    <div class="text-white-50 small fw-semibold text-uppercase mb-1">
+                        <i class="fas fa-chart-line me-1"></i> Laba Bersih Riil
+                    </div>
+                    <div class="fw-bold fs-5 text-white">
+                        {{ $realNetProfit >= 0 ? '' : '-' }}Rp {{ number_format(abs($realNetProfit), 0, ',', '.') }}
+                    </div>
+                    <div class="small text-white-50 mt-1">
+                        Margin Bersih: <strong>{{ $realNetMargin }}%</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     {{-- Filter Bar --}}
@@ -171,20 +188,140 @@
                             <td class="text-end font-monospace small text-danger">- Rp {{ number_format($offlineHpp, 0, ',', '.') }}</td>
                             <td class="text-end font-monospace small fw-bold text-danger pe-3">- Rp {{ number_format($totalHpp, 0, ',', '.') }}</td>
                         </tr>
+                        <tr class="table-light">
+                            <td class="fw-bold ps-3">
+                                <i class="fas fa-chart-bar me-2"></i>LABA KOTOR (GROSS PROFIT)
+                            </td>
+                            <td class="text-end font-monospace small fw-bold text-dark">Rp {{ number_format($onlineProfit, 0, ',', '.') }}</td>
+                            <td class="text-end font-monospace small fw-bold text-dark">Rp {{ number_format($offlineProfit, 0, ',', '.') }}</td>
+                            <td class="text-end font-monospace small fw-bold text-dark pe-3">Rp {{ number_format($totalProfit, 0, ',', '.') }}</td>
+                        </tr>
+                        <tr>
+                            <td class="fw-semibold text-muted ps-3 small">
+                                <i class="fas fa-chart-pie me-2"></i>Margin Laba Kotor (%)
+                            </td>
+                            <td class="text-end small text-muted">{{ $onlineNet > 0 ? round(($onlineProfit / $onlineNet) * 100, 2) : 0 }}%</td>
+                            <td class="text-end small text-muted">{{ $offlineNet > 0 ? round(($offlineProfit / $offlineNet) * 100, 2) : 0 }}%</td>
+                            <td class="text-end small fw-bold pe-3">{{ $avgMargin }}%</td>
+                        </tr>
+                        <tr>
+                            <td colspan="4" class="bg-light fw-bold ps-3 small text-muted text-uppercase">Beban Operasional & Pengeluaran Non-HPP (Deductions)</td>
+                        </tr>
+                        <tr>
+                            <td class="ps-3 text-muted">
+                                <i class="fas fa-users-cog me-2"></i>Beban Gaji Karyawan (Payroll HRD)
+                            </td>
+                            <td class="text-end text-muted font-monospace small">—</td>
+                            <td class="text-end text-muted font-monospace small">—</td>
+                            <td class="text-end text-danger font-monospace small pe-3">- Rp {{ number_format($totalPayroll, 0, ',', '.') }}</td>
+                        </tr>
+                        <tr>
+                            <td class="ps-3 text-muted">
+                                <i class="fas fa-file-invoice me-2"></i>Beban Biaya Umum (Operational Expenses)
+                            </td>
+                            <td class="text-end text-muted font-monospace small">—</td>
+                            <td class="text-end text-muted font-monospace small">—</td>
+                            <td class="text-end text-danger font-monospace small pe-3">- Rp {{ number_format($totalExpenses, 0, ',', '.') }}</td>
+                        </tr>
+                        <tr>
+                            <td class="ps-3 text-muted">
+                                <i class="fas fa-ad me-2"></i>Beban Pemasaran & Iklan (Ad Spend)
+                            </td>
+                            <td class="text-end text-muted font-monospace small">—</td>
+                            <td class="text-end text-muted font-monospace small">—</td>
+                            <td class="text-end text-danger font-monospace small pe-3">- Rp {{ number_format($totalAdSpend, 0, ',', '.') }}</td>
+                        </tr>
+                        <tr class="table-secondary">
+                            <td class="fw-bold ps-3">
+                                <i class="fas fa-minus-circle me-2"></i>Total Beban Pengeluaran (Total Deductions)
+                            </td>
+                            <td class="text-end text-muted font-monospace small">—</td>
+                            <td class="text-end text-muted font-monospace small">—</td>
+                            <td class="text-end text-danger font-monospace small fw-bold pe-3">- Rp {{ number_format($totalDeductions, 0, ',', '.') }}</td>
+                        </tr>
+                        <tr class="table-success">
+                            <td class="fw-bold ps-3 text-success">
+                                <i class="fas fa-chart-line me-2"></i>LABA BERSIH SEBENARNYA (REAL NET PROFIT)
+                            </td>
+                            <td class="text-end text-muted font-monospace small">—</td>
+                            <td class="text-end text-muted font-monospace small">—</td>
+                            <td class="text-end font-monospace small fw-bold text-success pe-3">Rp {{ number_format($realNetProfit, 0, ',', '.') }}</td>
+                        </tr>
+                        <tr class="table-success-subtle">
+                            <td class="fw-bold ps-3 text-success small">
+                                <i class="fas fa-chart-area me-2"></i>Margin Laba Bersih Riil (%)
+                            </td>
+                            <td class="text-end text-muted small">—</td>
+                            <td class="text-end text-muted small">—</td>
+                            <td class="text-end small fw-bold text-success pe-3">{{ $realNetMargin }}%</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    {{-- ANALISIS SEGMEN DROPSHIP VS REGULER --}}
+    <div class="card border-0 shadow-sm mb-3">
+        <div class="card-header bg-warning bg-opacity-10 d-flex justify-content-between align-items-center py-2 px-3">
+            <div>
+                <h6 class="fw-bold mb-0 text-dark">
+                    <i class="fas fa-shipping-fast me-2 text-warning"></i>Analisis Segmen: Dropship vs Reguler
+                </h6>
+                <small class="text-muted d-block mt-1">Perbandingan kinerja penjualan & profitabilitas antara pesanan dropship dan eceran biasa</small>
+            </div>
+            <span class="badge bg-warning text-dark">Segmentasi Kontributor</span>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-sm table-bordered table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="ps-3">METRIK / ELEMEN SEGMEN</th>
+                            <th class="text-end" style="width:25%">REGULER (NON-DROPSHIP)</th>
+                            <th class="text-end" style="width:25%">DROPSHIP</th>
+                            <th class="text-end pe-3" style="width:25%">TOTAL GABUNGAN</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="fw-semibold ps-3">
+                                <i class="fas fa-shopping-cart text-muted me-2"></i>Jumlah Transaksi
+                            </td>
+                            <td class="text-end font-monospace small">{{ number_format($totalRegCount) }}</td>
+                            <td class="text-end font-monospace small">{{ number_format($totalDsCount) }}</td>
+                            <td class="text-end font-monospace small fw-bold pe-3">{{ number_format($totalCount) }}</td>
+                        </tr>
+                        <tr>
+                            <td class="fw-semibold ps-3">
+                                <i class="fas fa-wallet text-primary me-2"></i>Pendapatan Bersih (Net Revenue)
+                            </td>
+                            <td class="text-end font-monospace small">Rp {{ number_format($totalRegRevenue, 0, ',', '.') }}</td>
+                            <td class="text-end font-monospace small">Rp {{ number_format($totalDsRevenue, 0, ',', '.') }}</td>
+                            <td class="text-end font-monospace small fw-bold text-primary pe-3">Rp {{ number_format($totalRevenue, 0, ',', '.') }}</td>
+                        </tr>
+                        <tr>
+                            <td class="fw-semibold ps-3">
+                                <i class="fas fa-box text-danger me-2"></i>Harga Pokok Penjualan (HPP)
+                            </td>
+                            <td class="text-end font-monospace small text-danger">- Rp {{ number_format($totalRegHpp, 0, ',', '.') }}</td>
+                            <td class="text-end font-monospace small text-danger">- Rp {{ number_format($totalDsHpp, 0, ',', '.') }}</td>
+                            <td class="text-end font-monospace small fw-bold text-danger pe-3">- Rp {{ number_format($totalHpp, 0, ',', '.') }}</td>
+                        </tr>
                         <tr class="table-success">
                             <td class="fw-bold ps-3 text-success">
                                 <i class="fas fa-chart-line me-2"></i>LABA BERSIH (NET PROFIT)
                             </td>
-                            <td class="text-end font-monospace small fw-bold text-success">Rp {{ number_format($onlineProfit, 0, ',', '.') }}</td>
-                            <td class="text-end font-monospace small fw-bold text-success">Rp {{ number_format($offlineProfit, 0, ',', '.') }}</td>
+                            <td class="text-end font-monospace small fw-bold text-success">Rp {{ number_format($totalRegProfit, 0, ',', '.') }}</td>
+                            <td class="text-end font-monospace small fw-bold text-success">Rp {{ number_format($totalDsProfit, 0, ',', '.') }}</td>
                             <td class="text-end font-monospace small fw-bold text-success pe-3">Rp {{ number_format($totalProfit, 0, ',', '.') }}</td>
                         </tr>
                         <tr>
                             <td class="fw-semibold text-muted ps-3 small">
                                 <i class="fas fa-chart-pie me-2"></i>Margin Laba Bersih (%)
                             </td>
-                            <td class="text-end small text-muted">{{ $onlineNet > 0 ? round(($onlineProfit / $onlineNet) * 100, 2) : 0 }}%</td>
-                            <td class="text-end small text-muted">{{ $offlineNet > 0 ? round(($offlineProfit / $offlineNet) * 100, 2) : 0 }}%</td>
+                            <td class="text-end small text-muted">{{ $regAvgMargin }}%</td>
+                            <td class="text-end small text-muted">{{ $dsAvgMargin }}%</td>
                             <td class="text-end small fw-bold text-success pe-3">{{ $avgMargin }}%</td>
                         </tr>
                     </tbody>
@@ -444,4 +581,120 @@
         @endif
 
     </div>
+
+    {{-- 1b. RINCIAN BIAYA OPERASIONAL & BAGAN DONUT --}}
+    <div class="row g-3 mb-3">
+        <!-- Breakdown Table -->
+        <div class="col-md-7">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-light py-2 px-3">
+                    <h6 class="fw-bold mb-0 text-dark">Rincian Pengeluaran Operasional & Non-HPP</h6>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-sm table-striped align-middle mb-0" style="font-size: 0.85rem;">
+                            <thead>
+                                <tr class="table-light">
+                                    <th class="ps-3">Kategori Beban</th>
+                                    <th class="text-end pe-3">Jumlah (Rp)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="ps-3 fw-semibold text-dark">Gaji Karyawan (Payroll HRD)</td>
+                                    <td class="text-end font-monospace pe-3 text-dark">Rp {{ number_format($totalPayroll, 0, ',', '.') }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="ps-3 text-dark">Gaji Karyawan (Beban Manual/Expense)</td>
+                                    <td class="text-end font-monospace pe-3 text-dark">Rp {{ number_format($expensesBreakdown['expense_salary'], 0, ',', '.') }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="ps-3 text-dark">Sewa Tempat (Expense)</td>
+                                    <td class="text-end font-monospace pe-3 text-dark">Rp {{ number_format($expensesBreakdown['expense_rent'], 0, ',', '.') }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="ps-3 text-dark">Utilitas & Operasional (Expense)</td>
+                                    <td class="text-end font-monospace pe-3 text-dark">Rp {{ number_format($expensesBreakdown['expense_utilities'], 0, ',', '.') }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="ps-3 text-dark">Biaya Lain-lain (Expense)</td>
+                                    <td class="text-end font-monospace pe-3 text-dark">Rp {{ number_format($expensesBreakdown['expense_other'], 0, ',', '.') }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="ps-3 fw-semibold text-dark">Beban Pemasaran & Iklan (Ad Spend)</td>
+                                    <td class="text-end font-monospace pe-3 text-dark">Rp {{ number_format($totalAdSpend, 0, ',', '.') }}</td>
+                                </tr>
+                                <tr class="table-secondary fw-bold">
+                                    <td class="ps-3 text-dark">Total Beban</td>
+                                    <td class="text-end font-monospace pe-3 text-danger">Rp {{ number_format($totalDeductions, 0, ',', '.') }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Donut Chart -->
+        <div class="col-md-5">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-light py-2 px-3">
+                    <h6 class="fw-bold mb-0 text-dark">Bagan Kontribusi Pengeluaran</h6>
+                </div>
+                <div class="card-body d-flex align-items-center justify-content-center p-3" style="min-height: 250px;">
+                    <div style="width: 100%; max-width: 220px; max-height: 220px;">
+                        <canvas id="expensesContributionChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 @endsection
+
+@push('scripts')
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const ctx = document.getElementById('expensesContributionChart').getContext('2d');
+            
+            const dataPayroll = {{ $totalPayroll + $expensesBreakdown['expense_salary'] }};
+            const dataRent = {{ $expensesBreakdown['expense_rent'] }};
+            const dataUtilities = {{ $expensesBreakdown['expense_utilities'] }};
+            const dataOther = {{ $expensesBreakdown['expense_other'] }};
+            const dataAd = {{ $totalAdSpend }};
+            
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Gaji Karyawan', 'Sewa Tempat', 'Utilitas', 'Lain-lain', 'Iklan/Ads'],
+                    datasets: [{
+                        data: [dataPayroll, dataRent, dataUtilities, dataOther, dataAd],
+                        backgroundColor: [
+                            '#4f46e5', // indigo
+                            '#f59e0b', // amber
+                            '#10b981', // emerald
+                            '#6b7280', // gray
+                            '#ef4444'  // red
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                boxWidth: 12,
+                                font: {
+                                    size: 10
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+@endpush

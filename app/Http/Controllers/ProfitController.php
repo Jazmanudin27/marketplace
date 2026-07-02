@@ -98,6 +98,91 @@ class ProfitController extends Controller
             ? round(($totalProfit / $totalRevenue) * 100, 2)
             : 0;
 
+        // 3b. OPERATIONAL & NON-HPP EXPENSES (Deductions)
+        $expenseQuery = \App\Models\Expense::where('tenant_id', $tenantId)
+            ->whereDate('expense_date', '>=', $dateFrom)
+            ->whereDate('expense_date', '<=', $dateTo);
+
+        $totalExpenses = (float) $expenseQuery->sum('amount');
+        
+        // Grouping needs to re-fetch or use query clone
+        $expensesByCategory = \App\Models\Expense::where('tenant_id', $tenantId)
+            ->whereDate('expense_date', '>=', $dateFrom)
+            ->whereDate('expense_date', '<=', $dateTo)
+            ->selectRaw('category, SUM(amount) as total')
+            ->groupBy('category')
+            ->get()
+            ->pluck('total', 'category')
+            ->toArray();
+
+        $payrollQuery = \App\Models\Payroll::where('tenant_id', $tenantId)
+            ->where('status', 'paid')
+            ->whereDate('payment_date', '>=', $dateFrom)
+            ->whereDate('payment_date', '<=', $dateTo);
+            
+        $totalPayroll = (float) $payrollQuery->sum('net_salary');
+
+        $adSpendQuery = \App\Models\AdsPerformanceLog::where('tenant_id', $tenantId)
+            ->whereDate('date', '>=', $dateFrom)
+            ->whereDate('date', '<=', $dateTo);
+            
+        $totalAdSpend = (float) $adSpendQuery->sum('ad_spend');
+
+        $totalDeductions = $totalExpenses + $totalPayroll + $totalAdSpend;
+        $realNetProfit = $totalProfit - $totalDeductions;
+        $realNetMargin = $totalRevenue > 0
+            ? round(($realNetProfit / $totalRevenue) * 100, 2)
+            : 0;
+
+        $expensesBreakdown = [
+            'salary_payroll' => $totalPayroll,
+            'ad_spend' => $totalAdSpend,
+            'expense_salary' => $expensesByCategory['salary'] ?? 0.0,
+            'expense_rent' => $expensesByCategory['rent'] ?? 0.0,
+            'expense_utilities' => $expensesByCategory['utilities'] ?? 0.0,
+            'expense_other' => $expensesByCategory['other'] ?? 0.0,
+        ];
+
+        // 4. DROPSHIP specific aggregates
+        $dropshipOnline = $allOnline->where('is_dropship', true);
+        $dropshipOffline = $allOffline->where('is_dropship', true);
+
+        $dsOnlineNet = (float) $dropshipOnline->sum('net_amount');
+        $dsOnlineHpp = (float) $dropshipOnline->sum('hpp_total');
+        $dsOnlineProfit = (float) $dropshipOnline->sum('net_profit');
+        $dsOnlineCount = $dropshipOnline->count();
+
+        $dsOfflineNet = (float) $dropshipOffline->sum('grand_total');
+        $dsOfflineHpp = (float) $dropshipOffline->sum('hpp_total');
+        $dsOfflineProfit = (float) $dropshipOffline->sum('net_profit');
+        $dsOfflineCount = $dropshipOffline->count();
+
+        $totalDsRevenue = $dsOnlineNet + $dsOfflineNet;
+        $totalDsHpp = $dsOnlineHpp + $dsOfflineHpp;
+        $totalDsProfit = $dsOnlineProfit + $dsOfflineProfit;
+        $totalDsCount = $dsOnlineCount + $dsOfflineCount;
+        $dsAvgMargin = $totalDsRevenue > 0 ? round(($totalDsProfit / $totalDsRevenue) * 100, 2) : 0;
+
+        // 5. REGULAR specific aggregates (Non-dropship)
+        $regOnline = $allOnline->where('is_dropship', false);
+        $regOffline = $allOffline->where('is_dropship', false);
+
+        $regOnlineNet = (float) $regOnline->sum('net_amount');
+        $regOnlineHpp = (float) $regOnline->sum('hpp_total');
+        $regOnlineProfit = (float) $regOnline->sum('net_profit');
+        $regOnlineCount = $regOnline->count();
+
+        $regOfflineNet = (float) $regOffline->sum('grand_total');
+        $regOfflineHpp = (float) $regOffline->sum('hpp_total');
+        $regOfflineProfit = (float) $regOffline->sum('net_profit');
+        $regOfflineCount = $regOffline->count();
+
+        $totalRegRevenue = $regOnlineNet + $regOfflineNet;
+        $totalRegHpp = $regOnlineHpp + $regOfflineHpp;
+        $totalRegProfit = $regOnlineProfit + $regOfflineProfit;
+        $totalRegCount = $regOnlineCount + $regOfflineCount;
+        $regAvgMargin = $totalRegRevenue > 0 ? round(($totalRegProfit / $totalRegRevenue) * 100, 2) : 0;
+
         return view('profit.index', compact(
             'orders',
             'stores',
@@ -113,6 +198,29 @@ class ProfitController extends Controller
             'totalCount',
             'avgMargin',
 
+            // Net Profit Deductions
+            'totalExpenses',
+            'totalPayroll',
+            'totalAdSpend',
+            'totalDeductions',
+            'realNetProfit',
+            'realNetMargin',
+            'expensesBreakdown',
+
+            // Dropship segments
+            'totalDsRevenue',
+            'totalDsHpp',
+            'totalDsProfit',
+            'totalDsCount',
+            'dsAvgMargin',
+
+            // Regular segments
+            'totalRegRevenue',
+            'totalRegHpp',
+            'totalRegProfit',
+            'totalRegCount',
+            'regAvgMargin',
+ 
             // Online specific
             'onlineOmzet',
             'onlineFee',
@@ -121,7 +229,7 @@ class ProfitController extends Controller
             'onlineHpp',
             'onlineProfit',
             'onlineCount',
-
+ 
             // Offline specific
             'offlineOmzet',
             'offlineDiscount',

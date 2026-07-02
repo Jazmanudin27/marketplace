@@ -45,8 +45,12 @@ class IncomingGoodController extends Controller
         $tenantId = Auth::user()->tenant_id;
         $products = MasterProduct::where('tenant_id', $tenantId)->where('is_active', true)->orderBy('name')->get();
         $suppliers = Supplier::where('tenant_id', $tenantId)->where('is_active', true)->orderBy('name')->get();
+        $purchaseOrders = \App\Models\PurchaseOrder::where('tenant_id', $tenantId)
+            ->whereIn('status', ['ordered', 'partially_received'])
+            ->orderBy('po_number', 'desc')
+            ->get();
 
-        return view('inventory.incoming_goods.create', compact('products', 'suppliers'));
+        return view('inventory.incoming_goods.create', compact('products', 'suppliers', 'purchaseOrders'));
     }
 
     public function store(Request $request)
@@ -64,6 +68,7 @@ class IncomingGoodController extends Controller
             'quantities.*' => 'required|numeric|min:0.01',
             'cost_prices' => 'array',
             'supplier_id' => 'nullable|exists:suppliers,id',
+            'purchase_order_id' => 'nullable|exists:purchase_orders,id',
         ]);
 
         $sourceType = $request->source_type;
@@ -120,8 +125,45 @@ class IncomingGoodController extends Controller
                     $date
                 );
 
+                // Update PO Item received quantity & StockMovement PO relation
+                if ($request->filled('purchase_order_id')) {
+                    $poItem = \App\Models\PurchaseOrderItem::where('purchase_order_id', $request->purchase_order_id)
+                        ->where('master_product_id', $productId)
+                        ->first();
+                    if ($poItem) {
+                        $poItem->increment('received_quantity', $qty);
+                    }
+
+                    // Associate PO relation with StockMovement
+                    $movement = StockMovement::where('master_product_id', $productId)
+                        ->where('reference', $reference)
+                        ->where('tenant_id', $tenantId)
+                        ->orderByDesc('id')
+                        ->first();
+                    if ($movement) {
+                        $movement->update(['purchase_order_id' => $request->purchase_order_id]);
+                    }
+                }
+
                 $itemsCount++;
                 $totalQty += $qty;
+            }
+        }
+
+        // Update PO Overall completion status
+        if ($request->filled('purchase_order_id')) {
+            $po = \App\Models\PurchaseOrder::find($request->purchase_order_id);
+            if ($po) {
+                $isFullyReceived = true;
+                foreach ($po->items as $item) {
+                    if ($item->received_quantity < $item->quantity) {
+                        $isFullyReceived = false;
+                        break;
+                    }
+                }
+                $po->update([
+                    'status' => $isFullyReceived ? 'received' : 'partially_received'
+                ]);
             }
         }
 

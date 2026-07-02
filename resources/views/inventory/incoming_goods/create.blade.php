@@ -101,6 +101,19 @@
                                 </select>
                             </div>
 
+                            <div class="supplier-fields">
+                                <label class="form-label form-label-sm fw-semibold mb-1 mt-2 text-muted">Hubungkan Purchase Order (PO)</label>
+                                <select id="purchase-order-select" name="purchase_order_id"
+                                    class="form-select form-select-sm form-select-dark" style="width:100%">
+                                    <option value="">-- Tanpa PO (Penerimaan Manual) --</option>
+                                    @foreach($purchaseOrders as $po)
+                                        <option value="{{ $po->id }}" data-supplier="{{ $po->supplier_id }}">
+                                            {{ $po->po_number }} (Supplier: {{ $po->supplier->name }})
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+
                             <label class="form-label form-label-sm fw-semibold mb-1 mt-2 text-muted">Waktu Masuk</label>
                             <input type="datetime-local" name="incoming_date"
                                 class="form-control form-control-sm" required
@@ -283,6 +296,77 @@
                     $('#supplier-contact').val('');
                     $('#supplier-address').val('');
                 }
+            });
+
+            // Initialize PO select
+            $('#purchase-order-select').select2({
+                theme: 'bootstrap-5',
+                width: '100%',
+                dropdownCssClass: 'dark-dropdown',
+                placeholder: '-- Pilih PO Terbuka --',
+                allowClear: true
+            });
+
+            // Handle PO Selection and load items via AJAX
+            $('#purchase-order-select').on('change', function() {
+                const poId = $(this).val();
+                if (!poId) {
+                    $('#supplier-select').prop('disabled', false).val('').trigger('change');
+                    return;
+                }
+
+                // Show loading indicator
+                Swal.fire({
+                    title: 'Memuat Item PO...',
+                    text: 'Mohon tunggu sebentar',
+                    background: '#151f2c',
+                    color: '#f8fafc',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+
+                $.ajax({
+                    url: `/purchase-orders/${poId}/items`,
+                    method: 'GET',
+                    success: function(response) {
+                        Swal.close();
+                        if (response.success && response.items.length > 0) {
+                            // Clear cart
+                            cartItems = [];
+
+                            // Load items into cart
+                            response.items.forEach(function(item) {
+                                const remainingQty = item.ordered_quantity - item.received_quantity;
+                                const qty = remainingQty > 0 ? remainingQty : 1;
+                                cartItems.push({
+                                    id: item.master_product_id,
+                                    sku: item.sku,
+                                    name: item.product_name,
+                                    unit: 'PCS',
+                                    qty: qty,
+                                    cost: parseFloat(item.cost_price || 0),
+                                    disc: 0,
+                                    total: qty * parseFloat(item.cost_price || 0)
+                                });
+                            });
+
+                            // Set supplier & trigger fill
+                            $('#supplier-select').val(response.supplier_id).trigger('change');
+                            // Set PO number as reference
+                            const poNumber = $('#purchase-order-select option:selected').text().trim().split(' ')[0];
+                            $('input[name="reference"]').val(poNumber);
+
+                            renderCart();
+                        } else {
+                            Swal.fire({ icon: 'info', title: 'Info', text: 'Tidak ada item yang perlu diterima untuk PO ini.', background: '#151f2c', color: '#f8fafc' });
+                        }
+                    },
+                    error: function() {
+                        Swal.fire({ icon: 'error', title: 'Error', text: 'Gagal memuat item Purchase Order.', background: '#151f2c', color: '#f8fafc' });
+                    }
+                });
             });
 
             // Source Type Toggle

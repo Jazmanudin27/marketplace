@@ -153,4 +153,27 @@ class CustomerController extends Controller
 
         return back()->with('success', 'Profil pelanggan berhasil diperbarui.');
     }
+
+    public function topup(Request $request, Customer $customer)
+    {
+        $user = Auth::user();
+        if (!$user->isSuperAdmin()) {
+            abort_unless($customer->tenant_id === $user->tenant_id, 403);
+        }
+
+        $request->validate([
+            'type' => 'required|in:in,out',
+            'amount' => 'required|numeric|min:0.01',
+            'description' => 'required|string|max:255',
+        ]);
+
+        $customer->adjustBalance(
+            (float) $request->amount,
+            $request->type,
+            $request->description,
+            Auth::id()
+        );
+
+        return back()->with('success', 'Saldo pelanggan ' . $customer->name . ' berhasil disesuaikan.');
+    }
 }

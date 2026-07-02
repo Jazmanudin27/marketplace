@@ -42,6 +42,11 @@ class Order extends Model
         'tiktok_live_session_id',
         'voucher_code',
         'shopee_utm_keyword',
+        'is_dropship',
+        'dropshipper_name',
+        'dropshipper_phone',
+        'recon_status',
+        'recon_notes',
     ];
 
     protected $casts = [
@@ -56,6 +61,7 @@ class Order extends Model
         'net_amount' => 'decimal:2',
         'is_stock_deducted' => 'boolean',
         'is_stock_returned' => 'boolean',
+        'is_dropship' => 'boolean',
     ];
 
     // Status constants

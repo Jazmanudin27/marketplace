@@ -131,10 +131,28 @@ class PushStockToMarketplaces implements ShouldQueue
                     Log::info("Berhasil push stok ke Lazada untuk item {$mpProduct->marketplace_product_id} (Stok master: {$masterProduct->stock}, Safety: {$safetyStock}, Pushed: {$pushedStock})");
                 }
 
+                \App\Models\MarketplaceSyncLog::create([
+                    'tenant_id' => $store->tenant_id,
+                    'marketplace_product_id' => $mpProduct->id,
+                    'channel_code' => $store->channel->code,
+                    'sku' => $mpProduct->marketplace_sku ?? $masterProduct->sku,
+                    'pushed_stock' => $pushedStock,
+                    'status' => 'success',
+                ]);
                 
             } catch (\Exception $e) {
                 Log::error("Gagal push stok untuk marketplace product ID {$mpProduct->id}", [
                     'error' => $e->getMessage()
+                ]);
+
+                \App\Models\MarketplaceSyncLog::create([
+                    'tenant_id' => $masterProduct->tenant_id,
+                    'marketplace_product_id' => $mpProduct->id,
+                    'channel_code' => isset($mpProduct->store->channel->code) ? $mpProduct->store->channel->code : 'unknown',
+                    'sku' => $mpProduct->marketplace_sku ?? $masterProduct->sku,
+                    'pushed_stock' => isset($pushedStock) ? $pushedStock : 0,
+                    'status' => 'failed',
+                    'error_message' => $e->getMessage(),
                 ]);
             }
         }

@@ -254,9 +254,21 @@
                             </div>
                         </div>
                     </div>
-                    <span class="badge bg-success bg-opacity-10 text-success fw-semibold rounded-pill px-3 py-2">
-                        <i class="bi bi-activity me-1"></i>Live Tracking
-                    </span>
+                    <div class="d-flex align-items-center gap-2">
+                        <form method="GET" action="{{ route('marketing.ads.campaigns') }}" class="d-inline">
+                            <select name="platform" class="form-select form-select-sm rounded-pill fw-semibold border border-secondary border-opacity-25" onchange="this.form.submit()" style="font-size: 0.72rem; min-width: 150px;">
+                                <option value="">🌐 Semua Platform</option>
+                                <option value="shopee" {{ ($platform ?? '') === 'shopee' ? 'selected' : '' }}>🟠 Shopee Ads</option>
+                                <option value="tiktok" {{ ($platform ?? '') === 'tiktok' ? 'selected' : '' }}>⚫ TikTok Ads</option>
+                                <option value="meta" {{ ($platform ?? '') === 'meta' ? 'selected' : '' }}>📘 Meta Ads</option>
+                                <option value="google" {{ ($platform ?? '') === 'google' ? 'selected' : '' }}>🔴 Google Ads</option>
+                                <option value="manual" {{ ($platform ?? '') === 'manual' ? 'selected' : '' }}>⚙️ Manual/Lainnya</option>
+                            </select>
+                        </form>
+                        <span class="badge bg-success bg-opacity-10 text-success fw-semibold rounded-pill px-3 py-2 d-none d-sm-inline-block">
+                            <i class="bi bi-activity me-1"></i>Live Tracking
+                        </span>
+                    </div>
                 </div>
 
                 {{-- Table --}}

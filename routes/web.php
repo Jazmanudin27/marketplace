@@ -44,6 +44,8 @@ use App\Http\Controllers\Hrd\LeaveRequestController;
 use App\Http\Controllers\Inventory\InventoryController;
 use App\Http\Controllers\Inventory\IncomingGoodController;
 use App\Http\Controllers\Inventory\StockOpnameController;
+use App\Http\Controllers\Inventory\PurchaseOrderController;
+use App\Http\Controllers\Inventory\StockSyncController;
 // Marketplace
 use App\Http\Controllers\Marketplace\StoreController;
 // Settings
@@ -170,6 +172,7 @@ Route::middleware('auth')->group(function () {
     // Customers
     Route::middleware('permission:manage-customers')->group(function () {
         Route::resource('customers', CustomerController::class)->only(['index', 'show', 'update']);
+        Route::post('customers/{customer}/topup', [CustomerController::class, 'topup'])->name('customers.topup');
     });
 
     // Employees
@@ -352,6 +355,9 @@ Route::middleware('auth')->group(function () {
         Route::get('/fulfillment/scan', [FulfillmentController::class, 'scanPage'])->name('fulfillment.scan_page');
         Route::get('/fulfillment/order/{identifier}', [FulfillmentController::class, 'getOrderDetails'])->name('fulfillment.order_details');
         Route::post('/fulfillment/order/{order}/complete', [FulfillmentController::class, 'completePack'])->name('fulfillment.complete_pack');
+        Route::get('/fulfillment/batch-picklist', [FulfillmentController::class, 'batchPickList'])->name('fulfillment.batch_picklist');
+        Route::post('/fulfillment/batch-verify', [FulfillmentController::class, 'batchVerify'])->name('fulfillment.batch_verify');
+        Route::post('/fulfillment/batch-ship', [FulfillmentController::class, 'batchShip'])->name('fulfillment.batch_ship');
     });
 
     // Inbox Chat
@@ -373,6 +379,25 @@ Route::middleware('auth')->group(function () {
         Route::post('/stock-opnames', [StockOpnameController::class, 'store'])->name('stock_opnames.store');
         Route::get('/inventory/{product}/ledger', [InventoryController::class, 'ledger'])->name('inventory.ledger');
         Route::post('/inventory/{product}/adjust', [InventoryController::class, 'adjust'])->name('inventory.adjust');
+
+        // Purchase Orders
+        Route::resource('purchase-orders', PurchaseOrderController::class)->names([
+            'index' => 'purchase_orders.index',
+            'create' => 'purchase_orders.create',
+            'store' => 'purchase_orders.store',
+            'show' => 'purchase_orders.show',
+            'edit' => 'purchase_orders.edit',
+            'update' => 'purchase_orders.update',
+            'destroy' => 'purchase_orders.destroy',
+        ]);
+        Route::get('/purchase-orders/{purchase_order}/print', [PurchaseOrderController::class, 'print'])->name('purchase_orders.print');
+        Route::post('/purchase-orders/{purchase_order}/update-status', [PurchaseOrderController::class, 'updateStatus'])->name('purchase_orders.update_status');
+        Route::get('/purchase-orders/{purchase_order}/items', [PurchaseOrderController::class, 'getItems'])->name('purchase_orders.items');
+
+        // Stock Sync
+        Route::get('/stock-sync', [StockSyncController::class, 'index'])->name('inventory.stock_sync');
+        Route::post('/stock-sync/all', [StockSyncController::class, 'forceSyncAll'])->name('inventory.stock_sync.all');
+        Route::post('/stock-sync/{product}', [StockSyncController::class, 'forceSyncProduct'])->name('inventory.stock_sync.product');
     });
 
     // Pesanan Retur
@@ -421,11 +446,17 @@ Route::middleware('auth')->group(function () {
     Route::middleware('permission:view-financial-reports')->group(function () {
         Route::get('/profit', [ProfitController::class, 'index'])->name('profit.index');
         Route::get('/finance/profit-loss', [FinancialReportController::class, 'profitLoss'])->name('finance.profit_loss');
+
+        // New Reports (Phase 6b)
+        Route::get('/reports/store-sales', [ReportController::class, 'storeSalesReport'])->name('reports.store_sales');
+        Route::get('/reports/reseller-receivables', [ReportController::class, 'resellerReceivablesReport'])->name('reports.reseller_receivables');
+        Route::get('/reports/inventory-turnover', [ReportController::class, 'inventoryTurnoverReport'])->name('reports.inventory_turnover');
     });
 
     // Manajemen Transaksi Keuangan
     Route::middleware('permission:manage-finance')->group(function () {
         Route::get('/reconciliation', [ReconciliationController::class, 'index'])->name('finance.reconciliation');
+        Route::post('/reconciliation/{order}/update', [ReconciliationController::class, 'update'])->name('orders.reconcile.update');
 
         // CRUD Incomes (Pemasukan Lain-lain)
         Route::resource('finance/incomes', IncomeController::class)->except(['create', 'show', 'edit'])->names([

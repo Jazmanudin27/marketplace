@@ -87,6 +87,23 @@
                                     <span class="fw-semibold text-dark text-wrap small">{{ $order->shipping_address ?? '-' }}</span>
                                 </div>
                             </div>
+                            @if ($order->is_dropship)
+                                <div class="col-md-12">
+                                    <div class="p-3 border border-warning rounded h-100 bg-warning bg-opacity-10">
+                                        <small class="text-warning-emphasis d-block text-uppercase fw-bold mb-2" style="font-size: 0.65rem;">
+                                            <i class="fas fa-shipping-fast me-1"></i> Informasi Dropshipper
+                                        </small>
+                                        <div class="row g-2">
+                                            <div class="col-md-6 text-dark small">
+                                                <span class="text-muted">Nama Pengirim:</span> <strong>{{ $order->dropshipper_name ?? '-' }}</strong>
+                                            </div>
+                                            <div class="col-md-6 text-dark small">
+                                                <span class="text-muted">No. Telepon:</span> <strong class="font-monospace">{{ $order->dropshipper_phone ?? '-' }}</strong>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            @endif
                             <div class="col-md-4">
                                 <div class="p-3 border rounded h-100 bg-light">
                                     <small class="text-muted d-block text-uppercase fw-semibold mb-1" style="font-size: 0.65rem;">Kurir</small>

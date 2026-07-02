@@ -115,6 +115,7 @@
                                 <input type="text" name="discount_amount" id="discount-input"
                                     class="form-control form-control-sm bg-dark bg-opacity-50 text-white border-secondary border-opacity-25"
                                     value="0">
+                                <span id="reseller-info-badge" class="badge bg-success text-white mt-1 w-100 py-1" style="display: none; font-size: 0.7rem; white-space: normal;"></span>
                             </div>
                             <div class="d-flex justify-content-between mb-1 p-3"
                                 style="background:rgba(16,185,129,.1);border-radius:10px;border:1px solid rgba(16,185,129,.2);">
@@ -185,11 +186,24 @@
                                     <option value="">-- Pelanggan Umum --</option>
                                     @foreach ($customers as $cust)
                                         <option value="{{ $cust->id }}" data-name="{{ $cust->name }}"
-                                            data-phone="{{ $cust->phone }}" data-address="{{ $cust->address }}">
+                                            data-phone="{{ $cust->phone }}" data-address="{{ $cust->address }}"
+                                            data-tags="{{ $cust->tags }}"
+                                            data-balance="{{ $cust->balance ?? 0 }}">
                                             {{ $cust->name }} {{ $cust->phone ? '(' . $cust->phone . ')' : '' }}
                                         </option>
                                     @endforeach
                                 </select>
+                            </div>
+
+                            {{-- Reseller Balance Indicator --}}
+                            <div id="reseller-balance-card" class="p-2 mb-2 rounded" style="display:none; background:rgba(16,185,129,.08); border:1px solid rgba(16,185,129,.2);">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span class="small text-muted"><i class="fas fa-wallet me-1 text-success"></i> Saldo Reseller</span>
+                                    <span class="fw-bold font-monospace text-success small" id="display-reseller-balance">Rp 0</span>
+                                </div>
+                                <div id="reseller-balance-warning" class="text-danger mt-1" style="display:none; font-size:0.7rem;">
+                                    <i class="fas fa-exclamation-circle me-1"></i> Saldo tidak cukup untuk grand total ini!
+                                </div>
                             </div>
                             <div class="mb-1">
                                 <label class="form-label form-label-sm text-muted" id="buyer-name-label">Nama Pembeli</label>
@@ -209,6 +223,31 @@
                                     class="form-control form-control-sm bg-dark bg-opacity-50 text-white border-secondary border-opacity-25"
                                     rows="2" placeholder="Alamat lengkap pelanggan..."></textarea>
                             </div>
+                            <!-- Dropship Toggle & Inputs -->
+                            <div class="mb-2 mt-3">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" name="is_dropship" id="is-dropship-toggle" value="1">
+                                    <label class="form-check-label text-warning fw-bold small" for="is-dropship-toggle">
+                                        <i class="fas fa-shipping-fast me-1"></i> Kirim Sebagai Dropshipper
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <div id="dropship-inputs" style="display: none; background: rgba(245, 158, 11, 0.05); padding: 10px; border-radius: 8px; border: 1px solid rgba(245, 158, 11, 0.15); margin-bottom: 1rem;">
+                                <div class="mb-2">
+                                    <label class="form-label form-label-sm text-muted">Nama Pengirim (Dropshipper) <span class="text-danger">*</span></label>
+                                    <input type="text" name="dropshipper_name" id="dropshipper-name-input"
+                                        class="form-control form-control-sm bg-dark bg-opacity-50 text-white border-secondary border-opacity-25"
+                                        placeholder="Nama Dropshipper">
+                                </div>
+                                <div>
+                                     <label class="form-label form-label-sm text-muted">No. HP Pengirim (Dropshipper) <span class="text-danger">*</span></label>
+                                     <input type="text" name="dropshipper_phone" id="dropshipper-phone-input"
+                                         class="form-control form-control-sm bg-dark bg-opacity-50 text-white border-secondary border-opacity-25"
+                                         placeholder="No. HP Dropshipper">
+                                </div>
+                            </div>
+
                             <div class="mb-1">
                                 <label class="form-label form-label-sm text-muted">Catatan</label>
                                 <textarea name="notes"
@@ -236,6 +275,19 @@
         $(document).ready(function() {
             let cartItems = {};
             let grandTotal = 0;
+
+            // Toggle Dropship Inputs
+            $('#is-dropship-toggle').on('change', function() {
+                if ($(this).is(':checked')) {
+                    $('#dropship-inputs').slideDown(200);
+                    $('#dropshipper-name-input').prop('required', true);
+                    $('#dropshipper-phone-input').prop('required', true);
+                } else {
+                    $('#dropship-inputs').slideUp(200);
+                    $('#dropshipper-name-input').val('').prop('required', false);
+                    $('#dropshipper-phone-input').val('').prop('required', false);
+                }
+            });
 
             function toggleCustomerType(type) {
                 if (type === 'registered') {
@@ -278,15 +330,64 @@
                     const name = selectedOption.data('name');
                     const phone = selectedOption.data('phone');
                     const address = selectedOption.data('address');
+                    const tags = String(selectedOption.data('tags') || '');
 
-                    $('#buyer-name-input').val(name).prop('readonly', true);
-                    $('#buyer-phone-input').val(phone || '').prop('readonly', true);
-                    $('#buyer-address-input').val(address || '').prop('readonly', true);
+                    // Check if Reseller / Dropshipper
+                    if (tags.toLowerCase().includes('reseller') || tags.toLowerCase().includes('dropship')) {
+                        // Mark as dropship automatically
+                        $('#is-dropship-toggle').prop('checked', true).trigger('change');
+                        $('#dropshipper-name-input').val(name);
+                        $('#dropshipper-phone-input').val(phone || '');
+
+                        // Buyer fields are for the dropshipper's customer, so make them writable and empty
+                        $('#buyer-name-input').val('').prop('readonly', false);
+                        $('#buyer-phone-input').val('').prop('readonly', false);
+                        $('#buyer-address-input').val('').prop('readonly', false);
+
+                        // Mark fields as required
+                        $('#buyer-name-label').html('Nama Pembeli <span class="text-danger">*</span>');
+                        $('#buyer-phone-label').html('No. HP Pembeli <span class="text-danger">*</span>');
+                        $('#buyer-name-input').prop('required', true);
+                        $('#buyer-phone-input').prop('required', true);
+
+                        // Show info badge and update discount
+                        updateResellerDiscount();
+                        $('#reseller-info-badge').html('<i class="fas fa-percent me-1"></i> Diskon Reseller 10% diterapkan otomatis').show();
+                    } else {
+                        // Regular registered customer
+                        $('#is-dropship-toggle').prop('checked', false).trigger('change');
+                        $('#dropshipper-name-input').val('');
+                        $('#dropshipper-phone-input').val('');
+
+                        $('#buyer-name-input').val(name).prop('readonly', true);
+                        $('#buyer-phone-input').val(phone || '').prop('readonly', true);
+                        $('#buyer-address-input').val(address || '').prop('readonly', true);
+
+                        $('#buyer-name-label').html('Nama Pembeli');
+                        $('#buyer-phone-label').html('No. HP Pembeli');
+                        $('#buyer-name-input').prop('required', false);
+                        $('#buyer-phone-input').prop('required', false);
+
+                        $('#discount-input').val('0');
+                        $('#reseller-info-badge').hide();
+                    }
                 } else {
                     // Pelanggan Umum
+                    $('#is-dropship-toggle').prop('checked', false).trigger('change');
+                    $('#dropshipper-name-input').val('');
+                    $('#dropshipper-phone-input').val('');
+
                     $('#buyer-name-input').val('').prop('readonly', true);
                     $('#buyer-phone-input').val('').prop('readonly', true);
                     $('#buyer-address-input').val('').prop('readonly', true);
+
+                    $('#buyer-name-label').html('Nama Pembeli');
+                    $('#buyer-phone-label').html('No. HP Pembeli');
+                    $('#buyer-name-input').prop('required', false);
+                    $('#buyer-phone-input').prop('required', false);
+
+                    $('#discount-input').val('0');
+                    $('#reseller-info-badge').hide();
                 }
                 recalculate();
             }
@@ -415,7 +516,10 @@
                     'btn-outline-secondary');
                 $(this).addClass('active btn-selected').removeClass('btn-outline-secondary');
 
-                if (key === 'piutang') {
+                if (key === 'reseller_balance') {
+                    $('#paid-input').val(grandTotal.toLocaleString('id-ID')).prop('readonly', true);
+                    $('#change-section').css('opacity', '.4');
+                } else if (key === 'piutang') {
                     $('#paid-input').val('0').prop('readonly', false);
                     $('#change-section').css('opacity', '1');
                 } else if (key !== 'tunai') {
@@ -493,6 +597,20 @@
                     isValid = false;
                 }
 
+                // Validate reseller balance
+                if (method === 'reseller_balance') {
+                    const selectedOpt = $('#customer-select').find('option:selected');
+                    const resellerBalance = parseFloat(selectedOpt.data('balance') || 0);
+                    if (resellerBalance < grandTotal || !$('#customer-select').val()) {
+                        isValid = false;
+                        $('#reseller-balance-warning').show();
+                    } else {
+                        $('#reseller-balance-warning').hide();
+                    }
+                } else {
+                    $('#reseller-balance-warning').hide();
+                }
+
                 // Custom validation for piutang
                 if (method === 'piutang') {
                     const custType = $('input[name="customer_type"]:checked').val();
@@ -557,7 +675,28 @@
                     idx++;
                 });
 
+                updateResellerDiscount();
                 recalculate();
+            }
+
+            function updateResellerDiscount() {
+                const selectedOption = $('#customer-select').find('option:selected');
+                const tags = String(selectedOption.data('tags') || '');
+                const balance = parseFloat(selectedOption.data('balance') || 0);
+                const isReseller = tags.toLowerCase().includes('reseller') || tags.toLowerCase().includes('dropship');
+
+                if (isReseller) {
+                    const subtotal = Object.values(cartItems).reduce((s, i) => s + i.qty * i.price, 0);
+                    const discount = Math.round(subtotal * 0.1);
+                    $('#discount-input').val(discount.toLocaleString('id-ID'));
+
+                    // Show balance card
+                    $('#display-reseller-balance').text('Rp ' + balance.toLocaleString('id-ID'));
+                    $('#reseller-balance-card').show();
+                } else {
+                    $('#reseller-balance-card').hide();
+                    $('#reseller-balance-warning').hide();
+                }
             }
 
             // Initialize on load

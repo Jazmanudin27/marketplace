@@ -192,6 +192,10 @@ class PullOrdersFromShopee implements ShouldQueue
 
         $liveSessionId = $liveSession ? $liveSession->id : null;
 
+        $dropshipperName = isset($shopeeOrder['dropshipper']) ? trim($shopeeOrder['dropshipper']) : null;
+        $dropshipperPhone = isset($shopeeOrder['dropshipper_phone']) ? trim($shopeeOrder['dropshipper_phone']) : null;
+        $isDropship = !empty($dropshipperName);
+
         $order = Order::updateOrCreate(
             [
                 'tenant_id' => $this->store->tenant_id,
@@ -217,6 +221,9 @@ class PullOrdersFromShopee implements ShouldQueue
                 'voucher_code' => $voucherCode,
                 'shopee_utm_keyword' => $shopeeUtmKeyword,
                 'shopee_live_session_id' => $liveSessionId,
+                'is_dropship' => $isDropship,
+                'dropshipper_name' => $dropshipperName,
+                'dropshipper_phone' => $dropshipperPhone,
             ]
         );
 

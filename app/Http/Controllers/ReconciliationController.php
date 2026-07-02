@@ -13,11 +13,18 @@ class ReconciliationController extends Controller
         $tenantId = Auth::user()->tenant_id;
 
         // Ambil hanya pesanan yang sudah selesai (COMPLETED) untuk direkonsiliasi
-        $orders = Order::with('store.channel')
+        $query = Order::with('store.channel')
             ->where('tenant_id', $tenantId)
-            ->where('order_status', Order::STATUS_COMPLETED)
-            ->orderByDesc('order_date')
-            ->paginate(30);
+            ->where('order_status', Order::STATUS_COMPLETED);
+
+        // Filter status rekonsiliasi
+        if ($request->filled('recon_status')) {
+            $query->where('recon_status', $request->recon_status);
+        }
+
+        $orders = $query->orderByDesc('order_date')
+            ->paginate(30)
+            ->withQueryString();
 
         // Calculate discrepancies for the view
         $orders->getCollection()->transform(function ($order) {
@@ -40,10 +47,23 @@ class ReconciliationController extends Controller
         });
 
         // Summary metrics for the top of the page
-        // Note: this only sums the current page, for a real app we might want to query the whole month
         $totalNetPage = collect($orders->items())->sum('net_amount');
         $totalDiscrepancyPage = collect($orders->items())->sum('discrepancy_amount');
 
         return view('finance.reconciliation', compact('orders', 'totalNetPage', 'totalDiscrepancyPage'));
+    }
+
+    public function update(Request $request, Order $order)
+    {
+        abort_unless($order->tenant_id === Auth::user()->tenant_id, 403);
+
+        $request->validate([
+            'recon_status' => 'required|in:pending,investigating,resolved',
+            'recon_notes' => 'nullable|string|max:1000',
+        ]);
+
+        $order->update($request->only(['recon_status', 'recon_notes']));
+
+        return back()->with('success', 'Status rekonsiliasi pesanan #' . ($order->invoice_number ?? $order->order_marketplace_id) . ' berhasil diperbarui.');
     }
 }

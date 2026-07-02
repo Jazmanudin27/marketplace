@@ -210,4 +210,174 @@ class FulfillmentController extends Controller
             'message' => $message
         ]);
     }
+
+    /**
+     * Cetak Pick List Gabungan Massal
+     */
+    public function batchPickList(Request $request)
+    {
+        $tenantId = Auth::user()->tenant_id;
+        $ids = $request->input('ids', []);
+
+        if (empty($ids)) {
+            return back()->with('error', 'Pilih minimal satu pesanan untuk dicetak.');
+        }
+
+        $orders = Order::with(['items.masterProduct', 'store.channel'])
+            ->where('tenant_id', $tenantId)
+            ->whereIn('id', $ids)
+            ->get();
+
+        $aggregated = [];
+        foreach ($orders as $order) {
+            foreach ($order->items as $item) {
+                $sku = $item->sku ?? ($item->masterProduct->sku ?? 'No SKU');
+                $name = $item->product_name ?? ($item->masterProduct->name ?? 'Produk Tanpa Nama');
+                
+                if (!isset($aggregated[$sku])) {
+                    $aggregated[$sku] = [
+                        'sku' => $sku,
+                        'name' => $name,
+                        'qty' => 0,
+                        'orders' => []
+                    ];
+                }
+                $aggregated[$sku]['qty'] += $item->quantity;
+                $aggregated[$sku]['orders'][] = $order->invoice_number ?? $order->order_marketplace_id;
+            }
+        }
+
+        return view('fulfillment.batch_picklist', compact('aggregated', 'orders'));
+    }
+
+    /**
+     * Verifikasi Packing Massal
+     */
+    public function batchVerify(Request $request)
+    {
+        $tenantId = Auth::user()->tenant_id;
+        $ids = $request->input('ids', []);
+
+        if (empty($ids)) {
+            return back()->with('error', 'Pilih minimal satu pesanan untuk diverifikasi.');
+        }
+
+        $orders = Order::where('tenant_id', $tenantId)
+            ->whereIn('id', $ids)
+            ->where('order_status', Order::STATUS_READY_TO_SHIP)
+            ->get();
+
+        $count = 0;
+        foreach ($orders as $order) {
+            $order->update([
+                'packing_status' => 'verified',
+                'packed_at' => now(),
+            ]);
+            $order->processStockDeduction();
+            $count++;
+        }
+
+        return back()->with('success', "Verifikasi kemas berhasil diselesaikan untuk {$count} pesanan.");
+    }
+
+    /**
+     * Request Kirim Resi / Ship Massal ke API Marketplace
+     */
+    public function batchShip(Request $request)
+    {
+        $tenantId = Auth::user()->tenant_id;
+        $ids = $request->input('ids', []);
+
+        if (empty($ids)) {
+            return back()->with('error', 'Pilih minimal satu pesanan untuk dikirim.');
+        }
+
+        $orders = Order::with('store.channel')
+            ->where('tenant_id', $tenantId)
+            ->whereIn('id', $ids)
+            ->where('order_status', Order::STATUS_READY_TO_SHIP)
+            ->where('packing_status', 'verified')
+            ->get();
+
+        $successCount = 0;
+        $failCount = 0;
+
+        foreach ($orders as $order) {
+            try {
+                $store = $order->store;
+                $handoverMethod = $store->shipping_handover_method ?? 'DROP_OFF';
+
+                if ($store->channel->code === 'shopee') {
+                    $shopeeService = app(\App\Services\ShopeeService::class);
+                    $accessToken = $store->getValidAccessToken();
+                    
+                    try {
+                        $shopeeService->shipOrder(
+                            $accessToken,
+                            (int) $store->marketplace_store_id,
+                            $order->order_marketplace_id,
+                            $handoverMethod
+                        );
+                    } catch (\Exception $e) {
+                        if (str_contains($e->getMessage(), 'invalid_access_token') || str_contains($e->getMessage(), 'invalid_acceess_token')) {
+                            $accessToken = $store->getValidAccessToken(true);
+                            $shopeeService->shipOrder(
+                                $accessToken,
+                                (int) $store->marketplace_store_id,
+                                $order->order_marketplace_id,
+                                $handoverMethod
+                            );
+                        } else {
+                            throw $e;
+                        }
+                    }
+
+                    // Pull tracking number
+                    try {
+                        $trackRes = $shopeeService->getTrackingNumber(
+                            $accessToken,
+                            (int) $store->marketplace_store_id,
+                            $order->order_marketplace_id
+                        );
+                        if (!empty($trackRes['tracking_number'])) {
+                            $order->tracking_number = $trackRes['tracking_number'];
+                        }
+                    } catch (\Exception $e) {
+                        Log::warning("[Fulfillment Batch Ship] Gagal menarik nomor resi Shopee: " . $e->getMessage());
+                    }
+
+                    $order->order_status = Order::STATUS_SHIPPED;
+                    $order->save();
+                    $successCount++;
+                } elseif ($store->channel->code === 'tiktok') {
+                    $tiktokService = app(\App\Services\TiktokService::class);
+                    $tiktokService->shipOrder(
+                        $store->access_token,
+                        $store->marketplace_store_id,
+                        $order->order_marketplace_id,
+                        $handoverMethod
+                    );
+
+                    $order->order_status = Order::STATUS_SHIPPED;
+                    $order->save();
+                    $successCount++;
+                } else {
+                    // Fallback local status update
+                    $order->order_status = Order::STATUS_SHIPPED;
+                    $order->save();
+                    $successCount++;
+                }
+            } catch (\Exception $e) {
+                Log::error("[Fulfillment Batch Ship] Gagal kirim resi order {$order->id}: " . $e->getMessage());
+                $failCount++;
+            }
+        }
+
+        $msg = "Batch Ship selesai. {$successCount} pesanan berhasil dikirim.";
+        if ($failCount > 0) {
+            return back()->with('success', $msg)->with('error', "{$failCount} pesanan gagal dikirim ke API marketplace (silakan cek log).");
+        }
+
+        return back()->with('success', $msg);
+    }
 }

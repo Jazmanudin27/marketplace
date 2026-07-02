@@ -115,6 +115,15 @@
             <span style="font-size: 11px; color: #555; text-align: left; width: 100%; white-space: normal; word-break: break-word;">{{ $offlineSale->customer->address }}</span>
         </div>
     @endif
+    @if ($offlineSale->is_dropship)
+        <div style="border-top: 1px dashed #777; margin: 6px 0; padding-top: 6px;">
+            <div class="center bold" style="font-size: 10px; margin-bottom: 4px; text-transform: uppercase;">Kirim Sebagai Dropshipper</div>
+            <div class="row"><span>Pengirim</span><span class="bold">{{ $offlineSale->dropshipper_name }}</span></div>
+            @if ($offlineSale->dropshipper_phone)
+                <div class="row"><span>No. HP</span><span>{{ $offlineSale->dropshipper_phone }}</span></div>
+            @endif
+        </div>
+    @endif
 
     <div class="divider"></div>
 

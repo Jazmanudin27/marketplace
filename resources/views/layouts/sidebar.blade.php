@@ -10,6 +10,7 @@
 
     $isTransaksiActive =
         request()->routeIs('incoming_goods.*') ||
+        request()->routeIs('purchase_orders.*') ||
         request()->routeIs('orders.*') ||
         request()->routeIs('returns.*') ||
         request()->routeIs('complaints.*') ||
@@ -17,7 +18,7 @@
         request()->routeIs('offline_sales.*') ||
         request()->routeIs('fulfillment.*');
 
-    $isInventoryActive = request()->routeIs('inventory.*') || request()->routeIs('stock_opnames.*');
+    $isInventoryActive = request()->routeIs('inventory.*') || request()->routeIs('stock_opnames.*') || request()->routeIs('inventory.stock_sync');
 
     $isReportActive = request()->routeIs('reports.*');
 
@@ -29,7 +30,10 @@
         request()->routeIs('finance.expenses.*') ||
         request()->routeIs('finance.transfers.*') ||
         request()->routeIs('finance.reconciliation') ||
-        request()->routeIs('profit.*');
+        request()->routeIs('profit.*') ||
+        request()->routeIs('reports.store_sales') ||
+        request()->routeIs('reports.reseller_receivables') ||
+        request()->routeIs('reports.inventory_turnover');
 
     $isMarketingActive = request()->routeIs('marketing.ads.index');
 @endphp
@@ -234,6 +238,8 @@
                     <div class="collapse {{ $isTransaksiActive ? 'show' : '' }}" id="collapseTransaksi">
                         <div class="nav flex-column ms-3 mt-1 gap-1 border-start ps-2">
                             @can('manage-incoming-goods')
+                                <a href="{{ route('purchase_orders.index') }}"
+                                    class="nav-link py-1 {{ request()->routeIs('purchase_orders.*') ? 'active text-white' : 'text-secondary' }}">Purchase Order</a>
                                 <a href="{{ route('incoming_goods.index') }}"
                                     class="nav-link py-1 {{ request()->routeIs('incoming_goods.*') ? 'active text-white' : 'text-secondary' }}">Barang
                                     Masuk</a>
@@ -307,6 +313,9 @@
                                 Gudang</a>
                             <a href="{{ route('stock_opnames.index') }}"
                                 class="nav-link py-1 {{ request()->routeIs('stock_opnames.*') ? 'active text-white' : 'text-secondary' }}">Opname
+                                Stok</a>
+                            <a href="{{ route('inventory.stock_sync') }}"
+                                class="nav-link py-1 {{ request()->routeIs('inventory.stock_sync') ? 'active text-white' : 'text-secondary' }}">Sinkronisasi
                                 Stok</a>
                         </div>
                     </div>
@@ -435,6 +444,15 @@
                             <a href="{{ route('profit.index') }}"
                                 class="nav-link py-1 {{ request()->routeIs('profit.*') ? 'active text-white' : 'text-secondary' }}">Profit
                                 Pesanan</a>
+                            <a href="{{ route('reports.store_sales') }}"
+                                class="nav-link py-1 {{ request()->routeIs('reports.store_sales') ? 'active text-white' : 'text-secondary' }}">Laporan
+                                Toko & Salur</a>
+                            <a href="{{ route('reports.reseller_receivables') }}"
+                                class="nav-link py-1 {{ request()->routeIs('reports.reseller_receivables') ? 'active text-white' : 'text-secondary' }}">Saldo
+                                & Piutang</a>
+                            <a href="{{ route('reports.inventory_turnover') }}"
+                                class="nav-link py-1 {{ request()->routeIs('reports.inventory_turnover') ? 'active text-white' : 'text-secondary' }}">Perputaran
+                                Stok</a>
                         @endcan
                         @can('manage-finance')
                             <a href="{{ route('finance.reconciliation') }}"

@@ -300,4 +300,77 @@ class OfflineSaleTest extends TestCase
             'paid_amount'    => 0,
         ]);
     }
+
+    public function test_offline_sale_store_with_reseller_balance_sufficient(): void
+    {
+        $customer = \App\Models\Customer::create([
+            'tenant_id' => $this->tenant->id,
+            'name' => 'Reseller Test',
+            'phone' => '0812345678',
+            'balance' => 50000,
+        ]);
+
+        $payload = [
+            'customer_id' => $customer->id,
+            'items' => [
+                [
+                    'master_product_id' => $this->masterProduct->id,
+                    'quantity'          => 2,
+                    'unit_price'        => 10000,
+                ]
+            ],
+            'payment_method' => 'reseller_balance',
+            'paid_amount'    => 20000,
+            'discount_amount'=> 0,
+            'buyer_name'     => 'Buyer Name dropship',
+            'buyer_phone'    => '0822222',
+        ];
+
+        $response = $this->actingAs($this->user)
+            ->post(route('offline_sales.store'), $payload);
+
+        $response->assertRedirect(route('offline_sales.index'));
+
+        $customer->refresh();
+        $this->assertEquals(30000, (float)$customer->balance);
+
+        $this->assertDatabaseHas('reseller_balance_transactions', [
+            'tenant_id' => $this->tenant->id,
+            'customer_id' => $customer->id,
+            'type' => 'out',
+            'amount' => 20000,
+        ]);
+    }
+
+    public function test_offline_sale_store_with_reseller_balance_insufficient(): void
+    {
+        $customer = \App\Models\Customer::create([
+            'tenant_id' => $this->tenant->id,
+            'name' => 'Reseller Test Low',
+            'phone' => '0812345678',
+            'balance' => 5000,
+        ]);
+
+        $payload = [
+            'customer_id' => $customer->id,
+            'items' => [
+                [
+                    'master_product_id' => $this->masterProduct->id,
+                    'quantity'          => 2,
+                    'unit_price'        => 10000,
+                ]
+            ],
+            'payment_method' => 'reseller_balance',
+            'paid_amount'    => 20000,
+            'discount_amount'=> 0,
+        ];
+
+        $response = $this->actingAs($this->user)
+            ->post(route('offline_sales.store'), $payload);
+
+        $response->assertStatus(422);
+
+        $customer->refresh();
+        $this->assertEquals(5000, (float)$customer->balance);
+    }
 }

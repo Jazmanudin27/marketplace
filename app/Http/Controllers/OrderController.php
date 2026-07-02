@@ -62,6 +62,11 @@ class OrderController extends Controller
             $query->whereDate('order_date', '<=', $request->end_date);
         }
 
+        // Filter Dropship
+        if ($request->filled('is_dropship')) {
+            $query->where('is_dropship', $request->is_dropship);
+        }
+
         $orders = $query->orderByDesc('order_date')
             ->paginate(20)
             ->withQueryString();

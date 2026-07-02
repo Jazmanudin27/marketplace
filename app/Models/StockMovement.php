@@ -11,6 +11,7 @@ class StockMovement extends Model
         'tenant_id',
         'master_product_id',
         'user_id',
+        'purchase_order_id',
         'type',
         'quantity',
         'reference',

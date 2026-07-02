@@ -21,9 +21,10 @@ use Illuminate\Support\Facades\Log;
 
 class AdsController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         $tenantId = Auth::user()->tenant_id;
+        $platform = $request->get('platform');
 
         // Ensure at least one Manual Account exists for simple spend logging
         $defaultAccount = AdsAccount::firstOrCreate(
@@ -31,9 +32,16 @@ class AdsController extends Controller
             ['account_name' => 'Akun Iklan Manual', 'is_active' => true]
         );
 
-        $campaigns = AdsCampaign::with('performanceLogs')
-            ->where('tenant_id', $tenantId)
-            ->get();
+        $campaignQuery = AdsCampaign::with('performanceLogs')
+            ->where('tenant_id', $tenantId);
+
+        if ($platform) {
+            $campaignQuery->whereHas('adsAccount', function($q) use ($platform) {
+                $q->where('platform', $platform);
+            });
+        }
+
+        $campaigns = $campaignQuery->get();
 
         // Calculate overall stats
         $totalSpend = 0;
@@ -80,16 +88,22 @@ class AdsController extends Controller
         }
 
         // Top products sold via Ads
-        $topProducts = OrderItem::whereHas('order', function ($q) use ($tenantId) {
+        $topProductsQuery = OrderItem::whereHas('order', function ($q) use ($tenantId, $platform) {
                 $q->where('tenant_id', $tenantId)
                   ->whereNotNull('ads_campaign_id')
                   ->whereNotIn('order_status', [Order::STATUS_CANCELLED]);
+                if ($platform) {
+                    $q->whereHas('adsCampaign.adsAccount', function ($ac) use ($platform) {
+                        $ac->where('platform', $platform);
+                    });
+                }
             })
             ->selectRaw('master_product_id, sku, product_name, SUM(quantity) as total_qty, SUM(total_price) as total_revenue')
             ->groupBy('master_product_id', 'sku', 'product_name')
             ->orderByDesc('total_qty')
-            ->limit(5)
-            ->get();
+            ->limit(5);
+
+        $topProducts = $topProductsQuery->get();
 
         // Recent unattributed orders for manual tracking
         $unattributedOrders = Order::with('store')
@@ -110,18 +124,70 @@ class AdsController extends Controller
             $chartLabels[] = $dateLabel;
 
             // Spend on this day
-            $spendOnDay = AdsPerformanceLog::where('tenant_id', $tenantId)
-                ->whereDate('date', $dateStr)
-                ->sum('ad_spend');
+            $spendOnDayQuery = AdsPerformanceLog::where('tenant_id', $tenantId)
+                ->whereDate('date', $dateStr);
+            if ($platform) {
+                $spendOnDayQuery->whereHas('campaign.adsAccount', function ($q) use ($platform) {
+                    $q->where('platform', $platform);
+                });
+            }
+            $spendOnDay = $spendOnDayQuery->sum('ad_spend');
             $chartSpend[] = (float)$spendOnDay;
 
             // Revenue on this day
-            $revOnDay = Order::where('tenant_id', $tenantId)
+            $revOnDayQuery = Order::where('tenant_id', $tenantId)
                 ->whereNotNull('ads_campaign_id')
                 ->whereDate('order_date', $dateStr)
-                ->whereNotIn('order_status', [Order::STATUS_CANCELLED])
-                ->sum('net_amount');
+                ->whereNotIn('order_status', [Order::STATUS_CANCELLED]);
+            if ($platform) {
+                $revOnDayQuery->whereHas('adsCampaign.adsAccount', function ($q) use ($platform) {
+                    $q->where('platform', $platform);
+                });
+            }
+            $revOnDay = $revOnDayQuery->sum('net_amount');
             $chartRevenue[] = (float)$revOnDay;
+        }
+
+        // Platform grouping
+        $platformsList = ['shopee', 'tiktok', 'meta', 'google', 'manual'];
+        $platformStats = [];
+        foreach ($platformsList as $pf) {
+            $platformStats[$pf] = [
+                'spend' => 0.0,
+                'revenue' => 0.0,
+                'conversions' => 0,
+                'roas' => 0.0,
+                'cpc' => 0.0,
+            ];
+        }
+
+        // Fetch all campaigns for platform-wide aggregation regardless of current selection
+        $allCampaigns = AdsCampaign::with('performanceLogs')
+            ->where('tenant_id', $tenantId)
+            ->get();
+
+        foreach ($allCampaigns as $camp) {
+            $pf = $camp->adsAccount->platform;
+            if (!in_array($pf, $platformsList)) {
+                $pf = 'manual';
+            }
+            
+            $spend = $camp->total_spend;
+            $revenue = $camp->total_revenue;
+            $conversions = $camp->orders()->whereNotIn('order_status', [Order::STATUS_CANCELLED])->count();
+            
+            $platformStats[$pf]['spend'] += $spend;
+            $platformStats[$pf]['revenue'] += $revenue;
+            $platformStats[$pf]['conversions'] += $conversions;
+        }
+        
+        foreach ($platformsList as $pf) {
+            $spend = $platformStats[$pf]['spend'];
+            $revenue = $platformStats[$pf]['revenue'];
+            $conversions = $platformStats[$pf]['conversions'];
+            
+            $platformStats[$pf]['roas'] = $spend > 0 ? $revenue / $spend : 0.0;
+            $platformStats[$pf]['cpc'] = $conversions > 0 ? $spend / $conversions : 0.0;
         }
 
         // Unread Budget alerts
@@ -135,24 +201,32 @@ class AdsController extends Controller
             'campaigns', 'totalSpend', 'totalRevenue', 'totalConversions',
             'overallRoas', 'topCampaigns', 'recommendations', 'topProducts',
             'unattributedOrders', 'chartLabels', 'chartSpend', 'chartRevenue',
-            'unreadAlerts'
+            'unreadAlerts', 'platformStats', 'platform'
         ));
     }
 
-    public function campaigns()
+    public function campaigns(Request $request)
     {
         $tenantId = Auth::user()->tenant_id;
-        $campaigns = AdsCampaign::with('adsAccount')
-            ->where('tenant_id', $tenantId)
-            ->get();
+        $platform = $request->get('platform');
 
+        $query = AdsCampaign::with('adsAccount')
+            ->where('tenant_id', $tenantId);
+
+        if ($platform) {
+            $query->whereHas('adsAccount', function($q) use ($platform) {
+                $q->where('platform', $platform);
+            });
+        }
+
+        $campaigns = $query->get();
         $accounts = AdsAccount::where('tenant_id', $tenantId)->get();
 
         $stores = Store::with(['channel', 'defaultCampaign'])
             ->where('tenant_id', $tenantId)
             ->get();
 
-        return view('marketing.ads.campaigns', compact('campaigns', 'accounts', 'stores'));
+        return view('marketing.ads.campaigns', compact('campaigns', 'accounts', 'stores', 'platform'));
     }
 
     public function storeCampaign(Request $request)

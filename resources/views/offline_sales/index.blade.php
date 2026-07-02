@@ -137,6 +137,9 @@
                                         class="fw-bold text-decoration-none text-primary font-monospace small">
                                         {{ $sale->sale_number }}
                                     </a>
+                                    @if ($sale->is_dropship)
+                                        <span class="badge bg-warning text-dark font-monospace ms-1" style="font-size: 0.6rem; padding: 0.15em 0.3em;">Dropship</span>
+                                    @endif
                                 </td>
                                 <td class="small">
                                     <div class="fw-semibold">{{ $sale->buyer_name ?: '(Umum)' }}</div>

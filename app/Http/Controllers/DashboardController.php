@@ -62,10 +62,38 @@ class DashboardController extends Controller
 
         $initialChartData = $this->buildChartData($tenant->id, 'monthly');
 
+        // Online dropship stats
+        $onlineDropshipCount = Order::where('tenant_id', $tenant->id)
+                                    ->where('is_dropship', true)
+                                    ->count();
+        $onlineDropshipRevenue = Order::where('tenant_id', $tenant->id)
+                                     ->where('is_dropship', true)
+                                     ->where('order_status', '!=', Order::STATUS_CANCELLED)
+                                     ->sum('net_amount');
+
+        // Offline dropship stats
+        $offlineDropshipCount = \App\Models\OfflineSale::where('tenant_id', $tenant->id)
+                                    ->where('is_dropship', true)
+                                    ->count();
+        $offlineDropshipRevenue = \App\Models\OfflineSale::where('tenant_id', $tenant->id)
+                                     ->where('is_dropship', true)
+                                     ->where('status', '!=', \App\Models\OfflineSale::STATUS_CANCELLED)
+                                     ->sum('grand_total');
+
+        // Total orders (online + offline)
+        $totalOnlineOrders = Order::where('tenant_id', $tenant->id)->count();
+        $totalOfflineOrders = \App\Models\OfflineSale::where('tenant_id', $tenant->id)->count();
+        $totalAllOrders = $totalOnlineOrders + $totalOfflineOrders;
+        $totalDropshipOrders = $onlineDropshipCount + $offlineDropshipCount;
+        $dropshipRatio = $totalAllOrders > 0 ? round(($totalDropshipOrders / $totalAllOrders) * 100, 1) : 0;
+
         return view('dashboard.index', compact(
             'totalStores', 'totalProducts', 'todayOrders', 'todayRevenue',
             'monthRevenue', 'pendingOrders', 'recentOrders', 'lowStockProducts',
-            'urgentOrders', 'stores', 'initialChartData'
+            'urgentOrders', 'stores', 'initialChartData',
+            'onlineDropshipCount', 'onlineDropshipRevenue',
+            'offlineDropshipCount', 'offlineDropshipRevenue',
+            'dropshipRatio'
         ));
     }
 
