@@ -758,4 +758,25 @@ class TiktokService
 
         return $this->post($path, $queryParams, $body, $accessToken);
     }
+
+    /**
+     * Mendapatkan daftar retur / reverse orders (API v202309 - POST Method)
+     */
+    public function getReturnList(string $accessToken, string $shopCipher, int $pageSize = 50, string $pageToken = ''): array
+    {
+        $path = '/return_refund/202309/returns/search';
+        
+        $body = [
+            'page_size' => $pageSize,
+        ];
+        if ($pageToken !== '') {
+            $body['page_token'] = $pageToken;
+        }
+
+        $queryParams = [
+            'shop_cipher' => $shopCipher,
+        ];
+
+        return $this->post($path, $queryParams, $body, $accessToken);
+    }
 }

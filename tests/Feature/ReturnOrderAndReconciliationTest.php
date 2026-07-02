@@ -160,4 +160,83 @@ class ReturnOrderAndReconciliationTest extends TestCase
         $this->assertEquals('resolved', $order->recon_status);
         $this->assertEquals('Discrepancy resolved by CS refund', $order->recon_notes);
     }
+
+    public function test_pull_returns_from_tiktok_job_executes_successfully(): void
+    {
+        // 1. Create a TikTok store
+        $tiktokChannel = Channel::create([
+            'name' => 'TikTok Shop',
+            'code' => 'tiktok',
+        ]);
+        
+        $tiktokStore = Store::create([
+            'tenant_id' => $this->tenant->id,
+            'channel_id' => $tiktokChannel->id,
+            'store_name' => 'TikTok Store Test',
+            'marketplace_store_id' => 'TIKTOK_STORE_TEST_ID',
+            'shop_cipher' => 'CIPHER123',
+            'access_token' => 'TT-ACCESS-123',
+            'refresh_token' => 'TT-REFRESH-123',
+            'token_expires_at' => now()->addHours(24),
+            'status' => 'connected',
+        ]);
+
+        // 2. Create the original order
+        $order = Order::create([
+            'tenant_id' => $this->tenant->id,
+            'store_id' => $tiktokStore->id,
+            'order_marketplace_id' => 'TT-ORD-888',
+            'invoice_number' => 'INV-TT-888',
+            'order_status' => Order::STATUS_READY_TO_SHIP,
+            'buyer_name' => 'Buyer TikTok',
+            'order_date' => now(),
+        ]);
+        
+        $orderItem = \App\Models\OrderItem::create([
+            'order_id' => $order->id,
+            'product_name' => 'TikTok Product',
+            'quantity' => 1,
+            'price' => 75000,
+            'total_price' => 75000,
+        ]);
+
+        // 3. Mock the TikTok returns search API
+        Http::fake([
+            'open-api.tiktokglobalshop.com/return_refund/202309/returns/search*' => Http::response([
+                'code' => 0,
+                'message' => 'success',
+                'data' => [
+                    'returns' => [
+                        [
+                            'return_id' => 'TT-RET-999',
+                            'order_id' => 'TT-ORD-888',
+                            'return_reason' => 'Buyer changed mind',
+                            'status' => 'REQUESTED',
+                            'refund_amount' => 75000,
+                            'return_items' => [
+                                [
+                                    'quantity' => 1,
+                                ]
+                            ]
+                        ]
+                    ]
+                ]
+            ], 200),
+        ]);
+
+        // 4. Dispatch the job
+        \App\Jobs\PullReturnsFromTiktok::dispatchSync($tiktokStore);
+
+        // 5. Verify return order created and original order status changed
+        $this->assertDatabaseHas('return_orders', [
+            'tenant_id' => $this->tenant->id,
+            'store_id' => $tiktokStore->id,
+            'return_sn' => 'TT-RET-999',
+            'reason' => 'Buyer changed mind',
+            'status' => 'REQUESTED',
+        ]);
+
+        $order->refresh();
+        $this->assertEquals(Order::STATUS_RETURN, $order->order_status);
+    }
 }

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\ReturnOrder;
 use App\Models\Store;
 use App\Jobs\PullReturnsFromShopee;
+use App\Jobs\PullReturnsFromTiktok;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -90,8 +91,12 @@ class ReturnOrderController extends Controller
         }
 
         foreach ($stores as $store) {
-            // Kita bisa execute langsung atau via queue, tapi karena manual click, kita dispatchSync agar langsung jadi
-            PullReturnsFromShopee::dispatchSync($store);
+            // Rute penarikan retur sesuai channel masing-masing
+            if ($store->channel && $store->channel->code === 'shopee') {
+                PullReturnsFromShopee::dispatchSync($store);
+            } elseif ($store->channel && $store->channel->code === 'tiktok') {
+                PullReturnsFromTiktok::dispatchSync($store);
+            }
         }
 
         return back()->with('success', 'Berhasil menarik data retur terbaru dari Marketplace.');
