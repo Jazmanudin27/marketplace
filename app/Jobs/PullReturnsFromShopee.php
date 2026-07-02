@@ -48,8 +48,8 @@ class PullReturnsFromShopee implements ShouldQueue
         }
 
         try {
-            // Get returns from the last 7 days
-            $timeFrom = now()->subDays(7)->timestamp;
+            // Get returns from the last 15 days
+            $timeFrom = now()->subDays(15)->timestamp;
             $timeTo = now()->timestamp;
 
             $accessToken = $this->store->getValidAccessToken();
@@ -130,8 +130,7 @@ class PullReturnsFromShopee implements ShouldQueue
             ->first();
             
         if (!$order) {
-            // Jika pesanan belum ditarik, tidak bisa simpan retur. 
-            // Opsional: Tarik pesanan ini dulu. Tapi untuk sekarang skip.
+            Log::warning("[Shopee] Otorisasi retur #{$shopeeReturn['return_sn']} dilewati karena pesanan asli #{$orderSn} belum ditarik ke ERP.");
             return;
         }
 
