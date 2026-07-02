@@ -41,6 +41,9 @@ class PullReturnsFromShopee implements ShouldQueue
         $this->store = $store;
 
         if ($this->store->status === 'disconnected' || (empty($this->store->access_token) && empty($this->store->refresh_token))) {
+            if (app()->environment('local') || str_contains($this->store->marketplace_store_id, 'DEMO')) {
+                $this->seedDemoReturns();
+            }
             return;
         }
 
@@ -148,6 +151,50 @@ class PullReturnsFromShopee implements ShouldQueue
                         ]
                     );
                 }
+            }
+        }
+    }
+
+    private function seedDemoReturns()
+    {
+        $orders = Order::where('store_id', $this->storeId)
+            ->where('tenant_id', $this->store->tenant_id)
+            ->limit(2)
+            ->get();
+
+        foreach ($orders as $index => $order) {
+            $returnSn = 'RET-' . $order->order_marketplace_id;
+            $exists = ReturnOrder::where('return_sn', $returnSn)->exists();
+            if ($exists) {
+                continue;
+            }
+
+            $reasons = [
+                'Barang rusak saat pengiriman',
+                'Ukuran tidak sesuai deskripsi',
+                'Pembeli berubah pikiran',
+                'Salah kirim warna produk'
+            ];
+            
+            $returnOrder = ReturnOrder::create([
+                'tenant_id' => $this->store->tenant_id,
+                'store_id' => $this->storeId,
+                'order_id' => $order->id,
+                'return_sn' => $returnSn,
+                'reason' => $reasons[$index % count($reasons)],
+                'status' => 'REQUESTED',
+                'refund_amount' => $order->total_amount,
+                'is_restocked' => false,
+            ]);
+
+            $order->update(['order_status' => Order::STATUS_RETURN]);
+
+            foreach ($order->items as $item) {
+                ReturnOrderItem::create([
+                    'return_order_id' => $returnOrder->id,
+                    'order_item_id' => $item->id,
+                    'quantity' => $item->quantity,
+                ]);
             }
         }
     }
