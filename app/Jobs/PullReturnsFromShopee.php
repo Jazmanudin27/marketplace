@@ -54,14 +54,34 @@ class PullReturnsFromShopee implements ShouldQueue
 
             $accessToken = $this->store->getValidAccessToken();
 
-            $returnListResponse = $shopeeService->getReturnList(
-                $accessToken,
-                (int) $this->store->marketplace_store_id,
-                0, // page_no
-                50, // page_size
-                $timeFrom,
-                $timeTo
-            );
+            try {
+                $returnListResponse = $shopeeService->getReturnList(
+                    $accessToken,
+                    (int) $this->store->marketplace_store_id,
+                    0, // page_no
+                    50, // page_size
+                    $timeFrom,
+                    $timeTo
+                );
+            } catch (\RuntimeException $e) {
+                // If it is an invalid access token error, try to force-refresh and retry once
+                if (str_contains($e->getMessage(), 'invalid_access_token') || str_contains($e->getMessage(), 'invalid_acceess_token')) {
+                    Log::info("[Shopee] Access token invalid for store #{$this->storeId}. Attempting force refresh...");
+                    $accessToken = $this->store->getValidAccessToken(true);
+                    
+                    // Retry
+                    $returnListResponse = $shopeeService->getReturnList(
+                        $accessToken,
+                        (int) $this->store->marketplace_store_id,
+                        0, // page_no
+                        50, // page_size
+                        $timeFrom,
+                        $timeTo
+                    );
+                } else {
+                    throw $e;
+                }
+            }
 
             $returnList = $returnListResponse['return'] ?? [];
 
@@ -84,10 +104,10 @@ class PullReturnsFromShopee implements ShouldQueue
                 $this->saveReturnOrder($detail);
             }
             
-            Log::info("Berhasil sinkronisasi retur Shopee untuk toko: {$this->store->name}");
+            Log::info("Berhasil sinkronisasi retur Shopee untuk toko: {$this->store->store_name}");
             
         } catch (\Exception $e) {
-            Log::error("Gagal sinkronisasi retur Shopee untuk toko: {$this->store->name}", [
+            Log::error("Gagal sinkronisasi retur Shopee untuk toko: {$this->store->store_name}", [
                 'error' => $e->getMessage(),
             ]);
         }
