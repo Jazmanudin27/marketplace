@@ -10,6 +10,9 @@ class ReturnOrderItem extends Model
         'return_order_id',
         'order_item_id',
         'quantity',
+        'inspection_status',
+        'inspection_notes',
+        'inspection_photo',
     ];
 
     public function returnOrder()

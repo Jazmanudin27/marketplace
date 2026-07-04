@@ -212,6 +212,14 @@ class ReturnOrderAndReconciliationTest extends TestCase
                             'order_id' => 'TT-ORD-888',
                             'return_reason_text' => 'Buyer changed mind',
                             'return_status' => 'REQUESTED',
+                            'return_tracking_number' => 'TT-TRACK-999',
+                            'return_provider_name' => 'J&T Express',
+                            'seller_next_action_response' => [
+                                [
+                                    'action' => 'SELLER_RESPOND_RECEIVE_PACKAGE',
+                                    'deadline' => 1782980538
+                                ]
+                            ],
                             'refund_amount' => [
                                 'refund_total' => 75000,
                             ],
@@ -234,11 +242,272 @@ class ReturnOrderAndReconciliationTest extends TestCase
             'tenant_id' => $this->tenant->id,
             'store_id' => $tiktokStore->id,
             'return_sn' => 'TT-RET-999',
+            'return_tracking_number' => 'TT-TRACK-999',
+            'shipping_provider' => 'J&T Express',
             'reason' => 'Buyer changed mind',
             'status' => 'REQUESTED',
+            'sla_deadline' => \Carbon\Carbon::createFromTimestamp(1782980538)->toDateTimeString(),
         ]);
 
         $order->refresh();
         $this->assertEquals(Order::STATUS_RETURN, $order->order_status);
+    }
+
+    public function test_item_level_qc_saves_details_and_checked_by_and_records_stock_movements(): void
+    {
+        // 1. Create a Return Order
+        $order = Order::create([
+            'tenant_id' => $this->tenant->id,
+            'store_id' => $this->store->id,
+            'order_marketplace_id' => 'ORD-QC-TEST',
+            'invoice_number' => 'INV-QC-TEST',
+            'order_status' => Order::STATUS_READY_TO_SHIP,
+            'buyer_name' => 'Buyer QC',
+            'order_date' => now(),
+        ]);
+
+        $masterProduct1 = \App\Models\MasterProduct::create([
+            'tenant_id' => $this->tenant->id,
+            'name' => 'Master Product 1',
+            'sku' => 'SKU-01',
+            'stock' => 10,
+            'price' => 50000,
+        ]);
+
+        $mpProduct1 = \App\Models\MarketplaceProduct::create([
+            'tenant_id' => $this->tenant->id,
+            'store_id' => $this->store->id,
+            'master_product_id' => $masterProduct1->id,
+            'name' => 'Marketplace Product 1',
+            'sku' => 'SKU-01',
+            'marketplace_product_id' => 'MP-PROD-01',
+            'marketplace_variant_id' => 'MP-VAR-01',
+        ]);
+
+        $orderItem = \App\Models\OrderItem::create([
+            'order_id' => $order->id,
+            'marketplace_product_id' => $mpProduct1->id,
+            'product_name' => 'Marketplace Product 1',
+            'quantity' => 2,
+            'price' => 50000,
+            'total_price' => 100000,
+        ]);
+
+        $returnOrder = ReturnOrder::create([
+            'tenant_id' => $this->tenant->id,
+            'store_id' => $this->store->id,
+            'order_id' => $order->id,
+            'return_sn' => 'RET-QC-TEST-01',
+            'status' => 'REQUESTED',
+            'is_restocked' => false,
+        ]);
+
+        $returnOrderItem = \App\Models\ReturnOrderItem::create([
+            'return_order_id' => $returnOrder->id,
+            'order_item_id' => $orderItem->id,
+            'quantity' => 2,
+            'inspection_status' => 'PENDING',
+        ]);
+
+        // 2. Perform QC (Post to restock route)
+        $response = $this->actingAs($this->user)
+            ->post(route('returns.restock', $returnOrder), [
+                'items' => [
+                    $returnOrderItem->id => [
+                        'inspection_status' => 'GOOD',
+                        'inspection_notes' => 'Barang mulus layak jual',
+                    ]
+                ]
+            ]);
+
+        $response->assertRedirect();
+
+        // 3. Verify ReturnOrderItem, ReturnOrder, and Stock Movement are updated correctly
+        $returnOrderItem->refresh();
+        $this->assertEquals('GOOD', $returnOrderItem->inspection_status);
+        $this->assertEquals('Barang mulus layak jual', $returnOrderItem->inspection_notes);
+
+        $returnOrder->refresh();
+        $this->assertTrue($returnOrder->is_restocked);
+        $this->assertEquals('GOOD', $returnOrder->inspection_status);
+        $this->assertEquals($this->user->id, $returnOrder->checked_by);
+
+        // Verify stock is increased by 2
+        $masterProduct1->refresh();
+        $this->assertEquals(12, $masterProduct1->stock);
+
+        $this->assertDatabaseHas('stock_movements', [
+            'master_product_id' => $masterProduct1->id,
+            'quantity' => 2,
+            'type' => 'in',
+            'user_id' => $this->user->id,
+        ]);
+    }
+
+    public function test_item_level_qc_with_photo_upload(): void
+    {
+        $order = Order::create([
+            'tenant_id' => $this->tenant->id,
+            'store_id' => $this->store->id,
+            'order_marketplace_id' => 'ORD-PHOTO-TEST',
+            'invoice_number' => 'INV-PHOTO-TEST',
+            'order_status' => Order::STATUS_READY_TO_SHIP,
+            'buyer_name' => 'Buyer Photo',
+            'order_date' => now(),
+        ]);
+
+        $masterProduct1 = \App\Models\MasterProduct::create([
+            'tenant_id' => $this->tenant->id,
+            'name' => 'Master Product Photo',
+            'sku' => 'SKU-PHOTO',
+            'stock' => 10,
+            'price' => 50000,
+        ]);
+
+        $mpProduct1 = \App\Models\MarketplaceProduct::create([
+            'tenant_id' => $this->tenant->id,
+            'store_id' => $this->store->id,
+            'master_product_id' => $masterProduct1->id,
+            'name' => 'Marketplace Product Photo',
+            'sku' => 'SKU-PHOTO',
+            'marketplace_product_id' => 'MP-PHOTO-01',
+            'marketplace_variant_id' => 'MP-PHOTO-VAR',
+        ]);
+
+        $orderItem = \App\Models\OrderItem::create([
+            'order_id' => $order->id,
+            'marketplace_product_id' => $mpProduct1->id,
+            'product_name' => 'Marketplace Product Photo',
+            'quantity' => 1,
+            'price' => 50000,
+            'total_price' => 50000,
+        ]);
+
+        $returnOrder = ReturnOrder::create([
+            'tenant_id' => $this->tenant->id,
+            'store_id' => $this->store->id,
+            'order_id' => $order->id,
+            'return_sn' => 'RET-PHOTO-TEST',
+            'status' => 'REQUESTED',
+            'is_restocked' => false,
+        ]);
+
+        $returnOrderItem = \App\Models\ReturnOrderItem::create([
+            'return_order_id' => $returnOrder->id,
+            'order_item_id' => $orderItem->id,
+            'quantity' => 1,
+            'inspection_status' => 'PENDING',
+        ]);
+
+        \Illuminate\Support\Facades\Storage::fake('public');
+        $fakePhoto = \Illuminate\Http\UploadedFile::fake()->image('defect.jpg');
+
+        $response = $this->actingAs($this->user)
+            ->post(route('returns.restock', $returnOrder), [
+                'items' => [
+                    $returnOrderItem->id => [
+                        'inspection_status' => 'DEFECTIVE',
+                        'inspection_notes' => 'Pecah di jalan',
+                        'photo' => $fakePhoto,
+                    ]
+                ]
+            ]);
+
+        $response->assertRedirect();
+
+        $returnOrderItem->refresh();
+        $this->assertEquals('DEFECTIVE', $returnOrderItem->inspection_status);
+        $this->assertEquals('Pecah di jalan', $returnOrderItem->inspection_notes);
+        $this->assertNotNull($returnOrderItem->inspection_photo);
+        $this->assertStringContainsString('uploads/returns/', $returnOrderItem->inspection_photo);
+
+        // Cleanup local created files
+        if (file_exists(public_path($returnOrderItem->inspection_photo))) {
+            unlink(public_path($returnOrderItem->inspection_photo));
+        }
+    }
+
+    public function test_replacement_order_creation_reduces_stock(): void
+    {
+        $order = Order::create([
+            'tenant_id' => $this->tenant->id,
+            'store_id' => $this->store->id,
+            'order_marketplace_id' => 'ORD-REPL-TEST',
+            'invoice_number' => 'INV-REPL-TEST',
+            'order_status' => Order::STATUS_READY_TO_SHIP,
+            'buyer_name' => 'Buyer Replacement',
+            'buyer_phone' => '0812345678',
+            'shipping_address' => 'Jakarta Barat',
+            'courier' => 'J&T',
+            'order_date' => now(),
+        ]);
+
+        $masterProduct1 = \App\Models\MasterProduct::create([
+            'tenant_id' => $this->tenant->id,
+            'name' => 'Master Product Repl',
+            'sku' => 'SKU-REPL',
+            'stock' => 10,
+            'price' => 50000,
+        ]);
+
+        $mpProduct1 = \App\Models\MarketplaceProduct::create([
+            'tenant_id' => $this->tenant->id,
+            'store_id' => $this->store->id,
+            'master_product_id' => $masterProduct1->id,
+            'name' => 'Marketplace Product Repl',
+            'sku' => 'SKU-REPL',
+            'marketplace_product_id' => 'MP-REPL-01',
+            'marketplace_variant_id' => 'MP-REPL-VAR',
+        ]);
+
+        $orderItem = \App\Models\OrderItem::create([
+            'order_id' => $order->id,
+            'marketplace_product_id' => $mpProduct1->id,
+            'product_name' => 'Marketplace Product Repl',
+            'quantity' => 1,
+            'price' => 50000,
+            'total_price' => 50000,
+        ]);
+
+        $returnOrder = ReturnOrder::create([
+            'tenant_id' => $this->tenant->id,
+            'store_id' => $this->store->id,
+            'order_id' => $order->id,
+            'return_sn' => 'RET-REPL-TEST',
+            'status' => 'REQUESTED',
+            'is_restocked' => true,
+        ]);
+
+        \App\Models\ReturnOrderItem::create([
+            'return_order_id' => $returnOrder->id,
+            'order_item_id' => $orderItem->id,
+            'quantity' => 1,
+            'inspection_status' => 'GOOD',
+        ]);
+
+        // Create replacement order
+        $response = $this->actingAs($this->user)
+            ->post(route('returns.replacement', $returnOrder));
+
+        $response->assertRedirect();
+
+        $returnOrder->refresh();
+        $this->assertNotNull($returnOrder->replacement_order_id);
+
+        $replacementOrder = $returnOrder->replacementOrder;
+        $this->assertEquals(Order::STATUS_READY_TO_SHIP, $replacementOrder->order_status);
+        $this->assertEquals(0, $replacementOrder->total_amount);
+        $this->assertEquals('Buyer Replacement', $replacementOrder->buyer_name);
+
+        // Verify stock is reduced by 1 for the replacement
+        $masterProduct1->refresh();
+        $this->assertEquals(9, $masterProduct1->stock);
+
+        $this->assertDatabaseHas('stock_movements', [
+            'master_product_id' => $masterProduct1->id,
+            'quantity' => -1,
+            'type' => 'out',
+            'user_id' => $this->user->id,
+        ]);
     }
 }

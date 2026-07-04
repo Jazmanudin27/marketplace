@@ -15,15 +15,18 @@ class AdsCampaign extends Model
         'name',
         'target_omzet',
         'target_roas',
+        'target_cpo',
         'status',
         'is_active',
     ];
 
     protected $casts = [
         'target_omzet' => 'decimal:2',
-        'target_roas' => 'decimal:2',
-        'is_active' => 'boolean',
+        'target_roas'  => 'decimal:2',
+        'target_cpo'   => 'decimal:2',
+        'is_active'    => 'boolean',
     ];
+
 
     public function tenant(): BelongsTo
     {

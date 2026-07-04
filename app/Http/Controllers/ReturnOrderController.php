@@ -3,7 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\ReturnOrder;
+use App\Models\ReturnOrderItem;
 use App\Models\Store;
+use App\Models\Order;
+use App\Models\OrderItem;
 use App\Jobs\PullReturnsFromShopee;
 use App\Jobs\PullReturnsFromTiktok;
 use Illuminate\Http\Request;
@@ -73,6 +76,14 @@ class ReturnOrderController extends Controller
         $goodCount = ReturnOrder::where('tenant_id', $tenantId)->where('is_restocked', true)->where('inspection_status', 'GOOD')->count();
         $defectiveCount = ReturnOrder::where('tenant_id', $tenantId)->where('is_restocked', true)->where('inspection_status', 'DEFECTIVE')->count();
 
+        $reasonsStats = ReturnOrder::where('tenant_id', $tenantId)
+            ->whereNotNull('reason')
+            ->selectRaw('reason, count(*) as count')
+            ->groupBy('reason')
+            ->orderByDesc('count')
+            ->limit(5)
+            ->get();
+
         return view('returns.index', compact(
             'returns',
             'search',
@@ -86,7 +97,8 @@ class ReturnOrderController extends Controller
             'totalReturns',
             'pendingQc',
             'goodCount',
-            'defectiveCount'
+            'defectiveCount',
+            'reasonsStats'
         ));
     }
 
@@ -225,19 +237,53 @@ class ReturnOrderController extends Controller
         }
 
         $request->validate([
-            'inspection_status' => 'required|in:GOOD,DEFECTIVE',
-            'inspection_notes' => 'nullable|string',
+            'items' => 'required|array',
+            'items.*.inspection_status' => 'required|in:GOOD,DEFECTIVE',
+            'items.*.inspection_notes' => 'nullable|string',
+            'items.*.photo' => 'nullable|image|max:4096',
         ]);
 
-        $status = $request->input('inspection_status');
-        $notes = $request->input('inspection_notes');
+        $itemInputs = $request->input('items');
+        $hasGood = false;
 
-        if ($status === 'GOOD') {
-            // Kembalikan setiap item ke stok
-            foreach ($returnOrder->items as $rItem) {
+        foreach ($returnOrder->items as $rItem) {
+            $input = $itemInputs[$rItem->id] ?? null;
+            if (!$input) continue;
+
+            $status = $input['inspection_status'];
+            $notes = $input['inspection_notes'] ?? null;
+
+            // Handle photo upload
+            $photoPath = null;
+            if ($request->hasFile("items.{$rItem->id}.photo")) {
+                $file = $request->file("items.{$rItem->id}.photo");
+                
+                $uploadDir = public_path('uploads/returns');
+                if (!file_exists($uploadDir)) {
+                    mkdir($uploadDir, 0777, true);
+                }
+                
+                $filename = 'qc_' . $rItem->id . '_' . time() . '.' . $file->getClientOriginalExtension();
+                $file->move($uploadDir, $filename);
+                $photoPath = 'uploads/returns/' . $filename;
+            }
+
+            // Update status per item
+            $updateData = [
+                'inspection_status' => $status,
+                'inspection_notes' => $notes,
+            ];
+            
+            if ($photoPath) {
+                $updateData['inspection_photo'] = $photoPath;
+            }
+
+            $rItem->update($updateData);
+
+            if ($status === 'GOOD') {
+                $hasGood = true;
                 $masterProduct = $rItem->orderItem->marketplaceProduct->masterProduct ?? null;
                 if ($masterProduct) {
-                    // Catat pergerakan masuk (restock)
                     $masterProduct->recordStockMovement(
                         $rItem->quantity,
                         'in',
@@ -246,18 +292,104 @@ class ReturnOrderController extends Controller
                     );
                 }
             }
-            $message = 'Barang retur berhasil diterima (Layak Jual) dan stok gudang otomatis bertambah.';
-        } else {
-            $message = 'Barang retur berhasil diproses sebagai (Rusak/Defective). Stok gudang tidak bertambah.';
         }
 
-        // Tandai sudah restocked / diproses beserta hasil inspeksi
+        // Tandai sudah restocked / diproses beserta hasil inspeksi fallback & audit trail
+        $overallStatus = $hasGood ? 'GOOD' : 'DEFECTIVE';
         $returnOrder->update([
             'is_restocked' => true,
-            'inspection_status' => $status,
-            'inspection_notes' => $notes,
+            'inspection_status' => $overallStatus,
+            'checked_by' => Auth::id(),
         ]);
 
-        return back()->with('success', $message);
+        return back()->with('success', 'Hasil pemeriksaan fisik barang retur berhasil disimpan.');
+    }
+
+    public function createReplacementOrder(Request $request, ReturnOrder $returnOrder)
+    {
+        abort_unless($returnOrder->tenant_id === Auth::user()->tenant_id, 403);
+
+        if ($returnOrder->replacement_order_id) {
+            return back()->with('error', 'Pesanan pengganti untuk retur ini sudah dibuat sebelumnya.');
+        }
+
+        if (!$returnOrder->is_restocked) {
+            return back()->with('error', 'Silakan selesaikan pemeriksaan QC terlebih dahulu sebelum mengirim barang pengganti.');
+        }
+
+        $originalOrder = $returnOrder->order;
+        if (!$originalOrder) {
+            return back()->with('error', 'Pesanan asli tidak ditemukan.');
+        }
+
+        // Generate unique replacement invoice and marketplace order ID
+        $replInvoice = 'REPL-' . ($originalOrder->invoice_number ?: $originalOrder->id) . '-' . time();
+        $replMarketplaceId = 'REPL-' . ($originalOrder->order_marketplace_id ?: $originalOrder->id);
+
+        // Create the new replacement Order
+        $replacementOrder = Order::create([
+            'tenant_id' => $returnOrder->tenant_id,
+            'store_id' => $returnOrder->store_id,
+            'customer_id' => $originalOrder->customer_id,
+            'order_marketplace_id' => $replMarketplaceId,
+            'invoice_number' => $replInvoice,
+            'order_status' => Order::STATUS_READY_TO_SHIP,
+            'packing_status' => 'PENDING',
+            'buyer_name' => $originalOrder->buyer_name,
+            'buyer_phone' => $originalOrder->buyer_phone,
+            'shipping_address' => $originalOrder->shipping_address,
+            'total_amount' => 0.00,
+            'shipping_fee' => 0.00,
+            'discount_amount' => 0.00,
+            'marketplace_fee' => 0.00,
+            'net_amount' => 0.00,
+            'courier' => $originalOrder->courier,
+            'order_date' => now(),
+            'is_stock_deducted' => true,
+            'recon_status' => 'resolved',
+            'recon_notes' => 'Replacement order for return ' . $returnOrder->return_sn,
+        ]);
+
+        // Copy return items to the new order and deduct stock
+        foreach ($returnOrder->items as $rItem) {
+            $origOrderItem = $rItem->orderItem;
+            if (!$origOrderItem) continue;
+
+            $masterProductId = $origOrderItem->master_product_id;
+            if (!$masterProductId && $origOrderItem->marketplace_product_id) {
+                $mp = \App\Models\MarketplaceProduct::find($origOrderItem->marketplace_product_id);
+                if ($mp) {
+                    $masterProductId = $mp->master_product_id;
+                }
+            }
+            
+            $newOrderItem = OrderItem::create([
+                'order_id' => $replacementOrder->id,
+                'marketplace_product_id' => $origOrderItem->marketplace_product_id,
+                'master_product_id' => $masterProductId,
+                'product_name' => '[PENGGANTI] ' . $origOrderItem->product_name,
+                'quantity' => $rItem->quantity,
+                'price' => 0.00,
+                'total_price' => 0.00,
+            ]);
+
+            // Deduct stock from warehouse
+            $masterProduct = $newOrderItem->masterProduct;
+            if ($masterProduct) {
+                $masterProduct->recordStockMovement(
+                    $rItem->quantity,
+                    'out',
+                    'Kirim Barang Pengganti Retur: ' . $returnOrder->return_sn,
+                    Auth::id()
+                );
+            }
+        }
+
+        // Link replacement order to the return order
+        $returnOrder->update([
+            'replacement_order_id' => $replacementOrder->id,
+        ]);
+
+        return back()->with('success', 'Pesanan pengganti berhasil dibuat (' . $replInvoice . ') dan otomatis masuk ke antrean pengemasan.');
     }
 }

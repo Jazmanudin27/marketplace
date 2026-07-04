@@ -52,6 +52,7 @@ use App\Http\Controllers\Marketplace\StoreController;
 use App\Http\Controllers\Settings\UserController;
 use App\Http\Controllers\Settings\RoleController;
 use App\Http\Controllers\Marketing\AdsController;
+use App\Http\Controllers\Marketing\FlashSaleController;
 
 
 // =========================================================================
@@ -408,6 +409,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/returns', [ReturnOrderController::class, 'index'])->name('returns.index');
         Route::post('/returns/sync', [ReturnOrderController::class, 'sync'])->name('returns.sync');
         Route::post('/returns/{returnOrder}/restock', [ReturnOrderController::class, 'restock'])->name('returns.restock');
+        Route::post('/returns/{returnOrder}/replacement', [ReturnOrderController::class, 'createReplacementOrder'])->name('returns.replacement');
     });
 
     // Pengaduan Barang Rusak
@@ -551,7 +553,46 @@ Route::middleware('auth')->group(function () {
 
         // ROAS Calculator
         Route::get('/marketing/ads/roas-calculator', [AdsController::class, 'roasCalculator'])->name('marketing.ads.roas_calculator');
+
+        // #1 Laporan Per Produk
+        Route::get('/marketing/ads/product-report', [AdsController::class, 'productReport'])->name('marketing.ads.product_report');
+        Route::get('/marketing/ads/product-report/export', [AdsController::class, 'exportProductReport'])->name('marketing.ads.product_report.export');
+
+        // #3 Campaign Detail Drill-down
+        Route::get('/marketing/ads/campaign/{campaign}', [AdsController::class, 'campaignDetail'])->name('marketing.ads.campaign.detail');
+
+        // #6 Heatmap Jam & Hari
+        Route::get('/marketing/ads/heatmap', [AdsController::class, 'heatmap'])->name('marketing.ads.heatmap');
+
+        // =========================================================================
+        // Flash Sale Module (Fitur 1-4)
+        // =========================================================================
+        Route::get('/marketing/flash-sales/calculator', [FlashSaleController::class, 'calculator'])->name('marketing.flash_sales.calculator');
+        Route::get('/marketing/flash-sales', [FlashSaleController::class, 'index'])->name('marketing.flash_sales.index');
+        Route::get('/marketing/flash-sales/create', [FlashSaleController::class, 'create'])->name('marketing.flash_sales.create');
+        Route::post('/marketing/flash-sales', [FlashSaleController::class, 'store'])->name('marketing.flash_sales.store');
+        Route::get('/marketing/flash-sales/{flashSale}', [FlashSaleController::class, 'show'])->name('marketing.flash_sales.show');
+        Route::get('/marketing/flash-sales/{flashSale}/edit', [FlashSaleController::class, 'edit'])->name('marketing.flash_sales.edit');
+        Route::put('/marketing/flash-sales/{flashSale}', [FlashSaleController::class, 'update'])->name('marketing.flash_sales.update');
+        Route::delete('/marketing/flash-sales/{flashSale}', [FlashSaleController::class, 'destroy'])->name('marketing.flash_sales.destroy');
+        Route::post('/marketing/flash-sales/{flashSale}/items', [FlashSaleController::class, 'storeItem'])->name('marketing.flash_sales.items.store');
+        // Flash Sale Sync to Marketplace #5
+        Route::post('/marketing/flash-sales/{flashSale}/sync', [FlashSaleController::class, 'syncToMarketplace'])->name('marketing.flash_sales.sync');
+
+        // =========================================================================
+        // Diskon Bertingkat (Fitur 2)
+        // =========================================================================
+        Route::get('/marketing/tiered-discounts', [\App\Http\Controllers\Marketing\TieredDiscountController::class, 'index'])->name('marketing.tiered_discounts.index');
+        Route::get('/marketing/tiered-discounts/create', [\App\Http\Controllers\Marketing\TieredDiscountController::class, 'create'])->name('marketing.tiered_discounts.create');
+        Route::post('/marketing/tiered-discounts', [\App\Http\Controllers\Marketing\TieredDiscountController::class, 'store'])->name('marketing.tiered_discounts.store');
+        Route::post('/marketing/tiered-discounts/{tieredDiscount}/toggle', [\App\Http\Controllers\Marketing\TieredDiscountController::class, 'toggle'])->name('marketing.tiered_discounts.toggle');
+        Route::delete('/marketing/tiered-discounts/{tieredDiscount}', [\App\Http\Controllers\Marketing\TieredDiscountController::class, 'destroy'])->name('marketing.tiered_discounts.destroy');
     });
+
+    // =========================================================================
+    // Public Catalog Landing Page (Fitur 4 - No Auth Required)
+    // =========================================================================
+    Route::get('/promo/{flashSale}', [\App\Http\Controllers\PublicPromoController::class, 'flashSaleCatalog'])->name('public.promo.flash_sale');
 
 
     // FAQ & Tutorials

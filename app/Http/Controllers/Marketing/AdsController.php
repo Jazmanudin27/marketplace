@@ -26,8 +26,12 @@ class AdsController extends Controller
         $tenantId = Auth::user()->tenant_id;
         $platform = $request->get('platform');
 
+        // Period filter (#4)
+        $period   = $request->get('period', '30'); // 7, 30, this_month, last_month
+        [$dateStart, $dateEnd, $prevStart, $prevEnd] = $this->resolvePeriod($period);
+
         // Ensure at least one Manual Account exists for simple spend logging
-        $defaultAccount = AdsAccount::firstOrCreate(
+        AdsAccount::firstOrCreate(
             ['tenant_id' => $tenantId, 'platform' => 'manual'],
             ['account_name' => 'Akun Iklan Manual', 'is_active' => true]
         );
@@ -43,69 +47,84 @@ class AdsController extends Controller
 
         $campaigns = $campaignQuery->get();
 
-        // Calculate overall stats
-        $totalSpend = 0;
-        $totalRevenue = 0;
-        $totalConversions = 0;
-
-        foreach ($campaigns as $camp) {
-            $totalSpend += $camp->total_spend;
-            $totalRevenue += $camp->total_revenue;
-            $totalConversions += $camp->orders()->whereNotIn('order_status', [Order::STATUS_CANCELLED])->count();
-        }
+        // Current period stats
+        [$totalSpend, $totalRevenue, $totalConversions] = $this->calcPeriodStats(
+            $tenantId, $platform, $dateStart, $dateEnd
+        );
+        // Previous period stats (for delta)
+        [$prevSpend, $prevRevenue, $prevConversions] = $this->calcPeriodStats(
+            $tenantId, $platform, $prevStart, $prevEnd
+        );
 
         $overallRoas = $totalSpend > 0 ? $totalRevenue / $totalSpend : 0;
+        $prevRoas    = $prevSpend  > 0 ? $prevRevenue  / $prevSpend  : 0;
+
+        // Delta helper (returns signed %)
+        $delta = fn($cur, $prv) => $prv > 0 ? round((($cur - $prv) / $prv) * 100, 1) : null;
+
+        $deltas = [
+            'spend'       => $delta($totalSpend, $prevSpend),
+            'revenue'     => $delta($totalRevenue, $prevRevenue),
+            'roas'        => $delta($overallRoas, $prevRoas),
+            'conversions' => $delta($totalConversions, $prevConversions),
+        ];
 
         // Top Campaigns by ROAS
-        $topCampaigns = $campaigns->sortByDesc(function ($c) {
-            return $c->actual_roas;
-        })->take(5);
+        $topCampaigns = $campaigns->sortByDesc(fn($c) => $c->actual_roas)->take(5);
 
-        // Optimization Recommendations (ROAS < Target ROAS and Spend > 0)
+        // Optimization Recommendations
         $recommendations = [];
         foreach ($campaigns as $camp) {
             $actualRoas = $camp->actual_roas;
             $targetRoas = (float) $camp->target_roas;
-            $spend = $camp->total_spend;
+            $spend      = $camp->total_spend;
+            $conversions = $camp->orders()->whereNotIn('order_status', [Order::STATUS_CANCELLED])->count();
+            $cpo         = $conversions > 0 ? $spend / $conversions : 0;
+            $targetCpo   = (float) $camp->target_cpo;
 
             if ($spend > 0 && $actualRoas < $targetRoas) {
                 $recommendations[] = [
-                    'campaign' => $camp,
-                    'issue' => "ROAS riil ({$actualRoas}) di bawah target ({$targetRoas})",
-                    'action' => 'Jeda Campaign',
+                    'campaign'    => $camp,
+                    'issue'       => "ROAS riil ({$actualRoas}) di bawah target ({$targetRoas})",
+                    'action'      => 'Jeda Campaign',
                     'action_code' => 'pause',
-                    'severity' => 'danger'
+                    'severity'    => 'danger'
                 ];
             } elseif ($spend > 0 && $actualRoas >= $targetRoas * 1.5) {
                 $recommendations[] = [
-                    'campaign' => $camp,
-                    'issue' => "ROAS sangat tinggi ({$actualRoas}), performa luar biasa!",
-                    'action' => 'Naikkan Budget',
+                    'campaign'    => $camp,
+                    'issue'       => "ROAS sangat tinggi ({$actualRoas}), performa luar biasa!",
+                    'action'      => 'Naikkan Budget',
                     'action_code' => 'scale',
-                    'severity' => 'success'
+                    'severity'    => 'success'
+                ];
+            } elseif ($targetCpo > 0 && $cpo > $targetCpo) {
+                $recommendations[] = [
+                    'campaign'    => $camp,
+                    'issue'       => "CPO aktual (Rp " . number_format($cpo, 0, ',', '.') . ") melebihi target (Rp " . number_format($targetCpo, 0, ',', '.') . ")",
+                    'action'      => 'Optimalkan Targeting',
+                    'action_code' => 'pause',
+                    'severity'    => 'warning'
                 ];
             }
         }
 
         // Top products sold via Ads
-        $topProductsQuery = OrderItem::whereHas('order', function ($q) use ($tenantId, $platform) {
+        $topProducts = OrderItem::whereHas('order', function ($q) use ($tenantId, $platform) {
                 $q->where('tenant_id', $tenantId)
                   ->whereNotNull('ads_campaign_id')
                   ->whereNotIn('order_status', [Order::STATUS_CANCELLED]);
                 if ($platform) {
-                    $q->whereHas('adsCampaign.adsAccount', function ($ac) use ($platform) {
-                        $ac->where('platform', $platform);
-                    });
+                    $q->whereHas('adsCampaign.adsAccount', fn($ac) => $ac->where('platform', $platform));
                 }
             })
             ->selectRaw('master_product_id, sku, product_name, SUM(quantity) as total_qty, SUM(total_price) as total_revenue')
             ->groupBy('master_product_id', 'sku', 'product_name')
             ->orderByDesc('total_qty')
-            ->limit(5);
+            ->limit(5)
+            ->get();
 
-        $topProducts = $topProductsQuery->get();
-
-        // Recent unattributed orders for manual tracking
+        // Recent unattributed orders
         $unattributedOrders = Order::with('store')
             ->where('tenant_id', $tenantId)
             ->whereNull('ads_campaign_id')
@@ -114,95 +133,123 @@ class AdsController extends Controller
             ->limit(10)
             ->get();
 
-        // Chart Data: Spend vs Revenue for past 30 days
-        $chartLabels = [];
-        $chartSpend = [];
+        // Chart Data: Spend vs Revenue for selected period
+        $chartLabels  = [];
+        $chartSpend   = [];
         $chartRevenue = [];
-        for ($i = 29; $i >= 0; $i--) {
-            $dateStr = Carbon::today()->subDays($i)->format('Y-m-d');
-            $dateLabel = Carbon::today()->subDays($i)->format('d M');
-            $chartLabels[] = $dateLabel;
+        $days = (int) min(30, $dateStart->diffInDays($dateEnd) + 1);
+        for ($i = $days - 1; $i >= 0; $i--) {
+            $d = $dateEnd->copy()->subDays($i);
+            $chartLabels[] = $d->format('d M');
 
-            // Spend on this day
-            $spendOnDayQuery = AdsPerformanceLog::where('tenant_id', $tenantId)
-                ->whereDate('date', $dateStr);
-            if ($platform) {
-                $spendOnDayQuery->whereHas('campaign.adsAccount', function ($q) use ($platform) {
-                    $q->where('platform', $platform);
-                });
-            }
-            $spendOnDay = $spendOnDayQuery->sum('ad_spend');
-            $chartSpend[] = (float)$spendOnDay;
+            $spendQ = AdsPerformanceLog::where('tenant_id', $tenantId)->whereDate('date', $d->format('Y-m-d'));
+            if ($platform) $spendQ->whereHas('campaign.adsAccount', fn($q) => $q->where('platform', $platform));
+            $chartSpend[] = (float) $spendQ->sum('ad_spend');
 
-            // Revenue on this day
-            $revOnDayQuery = Order::where('tenant_id', $tenantId)
-                ->whereNotNull('ads_campaign_id')
-                ->whereDate('order_date', $dateStr)
+            $revQ = Order::where('tenant_id', $tenantId)->whereNotNull('ads_campaign_id')
+                ->whereDate('order_date', $d->format('Y-m-d'))
                 ->whereNotIn('order_status', [Order::STATUS_CANCELLED]);
-            if ($platform) {
-                $revOnDayQuery->whereHas('adsCampaign.adsAccount', function ($q) use ($platform) {
-                    $q->where('platform', $platform);
-                });
-            }
-            $revOnDay = $revOnDayQuery->sum('net_amount');
-            $chartRevenue[] = (float)$revOnDay;
+            if ($platform) $revQ->whereHas('adsCampaign.adsAccount', fn($q) => $q->where('platform', $platform));
+            $chartRevenue[] = (float) $revQ->sum('net_amount');
         }
 
         // Platform grouping
         $platformsList = ['shopee', 'tiktok', 'meta', 'google', 'manual'];
         $platformStats = [];
         foreach ($platformsList as $pf) {
-            $platformStats[$pf] = [
-                'spend' => 0.0,
-                'revenue' => 0.0,
-                'conversions' => 0,
-                'roas' => 0.0,
-                'cpc' => 0.0,
-            ];
+            $platformStats[$pf] = ['spend' => 0.0, 'revenue' => 0.0, 'conversions' => 0, 'roas' => 0.0, 'cpc' => 0.0];
         }
 
-        // Fetch all campaigns for platform-wide aggregation regardless of current selection
-        $allCampaigns = AdsCampaign::with('performanceLogs')
-            ->where('tenant_id', $tenantId)
-            ->get();
-
+        $allCampaigns = AdsCampaign::with('performanceLogs')->where('tenant_id', $tenantId)->get();
         foreach ($allCampaigns as $camp) {
             $pf = $camp->adsAccount->platform;
-            if (!in_array($pf, $platformsList)) {
-                $pf = 'manual';
-            }
-            
-            $spend = $camp->total_spend;
-            $revenue = $camp->total_revenue;
+            if (!in_array($pf, $platformsList)) $pf = 'manual';
+            $spend       = $camp->total_spend;
+            $revenue     = $camp->total_revenue;
             $conversions = $camp->orders()->whereNotIn('order_status', [Order::STATUS_CANCELLED])->count();
-            
-            $platformStats[$pf]['spend'] += $spend;
-            $platformStats[$pf]['revenue'] += $revenue;
+            $platformStats[$pf]['spend']       += $spend;
+            $platformStats[$pf]['revenue']     += $revenue;
             $platformStats[$pf]['conversions'] += $conversions;
         }
-        
         foreach ($platformsList as $pf) {
-            $spend = $platformStats[$pf]['spend'];
-            $revenue = $platformStats[$pf]['revenue'];
-            $conversions = $platformStats[$pf]['conversions'];
-            
-            $platformStats[$pf]['roas'] = $spend > 0 ? $revenue / $spend : 0.0;
-            $platformStats[$pf]['cpc'] = $conversions > 0 ? $spend / $conversions : 0.0;
+            $s = $platformStats[$pf]['spend'];
+            $c = $platformStats[$pf]['conversions'];
+            $platformStats[$pf]['roas'] = $s > 0 ? $platformStats[$pf]['revenue'] / $s : 0.0;
+            $platformStats[$pf]['cpc']  = $c > 0 ? $s / $c : 0.0;
         }
 
         // Unread Budget alerts
         $unreadAlerts = AdsBudgetAlert::where('tenant_id', $tenantId)
-            ->where('is_read', false)
-            ->with('campaign.adsAccount')
-            ->latest()
-            ->get();
+            ->where('is_read', false)->with('campaign.adsAccount')->latest()->get();
 
         return view('marketing.ads.index', compact(
             'campaigns', 'totalSpend', 'totalRevenue', 'totalConversions',
             'overallRoas', 'topCampaigns', 'recommendations', 'topProducts',
             'unattributedOrders', 'chartLabels', 'chartSpend', 'chartRevenue',
-            'unreadAlerts', 'platformStats', 'platform'
+            'unreadAlerts', 'platformStats', 'platform', 'period', 'deltas',
+            'prevSpend', 'prevRevenue', 'prevConversions', 'prevRoas'
         ));
+    }
+
+    /**
+     * Resolve date range from period string.
+     * Returns [$start, $end, $prevStart, $prevEnd] as Carbon instances.
+     */
+    private function resolvePeriod(string $period): array
+    {
+        switch ($period) {
+            case '7':
+                $start     = Carbon::today()->subDays(6);
+                $end       = Carbon::today();
+                $prevStart = Carbon::today()->subDays(13);
+                $prevEnd   = Carbon::today()->subDays(7);
+                break;
+            case 'this_month':
+                $start     = Carbon::now()->startOfMonth();
+                $end       = Carbon::now()->endOfMonth();
+                $prevStart = Carbon::now()->subMonth()->startOfMonth();
+                $prevEnd   = Carbon::now()->subMonth()->endOfMonth();
+                break;
+            case 'last_month':
+                $start     = Carbon::now()->subMonth()->startOfMonth();
+                $end       = Carbon::now()->subMonth()->endOfMonth();
+                $prevStart = Carbon::now()->subMonths(2)->startOfMonth();
+                $prevEnd   = Carbon::now()->subMonths(2)->endOfMonth();
+                break;
+            default: // 30
+                $start     = Carbon::today()->subDays(29);
+                $end       = Carbon::today();
+                $prevStart = Carbon::today()->subDays(59);
+                $prevEnd   = Carbon::today()->subDays(30);
+        }
+        return [$start, $end, $prevStart, $prevEnd];
+    }
+
+    /**
+     * Calculate spend, revenue, conversions for a given period.
+     */
+    private function calcPeriodStats(int $tenantId, ?string $platform, Carbon $start, Carbon $end): array
+    {
+        $spendQ = AdsPerformanceLog::where('tenant_id', $tenantId)
+            ->whereBetween('date', [$start->format('Y-m-d'), $end->format('Y-m-d')]);
+        if ($platform) $spendQ->whereHas('campaign.adsAccount', fn($q) => $q->where('platform', $platform));
+        $spend = (float) $spendQ->sum('ad_spend');
+
+        $revQ = Order::where('tenant_id', $tenantId)
+            ->whereNotNull('ads_campaign_id')
+            ->whereBetween('order_date', [$start, $end])
+            ->whereNotIn('order_status', [Order::STATUS_CANCELLED]);
+        if ($platform) $revQ->whereHas('adsCampaign.adsAccount', fn($q) => $q->where('platform', $platform));
+        $revenue = (float) $revQ->sum('net_amount');
+
+        $convQ = Order::where('tenant_id', $tenantId)
+            ->whereNotNull('ads_campaign_id')
+            ->whereBetween('order_date', [$start, $end])
+            ->whereNotIn('order_status', [Order::STATUS_CANCELLED]);
+        if ($platform) $convQ->whereHas('adsCampaign.adsAccount', fn($q) => $q->where('platform', $platform));
+        $conversions = $convQ->count();
+
+        return [$spend, $revenue, $conversions];
     }
 
     public function campaigns(Request $request)
@@ -236,6 +283,7 @@ class AdsController extends Controller
             'platform' => 'required|string',
             'target_omzet' => 'nullable|numeric|min:0',
             'target_roas' => 'nullable|numeric|min:0.1',
+            'target_cpo' => 'nullable|numeric|min:0',
         ]);
 
         $tenantId = Auth::user()->tenant_id;
@@ -252,6 +300,7 @@ class AdsController extends Controller
             'name' => $request->name,
             'target_omzet' => $request->target_omzet ?? 0,
             'target_roas' => $request->target_roas ?? 1.00,
+            'target_cpo' => $request->target_cpo ?? 0,
             'status' => 'ACTIVE',
             'is_active' => true
         ]);
@@ -264,11 +313,13 @@ class AdsController extends Controller
         $request->validate([
             'target_omzet' => 'required|numeric|min:0',
             'target_roas' => 'required|numeric|min:0.1',
+            'target_cpo' => 'nullable|numeric|min:0',
         ]);
 
         $campaign->update([
             'target_omzet' => $request->target_omzet,
             'target_roas' => $request->target_roas,
+            'target_cpo' => $request->target_cpo ?? 0,
         ]);
 
         return redirect()->back()->with('success', 'Target Campaign berhasil diperbarui.');
@@ -948,4 +999,227 @@ class AdsController extends Controller
         $products = \App\Models\MasterProduct::where('tenant_id', $tenantId)->get(['id', 'name', 'sku', 'price', 'cost_price']);
         return view('marketing.ads.roas_calculator', compact('products'));
     }
+
+    // =========================================================================
+    // #1 — LAPORAN PER PRODUK
+    // =========================================================================
+    public function productReport(Request $request)
+    {
+        $tenantId = Auth::user()->tenant_id;
+        $platform  = $request->get('platform');
+        $period    = $request->get('period', '30');
+        $campaignId = $request->get('campaign_id');
+
+        [$dateStart, $dateEnd] = array_slice($this->resolvePeriod($period), 0, 2);
+
+        $query = OrderItem::with('masterProduct')
+            ->whereHas('order', function ($q) use ($tenantId, $platform, $campaignId, $dateStart, $dateEnd) {
+                $q->where('tenant_id', $tenantId)
+                  ->whereNotNull('ads_campaign_id')
+                  ->whereNotIn('order_status', [Order::STATUS_CANCELLED])
+                  ->whereBetween('order_date', [$dateStart, $dateEnd]);
+                if ($platform) {
+                    $q->whereHas('adsCampaign.adsAccount', fn($a) => $a->where('platform', $platform));
+                }
+                if ($campaignId) {
+                    $q->where('ads_campaign_id', $campaignId);
+                }
+            })
+            ->selectRaw('
+                master_product_id,
+                sku,
+                product_name,
+                SUM(quantity)      as total_qty,
+                SUM(total_price)   as total_revenue,
+                SUM(hpp_subtotal)  as total_hpp,
+                AVG(cost_price)    as avg_cost
+            ')
+            ->groupBy('master_product_id', 'sku', 'product_name')
+            ->orderByDesc('total_revenue');
+
+        $products = $query->get()->map(function ($p) {
+            $p->gross_profit  = $p->total_revenue - $p->total_hpp;
+            $p->gross_margin  = $p->total_revenue > 0
+                ? round(($p->gross_profit / $p->total_revenue) * 100, 1)
+                : 0;
+            return $p;
+        });
+
+        // Total spend yang teratribusi (hanya campaign yang punya order di periode ini)
+        $spendQ = AdsPerformanceLog::where('tenant_id', $tenantId)
+            ->whereBetween('date', [$dateStart->format('Y-m-d'), $dateEnd->format('Y-m-d')]);
+        if ($platform) $spendQ->whereHas('campaign.adsAccount', fn($q) => $q->where('platform', $platform));
+        if ($campaignId) $spendQ->where('ads_campaign_id', $campaignId);
+        $totalSpend = (float) $spendQ->sum('ad_spend');
+
+        $totalRevenue = $products->sum('total_revenue');
+        $totalHpp     = $products->sum('total_hpp');
+        $totalQty     = $products->sum('total_qty');
+        $overallRoas  = $totalSpend > 0 ? round($totalRevenue / $totalSpend, 2) : 0;
+
+        $campaigns = AdsCampaign::where('tenant_id', $tenantId)->with('adsAccount')->get();
+
+        return view('marketing.ads.product_report', compact(
+            'products', 'campaigns', 'platform', 'period', 'campaignId',
+            'totalSpend', 'totalRevenue', 'totalHpp', 'totalQty', 'overallRoas',
+            'dateStart', 'dateEnd'
+        ));
+    }
+
+    // #2 — EXPORT per-produk CSV
+    public function exportProductReport(Request $request)
+    {
+        $tenantId   = Auth::user()->tenant_id;
+        $platform   = $request->get('platform');
+        $period     = $request->get('period', '30');
+        $campaignId = $request->get('campaign_id');
+
+        [$dateStart, $dateEnd] = array_slice($this->resolvePeriod($period), 0, 2);
+
+        $rows = OrderItem::whereHas('order', function ($q) use ($tenantId, $platform, $campaignId, $dateStart, $dateEnd) {
+                $q->where('tenant_id', $tenantId)
+                  ->whereNotNull('ads_campaign_id')
+                  ->whereNotIn('order_status', [Order::STATUS_CANCELLED])
+                  ->whereBetween('order_date', [$dateStart, $dateEnd]);
+                if ($platform) $q->whereHas('adsCampaign.adsAccount', fn($a) => $a->where('platform', $platform));
+                if ($campaignId) $q->where('ads_campaign_id', $campaignId);
+            })
+            ->selectRaw('sku, product_name, SUM(quantity) as total_qty, SUM(total_price) as total_revenue, SUM(hpp_subtotal) as total_hpp')
+            ->groupBy('sku', 'product_name')
+            ->orderByDesc('total_revenue')
+            ->get();
+
+        $headers = [
+            'Content-type'        => 'text/csv',
+            'Content-Disposition' => 'attachment; filename=ads_product_report_' . date('Y-m-d') . '.csv',
+            'Pragma'              => 'no-cache',
+        ];
+
+        $callback = function () use ($rows) {
+            $file = fopen('php://output', 'w');
+            fputcsv($file, ['SKU', 'Nama Produk', 'Total QTY', 'Total Revenue (Rp)', 'Total HPP (Rp)', 'Gross Profit (Rp)', 'Gross Margin (%)']);
+            foreach ($rows as $r) {
+                $gp     = $r->total_revenue - $r->total_hpp;
+                $margin = $r->total_revenue > 0 ? round(($gp / $r->total_revenue) * 100, 1) : 0;
+                fputcsv($file, [$r->sku, $r->product_name, $r->total_qty, $r->total_revenue, $r->total_hpp, $gp, $margin . '%']);
+            }
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
+    }
+
+    // =========================================================================
+    // #3 — CAMPAIGN DETAIL DRILL-DOWN
+    // =========================================================================
+    public function campaignDetail(AdsCampaign $campaign)
+    {
+        $tenantId = Auth::user()->tenant_id;
+        if ($campaign->tenant_id !== $tenantId) abort(403);
+
+        $campaign->load('adsAccount', 'performanceLogs');
+
+        // Orders teratribusi ke campaign ini
+        $orders = Order::with('store')
+            ->where('ads_campaign_id', $campaign->id)
+            ->whereNotIn('order_status', [Order::STATUS_CANCELLED])
+            ->orderByDesc('order_date')
+            ->paginate(20);
+
+        // Produk terlaris dari campaign ini
+        $topProducts = OrderItem::whereHas('order', fn($q) =>
+                $q->where('ads_campaign_id', $campaign->id)
+                  ->whereNotIn('order_status', [Order::STATUS_CANCELLED])
+            )
+            ->selectRaw('sku, product_name, SUM(quantity) as total_qty, SUM(total_price) as total_revenue, SUM(hpp_subtotal) as total_hpp')
+            ->groupBy('sku', 'product_name')
+            ->orderByDesc('total_qty')
+            ->limit(10)
+            ->get();
+
+        // Chart 30 hari: Spend vs Revenue
+        $chartLabels  = [];
+        $chartSpend   = [];
+        $chartRevenue = [];
+        for ($i = 29; $i >= 0; $i--) {
+            $d = Carbon::today()->subDays($i);
+            $chartLabels[]  = $d->format('d M');
+            $chartSpend[]   = (float) $campaign->performanceLogs()->whereDate('date', $d)->sum('ad_spend');
+            $chartRevenue[] = (float) Order::where('ads_campaign_id', $campaign->id)
+                ->whereDate('order_date', $d)
+                ->whereNotIn('order_status', [Order::STATUS_CANCELLED])
+                ->sum('net_amount');
+        }
+
+        // Stats aggregate
+        $totalSpend   = $campaign->total_spend;
+        $totalRevenue = $campaign->total_revenue;
+        $totalConversions = Order::where('ads_campaign_id', $campaign->id)
+            ->whereNotIn('order_status', [Order::STATUS_CANCELLED])->count();
+        $cpo  = $totalConversions > 0 ? round($totalSpend / $totalConversions, 0) : 0;
+        $roas = $totalSpend > 0 ? round($totalRevenue / $totalSpend, 2) : 0;
+
+        return view('marketing.ads.campaign_detail', compact(
+            'campaign', 'orders', 'topProducts',
+            'chartLabels', 'chartSpend', 'chartRevenue',
+            'totalSpend', 'totalRevenue', 'totalConversions', 'cpo', 'roas'
+        ));
+    }
+
+    // =========================================================================
+    // #6 — HEATMAP JAM & HARI
+    // =========================================================================
+    public function heatmap(Request $request)
+    {
+        $tenantId   = Auth::user()->tenant_id;
+        $platform   = $request->get('platform');
+        $campaignId = $request->get('campaign_id');
+
+        $query = Order::where('tenant_id', $tenantId)
+            ->whereNotNull('ads_campaign_id')
+            ->whereNotIn('order_status', [Order::STATUS_CANCELLED])
+            ->whereNotNull('order_date');
+
+        if ($platform) {
+            $query->whereHas('adsCampaign.adsAccount', fn($q) => $q->where('platform', $platform));
+        }
+        if ($campaignId) {
+            $query->where('ads_campaign_id', $campaignId);
+        }
+
+        // Aggregate by day-of-week (1=Sun..7=Sat) and hour (0-23)
+        $rawData = $query->selectRaw('
+                DAYOFWEEK(order_date) as dow,
+                HOUR(order_date)      as hour,
+                COUNT(*)              as total_orders,
+                SUM(net_amount)       as total_revenue
+            ')
+            ->groupBy('dow', 'hour')
+            ->get();
+
+        // Build 7×24 matrix
+        $matrix = [];
+        $days   = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
+        for ($dow = 1; $dow <= 7; $dow++) {
+            for ($h = 0; $h <= 23; $h++) {
+                $matrix[$dow][$h] = ['orders' => 0, 'revenue' => 0];
+            }
+        }
+
+        $maxOrders = 0;
+        foreach ($rawData as $row) {
+            $matrix[$row->dow][$row->hour] = [
+                'orders'  => $row->total_orders,
+                'revenue' => $row->total_revenue,
+            ];
+            if ($row->total_orders > $maxOrders) $maxOrders = $row->total_orders;
+        }
+
+        $campaigns = AdsCampaign::where('tenant_id', $tenantId)->with('adsAccount')->get();
+
+        return view('marketing.ads.heatmap', compact(
+            'matrix', 'days', 'maxOrders', 'campaigns', 'platform', 'campaignId'
+        ));
+    }
 }
+

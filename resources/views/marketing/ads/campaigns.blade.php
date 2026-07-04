@@ -206,17 +206,24 @@
                             </select>
                         </div>
                         <div class="row g-2 mb-2">
-                            <div class="col-6">
+                            <div class="col-4">
                                 <label for="target_roas" class="form-label fw-bold text-secondary small text-uppercase"
                                     style="letter-spacing:.5px;font-size:.7rem;">Target ROAS (×)</label>
                                 <input type="number" name="target_roas" id="target_roas"
                                     class="form-control form-control-sm rounded-3" placeholder="2.00" step="0.01"
                                     min="0.1" value="2.00" required>
                             </div>
-                            <div class="col-6">
+                            <div class="col-4">
                                 <label for="target_omzet" class="form-label fw-bold text-secondary small text-uppercase"
                                     style="letter-spacing:.5px;font-size:.7rem;">Target Omzet (Rp)</label>
                                 <input type="number" name="target_omzet" id="target_omzet"
+                                    class="form-control form-control-sm rounded-3" placeholder="0" min="0"
+                                    value="0">
+                            </div>
+                            <div class="col-4">
+                                <label for="target_cpo" class="form-label fw-bold text-secondary small text-uppercase"
+                                    style="letter-spacing:.5px;font-size:.7rem;">Target CPO (Rp)</label>
+                                <input type="number" name="target_cpo" id="target_cpo"
                                     class="form-control form-control-sm rounded-3" placeholder="0" min="0"
                                     value="0">
                             </div>
@@ -282,6 +289,7 @@
                                     <th class="border-0 px-3 py-3">Platform</th>
                                     <th class="border-0 px-3 py-3">Target ROAS</th>
                                     <th class="border-0 px-3 py-3">Target Omzet</th>
+                                    <th class="border-0 px-3 py-3">CPO Aktual</th>
                                     <th class="border-0 px-3 py-3">Status</th>
                                     <th class="border-0 px-3 py-3 text-end">Aksi</th>
                                 </tr>
@@ -339,6 +347,29 @@
                                             </span>
                                         </td>
 
+                                        {{-- CPO Aktual #5 --}}
+                                        <td class="px-3 py-3">
+                                            @php
+                                                $campConv = $camp->orders()->whereNotIn('order_status', ['CANCELLED'])->count();
+                                                $campCpo  = $campConv > 0 ? $camp->total_spend / $campConv : 0;
+                                                $cpoAlert = $camp->target_cpo && $campCpo > $camp->target_cpo;
+                                            @endphp
+                                            @if($campConv > 0)
+                                                <div class="small fw-semibold {{ $cpoAlert ? 'text-danger' : 'text-dark' }}">
+                                                    Rp {{ number_format($campCpo, 0, ',', '.') }}
+                                                </div>
+                                                @if($cpoAlert)
+                                                    <div class="text-danger" style="font-size:.68rem;">
+                                                        <i class="bi bi-exclamation-triangle-fill me-1"></i>Target: Rp {{ number_format($camp->target_cpo, 0, ',', '.') }}
+                                                    </div>
+                                                @elseif($camp->target_cpo)
+                                                    <div class="text-muted" style="font-size:.68rem;">Target: Rp {{ number_format($camp->target_cpo, 0, ',', '.') }}</div>
+                                                @endif
+                                            @else
+                                                <span class="text-muted" style="font-size:.75rem;">—</span>
+                                            @endif
+                                        </td>
+
                                         {{-- Status --}}
                                         <td class="px-3 py-3">
                                             @if ($camp->status === 'ACTIVE')
@@ -359,6 +390,10 @@
                                         {{-- Actions --}}
                                         <td class="px-3 py-3 text-end">
                                             <div class="d-flex gap-1 justify-content-end">
+                                                <a href="{{ route('marketing.ads.campaign.detail', $camp->id) }}"
+                                                    class="btn btn-sm btn-outline-info rounded-3 px-2" title="Lihat Detail">
+                                                    <i class="bi bi-eye-fill"></i>
+                                                </a>
                                                 <button class="btn btn-sm btn-outline-primary rounded-3 px-2"
                                                     data-bs-toggle="modal"
                                                     data-bs-target="#editModal-{{ $camp->id }}" title="Edit Target">
@@ -416,7 +451,7 @@
                                                                         value="{{ $camp->target_roas }}" step="0.01"
                                                                         min="0.1" required>
                                                                 </div>
-                                                                <div class="mb-0">
+                                                                <div class="mb-3">
                                                                     <label for="target_omzet-{{ $camp->id }}"
                                                                         class="form-label fw-bold text-secondary small text-uppercase"
                                                                         style="letter-spacing:.5px;font-size:.7rem;">
@@ -427,6 +462,22 @@
                                                                         class="form-control rounded-3"
                                                                         value="{{ (int) $camp->target_omzet }}"
                                                                         min="0" required>
+                                                                </div>
+                                                                <div class="mb-0">
+                                                                    <label for="target_cpo-{{ $camp->id }}"
+                                                                        class="form-label fw-bold text-secondary small text-uppercase"
+                                                                        style="letter-spacing:.5px;font-size:.7rem;">
+                                                                        Target CPO / Cost Per Order (Rp)
+                                                                    </label>
+                                                                    <div class="input-group">
+                                                                        <span class="input-group-text bg-light border-end-0">Rp</span>
+                                                                        <input type="number" name="target_cpo"
+                                                                            id="target_cpo-{{ $camp->id }}"
+                                                                            class="form-control border-start-0"
+                                                                            value="{{ (int) $camp->target_cpo }}"
+                                                                            min="0" placeholder="Opsional — 0 = tidak ada target">
+                                                                    </div>
+                                                                    <div class="form-text text-muted">Jika CPO aktual melebihi nilai ini, akan muncul peringatan merah.</div>
                                                                 </div>
                                                             </div>
                                                             <div class="modal-footer border-top px-4 py-3">

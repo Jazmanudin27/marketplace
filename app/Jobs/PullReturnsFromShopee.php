@@ -134,6 +134,9 @@ class PullReturnsFromShopee implements ShouldQueue
             return;
         }
 
+        $dueTimestamp = $shopeeReturn['due_date'] ?? null;
+        $slaDeadline = $dueTimestamp ? \Carbon\Carbon::createFromTimestamp($dueTimestamp) : null;
+
         // Simpan Return Order
         $returnOrder = ReturnOrder::updateOrCreate(
             [
@@ -143,8 +146,11 @@ class PullReturnsFromShopee implements ShouldQueue
                 'return_sn' => $shopeeReturn['return_sn'],
             ],
             [
+                'return_tracking_number' => $shopeeReturn['tracking_number'] ?? $shopeeReturn['return_tracking_number'] ?? null,
+                'shipping_provider' => $shopeeReturn['shipping_carrier'] ?? $shopeeReturn['shipping_provider'] ?? null,
                 'reason' => $shopeeReturn['reason'] ?? null,
                 'status' => $shopeeReturn['status'] ?? 'REQUESTED',
+                'sla_deadline' => $slaDeadline,
                 'refund_amount' => $shopeeReturn['refund_amount'] ?? 0,
             ]
         );

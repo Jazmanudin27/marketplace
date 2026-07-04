@@ -100,6 +100,14 @@ class PullReturnsFromTiktok implements ShouldQueue
             return;
         }
 
+        $slaDeadline = null;
+        if (isset($tiktokReturn['seller_next_action_response']) && is_array($tiktokReturn['seller_next_action_response'])) {
+            $firstAction = $tiktokReturn['seller_next_action_response'][0] ?? null;
+            if ($firstAction && isset($firstAction['deadline'])) {
+                $slaDeadline = \Carbon\Carbon::createFromTimestamp($firstAction['deadline']);
+            }
+        }
+
         $returnOrder = ReturnOrder::updateOrCreate(
             [
                 'tenant_id' => $this->store->tenant_id,
@@ -108,8 +116,11 @@ class PullReturnsFromTiktok implements ShouldQueue
                 'return_sn' => $tiktokReturn['return_id'],
             ],
             [
+                'return_tracking_number' => $tiktokReturn['return_tracking_number'] ?? null,
+                'shipping_provider' => $tiktokReturn['return_provider_name'] ?? null,
                 'reason' => $tiktokReturn['return_reason_text'] ?? $tiktokReturn['return_reason'] ?? $tiktokReturn['reason'] ?? null,
                 'status' => $tiktokReturn['return_status'] ?? $tiktokReturn['status'] ?? 'REQUESTED',
+                'sla_deadline' => $slaDeadline,
                 'refund_amount' => $tiktokReturn['refund_amount']['refund_total'] ?? $tiktokReturn['refund_amount'] ?? 0,
             ]
         );

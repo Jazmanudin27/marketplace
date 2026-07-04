@@ -40,6 +40,17 @@
                                     </select>
                                 </div>
                             </div>
+                            <div class="col-12 col-md-4">
+                                <div class="d-flex align-items-center gap-2">
+                                    <label class="form-label fw-bold text-secondary mb-0 small text-uppercase" style="font-size: 0.72rem; min-width: 80px;">Periode:</label>
+                                    <select name="period" class="form-select form-select-sm rounded-3" onchange="this.form.submit()">
+                                        <option value="7"          {{ ($period ?? '30') === '7'          ? 'selected' : '' }}>7 Hari Terakhir</option>
+                                        <option value="30"         {{ ($period ?? '30') === '30'         ? 'selected' : '' }}>30 Hari Terakhir</option>
+                                        <option value="this_month" {{ ($period ?? '30') === 'this_month' ? 'selected' : '' }}>Bulan Ini</option>
+                                        <option value="last_month" {{ ($period ?? '30') === 'last_month' ? 'selected' : '' }}>Bulan Lalu</option>
+                                    </select>
+                                </div>
+                            </div>
                         </div>
                     </form>
                 </div>
@@ -227,8 +238,47 @@
                             </div>
                             <div class="text-start text-truncate">
                                 <h6 class="mb-0 fw-bold text-dark" style="font-size: 0.85rem;">A/B Calculator</h6>
-                                <small class="text-muted d-block text-truncate" style="font-size: 0.72rem;">Uji
-                                    signifikansi hasil iklan A/B</small>
+                                <small class="text-muted d-block text-truncate" style="font-size: 0.72rem;">Uji signifikansi hasil iklan A/B</small>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+
+                <!-- NEW: Laporan Produk -->
+                <div class="col-12 col-md-6 col-lg-4">
+                    <a href="{{ route('marketing.ads.product_report') }}"
+                        class="card text-decoration-none border shadow-sm h-100 bg-white rounded-3"
+                        style="transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;"
+                        onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 .5rem 1.25rem rgba(111,66,193,.12)'; this.style.borderColor='#6f42c1';"
+                        onmouseout="this.style.transform='none'; this.style.boxShadow='none'; this.style.borderColor='rgba(0,0,0,.125)';">
+                        <div class="card-body p-3 d-flex align-items-center gap-3">
+                            <div class="rounded-3 d-flex align-items-center justify-content-center"
+                                style="width:46px;height:46px;flex-shrink:0;background:rgba(111,66,193,.1);color:#6f42c1;">
+                                <i class="bi bi-box-seam-fill fs-4"></i>
+                            </div>
+                            <div class="text-start text-truncate">
+                                <h6 class="mb-0 fw-bold text-dark" style="font-size:0.85rem;">Laporan Per Produk</h6>
+                                <small class="text-muted d-block text-truncate" style="font-size:0.72rem;">Revenue, HPP & margin tiap produk iklan</small>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+
+                <!-- NEW: Heatmap -->
+                <div class="col-12 col-md-6 col-lg-4">
+                    <a href="{{ route('marketing.ads.heatmap') }}"
+                        class="card text-decoration-none border shadow-sm h-100 bg-white rounded-3"
+                        style="transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;"
+                        onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 .5rem 1.25rem rgba(13,202,240,.1)'; this.style.borderColor='#0dcaf0';"
+                        onmouseout="this.style.transform='none'; this.style.boxShadow='none'; this.style.borderColor='rgba(0,0,0,.125)';">
+                        <div class="card-body p-3 d-flex align-items-center gap-3">
+                            <div class="rounded-3 d-flex align-items-center justify-content-center"
+                                style="width:46px;height:46px;flex-shrink:0;background:rgba(13,202,240,.1);color:#0dcaf0;">
+                                <i class="bi bi-grid-3x3-gap-fill fs-4"></i>
+                            </div>
+                            <div class="text-start text-truncate">
+                                <h6 class="mb-0 fw-bold text-dark" style="font-size:0.85rem;">Heatmap Waktu Order</h6>
+                                <small class="text-muted d-block text-truncate" style="font-size:0.72rem;">Jam & hari terbaik dari iklan</small>
                             </div>
                         </div>
                     </a>
@@ -365,7 +415,19 @@
                 </div>
             @endif
 
-            <!-- Overall Statistics -->
+            <!-- Overall Statistics (#4 — dengan delta badge) -->
+            @php
+                $fmtDelta = function($d) {
+                    if ($d === null) return null;
+                    $cls = $d >= 0 ? 'success' : 'danger';
+                    $icon = $d >= 0 ? 'arrow-up' : 'arrow-down';
+                    return ['cls' => $cls, 'icon' => $icon, 'val' => abs($d)];
+                };
+                $dSpend = $fmtDelta($deltas['spend'] ?? null);
+                $dRev   = $fmtDelta($deltas['revenue'] ?? null);
+                $dRoas  = $fmtDelta($deltas['roas'] ?? null);
+                $dConv  = $fmtDelta($deltas['conversions'] ?? null);
+            @endphp
             <div class="row g-3 mb-3">
                 <!-- Ad Spend -->
                 <div class="col-lg-3 col-md-6">
@@ -374,15 +436,16 @@
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
                                     <small class="text-secondary text-uppercase fw-bold">Total Biaya Iklan</small>
-                                    <div class="d-flex align-items-center mt-1">
-                                        <h5 class="fw-bold mb-0 text-dark">Rp
-                                            {{ number_format($totalSpend, 0, ',', '.') }}
-                                        </h5>
+                                    <div class="d-flex align-items-center mt-1 gap-2">
+                                        <h5 class="fw-bold mb-0 text-dark">Rp {{ number_format($totalSpend, 0, ',', '.') }}</h5>
+                                        @if($dSpend)
+                                            <span class="badge bg-{{ $dSpend['cls'] === 'danger' ? 'success' : 'danger' }} bg-opacity-10 text-{{ $dSpend['cls'] === 'danger' ? 'success' : 'danger' }} border rounded-pill small">
+                                                <i class="bi bi-{{ $dSpend['icon'] }}-short"></i> {{ $dSpend['val'] }}%
+                                            </span>
+                                        @endif
                                     </div>
                                 </div>
-                                <div class="fs-2 text-danger opacity-75">
-                                    <i class="bi bi-wallet2"></i>
-                                </div>
+                                <div class="fs-2 text-danger opacity-75"><i class="bi bi-wallet2"></i></div>
                             </div>
                         </div>
                     </div>
@@ -394,14 +457,16 @@
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
                                     <small class="text-secondary text-uppercase fw-bold">Omset Teratribusi</small>
-                                    <div class="d-flex align-items-center mt-1">
-                                        <h5 class="fw-bold mb-0 text-success">Rp
-                                            {{ number_format($totalRevenue, 0, ',', '.') }}</h5>
+                                    <div class="d-flex align-items-center mt-1 gap-2">
+                                        <h5 class="fw-bold mb-0 text-success">Rp {{ number_format($totalRevenue, 0, ',', '.') }}</h5>
+                                        @if($dRev)
+                                            <span class="badge bg-{{ $dRev['cls'] }} bg-opacity-10 text-{{ $dRev['cls'] }} border rounded-pill small">
+                                                <i class="bi bi-{{ $dRev['icon'] }}-short"></i> {{ $dRev['val'] }}%
+                                            </span>
+                                        @endif
                                     </div>
                                 </div>
-                                <div class="fs-2 text-success opacity-75">
-                                    <i class="bi bi-currency-dollar"></i>
-                                </div>
+                                <div class="fs-2 text-success opacity-75"><i class="bi bi-currency-dollar"></i></div>
                             </div>
                         </div>
                     </div>
@@ -413,13 +478,16 @@
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
                                     <small class="text-white-50 text-uppercase fw-bold">Rata-rata ROAS</small>
-                                    <div class="d-flex align-items-center mt-1">
+                                    <div class="d-flex align-items-center mt-1 gap-2">
                                         <h5 class="fw-bold mb-0 text-white">{{ number_format($overallRoas, 2) }}x</h5>
+                                        @if($dRoas)
+                                            <span class="badge bg-white bg-opacity-25 text-white border border-white border-opacity-25 rounded-pill small">
+                                                <i class="bi bi-{{ $dRoas['icon'] }}-short"></i> {{ $dRoas['val'] }}%
+                                            </span>
+                                        @endif
                                     </div>
                                 </div>
-                                <div class="fs-2 text-white opacity-75">
-                                    <i class="bi bi-graph-up-arrow"></i>
-                                </div>
+                                <div class="fs-2 text-white opacity-75"><i class="bi bi-graph-up-arrow"></i></div>
                             </div>
                         </div>
                     </div>
@@ -431,13 +499,16 @@
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
                                     <small class="text-secondary text-uppercase fw-bold">Jumlah Closing</small>
-                                    <div class="d-flex align-items-center mt-1">
+                                    <div class="d-flex align-items-center mt-1 gap-2">
                                         <h5 class="fw-bold mb-0 text-dark">{{ $totalConversions }} Order</h5>
+                                        @if($dConv)
+                                            <span class="badge bg-{{ $dConv['cls'] }} bg-opacity-10 text-{{ $dConv['cls'] }} border rounded-pill small">
+                                                <i class="bi bi-{{ $dConv['icon'] }}-short"></i> {{ $dConv['val'] }}%
+                                            </span>
+                                        @endif
                                     </div>
                                 </div>
-                                <div class="fs-2 text-warning opacity-75">
-                                    <i class="bi bi-cart-check"></i>
-                                </div>
+                                <div class="fs-2 text-warning opacity-75"><i class="bi bi-cart-check"></i></div>
                             </div>
                         </div>
                     </div>

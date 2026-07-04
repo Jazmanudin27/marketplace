@@ -35,7 +35,7 @@
         request()->routeIs('reports.reseller_receivables') ||
         request()->routeIs('reports.inventory_turnover');
 
-    $isMarketingActive = request()->routeIs('marketing.ads.index');
+    $isMarketingActive = request()->routeIs('marketing.ads.*') || request()->routeIs('marketing.flash_sales.*') || request()->routeIs('marketing.tiered_discounts.*');
 @endphp
 
 <div class="d-flex flex-column p-3 bg-primary text-white w-100" id="sidebar">
@@ -491,8 +491,12 @@
                 <div class="collapse {{ $isMarketingActive ? 'show' : '' }}" id="collapseMarketing">
                     <div class="nav flex-column ms-3 mt-1 gap-1 border-start ps-2">
                         <a href="{{ route('marketing.ads.index') }}"
-                            class="nav-link py-1 {{ request()->routeIs('marketing.ads.index') ? 'active text-white' : 'text-secondary' }}">Dashboard
+                            class="nav-link py-1 {{ request()->routeIs('marketing.ads.*') ? 'active text-white' : 'text-secondary' }}">Dashboard
                             Keputusan</a>
+                        <a href="{{ route('marketing.flash_sales.index') }}"
+                            class="nav-link py-1 {{ request()->routeIs('marketing.flash_sales.*') ? 'active text-white' : 'text-secondary' }}">Flash Sale</a>
+                        <a href="{{ route('marketing.tiered_discounts.index') }}"
+                            class="nav-link py-1 {{ request()->routeIs('marketing.tiered_discounts.*') ? 'active text-white' : 'text-secondary' }}">Diskon Bertingkat</a>
                     </div>
                 </div>
             </div>
