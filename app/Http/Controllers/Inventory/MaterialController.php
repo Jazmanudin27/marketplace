@@ -9,11 +9,6 @@ use Illuminate\Support\Facades\Auth;
 
 class MaterialController extends Controller
 {
-    public function __construct()
-    {
-        $this->middleware('auth');
-    }
-
     public function index(Request $request)
     {
         $query = Material::where('tenant_id', Auth::user()->tenant_id);

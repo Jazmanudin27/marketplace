@@ -9,11 +9,6 @@ use Illuminate\Support\Facades\Auth;
 
 class InventoryItemController extends Controller
 {
-    public function __construct()
-    {
-        $this->middleware('auth');
-    }
-
     public function index(Request $request)
     {
         $query = InventoryItem::where('tenant_id', Auth::user()->tenant_id);

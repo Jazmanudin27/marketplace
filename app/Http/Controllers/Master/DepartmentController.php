@@ -9,19 +9,18 @@ use Illuminate\Support\Facades\Auth;
 
 class DepartmentController extends Controller
 {
-    public function __construct()
+    private function checkAccess()
     {
-        $this->middleware(function ($request, $next) {
-            $user = Auth::user();
-            if (!$user->isSuperAdmin() && $user->role !== 'admin') {
-                abort(403, 'Anda tidak memiliki hak akses untuk mengelola Departemen.');
-            }
-            return $next($request);
-        });
+        $user = Auth::user();
+        if (!$user->isSuperAdmin() && $user->role !== 'admin') {
+            abort(403, 'Anda tidak memiliki hak akses untuk mengelola Departemen.');
+        }
     }
 
     public function index(Request $request)
     {
+        $this->checkAccess();
+
         $query = Department::where('tenant_id', Auth::user()->tenant_id);
 
         if ($request->filled('name')) {
@@ -44,6 +43,8 @@ class DepartmentController extends Controller
 
     public function store(Request $request)
     {
+        $this->checkAccess();
+
         $data = $request->validate([
             'name' => 'required|string|max:255',
             'code' => 'nullable|string|max:50',
@@ -65,6 +66,8 @@ class DepartmentController extends Controller
 
     public function update(Request $request, Department $department)
     {
+        $this->checkAccess();
+
         abort_unless($department->tenant_id === Auth::user()->tenant_id, 403);
 
         $data = $request->validate([
@@ -82,6 +85,8 @@ class DepartmentController extends Controller
 
     public function destroy(Department $department)
     {
+        $this->checkAccess();
+
         abort_unless($department->tenant_id === Auth::user()->tenant_id, 403);
 
         // Check if department has associated POs or stock movements
