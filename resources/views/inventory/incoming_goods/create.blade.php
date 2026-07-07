@@ -8,7 +8,7 @@
 
         <div class="row g-3">
             {{-- Left Column: Main Form --}}
-            <div class="col-md-9">
+            <div class="col-md-12">
 
                 {{-- Card 1: Informasi Penerimaan --}}
                 <div class="card border-0 shadow-sm mb-3">
@@ -249,7 +249,7 @@
             </div>
 
             {{-- Right Column: Sticky Sidebar --}}
-            <div class="col-md-3">
+            <div class="col-md-12">
                 <div class="position-sticky" style="top: 20px;">
                     {{-- Grand Total Box --}}
                     <div
