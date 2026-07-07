@@ -47,6 +47,8 @@ use App\Http\Controllers\Inventory\IncomingGoodController;
 use App\Http\Controllers\Inventory\StockOpnameController;
 use App\Http\Controllers\Inventory\PurchaseOrderController;
 use App\Http\Controllers\Inventory\StockSyncController;
+use App\Http\Controllers\Inventory\MaterialController;
+use App\Http\Controllers\Inventory\InventoryItemController;
 // Marketplace
 use App\Http\Controllers\Marketplace\StoreController;
 // Settings
@@ -410,6 +412,20 @@ Route::middleware('auth')->group(function () {
         Route::get('/stock-sync', [StockSyncController::class, 'index'])->name('inventory.stock_sync');
         Route::post('/stock-sync/all', [StockSyncController::class, 'forceSyncAll'])->name('inventory.stock_sync.all');
         Route::post('/stock-sync/{product}', [StockSyncController::class, 'forceSyncProduct'])->name('inventory.stock_sync.product');
+
+        // Materials & Packaging
+        Route::resource('materials', MaterialController::class);
+
+        // Office supplies & Assets
+        Route::resource('inventory-items', InventoryItemController::class)->names([
+            'index' => 'inventory_items.index',
+            'create' => 'inventory_items.create',
+            'store' => 'inventory_items.store',
+            'show' => 'inventory_items.show',
+            'edit' => 'inventory_items.edit',
+            'update' => 'inventory_items.update',
+            'destroy' => 'inventory_items.destroy',
+        ]);
     });
 
     // Pesanan Retur

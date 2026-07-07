@@ -50,6 +50,8 @@
         request()->routeIs('offline_sales.*');
 
     $isHrdActive = request()->routeIs('hr.*') || request()->routeIs('employees.*');
+    $isGudangBahanActive = request()->routeIs('materials.*');
+    $isGudangAtkActive = request()->routeIs('inventory_items.*');
 @endphp
 
 <div class="d-flex flex-column p-3 bg-primary text-white w-100" id="sidebar">
@@ -292,9 +294,9 @@
                 auth()->user()->role === 'admin' ||
                 auth()->user()->hasAnyPermission(['manage-inventory']))
             <div>
-                <a class="nav-link d-flex align-items-center justify-content-between text-dark collapsed"
+                <a class="nav-link d-flex align-items-center justify-content-between text-dark {{ $isGudangBahanActive ? '' : 'collapsed' }}"
                     data-bs-toggle="collapse" data-bs-target="#collapseGudangBahan" role="button"
-                    aria-expanded="false"
+                    aria-expanded="{{ $isGudangBahanActive ? 'true' : 'false' }}"
                     aria-controls="collapseGudangBahan">
                     <div class="d-flex align-items-center gap-2">
                         <i class="bi bi-recycle"></i>
@@ -302,9 +304,10 @@
                     </div>
                     <i class="bi bi-chevron-down small"></i>
                 </a>
-                <div class="collapse" id="collapseGudangBahan">
+                <div class="collapse {{ $isGudangBahanActive ? 'show' : '' }}" id="collapseGudangBahan">
                     <div class="nav flex-column ms-3 mt-1 gap-1 border-start ps-2">
-                        <a href="#" class="nav-link py-1 text-secondary placeholder-link">Stok Bahan & Kemasan <span class="badge bg-secondary ms-1 text-white" style="font-size: 0.6rem; padding: 2px 4px;">Soon</span></a>
+                        <a href="{{ route('materials.index') }}"
+                            class="nav-link py-1 {{ request()->routeIs('materials.index') ? 'active text-white' : 'text-secondary' }}">Stok Bahan & Kemasan</a>
                         <a href="#" class="nav-link py-1 text-secondary placeholder-link">Opname Bahan <span class="badge bg-secondary ms-1 text-white" style="font-size: 0.6rem; padding: 2px 4px;">Soon</span></a>
                         <a href="#" class="nav-link py-1 text-secondary placeholder-link">Formula & Resep <span class="badge bg-secondary ms-1 text-white" style="font-size: 0.6rem; padding: 2px 4px;">Soon</span></a>
                     </div>
@@ -317,9 +320,9 @@
                 auth()->user()->role === 'admin' ||
                 auth()->user()->hasAnyPermission(['manage-inventory']))
             <div>
-                <a class="nav-link d-flex align-items-center justify-content-between text-dark collapsed"
+                <a class="nav-link d-flex align-items-center justify-content-between text-dark {{ $isGudangAtkActive ? '' : 'collapsed' }}"
                     data-bs-toggle="collapse" data-bs-target="#collapseGudangAtk" role="button"
-                    aria-expanded="false"
+                    aria-expanded="{{ $isGudangAtkActive ? 'true' : 'false' }}"
                     aria-controls="collapseGudangAtk">
                     <div class="d-flex align-items-center gap-2">
                         <i class="bi bi-journal-bookmark"></i>
@@ -327,9 +330,10 @@
                     </div>
                     <i class="bi bi-chevron-down small"></i>
                 </a>
-                <div class="collapse" id="collapseGudangAtk">
+                <div class="collapse {{ $isGudangAtkActive ? 'show' : '' }}" id="collapseGudangAtk">
                     <div class="nav flex-column ms-3 mt-1 gap-1 border-start ps-2">
-                        <a href="#" class="nav-link py-1 text-secondary placeholder-link">Stok ATK & Peralatan <span class="badge bg-secondary ms-1 text-white" style="font-size: 0.6rem; padding: 2px 4px;">Soon</span></a>
+                        <a href="{{ route('inventory_items.index') }}"
+                            class="nav-link py-1 {{ request()->routeIs('inventory_items.index') ? 'active text-white' : 'text-secondary' }}">Stok ATK & Peralatan</a>
                         <a href="#" class="nav-link py-1 text-secondary placeholder-link">Permintaan ATK <span class="badge bg-secondary ms-1 text-white" style="font-size: 0.6rem; padding: 2px 4px;">Soon</span></a>
                         <a href="#" class="nav-link py-1 text-secondary placeholder-link">Inventaris Aset <span class="badge bg-secondary ms-1 text-white" style="font-size: 0.6rem; padding: 2px 4px;">Soon</span></a>
                     </div>
