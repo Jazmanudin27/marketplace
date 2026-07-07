@@ -137,7 +137,7 @@
                         {{-- Quick Entry Bar --}}
                         <div class="bg-light border rounded-3 p-3 mb-3">
                             <div class="row g-2 align-items-end">
-                                <div class="col-12 col-md-3">
+                                <div class="col-12 col-md-5">
                                     <label class="form-label form-label-sm fw-semibold mb-1">Pilih Barang</label>
                                     <select id="entry-product" class="form-select form-select-sm product-select"
                                         style="width:100%">
@@ -184,7 +184,7 @@
                                     <input type="number" id="entry-qty" class="form-control form-control-sm text-end"
                                         min="1" placeholder="0">
                                 </div>
-                                <div class="col-6 col-md-2">
+                                <div class="col-6 col-md-1">
                                     <label class="form-label form-label-sm fw-semibold mb-1">Harga Modal</label>
                                     <div class="input-group input-group-sm">
                                         <span class="input-group-text bg-light text-muted">Rp</span>
@@ -192,7 +192,7 @@
                                             class="form-control form-control-sm text-end rupiah-mask" placeholder="0">
                                     </div>
                                 </div>
-                                <div class="col-6 col-md-2">
+                                <div class="col-6 col-md-1">
                                     <label class="form-label form-label-sm fw-semibold mb-1">Potongan</label>
                                     <div class="input-group input-group-sm">
                                         <span class="input-group-text bg-light text-muted">Rp</span>
@@ -201,7 +201,7 @@
                                             value="0">
                                     </div>
                                 </div>
-                                <div class="col-8 col-md-2">
+                                <div class="col-8 col-md-1">
                                     <label class="form-label form-label-sm fw-semibold mb-1">Total</label>
                                     <input type="text" id="entry-total"
                                         class="form-control form-control-sm text-end fw-bold bg-white" readonly disabled
