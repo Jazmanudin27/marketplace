@@ -44,8 +44,8 @@ class IncomingGoodController extends Controller
     {
         $tenantId = Auth::user()->tenant_id;
         $products = MasterProduct::where('tenant_id', $tenantId)->where('is_active', true)->orderBy('name')->get();
-        $materials = \App\Models\Material::where('tenant_id', $tenantId)->where('is_active', true)->orderBy('name')->get();
-        $inventoryItems = \App\Models\InventoryItem::where('tenant_id', $tenantId)->where('is_active', true)->orderBy('name')->get();
+        $materials = \App\Models\InventoryItem::where('tenant_id', $tenantId)->where('is_active', true)->whereIn('type', ['bahan', 'kemasan'])->orderBy('name')->get();
+        $inventoryItems = \App\Models\InventoryItem::where('tenant_id', $tenantId)->where('is_active', true)->whereIn('type', ['atk', 'inventaris'])->orderBy('name')->get();
         $departments = \App\Models\Department::where('tenant_id', $tenantId)->where('is_active', true)->orderBy('name')->get();
         $suppliers = Supplier::where('tenant_id', $tenantId)->where('is_active', true)->orderBy('name')->get();
         $purchaseOrders = \App\Models\PurchaseOrder::where('tenant_id', $tenantId)
@@ -116,40 +116,7 @@ class IncomingGoodController extends Controller
                     continue;
                 }
 
-                if ($type === 'material') {
-                    $item = \App\Models\Material::where('tenant_id', $tenantId)->find($itemId);
-                    if ($item) {
-                        if ($request->source_type === 'supplier' && $costPrice !== null && $costPrice !== '') {
-                            $item->update(['cost_price' => $costPrice]);
-                        }
-
-                        $item->recordStockMovement($qty, 'in', $reference, Auth::id(), $date);
-                        
-                        $movement = StockMovement::where('material_id', $item->id)
-                            ->where('reference', $reference)
-                            ->where('tenant_id', $tenantId)
-                            ->orderByDesc('id')
-                            ->first();
-                        if ($movement) {
-                            $movement->update(['department_id' => $departmentId]);
-                        }
-
-                        if ($request->filled('purchase_order_id')) {
-                            $poItem = \App\Models\PurchaseOrderItem::where('purchase_order_id', $request->purchase_order_id)
-                                ->where('material_id', $itemId)
-                                ->first();
-                            if ($poItem) {
-                                $poItem->increment('received_quantity', $qty);
-                            }
-                            if ($movement) {
-                                $movement->update(['purchase_order_id' => $request->purchase_order_id]);
-                            }
-                        }
-
-                        $itemsCount++;
-                        $totalQty += $qty;
-                    }
-                } elseif ($type === 'inventory') {
+                if ($type === 'material' || $type === 'inventory') {
                     $item = \App\Models\InventoryItem::where('tenant_id', $tenantId)->find($itemId);
                     if ($item) {
                         if ($request->source_type === 'supplier' && $costPrice !== null && $costPrice !== '') {

@@ -425,6 +425,40 @@
                     $('.supplier-fields').hide();
                     $('.return-fields').hide();
                 }
+
+                // Reset cart when source changes
+                cartItems = [];
+                renderCart();
+
+                // Clear PO selection
+                $('#purchase-order-select').val('').trigger('change.select2');
+                $('#supplier-select').prop('disabled', false).val('').trigger('change.select2');
+
+                // Filter options in select2
+                const entryProduct = $('#entry-product');
+                entryProduct.val(null); // clear select selection
+
+                if (val === 'supplier') {
+                    // Purchase: only allow materials & inventory (disable products)
+                    entryProduct.find('optgroup#group-materials, optgroup#group-inventory').prop('disabled',
+                        false);
+                    entryProduct.find('optgroup#group-products').prop('disabled', true);
+                } else if (val === 'return') {
+                    // Return: only allow products (disable materials & inventory)
+                    entryProduct.find('optgroup#group-materials, optgroup#group-inventory').prop('disabled',
+                        true);
+                    entryProduct.find('optgroup#group-products').prop('disabled', false);
+                } else {
+                    // Other: allow all
+                    entryProduct.find('optgroup').prop('disabled', false);
+                }
+
+                // Re-initialize select2 to reflect option disabled states
+                entryProduct.select2({
+                    theme: 'bootstrap-5',
+                    width: '100%',
+                    placeholder: '-- Ketik Nama/SKU --'
+                });
             });
 
             // DOM Elements
@@ -657,6 +691,9 @@
                     });
                 }
             });
+
+            // Trigger default source type change on page load
+            $('#source-type').trigger('change');
         });
     </script>
 @endpush

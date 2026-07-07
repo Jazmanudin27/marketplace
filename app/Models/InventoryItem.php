@@ -12,6 +12,7 @@ class InventoryItem extends Model
         'tenant_id',
         'sku',
         'name',
+        'type',
         'unit',
         'stock',
         'min_stock',

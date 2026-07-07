@@ -1,6 +1,6 @@
 @extends('layouts.app')
-@section('title', 'Stok Bahan & Kemasan')
-@section('page-title', 'Stok Bahan & Kemasan')
+@section('title', 'Master Barang Operasional & Bahan')
+@section('page-title', 'Master Barang Operasional & Bahan')
 
 @section('content')
     <div class="row">
@@ -12,13 +12,13 @@
                     class="card-header bg-info bg-opacity-10 d-flex justify-content-between align-items-center border-bottom py-2 px-3">
                     <div>
                         <h6 class="fw-bold mb-0 text-dark">
-                            <i class="fas fa-recycle me-2 text-info"></i>Daftar Bahan & Kemasan
+                            <i class="fas fa-boxes me-2 text-info"></i>Master Barang (Bahan, Kemasan, ATK, Inventaris)
                         </h6>
-                        <small class="text-muted d-block">Kelola stok bahan baku produksi dan kemasan produk</small>
+                        <small class="text-muted d-block">Kelola kamus master data barang non-jualan (operasional, produksi, ATK)</small>
                     </div>
                     <button type="button" class="btn btn-primary btn-sm px-3 rounded-3" data-bs-toggle="modal"
-                        data-bs-target="#createMaterialModal">
-                        <i class="fas fa-plus me-1"></i> Tambah Bahan / Kemasan
+                        data-bs-target="#createItemModal">
+                        <i class="fas fa-plus me-1"></i> Tambah Barang
                     </button>
                 </div>
 
@@ -46,7 +46,7 @@
 
                     {{-- Filter --}}
                     <div class="card border shadow-sm p-3 mb-3">
-                        <form method="GET" action="{{ route('materials.index') }}">
+                        <form method="GET" action="{{ route('inventory_items.index') }}">
                             <div class="row g-2 align-items-end">
                                 <div class="col-12 col-sm-6 col-md-3">
                                     <label class="form-label small">Nama Barang</label>
@@ -54,16 +54,18 @@
                                         placeholder="Cari nama..." value="{{ request('name') }}">
                                 </div>
                                 <div class="col-12 col-sm-6 col-md-3">
-                                    <label class="form-label small">SKU</label>
+                                    <label class="form-label small">SKU / Kode</label>
                                     <input type="text" name="sku" class="form-control form-control-sm"
                                         placeholder="Cari SKU..." value="{{ request('sku') }}">
                                 </div>
                                 <div class="col-12 col-sm-6 col-md-3">
-                                    <label class="form-label small">Tipe</label>
+                                    <label class="form-label small">Jenis Barang</label>
                                     <select name="type" class="form-select form-select-sm">
-                                        <option value="">-- Semua Tipe --</option>
-                                        <option value="bahan" {{ request('type') == 'bahan' ? 'selected' : '' }}>Bahan Baku</option>
-                                        <option value="kemasan" {{ request('type') == 'kemasan' ? 'selected' : '' }}>Kemasan</option>
+                                        <option value="">-- Semua Jenis --</option>
+                                        <option value="bahan" {{ request('type') == 'bahan' ? 'selected' : '' }}>Bahan Baku (Kain, dll)</option>
+                                        <option value="kemasan" {{ request('type') == 'kemasan' ? 'selected' : '' }}>Kemasan (Kardus, dll)</option>
+                                        <option value="atk" {{ request('type') == 'atk' ? 'selected' : '' }}>ATK / Peralatan</option>
+                                        <option value="inventaris" {{ request('type') == 'inventaris' ? 'selected' : '' }}>Inventaris / Aset</option>
                                     </select>
                                 </div>
                                 <div class="col-12 col-sm-6 col-md-auto d-flex gap-2">
@@ -71,7 +73,7 @@
                                         <i class="fas fa-search me-1"></i> Cari
                                     </button>
                                     @if (request()->anyFilled(['name', 'sku', 'type']))
-                                        <a href="{{ route('materials.index') }}" class="btn btn-secondary btn-sm">
+                                        <a href="{{ route('inventory_items.index') }}" class="btn btn-secondary btn-sm">
                                             <i class="fas fa-times me-1"></i> Reset
                                         </a>
                                     @endif
@@ -86,9 +88,9 @@
                             <thead>
                                 <tr class="small text-uppercase">
                                     <th class="text-center" style="width: 70px;">#</th>
-                                    <th>SKU</th>
+                                    <th style="width: 150px;">SKU</th>
                                     <th>Nama Barang</th>
-                                    <th class="text-center" style="width: 130px;">Tipe</th>
+                                    <th class="text-center" style="width: 150px;">Jenis</th>
                                     <th class="text-center" style="width: 100px;">Satuan</th>
                                     <th class="text-end" style="width: 120px;">Stok</th>
                                     <th class="text-end" style="width: 150px;">Harga Modal</th>
@@ -96,62 +98,74 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                @forelse($materials as $i => $material)
+                                @forelse($items as $i => $item)
                                     <tr>
                                         <td class="text-center">
                                             <span class="badge bg-light text-secondary border small">
-                                                {{ $materials->firstItem() + $i }}
+                                                {{ $items->firstItem() + $i }}
                                             </span>
                                         </td>
                                         <td>
-                                            <code class="bg-light text-primary px-2 py-1 rounded border small fw-bold">{{ $material->sku }}</code>
+                                            <code class="bg-light text-primary px-2 py-1 rounded border small fw-bold">{{ $item->sku }}</code>
                                         </td>
                                         <td>
-                                            <span class="fw-semibold text-dark small">{{ $material->name }}</span>
+                                            <span class="fw-semibold text-dark small">{{ $item->name }}</span>
                                         </td>
                                         <td class="text-center">
-                                            @if ($material->type === 'bahan')
+                                            @if ($item->type === 'bahan')
                                                 <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1 small">
                                                     Bahan Baku
                                                 </span>
-                                            @else
+                                            @elseif ($item->type === 'kemasan')
                                                 <span class="badge bg-warning-subtle text-warning border border-warning-subtle px-2 py-1 small">
                                                     Kemasan
+                                                </span>
+                                            @elseif ($item->type === 'atk')
+                                                <span class="badge bg-info-subtle text-info border border-info-subtle px-2 py-1 small">
+                                                    ATK / Peralatan
+                                                </span>
+                                            @elseif ($item->type === 'inventaris')
+                                                <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1 small">
+                                                    Inventaris / Aset
+                                                </span>
+                                            @else
+                                                <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-2 py-1 small">
+                                                    {{ ucfirst($item->type) }}
                                                 </span>
                                             @endif
                                         </td>
                                         <td class="text-center">
-                                            <span class="badge bg-secondary bg-opacity-10 text-secondary border small">{{ $material->unit }}</span>
+                                            <span class="badge bg-secondary bg-opacity-10 text-secondary border small">{{ $item->unit }}</span>
                                         </td>
                                         <td class="text-end fw-bold">
-                                            @if ($material->stock <= $material->min_stock)
-                                                <span class="text-danger" title="Stok menipis! Minimal stok: {{ $material->min_stock }}">
-                                                    {{ number_format($material->stock) }} <i class="fas fa-exclamation-circle ms-1"></i>
+                                            @if ($item->stock <= $item->min_stock)
+                                                <span class="text-danger" title="Stok menipis! Minimal stok: {{ $item->min_stock }}">
+                                                    {{ number_format($item->stock) }} <i class="fas fa-exclamation-circle ms-1"></i>
                                                 </span>
                                             @else
                                                 <span class="text-dark">
-                                                    {{ number_format($material->stock) }}
+                                                    {{ number_format($item->stock) }}
                                                 </span>
                                             @endif
                                         </td>
                                         <td class="text-end font-monospace text-dark small">
-                                            Rp {{ number_format($material->cost_price, 0, ',', '.') }}
+                                            Rp {{ number_format($item->cost_price, 0, ',', '.') }}
                                         </td>
                                         <td class="text-center">
                                             <div class="d-flex gap-1 justify-content-center">
-                                                <button type="button" class="btn btn-warning btn-sm edit-material-btn"
+                                                <button type="button" class="btn btn-warning btn-sm edit-item-btn"
                                                     title="Edit" data-bs-toggle="modal"
-                                                    data-bs-target="#editMaterialModal" data-id="{{ $material->id }}"
-                                                    data-sku="{{ $material->sku }}" data-name="{{ $material->name }}"
-                                                    data-type="{{ $material->type }}" data-unit="{{ $material->unit }}"
-                                                    data-min-stock="{{ $material->min_stock }}"
-                                                    data-cost-price="{{ number_format($material->cost_price, 0, '', '') }}"
-                                                    data-action="{{ route('materials.update', $material) }}">
+                                                    data-bs-target="#editItemModal" data-id="{{ $item->id }}"
+                                                    data-sku="{{ $item->sku }}" data-name="{{ $item->name }}"
+                                                    data-type="{{ $item->type }}" data-unit="{{ $item->unit }}"
+                                                    data-min-stock="{{ $item->min_stock }}"
+                                                    data-cost-price="{{ number_format($item->cost_price, 0, '', '') }}"
+                                                    data-action="{{ route('inventory_items.update', $item) }}">
                                                     <i class="fas fa-pen"></i>
                                                 </button>
-                                                <form action="{{ route('materials.destroy', $material) }}" method="POST"
+                                                <form action="{{ route('inventory_items.destroy', $item) }}" method="POST"
                                                     class="confirm-delete d-inline"
-                                                    data-message="Bahan/kemasan ini akan dihapus secara permanen!">
+                                                    data-message="Barang ini akan dihapus secara permanen!">
                                                     @csrf
                                                     @method('DELETE')
                                                     <button type="submit" class="btn btn-danger btn-sm" title="Hapus"
@@ -165,8 +179,8 @@
                                 @empty
                                     <tr>
                                         <td colspan="8" class="text-center py-5">
-                                            <i class="fas fa-box-open fa-2x mb-3 d-block text-secondary opacity-25"></i>
-                                            <p class="text-muted mb-0 small">Belum ada data bahan baku atau kemasan.</p>
+                                            <i class="fas fa-cubes fa-2x mb-3 d-block text-secondary opacity-25"></i>
+                                            <p class="text-muted mb-0 small">Belum ada data barang.</p>
                                         </td>
                                     </tr>
                                 @endforelse
@@ -176,7 +190,7 @@
 
                     {{-- Pagination --}}
                     <div class="mt-3">
-                        {{ $materials->links('pagination::bootstrap-5') }}
+                        {{ $items->links('pagination::bootstrap-5') }}
                     </div>
 
                 </div> {{-- End card-body --}}
@@ -185,41 +199,43 @@
     </div>
 
     {{-- Modal Tambah --}}
-    <div class="modal fade" id="createMaterialModal" tabindex="-1" aria-labelledby="createMaterialModalLabel"
+    <div class="modal fade" id="createItemModal" tabindex="-1" aria-labelledby="createItemModalLabel"
         aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content overflow-hidden">
                 <div class="d-flex align-items-center gap-3 p-3 border-bottom bg-primary bg-opacity-10">
                     <div class="bg-primary text-white rounded-3 d-flex align-items-center justify-content-center flex-shrink-0 fs-5 p-2"
                         style="width: 38px; height: 38px;">
-                        <i class="fas fa-recycle"></i>
+                        <i class="fas fa-plus"></i>
                     </div>
                     <div class="flex-grow-1">
-                        <h5 class="modal-title fw-bold fs-6 mb-0 text-dark" id="createMaterialModalLabel">Tambah Bahan / Kemasan</h5>
-                        <p class="mb-0 text-muted small">Tambahkan item gudang bahan baku/kemasan baru</p>
+                        <h5 class="modal-title fw-bold fs-6 mb-0 text-dark" id="createItemModalLabel">Tambah Barang Baru</h5>
+                        <p class="mb-0 text-muted small">Tambahkan item barang operasional, bahan baku, atau inventaris</p>
                     </div>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <form action="{{ route('materials.store') }}" method="POST">
+                <form action="{{ route('inventory_items.store') }}" method="POST">
                     @csrf
                     <div class="modal-body p-4">
                         <div class="row g-3">
                             <div class="col-md-6">
                                 <label for="create-sku" class="form-label fw-bold small text-dark">SKU / Kode Barang</label>
                                 <input type="text" id="create-sku" name="sku" class="form-control form-control-sm"
-                                    placeholder="Contoh: KAN-001 (Kosongkan untuk auto)">
+                                    placeholder="Contoh: BRG-001 (Kosongkan untuk auto)">
                             </div>
                             <div class="col-md-6">
-                                <label for="create-type" class="form-label fw-bold small text-dark">Tipe Barang <span class="text-danger">*</span></label>
+                                <label for="create-type" class="form-label fw-bold small text-dark">Jenis Barang <span class="text-danger">*</span></label>
                                 <select id="create-type" name="type" class="form-select form-select-sm" required>
-                                    <option value="bahan">Bahan Baku (Kain, dll)</option>
-                                    <option value="kemasan">Kemasan (Kardus, dll)</option>
+                                    <option value="bahan">Bahan Baku (Kain, benang, dll)</option>
+                                    <option value="kemasan">Kemasan (Kardus, plastik, dll)</option>
+                                    <option value="atk">ATK / Peralatan</option>
+                                    <option value="inventaris">Inventaris / Aset Kantor</option>
                                 </select>
                             </div>
                             <div class="col-md-12">
                                 <label for="create-name" class="form-label fw-bold small text-dark">Nama Barang <span class="text-danger">*</span></label>
                                 <input type="text" id="create-name" name="name" class="form-control form-control-sm"
-                                    placeholder="Contoh: Kain Cotton Combed 30s" required>
+                                    placeholder="Contoh: Kain Cotton Combed 30s / Kertas HVS" required>
                             </div>
                             <div class="col-md-6">
                                 <label for="create-unit" class="form-label fw-bold small text-dark">Satuan <span class="text-danger">*</span></label>
@@ -258,7 +274,7 @@
     </div>
 
     {{-- Modal Edit --}}
-    <div class="modal fade" id="editMaterialModal" tabindex="-1" aria-labelledby="editMaterialModalLabel"
+    <div class="modal fade" id="editItemModal" tabindex="-1" aria-labelledby="editItemModalLabel"
         aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content overflow-hidden">
@@ -268,8 +284,8 @@
                         <i class="fas fa-pen text-warning"></i>
                     </div>
                     <div class="flex-grow-1">
-                        <h5 class="modal-title fw-bold fs-6 mb-0 text-dark" id="editMaterialModalLabel">Edit Bahan / Kemasan</h5>
-                        <p class="mb-0 text-muted small">Perbarui data bahan baku / kemasan</p>
+                        <h5 class="modal-title fw-bold fs-6 mb-0 text-dark" id="editItemModalLabel">Edit Barang</h5>
+                        <p class="mb-0 text-muted small">Perbarui data barang operasional/produksi</p>
                     </div>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
@@ -283,10 +299,12 @@
                                 <input type="text" id="edit-sku" name="sku" class="form-control form-control-sm" required>
                             </div>
                             <div class="col-md-6">
-                                <label for="edit-type" class="form-label fw-bold small text-dark">Tipe Barang <span class="text-danger">*</span></label>
+                                <label for="edit-type" class="form-label fw-bold small text-dark">Jenis Barang <span class="text-danger">*</span></label>
                                 <select id="edit-type" name="type" class="form-select form-select-sm" required>
                                     <option value="bahan">Bahan Baku</option>
                                     <option value="kemasan">Kemasan</option>
+                                    <option value="atk">ATK / Peralatan</option>
+                                    <option value="inventaris">Inventaris / Aset Kantor</option>
                                 </select>
                             </div>
                             <div class="col-md-12">
@@ -325,7 +343,6 @@
     @push('scripts')
         <script>
             $(document).ready(function() {
-                // Formatting Rupiah inputs
                 const formatNumber = (num) => parseFloat(num).toLocaleString('id-ID');
                 const handleRupiahInput = function(e) {
                     let cursorPosition = e.target.selectionStart;
@@ -345,7 +362,7 @@
 
                 $('.rupiah-mask').on('input', handleRupiahInput);
 
-                $('.edit-material-btn').on('click', function() {
+                $('.edit-item-btn').on('click', function() {
                     const action = $(this).data('action');
                     const sku = $(this).data('sku');
                     const name = $(this).data('name');

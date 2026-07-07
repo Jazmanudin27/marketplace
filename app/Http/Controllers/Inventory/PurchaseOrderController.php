@@ -42,8 +42,8 @@ class PurchaseOrderController extends Controller
         $tenantId = Auth::user()->tenant_id;
         $suppliers = Supplier::where('tenant_id', $tenantId)->where('is_active', true)->orderBy('name')->get();
         $departments = \App\Models\Department::where('tenant_id', $tenantId)->where('is_active', true)->orderBy('name')->get();
-        $materials = \App\Models\Material::where('tenant_id', $tenantId)->where('is_active', true)->orderBy('name')->get();
-        $inventoryItems = \App\Models\InventoryItem::where('tenant_id', $tenantId)->where('is_active', true)->orderBy('name')->get();
+        $materials = \App\Models\InventoryItem::where('tenant_id', $tenantId)->where('is_active', true)->whereIn('type', ['bahan', 'kemasan'])->orderBy('name')->get();
+        $inventoryItems = \App\Models\InventoryItem::where('tenant_id', $tenantId)->where('is_active', true)->whereIn('type', ['atk', 'inventaris'])->orderBy('name')->get();
 
         return view('inventory.purchase_orders.create', compact('suppliers', 'departments', 'materials', 'inventoryItems'));
     }
@@ -95,9 +95,7 @@ class PurchaseOrderController extends Controller
                     'received_quantity' => 0,
                 ];
 
-                if ($item['item_type'] === 'material') {
-                    $itemData['material_id'] = $item['item_id'];
-                } elseif ($item['item_type'] === 'inventory') {
+                if ($item['item_type'] === 'material' || $item['item_type'] === 'inventory') {
                     $itemData['inventory_item_id'] = $item['item_id'];
                 } else {
                     $itemData['master_product_id'] = $item['item_id'];
@@ -116,7 +114,7 @@ class PurchaseOrderController extends Controller
     public function show(PurchaseOrder $purchaseOrder)
     {
         abort_unless($purchaseOrder->tenant_id === Auth::user()->tenant_id, 403);
-        $purchaseOrder->load(['supplier', 'department', 'items.masterProduct', 'items.material', 'items.inventoryItem']);
+        $purchaseOrder->load(['supplier', 'department', 'items.masterProduct', 'items.inventoryItem']);
 
         return view('inventory.purchase_orders.show', compact('purchaseOrder'));
     }
@@ -133,8 +131,8 @@ class PurchaseOrderController extends Controller
         $tenantId = Auth::user()->tenant_id;
         $suppliers = Supplier::where('tenant_id', $tenantId)->where('is_active', true)->orderBy('name')->get();
         $departments = \App\Models\Department::where('tenant_id', $tenantId)->where('is_active', true)->orderBy('name')->get();
-        $materials = \App\Models\Material::where('tenant_id', $tenantId)->where('is_active', true)->orderBy('name')->get();
-        $inventoryItems = \App\Models\InventoryItem::where('tenant_id', $tenantId)->where('is_active', true)->orderBy('name')->get();
+        $materials = \App\Models\InventoryItem::where('tenant_id', $tenantId)->where('is_active', true)->whereIn('type', ['bahan', 'kemasan'])->orderBy('name')->get();
+        $inventoryItems = \App\Models\InventoryItem::where('tenant_id', $tenantId)->where('is_active', true)->whereIn('type', ['atk', 'inventaris'])->orderBy('name')->get();
         $purchaseOrder->load('items');
 
         return view('inventory.purchase_orders.edit', compact('purchaseOrder', 'suppliers', 'departments', 'materials', 'inventoryItems'));
@@ -186,9 +184,7 @@ class PurchaseOrderController extends Controller
                     'received_quantity' => $item['received_quantity'] ?? 0,
                 ];
 
-                if ($item['item_type'] === 'material') {
-                    $itemData['material_id'] = $item['item_id'];
-                } elseif ($item['item_type'] === 'inventory') {
+                if ($item['item_type'] === 'material' || $item['item_type'] === 'inventory') {
                     $itemData['inventory_item_id'] = $item['item_id'];
                 } else {
                     $itemData['master_product_id'] = $item['item_id'];
@@ -239,7 +235,7 @@ class PurchaseOrderController extends Controller
     public function print(PurchaseOrder $purchaseOrder)
     {
         abort_unless($purchaseOrder->tenant_id === Auth::user()->tenant_id, 403);
-        $purchaseOrder->load(['supplier', 'department', 'items.masterProduct', 'items.material', 'items.inventoryItem', 'tenant']);
+        $purchaseOrder->load(['supplier', 'department', 'items.masterProduct', 'items.inventoryItem', 'tenant']);
 
         return view('inventory.purchase_orders.print', compact('purchaseOrder'));
     }
@@ -248,17 +244,14 @@ class PurchaseOrderController extends Controller
     {
         abort_unless($purchaseOrder->tenant_id === Auth::user()->tenant_id, 403);
         
-        $items = $purchaseOrder->items()->with(['masterProduct', 'material', 'inventoryItem'])->get()->map(function ($item) {
+        $items = $purchaseOrder->items()->with(['masterProduct', 'inventoryItem'])->get()->map(function ($item) {
             $sku = $item->item_sku;
             $name = $item->item_name;
             
             $type = 'product';
             $itemId = $item->master_product_id;
-            if ($item->material_id) {
-                $type = 'material';
-                $itemId = $item->material_id;
-            } elseif ($item->inventory_item_id) {
-                $type = 'inventory';
+            if ($item->inventory_item_id) {
+                $type = ($item->inventoryItem && in_array($item->inventoryItem->type, ['bahan', 'kemasan'])) ? 'material' : 'inventory';
                 $itemId = $item->inventory_item_id;
             }
 
@@ -279,5 +272,141 @@ class PurchaseOrderController extends Controller
             'supplier_id' => $purchaseOrder->supplier_id,
             'items' => $items,
         ]);
+    }
+
+    public function purchaseReport(Request $request)
+    {
+        $tenantId = Auth::user()->tenant_id;
+        $startDate = $request->input('start_date', now()->startOfMonth()->format('Y-m-d'));
+        $endDate = $request->input('end_date', now()->format('Y-m-d'));
+
+        $query = PurchaseOrder::where('tenant_id', $tenantId)
+            ->whereBetween('po_date', [$startDate, $endDate]);
+
+        if ($request->filled('supplier_id')) {
+            $query->where('supplier_id', $request->supplier_id);
+        }
+
+        if ($request->filled('department_id')) {
+            $query->where('department_id', $request->department_id);
+        }
+
+        $orders = $query->with(['supplier', 'department'])->orderBy('po_date', 'desc')->get();
+
+        // Calculate KPI metrics
+        $totalBelanja = $orders->where('status', '!=', 'cancelled')->sum('total_amount');
+        $totalPoTerbuka = $orders->whereIn('status', ['ordered', 'partially_received'])->count();
+        $totalPoSelesai = $orders->where('status', 'received')->count();
+        $avgPoValue = $orders->count() > 0 ? ($totalBelanja / $orders->count()) : 0;
+
+        // Grouping breakdowns
+        $supplierBreakdown = $orders->where('status', '!=', 'cancelled')->groupBy('supplier_id')->map(function ($group) {
+            return [
+                'name' => $group->first()->supplier ? $group->first()->supplier->name : 'Supplier Terhapus',
+                'amount' => $group->sum('total_amount'),
+                'count' => $group->count(),
+            ];
+        })->sortByDesc('amount');
+
+        $departmentBreakdown = $orders->where('status', '!=', 'cancelled')->groupBy('department_id')->map(function ($group) {
+            return [
+                'name' => $group->first()->department ? $group->first()->department->name : 'Umum / Operasional',
+                'amount' => $group->sum('total_amount'),
+                'count' => $group->count(),
+            ];
+        })->sortByDesc('amount');
+
+        // Trend calculations
+        $trendData = $orders->where('status', '!=', 'cancelled')
+            ->groupBy(function($order) {
+                return \Carbon\Carbon::parse($order->po_date)->format('d M');
+            })->map(function ($group) {
+                return $group->sum('total_amount');
+            });
+
+        // Purchased items breakdown
+        $orderIds = $orders->pluck('id');
+        $itemsBreakdown = \App\Models\PurchaseOrderItem::whereIn('purchase_order_id', $orderIds)
+            ->with(['masterProduct', 'inventoryItem'])
+            ->get()
+            ->groupBy(function($item) {
+                return $item->master_product_id ? 'prod_' . $item->master_product_id : 'item_' . $item->inventory_item_id;
+            })->map(function ($group) {
+                $first = $group->first();
+                return [
+                    'name' => $first->item_name,
+                    'sku' => $first->item_sku,
+                    'type' => $first->master_product_id ? 'Produk Jadi' : ($first->inventoryItem ? ucfirst($first->inventoryItem->type) : 'Barang Operasional'),
+                    'unit' => $first->inventoryItem ? $first->inventoryItem->unit : 'PCS',
+                    'qty_ordered' => $group->sum('quantity'),
+                    'qty_received' => $group->sum('received_quantity'),
+                    'avg_price' => $group->avg('unit_price'),
+                    'total_amount' => $group->sum(function($item) {
+                        return $item->quantity * $item->unit_price;
+                    }),
+                ];
+            })->sortByDesc('total_amount');
+
+        $suppliers = Supplier::where('tenant_id', $tenantId)->orderBy('name')->get();
+        $departments = \App\Models\Department::where('tenant_id', $tenantId)->where('is_active', true)->orderBy('name')->get();
+
+        return view('inventory.purchase_orders.report', compact(
+            'orders', 'totalBelanja', 'totalPoTerbuka', 'totalPoSelesai', 'avgPoValue',
+            'supplierBreakdown', 'departmentBreakdown', 'trendData', 'itemsBreakdown',
+            'suppliers', 'departments', 'startDate', 'endDate'
+        ));
+    }
+
+    public function printPurchaseReport(Request $request)
+    {
+        $tenantId = Auth::user()->tenant_id;
+        $startDate = $request->input('start_date', now()->startOfMonth()->format('Y-m-d'));
+        $endDate = $request->input('end_date', now()->format('Y-m-d'));
+
+        $query = PurchaseOrder::where('tenant_id', $tenantId)
+            ->whereBetween('po_date', [$startDate, $endDate]);
+
+        if ($request->filled('supplier_id')) {
+            $query->where('supplier_id', $request->supplier_id);
+        }
+
+        if ($request->filled('department_id')) {
+            $query->where('department_id', $request->department_id);
+        }
+
+        $orders = $query->with(['supplier', 'department'])->orderBy('po_date', 'desc')->get();
+
+        // Calculate KPI metrics
+        $totalBelanja = $orders->where('status', '!=', 'cancelled')->sum('total_amount');
+        $totalPoTerbuka = $orders->whereIn('status', ['ordered', 'partially_received'])->count();
+        $totalPoSelesai = $orders->where('status', 'received')->count();
+
+        // Purchased items breakdown
+        $orderIds = $orders->pluck('id');
+        $itemsBreakdown = \App\Models\PurchaseOrderItem::whereIn('purchase_order_id', $orderIds)
+            ->with(['masterProduct', 'inventoryItem'])
+            ->get()
+            ->groupBy(function($item) {
+                return $item->master_product_id ? 'prod_' . $item->master_product_id : 'item_' . $item->inventory_item_id;
+            })->map(function ($group) {
+                $first = $group->first();
+                return [
+                    'name' => $first->item_name,
+                    'sku' => $first->item_sku,
+                    'type' => $first->master_product_id ? 'Produk Jadi' : ($first->inventoryItem ? ucfirst($first->inventoryItem->type) : 'Barang Operasional'),
+                    'unit' => $first->inventoryItem ? $first->inventoryItem->unit : 'PCS',
+                    'qty_ordered' => $group->sum('quantity'),
+                    'qty_received' => $group->sum('received_quantity'),
+                    'avg_price' => $group->avg('unit_price'),
+                    'total_amount' => $group->sum(function($item) {
+                        return $item->quantity * $item->unit_price;
+                    }),
+                ];
+            })->sortByDesc('total_amount');
+
+        return view('inventory.purchase_orders.print_report', compact(
+            'orders', 'totalBelanja', 'totalPoTerbuka', 'totalPoSelesai',
+            'itemsBreakdown', 'startDate', 'endDate'
+        ));
     }
 }

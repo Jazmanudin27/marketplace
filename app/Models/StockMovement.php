@@ -10,7 +10,6 @@ class StockMovement extends Model
     protected $fillable = [
         'tenant_id',
         'master_product_id',
-        'material_id',
         'inventory_item_id',
         'department_id',
         'user_id',
@@ -24,11 +23,6 @@ class StockMovement extends Model
     public function masterProduct(): BelongsTo
     {
         return $this->belongsTo(MasterProduct::class);
-    }
-
-    public function material(): BelongsTo
-    {
-        return $this->belongsTo(Material::class);
     }
 
     public function inventoryItem(): BelongsTo

@@ -1,5 +1,6 @@
 @php
     $isMasterDataActive =
+        (request()->routeIs('inventory_items.*') && !request()->has('type')) ||
         request()->routeIs('departments.*') ||
         request()->routeIs('categories.*') ||
         request()->routeIs('brands.*') ||
@@ -50,8 +51,8 @@
         request()->routeIs('offline_sales.*');
 
     $isHrdActive = request()->routeIs('hr.*') || request()->routeIs('employees.*');
-    $isGudangBahanActive = request()->routeIs('materials.*');
-    $isGudangAtkActive = request()->routeIs('inventory_items.*');
+    $isGudangBahanActive = request()->routeIs('inventory_items.*') && in_array(request('type'), ['bahan_kemasan', 'bahan', 'kemasan']);
+    $isGudangAtkActive = request()->routeIs('inventory_items.*') && in_array(request('type'), ['atk_inventaris', 'atk', 'inventaris']);
 @endphp
 
 <div class="d-flex flex-column p-3 bg-primary text-white w-100" id="sidebar">
@@ -153,6 +154,8 @@
                         @if (auth()->user()->isSuperAdmin() || auth()->user()->role === 'admin')
                             <a href="{{ route('departments.index') }}"
                                 class="nav-link py-1 {{ request()->routeIs('departments.*') ? 'active text-white' : 'text-secondary' }}">Departemen</a>
+                            <a href="{{ route('inventory_items.index') }}"
+                                class="nav-link py-1 {{ (request()->routeIs('inventory_items.*') && !request()->has('type')) ? 'active text-white' : 'text-secondary' }}">Master Barang</a>
                         @endif
                         @can('manage-categories')
                             <a href="{{ route('categories.index') }}"
@@ -214,9 +217,11 @@
                     <div class="nav flex-column ms-3 mt-1 gap-1 border-start ps-2">
                         @can('manage-incoming-goods')
                             <a href="{{ route('purchase_orders.index') }}"
-                                class="nav-link py-1 {{ request()->routeIs('purchase_orders.*') ? 'active text-white' : 'text-secondary' }}">Purchase Order</a>
+                                class="nav-link py-1 {{ (request()->routeIs('purchase_orders.*') && !request()->routeIs('purchase_orders.report')) ? 'active text-white' : 'text-secondary' }}">Purchase Order</a>
                             <a href="{{ route('incoming_goods.index') }}"
                                 class="nav-link py-1 {{ request()->routeIs('incoming_goods.*') ? 'active text-white' : 'text-secondary' }}">Barang Masuk</a>
+                            <a href="{{ route('purchase_orders.report') }}"
+                                class="nav-link py-1 {{ request()->routeIs('purchase_orders.report') ? 'active text-white' : 'text-secondary' }}">Laporan Pembelian</a>
                         @endcan
                     </div>
                 </div>
@@ -306,8 +311,8 @@
                 </a>
                 <div class="collapse {{ $isGudangBahanActive ? 'show' : '' }}" id="collapseGudangBahan">
                     <div class="nav flex-column ms-3 mt-1 gap-1 border-start ps-2">
-                        <a href="{{ route('materials.index') }}"
-                            class="nav-link py-1 {{ request()->routeIs('materials.index') ? 'active text-white' : 'text-secondary' }}">Stok Bahan & Kemasan</a>
+                        <a href="{{ route('inventory_items.index', ['type' => 'bahan_kemasan']) }}"
+                            class="nav-link py-1 {{ (request()->routeIs('inventory_items.index') && request('type') === 'bahan_kemasan') ? 'active text-white' : 'text-secondary' }}">Stok Bahan & Kemasan</a>
                         <a href="#" class="nav-link py-1 text-secondary placeholder-link">Opname Bahan <span class="badge bg-secondary ms-1 text-white" style="font-size: 0.6rem; padding: 2px 4px;">Soon</span></a>
                         <a href="#" class="nav-link py-1 text-secondary placeholder-link">Formula & Resep <span class="badge bg-secondary ms-1 text-white" style="font-size: 0.6rem; padding: 2px 4px;">Soon</span></a>
                     </div>
@@ -332,8 +337,8 @@
                 </a>
                 <div class="collapse {{ $isGudangAtkActive ? 'show' : '' }}" id="collapseGudangAtk">
                     <div class="nav flex-column ms-3 mt-1 gap-1 border-start ps-2">
-                        <a href="{{ route('inventory_items.index') }}"
-                            class="nav-link py-1 {{ request()->routeIs('inventory_items.index') ? 'active text-white' : 'text-secondary' }}">Stok ATK & Peralatan</a>
+                        <a href="{{ route('inventory_items.index', ['type' => 'atk_inventaris']) }}"
+                            class="nav-link py-1 {{ (request()->routeIs('inventory_items.index') && request('type') === 'atk_inventaris') ? 'active text-white' : 'text-secondary' }}">Stok ATK & Peralatan</a>
                         <a href="#" class="nav-link py-1 text-secondary placeholder-link">Permintaan ATK <span class="badge bg-secondary ms-1 text-white" style="font-size: 0.6rem; padding: 2px 4px;">Soon</span></a>
                         <a href="#" class="nav-link py-1 text-secondary placeholder-link">Inventaris Aset <span class="badge bg-secondary ms-1 text-white" style="font-size: 0.6rem; padding: 2px 4px;">Soon</span></a>
                     </div>
