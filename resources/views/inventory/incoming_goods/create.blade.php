@@ -187,7 +187,6 @@
                                 <div class="col-6 col-md-1">
                                     <label class="form-label form-label-sm fw-semibold mb-1">Harga Modal</label>
                                     <div class="input-group input-group-sm">
-                                        <span class="input-group-text bg-light text-muted">Rp</span>
                                         <input type="text" id="entry-cost"
                                             class="form-control form-control-sm text-end rupiah-mask" placeholder="0">
                                     </div>
@@ -195,13 +194,12 @@
                                 <div class="col-6 col-md-1">
                                     <label class="form-label form-label-sm fw-semibold mb-1">Potongan</label>
                                     <div class="input-group input-group-sm">
-                                        <span class="input-group-text bg-light text-muted">Rp</span>
                                         <input type="text" id="entry-discount"
                                             class="form-control form-control-sm text-end rupiah-mask" placeholder="0"
                                             value="0">
                                     </div>
                                 </div>
-                                <div class="col-8 col-md-1">
+                                <div class="col-8 col-md-2">
                                     <label class="form-label form-label-sm fw-semibold mb-1">Total</label>
                                     <input type="text" id="entry-total"
                                         class="form-control form-control-sm text-end fw-bold bg-white" readonly disabled
