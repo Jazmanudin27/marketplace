@@ -1,5 +1,6 @@
 @php
     $isMasterDataActive =
+        request()->routeIs('departments.*') ||
         request()->routeIs('categories.*') ||
         request()->routeIs('brands.*') ||
         request()->routeIs('suppliers.*') ||
@@ -147,6 +148,10 @@
                 </a>
                 <div class="collapse {{ $isMasterDataActive ? 'show' : '' }}" id="collapseMasterData">
                     <div class="nav flex-column ms-3 mt-1 gap-1 border-start ps-2">
+                        @if (auth()->user()->isSuperAdmin() || auth()->user()->role === 'admin')
+                            <a href="{{ route('departments.index') }}"
+                                class="nav-link py-1 {{ request()->routeIs('departments.*') ? 'active text-white' : 'text-secondary' }}">Departemen</a>
+                        @endif
                         @can('manage-categories')
                             <a href="{{ route('categories.index') }}"
                                 class="nav-link py-1 {{ request()->routeIs('categories.*') ? 'active text-white' : 'text-secondary' }}">Kategori</a>

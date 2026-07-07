@@ -31,6 +31,7 @@ use App\Http\Controllers\Master\BrandController;
 use App\Http\Controllers\Master\CategoryController;
 use App\Http\Controllers\Master\SupplierController;
 use App\Http\Controllers\Master\CustomerController;
+use App\Http\Controllers\Master\DepartmentController;
 // HRD
 use App\Http\Controllers\Hrd\EmployeeController;
 use App\Http\Controllers\Hrd\AttendanceController;
@@ -139,6 +140,14 @@ Route::middleware('auth')->group(function () {
     // =========================================================================
     // Master Data & Pengaturan Hak Akses
     // =========================================================================
+
+    // Departments
+    Route::get('/departments', [DepartmentController::class, 'index'])->name('departments.index');
+    Route::get('/departments/create', [DepartmentController::class, 'create'])->name('departments.create');
+    Route::post('/departments', [DepartmentController::class, 'store'])->name('departments.store');
+    Route::get('/departments/{department}/edit', [DepartmentController::class, 'edit'])->name('departments.edit');
+    Route::put('/departments/{department}', [DepartmentController::class, 'update'])->name('departments.update');
+    Route::delete('/departments/{department}', [DepartmentController::class, 'destroy'])->name('departments.destroy');
 
     // Categories
     Route::middleware('permission:manage-categories')->group(function () {

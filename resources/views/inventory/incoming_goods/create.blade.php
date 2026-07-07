@@ -6,275 +6,298 @@
     <form action="{{ route('incoming_goods.store') }}" method="POST" id="incomingForm">
         @csrf
 
-        {{-- ── Header Section ─────────────────────────────────── --}}
-        <div class="card border-0 shadow-sm mb-3">
-            <div class="card-header bg-transparent d-flex justify-content-between align-items-center py-2 px-3">
-                <div class="d-flex align-items-center gap-2">
-                    <div class="rounded-3 bg-primary bg-opacity-10 d-flex align-items-center justify-content-center flex-shrink-0"
-                        style="width:36px;height:36px;">
-                        <i class="fas fa-truck-loading text-primary" style="font-size:.85rem;"></i>
-                    </div>
-                    <h6 class="fw-bold mb-0">Form Penerimaan Barang</h6>
-                </div>
-                <a href="{{ route('incoming_goods.index') }}" class="btn btn-outline-secondary btn-sm">
-                    <i class="fas fa-arrow-left me-1"></i> Kembali
-                </a>
-            </div>
+        <div class="row g-3">
+            {{-- Left Column: Main Form --}}
+            <div class="col-md-9">
 
-            <div class="card-body">
-                <div class="row g-3">
-                    <div class="col-md-8">
-                        <div class="row g-2">
-                            <div class="col-md-6">
+                {{-- Card 1: Informasi Penerimaan --}}
+                <div class="card border-0 shadow-sm mb-3">
+                    <div
+                        class="card-header bg-transparent d-flex justify-content-between align-items-center py-2 px-3 border-bottom">
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="rounded-3 bg-primary bg-opacity-10 d-flex align-items-center justify-content-center flex-shrink-0"
+                                style="width:36px;height:36px;">
+                                <i class="fas fa-truck-loading text-primary" style="font-size:.85rem;"></i>
+                            </div>
+                            <h6 class="fw-bold mb-0">Form Penerimaan Barang</h6>
+                        </div>
+                        <a href="{{ route('incoming_goods.index') }}" class="btn btn-outline-secondary btn-sm">
+                            <i class="fas fa-arrow-left me-1"></i> Kembali
+                        </a>
+                    </div>
+
+                    <div class="card-body p-3">
+                        <div class="row g-3">
+                            <div class="col-md-3">
                                 <label class="form-label form-label-sm fw-semibold mb-1">Sumber Penerimaan</label>
                                 <select id="source-type" name="source_type" class="form-select form-select-sm">
                                     <option value="supplier">Pembelian dari Supplier</option>
                                     <option value="return">Retur Pembeli (Shopee/TikTok/dll)</option>
                                     <option value="other">Produksi / Lainnya</option>
                                 </select>
-
-                                <div class="supplier-fields">
-                                    <label class="form-label form-label-sm fw-semibold mb-1 mt-2">Supplier</label>
-                                    <select id="supplier-select" name="supplier_id" class="form-select form-select-sm"
-                                        style="width:100%">
-                                        <option value="">-- Pilih Supplier --</option>
-                                        @foreach ($suppliers as $supplier)
-                                            <option value="{{ $supplier->id }}" data-contact="{{ $supplier->phone }}"
-                                                data-address="{{ $supplier->address }}">
-                                                {{ $supplier->name }}
-                                            </option>
-                                        @endforeach
-                                    </select>
-                                </div>
-
-                                <div class="supplier-fields">
-                                    <label class="form-label form-label-sm fw-semibold mb-1 mt-2">Hubungkan Purchase Order
-                                        (PO)</label>
-                                    <select id="purchase-order-select" name="purchase_order_id"
-                                        class="form-select form-select-sm" style="width:100%">
-                                        <option value="">-- Tanpa PO (Penerimaan Manual) --</option>
-                                        @foreach ($purchaseOrders as $po)
-                                            <option value="{{ $po->id }}" data-supplier="{{ $po->supplier_id }}">
-                                                {{ $po->po_number }} (Supplier: {{ $po->supplier->name }})
-                                            </option>
-                                        @endforeach
-                                    </select>
-                                </div>
-
-                                 <label class="form-label form-label-sm fw-semibold mb-1 mt-2">Departemen Penerima <span class="text-danger">*</span></label>
-                                 <select name="department_id" class="form-select form-select-sm" required>
-                                     <option value="">-- Pilih Departemen --</option>
-                                     @foreach ($departments as $dept)
-                                         <option value="{{ $dept->id }}" {{ old('department_id') == $dept->id ? 'selected' : '' }}>
-                                             {{ $dept->name }}
-                                         </option>
-                                     @endforeach
-                                 </select>
-
-                                 <label class="form-label form-label-sm fw-semibold mb-1 mt-2">Waktu Masuk <span class="text-danger">*</span></label>
-                                 <input type="datetime-local" name="incoming_date" class="form-control form-control-sm"
-                                     required value="{{ old('incoming_date', now()->format('Y-m-d\TH:i')) }}">
-
-                                <div class="supplier-fields">
-                                    <label class="form-label form-label-sm fw-semibold mb-1 mt-2">Tanggal Jatuh
-                                        Tempo</label>
-                                    <input type="date" name="due_date" class="form-control form-control-sm"
-                                        value="{{ old('due_date', now()->format('Y-m-d')) }}">
-                                </div>
                             </div>
 
-                            <div class="col-md-6">
-                                <label class="form-label form-label-sm fw-semibold mb-1">Nomor Referensi / Catatan</label>
+                            <div class="col-md-3">
+                                <label class="form-label form-label-sm fw-semibold mb-1">Departemen Penerima <span
+                                        class="text-danger">*</span></label>
+                                <select name="department_id" class="form-select form-select-sm" required>
+                                    <option value="">-- Pilih Departemen --</option>
+                                    @foreach ($departments as $dept)
+                                        <option value="{{ $dept->id }}"
+                                            {{ old('department_id') == $dept->id ? 'selected' : '' }}>
+                                            {{ $dept->name }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+
+                            <div class="col-md-3">
+                                <label class="form-label form-label-sm fw-semibold mb-1">Waktu Masuk <span
+                                        class="text-danger">*</span></label>
+                                <input type="datetime-local" name="incoming_date" class="form-control form-control-sm"
+                                    required value="{{ old('incoming_date', now()->format('Y-m-d\TH:i')) }}">
+                            </div>
+
+                            <div class="col-md-3">
+                                <label class="form-label form-label-sm fw-semibold mb-1">Nomor Referensi <span
+                                        class="text-danger">*</span></label>
                                 <input type="text" name="reference" class="form-control form-control-sm" required
-                                    placeholder="Nomor PO / Referensi Faktur"
+                                    placeholder="Referensi Faktur"
                                     value="{{ old('reference', 'INV-' . date('Ymd') . '-' . rand(100, 999)) }}">
+                            </div>
 
-                                <div class="return-fields" style="display:none">
-                                    <label class="form-label form-label-sm fw-semibold mb-1 mt-2">Nomor Pesanan /
-                                        Resi</label>
-                                    <input type="text" name="order_id" class="form-control form-control-sm"
-                                        placeholder="Contoh: 230510XXXXXX">
+                            {{-- Supplier Fields --}}
+                            <div class="col-md-4 supplier-fields">
+                                <label class="form-label form-label-sm fw-semibold mb-1">Supplier</label>
+                                <select id="supplier-select" name="supplier_id" class="form-select form-select-sm"
+                                    style="width:100%">
+                                    <option value="">-- Pilih Supplier --</option>
+                                    @foreach ($suppliers as $supplier)
+                                        <option value="{{ $supplier->id }}" data-contact="{{ $supplier->phone }}"
+                                            data-address="{{ $supplier->address }}">
+                                            {{ $supplier->name }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+
+                            <div class="col-md-4 supplier-fields">
+                                <label class="form-label form-label-sm fw-semibold mb-1">Hubungkan Purchase Order
+                                    (PO)</label>
+                                <select id="purchase-order-select" name="purchase_order_id"
+                                    class="form-select form-select-sm" style="width:100%">
+                                    <option value="">-- Tanpa PO (Penerimaan Manual) --</option>
+                                    @foreach ($purchaseOrders as $po)
+                                        <option value="{{ $po->id }}" data-supplier="{{ $po->supplier_id }}">
+                                            {{ $po->po_number }} (Supplier: {{ $po->supplier->name }})
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+
+                            <div class="col-md-4 supplier-fields">
+                                <label class="form-label form-label-sm fw-semibold mb-1">Tanggal Jatuh Tempo</label>
+                                <input type="date" name="due_date" class="form-control form-control-sm"
+                                    value="{{ old('due_date', now()->format('Y-m-d')) }}">
+                            </div>
+
+                            <div class="col-md-8 supplier-fields mt-2">
+                                <label class="form-label form-label-sm fw-semibold mb-1">Alamat Supplier</label>
+                                <input type="text" id="supplier-address" name="notes"
+                                    class="form-control form-control-sm" placeholder="Keterangan Tambahan / Alamat">
+                            </div>
+
+                            <div class="col-md-4 supplier-fields mt-2">
+                                <label class="form-label form-label-sm fw-semibold mb-1">No HP Supplier</label>
+                                <input type="text" id="supplier-contact" name="contact"
+                                    class="form-control form-control-sm" placeholder="No HP">
+                            </div>
+
+                            {{-- Return Fields --}}
+                            <div class="col-md-6 return-fields" style="display:none">
+                                <label class="form-label form-label-sm fw-semibold mb-1">Nomor Pesanan / Resi</label>
+                                <input type="text" name="order_id" class="form-control form-control-sm"
+                                    placeholder="Contoh: 230510XXXXXX">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Card 2: Detail Barang --}}
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-transparent d-flex align-items-center gap-2 py-2 px-3 border-bottom">
+                        <div class="rounded-3 bg-primary bg-opacity-10 d-flex align-items-center justify-content-center flex-shrink-0"
+                            style="width:36px;height:36px;">
+                            <i class="fas fa-list text-primary" style="font-size:.85rem;"></i>
+                        </div>
+                        <h6 class="fw-bold mb-0">Detail Barang Masuk</h6>
+                    </div>
+
+                    <div class="card-body p-3">
+                        {{-- Quick Entry Bar --}}
+                        <div class="bg-light border rounded-3 p-3 mb-3">
+                            <div class="row g-2 align-items-end">
+                                <div class="col-12 col-md-3">
+                                    <label class="form-label form-label-sm fw-semibold mb-1">Pilih Barang</label>
+                                    <select id="entry-product" class="form-select form-select-sm product-select"
+                                        style="width:100%">
+                                        <option value="">-- Ketik Nama/SKU Barang --</option>
+                                        <optgroup label="Bahan Baku & Kemasan" id="group-materials">
+                                            @foreach ($materials as $material)
+                                                <option value="{{ $material->id }}" data-type="material"
+                                                    data-sku="{{ $material->sku }}" data-name="{{ $material->name }}"
+                                                    data-unit="{{ $material->unit ?? 'PCS' }}"
+                                                    data-cost="{{ $material->cost_price }}">
+                                                    {{ $material->sku }} - {{ $material->name }} (Bahan/Kemasan)
+                                                </option>
+                                            @endforeach
+                                        </optgroup>
+                                        <optgroup label="Inventory & ATK" id="group-inventory">
+                                            @foreach ($inventoryItems as $inv)
+                                                <option value="{{ $inv->id }}" data-type="inventory"
+                                                    data-sku="{{ $inv->sku }}" data-name="{{ $inv->name }}"
+                                                    data-unit="{{ $inv->unit ?? 'PCS' }}"
+                                                    data-cost="{{ $inv->cost_price }}">
+                                                    {{ $inv->sku }} - {{ $inv->name }} (ATK/Inventory)
+                                                </option>
+                                            @endforeach
+                                        </optgroup>
+                                        <optgroup label="Produk Jadi" id="group-products">
+                                            @foreach ($products as $product)
+                                                <option value="{{ $product->id }}" data-type="product"
+                                                    data-sku="{{ $product->sku }}" data-name="{{ $product->name }}"
+                                                    data-unit="{{ $product->unit ?? 'PCS' }}"
+                                                    data-cost="{{ $product->cost_price }}">
+                                                    {{ $product->sku }} - {{ $product->name }} (Produk)
+                                                </option>
+                                            @endforeach
+                                        </optgroup>
+                                    </select>
                                 </div>
-
-                                <div class="supplier-fields">
-                                    <label class="form-label form-label-sm fw-semibold mb-1 mt-2">Alamat Supplier</label>
-                                    <input type="text" id="supplier-address" name="notes"
-                                        class="form-control form-control-sm" placeholder="Keterangan Tambahan / Alamat">
-
-                                    <label class="form-label form-label-sm fw-semibold mb-1 mt-2">No HP Supplier</label>
-                                    <input type="text" id="supplier-contact" name="contact"
-                                        class="form-control form-control-sm" placeholder="No HP">
+                                <div class="col-4 col-md-1">
+                                    <label class="form-label form-label-sm fw-semibold mb-1">Satuan</label>
+                                    <input type="text" id="entry-unit"
+                                        class="form-control form-control-sm text-center bg-white" readonly disabled>
                                 </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {{-- Grand Total Box --}}
-                    <div class="col-md-4">
-                        <div
-                            class="bg-primary rounded-3 p-4 h-100 position-relative overflow-hidden shadow-sm d-flex flex-column justify-content-center">
-                            <i class="fas fa-shopping-cart position-absolute text-white opacity-25"
-                                style="font-size:5rem;right:15px;bottom:10px;pointer-events:none;"></i>
-                            <div class="text-white-50 small text-uppercase fw-semibold letter-spacing-1 mb-2"
-                                style="letter-spacing:.05em;">
-                                Total Barang Masuk
-                            </div>
-                            <div class="text-white fw-bold" style="font-size:2rem;font-family:'Outfit',sans-serif;"
-                                id="display-grand-total">
-                                Rp 0
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        {{-- ── Items Section ───────────────────────────────────── --}}
-        <div class="card border-0 shadow-sm">
-            <div class="card-header bg-transparent d-flex align-items-center gap-2 py-2 px-3">
-                <div class="rounded-3 bg-primary bg-opacity-10 d-flex align-items-center justify-content-center flex-shrink-0"
-                    style="width:36px;height:36px;">
-                    <i class="fas fa-list text-primary" style="font-size:.85rem;"></i>
-                </div>
-                <h6 class="fw-bold mb-0">Detail Barang Masuk</h6>
-            </div>
-
-            <div class="card-body">
-                {{-- Quick Entry Bar --}}
-                <div class="bg-light border rounded-3 p-3 mb-3">
-                    <div class="row g-2 align-items-end">
-                        <div class="col-12 col-md-3">
-                            <label class="form-label form-label-sm fw-semibold mb-1">Pilih Barang</label>
-                            <select id="entry-product" class="form-select form-select-sm product-select"
-                                style="width:100%">
-                                <option value="">-- Ketik Nama/SKU Barang --</option>
-                                <optgroup label="Bahan Baku & Kemasan" id="group-materials">
-                                    @foreach ($materials as $material)
-                                        <option value="{{ $material->id }}" data-type="material" data-sku="{{ $material->sku }}"
-                                            data-name="{{ $material->name }}" data-unit="{{ $material->unit ?? 'PCS' }}"
-                                            data-cost="{{ $material->cost_price }}">
-                                            {{ $material->sku }} - {{ $material->name }} (Bahan/Kemasan)
-                                        </option>
-                                    @endforeach
-                                </optgroup>
-                                <optgroup label="Inventory & ATK" id="group-inventory">
-                                    @foreach ($inventoryItems as $inv)
-                                        <option value="{{ $inv->id }}" data-type="inventory" data-sku="{{ $inv->sku }}"
-                                            data-name="{{ $inv->name }}" data-unit="{{ $inv->unit ?? 'PCS' }}"
-                                            data-cost="{{ $inv->cost_price }}">
-                                            {{ $inv->sku }} - {{ $inv->name }} (ATK/Inventory)
-                                        </option>
-                                    @endforeach
-                                </optgroup>
-                                <optgroup label="Produk Jadi" id="group-products">
-                                    @foreach ($products as $product)
-                                        <option value="{{ $product->id }}" data-type="product" data-sku="{{ $product->sku }}"
-                                            data-name="{{ $product->name }}" data-unit="{{ $product->unit ?? 'PCS' }}"
-                                            data-cost="{{ $product->cost_price }}">
-                                            {{ $product->sku }} - {{ $product->name }} (Produk)
-                                        </option>
-                                    @endforeach
-                                </optgroup>
-                            </select>
-                        </div>
-                        <div class="col-4 col-md-1">
-                            <label class="form-label form-label-sm fw-semibold mb-1">Satuan</label>
-                            <input type="text" id="entry-unit"
-                                class="form-control form-control-sm text-center bg-white" readonly disabled>
-                        </div>
-                        <div class="col-4 col-md-1">
-                            <label class="form-label form-label-sm fw-semibold mb-1">Jumlah</label>
-                            <input type="number" id="entry-qty" class="form-control form-control-sm text-end"
-                                min="1" placeholder="0">
-                        </div>
-                        <div class="col-6 col-md-2">
-                            <label class="form-label form-label-sm fw-semibold mb-1">Harga Modal</label>
-                            <div class="input-group input-group-sm">
-                                <span class="input-group-text bg-light text-muted">Rp</span>
-                                <input type="text" id="entry-cost"
-                                    class="form-control form-control-sm text-end rupiah-mask" placeholder="0">
-                            </div>
-                        </div>
-                        <div class="col-6 col-md-2">
-                            <label class="form-label form-label-sm fw-semibold mb-1">Potongan</label>
-                            <div class="input-group input-group-sm">
-                                <span class="input-group-text bg-light text-muted">Rp</span>
-                                <input type="text" id="entry-discount"
-                                    class="form-control form-control-sm text-end rupiah-mask" placeholder="0"
-                                    value="0">
-                            </div>
-                        </div>
-                        <div class="col-8 col-md-2">
-                            <label class="form-label form-label-sm fw-semibold mb-1">Total</label>
-                            <input type="text" id="entry-total"
-                                class="form-control form-control-sm text-end fw-bold bg-white" readonly disabled
-                                placeholder="Rp 0">
-                        </div>
-                        <div class="col-4 col-md-1 d-grid">
-                            <button type="button" id="btn-add-item" class="btn btn-primary btn-sm">
-                                <i class="fas fa-plus"></i>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                {{-- Cart Table --}}
-                <div class="table-responsive rounded border mb-3">
-                    <table class="table table-sm table-bordered table-hover align-middle mb-0" id="cart-table">
-                        <thead class="table-light">
-                            <tr>
-                                <th class="text-center ps-3" style="width:5%">No.</th>
-                                <th style="width:12%">Kode</th>
-                                <th style="width:25%">Nama</th>
-                                <th class="text-center" style="width:8%">Satuan</th>
-                                <th class="text-center" style="width:10%">Jumlah</th>
-                                <th class="text-end" style="width:13%">Harga</th>
-                                <th class="text-end" style="width:10%">Pot. (Rp)</th>
-                                <th class="text-end" style="width:12%">Total</th>
-                                <th class="text-center pe-3" style="width:5%">Aksi</th>
-                            </tr>
-                        </thead>
-                        <tbody id="cart-body">
-                            <tr id="empty-row">
-                                <td colspan="9" class="text-center text-muted py-5">
-                                    <div class="d-inline-flex align-items-center justify-content-center rounded-3 bg-light mb-3"
-                                        style="width:56px;height:56px;">
-                                        <i class="fas fa-shopping-cart fa-lg text-muted opacity-50"></i>
+                                <div class="col-4 col-md-1">
+                                    <label class="form-label form-label-sm fw-semibold mb-1">Jumlah</label>
+                                    <input type="number" id="entry-qty" class="form-control form-control-sm text-end"
+                                        min="1" placeholder="0">
+                                </div>
+                                <div class="col-6 col-md-2">
+                                    <label class="form-label form-label-sm fw-semibold mb-1">Harga Modal</label>
+                                    <div class="input-group input-group-sm">
+                                        <span class="input-group-text bg-light text-muted">Rp</span>
+                                        <input type="text" id="entry-cost"
+                                            class="form-control form-control-sm text-end rupiah-mask" placeholder="0">
                                     </div>
-                                    <div class="fw-semibold small">Belum ada barang yang ditambahkan</div>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
+                                </div>
+                                <div class="col-6 col-md-2">
+                                    <label class="form-label form-label-sm fw-semibold mb-1">Potongan</label>
+                                    <div class="input-group input-group-sm">
+                                        <span class="input-group-text bg-light text-muted">Rp</span>
+                                        <input type="text" id="entry-discount"
+                                            class="form-control form-control-sm text-end rupiah-mask" placeholder="0"
+                                            value="0">
+                                    </div>
+                                </div>
+                                <div class="col-8 col-md-2">
+                                    <label class="form-label form-label-sm fw-semibold mb-1">Total</label>
+                                    <input type="text" id="entry-total"
+                                        class="form-control form-control-sm text-end fw-bold bg-white" readonly disabled
+                                        placeholder="Rp 0">
+                                </div>
+                                <div class="col-4 col-md-1 d-grid">
+                                    <button type="button" id="btn-add-item" class="btn btn-primary btn-sm">
+                                        <i class="fas fa-plus"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
 
-                {{-- Summary + Actions --}}
-                <div
-                    class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-end gap-3 mt-2">
-                    {{-- Summary Box --}}
-                    <div class="card border-0 bg-light bg-opacity-75 rounded-3 px-3 py-2" style="min-width:240px;">
-                        <div class="d-flex justify-content-between small py-1 border-bottom">
-                            <span class="text-muted">Total QTY</span>
-                            <span class="fw-bold text-primary" id="summary-qty">0</span>
+                        {{-- Cart Table --}}
+                        <div class="table-responsive rounded border mb-0">
+                            <table class="table table-sm table-bordered table-hover align-middle mb-0" id="cart-table">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th class="text-center" style="width:5%">No.</th>
+                                        <th style="width:12%">Kode</th>
+                                        <th style="width:25%">Nama</th>
+                                        <th class="text-center" style="width:8%">Satuan</th>
+                                        <th class="text-center" style="width:10%">Jumlah</th>
+                                        <th class="text-end" style="width:13%">Harga</th>
+                                        <th class="text-end" style="width:10%">Pot. (Rp)</th>
+                                        <th class="text-end" style="width:12%">Total</th>
+                                        <th class="text-center" style="width:5%">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="cart-body">
+                                    <tr id="empty-row">
+                                        <td colspan="9" class="text-center text-muted py-5">
+                                            <div class="d-inline-flex align-items-center justify-content-center rounded-3 bg-light mb-3"
+                                                style="width:56px;height:56px;">
+                                                <i class="fas fa-shopping-cart fa-lg text-muted opacity-50"></i>
+                                            </div>
+                                            <div class="fw-semibold small">Belum ada barang yang ditambahkan</div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
                         </div>
-                        <div class="d-flex justify-content-between small py-1 border-bottom">
-                            <span class="text-muted">Total Potongan</span>
-                            <span class="fw-bold text-danger" id="summary-discount">Rp 0</span>
+                    </div>
+                </div>
+            </div>
+
+            {{-- Right Column: Sticky Sidebar --}}
+            <div class="col-md-3">
+                <div class="position-sticky" style="top: 20px;">
+                    {{-- Grand Total Box --}}
+                    <div
+                        class="bg-primary rounded-3 p-4 mb-3 position-relative overflow-hidden shadow-sm d-flex flex-column justify-content-center border-0">
+                        <i class="fas fa-shopping-cart position-absolute text-white opacity-25"
+                            style="font-size:5rem;right:15px;bottom:10px;pointer-events:none;"></i>
+                        <div class="text-white-50 small text-uppercase fw-semibold mb-2" style="letter-spacing:.05em;">
+                            Total Barang Masuk
                         </div>
-                        <div class="d-flex justify-content-between small py-1">
-                            <span class="fw-semibold">Grand Total</span>
-                            <span class="fw-bold text-success" id="summary-total">Rp 0</span>
+                        <div class="text-white fw-bold" style="font-size:2rem;font-family:'Outfit',sans-serif;"
+                            id="display-grand-total">
+                            Rp 0
                         </div>
                     </div>
 
-                    {{-- Action Buttons --}}
-                    <div class="d-flex gap-2">
-                        <a href="{{ route('incoming_goods.index') }}" class="btn btn-outline-secondary btn-sm">
-                            <i class="fas fa-times me-1"></i> Batal
-                        </a>
-                        <button type="submit" class="btn btn-success btn-sm fw-semibold">
-                            <i class="fas fa-save me-1"></i> Simpan Barang Masuk
-                        </button>
+                    {{-- Summary Card --}}
+                    <div class="card border-0 shadow-sm mb-3">
+                        <div class="card-header bg-light py-2 px-3 fw-bold small text-dark border-bottom">
+                            <i class="fas fa-info-circle me-1"></i> Ringkasan Penerimaan
+                        </div>
+                        <div class="card-body p-3">
+                            <div class="d-flex justify-content-between small py-2 border-bottom">
+                                <span class="text-muted">Total QTY</span>
+                                <span class="fw-bold text-primary" id="summary-qty">0</span>
+                            </div>
+                            <div class="d-flex justify-content-between small py-2 border-bottom">
+                                <span class="text-muted">Total Potongan</span>
+                                <span class="fw-bold text-danger" id="summary-discount">Rp 0</span>
+                            </div>
+                            <div class="d-flex justify-content-between small py-2">
+                                <span class="fw-semibold">Grand Total</span>
+                                <span class="fw-bold text-success" id="summary-total">Rp 0</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- Action Buttons Card --}}
+                    <div class="card border-0 shadow-sm p-3 bg-light bg-opacity-75">
+                        <div class="d-grid gap-2">
+                            <button type="submit"
+                                class="btn btn-success fw-bold py-2 shadow-sm d-flex align-items-center justify-content-center gap-2 rounded-3">
+                                <i class="fas fa-save"></i> Simpan Barang Masuk
+                            </button>
+                            <a href="{{ route('incoming_goods.index') }}"
+                                class="btn btn-outline-secondary py-2 fw-semibold rounded-3">
+                                <i class="fas fa-times"></i> Batal
+                            </a>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -362,7 +385,8 @@
                                     qty: qty,
                                     cost: parseFloat(item.cost_price || 0),
                                     disc: 0,
-                                    total: qty * parseFloat(item.cost_price || 0)
+                                    total: qty * parseFloat(item.cost_price ||
+                                        0)
                                 });
                             });
 
@@ -598,11 +622,14 @@
                                 </td>
                             </tr>`;
 
-                        containerHtml += `<input type="hidden" name="item_types[]" value="${item.type}">`;
+                        containerHtml +=
+                            `<input type="hidden" name="item_types[]" value="${item.type}">`;
                         containerHtml += `<input type="hidden" name="item_ids[]" value="${item.id}">`;
-                        containerHtml += `<input type="hidden" name="quantities[]" value="${item.qty}">`;
+                        containerHtml +=
+                            `<input type="hidden" name="quantities[]" value="${item.qty}">`;
                         const netCost = item.qty > 0 ? (item.total / item.qty) : item.cost;
-                        containerHtml += `<input type="hidden" name="cost_prices[]" value="${netCost}">`;
+                        containerHtml +=
+                            `<input type="hidden" name="cost_prices[]" value="${netCost}">`;
                     });
                     tbody.html(tbodyHtml);
                     container.html(containerHtml);
