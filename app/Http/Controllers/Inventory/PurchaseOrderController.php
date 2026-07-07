@@ -41,9 +41,11 @@ class PurchaseOrderController extends Controller
     {
         $tenantId = Auth::user()->tenant_id;
         $suppliers = Supplier::where('tenant_id', $tenantId)->where('is_active', true)->orderBy('name')->get();
-        $products = MasterProduct::where('tenant_id', $tenantId)->where('is_active', true)->orderBy('name')->get();
+        $departments = \App\Models\Department::where('tenant_id', $tenantId)->where('is_active', true)->orderBy('name')->get();
+        $materials = \App\Models\Material::where('tenant_id', $tenantId)->where('is_active', true)->orderBy('name')->get();
+        $inventoryItems = \App\Models\InventoryItem::where('tenant_id', $tenantId)->where('is_active', true)->orderBy('name')->get();
 
-        return view('inventory.purchase_orders.create', compact('suppliers', 'products'));
+        return view('inventory.purchase_orders.create', compact('suppliers', 'departments', 'materials', 'inventoryItems'));
     }
 
     public function store(Request $request)
@@ -52,10 +54,12 @@ class PurchaseOrderController extends Controller
 
         $request->validate([
             'supplier_id' => 'required|exists:suppliers,id',
+            'department_id' => 'nullable|exists:departments,id',
             'po_date' => 'required|date',
             'notes' => 'nullable|string|max:500',
             'items' => 'required|array|min:1',
-            'items.*.master_product_id' => 'required|exists:master_products,id',
+            'items.*.item_type' => 'required|string|in:material,inventory,product',
+            'items.*.item_id' => 'required|integer',
             'items.*.quantity' => 'required|integer|min:1',
             'items.*.unit_price' => 'required|numeric|min:0',
         ]);
@@ -73,6 +77,7 @@ class PurchaseOrderController extends Controller
             $po = PurchaseOrder::create([
                 'tenant_id' => $tenantId,
                 'supplier_id' => $request->supplier_id,
+                'department_id' => $request->department_id,
                 'po_number' => $poNumber,
                 'po_date' => $request->po_date,
                 'status' => 'draft',
@@ -84,12 +89,21 @@ class PurchaseOrderController extends Controller
                 $subtotal = $item['quantity'] * $item['unit_price'];
                 $totalAmount += $subtotal;
 
-                $po->items()->create([
-                    'master_product_id' => $item['master_product_id'],
+                $itemData = [
                     'quantity' => $item['quantity'],
                     'unit_price' => $item['unit_price'],
                     'received_quantity' => 0,
-                ]);
+                ];
+
+                if ($item['item_type'] === 'material') {
+                    $itemData['material_id'] = $item['item_id'];
+                } elseif ($item['item_type'] === 'inventory') {
+                    $itemData['inventory_item_id'] = $item['item_id'];
+                } else {
+                    $itemData['master_product_id'] = $item['item_id'];
+                }
+
+                $po->items()->create($itemData);
             }
 
             $po->update(['total_amount' => $totalAmount]);
@@ -102,7 +116,7 @@ class PurchaseOrderController extends Controller
     public function show(PurchaseOrder $purchaseOrder)
     {
         abort_unless($purchaseOrder->tenant_id === Auth::user()->tenant_id, 403);
-        $purchaseOrder->load(['supplier', 'items.masterProduct']);
+        $purchaseOrder->load(['supplier', 'department', 'items.masterProduct', 'items.material', 'items.inventoryItem']);
 
         return view('inventory.purchase_orders.show', compact('purchaseOrder'));
     }
@@ -118,10 +132,12 @@ class PurchaseOrderController extends Controller
 
         $tenantId = Auth::user()->tenant_id;
         $suppliers = Supplier::where('tenant_id', $tenantId)->where('is_active', true)->orderBy('name')->get();
-        $products = MasterProduct::where('tenant_id', $tenantId)->where('is_active', true)->orderBy('name')->get();
+        $departments = \App\Models\Department::where('tenant_id', $tenantId)->where('is_active', true)->orderBy('name')->get();
+        $materials = \App\Models\Material::where('tenant_id', $tenantId)->where('is_active', true)->orderBy('name')->get();
+        $inventoryItems = \App\Models\InventoryItem::where('tenant_id', $tenantId)->where('is_active', true)->orderBy('name')->get();
         $purchaseOrder->load('items');
 
-        return view('inventory.purchase_orders.edit', compact('purchaseOrder', 'suppliers', 'products'));
+        return view('inventory.purchase_orders.edit', compact('purchaseOrder', 'suppliers', 'departments', 'materials', 'inventoryItems'));
     }
 
     public function update(Request $request, PurchaseOrder $purchaseOrder)
@@ -137,10 +153,12 @@ class PurchaseOrderController extends Controller
 
         $request->validate([
             'supplier_id' => 'required|exists:suppliers,id',
+            'department_id' => 'nullable|exists:departments,id',
             'po_date' => 'required|date',
             'notes' => 'nullable|string|max:500',
             'items' => 'required|array|min:1',
-            'items.*.master_product_id' => 'required|exists:master_products,id',
+            'items.*.item_type' => 'required|string|in:material,inventory,product',
+            'items.*.item_id' => 'required|integer',
             'items.*.quantity' => 'required|integer|min:1',
             'items.*.unit_price' => 'required|numeric|min:0',
         ]);
@@ -150,6 +168,7 @@ class PurchaseOrderController extends Controller
 
             $purchaseOrder->update([
                 'supplier_id' => $request->supplier_id,
+                'department_id' => $request->department_id,
                 'po_date' => $request->po_date,
                 'notes' => $request->notes,
             ]);
@@ -161,12 +180,21 @@ class PurchaseOrderController extends Controller
                 $subtotal = $item['quantity'] * $item['unit_price'];
                 $totalAmount += $subtotal;
 
-                $purchaseOrder->items()->create([
-                    'master_product_id' => $item['master_product_id'],
+                $itemData = [
                     'quantity' => $item['quantity'],
                     'unit_price' => $item['unit_price'],
                     'received_quantity' => $item['received_quantity'] ?? 0,
-                ]);
+                ];
+
+                if ($item['item_type'] === 'material') {
+                    $itemData['material_id'] = $item['item_id'];
+                } elseif ($item['item_type'] === 'inventory') {
+                    $itemData['inventory_item_id'] = $item['item_id'];
+                } else {
+                    $itemData['master_product_id'] = $item['item_id'];
+                }
+
+                $purchaseOrder->items()->create($itemData);
             }
 
             $purchaseOrder->update(['total_amount' => $totalAmount]);
@@ -211,7 +239,7 @@ class PurchaseOrderController extends Controller
     public function print(PurchaseOrder $purchaseOrder)
     {
         abort_unless($purchaseOrder->tenant_id === Auth::user()->tenant_id, 403);
-        $purchaseOrder->load(['supplier', 'items.masterProduct', 'tenant']);
+        $purchaseOrder->load(['supplier', 'department', 'items.masterProduct', 'items.material', 'items.inventoryItem', 'tenant']);
 
         return view('inventory.purchase_orders.print', compact('purchaseOrder'));
     }
@@ -220,12 +248,26 @@ class PurchaseOrderController extends Controller
     {
         abort_unless($purchaseOrder->tenant_id === Auth::user()->tenant_id, 403);
         
-        $items = $purchaseOrder->items()->with('masterProduct')->get()->map(function ($item) {
+        $items = $purchaseOrder->items()->with(['masterProduct', 'material', 'inventoryItem'])->get()->map(function ($item) {
+            $sku = $item->item_sku;
+            $name = $item->item_name;
+            
+            $type = 'product';
+            $itemId = $item->master_product_id;
+            if ($item->material_id) {
+                $type = 'material';
+                $itemId = $item->material_id;
+            } elseif ($item->inventory_item_id) {
+                $type = 'inventory';
+                $itemId = $item->inventory_item_id;
+            }
+
             return [
                 'id' => $item->id,
-                'master_product_id' => $item->master_product_id,
-                'product_name' => $item->masterProduct->name,
-                'sku' => $item->masterProduct->sku,
+                'item_type' => $type,
+                'item_id' => $itemId,
+                'product_name' => $name,
+                'sku' => $sku,
                 'ordered_quantity' => $item->quantity,
                 'received_quantity' => $item->received_quantity,
                 'cost_price' => $item->unit_price,

@@ -162,6 +162,10 @@
                     <td>: <strong>{{ $purchaseOrder->po_date->format('d F Y') }}</strong></td>
                 </tr>
                 <tr>
+                    <td>Departemen</td>
+                    <td>: {{ $purchaseOrder->department ? $purchaseOrder->department->name : '-' }}</td>
+                </tr>
+                <tr>
                     <td>Status PO</td>
                     <td>: {{ $purchaseOrder->status_label }}</td>
                 </tr>
@@ -199,10 +203,20 @@
         </thead>
         <tbody>
             @foreach($purchaseOrder->items as $index => $item)
+                @php
+                    $sku = $item->item_sku;
+                    $name = $item->item_name;
+                    $type = 'product';
+                    if ($item->material_id) {
+                        $type = 'material';
+                    } elseif ($item->inventory_item_id) {
+                        $type = 'inventory';
+                    }
+                @endphp
                 <tr>
                     <td class="text-center">{{ $index + 1 }}</td>
-                    <td class="font-mono">{{ $item->masterProduct->sku }}</td>
-                    <td><strong>{{ $item->masterProduct->name }}</strong></td>
+                    <td class="font-mono">{{ $sku }}</td>
+                    <td><strong>{{ $name }}</strong> <span style="font-size: 9px; color: #666; text-transform: uppercase;">({{ $type }})</span></td>
                     <td class="text-center">{{ $item->quantity }}</td>
                     <td class="text-right font-mono">Rp {{ number_format($item->unit_price, 0, ',', '.') }}</td>
                     <td class="text-right font-mono">Rp {{ number_format($item->subtotal, 0, ',', '.') }}</td>

@@ -44,13 +44,16 @@ class IncomingGoodController extends Controller
     {
         $tenantId = Auth::user()->tenant_id;
         $products = MasterProduct::where('tenant_id', $tenantId)->where('is_active', true)->orderBy('name')->get();
+        $materials = \App\Models\Material::where('tenant_id', $tenantId)->where('is_active', true)->orderBy('name')->get();
+        $inventoryItems = \App\Models\InventoryItem::where('tenant_id', $tenantId)->where('is_active', true)->orderBy('name')->get();
+        $departments = \App\Models\Department::where('tenant_id', $tenantId)->where('is_active', true)->orderBy('name')->get();
         $suppliers = Supplier::where('tenant_id', $tenantId)->where('is_active', true)->orderBy('name')->get();
         $purchaseOrders = \App\Models\PurchaseOrder::where('tenant_id', $tenantId)
             ->whereIn('status', ['ordered', 'partially_received'])
             ->orderBy('po_number', 'desc')
             ->get();
 
-        return view('inventory.incoming_goods.create', compact('products', 'suppliers', 'purchaseOrders'));
+        return view('inventory.incoming_goods.create', compact('products', 'materials', 'inventoryItems', 'departments', 'suppliers', 'purchaseOrders'));
     }
 
     public function store(Request $request)
@@ -62,9 +65,11 @@ class IncomingGoodController extends Controller
             'order_id' => 'nullable|string|max:255',
             'incoming_date' => 'required|date',
             'reference' => 'required|string|max:255',
-            'products' => 'required|array',
-            'products.*' => 'required|exists:master_products,id',
-            'quantities' => 'required|array',
+            'department_id' => 'nullable|exists:departments,id',
+            'item_types' => 'required|array|min:1',
+            'item_types.*' => 'required|string|in:product,material,inventory',
+            'item_ids' => 'required|array|min:1',
+            'quantities' => 'required|array|min:1',
             'quantities.*' => 'required|numeric|min:0.01',
             'cost_prices' => 'array',
             'supplier_id' => 'nullable|exists:suppliers,id',
@@ -92,81 +97,147 @@ class IncomingGoodController extends Controller
 
         $date = \Carbon\Carbon::parse($request->incoming_date)->format('Y-m-d H:i:s');
 
-        $productIds = $request->products;
+        $itemTypes = $request->item_types;
+        $itemIds = $request->item_ids;
         $quantities = $request->quantities;
         $costPrices = $request->cost_prices ?? [];
-
-        $products = MasterProduct::where('tenant_id', $tenantId)
-            ->whereIn('id', $productIds)
-            ->get()->keyBy('id');
+        $departmentId = $request->department_id;
 
         $itemsCount = 0;
         $totalQty = 0;
 
-        foreach ($productIds as $index => $productId) {
-            if (!isset($products[$productId])) {
-                continue;
-            }
+        DB::transaction(function () use ($tenantId, $request, $date, $itemTypes, $itemIds, $quantities, $costPrices, $departmentId, &$itemsCount, &$totalQty, $reference) {
+            foreach ($itemIds as $index => $itemId) {
+                $type = $itemTypes[$index];
+                $qty = $quantities[$index];
+                $costPrice = $costPrices[$index] ?? null;
 
-            $product = $products[$productId];
-            $qty = $quantities[$index];
-            $costPrice = $costPrices[$index] ?? null;
-
-            if ($qty > 0) {
-                if ($sourceType === 'supplier' && $costPrice !== null && $costPrice !== '') {
-                    $product->update(['cost_price' => $costPrice]);
+                if ($qty <= 0) {
+                    continue;
                 }
 
-                $product->recordStockMovement(
-                    $qty,
-                    'in',
-                    $reference,
-                    Auth::id(),
-                    $date
-                );
+                if ($type === 'material') {
+                    $item = \App\Models\Material::where('tenant_id', $tenantId)->find($itemId);
+                    if ($item) {
+                        if ($request->source_type === 'supplier' && $costPrice !== null && $costPrice !== '') {
+                            $item->update(['cost_price' => $costPrice]);
+                        }
 
-                // Update PO Item received quantity & StockMovement PO relation
-                if ($request->filled('purchase_order_id')) {
-                    $poItem = \App\Models\PurchaseOrderItem::where('purchase_order_id', $request->purchase_order_id)
-                        ->where('master_product_id', $productId)
-                        ->first();
-                    if ($poItem) {
-                        $poItem->increment('received_quantity', $qty);
+                        $item->recordStockMovement($qty, 'in', $reference, Auth::id(), $date);
+                        
+                        $movement = StockMovement::where('material_id', $item->id)
+                            ->where('reference', $reference)
+                            ->where('tenant_id', $tenantId)
+                            ->orderByDesc('id')
+                            ->first();
+                        if ($movement) {
+                            $movement->update(['department_id' => $departmentId]);
+                        }
+
+                        if ($request->filled('purchase_order_id')) {
+                            $poItem = \App\Models\PurchaseOrderItem::where('purchase_order_id', $request->purchase_order_id)
+                                ->where('material_id', $itemId)
+                                ->first();
+                            if ($poItem) {
+                                $poItem->increment('received_quantity', $qty);
+                            }
+                            if ($movement) {
+                                $movement->update(['purchase_order_id' => $request->purchase_order_id]);
+                            }
+                        }
+
+                        $itemsCount++;
+                        $totalQty += $qty;
                     }
+                } elseif ($type === 'inventory') {
+                    $item = \App\Models\InventoryItem::where('tenant_id', $tenantId)->find($itemId);
+                    if ($item) {
+                        if ($request->source_type === 'supplier' && $costPrice !== null && $costPrice !== '') {
+                            $item->update(['cost_price' => $costPrice]);
+                        }
 
-                    // Associate PO relation with StockMovement
-                    $movement = StockMovement::where('master_product_id', $productId)
-                        ->where('reference', $reference)
-                        ->where('tenant_id', $tenantId)
-                        ->orderByDesc('id')
-                        ->first();
-                    if ($movement) {
-                        $movement->update(['purchase_order_id' => $request->purchase_order_id]);
+                        $item->recordStockMovement($qty, 'in', $reference, Auth::id(), $date);
+                        
+                        $movement = StockMovement::where('inventory_item_id', $item->id)
+                            ->where('reference', $reference)
+                            ->where('tenant_id', $tenantId)
+                            ->orderByDesc('id')
+                            ->first();
+                        if ($movement) {
+                            $movement->update(['department_id' => $departmentId]);
+                        }
+
+                        if ($request->filled('purchase_order_id')) {
+                            $poItem = \App\Models\PurchaseOrderItem::where('purchase_order_id', $request->purchase_order_id)
+                                ->where('inventory_item_id', $itemId)
+                                ->first();
+                            if ($poItem) {
+                                $poItem->increment('received_quantity', $qty);
+                            }
+                            if ($movement) {
+                                $movement->update(['purchase_order_id' => $request->purchase_order_id]);
+                            }
+                        }
+
+                        $itemsCount++;
+                        $totalQty += $qty;
+                    }
+                } else {
+                    $item = MasterProduct::where('tenant_id', $tenantId)->find($itemId);
+                    if ($item) {
+                        if ($request->source_type === 'supplier' && $costPrice !== null && $costPrice !== '') {
+                            $item->update(['cost_price' => $costPrice]);
+                        }
+
+                        $item->recordStockMovement($qty, 'in', $reference, Auth::id(), $date);
+                        
+                        $movement = StockMovement::where('master_product_id', $item->id)
+                            ->where('reference', $reference)
+                            ->where('tenant_id', $tenantId)
+                            ->orderByDesc('id')
+                            ->first();
+                        if ($movement) {
+                            $movement->update(['department_id' => $departmentId]);
+                        }
+
+                        if ($request->filled('purchase_order_id')) {
+                            $poItem = \App\Models\PurchaseOrderItem::where('purchase_order_id', $request->purchase_order_id)
+                                ->where('master_product_id', $itemId)
+                                ->first();
+                            if ($poItem) {
+                                $poItem->increment('received_quantity', $qty);
+                            }
+                            if ($movement) {
+                                $movement->update(['purchase_order_id' => $request->purchase_order_id]);
+                            }
+                        }
+
+                        $itemsCount++;
+                        $totalQty += $qty;
                     }
                 }
-
-                $itemsCount++;
-                $totalQty += $qty;
             }
-        }
 
-        // Update PO Overall completion status
-        if ($request->filled('purchase_order_id')) {
-            $po = \App\Models\PurchaseOrder::find($request->purchase_order_id);
-            if ($po) {
-                $isFullyReceived = true;
-                foreach ($po->items as $item) {
-                    if ($item->received_quantity < $item->quantity) {
-                        $isFullyReceived = false;
-                        break;
+            if ($request->filled('purchase_order_id')) {
+                $po = \App\Models\PurchaseOrder::find($request->purchase_order_id);
+                if ($po) {
+                    if ($departmentId && !$po->department_id) {
+                        $po->update(['department_id' => $departmentId]);
                     }
+                    $isFullyReceived = true;
+                    foreach ($po->items as $item) {
+                        if ($item->received_quantity < $item->quantity) {
+                            $isFullyReceived = false;
+                            break;
+                        }
+                    }
+                    $po->update([
+                        'status' => $isFullyReceived ? 'received' : 'partially_received'
+                    ]);
                 }
-                $po->update([
-                    'status' => $isFullyReceived ? 'received' : 'partially_received'
-                ]);
             }
-        }
+        });
 
-        return redirect()->route('incoming_goods.index')->with('success', "Penerimaan barang berhasil disimpan. Total {$itemsCount} jenis produk dengan {$totalQty} Qty masuk.");
+        return redirect()->route('incoming_goods.index')->with('success', "Penerimaan barang berhasil disimpan. Total {$itemsCount} jenis barang dengan {$totalQty} Qty masuk.");
     }
 }

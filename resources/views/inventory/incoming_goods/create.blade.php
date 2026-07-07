@@ -61,9 +61,19 @@
                                     </select>
                                 </div>
 
-                                <label class="form-label form-label-sm fw-semibold mb-1 mt-2">Waktu Masuk</label>
-                                <input type="datetime-local" name="incoming_date" class="form-control form-control-sm"
-                                    required value="{{ old('incoming_date', now()->format('Y-m-d\TH:i')) }}">
+                                 <label class="form-label form-label-sm fw-semibold mb-1 mt-2">Departemen Penerima <span class="text-danger">*</span></label>
+                                 <select name="department_id" class="form-select form-select-sm" required>
+                                     <option value="">-- Pilih Departemen --</option>
+                                     @foreach ($departments as $dept)
+                                         <option value="{{ $dept->id }}" {{ old('department_id') == $dept->id ? 'selected' : '' }}>
+                                             {{ $dept->name }}
+                                         </option>
+                                     @endforeach
+                                 </select>
+
+                                 <label class="form-label form-label-sm fw-semibold mb-1 mt-2">Waktu Masuk <span class="text-danger">*</span></label>
+                                 <input type="datetime-local" name="incoming_date" class="form-control form-control-sm"
+                                     required value="{{ old('incoming_date', now()->format('Y-m-d\TH:i')) }}">
 
                                 <div class="supplier-fields">
                                     <label class="form-label form-label-sm fw-semibold mb-1 mt-2">Tanggal Jatuh
@@ -131,46 +141,74 @@
 
             <div class="card-body">
                 {{-- Quick Entry Bar --}}
-                <div class="bg-light bg-opacity-50 border rounded-3 p-3 mb-3">
+                <div class="bg-light border rounded-3 p-3 mb-3">
                     <div class="row g-2 align-items-end">
-                        <div class="col-12 col-md-4">
+                        <div class="col-12 col-md-3">
                             <label class="form-label form-label-sm fw-semibold mb-1">Pilih Barang</label>
                             <select id="entry-product" class="form-select form-select-sm product-select"
                                 style="width:100%">
                                 <option value="">-- Ketik Nama/SKU Barang --</option>
-                                @foreach ($products as $product)
-                                    <option value="{{ $product->id }}" data-sku="{{ $product->sku }}"
-                                        data-name="{{ $product->name }}" data-unit="{{ $product->unit ?? 'PCS' }}"
-                                        data-cost="{{ $product->cost_price }}">
-                                        {{ $product->sku }} - {{ $product->name }}
-                                    </option>
-                                @endforeach
+                                <optgroup label="Bahan Baku & Kemasan" id="group-materials">
+                                    @foreach ($materials as $material)
+                                        <option value="{{ $material->id }}" data-type="material" data-sku="{{ $material->sku }}"
+                                            data-name="{{ $material->name }}" data-unit="{{ $material->unit ?? 'PCS' }}"
+                                            data-cost="{{ $material->cost_price }}">
+                                            {{ $material->sku }} - {{ $material->name }} (Bahan/Kemasan)
+                                        </option>
+                                    @endforeach
+                                </optgroup>
+                                <optgroup label="Inventory & ATK" id="group-inventory">
+                                    @foreach ($inventoryItems as $inv)
+                                        <option value="{{ $inv->id }}" data-type="inventory" data-sku="{{ $inv->sku }}"
+                                            data-name="{{ $inv->name }}" data-unit="{{ $inv->unit ?? 'PCS' }}"
+                                            data-cost="{{ $inv->cost_price }}">
+                                            {{ $inv->sku }} - {{ $inv->name }} (ATK/Inventory)
+                                        </option>
+                                    @endforeach
+                                </optgroup>
+                                <optgroup label="Produk Jadi" id="group-products">
+                                    @foreach ($products as $product)
+                                        <option value="{{ $product->id }}" data-type="product" data-sku="{{ $product->sku }}"
+                                            data-name="{{ $product->name }}" data-unit="{{ $product->unit ?? 'PCS' }}"
+                                            data-cost="{{ $product->cost_price }}">
+                                            {{ $product->sku }} - {{ $product->name }} (Produk)
+                                        </option>
+                                    @endforeach
+                                </optgroup>
                             </select>
                         </div>
-                        <div class="col-6 col-md-1">
+                        <div class="col-4 col-md-1">
                             <label class="form-label form-label-sm fw-semibold mb-1">Satuan</label>
-                            <input type="text" id="entry-unit" class="form-control form-control-sm text-center"
-                                readonly disabled>
+                            <input type="text" id="entry-unit"
+                                class="form-control form-control-sm text-center bg-white" readonly disabled>
                         </div>
-                        <div class="col-6 col-md-1">
+                        <div class="col-4 col-md-1">
                             <label class="form-label form-label-sm fw-semibold mb-1">Jumlah</label>
                             <input type="number" id="entry-qty" class="form-control form-control-sm text-end"
                                 min="1" placeholder="0">
                         </div>
                         <div class="col-6 col-md-2">
                             <label class="form-label form-label-sm fw-semibold mb-1">Harga Modal</label>
-                            <input type="number" id="entry-cost" class="form-control form-control-sm text-end"
-                                min="0" step="0.01" placeholder="0">
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text bg-light text-muted">Rp</span>
+                                <input type="text" id="entry-cost"
+                                    class="form-control form-control-sm text-end rupiah-mask" placeholder="0">
+                            </div>
                         </div>
-                        <div class="col-6 col-md-1">
-                            <label class="form-label form-label-sm fw-semibold mb-1">Potongan (Rp)</label>
-                            <input type="number" id="entry-discount" class="form-control form-control-sm text-end"
-                                min="0" step="0.01" placeholder="0" value="0">
+                        <div class="col-6 col-md-2">
+                            <label class="form-label form-label-sm fw-semibold mb-1">Potongan</label>
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text bg-light text-muted">Rp</span>
+                                <input type="text" id="entry-discount"
+                                    class="form-control form-control-sm text-end rupiah-mask" placeholder="0"
+                                    value="0">
+                            </div>
                         </div>
                         <div class="col-8 col-md-2">
                             <label class="form-label form-label-sm fw-semibold mb-1">Total</label>
-                            <input type="text" id="entry-total" class="form-control form-control-sm text-end fw-bold"
-                                readonly disabled placeholder="Rp 0">
+                            <input type="text" id="entry-total"
+                                class="form-control form-control-sm text-end fw-bold bg-white" readonly disabled
+                                placeholder="Rp 0">
                         </div>
                         <div class="col-4 col-md-1 d-grid">
                             <button type="button" id="btn-add-item" class="btn btn-primary btn-sm">
@@ -249,7 +287,7 @@
 
 @push('scripts')
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
+        $(document).ready(function() {
 
             let cartItems = [];
 
@@ -316,15 +354,15 @@
                                     .received_quantity;
                                 const qty = remainingQty > 0 ? remainingQty : 1;
                                 cartItems.push({
-                                    id: item.master_product_id,
+                                    id: item.item_id,
+                                    type: item.item_type,
                                     sku: item.sku,
                                     name: item.product_name,
                                     unit: 'PCS',
                                     qty: qty,
                                     cost: parseFloat(item.cost_price || 0),
                                     disc: 0,
-                                    total: qty * parseFloat(item.cost_price ||
-                                        0)
+                                    total: qty * parseFloat(item.cost_price || 0)
                                 });
                             });
 
@@ -369,49 +407,76 @@
 
             // DOM Elements
             const elProduct = $('#entry-product');
-            const elUnit = document.getElementById('entry-unit');
-            const elQty = document.getElementById('entry-qty');
-            const elCost = document.getElementById('entry-cost');
-            const elDiscount = document.getElementById('entry-discount');
-            const elTotal = document.getElementById('entry-total');
+            const elUnit = $('#entry-unit');
+            const elQty = $('#entry-qty');
+            const elCost = $('#entry-cost');
+            const elDiscount = $('#entry-discount');
+            const elTotal = $('#entry-total');
 
-            // Formatter
+            // Formatter & Parser
             const formatRp = (num) => 'Rp ' + parseFloat(num).toLocaleString('id-ID');
+            const formatNumber = (num) => parseFloat(num).toLocaleString('id-ID');
+            const parseRupiah = (val) => {
+                if (typeof val === 'number') return val;
+                if (!val) return 0;
+                return parseFloat(val.replace(/\./g, '').replace(/,/g, '.')) || 0;
+            };
+
+            // Rupiah Mask Handler
+            const handleRupiahInput = function(e) {
+                let cursorPosition = e.target.selectionStart;
+                let originalLength = e.target.value.length;
+                let cleanValue = e.target.value.replace(/[^0-9]/g, '');
+                if (cleanValue === '') {
+                    $(e.target).val('');
+                    return;
+                }
+                let formatted = formatNumber(cleanValue);
+                $(e.target).val(formatted);
+
+                // Adjust cursor position
+                let newLength = formatted.length;
+                cursorPosition = cursorPosition + (newLength - originalLength);
+                e.target.setSelectionRange(cursorPosition, cursorPosition);
+            };
+
+            elCost.on('input', handleRupiahInput);
+            elDiscount.on('input', handleRupiahInput);
 
             // Calculate Entry Total
             const calcEntryTotal = () => {
-                const qty = parseFloat(elQty.value) || 0;
-                const cost = parseFloat(elCost.value) || 0;
-                const disc = parseFloat(elDiscount.value) || 0;
+                const qty = parseFloat(elQty.val()) || 0;
+                const cost = parseRupiah(elCost.val());
+                const disc = parseRupiah(elDiscount.val());
                 const total = (qty * cost) - disc;
-                elTotal.value = formatRp(total > 0 ? total : 0);
+                elTotal.val(formatRp(total > 0 ? total : 0));
             };
 
-            elQty.addEventListener('input', calcEntryTotal);
-            elCost.addEventListener('input', calcEntryTotal);
-            elDiscount.addEventListener('input', calcEntryTotal);
+            elQty.on('input', calcEntryTotal);
+            elCost.on('input', calcEntryTotal);
+            elDiscount.on('input', calcEntryTotal);
 
             // Product Selection Event
             elProduct.on('change', function() {
                 const selected = $(this).find('option:selected');
                 if (selected.val()) {
-                    elUnit.value = selected.data('unit');
-                    elCost.value = selected.data('cost');
-                    if (!elQty.value) elQty.value = 1;
-                    elDiscount.value = 0;
+                    elUnit.val(selected.data('unit'));
+                    elCost.val(formatNumber(selected.data('cost') || 0));
+                    if (!elQty.val()) elQty.val(1);
+                    elDiscount.val(0);
                     calcEntryTotal();
-                    elQty.focus();
+                    elQty.trigger('focus');
                 } else {
-                    elUnit.value = '';
-                    elCost.value = '';
-                    elQty.value = '';
-                    elDiscount.value = '';
-                    elTotal.value = '';
+                    elUnit.val('');
+                    elCost.val('');
+                    elQty.val('');
+                    elDiscount.val('');
+                    elTotal.val('');
                 }
             });
 
             // Add to Cart
-            document.getElementById('btn-add-item').addEventListener('click', function() {
+            $('#btn-add-item').on('click', function() {
                 const selected = elProduct.find('option:selected');
                 const id = selected.val();
 
@@ -424,7 +489,7 @@
                     return;
                 }
 
-                const qty = parseFloat(elQty.value);
+                const qty = parseFloat(elQty.val());
                 if (!qty || qty <= 0) {
                     Swal.fire({
                         icon: 'warning',
@@ -434,12 +499,13 @@
                     return;
                 }
 
-                const cost = parseFloat(elCost.value) || 0;
-                const disc = parseFloat(elDiscount.value) || 0;
+                const cost = parseRupiah(elCost.val()) || 0;
+                const disc = parseRupiah(elDiscount.val()) || 0;
                 const total = (qty * cost) - disc;
 
                 const item = {
                     id: id,
+                    type: selected.data('type'),
                     sku: selected.data('sku'),
                     name: selected.data('name'),
                     unit: selected.data('unit'),
@@ -449,7 +515,7 @@
                     total: total > 0 ? total : 0
                 };
 
-                const existingIndex = cartItems.findIndex(i => i.id === id);
+                const existingIndex = cartItems.findIndex(i => i.id === id && i.type === item.type);
                 if (existingIndex > -1) {
                     cartItems[existingIndex].qty += qty;
                     cartItems[existingIndex].disc += disc;
@@ -461,40 +527,40 @@
                 }
 
                 elProduct.val(null).trigger('change');
-                elUnit.value = '';
-                elQty.value = '';
-                elCost.value = '';
-                elDiscount.value = '';
-                elTotal.value = '';
-                elProduct.focus();
+                elUnit.val('');
+                elQty.val('');
+                elCost.val('');
+                elDiscount.val('');
+                elTotal.val('');
+                elProduct.trigger('focus');
 
                 renderCart();
             });
 
             // Enter key shortcut
-            document.getElementById('incomingForm').addEventListener('keypress', function(e) {
+            $('#incomingForm').on('keypress', function(e) {
                 if (e.key === 'Enter' && e.target.tagName !== 'BUTTON') {
                     e.preventDefault();
                     if (['entry-qty', 'entry-cost', 'entry-discount'].includes(e.target.id)) {
-                        document.getElementById('btn-add-item').click();
+                        $('#btn-add-item').trigger('click');
                     }
                 }
             });
 
             // Render Cart Table
             const renderCart = () => {
-                const tbody = document.getElementById('cart-body');
-                const container = document.getElementById('hidden-inputs-container');
+                const tbody = $('#cart-body');
+                const container = $('#hidden-inputs-container');
 
-                tbody.innerHTML = '';
-                container.innerHTML = '';
+                tbody.empty();
+                container.empty();
 
                 let sumQty = 0;
                 let sumDisc = 0;
                 let grandTotal = 0;
 
                 if (cartItems.length === 0) {
-                    tbody.innerHTML = `
+                    tbody.html(`
                         <tr id="empty-row">
                             <td colspan="9" class="text-center text-muted py-5">
                                 <div class="d-inline-flex align-items-center justify-content-center rounded-3 bg-light mb-3"
@@ -503,60 +569,60 @@
                                 </div>
                                 <div class="fw-semibold small">Belum ada barang yang ditambahkan</div>
                             </td>
-                        </tr>`;
+                        </tr>`);
                 } else {
+                    let tbodyHtml = '';
+                    let containerHtml = '';
                     cartItems.forEach((item, index) => {
                         sumQty += item.qty;
                         sumDisc += item.disc;
                         grandTotal += item.total;
 
-                        const tr = document.createElement('tr');
-                        tr.innerHTML = `
-                            <td class="text-center">${index + 1}</td>
-                            <td><code class="bg-light text-secondary px-1 rounded border small">${item.sku}</code></td>
-                            <td class="fw-semibold small">${item.name}</td>
-                            <td class="text-center"><span class="badge bg-secondary bg-opacity-25 text-secondary border">${item.unit}</span></td>
-                            <td class="text-center fw-bold">${item.qty}</td>
-                            <td class="text-end small font-monospace">${formatRp(item.cost)}</td>
-                            <td class="text-end small font-monospace text-danger">${formatRp(item.disc)}</td>
-                            <td class="text-end fw-bold small font-monospace">${formatRp(item.total)}</td>
-                            <td class="text-center">
-                                <button type="button"
-                                    class="btn btn-outline-danger btn-sm btn-delete-item"
-                                    data-index="${index}"
-                                    style="padding:.15rem .45rem;">
-                                    <i class="fas fa-trash" style="font-size:.65rem;"></i>
-                                </button>
-                            </td>`;
-                        tbody.appendChild(tr);
+                        tbodyHtml += `
+                            <tr>
+                                <td class="text-center">${index + 1}</td>
+                                <td><code class="bg-light text-secondary px-1 rounded border small">${item.sku}</code></td>
+                                <td class="fw-semibold small">${item.name}</td>
+                                <td class="text-center"><span class="badge bg-secondary bg-opacity-25 text-secondary border">${item.unit}</span></td>
+                                <td class="text-center fw-bold">${item.qty}</td>
+                                <td class="text-end small font-monospace">${formatRp(item.cost)}</td>
+                                <td class="text-end small font-monospace text-danger">${formatRp(item.disc)}</td>
+                                <td class="text-end fw-bold small font-monospace">${formatRp(item.total)}</td>
+                                <td class="text-center">
+                                    <button type="button"
+                                        class="btn btn-outline-danger btn-sm btn-delete-item"
+                                        data-index="${index}"
+                                        style="padding:.15rem .45rem;">
+                                        <i class="fas fa-trash" style="font-size:.65rem;"></i>
+                                    </button>
+                                </td>
+                            </tr>`;
 
-                        container.innerHTML +=
-                            `<input type="hidden" name="products[]" value="${item.id}">`;
-                        container.innerHTML +=
-                            `<input type="hidden" name="quantities[]" value="${item.qty}">`;
+                        containerHtml += `<input type="hidden" name="item_types[]" value="${item.type}">`;
+                        containerHtml += `<input type="hidden" name="item_ids[]" value="${item.id}">`;
+                        containerHtml += `<input type="hidden" name="quantities[]" value="${item.qty}">`;
                         const netCost = item.qty > 0 ? (item.total / item.qty) : item.cost;
-                        container.innerHTML +=
-                            `<input type="hidden" name="cost_prices[]" value="${netCost}">`;
+                        containerHtml += `<input type="hidden" name="cost_prices[]" value="${netCost}">`;
                     });
+                    tbody.html(tbodyHtml);
+                    container.html(containerHtml);
                 }
 
-                document.getElementById('summary-qty').textContent = sumQty;
-                document.getElementById('summary-discount').textContent = formatRp(sumDisc);
-                document.getElementById('summary-total').textContent = formatRp(grandTotal);
-                document.getElementById('display-grand-total').textContent = formatRp(grandTotal);
+                $('#summary-qty').text(sumQty);
+                $('#summary-discount').text(formatRp(sumDisc));
+                $('#summary-total').text(formatRp(grandTotal));
+                $('#display-grand-total').text(formatRp(grandTotal));
             };
 
             // Delete Item
-            document.getElementById('cart-table').addEventListener('click', function(e) {
-                const btn = e.target.closest('.btn-delete-item');
-                if (btn) {
-                    cartItems.splice(btn.getAttribute('data-index'), 1);
-                    renderCart();
-                }
+            $('#cart-table').on('click', '.btn-delete-item', function() {
+                const index = $(this).data('index');
+                cartItems.splice(index, 1);
+                renderCart();
             });
 
             // Prevent submit if cart empty
-            document.getElementById('incomingForm').addEventListener('submit', function(e) {
+            $('#incomingForm').on('submit', function(e) {
                 if (cartItems.length === 0) {
                     e.preventDefault();
                     Swal.fire({

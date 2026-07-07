@@ -19,11 +19,8 @@
         request()->routeIs('inventory.ledger') ||
         request()->routeIs('stock_opnames.*') ||
         request()->routeIs('inventory.stock_sync') ||
-        request()->routeIs('orders.*') ||
         request()->routeIs('fulfillment.*') ||
-        request()->routeIs('returns.*') ||
         request()->routeIs('complaints.*') ||
-        request()->routeIs('offline_sales.*') ||
         request()->routeIs('reports.summary') ||
         request()->routeIs('reports.stock') ||
         request()->routeIs('reports.ledger') ||
@@ -46,7 +43,10 @@
         request()->routeIs('marketing.flash_sales.*') ||
         request()->routeIs('marketing.tiered_discounts.*') ||
         request()->routeIs('chats.*') ||
-        request()->routeIs('stores.*');
+        request()->routeIs('stores.*') ||
+        request()->routeIs('orders.*') ||
+        request()->routeIs('returns.*') ||
+        request()->routeIs('offline_sales.*');
 
     $isHrdActive = request()->routeIs('hr.*') || request()->routeIs('employees.*');
 @endphp
@@ -222,10 +222,7 @@
                 auth()->user()->hasAnyPermission([
                     'manage-inventory',
                     'manage-fulfillment',
-                    'manage-orders',
-                    'manage-returns',
                     'manage-complaints',
-                    'manage-offline-sales',
                     'view-warehouse-reports'
                 ]))
             @php
@@ -258,30 +255,13 @@
                             <a href="{{ route('inventory.stock_sync') }}"
                                 class="nav-link py-1 {{ request()->routeIs('inventory.stock_sync') ? 'active text-white' : 'text-secondary' }}">Sinkronisasi Stok</a>
                         @endcan
-                        @can('manage-orders')
-                            <a href="{{ route('orders.index') }}"
-                                class="nav-link py-1 d-flex align-items-center justify-content-between pe-3 {{ request()->routeIs('orders.*') ? 'active text-white' : 'text-secondary' }}">
-                                <span>Pesanan Masuk</span>
-                                @if (isset($pendingOrdersCount) && $pendingOrdersCount > 0)
-                                    <span class="badge bg-danger rounded-pill small">{{ $pendingOrdersCount }}</span>
-                                @endif
-                            </a>
-                        @endcan
                         @can('manage-fulfillment')
                             <a href="{{ route('fulfillment.index') }}"
                                 class="nav-link py-1 {{ request()->routeIs('fulfillment.*') ? 'active text-white' : 'text-secondary' }}">Kemas Pesanan (Scan)</a>
                         @endcan
-                        @can('manage-returns')
-                            <a href="{{ route('returns.index') }}"
-                                class="nav-link py-1 {{ request()->routeIs('returns.*') ? 'active text-white' : 'text-secondary' }}">Pesanan Retur</a>
-                        @endcan
                         @can('manage-complaints')
                             <a href="{{ route('complaints.index') }}"
                                 class="nav-link py-1 {{ request()->routeIs('complaints.*') ? 'active text-white' : 'text-secondary' }}">Pengaduan Barang</a>
-                        @endcan
-                        @can('manage-offline-sales')
-                            <a href="{{ route('offline_sales.index') }}"
-                                class="nav-link py-1 {{ request()->routeIs('offline_sales.*') ? 'active text-white' : 'text-secondary' }}">Penjualan Offline</a>
                         @endcan
 
                         @can('view-warehouse-reports')
@@ -379,7 +359,15 @@
         <!-- MARKETING -->
         @if (auth()->user()->isSuperAdmin() ||
                 auth()->user()->role === 'admin' ||
-                auth()->user()->hasAnyPermission(['view-financial-reports', 'manage-finance', 'manage-chats', 'manage-stores']))
+                auth()->user()->hasAnyPermission([
+                    'view-financial-reports',
+                    'manage-finance',
+                    'manage-chats',
+                    'manage-stores',
+                    'manage-orders',
+                    'manage-returns',
+                    'manage-offline-sales'
+                ]))
             <div>
                 <a class="nav-link d-flex align-items-center justify-content-between text-dark {{ $isMarketingActive ? '' : 'collapsed' }}"
                     data-bs-toggle="collapse" data-bs-target="#collapseMarketing" role="button"
@@ -392,6 +380,23 @@
                 </a>
                 <div class="collapse {{ $isMarketingActive ? 'show' : '' }}" id="collapseMarketing">
                     <div class="nav flex-column ms-3 mt-1 gap-1 border-start ps-2">
+                        @can('manage-orders')
+                            <a href="{{ route('orders.index') }}"
+                                class="nav-link py-1 d-flex align-items-center justify-content-between pe-3 {{ request()->routeIs('orders.*') ? 'active text-white' : 'text-secondary' }}">
+                                <span>Pesanan Masuk</span>
+                                @if (isset($pendingOrdersCount) && $pendingOrdersCount > 0)
+                                    <span class="badge bg-danger rounded-pill small">{{ $pendingOrdersCount }}</span>
+                                @endif
+                            </a>
+                        @endcan
+                        @can('manage-offline-sales')
+                            <a href="{{ route('offline_sales.index') }}"
+                                class="nav-link py-1 {{ request()->routeIs('offline_sales.*') ? 'active text-white' : 'text-secondary' }}">Penjualan Offline</a>
+                        @endcan
+                        @can('manage-returns')
+                            <a href="{{ route('returns.index') }}"
+                                class="nav-link py-1 {{ request()->routeIs('returns.*') ? 'active text-white' : 'text-secondary' }}">Pesanan Retur</a>
+                        @endcan
                         @can('manage-chats')
                             <a href="{{ route('chats.index') }}"
                                 class="nav-link py-1 {{ request()->routeIs('chats.*') ? 'active text-white' : 'text-secondary' }}">Inbox Chat</a>

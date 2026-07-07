@@ -13,20 +13,29 @@
                     <h5 class="fw-bold text-dark mb-3"><i class="fas fa-file-invoice text-primary me-2"></i>Informasi Purchase Order</h5>
                     
                     <div class="row g-3">
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <label class="form-label small fw-bold text-muted">Supplier <span class="text-danger">*</span></label>
-                            <select name="supplier_id" class="form-select" required>
+                            <select name="supplier_id" class="form-select select2" required>
                                 <option value="">-- Pilih Supplier --</option>
                                 @foreach($suppliers as $supplier)
                                     <option value="{{ $supplier->id }}">{{ $supplier->name }}</option>
                                 @endforeach
                             </select>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-3">
+                            <label class="form-label small fw-bold text-muted">Departemen Pemesan <span class="text-danger">*</span></label>
+                            <select name="department_id" class="form-select select2" required>
+                                <option value="">-- Pilih Departemen --</option>
+                                @foreach($departments as $dept)
+                                    <option value="{{ $dept->id }}">{{ $dept->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-md-3">
                             <label class="form-label small fw-bold text-muted">Tanggal PO <span class="text-danger">*</span></label>
                             <input type="date" name="po_date" class="form-control" value="{{ date('Y-m-d') }}" required>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <label class="form-label small fw-bold text-muted">Catatan Tambahan</label>
                             <input type="text" name="notes" class="form-control" placeholder="Instruksi pengiriman, dll.">
                         </div>
@@ -37,20 +46,29 @@
             <div class="card border rounded shadow-sm bg-white mb-4">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h5 class="fw-bold text-dark mb-0"><i class="fas fa-cubes text-primary me-2"></i>Daftar Item Produk</h5>
+                        <h5 class="fw-bold text-dark mb-0"><i class="fas fa-cubes text-primary me-2"></i>Daftar Item Pembelian</h5>
                     </div>
 
                     {{-- Search product to add --}}
                     <div class="row g-2 mb-3 align-items-end">
                         <div class="col-md-8">
-                            <label class="form-label small fw-bold text-muted">Cari & Pilih Produk</label>
+                            <label class="form-label small fw-bold text-muted">Cari & Pilih Item</label>
                             <select id="product-picker" class="form-select select2">
-                                <option value="">-- Cari Nama Produk atau SKU --</option>
-                                @foreach($products as $prod)
-                                    <option value="{{ $prod->id }}" data-sku="{{ $prod->sku }}" data-name="{{ $prod->name }}" data-price="{{ $prod->cost_price ?: 0 }}">
-                                        [{{ $prod->sku }}] {{ $prod->name }} (Harga: Rp {{ number_format($prod->cost_price, 0, ',', '.') }})
-                                    </option>
-                                @endforeach
+                                <option value="">-- Cari Nama atau SKU --</option>
+                                <optgroup label="Bahan Baku & Kemasan">
+                                    @foreach($materials as $material)
+                                        <option value="{{ $material->id }}" data-type="material" data-sku="{{ $material->sku }}" data-name="{{ $material->name }}" data-price="{{ $material->cost_price ?: 0 }}">
+                                            [{{ $material->sku ?: '-' }}] {{ $material->name }} (Bahan/Kemasan - Harga: Rp {{ number_format($material->cost_price, 0, ',', '.') }})
+                                        </option>
+                                    @endforeach
+                                </optgroup>
+                                <optgroup label="Inventory & ATK">
+                                    @foreach($inventoryItems as $inv)
+                                        <option value="{{ $inv->id }}" data-type="inventory" data-sku="{{ $inv->sku }}" data-name="{{ $inv->name }}" data-price="{{ $inv->cost_price ?: 0 }}">
+                                            [{{ $inv->sku ?: '-' }}] {{ $inv->name }} (Inventory - Harga: Rp {{ number_format($inv->cost_price, 0, ',', '.') }})
+                                        </option>
+                                    @endforeach
+                                </optgroup>
                             </select>
                         </div>
                         <div class="col-md-4">
@@ -65,7 +83,7 @@
                             <thead class="table-light">
                                 <tr>
                                     <th>SKU</th>
-                                    <th>NAMA PRODUK</th>
+                                    <th>NAMA BARANG</th>
                                     <th style="width: 150px;">JUMLAH (QTY)</th>
                                     <th style="width: 200px;">HARGA BELI SATUAN (Rp)</th>
                                     <th class="text-end" style="width: 200px;">SUBTOTAL</th>
@@ -107,18 +125,19 @@ document.addEventListener('DOMContentLoaded', function () {
         const selected = picker.options[picker.selectedIndex];
         
         if (!picker.value) {
-            alert('Silakan pilih produk terlebih dahulu.');
+            alert('Silakan pilih item terlebih dahulu.');
             return;
         }
 
         const id = picker.value;
-        const sku = selected.getAttribute('data-sku');
+        const type = selected.getAttribute('data-type');
+        const sku = selected.getAttribute('data-sku') || '-';
         const name = selected.getAttribute('data-name');
         const price = parseFloat(selected.getAttribute('data-price') || 0);
 
-        // Check if product is already in the list
-        if (document.querySelector(`input[name="items[${id}][master_product_id]"]`)) {
-            alert('Produk ini sudah ada di dalam daftar list.');
+        // Check if item is already in the list
+        if (document.querySelector(`.item-row input[value="${id}"][class="item-id-input"][data-type="${type}"]`)) {
+            alert('Item ini sudah ada di dalam daftar list.');
             return;
         }
 
@@ -130,12 +149,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
         const tbody = document.getElementById('items-body');
         const tr = document.createElement('tr');
-        tr.id = `row-item-${id}`;
+        tr.id = `row-item-${type}-${id}`;
         tr.className = 'item-row';
         tr.innerHTML = `
             <td class="font-monospace">${sku}</td>
-            <td class="text-dark fw-semibold">${name}
-                <input type="hidden" name="items[${itemIndex}][master_product_id]" value="${id}">
+            <td class="text-dark fw-semibold">${name} <span class="badge bg-secondary bg-opacity-10 text-secondary ms-1 text-uppercase">${type}</span>
+                <input type="hidden" name="items[${itemIndex}][item_id]" value="${id}" class="item-id-input" data-type="${type}">
+                <input type="hidden" name="items[${itemIndex}][item_type]" value="${type}">
             </td>
             <td>
                 <input type="number" name="items[${itemIndex}][quantity]" class="form-control form-control-sm qty-input" value="1" min="1" required>
@@ -145,7 +165,7 @@ document.addEventListener('DOMContentLoaded', function () {
             </td>
             <td class="text-end font-monospace fw-bold text-dark subtotal-display">Rp ${price.toLocaleString('id-ID')}</td>
             <td class="text-center">
-                <button type="button" class="btn btn-sm btn-outline-danger btn-remove-item" data-id="${id}">
+                <button type="button" class="btn btn-sm btn-outline-danger btn-remove-item" data-id="${id}" data-type="${type}">
                     <i class="fas fa-trash"></i>
                 </button>
             </td>
@@ -160,8 +180,7 @@ document.addEventListener('DOMContentLoaded', function () {
         tr.querySelector('.qty-input').addEventListener('input', calculateRowTotal);
         tr.querySelector('.price-input').addEventListener('input', calculateRowTotal);
         tr.querySelector('.btn-remove-item').addEventListener('click', function () {
-            const rowId = this.getAttribute('data-id');
-            document.getElementById(`row-item-${rowId}`).remove();
+            tr.remove();
             checkEmptyTable();
             calculateGrandTotal();
         });

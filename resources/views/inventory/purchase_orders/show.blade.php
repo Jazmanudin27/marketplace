@@ -25,6 +25,10 @@
                 <span class="fw-semibold small text-dark text-end">{{ $purchaseOrder->supplier->name }}</span>
             </div>
             <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                <span class="text-secondary small">Departemen</span>
+                <span class="fw-semibold small text-dark text-end">{{ $purchaseOrder->department ? $purchaseOrder->department->name : '-' }}</span>
+            </div>
+            <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
                 <span class="text-secondary small">Total Nominal</span>
                 <span class="font-monospace text-success fw-bold small">Rp {{ number_format($purchaseOrder->total_amount, 0, ',', '.') }}</span>
             </div>
@@ -80,7 +84,7 @@
                         <thead class="table-light">
                             <tr class="small text-uppercase">
                                 <th>SKU</th>
-                                <th>NAMA PRODUK</th>
+                                <th>NAMA BARANG</th>
                                 <th class="text-center">QTY PESAN</th>
                                 <th class="text-center">QTY DITERIMA</th>
                                 <th class="text-end">HARGA SATUAN</th>
@@ -89,9 +93,19 @@
                         </thead>
                         <tbody>
                             @foreach($purchaseOrder->items as $item)
+                                @php
+                                    $sku = $item->item_sku;
+                                    $name = $item->item_name;
+                                    $type = 'product';
+                                    if ($item->material_id) {
+                                        $type = 'material';
+                                    } elseif ($item->inventory_item_id) {
+                                        $type = 'inventory';
+                                    }
+                                @endphp
                                 <tr>
-                                    <td class="font-monospace text-dark">{{ $item->masterProduct->sku }}</td>
-                                    <td class="fw-semibold text-dark">{{ $item->masterProduct->name }}</td>
+                                    <td class="font-monospace text-dark">{{ $sku }}</td>
+                                    <td class="fw-semibold text-dark">{{ $name }} <span class="badge bg-secondary bg-opacity-10 text-secondary ms-1 text-uppercase small">{{ $type }}</span></td>
                                     <td class="text-center text-dark">{{ $item->quantity }}</td>
                                     <td class="text-center">
                                         @if($item->received_quantity >= $item->quantity)
