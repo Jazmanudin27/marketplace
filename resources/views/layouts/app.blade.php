@@ -265,6 +265,19 @@
                         });
                     });
                 }
+            // Handler for placeholder links
+            $(document).on('click', '.placeholder-link', function(e) {
+                e.preventDefault();
+                Swal.fire({
+                    icon: 'info',
+                    title: 'Fitur Segera Hadir',
+                    text: 'Fitur ini sedang dalam pengembangan.',
+                    confirmButtonColor: '#006cff',
+                    confirmButtonText: 'Oke',
+                    customClass: {
+                        popup: 'border border-light-subtle shadow-sm'
+                    }
+                });
             });
         });
     </script>
