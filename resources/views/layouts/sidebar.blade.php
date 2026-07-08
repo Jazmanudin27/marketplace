@@ -60,6 +60,11 @@
         (request()->routeIs('inventory_items.*') &&
             in_array(request('type'), ['atk_inventaris', 'atk', 'inventaris'])) ||
         request()->routeIs('ga_mutations.*');
+
+    $isProduksiActive =
+        request()->routeIs('produksi_mutations.*') ||
+        request()->routeIs('production_orders.*') ||
+        request()->routeIs('mobile.produksi');
 @endphp
 
 <div class="d-flex flex-column p-3 bg-primary text-white w-100" id="sidebar">
@@ -363,7 +368,7 @@
             </div>
         @endif
 
-        <!-- GENERAL AFFAIR -->
+        <!-- GUDANG LOGISTIK -->
         @if (auth()->user()->isSuperAdmin() ||
                 auth()->user()->role === 'admin' ||
                 auth()->user()->hasAnyPermission(['manage-inventory']))
@@ -373,7 +378,7 @@
                     aria-expanded="{{ $isGudangAtkActive ? 'true' : 'false' }}" aria-controls="collapseGudangAtk">
                     <div class="d-flex align-items-center gap-2">
                         <i class="bi bi-building"></i>
-                        <span>Inventory</span>
+                        <span>Gudang Logistik</span>
                     </div>
                     <i class="bi bi-chevron-down small"></i>
                 </a>
@@ -402,25 +407,55 @@
         <!-- PRODUKSI -->
         @if (auth()->user()->isSuperAdmin() ||
                 auth()->user()->role === 'admin' ||
-                auth()->user()->hasAnyPermission(['manage-inventory']))
+                auth()->user()->hasAnyPermission(['manage-inventory', 'production-orders.index']))
+            @php
+                $produksiDept = \App\Models\Department::where('tenant_id', Auth::user()->tenant_id)
+                    ->where(function($q) {
+                        $q->where('name', 'like', '%produksi%')
+                          ->orWhere('code', 'like', '%produksi%');
+                    })
+                    ->first();
+                $pendingProduksiCount = 0;
+                if ($produksiDept) {
+                    $pendingProduksiCount = \App\Models\WarehouseMutation::where('tenant_id', Auth::user()->tenant_id)
+                        ->where('type', 'out')
+                        ->where('to_department_id', $produksiDept->id)
+                        ->where('status', 'pending')
+                        ->count();
+                }
+            @endphp
             <div>
-                <a class="nav-link d-flex align-items-center justify-content-between text-dark collapsed"
+                <a class="nav-link d-flex align-items-center justify-content-between text-dark {{ $isProduksiActive ? '' : 'collapsed' }}"
                     data-bs-toggle="collapse" data-bs-target="#collapseProduksi" role="button"
-                    aria-expanded="false" aria-controls="collapseProduksi">
+                    aria-expanded="{{ $isProduksiActive ? 'true' : 'false' }}" aria-controls="collapseProduksi">
                     <div class="d-flex align-items-center gap-2">
                         <i class="bi bi-tools"></i>
                         <span>Produksi</span>
+                        @if ($pendingProduksiCount > 0)
+                            <span class="badge bg-danger rounded-pill ms-1 small">{{ $pendingProduksiCount }}</span>
+                        @endif
                     </div>
                     <i class="bi bi-chevron-down small"></i>
                 </a>
-                <div class="collapse" id="collapseProduksi">
+                <div class="collapse {{ $isProduksiActive ? 'show' : '' }}" id="collapseProduksi">
                     <div class="nav flex-column ms-3 mt-1 gap-1 border-start ps-2">
-                        <a href="#" class="nav-link py-1 text-secondary placeholder-link">Permintaan Produksi
-                            (SPK) <span class="badge bg-secondary ms-1 text-white"
-                                style="font-size: 0.6rem; padding: 2px 4px;">Soon</span></a>
-                        <a href="#" class="nav-link py-1 text-secondary placeholder-link">Produksi Mobile <span
-                                class="badge bg-secondary ms-1 text-white"
-                                style="font-size: 0.6rem; padding: 2px 4px;">Soon</span></a>
+                        <a href="{{ route('produksi_mutations.pending_approvals') }}"
+                            class="nav-link py-1 d-flex align-items-center justify-content-between pe-3 {{ request()->routeIs('produksi_mutations.pending_approvals') ? 'active text-white' : 'text-secondary' }}">
+                            <span>Penerimaan (Approval)</span>
+                            @if ($pendingProduksiCount > 0)
+                                <span class="badge bg-danger rounded-pill small">{{ $pendingProduksiCount }}</span>
+                            @endif
+                        </a>
+                        <a href="{{ route('produksi_mutations.index_in') }}"
+                            class="nav-link py-1 {{ request()->routeIs('produksi_mutations.index_in') ? 'active text-white' : 'text-secondary' }}">Barang Masuk</a>
+                        <a href="{{ route('produksi_mutations.index_out') }}"
+                            class="nav-link py-1 {{ request()->routeIs('produksi_mutations.index_out') ? 'active text-white' : 'text-secondary' }}">Barang Keluar (Penggunaan)</a>
+                        <a href="{{ route('produksi_mutations.report_mutation') }}"
+                            class="nav-link py-1 {{ request()->routeIs('produksi_mutations.report_mutation') ? 'active text-white' : 'text-secondary' }}">Laporan Mutasi</a>
+                        <a href="{{ route('produksi_mutations.report_summary') }}"
+                            class="nav-link py-1 {{ request()->routeIs('produksi_mutations.report_summary') ? 'active text-white' : 'text-secondary' }}">Rekap Persediaan</a>
+                        <a href="{{ route('produksi_mutations.stock_report') }}"
+                            class="nav-link py-1 {{ request()->routeIs('produksi_mutations.stock_report') ? 'active text-white' : 'text-secondary' }}">Laporan Stok</a>
                     </div>
                 </div>
             </div>

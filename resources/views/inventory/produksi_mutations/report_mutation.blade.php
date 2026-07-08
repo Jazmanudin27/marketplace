@@ -1,6 +1,6 @@
 @extends('layouts.app')
-@section('title', 'Laporan Barang Masuk & Keluar')
-@section('page-title', 'Laporan Mutasi Gudang Logistik')
+@section('title', 'Laporan Barang Masuk & Keluar - Produksi')
+@section('page-title', 'Laporan Mutasi Produksi')
 
 @section('content')
 <div class="card border-0 shadow-sm rounded-3 bg-white mb-4">
@@ -9,7 +9,7 @@
             <i class="fas fa-file-invoice me-2" style="color:#8b5cf6"></i>Filter Laporan Barang Masuk &amp; Keluar
         </h5>
 
-        <form method="GET" action="{{ route('ga_mutations.report_mutation') }}" class="row g-3 align-items-end">
+        <form method="GET" action="{{ route('produksi_mutations.report_mutation') }}" class="row g-3 align-items-end">
             <div class="col-md-3">
                 <label class="form-label small fw-semibold text-muted">Tipe Mutasi</label>
                 <select name="type" class="form-select form-select-sm">
@@ -30,7 +30,7 @@
                 <button type="submit" class="btn btn-primary btn-sm px-4 w-100 fw-semibold">
                     <i class="fas fa-filter me-1"></i> Tampilkan
                 </button>
-                <a href="{{ route('ga_mutations.print_report_mutation', ['type' => $type, 'date_from' => $dateFrom, 'date_to' => $dateTo]) }}"
+                <a href="{{ route('produksi_mutations.print_report_mutation', ['type' => $type, 'date_from' => $dateFrom, 'date_to' => $dateTo]) }}"
                    target="_blank" class="btn btn-sm px-4 w-100 fw-semibold text-white"
                    style="background:linear-gradient(135deg,#8b5cf6,#6d28d9)">
                     <i class="fas fa-print me-1"></i> Cetak
@@ -58,39 +58,49 @@
                 </thead>
                 <tbody>
                     @forelse($items as $row)
+                        @php
+                            $catColors = [
+                                'bahan' => 'background:#e0f2fe;color:#0369a1',
+                                'kemasan' => 'background:#fef3c7;color:#b45309',
+                                'atk' => 'background:#ede9fe;color:#5b21b6',
+                                'inventaris' => 'background:#dbeafe;color:#1e40af'
+                            ];
+                            $cs = $catColors[$row->inventoryItem->type] ?? 'background:#f1f5f9;color:#475569';
+                        @endphp
                         <tr>
                             <td class="small text-muted py-3 px-3">{{ $row->warehouseMutation->mutation_date->format('d M Y') }}</td>
-                            <td class="font-monospace fw-bold text-dark small">{{ $row->warehouseMutation->mutation_number }}</td>
-                            <td>
-                                <div class="fw-semibold text-dark small">{{ $row->inventoryItem?->name ?? '—' }}</div>
-                                <span class="font-monospace text-muted" style="font-size:11px">{{ $row->inventoryItem?->sku ?? '-' }}</span>
+                            <td class="font-monospace fw-bold small text-dark">
+                                <a href="{{ route('produksi_mutations.show', $row->warehouseMutation) }}" style="text-decoration:none">
+                                    {{ $row->warehouseMutation->mutation_number }}
+                                </a>
                             </td>
                             <td>
-                                @php
-                                    $catColors = ['atk'=>'background:#ede9fe;color:#5b21b6','inventaris'=>'background:#dbeafe;color:#1e40af'];
-                                    $cs = $catColors[$row->inventoryItem?->type] ?? 'background:#f1f5f9;color:#475569';
-                                @endphp
-                                <span class="badge rounded-pill" style="font-size:10px;{{ $cs }}">{{ ucfirst($row->inventoryItem?->type ?? '—') }}</span>
+                                <div class="fw-semibold text-dark small">{{ $row->inventoryItem->name }}</div>
+                                <div class="text-muted font-monospace" style="font-size:10px">SKU: {{ $row->inventoryItem->sku ?: '—' }}</div>
+                            </td>
+                            <td>
+                                <span class="badge text-uppercase" style="{{ $cs }};font-size:9px">{{ $row->inventoryItem->type }}</span>
                             </td>
                             <td class="text-center">
-                                <span class="badge text-white small text-uppercase"
-                                    style="background:{{ $row->warehouseMutation->type === 'in' ? '#8b5cf6' : '#f59e0b' }}">
-                                    {{ $row->warehouseMutation->type === 'in' ? 'Masuk' : 'Keluar' }}
-                                </span>
+                                @if($row->warehouseMutation->type === 'in')
+                                    <span class="badge bg-success text-uppercase" style="font-size:9px">Masuk</span>
+                                @else
+                                    <span class="badge bg-warning text-dark text-uppercase" style="font-size:9px">Keluar</span>
+                                @endif
                             </td>
                             <td class="small text-muted">
-                                {{ $row->warehouseMutation->fromDepartment ? $row->warehouseMutation->fromDepartment->name : 'Gudang Inventory' }}
+                                {{ $row->warehouseMutation->fromDepartment ? $row->warehouseMutation->fromDepartment->name : 'Gudang Utama' }}
                             </td>
                             <td class="small text-muted">
-                                {{ $row->warehouseMutation->toDepartment ? $row->warehouseMutation->toDepartment->name : 'Gudang Inventory' }}
+                                {{ $row->warehouseMutation->toDepartment ? $row->warehouseMutation->toDepartment->name : 'Gudang Utama' }}
                             </td>
-                            <td class="text-center fw-bold text-dark px-3 small">{{ number_format($row->quantity) }}</td>
+                            <td class="text-center fw-bold text-dark px-3 small">{{ number_format($row->quantity) }} {{ $row->inventoryItem->unit }}</td>
                         </tr>
                     @empty
                         <tr>
                             <td colspan="8" class="text-center py-5 text-muted">
-                                <i class="fas fa-file-alt fa-2x mb-3 opacity-25 d-block"></i>
-                                Tidak ada data mutasi pada periode terpilih.
+                                <i class="fas fa-file-invoice fa-2x mb-3 opacity-25 d-block"></i>
+                                Tidak ada data mutasi untuk periode ini.
                             </td>
                         </tr>
                     @endforelse

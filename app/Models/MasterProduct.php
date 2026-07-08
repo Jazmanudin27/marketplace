@@ -121,4 +121,9 @@ class MasterProduct extends Model
     {
         $this->recordStockMovement($qty, 'out', 'System decrement', null);
     }
+
+    public function recipes(): HasMany
+    {
+        return $this->hasMany(ProductRecipe::class);
+    }
 }

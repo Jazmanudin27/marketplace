@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Rekap Persediaan Inventory</title>
+    <title>Rekap Persediaan Produksi</title>
     <style>
         body { font-family: Arial, sans-serif; font-size: 11px; color: #1e293b; margin: 20px; }
         h2 { text-align: center; color: #6d28d9; margin-bottom: 4px; }
@@ -18,7 +18,7 @@
     </style>
 </head>
 <body>
-    <h2>REKAP PERSEDIAAN — GUDANG LOGISTIK</h2>
+    <h2>REKAP PERSEDIAAN — GUDANG PRODUKSI</h2>
     <div class="subtitle">
         Periode: {{ \Carbon\Carbon::parse($dateFrom)->format('d M Y') }} s/d {{ \Carbon\Carbon::parse($dateTo)->format('d M Y') }}
         | Dicetak: {{ date('d M Y, H:i') }}
@@ -43,20 +43,20 @@
                 <tr>
                     <td>{{ $i + 1 }}</td>
                     <td style="font-family:monospace">{{ $row['sku'] ?: '—' }}</td>
-                    <td>{{ $row['name'] }}</td>
-                    <td>{{ ucfirst($row['type']) }}</td>
+                    <td style="font-weight:bold">{{ $row['name'] }}</td>
+                    <td style="text-transform:uppercase">{{ $row['type'] }}</td>
                     <td style="text-align:center">{{ number_format($row['stok_awal']) }}</td>
                     <td style="text-align:center" class="text-success">+{{ number_format($row['qty_masuk']) }}</td>
                     <td style="text-align:center" class="text-danger">-{{ number_format($row['qty_keluar']) }}</td>
-                    <td style="text-align:center" class="text-bold">{{ number_format($row['stok_akhir']) }}</td>
-                    <td>{{ $row['unit'] ?: 'pcs' }}</td>
+                    <td style="text-align:center;font-weight:bold">{{ number_format($row['stok_akhir']) }}</td>
+                    <td>{{ $row['unit'] }}</td>
                 </tr>
             @empty
-                <tr><td colspan="9" style="text-align:center;color:#64748b">Tidak ada data</td></tr>
+                <tr>
+                    <td colspan="9" style="text-align:center;padding:20px;color:#94a3b8">Tidak ada data rekap persediaan.</td>
+                </tr>
             @endforelse
         </tbody>
     </table>
-
-    <script>window.onload = () => window.print();</script>
 </body>
 </html>

@@ -1,6 +1,6 @@
 @extends('layouts.app')
-@section('title', 'Catat Barang Masuk - General Affair')
-@section('page-title', 'Barang Masuk GA')
+@section('title', 'Catat Barang Masuk - Gudang Logistik')
+@section('page-title', 'Barang Masuk')
 
 @push('styles')
 <style>
@@ -34,7 +34,7 @@
         <div class="card border-0 shadow-sm rounded-3 bg-white mb-3 sticky-top" style="top:80px">
             <div class="card-header border-0 py-3 px-4" style="background:linear-gradient(135deg,#8b5cf6,#6d28d9)">
                 <h6 class="fw-bold text-white mb-0">
-                    <i class="fas fa-sign-in-alt me-2"></i>Detail Penerimaan GA
+                    <i class="fas fa-sign-in-alt me-2"></i>Detail Penerimaan
                 </h6>
             </div>
             <div class="card-body p-4">
@@ -65,9 +65,9 @@
 
                 {{-- Departemen Tujuan --}}
                 <div class="mb-3">
-                    <label class="form-label fw-semibold small text-muted">Tujuan (Gudang GA)</label>
+                    <label class="form-label fw-semibold small text-muted">Tujuan (Gudang)</label>
                     <select name="to_department_id" id="sel-to-dept" class="form-select">
-                        <option value="">— Gudang General Affair (Utama) —</option>
+                        <option value="">— Gudang Logistik (Utama) —</option>
                         @foreach($departments as $dept)
                             <option value="{{ $dept->id }}" {{ old('to_department_id') == $dept->id ? 'selected' : '' }}>
                                 {{ $dept->name }}
@@ -93,7 +93,7 @@
                 <div class="d-flex flex-column gap-2">
                     <button type="submit" class="btn text-white fw-bold py-2" id="btn-submit"
                         style="background:linear-gradient(135deg,#8b5cf6,#6d28d9)">
-                        <i class="fas fa-check-circle me-2"></i>Simpan Barang Masuk GA
+                        <i class="fas fa-check-circle me-2"></i>Simpan Barang Masuk
                     </button>
                     <a href="{{ route('ga_mutations.index_in') }}" class="btn btn-outline-secondary btn-sm">
                         <i class="fas fa-arrow-left me-1"></i> Kembali

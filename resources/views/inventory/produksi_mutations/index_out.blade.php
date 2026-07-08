@@ -1,6 +1,6 @@
 @extends('layouts.app')
-@section('title', 'Log Barang Masuk - Gudang Logistik')
-@section('page-title', 'Barang Masuk')
+@section('title', 'Log Barang Keluar - Produksi')
+@section('page-title', 'Barang Keluar / Konsumsi Produksi')
 
 @section('content')
 <div class="card border-0 shadow-sm rounded-3 bg-white">
@@ -8,17 +8,17 @@
         <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
             <div class="d-flex align-items-center gap-2">
                 <div class="rounded-circle d-flex align-items-center justify-content-center"
-                    style="width:42px;height:42px;background:linear-gradient(135deg,#8b5cf6,#6d28d9)">
-                    <i class="fas fa-sign-in-alt text-white"></i>
+                    style="width:42px;height:42px;background:linear-gradient(135deg,#f59e0b,#d97706)">
+                    <i class="fas fa-sign-out-alt text-white"></i>
                 </div>
                 <div>
-                    <h5 class="fw-bold text-dark mb-0">Barang Masuk (WMI)</h5>
-                    <div class="text-muted small">Log transaksi barang masuk ke Gudang Logistik</div>
+                    <h5 class="fw-bold text-dark mb-0">Barang Keluar (WMO)</h5>
+                    <div class="text-muted small">Log transaksi pemakaian barang / pengeluaran dari Produksi</div>
                 </div>
             </div>
-            <a href="{{ route('ga_mutations.create_in') }}" class="btn fw-semibold btn-sm px-3 text-white"
-                style="background:linear-gradient(135deg,#8b5cf6,#6d28d9)">
-                <i class="fas fa-plus me-1"></i> Catat Barang Masuk
+            <a href="{{ route('produksi_mutations.create_out') }}" class="btn fw-semibold btn-sm px-3 text-white"
+                style="background:linear-gradient(135deg,#f59e0b,#d97706)">
+                <i class="fas fa-plus me-1"></i> Catat Barang Keluar / Pemakaian
             </a>
         </div>
 
@@ -27,10 +27,10 @@
             <div class="col-12 col-md-3">
                 <label class="form-label small fw-semibold text-muted">Cari No. Mutasi</label>
                 <input type="text" name="search" class="form-control form-control-sm"
-                    value="{{ request('search') }}" placeholder="WMI-2026...">
+                    value="{{ request('search') }}" placeholder="WMO-2026...">
             </div>
             <div class="col-12 col-md-3">
-                <label class="form-label small fw-semibold text-muted">Departemen Asal</label>
+                <label class="form-label small fw-semibold text-muted">Departemen Tujuan</label>
                 <select name="department_id" class="form-select form-select-sm">
                     <option value="">Semua Departemen</option>
                     @foreach($departments as $dept)
@@ -51,7 +51,7 @@
                     <i class="fas fa-search me-1"></i> Filter
                 </button>
                 @if(request()->anyFilled(['search','department_id','date_from','date_to']))
-                    <a href="{{ route('ga_mutations.index_in') }}" class="btn btn-outline-secondary btn-sm">Reset</a>
+                    <a href="{{ route('produksi_mutations.index_out') }}" class="btn btn-outline-secondary btn-sm">Reset</a>
                 @endif
             </div>
         </form>
@@ -59,13 +59,13 @@
         {{-- Table --}}
         <div class="table-responsive">
             <table class="table table-hover border align-middle mb-0 rounded-2 overflow-hidden">
-                <thead style="background:#f3f0ff">
+                <thead style="background:#fef2f2">
                     <tr class="small text-uppercase text-muted">
-                        <th class="py-2 px-3">No. Mutasi Masuk</th>
-                        <th>Dari</th>
-                        <th>Tujuan</th>
+                        <th class="py-2 px-3">No. Mutasi Keluar</th>
+                        <th>Asal</th>
+                        <th>Departemen Tujuan</th>
                         <th>Tanggal</th>
-                        <th>Catatan</th>
+                        <th>Tujuan Penggunaan / Catatan</th>
                         <th class="text-center">Total Item</th>
                         <th class="text-center" style="width:100px">Aksi</th>
                     </tr>
@@ -77,18 +77,10 @@
                                 {{ $m->mutation_number }}
                             </td>
                             <td>
-                                @if($m->fromDepartment)
-                                    <span class="badge bg-light text-dark border">{{ $m->fromDepartment->name }}</span>
-                                @elseif($m->goodsReceipt)
-                                    <span class="badge bg-success text-white">Pembelian / Supplier</span>
-                                @else
-                                    <span class="text-muted small">Eksternal</span>
-                                @endif
+                                <span class="badge text-white" style="background:#f59e0b">{{ $m->fromDepartment ? $m->fromDepartment->name : 'Gudang Produksi' }}</span>
                             </td>
                             <td>
-                                <span class="badge text-white" style="background:#8b5cf6">
-                                    {{ $m->toDepartment ? $m->toDepartment->name : 'Gudang Inventory' }}
-                                </span>
+                                <span class="badge bg-light text-dark border">{{ $m->toDepartment ? $m->toDepartment->name : 'Eksternal / Pemakaian Langsung' }}</span>
                             </td>
                             <td class="small text-muted">{{ $m->mutation_date->format('d M Y') }}</td>
                             <td class="small text-muted" style="max-width:250px">
@@ -100,19 +92,17 @@
                                 </span>
                             </td>
                             <td class="text-center">
-                                <div class="d-flex justify-content-center gap-1">
-                                    <a href="{{ route('ga_mutations.show', $m) }}"
-                                        class="btn btn-info btn-sm text-white" title="Detail">
-                                        <i class="fas fa-eye"></i>
-                                    </a>
-                                </div>
+                                <a href="{{ route('produksi_mutations.show', $m) }}"
+                                    class="btn btn-info btn-sm text-white" title="Detail">
+                                    <i class="fas fa-eye"></i>
+                                </a>
                             </td>
                         </tr>
                     @empty
                         <tr>
                             <td colspan="7" class="text-center py-5 text-muted">
-                                <i class="fas fa-sign-in-alt fa-2x mb-3 opacity-25 d-block"></i>
-                                Belum ada log barang masuk yang tercatat.
+                                <i class="fas fa-sign-out-alt fa-2x mb-3 opacity-25 d-block"></i>
+                                Belum ada log barang keluar yang tercatat.
                             </td>
                         </tr>
                     @endforelse
@@ -120,7 +110,9 @@
             </table>
         </div>
 
-        <div class="mt-3">{{ $mutations->links() }}</div>
+        <div class="mt-3">
+            {{ $mutations->links() }}
+        </div>
     </div>
 </div>
 @endsection

@@ -1,6 +1,6 @@
 @extends('layouts.app')
-@section('title', 'Detail Mutasi GA — ' . $warehouseMutation->mutation_number)
-@section('page-title', 'Detail Mutasi General Affair')
+@section('title', 'Detail Mutasi — ' . $warehouseMutation->mutation_number)
+@section('page-title', 'Detail Mutasi Gudang Logistik')
 
 @section('content')
 <div class="row g-3">
@@ -14,7 +14,7 @@
                     </h6>
                     <span class="badge py-2 px-3 small text-uppercase text-white"
                         style="background:{{ $warehouseMutation->type === 'in' ? 'linear-gradient(135deg,#8b5cf6,#6d28d9)' : 'linear-gradient(135deg,#f59e0b,#d97706)' }}">
-                        {{ $warehouseMutation->type === 'in' ? 'Barang Masuk GA' : 'Barang Keluar GA' }}
+                        {{ $warehouseMutation->type === 'in' ? 'Barang Masuk' : 'Barang Keluar' }}
                     </span>
                 </div>
 
@@ -30,13 +30,13 @@
                     <div class="d-flex justify-content-between px-3 py-2 border-bottom">
                         <span class="text-muted small">Asal (Sumber)</span>
                         <span class="small fw-semibold text-dark text-end">
-                            {{ $warehouseMutation->fromDepartment ? $warehouseMutation->fromDepartment->name : 'Gudang GA' }}
+                            {{ $warehouseMutation->fromDepartment ? $warehouseMutation->fromDepartment->name : 'Gudang Inventory' }}
                         </span>
                     </div>
                     <div class="d-flex justify-content-between px-3 py-2 border-bottom">
                         <span class="text-muted small">Tujuan</span>
                         <span class="small fw-semibold text-dark text-end">
-                            {{ $warehouseMutation->toDepartment ? $warehouseMutation->toDepartment->name : 'Gudang GA' }}
+                            {{ $warehouseMutation->toDepartment ? $warehouseMutation->toDepartment->name : 'Gudang Inventory' }}
                         </span>
                     </div>
                     @if($warehouseMutation->notes)
@@ -55,7 +55,7 @@
 
         <a href="{{ $warehouseMutation->type === 'in' ? route('ga_mutations.index_in') : route('ga_mutations.index_out') }}"
             class="btn btn-outline-secondary btn-sm w-100">
-            <i class="fas fa-arrow-left me-1"></i> Kembali ke Daftar GA
+            <i class="fas fa-arrow-left me-1"></i> Kembali ke Daftar
         </a>
     </div>
 
@@ -65,7 +65,7 @@
             <div class="card-header border-0 py-3 px-4"
                 style="background:{{ $warehouseMutation->type === 'in' ? 'linear-gradient(135deg,#8b5cf6,#6d28d9)' : 'linear-gradient(135deg,#f59e0b,#d97706)' }}">
                 <h6 class="fw-bold text-white mb-0">
-                    <i class="fas fa-boxes me-2"></i>Daftar Barang GA Mutasi
+                    <i class="fas fa-boxes me-2"></i>Daftar Barang Mutasi
                 </h6>
             </div>
             <div class="card-body p-0">

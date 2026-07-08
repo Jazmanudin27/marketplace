@@ -4,15 +4,21 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class ProductionOrder extends Model
+class ProductRecipe extends Model
 {
     protected $fillable = [
         'tenant_id',
         'master_product_id',
-        'quantity',
-        'status',
-        'requested_by',
+        'name',
+        'batch_qty',
+        'is_active',
+    ];
+
+    protected $casts = [
+        'is_active' => 'boolean',
+        'batch_qty' => 'integer',
     ];
 
     public function tenant(): BelongsTo
@@ -25,13 +31,13 @@ class ProductionOrder extends Model
         return $this->belongsTo(MasterProduct::class);
     }
 
-    public function requestedBy(): BelongsTo
+    public function items(): HasMany
     {
-        return $this->belongsTo(User::class, 'requested_by');
+        return $this->hasMany(ProductRecipeItem::class);
     }
 
-    public function actualLabors(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function labors(): HasMany
     {
-        return $this->hasMany(ProductionActualLabor::class);
+        return $this->hasMany(ProductRecipeLabor::class);
     }
 }

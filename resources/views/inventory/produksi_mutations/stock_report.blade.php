@@ -1,6 +1,6 @@
 @extends('layouts.app')
-@section('title', 'Laporan Stok')
-@section('page-title', 'Laporan Stok Gudang Logistik')
+@section('title', 'Laporan Stok - Produksi')
+@section('page-title', 'Laporan Stok Produksi')
 
 @section('content')
 <div class="card border-0 shadow-sm rounded-3 bg-white mb-4">
@@ -12,11 +12,11 @@
                     <i class="fas fa-boxes text-white"></i>
                 </div>
                 <div>
-                    <h5 class="fw-bold text-dark mb-0">Laporan Stok (ATK &amp; Inventaris)</h5>
-                    <div class="text-muted small">Kondisi ketersediaan stok fisik Gudang Logistik saat ini (Read-Only)</div>
+                    <h5 class="fw-bold text-dark mb-0">Laporan Stok Produksi</h5>
+                    <div class="text-muted small">Kondisi ketersediaan stok fisik saat ini (Bahan, Kemasan, ATK, &amp; Inventaris)</div>
                 </div>
             </div>
-            <a href="{{ route('ga_mutations.print_stock_report', request()->all()) }}" target="_blank"
+            <a href="{{ route('produksi_mutations.print_stock_report', request()->all()) }}" target="_blank"
                 class="btn fw-semibold btn-sm px-3 text-white" style="background:linear-gradient(135deg,#8b5cf6,#6d28d9)">
                 <i class="fas fa-print me-1"></i> Cetak Laporan Stok
             </a>
@@ -27,12 +27,14 @@
             <div class="col-12 col-md-4">
                 <label class="form-label small fw-semibold text-muted">Cari Nama atau SKU</label>
                 <input type="text" name="search" class="form-control form-control-sm"
-                    value="{{ request('search') }}" placeholder="Ketik nama ATK/Inventaris...">
+                    value="{{ request('search') }}" placeholder="Ketik nama item...">
             </div>
             <div class="col-12 col-md-3">
                 <label class="form-label small fw-semibold text-muted">Kategori</label>
                 <select name="type" class="form-select form-select-sm">
                     <option value="all" {{ request('type') === 'all' ? 'selected' : '' }}>Semua Kategori</option>
+                    <option value="bahan" {{ request('type') === 'bahan' ? 'selected' : '' }}>Bahan Baku</option>
+                    <option value="kemasan" {{ request('type') === 'kemasan' ? 'selected' : '' }}>Kemasan</option>
                     <option value="atk" {{ request('type') === 'atk' ? 'selected' : '' }}>ATK</option>
                     <option value="inventaris" {{ request('type') === 'inventaris' ? 'selected' : '' }}>Inventaris</option>
                 </select>
@@ -42,7 +44,7 @@
                     <i class="fas fa-search me-1"></i> Filter
                 </button>
                 @if(request()->anyFilled(['search','type']))
-                    <a href="{{ route('ga_mutations.stock_report') }}" class="btn btn-outline-secondary btn-sm">Reset</a>
+                    <a href="{{ route('produksi_mutations.stock_report') }}" class="btn btn-outline-secondary btn-sm">Reset</a>
                 @endif
             </div>
         </form>
@@ -60,39 +62,51 @@
                         <th>Kategori</th>
                         <th class="text-center">Stok Fisik</th>
                         <th>Satuan</th>
+                        <th class="text-center">Status</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @forelse($items as $item)
+                    @forelse($items as $row)
                         @php
                             $catColors = [
-                                'atk'        => 'background:#ede9fe;color:#5b21b6',
-                                'inventaris' => 'background:#dbeafe;color:#1e40af',
+                                'bahan' => 'background:#e0f2fe;color:#0369a1',
+                                'kemasan' => 'background:#fef3c7;color:#b45309',
+                                'atk' => 'background:#ede9fe;color:#5b21b6',
+                                'inventaris' => 'background:#dbeafe;color:#1e40af'
                             ];
-                            $catStyle = $catColors[$item->type] ?? 'background:#f1f5f9;color:#475569';
+                            $cs = $catColors[$row->type] ?? 'background:#f1f5f9;color:#475569';
                         @endphp
                         <tr>
-                            <td class="font-monospace fw-bold text-muted py-3 px-3" style="font-size:12px">{{ $item->sku ?: '—' }}</td>
-                            <td class="fw-semibold text-dark small">{{ $item->name }}</td>
+                            <td class="font-monospace fw-bold text-muted py-3 px-3" style="font-size:12px">{{ $row->sku ?: '—' }}</td>
+                            <td class="fw-semibold text-dark small">{{ $row->name }}</td>
                             <td>
-                                <span class="badge rounded-pill" style="font-size:11px;{{ $catStyle }}">{{ ucfirst($item->type) }}</span>
+                                <span class="badge text-uppercase" style="{{ $cs }};font-size:10px">{{ $row->type }}</span>
                             </td>
-                            <td class="text-center">
-                                @if($item->stock <= ($item->min_stock ?? 0) && $item->stock > 0)
-                                    <span class="badge bg-warning text-dark font-monospace fw-bold" style="font-size:13px">{{ number_format($item->stock) }}</span>
-                                    <div class="text-warning" style="font-size:10px; margin-top:2px;"><i class="fas fa-exclamation-triangle"></i> Minim</div>
-                                @elseif($item->stock <= 0)
-                                    <span class="badge bg-danger font-monospace fw-bold" style="font-size:13px">Habis</span>
+                            <td class="text-center fw-bold small">
+                                @if($row->stock <= 0)
+                                    <span class="text-danger">0</span>
+                                @elseif($row->stock <= $row->min_stock)
+                                    <span class="text-warning">{{ number_format($row->stock) }}</span>
                                 @else
-                                    <span class="badge bg-success font-monospace fw-bold" style="font-size:13px">{{ number_format($item->stock) }}</span>
+                                    <span class="text-success">{{ number_format($row->stock) }}</span>
                                 @endif
                             </td>
-                            <td class="small text-muted">{{ $item->unit ?: 'pcs' }}</td>
+                            <td class="text-muted small">{{ $row->unit }}</td>
+                            <td class="text-center">
+                                @if($row->stock <= 0)
+                                    <span class="badge bg-danger">Habis</span>
+                                @elseif($row->stock <= $row->min_stock)
+                                    <span class="badge bg-warning text-dark">Stok Rendah</span>
+                                @else
+                                    <span class="badge bg-success">Aman</span>
+                                @endif
+                            </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="5" class="text-center py-5 text-muted">
-                                Tidak ada data barang ATK / Inventaris terdaftar yang sesuai.
+                            <td colspan="6" class="text-center py-5 text-muted">
+                                <i class="fas fa-boxes fa-2x mb-3 opacity-25 d-block"></i>
+                                Tidak ada data barang ditemukan.
                             </td>
                         </tr>
                     @endforelse

@@ -67,6 +67,7 @@
                         <th>Tanggal</th>
                         <th>Tujuan Penggunaan / Catatan</th>
                         <th class="text-center">Total Item</th>
+                        <th class="text-center">Status</th>
                         <th class="text-center" style="width:100px">Aksi</th>
                     </tr>
                 </thead>
@@ -90,6 +91,9 @@
                                 <span class="badge bg-secondary rounded-pill small">
                                     {{ $m->items->count() }} item
                                 </span>
+                            </td>
+                            <td class="text-center">
+                                <span class="badge bg-{{ $m->status_badge }}">{{ $m->status_label }}</span>
                             </td>
                             <td class="text-center">
                                 <div class="d-flex justify-content-center gap-1">
