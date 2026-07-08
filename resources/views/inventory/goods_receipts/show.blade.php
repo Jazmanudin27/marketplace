@@ -62,6 +62,10 @@
             </div>
         </div>
 
+        <a href="{{ route('goods_receipts.edit', $goodsReceipt) }}" class="btn btn-warning btn-sm w-100 fw-semibold mb-2">
+            <i class="fas fa-edit me-1"></i> Edit Penerimaan
+        </a>
+
         <form action="{{ route('goods_receipts.destroy', $goodsReceipt) }}" method="POST"
             onsubmit="return confirm('Hapus penerimaan ini? Stok akan dikurangi kembali sejumlah barang yang diterima.')"
             class="mb-2">

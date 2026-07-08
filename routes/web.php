@@ -444,6 +444,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/goods-receipts/create', [GoodsReceiptController::class, 'create'])->name('goods_receipts.create');
         Route::post('/goods-receipts', [GoodsReceiptController::class, 'store'])->name('goods_receipts.store');
         Route::get('/goods-receipts/{goodsReceipt}', [GoodsReceiptController::class, 'show'])->name('goods_receipts.show');
+        Route::get('/goods-receipts/{goodsReceipt}/edit', [GoodsReceiptController::class, 'edit'])->name('goods_receipts.edit');
+        Route::put('/goods-receipts/{goodsReceipt}', [GoodsReceiptController::class, 'update'])->name('goods_receipts.update');
         Route::delete('/goods-receipts/{goodsReceipt}', [GoodsReceiptController::class, 'destroy'])->name('goods_receipts.destroy');
 
         // Stock Sync

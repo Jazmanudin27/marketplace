@@ -217,4 +217,160 @@ class GoodsReceiptController extends Controller
         return redirect()->route('goods_receipts.index')
             ->with('success', 'Penerimaan langsung berhasil dihapus. Stok dikembalikan.');
     }
+
+    public function edit(GoodsReceipt $goodsReceipt)
+    {
+        abort_unless($goodsReceipt->tenant_id === Auth::user()->tenant_id, 403);
+        $goodsReceipt->load('items');
+
+        $tenantId = Auth::user()->tenant_id;
+        $suppliers      = Supplier::where('tenant_id', $tenantId)->where('is_active', true)->orderBy('name')->get();
+        $departments    = Department::where('tenant_id', $tenantId)->where('is_active', true)->orderBy('name')->get();
+        $inventoryItems = InventoryItem::where('tenant_id', $tenantId)
+            ->where('is_active', true)
+            ->orderBy('type')
+            ->orderBy('name')
+            ->get()
+            ->groupBy('type');
+
+        return view('inventory.goods_receipts.edit', compact('goodsReceipt', 'suppliers', 'departments', 'inventoryItems'));
+    }
+
+    public function update(Request $request, GoodsReceipt $goodsReceipt)
+    {
+        abort_unless($goodsReceipt->tenant_id === Auth::user()->tenant_id, 403);
+
+        $tenantId = Auth::user()->tenant_id;
+
+        $request->validate([
+            'supplier_id'   => 'nullable|exists:suppliers,id',
+            'department_id' => 'nullable|exists:departments,id',
+            'receipt_date'  => 'required|date',
+            'source'        => 'required|in:direct,emergency,walk_in',
+            'notes'         => 'nullable|string|max:1000',
+            'items'         => 'required|array|min:1',
+            'items.*.item_type' => 'required|in:inventory,product',
+            'items.*.item_id'   => 'required|integer',
+            'items.*.quantity'  => 'required|integer|min:1',
+            'items.*.unit_price' => 'required|numeric|min:0',
+        ]);
+
+        DB::transaction(function () use ($request, $goodsReceipt, $tenantId) {
+            $userId        = Auth::id();
+            $receiptNumber = $goodsReceipt->receipt_number;
+
+            // 1. Kembalikan stok lama
+            foreach ($goodsReceipt->items()->with(['inventoryItem', 'masterProduct'])->get() as $oldItem) {
+                if ($oldItem->inventory_item_id && $oldItem->inventoryItem) {
+                    $oldItem->inventoryItem->decrement('stock', $oldItem->quantity);
+                    $newStock = $oldItem->inventoryItem->fresh()->stock;
+
+                    StockMovement::create([
+                        'tenant_id'         => $tenantId,
+                        'inventory_item_id' => $oldItem->inventory_item_id,
+                        'user_id'           => $userId,
+                        'type'              => 'adjustment',
+                        'quantity'          => -$oldItem->quantity,
+                        'reference'         => 'Edit Penerimaan Langsung (Batal) — ' . $receiptNumber,
+                        'balance_after'     => $newStock,
+                    ]);
+                }
+                if ($oldItem->master_product_id && $oldItem->masterProduct) {
+                    $oldItem->masterProduct->decrement('stock', $oldItem->quantity);
+                    $newStock = $oldItem->masterProduct->fresh()->stock;
+
+                    StockMovement::create([
+                        'tenant_id'         => $tenantId,
+                        'master_product_id' => $oldItem->master_product_id,
+                        'user_id'           => $userId,
+                        'type'              => 'adjustment',
+                        'quantity'          => -$oldItem->quantity,
+                        'reference'         => 'Edit Penerimaan Langsung (Batal) — ' . $receiptNumber,
+                        'balance_after'     => $newStock,
+                    ]);
+                }
+            }
+
+            // 2. Hapus item lama
+            $goodsReceipt->items()->delete();
+
+            // 3. Masukkan item baru & tambah stok
+            $totalAmount = 0;
+            foreach ($request->items as $row) {
+                $qty      = (int) $row['quantity'];
+                $price    = (float) $row['unit_price'];
+                $subtotal = $qty * $price;
+                $totalAmount += $subtotal;
+
+                $itemData = [
+                    'quantity'   => $qty,
+                    'unit_price' => $price,
+                    'notes'      => $row['notes'] ?? null,
+                ];
+
+                if ($row['item_type'] === 'inventory') {
+                    $itemData['inventory_item_id'] = $row['item_id'];
+                } else {
+                    $itemData['master_product_id'] = $row['item_id'];
+                }
+
+                $goodsReceipt->items()->create($itemData);
+
+                // Tambah stok baru
+                if ($row['item_type'] === 'inventory') {
+                    $invItem = InventoryItem::where('tenant_id', $tenantId)->find($row['item_id']);
+                    if ($invItem) {
+                        $invItem->increment('stock', $qty);
+                        $newStock = $invItem->fresh()->stock;
+
+                        StockMovement::create([
+                            'tenant_id'          => $tenantId,
+                            'inventory_item_id'  => $invItem->id,
+                            'department_id'      => $request->department_id,
+                            'goods_receipt_id'   => $goodsReceipt->id,
+                            'user_id'            => $userId,
+                            'type'               => 'in',
+                            'quantity'           => $qty,
+                            'reference'          => 'Penerimaan Langsung (Edit) — ' . $receiptNumber,
+                            'balance_after'      => $newStock,
+                            'created_at'         => $request->receipt_date,
+                            'updated_at'         => $request->receipt_date,
+                        ]);
+                    }
+                } else {
+                    $product = MasterProduct::where('tenant_id', $tenantId)->find($row['item_id']);
+                    if ($product) {
+                        $product->increment('stock', $qty);
+                        $newStock = $product->fresh()->stock;
+
+                        StockMovement::create([
+                            'tenant_id'          => $tenantId,
+                            'master_product_id'  => $product->id,
+                            'goods_receipt_id'   => $goodsReceipt->id,
+                            'user_id'            => $userId,
+                            'type'               => 'in',
+                            'quantity'           => $qty,
+                            'reference'          => 'Penerimaan Langsung (Edit) — ' . $receiptNumber,
+                            'balance_after'      => $newStock,
+                            'created_at'         => $request->receipt_date,
+                            'updated_at'         => $request->receipt_date,
+                        ]);
+                    }
+                }
+            }
+
+            // 4. Update Header
+            $goodsReceipt->update([
+                'supplier_id'   => $request->supplier_id,
+                'department_id' => $request->department_id,
+                'receipt_date'  => $request->receipt_date,
+                'source'        => $request->source,
+                'notes'         => $request->notes,
+                'total_amount'  => $totalAmount,
+            ]);
+        });
+
+        return redirect()->route('goods_receipts.show', $goodsReceipt)
+            ->with('success', 'Penerimaan barang langsung berhasil diperbarui. Stok telah disesuaikan.');
+    }
 }

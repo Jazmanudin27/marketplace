@@ -94,7 +94,12 @@
         <div class="card border rounded shadow-sm bg-white overflow-hidden">
             <div class="card-header bg-light border-bottom d-flex justify-content-between align-items-center py-2 px-3">
                 <h6 class="fw-bold text-dark mb-0"><i class="fas fa-cubes text-primary me-2"></i>Daftar Item Barang PO</h6>
-                <div>
+                <div class="d-flex gap-2">
+                    @if(in_array($purchaseOrder->status, ['draft', 'ordered']))
+                        <a href="{{ route('purchase_orders.edit', $purchaseOrder) }}" class="btn btn-outline-warning btn-sm py-1">
+                            <i class="fas fa-edit me-1"></i> Edit PO
+                        </a>
+                    @endif
                     <a href="{{ route('purchase_orders.print', $purchaseOrder) }}" target="_blank" class="btn btn-outline-primary btn-sm py-1">
                         <i class="fas fa-print me-1"></i> Cetak PO
                     </a>
