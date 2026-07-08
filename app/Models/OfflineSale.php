@@ -28,6 +28,7 @@ class OfflineSale extends Model
 
     const STATUS_COMPLETED = 'completed';
     const STATUS_CANCELLED = 'cancelled';
+    const STATUS_PENDING   = 'pending';
 
     const PAYMENT_METHODS = [
         'tunai'            => 'Tunai',

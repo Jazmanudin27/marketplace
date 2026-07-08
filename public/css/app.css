@@ -214,6 +214,26 @@ label {
 #sidebarMenu.offcanvas {
     background-color: var(--lazada-primary) !important;
     border-right: none !important;
+    width: 310px !important; /* Tambahkan lebar sidebar */
+}
+
+/* Custom Scrollbar for Sidebar */
+#sidebarMenu .offcanvas-body::-webkit-scrollbar {
+    width: 6px; /* Ukuran scrollbar tipis */
+    height: 6px;
+}
+
+#sidebarMenu .offcanvas-body::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+#sidebarMenu .offcanvas-body::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.25);
+    border-radius: 10px;
+}
+
+#sidebarMenu .offcanvas-body::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.45);
 }
 
 /* Sidebar Container */

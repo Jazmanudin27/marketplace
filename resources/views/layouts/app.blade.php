@@ -41,7 +41,7 @@
 
     <!-- Sidebar Navigation for Offcanvas Mobile -->
     <div class="offcanvas offcanvas-start" tabindex="-1" id="sidebarMenu" aria-labelledby="sidebarMenuLabel"
-        style="width: 260px;">
+        style="width: 310px;">
         <div class="offcanvas-body p-0">
             @include('layouts.sidebar')
         </div>
