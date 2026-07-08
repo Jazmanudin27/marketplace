@@ -476,4 +476,54 @@ class WarehouseMutationController extends Controller
 
         return view('inventory.warehouse_mutations.print_report_summary', compact('rekap', 'dateFrom', 'dateTo'));
     }
+
+    /**
+     * Laporan Stok Gudang Bahan & Kemasan (Read-Only).
+     */
+    public function stockReport(Request $request)
+    {
+        $tenantId = Auth::user()->tenant_id;
+        $query = InventoryItem::where('tenant_id', $tenantId)
+            ->whereIn('type', ['bahan', 'kemasan']);
+
+        if ($request->filled('search')) {
+            $query->where(function($q) use ($request) {
+                $q->where('name', 'like', '%' . $request->search . '%')
+                  ->orWhere('sku', 'like', '%' . $request->search . '%');
+            });
+        }
+
+        if ($request->filled('type') && $request->type !== 'all') {
+            $query->where('type', $request->type);
+        }
+
+        $items = $query->orderBy('name')->paginate(20)->withQueryString();
+
+        return view('inventory.warehouse_mutations.stock_report', compact('items'));
+    }
+
+    /**
+     * Cetak Laporan Stok Gudang Bahan & Kemasan.
+     */
+    public function printStockReport(Request $request)
+    {
+        $tenantId = Auth::user()->tenant_id;
+        $query = InventoryItem::where('tenant_id', $tenantId)
+            ->whereIn('type', ['bahan', 'kemasan']);
+
+        if ($request->filled('search')) {
+            $query->where(function($q) use ($request) {
+                $q->where('name', 'like', '%' . $request->search . '%')
+                  ->orWhere('sku', 'like', '%' . $request->search . '%');
+            });
+        }
+
+        if ($request->filled('type') && $request->type !== 'all') {
+            $query->where('type', $request->type);
+        }
+
+        $items = $query->orderBy('name')->get();
+
+        return view('inventory.warehouse_mutations.print_stock_report', compact('items'));
+    }
 }

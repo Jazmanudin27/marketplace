@@ -453,6 +453,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/warehouse-mutations/report/print', [WarehouseMutationController::class, 'printReportMutation'])->name('warehouse_mutations.print_report_mutation');
         Route::get('/warehouse-mutations/summary', [WarehouseMutationController::class, 'reportSummary'])->name('warehouse_mutations.report_summary');
         Route::get('/warehouse-mutations/summary/print', [WarehouseMutationController::class, 'printReportSummary'])->name('warehouse_mutations.print_report_summary');
+        Route::get('/warehouse-mutations/stock-report', [WarehouseMutationController::class, 'stockReport'])->name('warehouse_mutations.stock_report');
+        Route::get('/warehouse-mutations/stock-report/print', [WarehouseMutationController::class, 'printStockReport'])->name('warehouse_mutations.print_stock_report');
         Route::get('/warehouse-mutations/{warehouseMutation}', [WarehouseMutationController::class, 'show'])->name('warehouse_mutations.show');
         Route::delete('/warehouse-mutations/{warehouseMutation}', [WarehouseMutationController::class, 'destroy'])->name('warehouse_mutations.destroy');
 
