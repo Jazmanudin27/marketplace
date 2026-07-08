@@ -1905,9 +1905,10 @@
             updateProfitBox('box-affiliate', 'val-affiliate-profit', 'val-affiliate-pct', affiliateProfit,
                 affiliatePctResult);
             updateProfitBox('box-ads', 'val-ads-profit', 'val-ads-pct', adsProfit, adsPctResult);
+        }
 
-            // JS Code for BOM & Labor Rows
-            @if(isset($product->id))
+        // JS Code for BOM & Labor Rows
+        @if(isset($product->id))
                 let bomRowIndex = {{ $recipe && $recipe->items->count() > 0 ? $recipe->items->count() : 0 }};
                 let laborRowIndex = {{ $recipe && $recipe->labors->count() > 0 ? $recipe->labors->count() : 0 }};
 
@@ -1994,6 +1995,5 @@
                     dropdownParent: $('#table-bom')
                 });
             @endif
-        });
     </script>
 @endpush
