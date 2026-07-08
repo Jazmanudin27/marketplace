@@ -1994,6 +1994,6 @@
                     dropdownParent: $('#table-bom')
                 });
             @endif
-        }
+        });
     </script>
 @endpush
