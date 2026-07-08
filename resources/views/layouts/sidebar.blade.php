@@ -56,7 +56,9 @@
     $isGudangBahanActive =
         (request()->routeIs('inventory_items.*') && in_array(request('type'), ['bahan_kemasan', 'bahan', 'kemasan'])) ||
         request()->routeIs('warehouse_mutations.*');
-    $isGudangAtkActive = request()->routeIs('inventory_items.*') && in_array(request('type'), ['atk_inventaris', 'atk', 'inventaris']);
+    $isGudangAtkActive =
+        (request()->routeIs('inventory_items.*') && in_array(request('type'), ['atk_inventaris', 'atk', 'inventaris'])) ||
+        request()->routeIs('ga_mutations.*');
 @endphp
 
 <div class="d-flex flex-column p-3 bg-primary text-white w-100" id="sidebar">
@@ -344,7 +346,7 @@
             </div>
         @endif
 
-        <!-- GUDANG ATK & INVENTARIS -->
+        <!-- GENERAL AFFAIR -->
         @if (auth()->user()->isSuperAdmin() ||
                 auth()->user()->role === 'admin' ||
                 auth()->user()->hasAnyPermission(['manage-inventory']))
@@ -354,17 +356,23 @@
                     aria-expanded="{{ $isGudangAtkActive ? 'true' : 'false' }}"
                     aria-controls="collapseGudangAtk">
                     <div class="d-flex align-items-center gap-2">
-                        <i class="bi bi-journal-bookmark"></i>
-                        <span>Gudang ATK & Inventaris</span>
+                        <i class="bi bi-building"></i>
+                        <span>General Affair</span>
                     </div>
                     <i class="bi bi-chevron-down small"></i>
                 </a>
                 <div class="collapse {{ $isGudangAtkActive ? 'show' : '' }}" id="collapseGudangAtk">
                     <div class="nav flex-column ms-3 mt-1 gap-1 border-start ps-2">
-                        <a href="{{ route('inventory_items.index', ['type' => 'atk_inventaris']) }}"
-                            class="nav-link py-1 {{ (request()->routeIs('inventory_items.index') && request('type') === 'atk_inventaris') ? 'active text-white' : 'text-secondary' }}">Stok ATK & Peralatan</a>
-                        <a href="#" class="nav-link py-1 text-secondary placeholder-link">Permintaan ATK <span class="badge bg-secondary ms-1 text-white" style="font-size: 0.6rem; padding: 2px 4px;">Soon</span></a>
-                        <a href="#" class="nav-link py-1 text-secondary placeholder-link">Inventaris Aset <span class="badge bg-secondary ms-1 text-white" style="font-size: 0.6rem; padding: 2px 4px;">Soon</span></a>
+                        <a href="{{ route('ga_mutations.index_in') }}"
+                            class="nav-link py-1 {{ request()->routeIs('ga_mutations.index_in') ? 'active text-white' : 'text-secondary' }}">Barang Masuk GA</a>
+                        <a href="{{ route('ga_mutations.index_out') }}"
+                            class="nav-link py-1 {{ request()->routeIs('ga_mutations.index_out') ? 'active text-white' : 'text-secondary' }}">Barang Keluar GA</a>
+                        <a href="{{ route('ga_mutations.report_mutation') }}"
+                            class="nav-link py-1 {{ request()->routeIs('ga_mutations.report_mutation') ? 'active text-white' : 'text-secondary' }}">Laporan Mutasi GA</a>
+                        <a href="{{ route('ga_mutations.report_summary') }}"
+                            class="nav-link py-1 {{ request()->routeIs('ga_mutations.report_summary') ? 'active text-white' : 'text-secondary' }}">Rekap Persediaan GA</a>
+                        <a href="{{ route('ga_mutations.stock_report') }}"
+                            class="nav-link py-1 {{ request()->routeIs('ga_mutations.stock_report') ? 'active text-white' : 'text-secondary' }}">Laporan Stok GA</a>
                     </div>
                 </div>
             </div>

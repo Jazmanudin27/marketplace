@@ -458,6 +458,21 @@ Route::middleware('auth')->group(function () {
         Route::get('/warehouse-mutations/{warehouseMutation}', [WarehouseMutationController::class, 'show'])->name('warehouse_mutations.show');
         Route::delete('/warehouse-mutations/{warehouseMutation}', [WarehouseMutationController::class, 'destroy'])->name('warehouse_mutations.destroy');
 
+        // ── GENERAL AFFAIR (GA) Mutations ──────────────────────────────────────
+        Route::get('/ga-mutations/in', [WarehouseMutationController::class, 'indexInGa'])->name('ga_mutations.index_in');
+        Route::get('/ga-mutations/out', [WarehouseMutationController::class, 'indexOutGa'])->name('ga_mutations.index_out');
+        Route::get('/ga-mutations/in/create', [WarehouseMutationController::class, 'createInGa'])->name('ga_mutations.create_in');
+        Route::get('/ga-mutations/out/create', [WarehouseMutationController::class, 'createOutGa'])->name('ga_mutations.create_out');
+        Route::post('/ga-mutations/in', [WarehouseMutationController::class, 'storeInGa'])->name('ga_mutations.store_in');
+        Route::post('/ga-mutations/out', [WarehouseMutationController::class, 'storeOutGa'])->name('ga_mutations.store_out');
+        Route::get('/ga-mutations/stock-report', [WarehouseMutationController::class, 'stockReportGa'])->name('ga_mutations.stock_report');
+        Route::get('/ga-mutations/stock-report/print', [WarehouseMutationController::class, 'printStockReportGa'])->name('ga_mutations.print_stock_report');
+        Route::get('/ga-mutations/report', [WarehouseMutationController::class, 'reportMutationGa'])->name('ga_mutations.report_mutation');
+        Route::get('/ga-mutations/report/print', [WarehouseMutationController::class, 'printReportMutationGa'])->name('ga_mutations.print_report_mutation');
+        Route::get('/ga-mutations/summary', [WarehouseMutationController::class, 'reportSummaryGa'])->name('ga_mutations.report_summary');
+        Route::get('/ga-mutations/summary/print', [WarehouseMutationController::class, 'printReportSummaryGa'])->name('ga_mutations.print_report_summary');
+        Route::get('/ga-mutations/{warehouseMutation}', [WarehouseMutationController::class, 'showGa'])->name('ga_mutations.show');
+
         // Stock Sync
         Route::get('/stock-sync', [StockSyncController::class, 'index'])->name('inventory.stock_sync');
         Route::post('/stock-sync/all', [StockSyncController::class, 'forceSyncAll'])->name('inventory.stock_sync.all');

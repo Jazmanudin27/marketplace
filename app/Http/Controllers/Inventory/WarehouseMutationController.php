@@ -526,4 +526,449 @@ class WarehouseMutationController extends Controller
 
         return view('inventory.warehouse_mutations.print_stock_report', compact('items'));
     }
+
+    /**
+     * ==========================================
+     * LAPORAN-LAPORAN GUDANG GENERAL AFFAIR (GA)
+     * ==========================================
+     */
+
+    /**
+     * Daftar Barang Masuk GA (ATK & Inventaris).
+     */
+    public function indexInGa(Request $request)
+    {
+        $tenantId = Auth::user()->tenant_id;
+        $query = WarehouseMutation::with(['fromDepartment', 'toDepartment', 'goodsReceipt'])
+            ->where('tenant_id', $tenantId)
+            ->where('type', 'in')
+            ->whereHas('items.inventoryItem', function ($q) {
+                $q->whereIn('type', ['atk', 'inventaris']);
+            })
+            ->orderByDesc('mutation_date');
+
+        if ($request->filled('search')) {
+            $query->where('mutation_number', 'like', '%' . $request->search . '%');
+        }
+        if ($request->filled('department_id')) {
+            $query->where('from_department_id', $request->department_id);
+        }
+        if ($request->filled('date_from')) {
+            $query->whereDate('mutation_date', '>=', $request->date_from);
+        }
+        if ($request->filled('date_to')) {
+            $query->whereDate('mutation_date', '<=', $request->date_to);
+        }
+
+        $mutations   = $query->paginate(20)->withQueryString();
+        $departments = Department::where('tenant_id', $tenantId)->where('is_active', true)->orderBy('name')->get();
+
+        return view('inventory.ga_mutations.index_in', compact('mutations', 'departments'));
+    }
+
+    /**
+     * Daftar Barang Keluar GA.
+     */
+    public function indexOutGa(Request $request)
+    {
+        $tenantId = Auth::user()->tenant_id;
+        $query = WarehouseMutation::with(['fromDepartment', 'toDepartment'])
+            ->where('tenant_id', $tenantId)
+            ->where('type', 'out')
+            ->whereHas('items.inventoryItem', function ($q) {
+                $q->whereIn('type', ['atk', 'inventaris']);
+            })
+            ->orderByDesc('mutation_date');
+
+        if ($request->filled('search')) {
+            $query->where('mutation_number', 'like', '%' . $request->search . '%');
+        }
+        if ($request->filled('department_id')) {
+            $query->where('to_department_id', $request->department_id);
+        }
+        if ($request->filled('date_from')) {
+            $query->whereDate('mutation_date', '>=', $request->date_from);
+        }
+        if ($request->filled('date_to')) {
+            $query->whereDate('mutation_date', '<=', $request->date_to);
+        }
+
+        $mutations   = $query->paginate(20)->withQueryString();
+        $departments = Department::where('tenant_id', $tenantId)->where('is_active', true)->orderBy('name')->get();
+
+        return view('inventory.ga_mutations.index_out', compact('mutations', 'departments'));
+    }
+
+    /**
+     * Form Barang Masuk GA.
+     */
+    public function createInGa()
+    {
+        $tenantId = Auth::user()->tenant_id;
+        $departments = Department::where('tenant_id', $tenantId)->where('is_active', true)->orderBy('name')->get();
+        $inventoryItems = InventoryItem::where('tenant_id', $tenantId)
+            ->where('is_active', true)
+            ->whereIn('type', ['atk', 'inventaris'])
+            ->orderBy('name')
+            ->get();
+
+        return view('inventory.ga_mutations.create_in', compact('departments', 'inventoryItems'));
+    }
+
+    /**
+     * Form Barang Keluar GA.
+     */
+    public function createOutGa()
+    {
+        $tenantId = Auth::user()->tenant_id;
+        $departments = Department::where('tenant_id', $tenantId)->where('is_active', true)->orderBy('name')->get();
+        $inventoryItems = InventoryItem::where('tenant_id', $tenantId)
+            ->where('is_active', true)
+            ->whereIn('type', ['atk', 'inventaris'])
+            ->where('stock', '>', 0)
+            ->orderBy('name')
+            ->get();
+
+        return view('inventory.ga_mutations.create_out', compact('departments', 'inventoryItems'));
+    }
+
+    /**
+     * Simpan Barang Masuk GA.
+     */
+    public function storeInGa(Request $request)
+    {
+        $tenantId = Auth::user()->tenant_id;
+
+        $request->validate([
+            'from_department_id' => 'nullable|exists:departments,id',
+            'to_department_id'   => 'nullable|exists:departments,id',
+            'mutation_date'      => 'required|date',
+            'notes'              => 'nullable|string|max:1000',
+            'items'              => 'required|array|min:1',
+            'items.*.item_id'    => 'required|exists:inventory_items,id',
+            'items.*.quantity'   => 'required|integer|min:1',
+        ]);
+
+        $mutation = DB::transaction(function () use ($request, $tenantId) {
+            $userId         = Auth::id();
+            $mutationNumber = WarehouseMutation::generateMutationNumber('in');
+
+            $mutation = WarehouseMutation::create([
+                'tenant_id'          => $tenantId,
+                'mutation_number'    => $mutationNumber,
+                'type'               => 'in',
+                'from_department_id' => $request->from_department_id,
+                'to_department_id'   => $request->to_department_id,
+                'mutation_date'      => $request->mutation_date,
+                'status'             => 'approved',
+                'notes'              => $request->notes,
+                'created_by'         => $userId,
+            ]);
+
+            foreach ($request->items as $row) {
+                $item = InventoryItem::where('tenant_id', $tenantId)->findOrFail($row['item_id']);
+                $qty  = (int) $row['quantity'];
+
+                $mutation->items()->create([
+                    'inventory_item_id' => $item->id,
+                    'quantity'          => $qty,
+                    'unit_price'        => 0,
+                    'notes'             => $row['notes'] ?? null,
+                ]);
+
+                $item->increment('stock', $qty);
+                $newStock = $item->fresh()->stock;
+
+                StockMovement::create([
+                    'tenant_id'             => $tenantId,
+                    'inventory_item_id'     => $item->id,
+                    'department_id'         => $request->to_department_id,
+                    'warehouse_mutation_id' => $mutation->id,
+                    'user_id'               => $userId,
+                    'type'                  => 'in',
+                    'quantity'              => $qty,
+                    'reference'             => 'Barang Masuk GA (' . $mutationNumber . ')',
+                    'balance_after'         => $newStock,
+                ]);
+            }
+
+            return $mutation;
+        });
+
+        return redirect()->route('ga_mutations.show', $mutation)
+            ->with('success', 'Barang Masuk GA berhasil disimpan. Stok telah bertambah.');
+    }
+
+    /**
+     * Simpan Barang Keluar GA.
+     */
+    public function storeOutGa(Request $request)
+    {
+        $tenantId = Auth::user()->tenant_id;
+
+        $request->validate([
+            'from_department_id' => 'nullable|exists:departments,id',
+            'to_department_id'   => 'nullable|exists:departments,id',
+            'mutation_date'      => 'required|date',
+            'notes'              => 'nullable|string|max:1000',
+            'items'              => 'required|array|min:1',
+            'items.*.item_id'    => 'required|exists:inventory_items,id',
+            'items.*.quantity'   => 'required|integer|min:1',
+        ]);
+
+        foreach ($request->items as $row) {
+            $item = InventoryItem::where('tenant_id', $tenantId)->findOrFail($row['item_id']);
+            if ($item->stock < (int)$row['quantity']) {
+                return back()->withInput()->withErrors(['items' => 'Stok ' . $item->name . ' tidak mencukupi. Sisa: ' . $item->stock]);
+            }
+        }
+
+        $mutation = DB::transaction(function () use ($request, $tenantId) {
+            $userId         = Auth::id();
+            $mutationNumber = WarehouseMutation::generateMutationNumber('out');
+
+            $mutation = WarehouseMutation::create([
+                'tenant_id'          => $tenantId,
+                'mutation_number'    => $mutationNumber,
+                'type'               => 'out',
+                'from_department_id' => $request->from_department_id,
+                'to_department_id'   => $request->to_department_id,
+                'mutation_date'      => $request->mutation_date,
+                'status'             => 'approved',
+                'notes'              => $request->notes,
+                'created_by'         => $userId,
+            ]);
+
+            foreach ($request->items as $row) {
+                $item = InventoryItem::where('tenant_id', $tenantId)->findOrFail($row['item_id']);
+                $qty  = (int) $row['quantity'];
+
+                $mutation->items()->create([
+                    'inventory_item_id' => $item->id,
+                    'quantity'          => $qty,
+                    'unit_price'        => 0,
+                    'notes'             => $row['notes'] ?? null,
+                ]);
+
+                $item->decrement('stock', $qty);
+                $newStock = $item->fresh()->stock;
+
+                StockMovement::create([
+                    'tenant_id'             => $tenantId,
+                    'inventory_item_id'     => $item->id,
+                    'department_id'         => $request->from_department_id,
+                    'warehouse_mutation_id' => $mutation->id,
+                    'user_id'               => $userId,
+                    'type'                  => 'out',
+                    'quantity'              => -$qty,
+                    'reference'             => 'Barang Keluar GA (' . $mutationNumber . ')',
+                    'balance_after'         => $newStock,
+                ]);
+            }
+
+            return $mutation;
+        });
+
+        return redirect()->route('ga_mutations.show', $mutation)
+            ->with('success', 'Barang Keluar GA berhasil disimpan. Stok telah dikurangi.');
+    }
+
+    /**
+     * Detail mutasi GA (reuse show dengan konteks GA).
+     */
+    public function showGa(WarehouseMutation $warehouseMutation)
+    {
+        abort_unless($warehouseMutation->tenant_id === Auth::user()->tenant_id, 403);
+        $warehouseMutation->load(['fromDepartment', 'toDepartment', 'goodsReceipt', 'items.inventoryItem', 'createdBy']);
+
+        return view('inventory.ga_mutations.show', compact('warehouseMutation'));
+    }
+
+    /**
+     * Laporan Stok GA.
+     */
+    public function stockReportGa(Request $request)
+    {
+        $tenantId = Auth::user()->tenant_id;
+        $query = InventoryItem::where('tenant_id', $tenantId)
+            ->whereIn('type', ['atk', 'inventaris']);
+
+        if ($request->filled('search')) {
+            $query->where(function ($q) use ($request) {
+                $q->where('name', 'like', '%' . $request->search . '%')
+                  ->orWhere('sku', 'like', '%' . $request->search . '%');
+            });
+        }
+
+        if ($request->filled('type') && $request->type !== 'all') {
+            $query->where('type', $request->type);
+        }
+
+        $items = $query->orderBy('name')->paginate(20)->withQueryString();
+
+        return view('inventory.ga_mutations.stock_report', compact('items'));
+    }
+
+    /**
+     * Cetak Laporan Stok GA.
+     */
+    public function printStockReportGa(Request $request)
+    {
+        $tenantId = Auth::user()->tenant_id;
+        $query = InventoryItem::where('tenant_id', $tenantId)
+            ->whereIn('type', ['atk', 'inventaris']);
+
+        if ($request->filled('search')) {
+            $query->where(function ($q) use ($request) {
+                $q->where('name', 'like', '%' . $request->search . '%')
+                  ->orWhere('sku', 'like', '%' . $request->search . '%');
+            });
+        }
+
+        if ($request->filled('type') && $request->type !== 'all') {
+            $query->where('type', $request->type);
+        }
+
+        $items = $query->orderBy('name')->get();
+
+        return view('inventory.ga_mutations.print_stock_report', compact('items'));
+    }
+
+    /**
+     * Laporan Barang Masuk & Keluar GA.
+     */
+    public function reportMutationGa(Request $request)
+    {
+        $tenantId = Auth::user()->tenant_id;
+        $type     = $request->input('type', 'all');
+        $dateFrom = $request->input('date_from', date('Y-m-01'));
+        $dateTo   = $request->input('date_to', date('Y-m-d'));
+
+        $query = WarehouseMutationItem::whereHas('warehouseMutation', function ($q) use ($tenantId, $type, $dateFrom, $dateTo) {
+            $q->where('tenant_id', $tenantId)
+              ->whereBetween('mutation_date', [$dateFrom, $dateTo]);
+            if ($type !== 'all') {
+                $q->where('type', $type);
+            }
+        })->whereHas('inventoryItem', function ($q) {
+            $q->whereIn('type', ['atk', 'inventaris']);
+        })->with(['warehouseMutation.fromDepartment', 'warehouseMutation.toDepartment', 'inventoryItem']);
+
+        $items = $query->orderByDesc('id')->get();
+
+        return view('inventory.ga_mutations.report_mutation', compact('items', 'type', 'dateFrom', 'dateTo'));
+    }
+
+    /**
+     * Cetak Laporan Barang Masuk & Keluar GA.
+     */
+    public function printReportMutationGa(Request $request)
+    {
+        $tenantId = Auth::user()->tenant_id;
+        $type     = $request->input('type', 'all');
+        $dateFrom = $request->input('date_from', date('Y-m-01'));
+        $dateTo   = $request->input('date_to', date('Y-m-d'));
+
+        $query = WarehouseMutationItem::whereHas('warehouseMutation', function ($q) use ($tenantId, $type, $dateFrom, $dateTo) {
+            $q->where('tenant_id', $tenantId)
+              ->whereBetween('mutation_date', [$dateFrom, $dateTo]);
+            if ($type !== 'all') {
+                $q->where('type', $type);
+            }
+        })->whereHas('inventoryItem', function ($q) {
+            $q->whereIn('type', ['atk', 'inventaris']);
+        })->with(['warehouseMutation.fromDepartment', 'warehouseMutation.toDepartment', 'inventoryItem']);
+
+        $items = $query->orderByDesc('id')->get();
+
+        return view('inventory.ga_mutations.print_report_mutation', compact('items', 'type', 'dateFrom', 'dateTo'));
+    }
+
+    /**
+     * Rekap Persediaan GA.
+     */
+    public function reportSummaryGa(Request $request)
+    {
+        $tenantId = Auth::user()->tenant_id;
+        $dateFrom = $request->input('date_from', date('Y-m-01'));
+        $dateTo   = $request->input('date_to', date('Y-m-d'));
+
+        $items = InventoryItem::where('tenant_id', $tenantId)
+            ->whereIn('type', ['atk', 'inventaris'])
+            ->orderBy('name')
+            ->get();
+
+        $rekap = [];
+        foreach ($items as $item) {
+            $inQty = StockMovement::where('inventory_item_id', $item->id)
+                ->whereBetween('created_at', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59'])
+                ->where('quantity', '>', 0)
+                ->sum('quantity');
+
+            $outQty = abs(StockMovement::where('inventory_item_id', $item->id)
+                ->whereBetween('created_at', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59'])
+                ->where('quantity', '<', 0)
+                ->sum('quantity'));
+
+            $stokAkhir = $item->stock;
+            $stokAwal  = $stokAkhir - $inQty + $outQty;
+
+            $rekap[] = [
+                'sku'        => $item->sku,
+                'name'       => $item->name,
+                'unit'       => $item->unit,
+                'type'       => $item->type,
+                'stok_awal'  => $stokAwal,
+                'qty_masuk'  => $inQty,
+                'qty_keluar' => $outQty,
+                'stok_akhir' => $stokAkhir,
+            ];
+        }
+
+        return view('inventory.ga_mutations.report_summary', compact('rekap', 'dateFrom', 'dateTo'));
+    }
+
+    /**
+     * Cetak Rekap Persediaan GA.
+     */
+    public function printReportSummaryGa(Request $request)
+    {
+        $tenantId = Auth::user()->tenant_id;
+        $dateFrom = $request->input('date_from', date('Y-m-01'));
+        $dateTo   = $request->input('date_to', date('Y-m-d'));
+
+        $items = InventoryItem::where('tenant_id', $tenantId)
+            ->whereIn('type', ['atk', 'inventaris'])
+            ->orderBy('name')
+            ->get();
+
+        $rekap = [];
+        foreach ($items as $item) {
+            $inQty = StockMovement::where('inventory_item_id', $item->id)
+                ->whereBetween('created_at', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59'])
+                ->where('quantity', '>', 0)
+                ->sum('quantity');
+
+            $outQty = abs(StockMovement::where('inventory_item_id', $item->id)
+                ->whereBetween('created_at', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59'])
+                ->where('quantity', '<', 0)
+                ->sum('quantity'));
+
+            $stokAkhir = $item->stock;
+            $stokAwal  = $stokAkhir - $inQty + $outQty;
+
+            $rekap[] = [
+                'sku'        => $item->sku,
+                'name'       => $item->name,
+                'unit'       => $item->unit,
+                'type'       => $item->type,
+                'stok_awal'  => $stokAwal,
+                'qty_masuk'  => $inQty,
+                'qty_keluar' => $outQty,
+                'stok_akhir' => $stokAkhir,
+            ];
+        }
+
+        return view('inventory.ga_mutations.print_report_summary', compact('rekap', 'dateFrom', 'dateTo'));
+    }
 }
