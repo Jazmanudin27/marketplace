@@ -44,10 +44,13 @@ use App\Http\Controllers\Hrd\LatePenaltyRuleController;
 use App\Http\Controllers\Hrd\LeaveRequestController;
 // Inventory
 use App\Http\Controllers\Inventory\InventoryController;
-use App\Http\Controllers\Inventory\IncomingGoodController;
 use App\Http\Controllers\Inventory\StockOpnameController;
 use App\Http\Controllers\Inventory\PurchaseOrderController;
 use App\Http\Controllers\Inventory\StockSyncController;
+use App\Http\Controllers\Inventory\ReceivePurchaseOrderController;
+use App\Http\Controllers\Inventory\PurchaseReturnController;
+use App\Http\Controllers\Inventory\StockTransferController;
+use App\Http\Controllers\Inventory\GoodsReceiptController;
 // Marketplace
 use App\Http\Controllers\Marketplace\StoreController;
 // Settings
@@ -395,9 +398,6 @@ Route::middleware('auth')->group(function () {
     // Inventory & Stock
     Route::middleware('permission:manage-inventory')->group(function () {
         Route::get('/inventory', [InventoryController::class, 'index'])->name('inventory.index');
-        Route::get('/incoming-goods', [IncomingGoodController::class, 'index'])->name('incoming_goods.index');
-        Route::get('/incoming-goods/create', [IncomingGoodController::class, 'create'])->name('incoming_goods.create');
-        Route::post('/incoming-goods', [IncomingGoodController::class, 'store'])->name('incoming_goods.store');
         Route::get('/stock-opnames', [StockOpnameController::class, 'index'])->name('stock_opnames.index');
         Route::get('/stock-opnames/create', [StockOpnameController::class, 'create'])->name('stock_opnames.create');
         Route::post('/stock-opnames', [StockOpnameController::class, 'store'])->name('stock_opnames.store');
@@ -419,6 +419,32 @@ Route::middleware('auth')->group(function () {
         Route::get('/purchase-orders/{purchase_order}/print', [PurchaseOrderController::class, 'print'])->name('purchase_orders.print');
         Route::post('/purchase-orders/{purchase_order}/update-status', [PurchaseOrderController::class, 'updateStatus'])->name('purchase_orders.update_status');
         Route::get('/purchase-orders/{purchase_order}/items', [PurchaseOrderController::class, 'getItems'])->name('purchase_orders.items');
+
+        // Receive Purchase Order (Penerimaan Barang)
+        Route::get('/purchase-orders/{purchase_order}/receive', [ReceivePurchaseOrderController::class, 'show'])->name('purchase_orders.receive');
+        Route::post('/purchase-orders/{purchase_order}/receive', [ReceivePurchaseOrderController::class, 'store'])->name('purchase_orders.receive.store');
+
+        // Purchase Returns (Retur Pembelian)
+        Route::get('/purchase-returns', [PurchaseReturnController::class, 'index'])->name('purchase_returns.index');
+        Route::get('/purchase-returns/create', [PurchaseReturnController::class, 'create'])->name('purchase_returns.create');
+        Route::post('/purchase-returns', [PurchaseReturnController::class, 'store'])->name('purchase_returns.store');
+        Route::get('/purchase-returns/{purchaseReturn}', [PurchaseReturnController::class, 'show'])->name('purchase_returns.show');
+        Route::delete('/purchase-returns/{purchaseReturn}', [PurchaseReturnController::class, 'destroy'])->name('purchase_returns.destroy');
+        Route::post('/purchase-returns/{purchaseReturn}/update-status', [PurchaseReturnController::class, 'updateStatus'])->name('purchase_returns.update_status');
+
+        // Stock Transfers (Transfer Stok Antar Departemen)
+        Route::get('/stock-transfers', [StockTransferController::class, 'index'])->name('stock_transfers.index');
+        Route::get('/stock-transfers/create', [StockTransferController::class, 'create'])->name('stock_transfers.create');
+        Route::post('/stock-transfers', [StockTransferController::class, 'store'])->name('stock_transfers.store');
+        Route::get('/stock-transfers/{stockTransfer}', [StockTransferController::class, 'show'])->name('stock_transfers.show');
+        Route::delete('/stock-transfers/{stockTransfer}', [StockTransferController::class, 'destroy'])->name('stock_transfers.destroy');
+
+        // Penerimaan Barang Langsung (tanpa PO)
+        Route::get('/goods-receipts', [GoodsReceiptController::class, 'index'])->name('goods_receipts.index');
+        Route::get('/goods-receipts/create', [GoodsReceiptController::class, 'create'])->name('goods_receipts.create');
+        Route::post('/goods-receipts', [GoodsReceiptController::class, 'store'])->name('goods_receipts.store');
+        Route::get('/goods-receipts/{goodsReceipt}', [GoodsReceiptController::class, 'show'])->name('goods_receipts.show');
+        Route::delete('/goods-receipts/{goodsReceipt}', [GoodsReceiptController::class, 'destroy'])->name('goods_receipts.destroy');
 
         // Stock Sync
         Route::get('/stock-sync', [StockSyncController::class, 'index'])->name('inventory.stock_sync');

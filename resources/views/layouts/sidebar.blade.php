@@ -14,6 +14,9 @@
 
     $isPembelianActive =
         request()->routeIs('purchase_orders.*') ||
+        request()->routeIs('purchase_returns.*') ||
+        request()->routeIs('stock_transfers.*') ||
+        request()->routeIs('goods_receipts.*') ||
         request()->routeIs('incoming_goods.*');
 
     $isGudangJadiActive =
@@ -218,10 +221,16 @@
                         @can('manage-incoming-goods')
                             <a href="{{ route('purchase_orders.index') }}"
                                 class="nav-link py-1 {{ (request()->routeIs('purchase_orders.*') && !request()->routeIs('purchase_orders.report')) ? 'active text-white' : 'text-secondary' }}">Purchase Order</a>
-                            <a href="{{ route('incoming_goods.index') }}"
-                                class="nav-link py-1 {{ request()->routeIs('incoming_goods.*') ? 'active text-white' : 'text-secondary' }}">Barang Masuk</a>
                             <a href="{{ route('purchase_orders.report') }}"
                                 class="nav-link py-1 {{ request()->routeIs('purchase_orders.report') ? 'active text-white' : 'text-secondary' }}">Laporan Pembelian</a>
+                        @endcan
+                        @can('manage-inventory')
+                            <a href="{{ route('goods_receipts.index') }}"
+                                class="nav-link py-1 {{ request()->routeIs('goods_receipts.*') ? 'active text-white' : 'text-secondary' }}">Terima Langsung (Non-PO)</a>
+                            <a href="{{ route('purchase_returns.index') }}"
+                                class="nav-link py-1 {{ request()->routeIs('purchase_returns.*') ? 'active text-white' : 'text-secondary' }}">Retur Pembelian</a>
+                            <a href="{{ route('stock_transfers.index') }}"
+                                class="nav-link py-1 {{ request()->routeIs('stock_transfers.*') ? 'active text-white' : 'text-secondary' }}">Transfer Stok</a>
                         @endcan
                     </div>
                 </div>

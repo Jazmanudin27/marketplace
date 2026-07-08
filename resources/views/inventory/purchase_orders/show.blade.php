@@ -38,11 +38,34 @@
             </div>
         </div>
 
+        {{-- Aksi: Terima Barang --}}
+        @if(in_array($purchaseOrder->status, ['ordered', 'partially_received']))
+            <div class="card border-0 shadow-sm rounded-3 bg-white p-3 mb-3">
+                <h6 class="fw-bold text-dark mb-3 small"><i class="fas fa-truck-loading text-primary me-2"></i>Penerimaan Barang</h6>
+                <a href="{{ route('purchase_orders.receive', $purchaseOrder) }}" class="btn btn-primary btn-sm w-100 py-2 fw-semibold">
+                    <i class="fas fa-boxes me-1"></i> Terima Barang dari Supplier
+                </a>
+                <div class="text-muted mt-2" style="font-size:11px">
+                    <i class="fas fa-info-circle me-1"></i>Stok akan langsung bertambah setelah konfirmasi.
+                </div>
+            </div>
+        @endif
+
+        {{-- Aksi: Retur --}}
+        @if(in_array($purchaseOrder->status, ['ordered', 'partially_received', 'received']))
+            <div class="card border-0 shadow-sm rounded-3 bg-white p-3 mb-3">
+                <h6 class="fw-bold text-dark mb-3 small"><i class="fas fa-undo-alt text-danger me-2"></i>Retur Pembelian</h6>
+                <a href="{{ route('purchase_returns.create', ['po_id' => $purchaseOrder->id]) }}" class="btn btn-outline-danger btn-sm w-100 py-2 fw-semibold">
+                    <i class="fas fa-undo-alt me-1"></i> Buat Retur ke Supplier
+                </a>
+            </div>
+        @endif
+
         {{-- Aksi Perubahan Status --}}
         @if($purchaseOrder->status !== 'received')
-            <div class="card border rounded shadow-sm bg-white p-3">
-                <h6 class="fw-bold text-dark mb-3"><i class="fas fa-cog text-secondary me-2"></i>Perbarui Status</h6>
-                
+            <div class="card border-0 shadow-sm rounded-3 bg-white p-3">
+                <h6 class="fw-bold text-dark mb-3 small"><i class="fas fa-cog text-secondary me-2"></i>Perbarui Status</h6>
+
                 @if($purchaseOrder->status === 'draft')
                     <form action="{{ route('purchase_orders.update_status', $purchaseOrder) }}" method="POST" class="mb-2">
                         @csrf
