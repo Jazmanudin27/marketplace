@@ -431,7 +431,131 @@
                     @endif
                 </div>
             </div>
-            </div>
+
+            @if (isset($product->id))
+                <div class="col-md-12 mt-4">
+                    <div class="card border shadow-sm">
+                        <div class="card-header bg-purple bg-opacity-10 border-bottom py-3 px-4 d-flex align-items-center gap-2" style="background:#f3e8ff">
+                            <div class="rounded-circle d-flex align-items-center justify-content-center" style="width:36px;height:36px;background:#8b5cf6">
+                                <i class="fas fa-flask text-white"></i>
+                            </div>
+                            <div>
+                                <h6 class="fw-bold mb-0 text-dark">Formulasi Resep &amp; Jasa Ahli (BOM)</h6>
+                                <small class="text-muted">Tentukan takaran bahan baku/kemasan serta biaya jasa tenaga ahli/QC untuk HPP otomatis.</small>
+                            </div>
+                        </div>
+                        <div class="card-body p-4">
+                            <form action="{{ route('products.save_recipe', $product) }}" method="POST">
+                                @csrf
+                                <div class="row mb-4">
+                                    <div class="col-md-4">
+                                        <label for="batch_qty" class="form-label fw-semibold small text-muted">Kapasitas Batch Standard (Qty)</label>
+                                        <div class="input-group">
+                                            <input type="number" name="batch_qty" id="batch_qty" class="form-control" min="1" value="{{ $recipe ? $recipe->batch_qty : 1 }}" required>
+                                            <span class="input-group-text">{{ $product->unit ?: 'pcs' }}</span>
+                                        </div>
+                                        <div class="form-text text-muted small">Biaya resep dihitung proporsional per unit berdasarkan total kapasitas satu batch ini.</div>
+                                    </div>
+                                </div>
+
+                                <div class="row g-4">
+                                    <!-- Kiri: Bahan Baku & Kemasan -->
+                                    <div class="col-lg-7 border-end">
+                                        <div class="d-flex justify-content-between align-items-center mb-3">
+                                            <h6 class="fw-bold text-dark mb-0"><i class="fas fa-boxes me-2 text-primary"></i>1. Bahan Baku &amp; Kemasan (BOM)</h6>
+                                            <button type="button" class="btn btn-sm btn-outline-primary fw-semibold" id="btn-add-bom-row">
+                                                <i class="fas fa-plus me-1"></i> Tambah Bahan
+                                            </button>
+                                        </div>
+                                        <div class="table-responsive">
+                                            <table class="table table-hover align-middle" id="table-bom">
+                                                <thead>
+                                                    <tr class="small text-uppercase text-muted" style="font-size:11px">
+                                                        <th style="width: 55%">Bahan / Item</th>
+                                                        <th style="width: 30%">Qty Dibutuhkan</th>
+                                                        <th style="width: 15%" class="text-center"></th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    @if($recipe && $recipe->items->count() > 0)
+                                                        @foreach($recipe->items as $idx => $rItem)
+                                                            <tr class="bom-row">
+                                                                <td>
+                                                                    <select name="items[{{ $idx }}][inventory_item_id]" class="form-select select-bom-item" required>
+                                                                        <option value=""></option>
+                                                                        @foreach($inventoryItems as $item)
+                                                                            <option value="{{ $item->id }}" data-unit="{{ $item->unit }}" {{ $rItem->inventory_item_id == $item->id ? 'selected' : '' }}>
+                                                                                {{ $item->name }} ({{ $item->sku }})
+                                                                            </option>
+                                                                        @endforeach
+                                                                    </select>
+                                                                </td>
+                                                                <td>
+                                                                    <div class="input-group input-group-sm">
+                                                                        <input type="number" step="0.0001" name="items[{{ $idx }}][quantity]" class="form-control" value="{{ (float)$rItem->quantity }}" min="0.0001" required>
+                                                                        <span class="input-group-text span-bom-unit" style="font-size:10px">{{ $rItem->inventoryItem->unit }}</span>
+                                                                    </div>
+                                                                </td>
+                                                                <td class="text-center">
+                                                                    <button type="button" class="btn btn-sm btn-link text-danger btn-remove-bom-row"><i class="fas fa-trash-alt"></i></button>
+                                                                </td>
+                                                            </tr>
+                                                        @endforeach
+                                                    @endif
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+
+                                    <!-- Kanan: Template Jasa Ahli -->
+                                    <div class="col-lg-5">
+                                        <div class="d-flex justify-content-between align-items-center mb-3">
+                                            <h6 class="fw-bold text-dark mb-0"><i class="fas fa-user-cog me-2 text-warning"></i>2. Template Jasa Ahli &amp; QC</h6>
+                                            <button type="button" class="btn btn-sm btn-outline-warning fw-semibold" id="btn-add-labor-row">
+                                                <i class="fas fa-plus me-1"></i> Tambah Jasa
+                                            </button>
+                                        </div>
+                                        <div class="table-responsive">
+                                            <table class="table table-hover align-middle" id="table-labor">
+                                                <thead>
+                                                    <tr class="small text-uppercase text-muted" style="font-size:11px">
+                                                        <th style="width: 55%">Nama Jasa / QC</th>
+                                                        <th style="width: 35%">Biaya Default (Rp)</th>
+                                                        <th style="width: 10%" class="text-center"></th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    @if($recipe && $recipe->labors->count() > 0)
+                                                        @foreach($recipe->labors as $idx => $rLabor)
+                                                            <tr class="labor-row">
+                                                                <td>
+                                                                    <input type="text" name="labors[{{ $idx }}][service_name]" class="form-control form-control-sm" value="{{ $rLabor->service_name }}" placeholder="Misal: QC, Operator" required>
+                                                                </td>
+                                                                <td>
+                                                                    <input type="number" name="labors[{{ $idx }}][default_cost]" class="form-control form-control-sm" value="{{ (int)$rLabor->default_cost }}" min="0" required>
+                                                                </td>
+                                                                <td class="text-center">
+                                                                    <button type="button" class="btn btn-sm btn-link text-danger btn-remove-labor-row"><i class="fas fa-trash-alt"></i></button>
+                                                                </td>
+                                                            </tr>
+                                                        @endforeach
+                                                    @endif
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="d-flex justify-content-end mt-4 pt-3 border-top">
+                                    <button type="submit" class="btn btn-success fw-bold px-4">
+                                        <i class="fas fa-save me-1"></i> Simpan Resep &amp; Jasa Ahli
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            @endif
         </div>
     </div>
 
@@ -1781,6 +1905,95 @@
             updateProfitBox('box-affiliate', 'val-affiliate-profit', 'val-affiliate-pct', affiliateProfit,
                 affiliatePctResult);
             updateProfitBox('box-ads', 'val-ads-profit', 'val-ads-pct', adsProfit, adsPctResult);
+
+            // JS Code for BOM & Labor Rows
+            @if(isset($product->id))
+                let bomRowIndex = {{ $recipe && $recipe->items->count() > 0 ? $recipe->items->count() : 0 }};
+                let laborRowIndex = {{ $recipe && $recipe->labors->count() > 0 ? $recipe->labors->count() : 0 }};
+
+                $('#btn-add-bom-row').on('click', function() {
+                    let optionsHtml = '<option value=""></option>';
+                    @foreach($inventoryItems as $item)
+                        optionsHtml += `<option value="{{ $item->id }}" data-unit="{{ $item->unit }}">{{ $item->name }} ({{ $item->sku }})</option>`;
+                    @endforeach
+
+                    const rowHtml = `
+                        <tr class="bom-row">
+                            <td>
+                                <select name="items[\${bomRowIndex}][inventory_item_id]" class="form-select select-bom-item" required>
+                                    \${optionsHtml}
+                                </select>
+                            </td>
+                            <td>
+                                <div class="input-group input-group-sm">
+                                    <input type="number" step="0.0001" name="items[\${bomRowIndex}][quantity]" class="form-control" min="0.0001" value="1" required>
+                                    <span class="input-group-text span-bom-unit" style="font-size:10px">—</span>
+                                </div>
+                            </td>
+                            <td class="text-center">
+                                <button type="button" class="btn btn-sm btn-link text-danger btn-remove-bom-row"><i class="fas fa-trash-alt"></i></button>
+                            </td>
+                        </tr>
+                    `;
+
+                    $('#table-bom tbody').append(rowHtml);
+                    initSelect2ForBom($('#table-bom tbody tr:last-child'));
+                    bomRowIndex++;
+                });
+
+                function initSelect2ForBom(row) {
+                    row.find('.select-bom-item').select2({
+                        theme: 'bootstrap-5',
+                        placeholder: '— Pilih Bahan —',
+                        allowClear: true,
+                        dropdownParent: $('#table-bom')
+                    });
+                }
+
+                $(document).on('change', '.select-bom-item', function() {
+                    const row = $(this).closest('.bom-row');
+                    const selected = $(this).find('option:selected');
+                    if (selected.val()) {
+                        row.find('.span-bom-unit').text(selected.data('unit'));
+                    } else {
+                        row.find('.span-bom-unit').text('—');
+                    }
+                });
+
+                $(document).on('click', '.btn-remove-bom-row', function() {
+                    $(this).closest('.bom-row').remove();
+                });
+
+                $('#btn-add-labor-row').on('click', function() {
+                    const rowHtml = `
+                        <tr class="labor-row">
+                            <td>
+                                <input type="text" name="labors[\${laborRowIndex}][service_name]" class="form-control form-control-sm" placeholder="Misal: QC, Operator" required>
+                            </td>
+                            <td>
+                                <input type="number" name="labors[\${laborRowIndex}][default_cost]" class="form-control form-control-sm" min="0" value="0" required>
+                            </td>
+                            <td class="text-center">
+                                <button type="button" class="btn btn-sm btn-link text-danger btn-remove-labor-row"><i class="fas fa-trash-alt"></i></button>
+                            </td>
+                        </tr>
+                    `;
+                    $('#table-labor tbody').append(rowHtml);
+                    laborRowIndex++;
+                });
+
+                $(document).on('click', '.btn-remove-labor-row', function() {
+                    $(this).closest('.labor-row').remove();
+                });
+
+                // Initialize existing select2 for BOM rows
+                $('.select-bom-item').select2({
+                    theme: 'bootstrap-5',
+                    placeholder: '— Pilih Bahan —',
+                    allowClear: true,
+                    dropdownParent: $('#table-bom')
+                });
+            @endif
         }
     </script>
 @endpush

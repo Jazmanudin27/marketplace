@@ -346,6 +346,7 @@ Route::middleware('auth')->group(function () {
         Route::delete('/products/{product}', [MasterProductController::class, 'destroy'])->name('products.destroy');
         Route::get('/products/{product}/publish', [MasterProductController::class, 'publish'])->name('products.publish');
         Route::post('/products/{product}/publish', [MasterProductController::class, 'storePublish'])->name('products.publish.store');
+        Route::post('/products/{product}/recipe', [MasterProductController::class, 'saveRecipe'])->name('products.save_recipe');
         Route::get('/api/shopee/categories', [MasterProductController::class, 'shopeeCategories'])->name('shopee.categories');
         Route::get('/api/tiktok/categories', [MasterProductController::class, 'tiktokCategories'])->name('tiktok.categories');
         Route::post('/products/publish/retry/{log}', [MasterProductController::class, 'retryPublish'])->name('products.publish.retry');
@@ -490,6 +491,15 @@ Route::middleware('auth')->group(function () {
         Route::get('/produksi-mutations/summary/print', [WarehouseMutationController::class, 'printReportSummaryProduksi'])->name('produksi_mutations.print_report_summary');
         Route::get('/produksi-mutations/{warehouseMutation}', [WarehouseMutationController::class, 'showProduksi'])->name('produksi_mutations.show');
 
+        // ── PESANAN PRODUKSI (Production Orders - Desktop) ──────────────────────
+        Route::get('/production-orders', [\App\Http\Controllers\Inventory\ProductionOrderController::class, 'index'])->name('production_orders.index');
+        Route::post('/production-orders/{order}/start', [\App\Http\Controllers\Inventory\ProductionOrderController::class, 'start'])->name('production_orders.start');
+        Route::post('/production-orders/{order}/complete', [\App\Http\Controllers\Inventory\ProductionOrderController::class, 'complete'])->name('production_orders.complete');
+        Route::post('/production-orders/{order}/cancel', [\App\Http\Controllers\Inventory\ProductionOrderController::class, 'cancel'])->name('production_orders.cancel');
+        Route::get('/production-orders/requirements', [\App\Http\Controllers\Inventory\ProductionOrderController::class, 'orderRequirements'])->name('production_orders.requirements');
+        Route::post('/production-orders/create-from-order', [\App\Http\Controllers\Inventory\ProductionOrderController::class, 'createFromOrder'])->name('production_orders.create_from_order');
+        Route::get('/production-orders/{order}', [\App\Http\Controllers\Inventory\ProductionOrderController::class, 'show'])->name('production_orders.show');
+
         // Stock Sync
         Route::get('/stock-sync', [StockSyncController::class, 'index'])->name('inventory.stock_sync');
         Route::post('/stock-sync/all', [StockSyncController::class, 'forceSyncAll'])->name('inventory.stock_sync.all');
@@ -543,6 +553,7 @@ Route::middleware('auth')->group(function () {
     // Laporan Profit & Laba Rugi
     Route::middleware('permission:view-financial-reports')->group(function () {
         Route::get('/profit', [ProfitController::class, 'index'])->name('profit.index');
+        Route::get('/profit/margin', [ProfitController::class, 'marginReport'])->name('profit.margin');
         Route::get('/finance/profit-loss', [FinancialReportController::class, 'profitLoss'])->name('finance.profit_loss');
 
         // New Reports (Phase 6b)

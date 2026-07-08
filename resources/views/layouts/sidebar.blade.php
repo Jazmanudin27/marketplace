@@ -439,6 +439,10 @@
                 </a>
                 <div class="collapse {{ $isProduksiActive ? 'show' : '' }}" id="collapseProduksi">
                     <div class="nav flex-column ms-3 mt-1 gap-1 border-start ps-2">
+                        <a href="{{ route('production_orders.index') }}"
+                            class="nav-link py-1 {{ request()->routeIs('production_orders.index') || request()->routeIs('production_orders.show') ? 'active text-white' : 'text-secondary' }}">Perintah Kerja (SPK)</a>
+                        <a href="{{ route('production_orders.requirements') }}"
+                            class="nav-link py-1 {{ request()->routeIs('production_orders.requirements') ? 'active text-white' : 'text-secondary' }}">Kebutuhan SPK (PO)</a>
                         <a href="{{ route('produksi_mutations.pending_approvals') }}"
                             class="nav-link py-1 d-flex align-items-center justify-content-between pe-3 {{ request()->routeIs('produksi_mutations.pending_approvals') ? 'active text-white' : 'text-secondary' }}">
                             <span>Penerimaan (Approval)</span>
@@ -553,8 +557,10 @@
                                 class="nav-link py-1 {{ request()->routeIs('finance.profit_loss') ? 'active text-white' : 'text-secondary' }}">Laba
                                 Rugi</a>
                             <a href="{{ route('profit.index') }}"
-                                class="nav-link py-1 {{ request()->routeIs('profit.*') ? 'active text-white' : 'text-secondary' }}">Profit
+                                class="nav-link py-1 {{ request()->routeIs('profit.index') ? 'active text-white' : 'text-secondary' }}">Profit
                                 Pesanan</a>
+                            <a href="{{ route('profit.margin') }}"
+                                class="nav-link py-1 {{ request()->routeIs('profit.margin') ? 'active text-white' : 'text-secondary' }}">Margin Produk Aktual</a>
                             <a href="{{ route('reports.store_sales') }}"
                                 class="nav-link py-1 {{ request()->routeIs('reports.store_sales') ? 'active text-white' : 'text-secondary' }}">Laporan
                                 Toko & Salur</a>

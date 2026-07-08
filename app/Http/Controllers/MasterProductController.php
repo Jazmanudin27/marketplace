@@ -162,7 +162,66 @@ class MasterProductController extends Controller
         abort_unless($product->tenant_id === Auth::user()->tenant_id, 403);
         $categories = \App\Models\Category::where('tenant_id', Auth::user()->tenant_id)->get();
         $brands = \App\Models\Brand::where('tenant_id', Auth::user()->tenant_id)->get();
-        return view('products.form', compact('product', 'categories', 'brands'));
+        
+        $recipe = \App\Models\ProductRecipe::with(['items.inventoryItem', 'labors'])
+            ->where('master_product_id', $product->id)
+            ->where('is_active', true)
+            ->first();
+            
+        $inventoryItems = \App\Models\InventoryItem::where('tenant_id', Auth::user()->tenant_id)
+            ->whereIn('type', ['bahan', 'kemasan'])
+            ->orderBy('name')
+            ->get();
+            
+        return view('products.form', compact('product', 'categories', 'brands', 'recipe', 'inventoryItems'));
+    }
+
+    public function saveRecipe(Request $request, MasterProduct $product)
+    {
+        abort_unless($product->tenant_id === Auth::user()->tenant_id, 403);
+        
+        $request->validate([
+            'batch_qty' => 'required|integer|min:1',
+            'items' => 'nullable|array',
+            'items.*.inventory_item_id' => 'required|exists:inventory_items,id',
+            'items.*.quantity' => 'required|numeric|min:0.0001',
+            'labors' => 'nullable|array',
+            'labors.*.service_name' => 'required|string|max:255',
+            'labors.*.default_cost' => 'required|numeric|min:0',
+        ]);
+
+        \DB::transaction(function() use ($request, $product) {
+            \App\Models\ProductRecipe::where('master_product_id', $product->id)
+                ->update(['is_active' => false]);
+                
+            $recipe = \App\Models\ProductRecipe::create([
+                'tenant_id' => Auth::user()->tenant_id,
+                'master_product_id' => $product->id,
+                'name' => 'Resep Utama ' . date('d/m/Y H:i'),
+                'batch_qty' => $request->batch_qty,
+                'is_active' => true,
+            ]);
+            
+            if ($request->has('items')) {
+                foreach ($request->items as $item) {
+                    $recipe->items()->create([
+                        'inventory_item_id' => $item['inventory_item_id'],
+                        'quantity' => $item['quantity'],
+                    ]);
+                }
+            }
+            
+            if ($request->has('labors')) {
+                foreach ($request->labors as $labor) {
+                    $recipe->labors()->create([
+                        'service_name' => $labor['service_name'],
+                        'default_cost' => $labor['default_cost'],
+                    ]);
+                }
+            }
+        });
+
+        return back()->with('success', 'Resep (BOM) & Jasa Ahli berhasil disimpan.');
     }
 
     public function update(Request $request, MasterProduct $product)
