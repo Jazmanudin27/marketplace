@@ -45,14 +45,10 @@
                         <th class="text-center text-danger">Keluar (-)</th>
                         <th class="text-center fw-bold">Stok Akhir</th>
                         <th>Satuan</th>
-                        <th class="text-end">Harga Pokok</th>
-                        <th class="text-end px-3">Total Nilai</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @php $grandValueTotal = 0; @endphp
                     @forelse($rekap as $row)
-                        @php $grandValueTotal += $row['total_value']; @endphp
                         <tr>
                             <td class="font-monospace fw-bold text-muted py-3 px-3" style="font-size:12px">{{ $row['sku'] ?: '—' }}</td>
                             <td class="fw-semibold text-dark small">{{ $row['name'] }}</td>
@@ -64,23 +60,15 @@
                             <td class="text-center font-monospace text-danger">-{{ number_format($row['qty_keluar']) }}</td>
                             <td class="text-center font-monospace fw-bold text-dark" style="font-size:14px">{{ number_format($row['stok_akhir']) }}</td>
                             <td class="small text-muted">{{ $row['unit'] ?: 'pcs' }}</td>
-                            <td class="font-monospace text-end text-muted small">Rp {{ number_format($row['cost_price'], 0, ',', '.') }}</td>
-                            <td class="font-monospace text-end fw-bold text-success px-3 small">Rp {{ number_format($row['total_value'], 0, ',', '.') }}</td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="10" class="text-center py-5 text-muted">
+                            <td colspan="8" class="text-center py-5 text-muted">
                                 Tidak ada data barang terdaftar.
                             </td>
                         </tr>
                     @endforelse
                 </tbody>
-                <tfoot style="background:#f0fdf4">
-                    <tr class="fw-bold">
-                        <td colspan="9" class="text-end py-3 px-3 text-dark">TOTAL NILAI PERSEDIAAN GUDANG</td>
-                        <td class="text-end font-monospace text-success px-3" style="font-size:16px">Rp {{ number_format($grandValueTotal, 0, ',', '.') }}</td>
-                    </tr>
-                </tfoot>
             </table>
         </div>
     </div>

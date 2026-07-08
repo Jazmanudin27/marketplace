@@ -40,20 +40,10 @@
                 <th>Asal / Pengirim</th>
                 <th>Tujuan / Penerima</th>
                 <th class="text-center">Qty</th>
-                <th class="text-right">Harga Satuan</th>
-                <th class="text-right">Total Nilai</th>
             </tr>
         </thead>
         <tbody>
-            @php $totalIn = 0; $totalOut = 0; @endphp
             @forelse($items as $row)
-                @php
-                    if ($row->warehouseMutation->type === 'in') {
-                        $totalIn += $row->subtotal;
-                    } else {
-                        $totalOut += $row->subtotal;
-                    }
-                @endphp
                 <tr>
                     <td>{{ $row->warehouseMutation->mutation_date->format('d/m/Y') }}</td>
                     <td class="font-mono">{{ $row->warehouseMutation->mutation_number }}</td>
@@ -69,28 +59,13 @@
                     <td>{{ $row->warehouseMutation->fromDepartment ? $row->warehouseMutation->fromDepartment->name : 'Gudang / Eksternal' }}</td>
                     <td>{{ $row->warehouseMutation->toDepartment ? $row->warehouseMutation->toDepartment->name : 'Gudang / Eksternal' }}</td>
                     <td class="text-center">{{ number_format($row->quantity) }}</td>
-                    <td class="text-right font-mono">Rp {{ number_format($row->unit_price, 0, ',', '.') }}</td>
-                    <td class="text-right font-mono">Rp {{ number_format($row->subtotal, 0, ',', '.') }}</td>
                 </tr>
             @empty
                 <tr>
-                    <td colspan="9" class="text-center" style="padding: 30px;">Tidak ada data mutasi.</td>
+                    <td colspan="7" class="text-center" style="padding: 30px;">Tidak ada data mutasi.</td>
                 </tr>
             @endforelse
         </tbody>
     </table>
-
-    <div style="float: right; width: 300px; margin-top: 20px;">
-        <table style="border: none;">
-            <tr style="border: none;">
-                <td style="border: none; font-weight: bold;">Total Nilai Barang Masuk:</td>
-                <td style="border: none; text-align: right; font-weight: bold;" class="font-mono">Rp {{ number_format($totalIn, 0, ',', '.') }}</td>
-            </tr>
-            <tr style="border: none;">
-                <td style="border: none; font-weight: bold;">Total Nilai Barang Keluar:</td>
-                <td style="border: none; text-align: right; font-weight: bold;" class="font-mono">Rp {{ number_format($totalOut, 0, ',', '.') }}</td>
-            </tr>
-        </table>
-    </div>
 </body>
 </html>

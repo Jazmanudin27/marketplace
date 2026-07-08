@@ -319,8 +319,6 @@
                 </a>
                 <div class="collapse {{ $isGudangBahanActive ? 'show' : '' }}" id="collapseGudangBahan">
                     <div class="nav flex-column ms-3 mt-1 gap-1 border-start ps-2">
-                        <a href="{{ route('inventory_items.index', ['type' => 'bahan_kemasan']) }}"
-                            class="nav-link py-1 {{ (request()->routeIs('inventory_items.index') && request('type') === 'bahan_kemasan') ? 'active text-white' : 'text-secondary' }}">Kelola Master Bahan</a>
                         <a href="{{ route('warehouse_mutations.stock_report') }}"
                             class="nav-link py-1 {{ request()->routeIs('warehouse_mutations.stock_report') ? 'active text-white' : 'text-secondary' }}">
                             <i class="fas fa-boxes me-1"></i> Laporan Stok Gudang

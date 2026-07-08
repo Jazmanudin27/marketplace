@@ -154,13 +154,12 @@
                             <tr class="small text-uppercase text-muted">
                                 <th class="py-2 px-3">Barang</th>
                                 <th class="text-center py-2" style="width:130px">Qty Masuk</th>
-                                <th class="text-end py-2" style="width:180px">Estimasi Harga Pokok</th>
                                 <th class="text-center py-2" style="width:60px"></th>
                             </tr>
                         </thead>
                         <tbody id="items-body">
                             <tr id="empty-row">
-                                <td colspan="4" class="text-center py-5 text-muted">
+                                <td colspan="3" class="text-center py-5 text-muted">
                                     <i class="fas fa-cubes fa-2x mb-2 opacity-25 d-block"></i>
                                     <div class="small">Belum ada barang dipilih. Silakan cari barang di atas lalu klik Tambah.</div>
                                 </td>
@@ -267,14 +266,6 @@ $(document).ready(function () {
                     class="form-control form-control-sm text-center qty-input"
                     style="width:85px;margin:auto"
                     value="1" min="1" required>
-            </td>
-            <td class="py-2">
-                <div class="input-group input-group-sm">
-                    <span class="input-group-text" style="font-size:11px">Rp</span>
-                    <input type="number" name="items[${itemIndex}][unit_price]"
-                        class="form-control form-control-sm text-end"
-                        value="${price}" min="0" step="100" required>
-                </div>
             </td>
             <td class="text-center">
                 <button type="button" class="btn btn-sm btn-outline-danger btn-remove-item rounded-2">

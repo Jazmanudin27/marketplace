@@ -124,7 +124,7 @@ class WarehouseMutationController extends Controller
             'items'              => 'required|array|min:1',
             'items.*.item_id'    => 'required|exists:inventory_items,id',
             'items.*.quantity'   => 'required|integer|min:1',
-            'items.*.unit_price' => 'required|numeric|min:0',
+            'items.*.unit_price' => 'nullable|numeric|min:0',
         ]);
 
         $mutation = DB::transaction(function () use ($request, $tenantId) {
@@ -150,7 +150,7 @@ class WarehouseMutationController extends Controller
                 $mutation->items()->create([
                     'inventory_item_id' => $item->id,
                     'quantity'          => $qty,
-                    'unit_price'        => $row['unit_price'],
+                    'unit_price'        => $row['unit_price'] ?? 0,
                     'notes'             => $row['notes'] ?? null,
                 ]);
 

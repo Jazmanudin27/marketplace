@@ -94,8 +94,7 @@
                                 <th class="py-2 px-4">Nama Barang</th>
                                 <th class="text-center py-2">Tipe</th>
                                 <th class="text-center py-2">Satuan</th>
-                                <th class="text-center py-2" style="width:130px">Qty Mutasi</th>
-                                <th class="text-end py-2 px-4">Estimasi Harga</th>
+                                <th class="text-center py-2 px-4" style="width:150px">Qty Mutasi</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -120,11 +119,8 @@
                                     <td class="text-center small text-muted">
                                         {{ $item->inventoryItem?->unit ?? 'pcs' }}
                                     </td>
-                                    <td class="text-center fw-bold text-{{ $warehouseMutation->type === 'in' ? 'success' : 'danger' }}" style="font-size:15px">
+                                    <td class="text-center fw-bold text-{{ $warehouseMutation->type === 'in' ? 'success' : 'danger' }} px-4" style="font-size:15px">
                                         {{ $warehouseMutation->type === 'in' ? '+' : '-' }}{{ number_format($item->quantity) }}
-                                    </td>
-                                    <td class="font-monospace text-end fw-bold text-dark px-4 small">
-                                        Rp {{ number_format($item->subtotal, 0, ',', '.') }}
                                     </td>
                                 </tr>
                             @endforeach

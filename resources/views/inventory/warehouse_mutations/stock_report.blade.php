@@ -60,17 +60,11 @@
                         <th>Kategori</th>
                         <th class="text-center">Stok Fisik</th>
                         <th>Satuan</th>
-                        <th class="text-end">Harga Pokok (Estimasi)</th>
-                        <th class="text-end px-3">Total Nilai Persediaan</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @php $grandTotal = 0; @endphp
                     @forelse($items as $item)
                         @php
-                            $subtotal = $item->stock * ($item->cost_price ?: 0);
-                            $grandTotal += $subtotal;
-
                             $catColors = [
                                 'bahan' => 'background:#fef3c7;color:#92400e',
                                 'kemasan' => 'background:#dbeafe;color:#1e40af',
@@ -94,23 +88,15 @@
                                 @endif
                             </td>
                             <td class="small text-muted">{{ $item->unit ?: 'pcs' }}</td>
-                            <td class="font-monospace text-end text-muted small">Rp {{ number_format($item->cost_price, 0, ',', '.') }}</td>
-                            <td class="font-monospace text-end fw-bold text-dark px-3 small">Rp {{ number_format($subtotal, 0, ',', '.') }}</td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7" class="text-center py-5 text-muted">
+                            <td colspan="5" class="text-center py-5 text-muted">
                                 Tidak ada data barang terdaftar yang sesuai.
                             </td>
                         </tr>
                     @endforelse
                 </tbody>
-                <tfoot style="background:#f0f4f9">
-                    <tr class="fw-bold">
-                        <td colspan="6" class="text-end py-3 px-3 text-dark">TOTAL ESTIMASI ASET GUDANG</td>
-                        <td class="text-end font-monospace text-primary px-3" style="font-size:15px">Rp {{ number_format($grandTotal, 0, ',', '.') }}</td>
-                    </tr>
-                </tfoot>
             </table>
         </div>
 

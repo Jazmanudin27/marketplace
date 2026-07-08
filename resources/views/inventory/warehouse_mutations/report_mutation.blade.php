@@ -51,9 +51,7 @@
                         <th class="text-center">Tipe</th>
                         <th>Asal / Pengirim</th>
                         <th>Tujuan / Penerima</th>
-                        <th class="text-center">Qty</th>
-                        <th class="text-end">Harga Satuan</th>
-                        <th class="text-end px-3">Total Nilai</th>
+                        <th class="text-center px-3">Qty</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -76,13 +74,11 @@
                             <td class="small text-muted">
                                 {{ $row->warehouseMutation->toDepartment ? $row->warehouseMutation->toDepartment->name : 'Gudang / Eksternal' }}
                             </td>
-                            <td class="text-center fw-bold text-dark small">{{ number_format($row->quantity) }}</td>
-                            <td class="font-monospace text-end text-muted small">Rp {{ number_format($row->unit_price, 0, ',', '.') }}</td>
-                            <td class="font-monospace text-end fw-bold text-dark px-3 small">Rp {{ number_format($row->subtotal, 0, ',', '.') }}</td>
+                            <td class="text-center fw-bold text-dark px-3 small">{{ number_format($row->quantity) }}</td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="9" class="text-center py-5 text-muted">
+                            <td colspan="7" class="text-center py-5 text-muted">
                                 <i class="fas fa-file-alt fa-2x mb-3 opacity-25 d-block"></i>
                                 Tidak ada data mutasi barang pada periode terpilih.
                             </td>

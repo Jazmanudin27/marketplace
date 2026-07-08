@@ -39,14 +39,10 @@
                 <th class="text-center">Keluar (-)</th>
                 <th class="text-center">Stok Akhir</th>
                 <th>Satuan</th>
-                <th class="text-right">Harga Pokok</th>
-                <th class="text-right">Total Nilai</th>
             </tr>
         </thead>
         <tbody>
-            @php $grandValueTotal = 0; @endphp
             @forelse($rekap as $row)
-                @php $grandValueTotal += $row['total_value']; @endphp
                 <tr>
                     <td class="font-mono">{{ $row['sku'] ?: '—' }}</td>
                     <td><strong>{{ $row['name'] }}</strong></td>
@@ -56,21 +52,13 @@
                     <td class="text-center font-mono" style="color: red;">-{{ number_format($row['qty_keluar']) }}</td>
                     <td class="text-center font-mono fw-bold">{{ number_format($row['stok_akhir']) }}</td>
                     <td>{{ $row['unit'] ?: 'pcs' }}</td>
-                    <td class="text-right font-mono">Rp {{ number_format($row['cost_price'], 0, ',', '.') }}</td>
-                    <td class="text-right font-mono fw-bold">Rp {{ number_format($row['total_value'], 0, ',', '.') }}</td>
                 </tr>
             @empty
                 <tr>
-                    <td colspan="10" class="text-center" style="padding: 30px;">Tidak ada data barang.</td>
+                    <td colspan="8" class="text-center" style="padding: 30px;">Tidak ada data barang.</td>
                 </tr>
             @endforelse
         </tbody>
-        <tfoot>
-            <tr style="background-color: #f5f5f5;">
-                <td colspan="9" class="text-right fw-bold">TOTAL NILAI ESTIMASI STOCK:</td>
-                <td class="text-right font-mono fw-bold" style="font-size: 13px;">Rp {{ number_format($grandValueTotal, 0, ',', '.') }}</td>
-            </tr>
-        </tfoot>
     </table>
 </body>
 </html>
