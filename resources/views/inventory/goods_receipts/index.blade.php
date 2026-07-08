@@ -116,6 +116,10 @@
                                         class="btn btn-info btn-sm text-white" title="Detail">
                                         <i class="fas fa-eye"></i>
                                     </a>
+                                    <a href="{{ route('goods_receipts.edit', $receipt) }}"
+                                        class="btn btn-warning btn-sm text-white" title="Edit">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
                                     <form action="{{ route('goods_receipts.destroy', $receipt) }}" method="POST"
                                         onsubmit="return confirm('Hapus penerimaan ini? Stok akan dikurangi kembali.')">
                                         @csrf @method('DELETE')
