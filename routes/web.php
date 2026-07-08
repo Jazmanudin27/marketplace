@@ -49,7 +49,6 @@ use App\Http\Controllers\Inventory\PurchaseOrderController;
 use App\Http\Controllers\Inventory\StockSyncController;
 use App\Http\Controllers\Inventory\ReceivePurchaseOrderController;
 use App\Http\Controllers\Inventory\PurchaseReturnController;
-use App\Http\Controllers\Inventory\StockTransferController;
 use App\Http\Controllers\Inventory\GoodsReceiptController;
 // Marketplace
 use App\Http\Controllers\Marketplace\StoreController;
@@ -432,20 +431,14 @@ Route::middleware('auth')->group(function () {
         Route::delete('/purchase-returns/{purchaseReturn}', [PurchaseReturnController::class, 'destroy'])->name('purchase_returns.destroy');
         Route::post('/purchase-returns/{purchaseReturn}/update-status', [PurchaseReturnController::class, 'updateStatus'])->name('purchase_returns.update_status');
 
-        // Stock Transfers (Transfer Stok Antar Departemen)
-        Route::get('/stock-transfers', [StockTransferController::class, 'index'])->name('stock_transfers.index');
-        Route::get('/stock-transfers/create', [StockTransferController::class, 'create'])->name('stock_transfers.create');
-        Route::post('/stock-transfers', [StockTransferController::class, 'store'])->name('stock_transfers.store');
-        Route::get('/stock-transfers/{stockTransfer}', [StockTransferController::class, 'show'])->name('stock_transfers.show');
-        Route::delete('/stock-transfers/{stockTransfer}', [StockTransferController::class, 'destroy'])->name('stock_transfers.destroy');
-
-        // Penerimaan Barang Langsung (tanpa PO)
+        // Penerimaan Barang (PO & Non-PO)
         Route::get('/goods-receipts', [GoodsReceiptController::class, 'index'])->name('goods_receipts.index');
         Route::get('/goods-receipts/create', [GoodsReceiptController::class, 'create'])->name('goods_receipts.create');
         Route::post('/goods-receipts', [GoodsReceiptController::class, 'store'])->name('goods_receipts.store');
         Route::get('/goods-receipts/{goodsReceipt}', [GoodsReceiptController::class, 'show'])->name('goods_receipts.show');
         Route::get('/goods-receipts/{goodsReceipt}/edit', [GoodsReceiptController::class, 'edit'])->name('goods_receipts.edit');
         Route::put('/goods-receipts/{goodsReceipt}', [GoodsReceiptController::class, 'update'])->name('goods_receipts.update');
+        Route::post('/goods-receipts/{goodsReceipt}/approve', [GoodsReceiptController::class, 'approve'])->name('goods_receipts.approve');
         Route::delete('/goods-receipts/{goodsReceipt}', [GoodsReceiptController::class, 'destroy'])->name('goods_receipts.destroy');
 
         // Stock Sync

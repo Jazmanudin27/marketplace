@@ -46,7 +46,7 @@
                     <i class="fas fa-boxes me-1"></i> Terima Barang dari Supplier
                 </a>
                 <div class="text-muted mt-2" style="font-size:11px">
-                    <i class="fas fa-info-circle me-1"></i>Stok akan langsung bertambah setelah konfirmasi.
+                    <i class="fas fa-info-circle me-1"></i>Mencatat draf Penerimaan Barang (menunggu approval agar masuk ke stok).
                 </div>
             </div>
         @endif

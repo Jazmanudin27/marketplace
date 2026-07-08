@@ -4,7 +4,8 @@ namespace App\Http\Controllers\Inventory;
 
 use App\Http\Controllers\Controller;
 use App\Models\PurchaseOrder;
-use App\Models\StockMovement;
+use App\Models\GoodsReceipt;
+use App\Models\GoodsReceiptItem;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -29,7 +30,8 @@ class ReceivePurchaseOrderController extends Controller
     }
 
     /**
-     * Proses penerimaan barang: update received_qty, tambah stok, catat movement.
+     * Proses pembuatan draft Penerimaan Barang (Goods Receipt) dari PO.
+     * Status Goods Receipt = 'pending', belum mempengaruhi stok atau PO qty.
      */
     public function store(Request $request, PurchaseOrder $purchaseOrder)
     {
@@ -52,95 +54,65 @@ class ReceivePurchaseOrderController extends Controller
         $tenantId = Auth::user()->tenant_id;
         $userId   = Auth::id();
 
-        DB::transaction(function () use ($request, $purchaseOrder, $tenantId, $userId) {
-            $allReceived    = true;
+        $goodsReceipt = DB::transaction(function () use ($request, $purchaseOrder, $tenantId, $userId) {
             $anyReceived    = false;
-            $receiveDate    = $request->receive_date;
+            $totalAmount    = 0;
             $poItemsIndexed = $purchaseOrder->items->keyBy('id');
+
+            // Generate GR
+            $receiptNumber = GoodsReceipt::generateReceiptNumber();
+            $receipt = GoodsReceipt::create([
+                'tenant_id'         => $tenantId,
+                'supplier_id'       => $purchaseOrder->supplier_id,
+                'purchase_order_id' => $purchaseOrder->id,
+                'department_id'     => $purchaseOrder->department_id,
+                'receipt_number'    => $receiptNumber,
+                'receipt_date'      => $request->receive_date,
+                'source'            => 'po',
+                'status'            => 'pending', // menunggu approval
+                'notes'             => $request->notes,
+                'total_amount'      => 0,
+                'created_by'        => $userId,
+            ]);
 
             foreach ($request->items as $row) {
                 $poItem = $poItemsIndexed->get($row['item_id']);
                 if (!$poItem) continue;
 
-                $newQty = (int) $row['received_qty'];
-                if ($newQty <= 0) continue;
+                $qty = (int) $row['received_qty'];
+                if ($qty <= 0) continue;
 
-                // Hitung tambahan qty (yang belum pernah diterima)
+                // Batasi qty yang bisa diterima
                 $alreadyReceived = (int) $poItem->received_quantity;
                 $maxCanReceive   = (int) $poItem->quantity - $alreadyReceived;
+                $actualReceive   = min($qty, $maxCanReceive);
 
-                if ($maxCanReceive <= 0) continue;
+                if ($actualReceive <= 0) continue;
+                $anyReceived = true;
 
-                $actualReceive = min($newQty, $maxCanReceive);
-                $anyReceived   = true;
+                $subtotal = $actualReceive * $poItem->unit_price;
+                $totalAmount += $subtotal;
 
-                // Update received_quantity di PO item
-                $poItem->increment('received_quantity', $actualReceive);
-
-                // Cek apakah item ini masih kurang
-                $newReceived = $alreadyReceived + $actualReceive;
-                if ($newReceived < (int) $poItem->quantity) {
-                    $allReceived = false;
-                }
-
-                // Tambah stok inventory_item
-                if ($poItem->inventory_item_id && $poItem->inventoryItem) {
-                    $item = $poItem->inventoryItem;
-                    $item->increment('stock', $actualReceive);
-                    $newStock = $item->fresh()->stock;
-
-                    StockMovement::create([
-                        'tenant_id'         => $tenantId,
-                        'inventory_item_id' => $item->id,
-                        'department_id'     => $purchaseOrder->department_id,
-                        'purchase_order_id' => $purchaseOrder->id,
-                        'user_id'           => $userId,
-                        'type'              => 'in',
-                        'quantity'          => $actualReceive,
-                        'reference'         => 'Terima PO ' . $purchaseOrder->po_number . ($request->notes ? ' — ' . $request->notes : ''),
-                        'balance_after'     => $newStock,
-                        'created_at'        => $receiveDate,
-                        'updated_at'        => $receiveDate,
-                    ]);
-                }
-
-                // Jika master product
-                if ($poItem->master_product_id && $poItem->masterProduct) {
-                    $product = $poItem->masterProduct;
-                    $product->increment('stock', $actualReceive);
-                    $newStock = $product->fresh()->stock;
-
-                    StockMovement::create([
-                        'tenant_id'         => $tenantId,
-                        'master_product_id' => $product->id,
-                        'purchase_order_id' => $purchaseOrder->id,
-                        'user_id'           => $userId,
-                        'type'              => 'in',
-                        'quantity'          => $actualReceive,
-                        'reference'         => 'Terima PO ' . $purchaseOrder->po_number . ($request->notes ? ' — ' . $request->notes : ''),
-                        'balance_after'     => $newStock,
-                        'created_at'        => $receiveDate,
-                        'updated_at'        => $receiveDate,
-                    ]);
-                }
+                // Buat item GR
+                $receipt->items()->create([
+                    'inventory_item_id' => $poItem->inventory_item_id,
+                    'master_product_id' => $poItem->master_product_id,
+                    'quantity'          => $actualReceive,
+                    'unit_price'        => $poItem->unit_price,
+                    'notes'             => $row['notes'] ?? null,
+                ]);
             }
 
             if (!$anyReceived) {
-                throw new \Exception('Tidak ada qty yang diisi untuk diterima.');
+                throw new \Exception('Tidak ada qty barang yang valid untuk diterima.');
             }
 
-            // Update status PO
-            $purchaseOrder->refresh();
-            $allItemsComplete = $purchaseOrder->items->every(function ($item) {
-                return (int) $item->received_quantity >= (int) $item->quantity;
-            });
+            $receipt->update(['total_amount' => $totalAmount]);
 
-            $purchaseOrder->update([
-                'status' => $allItemsComplete ? 'received' : 'partially_received',
-            ]);
+            return $receipt;
         });
 
-        return redirect()->route('purchase_orders.show', $purchaseOrder)
-            ->with('success', 'Penerimaan barang berhasil dicatat. Stok telah diperbarui.');
+        return redirect()->route('goods_receipts.show', $goodsReceipt)
+            ->with('success', 'Penerimaan barang PO berhasil dicatat. Silakan lakukan Approval agar stok bertambah.');
     }
 }

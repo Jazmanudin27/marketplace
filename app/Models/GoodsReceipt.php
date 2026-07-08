@@ -11,18 +11,23 @@ class GoodsReceipt extends Model
     protected $fillable = [
         'tenant_id',
         'supplier_id',
+        'purchase_order_id',
         'department_id',
         'receipt_number',
         'receipt_date',
         'source',
+        'status', // pending, approved, cancelled
         'notes',
         'total_amount',
         'created_by',
+        'approved_by',
+        'approved_at',
     ];
 
     protected $casts = [
         'receipt_date' => 'date',
         'total_amount' => 'decimal:2',
+        'approved_at'  => 'datetime',
     ];
 
     public function tenant(): BelongsTo
@@ -33,6 +38,11 @@ class GoodsReceipt extends Model
     public function supplier(): BelongsTo
     {
         return $this->belongsTo(Supplier::class);
+    }
+
+    public function purchaseOrder(): BelongsTo
+    {
+        return $this->belongsTo(PurchaseOrder::class);
     }
 
     public function department(): BelongsTo
@@ -50,12 +60,18 @@ class GoodsReceipt extends Model
         return $this->belongsTo(User::class, 'created_by');
     }
 
+    public function approvedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'approved_by');
+    }
+
     public function getSourceLabelAttribute(): string
     {
         return match ($this->source) {
             'direct'    => 'Pembelian Langsung',
             'emergency' => 'Pembelian Darurat',
             'walk_in'   => 'Walk-in / Beli di Toko',
+            'po'        => 'Penerimaan PO',
             default     => ucfirst($this->source),
         };
     }
@@ -66,6 +82,27 @@ class GoodsReceipt extends Model
             'direct'    => 'primary',
             'emergency' => 'danger',
             'walk_in'   => 'info',
+            'po'        => 'success',
+            default     => 'secondary',
+        };
+    }
+
+    public function getStatusLabelAttribute(): string
+    {
+        return match ($this->status) {
+            'pending'   => 'Menunggu Persetujuan',
+            'approved'  => 'Disetujui (Stok Masuk)',
+            'cancelled' => 'Dibatalkan',
+            default     => ucfirst($this->status),
+        };
+    }
+
+    public function getStatusBadgeAttribute(): string
+    {
+        return match ($this->status) {
+            'pending'   => 'warning text-dark',
+            'approved'  => 'success',
+            'cancelled' => 'danger',
             default     => 'secondary',
         };
     }
