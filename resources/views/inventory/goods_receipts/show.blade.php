@@ -19,10 +19,16 @@
                 </div>
 
                 @if($goodsReceipt->status === 'pending')
-                    <div class="alert alert-warning py-2 px-3 small mb-0">
+                    <div class="alert alert-warning py-2 px-3 small mb-3">
                         <i class="fas fa-exclamation-triangle me-1"></i>
-                        Barang belum masuk ke stok. Menunggu persetujuan (approval) di halaman utama.
+                        Barang belum masuk ke stok. Silakan setujui (approve) penerimaan ini.
                     </div>
+                    <form action="{{ route('goods_receipts.approve', $goodsReceipt) }}" method="POST" class="mb-2">
+                        @csrf
+                        <button type="submit" class="btn btn-success w-100 fw-bold py-2">
+                            <i class="fas fa-check-circle me-1"></i> Setujui & Masukkan ke Stok
+                        </button>
+                    </form>
                 @else
                     <div class="alert alert-success py-2 px-3 small mb-0">
                         <i class="fas fa-check-circle me-1"></i>

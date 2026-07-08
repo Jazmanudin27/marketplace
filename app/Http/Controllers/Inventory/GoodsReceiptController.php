@@ -312,6 +312,40 @@ class GoodsReceiptController extends Controller
                 ]);
             }
 
+            // 3.5. Jika ada item bertipe 'bahan' atau 'kemasan', otomatis buat log 'WarehouseMutation' (Barang Masuk)
+            $warehouseItems = $goodsReceipt->items->filter(function ($item) {
+                return $item->inventoryItem && in_array($item->inventoryItem->type, ['bahan', 'kemasan']);
+            });
+
+            if ($warehouseItems->isNotEmpty()) {
+                $mutation = \App\Models\WarehouseMutation::create([
+                    'tenant_id'          => $tenantId,
+                    'mutation_number'    => \App\Models\WarehouseMutation::generateMutationNumber('in'),
+                    'type'               => 'in',
+                    'goods_receipt_id'   => $goodsReceipt->id,
+                    'from_department_id' => null, // Pembelian / Eksternal
+                    'to_department_id'   => $goodsReceipt->department_id,
+                    'mutation_date'      => $goodsReceipt->receipt_date,
+                    'status'             => 'approved',
+                    'notes'              => 'Otomatis dari Penerimaan Barang Pembelian: ' . $goodsReceipt->receipt_number,
+                    'created_by'         => $userId,
+                ]);
+
+                foreach ($warehouseItems as $item) {
+                    $mutation->items()->create([
+                        'inventory_item_id' => $item->inventory_item_id,
+                        'quantity'          => $item->quantity,
+                        'unit_price'        => $item->unit_price,
+                        'notes'             => $item->notes,
+                    ]);
+
+                    // Update stock_movement dengan warehouse_mutation_id yang sesuai
+                    StockMovement::where('goods_receipt_id', $goodsReceipt->id)
+                        ->where('inventory_item_id', $item->inventory_item_id)
+                        ->update(['warehouse_mutation_id' => $mutation->id]);
+                }
+            }
+
             // 4. Update status Goods Receipt
             $goodsReceipt->update([
                 'status'      => 'approved',
@@ -321,7 +355,7 @@ class GoodsReceiptController extends Controller
         });
 
         return redirect()->route('goods_receipts.show', $goodsReceipt)
-            ->with('success', 'Penerimaan barang berhasil disetujui. Stok telah masuk ke departemen.');
+            ->with('success', 'Penerimaan barang berhasil disetujui. Stok telah masuk ke departemen & Gudang Bahan Kemasan.');
     }
 
     /**

@@ -53,7 +53,9 @@
         request()->routeIs('offline_sales.*');
 
     $isHrdActive = request()->routeIs('hr.*') || request()->routeIs('employees.*');
-    $isGudangBahanActive = request()->routeIs('inventory_items.*') && in_array(request('type'), ['bahan_kemasan', 'bahan', 'kemasan']);
+    $isGudangBahanActive =
+        (request()->routeIs('inventory_items.*') && in_array(request('type'), ['bahan_kemasan', 'bahan', 'kemasan'])) ||
+        request()->routeIs('warehouse_mutations.*');
     $isGudangAtkActive = request()->routeIs('inventory_items.*') && in_array(request('type'), ['atk_inventaris', 'atk', 'inventaris']);
 @endphp
 
@@ -319,8 +321,22 @@
                     <div class="nav flex-column ms-3 mt-1 gap-1 border-start ps-2">
                         <a href="{{ route('inventory_items.index', ['type' => 'bahan_kemasan']) }}"
                             class="nav-link py-1 {{ (request()->routeIs('inventory_items.index') && request('type') === 'bahan_kemasan') ? 'active text-white' : 'text-secondary' }}">Stok Bahan & Kemasan</a>
-                        <a href="#" class="nav-link py-1 text-secondary placeholder-link">Opname Bahan <span class="badge bg-secondary ms-1 text-white" style="font-size: 0.6rem; padding: 2px 4px;">Soon</span></a>
-                        <a href="#" class="nav-link py-1 text-secondary placeholder-link">Formula & Resep <span class="badge bg-secondary ms-1 text-white" style="font-size: 0.6rem; padding: 2px 4px;">Soon</span></a>
+                        <a href="{{ route('warehouse_mutations.index_in') }}"
+                            class="nav-link py-1 {{ request()->routeIs('warehouse_mutations.index_in') ? 'active text-white' : 'text-secondary' }}">
+                            <i class="fas fa-sign-in-alt me-1"></i> Barang Masuk (WMI)
+                        </a>
+                        <a href="{{ route('warehouse_mutations.index_out') }}"
+                            class="nav-link py-1 {{ request()->routeIs('warehouse_mutations.index_out') ? 'active text-white' : 'text-secondary' }}">
+                            <i class="fas fa-sign-out-alt me-1"></i> Barang Keluar (WMO)
+                        </a>
+                        <a href="{{ route('warehouse_mutations.report_mutation') }}"
+                            class="nav-link py-1 {{ request()->routeIs('warehouse_mutations.report_mutation') ? 'active text-white' : 'text-secondary' }}">
+                            <i class="fas fa-file-invoice-dollar me-1"></i> Laporan Mutasi
+                        </a>
+                        <a href="{{ route('warehouse_mutations.report_summary') }}"
+                            class="nav-link py-1 {{ request()->routeIs('warehouse_mutations.report_summary') ? 'active text-white' : 'text-secondary' }}">
+                            <i class="fas fa-boxes me-1"></i> Rekap Persediaan
+                        </a>
                     </div>
                 </div>
             </div>

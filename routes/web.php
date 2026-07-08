@@ -50,6 +50,7 @@ use App\Http\Controllers\Inventory\StockSyncController;
 use App\Http\Controllers\Inventory\ReceivePurchaseOrderController;
 use App\Http\Controllers\Inventory\PurchaseReturnController;
 use App\Http\Controllers\Inventory\GoodsReceiptController;
+use App\Http\Controllers\Inventory\WarehouseMutationController;
 // Marketplace
 use App\Http\Controllers\Marketplace\StoreController;
 // Settings
@@ -440,6 +441,20 @@ Route::middleware('auth')->group(function () {
         Route::put('/goods-receipts/{goodsReceipt}', [GoodsReceiptController::class, 'update'])->name('goods_receipts.update');
         Route::post('/goods-receipts/{goodsReceipt}/approve', [GoodsReceiptController::class, 'approve'])->name('goods_receipts.approve');
         Route::delete('/goods-receipts/{goodsReceipt}', [GoodsReceiptController::class, 'destroy'])->name('goods_receipts.destroy');
+
+        // Mutasi Gudang Bahan & Kemasan (Barang Masuk / Keluar)
+        Route::get('/warehouse-mutations/in', [WarehouseMutationController::class, 'indexIn'])->name('warehouse_mutations.index_in');
+        Route::get('/warehouse-mutations/out', [WarehouseMutationController::class, 'indexOut'])->name('warehouse_mutations.index_out');
+        Route::get('/warehouse-mutations/in/create', [WarehouseMutationController::class, 'createIn'])->name('warehouse_mutations.create_in');
+        Route::get('/warehouse-mutations/out/create', [WarehouseMutationController::class, 'createOut'])->name('warehouse_mutations.create_out');
+        Route::post('/warehouse-mutations/in', [WarehouseMutationController::class, 'storeIn'])->name('warehouse_mutations.store_in');
+        Route::post('/warehouse-mutations/out', [WarehouseMutationController::class, 'storeOut'])->name('warehouse_mutations.store_out');
+        Route::get('/warehouse-mutations/report', [WarehouseMutationController::class, 'reportMutation'])->name('warehouse_mutations.report_mutation');
+        Route::get('/warehouse-mutations/report/print', [WarehouseMutationController::class, 'printReportMutation'])->name('warehouse_mutations.print_report_mutation');
+        Route::get('/warehouse-mutations/summary', [WarehouseMutationController::class, 'reportSummary'])->name('warehouse_mutations.report_summary');
+        Route::get('/warehouse-mutations/summary/print', [WarehouseMutationController::class, 'printReportSummary'])->name('warehouse_mutations.print_report_summary');
+        Route::get('/warehouse-mutations/{warehouseMutation}', [WarehouseMutationController::class, 'show'])->name('warehouse_mutations.show');
+        Route::delete('/warehouse-mutations/{warehouseMutation}', [WarehouseMutationController::class, 'destroy'])->name('warehouse_mutations.destroy');
 
         // Stock Sync
         Route::get('/stock-sync', [StockSyncController::class, 'index'])->name('inventory.stock_sync');

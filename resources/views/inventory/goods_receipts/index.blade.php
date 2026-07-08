@@ -136,14 +136,6 @@
                                         <i class="fas fa-eye"></i>
                                     </a>
                                     @if($receipt->status === 'pending')
-                                        <form action="{{ route('goods_receipts.approve', $receipt) }}" method="POST"
-                                            onsubmit="return confirm('Apakah Anda yakin ingin menyetujui penerimaan barang ini dan memasukkannya ke stok?')"
-                                            class="d-inline">
-                                            @csrf
-                                            <button type="submit" class="btn btn-success btn-sm" title="Setujui (Approve)">
-                                                <i class="fas fa-check"></i>
-                                            </button>
-                                        </form>
                                         <a href="{{ route('goods_receipts.edit', $receipt) }}"
                                             class="btn btn-warning btn-sm text-white" title="Edit">
                                             <i class="fas fa-edit"></i>
