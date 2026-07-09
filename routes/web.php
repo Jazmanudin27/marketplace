@@ -361,6 +361,7 @@ Route::middleware('auth')->group(function () {
         Route::put('/marketplace-products/{product}/update-settings', [MarketplaceProductController::class, 'updateSettings'])->name('marketplace_products.update_settings');
         Route::post('/marketplace-products/{product}/clone-and-publish', [MarketplaceProductController::class, 'cloneAndPublish'])->name('marketplace_products.clone_and_publish');
         Route::post('/marketplace-products/auto-link', [MarketplaceProductController::class, 'autoLink'])->name('marketplace_products.auto_link');
+        Route::post('/marketplace-products/bulk-promote', [MarketplaceProductController::class, 'bulkPromote'])->name('marketplace_products.bulk_promote');
     });
 
     // Orders (Pesanan Masuk)

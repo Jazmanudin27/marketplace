@@ -337,4 +337,82 @@ class ProductCloningTest extends TestCase
         $response->assertSee('Tautkan ke Master');
         $response->assertSee('Cocok: Master Product Direct Match');
     }
+
+    public function test_bulk_promote_creates_masters_and_links_them(): void
+    {
+        $this->actingAs($this->user);
+
+        // 1. Create two unlinked Marketplace Products with different SKUs
+        $mp1 = MarketplaceProduct::create([
+            'store_id' => $this->store->id,
+            'master_product_id' => null,
+            'marketplace_product_id' => 'MP-BULK-PROM-1',
+            'marketplace_sku' => 'SKU-BULK-PROM-1',
+            'name' => 'MP Product Bulk Promote 1',
+            'price' => 150000,
+            'stock' => 50,
+        ]);
+
+        $mp2 = MarketplaceProduct::create([
+            'store_id' => $this->store->id,
+            'master_product_id' => null,
+            'marketplace_product_id' => 'MP-BULK-PROM-2',
+            'marketplace_sku' => 'SKU-BULK-PROM-2',
+            'name' => 'MP Product Bulk Promote 2',
+            'price' => 200000,
+            'stock' => 30,
+        ]);
+
+        // 2. Create another unlinked product with the same SKU as mp1 (to test duplicate SKU auto-link behavior during bulk promotion)
+        $mp3 = MarketplaceProduct::create([
+            'store_id' => $this->store->id,
+            'master_product_id' => null,
+            'marketplace_product_id' => 'MP-BULK-PROM-3',
+            'marketplace_sku' => 'SKU-BULK-PROM-1', // same SKU as mp1
+            'name' => 'MP Product Bulk Promote 3',
+            'price' => 150000,
+            'stock' => 50,
+        ]);
+
+        // 3. Make POST request to bulk_promote route
+        $response = $this->post(route('marketplace_products.bulk_promote'));
+
+        // 4. Assert redirect back and correct success flash message
+        $response->assertRedirect();
+        $response->assertSessionHas('success', 'Berhasil membuat 2 Master Product baru secara massal dan menautkannya.');
+
+        // 5. Verify master products exist in database
+        $this->assertDatabaseHas('master_products', [
+            'sku' => 'SKU-BULK-PROM-1',
+            'name' => 'MP Product Bulk Promote 1',
+            'price' => 150000,
+            'stock' => 50,
+        ]);
+
+        $this->assertDatabaseHas('master_products', [
+            'sku' => 'SKU-BULK-PROM-2',
+            'name' => 'MP Product Bulk Promote 2',
+            'price' => 200000,
+            'stock' => 30,
+        ]);
+
+        // 6. Verify all three marketplace products are now linked
+        $mp1Master = MasterProduct::where('sku', 'SKU-BULK-PROM-1')->first();
+        $mp2Master = MasterProduct::where('sku', 'SKU-BULK-PROM-2')->first();
+
+        $this->assertDatabaseHas('marketplace_products', [
+            'id' => $mp1->id,
+            'master_product_id' => $mp1Master->id,
+        ]);
+
+        $this->assertDatabaseHas('marketplace_products', [
+            'id' => $mp3->id,
+            'master_product_id' => $mp1Master->id,
+        ]);
+
+        $this->assertDatabaseHas('marketplace_products', [
+            'id' => $mp2->id,
+            'master_product_id' => $mp2Master->id,
+        ]);
+    }
 }

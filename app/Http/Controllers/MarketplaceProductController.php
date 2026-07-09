@@ -288,6 +288,79 @@ class MarketplaceProductController extends Controller
         return back()->with('success', "Berhasil menautkan secara otomatis {$linkedCount} produk marketplace berdasarkan kesamaan SKU.");
     }
 
+    public function bulkPromote()
+    {
+        $tenantId = Auth::user()->tenant_id;
+
+        // Ambil semua produk marketplace yang belum memiliki master_product_id
+        $unlinkedProducts = MarketplaceProduct::whereNull('master_product_id')
+            ->whereHas('store', function($q) use ($tenantId) {
+                $q->where('tenant_id', $tenantId);
+            })
+            ->get();
+
+        $promotedCount = 0;
+
+        DB::transaction(function () use ($unlinkedProducts, $tenantId, &$promotedCount) {
+            foreach ($unlinkedProducts as $product) {
+                // Refresh data untuk memastikan tidak terhubung oleh loop iterasi sebelumnya
+                $product->refresh();
+                if ($product->master_product_id) {
+                    continue;
+                }
+
+                $skuClean = trim($product->marketplace_sku);
+
+                // Buatkan SKU jika kosong
+                if (empty($skuClean)) {
+                    $skuClean = 'SKU-' . time() . '-' . rand(1000, 9999);
+                }
+
+                // Cek jika master dengan SKU ini sudah ada (karena iterasi sebelumnya)
+                $existingMaster = MasterProduct::where('tenant_id', $tenantId)
+                    ->where('sku', $skuClean)
+                    ->first();
+
+                if ($existingMaster) {
+                    $product->update([
+                        'master_product_id' => $existingMaster->id,
+                        'sync_stock' => true,
+                    ]);
+                    continue;
+                }
+
+                // Buat Master Product baru
+                $attrs = $this->parseAttributesFromName($product->name);
+                $newMaster = MasterProduct::create([
+                    'tenant_id'   => $tenantId,
+                    'sku'         => $skuClean,
+                    'name'        => $product->name,
+                    'price'       => $product->price,
+                    'stock'       => $product->stock,
+                    'image_url'   => $product->image_url,
+                    'is_active'   => true,
+                    'weight'      => 0.1, 
+                    'length'      => 10,
+                    'width'       => 10,
+                    'height'      => 10,
+                    'ukuran'      => $attrs['ukuran'],
+                    'warna'       => $attrs['warna'],
+                ]);
+
+                // Hubungkan produk marketplace
+                $product->update([
+                    'marketplace_sku' => $skuClean,
+                    'master_product_id' => $newMaster->id,
+                    'sync_stock' => true,
+                ]);
+
+                $promotedCount++;
+            }
+        });
+
+        return back()->with('success', "Berhasil membuat {$promotedCount} Master Product baru secara massal dan menautkannya.");
+    }
+
     /**
      * Parse ukuran and warna from variation name.
      */

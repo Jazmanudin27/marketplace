@@ -2,13 +2,22 @@
 @section('title', 'Produk Marketplace')
 @section('page-title', 'Produk Marketplace')
 @section('topbar-actions')
-    <form action="{{ route('marketplace_products.auto_link') }}" method="POST" class="d-inline"
-        onsubmit="return confirm('Tautkan semua produk marketplace secara otomatis berdasarkan kesamaan SKU?');">
-        @csrf
-        <button type="submit" class="btn btn-success btn-sm fw-bold text-white">
-            <i class="fas fa-magic me-1"></i> Tautkan Otomatis (Masal)
-        </button>
-    </form>
+    <div class="d-flex gap-2">
+        <form action="{{ route('marketplace_products.auto_link') }}" method="POST" class="d-inline"
+            onsubmit="return confirm('Tautkan semua produk marketplace secara otomatis berdasarkan kesamaan SKU?');">
+            @csrf
+            <button type="submit" class="btn btn-success btn-sm fw-bold text-white">
+                <i class="fas fa-magic me-1"></i> Tautkan Otomatis (Masal)
+            </button>
+        </form>
+        <form action="{{ route('marketplace_products.bulk_promote') }}" method="POST" class="d-inline"
+            onsubmit="return confirm('Jadikan semua produk marketplace yang belum ditautkan sebagai Master Product baru? (SKU kosong akan otomatis dibuatkan acak)');">
+            @csrf
+            <button type="submit" class="btn btn-primary btn-sm fw-bold text-white">
+                <i class="fas fa-star me-1 text-warning"></i> Jadikan Master (Masal)
+            </button>
+        </form>
+    </div>
 @endsection
 
 @section('content')
