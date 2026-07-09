@@ -42,6 +42,14 @@ class MasterProductController extends Controller
             });
         }
 
+        if ($request->filled('link_status')) {
+            if ($request->link_status === 'unlinked') {
+                $query->whereDoesntHave('marketplaceProducts');
+            } elseif ($request->link_status === 'linked') {
+                $query->whereHas('marketplaceProducts');
+            }
+        }
+
         $products = $query->orderBy('name')->paginate(25)->withQueryString();
 
         $connectedStoresCount = \App\Models\Store::where('tenant_id', $tenantId)

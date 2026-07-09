@@ -18,7 +18,7 @@
             <div class="card-body py-2 px-3">
                 <form method="GET" action="{{ route('products.index') }}" id="filterProdukForm">
                     <div class="row g-2 align-items-end">
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <label class="form-label form-label-sm fw-semibold mb-1">
                                 <i class="fas fa-layer-group text-muted me-1"></i>Filter Channel
                             </label>
@@ -32,7 +32,7 @@
                                 @endforeach
                             </select>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <label class="form-label form-label-sm fw-semibold mb-1">
                                 <i class="fas fa-store text-muted me-1"></i>Filter Akun / Toko
                             </label>
@@ -46,11 +46,25 @@
                                 @endforeach
                             </select>
                         </div>
+                        <div class="col-md-3">
+                            <label class="form-label form-label-sm fw-semibold mb-1">
+                                <i class="fas fa-link text-muted me-1"></i>Status Tautan Toko
+                            </label>
+                            <select name="link_status" class="form-select form-select-sm">
+                                <option value="">-- Semua Status --</option>
+                                <option value="unlinked" {{ request('link_status') === 'unlinked' ? 'selected' : '' }}>
+                                    Belum Ditautkan ke Toko Mana Pun
+                                </option>
+                                <option value="linked" {{ request('link_status') === 'linked' ? 'selected' : '' }}>
+                                    Sudah Ditautkan ke Toko
+                                </option>
+                            </select>
+                        </div>
                         <div class="col-md-auto">
                             <button type="submit" class="btn btn-primary btn-sm px-3">
                                 <i class="fas fa-search me-1"></i>Terapkan
                             </button>
-                            @if (request()->anyFilled(['channel_id', 'store_id']))
+                            @if (request()->anyFilled(['channel_id', 'store_id', 'link_status']))
                                 <a href="{{ route('products.index') }}" class="btn btn-secondary btn-sm px-3 ms-1">
                                     <i class="fas fa-times me-1"></i>Reset
                                 </a>

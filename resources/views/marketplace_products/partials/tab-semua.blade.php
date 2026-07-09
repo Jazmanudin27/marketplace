@@ -172,21 +172,27 @@
                             <td class="pe-3 text-center">
                                 @if (!$product->masterProduct)
                                     @php
-                                        $matchingMaster = $product->marketplace_sku 
-                                            ? $masterProducts->firstWhere('sku', trim($product->marketplace_sku)) 
+                                        $matchingMaster = $product->marketplace_sku
+                                            ? $masterProducts->firstWhere('sku', trim($product->marketplace_sku))
                                             : null;
                                     @endphp
 
                                     @if ($matchingMaster)
                                         <div class="d-flex flex-column align-items-center gap-1">
-                                            <form action="{{ route('marketplace_products.link', $product->id) }}" method="POST" class="d-inline">
+                                            <form action="{{ route('marketplace_products.link', $product->id) }}"
+                                                method="POST" class="d-inline">
                                                 @csrf
-                                                <input type="hidden" name="master_product_id" value="{{ $matchingMaster->id }}">
-                                                <button type="submit" class="btn btn-success btn-sm py-1 px-2 fw-bold" style="font-size:0.72rem;">
+                                                <input type="hidden" name="master_product_id"
+                                                    value="{{ $matchingMaster->id }}">
+                                                <button type="submit"
+                                                    class="btn btn-success btn-sm py-1 px-2 fw-bold"
+                                                    style="font-size:0.72rem;">
                                                     <i class="fas fa-link me-1"></i>Tautkan ke Master
                                                 </button>
                                             </form>
-                                            <span class="text-muted text-center" style="font-size:0.65rem; max-width:180px; display:inline-block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="SKU cocok dengan Master: {{ $matchingMaster->name }}">
+                                            <span class="text-muted text-center"
+                                                style="font-size:0.65rem; max-width:180px; display:inline-block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"
+                                                title="SKU cocok dengan Master: {{ $matchingMaster->name }}">
                                                 Cocok: {{ $matchingMaster->name }}
                                             </span>
                                         </div>
@@ -210,7 +216,8 @@
                                                 action="{{ route('marketplace_products.clone_and_publish', $product->id) }}"
                                                 method="POST" class="d-inline">
                                                 @csrf
-                                                <button type="submit" class="btn btn-outline-secondary btn-sm py-0 px-2"
+                                                <button type="submit"
+                                                    class="btn btn-outline-secondary btn-sm py-0 px-2"
                                                     title="Salin ke Toko Lain" style="font-size:0.72rem;">
                                                     <i class="fas fa-copy me-1"></i>Salin ke Toko Lain
                                                 </button>
