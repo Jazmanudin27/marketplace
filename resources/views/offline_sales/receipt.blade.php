@@ -12,8 +12,8 @@
         body {
             font-family: 'Courier New', Courier, monospace;
             font-size: 12px;
-            background: #0c131d;
-            color: #f8fafc;
+            background: #f3f4f6;
+            color: #1f2937;
             display: flex;
             flex-direction: column;
             align-items: center;
