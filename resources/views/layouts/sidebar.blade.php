@@ -260,12 +260,6 @@
                         'manage-complaints',
                         'view-warehouse-reports',
                     ]))
-            @php
-                $lowStockCount = \App\Models\MasterProduct::where('tenant_id', Auth::user()->tenant_id)
-                    ->whereColumn('stock', '<=', 'min_stock')
-                    ->where('is_active', true)
-                    ->count();
-            @endphp
             <div>
                 <a class="nav-link d-flex align-items-center justify-content-between text-dark {{ $isGudangJadiActive ? '' : 'collapsed' }}"
                     data-bs-toggle="collapse" data-bs-target="#collapseGudangJadi" role="button"
@@ -273,9 +267,6 @@
                     <div class="d-flex align-items-center gap-2">
                         <i class="bi bi-boxes"></i>
                         <span>Gudang Jadi</span>
-                        @if ($lowStockCount > 0)
-                            <span class="badge bg-danger rounded-pill ms-1 small">{{ $lowStockCount }}</span>
-                        @endif
                     </div>
                     <i class="bi bi-chevron-down small"></i>
                 </a>
