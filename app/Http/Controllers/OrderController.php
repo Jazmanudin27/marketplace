@@ -512,4 +512,114 @@ class OrderController extends Controller
 
         return response()->stream($callback, 200, $headers);
     }
+
+    public function create()
+    {
+        $tenantId = Auth::user()->tenant_id;
+        $stores = \App\Models\Store::where('tenant_id', $tenantId)->get();
+        $products = \App\Models\MasterProduct::where('tenant_id', $tenantId)->where('is_active', true)->orderBy('name')->get();
+
+        return view('orders.create', compact('stores', 'products'));
+    }
+
+    public function store(Request $request)
+    {
+        $tenantId = Auth::user()->tenant_id;
+
+        $request->validate([
+            'store_id' => 'required|exists:stores,id',
+            'invoice_number' => 'required|string|max:100',
+            'buyer_name' => 'required|string|max:255',
+            'buyer_phone' => 'nullable|string|max:50',
+            'shipping_address' => 'nullable|string',
+            'items' => 'required|array|min:1',
+            'items.*.master_product_id' => 'required|exists:master_products,id',
+            'items.*.quantity' => 'required|integer|min:1',
+            'items.*.price' => 'required|numeric|min:0',
+        ]);
+
+        $store = \App\Models\Store::where('tenant_id', $tenantId)->findOrFail($request->store_id);
+
+        $order = null;
+        \Illuminate\Support\Facades\DB::transaction(function() use ($request, $tenantId, $store, &$order) {
+            $totalAmount = 0;
+            foreach ($request->items as $item) {
+                $totalAmount += $item['price'] * $item['quantity'];
+            }
+
+            // Create Order
+            $order = Order::create([
+                'tenant_id' => $tenantId,
+                'store_id' => $store->id,
+                'order_marketplace_id' => 'MANUAL-' . time() . '-' . rand(100, 999),
+                'invoice_number' => $request->invoice_number,
+                'order_status' => Order::STATUS_PENDING_APPROVAL, // Marketing submits, awaits approval
+                'buyer_name' => $request->buyer_name,
+                'buyer_phone' => $request->buyer_phone,
+                'shipping_address' => $request->shipping_address,
+                'total_amount' => $totalAmount,
+                'net_amount' => $totalAmount,
+                'order_date' => now(),
+            ]);
+
+            // Create Order Items
+            foreach ($request->items as $itemData) {
+                $prod = \App\Models\MasterProduct::where('tenant_id', $tenantId)->findOrFail($itemData['master_product_id']);
+
+                $order->items()->create([
+                    'master_product_id' => $prod->id,
+                    'sku' => $prod->sku,
+                    'product_name' => $prod->name,
+                    'price' => $itemData['price'],
+                    'quantity' => $itemData['quantity'],
+                    'total_price' => $itemData['price'] * $itemData['quantity'],
+                    'cost_price' => $prod->cost_price ?: 0,
+                    'hpp_subtotal' => ($prod->cost_price ?: 0) * $itemData['quantity'],
+                ]);
+            }
+        });
+
+        return redirect()->route('orders.show', $order->id)
+            ->with('success', 'Pesanan manual (PO) berhasil diajukan! Menunggu persetujuan Gudang Jadi dan Produksi.');
+    }
+
+    public function approveWarehouse(Order $order)
+    {
+        abort_unless($order->tenant_id === Auth::user()->tenant_id, 403);
+        
+        if ($order->order_status !== Order::STATUS_PENDING_APPROVAL) {
+            return back()->with('error', 'Pesanan ini tidak sedang menunggu persetujuan.');
+        }
+
+        $order->approved_warehouse_at = now();
+        $order->approved_warehouse_by = Auth::id();
+        
+        if ($order->approved_production_at) {
+            $order->order_status = Order::STATUS_READY_TO_SHIP;
+        }
+        
+        $order->save();
+
+        return back()->with('success', 'Persetujuan Gudang Jadi berhasil direkam!');
+    }
+
+    public function approveProduction(Order $order)
+    {
+        abort_unless($order->tenant_id === Auth::user()->tenant_id, 403);
+        
+        if ($order->order_status !== Order::STATUS_PENDING_APPROVAL) {
+            return back()->with('error', 'Pesanan ini tidak sedang menunggu persetujuan.');
+        }
+
+        $order->approved_production_at = now();
+        $order->approved_production_by = Auth::id();
+        
+        if ($order->approved_warehouse_at) {
+            $order->order_status = Order::STATUS_READY_TO_SHIP;
+        }
+        
+        $order->save();
+
+        return back()->with('success', 'Persetujuan Produksi berhasil direkam!');
+    }
 }

@@ -49,12 +49,18 @@ class Order extends Model
         'recon_notes',
         'cancel_reason',
         'cancelled_by',
+        'approved_warehouse_at',
+        'approved_warehouse_by',
+        'approved_production_at',
+        'approved_production_by',
     ];
 
     protected $casts = [
         'order_date' => 'datetime',
         'ship_before_date' => 'datetime',
         'packed_at' => 'datetime',
+        'approved_warehouse_at' => 'datetime',
+        'approved_production_at' => 'datetime',
         'financial_breakdown' => 'array',
         'total_amount' => 'decimal:2',
         'shipping_fee' => 'decimal:2',
@@ -67,6 +73,7 @@ class Order extends Model
     ];
 
     // Status constants
+    const STATUS_PENDING_APPROVAL = 'PENDING_APPROVAL';
     const STATUS_UNPAID = 'UNPAID';
     const STATUS_READY_TO_SHIP = 'READY_TO_SHIP';
     const STATUS_SHIPPED = 'SHIPPED';
@@ -74,6 +81,16 @@ class Order extends Model
     const STATUS_COMPLETED = 'COMPLETED';
     const STATUS_CANCELLED = 'CANCELLED';
     const STATUS_RETURN = 'RETURN';
+
+    public function approvedWarehouseBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'approved_warehouse_by');
+    }
+
+    public function approvedProductionBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'approved_production_by');
+    }
 
     public function tenant(): BelongsTo
     {
@@ -113,6 +130,7 @@ class Order extends Model
     public function getStatusBadgeAttribute(): string
     {
         return match ($this->order_status) {
+            self::STATUS_PENDING_APPROVAL => 'warning',
             self::STATUS_UNPAID => 'warning',
             self::STATUS_READY_TO_SHIP => 'primary',
             self::STATUS_SHIPPED => 'info',

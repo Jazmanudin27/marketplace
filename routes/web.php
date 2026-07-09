@@ -370,6 +370,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/orders/export', [OrderController::class, 'export'])->name('orders.export')->middleware('permission:orders.export');
         Route::post('/orders/sync', [OrderController::class, 'sync'])->name('orders.sync');
         Route::post('/orders/mass-print', [OrderPrintController::class, 'massPrint'])->name('orders.mass_print');
+        Route::get('/orders/create', [OrderController::class, 'create'])->name('orders.create');
+        Route::post('/orders', [OrderController::class, 'store'])->name('orders.store');
         Route::get('/orders/{order}', [OrderController::class, 'show'])->name('orders.show');
         Route::post('/orders/{order}/process', [OrderController::class, 'process'])->name('orders.process');
         Route::post('/orders/{order}/ship', [OrderController::class, 'ship'])->name('orders.ship');
@@ -377,6 +379,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/orders/{order}/tracking-detail', [OrderController::class, 'trackingDetail'])->name('orders.tracking.detail');
         Route::get('/orders/{order}/print', [OrderController::class, 'print'])->name('orders.print');
         Route::post('/orders/{order}/cancel', [OrderController::class, 'cancel'])->name('orders.cancel');
+        Route::post('/orders/{order}/approve-warehouse', [OrderController::class, 'approveWarehouse'])->name('orders.approve_warehouse');
+        Route::post('/orders/{order}/approve-production', [OrderController::class, 'approveProduction'])->name('orders.approve_production');
     });
 
     // Fulfillment (Kemas Pesanan)
