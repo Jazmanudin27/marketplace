@@ -546,6 +546,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/reports/opname', [ReportController::class, 'opnameReport'])->name('reports.opname');
         Route::get('/reports/opname/print', [ReportController::class, 'printOpnameReport'])->name('reports.opname.print');
         Route::get('/reports/analytics', [ReportController::class, 'inventoryAnalytics'])->name('reports.analytics');
+        Route::get('/reports/production-hpp', [ReportController::class, 'productionHppReport'])->name('reports.production_hpp');
+        Route::get('/reports/production-hpp/print', [ReportController::class, 'printProductionHppReport'])->name('reports.production_hpp.print');
     });
 
     // =========================================================================

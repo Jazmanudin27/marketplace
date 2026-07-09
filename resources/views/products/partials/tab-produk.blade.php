@@ -105,12 +105,27 @@
                                 <code class="text-primary font-monospace">{{ $product->sku }}</code>
                             </td>
                             <td>
-                                <div class="text-dark fw-semibold text-wrap lh-sm" title="{{ $product->name }}">
-                                    {{ $product->name }}
+                                <div class="d-flex align-items-center gap-2">
+                                    @if ($product->image_url)
+                                        <img src="{{ $product->image_url }}" alt="{{ $product->name }}"
+                                            class="rounded border img-thumbnail-clickable"
+                                            style="width:40px;height:40px;object-fit:cover;"
+                                            data-product-name="{{ $product->name }}">
+                                    @else
+                                        <div class="rounded border bg-light d-flex align-items-center justify-content-center text-muted"
+                                            style="width:40px;height:40px;flex-shrink:0;">
+                                            <i class="fas fa-image"></i>
+                                        </div>
+                                    @endif
+                                    <div>
+                                        <div class="text-dark fw-semibold text-wrap lh-sm" title="{{ $product->name }}">
+                                            {{ $product->name }}
+                                        </div>
+                                        @if ($product->sub_kategori)
+                                            <small class="text-muted d-block mt-1">{{ $product->sub_kategori }}</small>
+                                        @endif
+                                    </div>
                                 </div>
-                                @if ($product->sub_kategori)
-                                    <small class="text-muted d-block mt-1">{{ $product->sub_kategori }}</small>
-                                @endif
                             </td>
                             <td>
                                 @if ($product->sku_induk)

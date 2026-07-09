@@ -29,7 +29,8 @@
         request()->routeIs('reports.stock') ||
         request()->routeIs('reports.ledger') ||
         request()->routeIs('reports.opname') ||
-        request()->routeIs('reports.analytics');
+        request()->routeIs('reports.analytics') ||
+        request()->routeIs('reports.production_hpp*');
 
     $isFinanceActive =
         request()->routeIs('finance.profit_loss') ||
@@ -320,6 +321,9 @@
                             <a href="{{ route('reports.analytics') }}"
                                 class="nav-link py-1 {{ request()->routeIs('reports.analytics*') ? 'active text-white' : 'text-secondary' }}">Analitik
                                 Inventori</a>
+                            <a href="{{ route('reports.production_hpp') }}"
+                                class="nav-link py-1 {{ request()->routeIs('reports.production_hpp*') ? 'active text-white' : 'text-secondary' }}">HPP
+                                Produksi</a>
                         @endcan
                     </div>
                 </div>

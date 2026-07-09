@@ -34,7 +34,17 @@
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        .img-thumbnail-clickable {
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+        }
+        .img-thumbnail-clickable:hover {
+            transform: scale(1.1);
+            filter: brightness(0.9);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.15), 0 2px 4px -1px rgba(0, 0, 0, 0.1);
+        }
+    </style>
 </head>
 
 <body class="bg-body-secondary">
@@ -278,9 +288,36 @@
                         popup: 'border border-light-subtle shadow-sm'
                     }
                 });
+            // Global Image Preview Modal Trigger
+            $(document).on('click', '.img-thumbnail-clickable', function() {
+                const imgUrl = $(this).attr('data-image-src') || $(this).attr('src');
+                const productName = $(this).attr('data-product-name') || 'Foto Produk';
+                $('#globalImagePreviewSrc').attr('src', imgUrl);
+                if (productName) {
+                    $('#globalImagePreviewModalLabel').text(productName);
+                }
+                
+                const previewModal = new bootstrap.Modal(document.getElementById('globalImagePreviewModal'));
+                previewModal.show();
             });
         });
     </script>
+
+    <!-- Global Image Preview Modal -->
+    <div class="modal fade" id="globalImagePreviewModal" tabindex="-1" aria-labelledby="globalImagePreviewModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header bg-dark text-white py-2 px-3">
+                    <h6 class="modal-title fw-bold" id="globalImagePreviewModalLabel">Pratinjau Foto Produk</h6>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-0 text-center bg-light d-flex align-items-center justify-content-center" style="min-height: 250px;">
+                    <img id="globalImagePreviewSrc" src="" alt="Pratinjau Foto" class="img-fluid" style="max-height: 75vh; object-fit: contain;">
+                </div>
+            </div>
+        </div>
+    </div>
+
     @stack('scripts')
 
 </body>

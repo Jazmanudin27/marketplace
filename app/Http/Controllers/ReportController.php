@@ -617,4 +617,70 @@ class ReportController extends Controller
             'totalTurnoverRatio', 'totalDsi', 'dateFrom', 'dateTo', 'daysInPeriod'
         ));
     }
+
+    public function productionHppReport(Request $request)
+    {
+        $tenantId = Auth::user()->tenant_id;
+        $products = \App\Models\MasterProduct::where('tenant_id', $tenantId)->orderBy('name')->get();
+        return view('reports.production_hpp', compact('products'));
+    }
+
+    public function printProductionHppReport(Request $request)
+    {
+        $tenantId = Auth::user()->tenant_id;
+
+        $query = \App\Models\ProductionOrder::with(['masterProduct', 'requestedBy', 'actualLabors'])
+            ->where('tenant_id', $tenantId)
+            ->where('status', 'completed')
+            ->orderBy('updated_at', 'desc');
+
+        if ($request->filled('start_date')) {
+            $query->whereDate('updated_at', '>=', $request->start_date);
+        }
+
+        if ($request->filled('end_date')) {
+            $query->whereDate('updated_at', '<=', $request->end_date);
+        }
+
+        if ($request->filled('product_id')) {
+            $query->where('master_product_id', $request->product_id);
+        }
+
+        $orders = $query->get();
+
+        $reportData = [];
+
+        foreach ($orders as $order) {
+            $movements = \App\Models\StockMovement::where('tenant_id', $tenantId)
+                ->where('reference', "Konsumsi Produksi SPK #{$order->id}")
+                ->whereNotNull('inventory_item_id')
+                ->with('inventoryItem')
+                ->get();
+
+            $totalMaterialCost = 0;
+            foreach ($movements as $m) {
+                $qtyConsumed = abs($m->quantity);
+                $price = $m->inventoryItem->cost_price ?: 0;
+                $totalMaterialCost += ($qtyConsumed * $price);
+            }
+
+            $totalLaborCost = $order->actualLabors->sum('actual_cost');
+            $totalProductionCost = $totalMaterialCost + $totalLaborCost;
+            $hppPerUnit = $order->quantity > 0 ? ($totalProductionCost / $order->quantity) : 0;
+
+            $reportData[] = [
+                'id' => $order->id,
+                'product_name' => $order->masterProduct->name ?? '—',
+                'sku' => $order->masterProduct->sku ?? '—',
+                'completed_at' => $order->updated_at,
+                'quantity' => $order->quantity,
+                'material_cost' => $totalMaterialCost,
+                'labor_cost' => $totalLaborCost,
+                'total_cost' => $totalProductionCost,
+                'hpp_per_unit' => $hppPerUnit,
+            ];
+        }
+
+        return view('reports.print_production_hpp', compact('reportData'));
+    }
 }
