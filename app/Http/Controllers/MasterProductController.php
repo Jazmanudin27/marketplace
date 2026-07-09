@@ -27,6 +27,10 @@ class MasterProductController extends Controller
                 'error_message' => 'Job timeout: Queue worker berhenti tak terduga. Klik Retry untuk coba ulang.',
             ]);
 
+        $connectedStoresCount = \App\Models\Store::where('tenant_id', $tenantId)
+            ->where('status', 'connected')
+            ->count();
+
         $query = MasterProduct::with(['marketplaceProducts.store.channel', 'category', 'brand'])
             ->where('tenant_id', $tenantId);
 
@@ -45,16 +49,15 @@ class MasterProductController extends Controller
         if ($request->filled('link_status')) {
             if ($request->link_status === 'unlinked') {
                 $query->whereDoesntHave('marketplaceProducts');
-            } elseif ($request->link_status === 'linked') {
-                $query->whereHas('marketplaceProducts');
+            } elseif ($request->link_status === 'partial') {
+                $query->whereHas('marketplaceProducts')
+                    ->whereRaw('(SELECT COUNT(DISTINCT store_id) FROM marketplace_products WHERE marketplace_products.master_product_id = master_products.id) < ?', [$connectedStoresCount]);
+            } elseif ($request->link_status === 'all') {
+                $query->whereRaw('(SELECT COUNT(DISTINCT store_id) FROM marketplace_products WHERE marketplace_products.master_product_id = master_products.id) >= ?', [$connectedStoresCount]);
             }
         }
 
         $products = $query->orderBy('name')->paginate(25)->withQueryString();
-
-        $connectedStoresCount = \App\Models\Store::where('tenant_id', $tenantId)
-            ->where('status', 'connected')
-            ->count();
 
         $publicationLogs = PublicationLog::with(['masterProduct', 'store.channel'])
             ->where('tenant_id', $tenantId)

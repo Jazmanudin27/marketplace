@@ -53,10 +53,13 @@
                             <select name="link_status" class="form-select form-select-sm">
                                 <option value="">-- Semua Status --</option>
                                 <option value="unlinked" {{ request('link_status') === 'unlinked' ? 'selected' : '' }}>
-                                    Belum Ditautkan ke Toko Mana Pun
+                                    Belum Ditautkan (0 Toko)
                                 </option>
-                                <option value="linked" {{ request('link_status') === 'linked' ? 'selected' : '' }}>
-                                    Sudah Ditautkan ke Toko
+                                <option value="partial" {{ request('link_status') === 'partial' ? 'selected' : '' }}>
+                                    Ditautkan Sebagian Toko
+                                </option>
+                                <option value="all" {{ request('link_status') === 'all' ? 'selected' : '' }}>
+                                    Ditautkan Semua Toko ({{ $connectedStoresCount }} Toko)
                                 </option>
                             </select>
                         </div>

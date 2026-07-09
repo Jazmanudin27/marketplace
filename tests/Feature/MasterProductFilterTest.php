@@ -150,7 +150,7 @@ class MasterProductFilterTest extends TestCase
     {
         $this->actingAs($this->user);
 
-        // Product A: linked
+        // Product A: linked to 1 store (Shopee) - Partial
         $prodA = MasterProduct::create([
             'tenant_id' => $this->tenant->id,
             'sku'       => 'SKU-A',
@@ -169,7 +169,7 @@ class MasterProductFilterTest extends TestCase
             'stock' => 10,
         ]);
 
-        // Product B: unlinked
+        // Product B: linked to both stores (Shopee and TikTok) - All
         $prodB = MasterProduct::create([
             'tenant_id' => $this->tenant->id,
             'sku'       => 'SKU-B',
@@ -178,16 +178,54 @@ class MasterProductFilterTest extends TestCase
             'stock'     => 20,
         ]);
 
+        MarketplaceProduct::create([
+            'store_id' => $this->storeShopee->id,
+            'master_product_id' => $prodB->id,
+            'marketplace_product_id' => 'MP-B1',
+            'marketplace_sku' => 'SKU-B',
+            'name' => 'Kaos Distro Keren B',
+            'price' => 85000,
+            'stock' => 20,
+        ]);
+
+        MarketplaceProduct::create([
+            'store_id' => $this->storeTiktok->id,
+            'master_product_id' => $prodB->id,
+            'marketplace_product_id' => 'MP-B2',
+            'marketplace_sku' => 'SKU-B',
+            'name' => 'Kaos Distro Keren B',
+            'price' => 85000,
+            'stock' => 20,
+        ]);
+
+        // Product C: unlinked (0 stores) - Unlinked
+        $prodC = MasterProduct::create([
+            'tenant_id' => $this->tenant->id,
+            'sku'       => 'SKU-C',
+            'name'      => 'Topi Baseball C',
+            'price'     => 45000,
+            'stock'     => 5,
+        ]);
+
         // 1. Filter by link_status = unlinked
         $response = $this->get(route('products.index', ['link_status' => 'unlinked']));
         $response->assertStatus(200);
         $response->assertDontSee('Sepatu Sneakers Premium A');
-        $response->assertSee('Kaos Distro Keren B');
+        $response->assertDontSee('Kaos Distro Keren B');
+        $response->assertSee('Topi Baseball C');
 
-        // 2. Filter by link_status = linked
-        $response = $this->get(route('products.index', ['link_status' => 'linked']));
+        // 2. Filter by link_status = partial (only Product A matches, since it's linked to 1 out of 2 stores)
+        $response = $this->get(route('products.index', ['link_status' => 'partial']));
         $response->assertStatus(200);
         $response->assertSee('Sepatu Sneakers Premium A');
         $response->assertDontSee('Kaos Distro Keren B');
+        $response->assertDontSee('Topi Baseball C');
+
+        // 3. Filter by link_status = all (only Product B matches, since it's linked to all 2 stores)
+        $response = $this->get(route('products.index', ['link_status' => 'all']));
+        $response->assertStatus(200);
+        $response->assertDontSee('Sepatu Sneakers Premium A');
+        $response->assertSee('Kaos Distro Keren B');
+        $response->assertDontSee('Topi Baseball C');
     }
 }
