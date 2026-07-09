@@ -246,17 +246,7 @@ class ProductCloningTest extends TestCase
     {
         $this->actingAs($this->user);
 
-        // 1. Create a Master Product
-        $master = MasterProduct::create([
-            'tenant_id' => $this->tenant->id,
-            'sku' => 'SKU-AUTO-LINK',
-            'name' => 'Master Product Auto Link',
-            'price' => 150000,
-            'stock' => 50,
-            'is_active' => true,
-        ]);
-
-        // 2. Create multiple unlinked Marketplace Products with the same SKU (with whitespaces)
+        // 1. Create multiple unlinked Marketplace Products with the same SKU (with whitespaces)
         $mp1 = MarketplaceProduct::create([
             'store_id' => $this->store->id,
             'master_product_id' => null,
@@ -275,6 +265,16 @@ class ProductCloningTest extends TestCase
             'name' => 'MP Product 2',
             'price' => 150000,
             'stock' => 50,
+        ]);
+
+        // 2. Create a Master Product after marketplace products are created
+        $master = MasterProduct::create([
+            'tenant_id' => $this->tenant->id,
+            'sku' => 'SKU-AUTO-LINK',
+            'name' => 'Master Product Auto Link',
+            'price' => 150000,
+            'stock' => 50,
+            'is_active' => true,
         ]);
 
         // 3. Make POST request to auto_link route
@@ -296,5 +296,45 @@ class ProductCloningTest extends TestCase
             'master_product_id' => $master->id,
             'sync_stock' => true,
         ]);
+    }
+
+    public function test_index_shows_direct_link_button_when_sku_matches(): void
+    {
+        $this->actingAs($this->user);
+
+        // 1. Create Marketplace Product first (with an empty or unmatching SKU to avoid observer auto-link)
+        $mp = MarketplaceProduct::create([
+            'store_id' => $this->store->id,
+            'master_product_id' => null,
+            'marketplace_product_id' => 'MP-DIRECT-1',
+            'marketplace_sku' => '',
+            'name' => 'MP Product Direct Match',
+            'price' => 150000,
+            'stock' => 50,
+        ]);
+
+        // 2. Create Master Product
+        $master = MasterProduct::create([
+            'tenant_id' => $this->tenant->id,
+            'sku' => 'SKU-DIRECT-MATCH',
+            'name' => 'Master Product Direct Match',
+            'price' => 150000,
+            'stock' => 50,
+            'is_active' => true,
+        ]);
+
+        // 3. Update the Marketplace Product's SKU directly via DB query builder to bypass Eloquent observers
+        \Illuminate\Support\Facades\DB::table('marketplace_products')
+            ->where('id', $mp->id)
+            ->update(['marketplace_sku' => 'SKU-DIRECT-MATCH']);
+
+        // 4. Access the index page
+        $response = $this->get(route('marketplace_products.index'));
+
+        $response->assertStatus(200);
+        
+        // Assert we see the direct "Tautkan ke Master" button
+        $response->assertSee('Tautkan ke Master');
+        $response->assertSee('Cocok: Master Product Direct Match');
     }
 }

@@ -137,50 +137,72 @@
                                 </span>
                             </td>
                             <td class="pe-3 text-center">
-                                <div class="d-flex gap-1 justify-content-center align-items-center">
-                                    <form action="{{ route('marketplace_products.promote', $product->id) }}"
-                                        method="POST" class="d-inline">
-                                        @csrf
-                                        <button type="submit" class="btn btn-primary btn-sm py-0 px-2"
-                                            onclick="return confirm('Jadikan produk ini sebagai Master Product baru?');"
-                                            title="Jadikan Master" style="font-size:0.72rem;">
-                                            <i class="fas fa-star text-warning me-1"></i>Master
-                                        </button>
-                                    </form>
-                                    <button type="button" class="btn btn-outline-info btn-sm py-0 px-2"
-                                        onclick="document.getElementById('link-form-{{ $product->id }}').classList.toggle('d-none')"
-                                        title="Tautkan ke Master" style="font-size:0.72rem;">
-                                        <i class="fas fa-link me-1"></i>Tautkan
-                                    </button>
-                                    <form action="{{ route('marketplace_products.clone_and_publish', $product->id) }}"
-                                        method="POST" class="d-inline">
-                                        @csrf
-                                        <button type="submit" class="btn btn-outline-secondary btn-sm py-0 px-2"
-                                            title="Salin ke Toko Lain" style="font-size:0.72rem;">
-                                            <i class="fas fa-copy me-1"></i>Salin ke Toko Lain
-                                        </button>
-                                    </form>
-                                </div>
+                                @php
+                                    $matchingMaster = $product->marketplace_sku 
+                                        ? $masterProducts->firstWhere('sku', trim($product->marketplace_sku)) 
+                                        : null;
+                                @endphp
 
-                                <form id="link-form-{{ $product->id }}"
-                                    action="{{ route('marketplace_products.link', $product->id) }}" method="POST"
-                                    class="d-none mt-2 p-2 border rounded text-start">
-                                    @csrf
-                                    <select name="master_product_id" class="form-select form-select-sm mb-2" required>
-                                        <option value="">-- Pilih Master --</option>
-                                        @foreach ($masterProducts as $master)
-                                            <option value="{{ $master->id }}">{{ $master->name }} (SKU:
-                                                {{ $master->sku }})</option>
-                                        @endforeach
-                                    </select>
-                                    <div class="d-flex gap-2">
-                                        <button type="submit" class="btn btn-success btn-sm flex-grow-1"
-                                            style="font-size:0.72rem;">Simpan</button>
-                                        <button type="button" class="btn btn-secondary btn-sm flex-grow-1"
-                                            style="font-size:0.72rem;"
-                                            onclick="document.getElementById('link-form-{{ $product->id }}').classList.add('d-none')">Batal</button>
+                                @if ($matchingMaster)
+                                    <div class="d-flex flex-column align-items-center gap-1">
+                                        <form action="{{ route('marketplace_products.link', $product->id) }}" method="POST" class="d-inline">
+                                            @csrf
+                                            <input type="hidden" name="master_product_id" value="{{ $matchingMaster->id }}">
+                                            <button type="submit" class="btn btn-success btn-sm py-1 px-2 fw-bold" style="font-size:0.72rem;">
+                                                <i class="fas fa-link me-1"></i>Tautkan ke Master
+                                            </button>
+                                        </form>
+                                        <span class="text-muted text-center" style="font-size:0.65rem; max-width:180px; display:inline-block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="SKU cocok dengan Master: {{ $matchingMaster->name }}">
+                                            Cocok: {{ $matchingMaster->name }}
+                                        </span>
                                     </div>
-                                </form>
+                                @else
+                                    <div class="d-flex gap-1 justify-content-center align-items-center">
+                                        <form action="{{ route('marketplace_products.promote', $product->id) }}"
+                                            method="POST" class="d-inline">
+                                            @csrf
+                                            <button type="submit" class="btn btn-primary btn-sm py-0 px-2"
+                                                onclick="return confirm('Jadikan produk ini sebagai Master Product baru?');"
+                                                title="Jadikan Master" style="font-size:0.72rem;">
+                                                <i class="fas fa-star text-warning me-1"></i>Master
+                                            </button>
+                                        </form>
+                                        <button type="button" class="btn btn-outline-info btn-sm py-0 px-2"
+                                            onclick="document.getElementById('link-form-{{ $product->id }}').classList.toggle('d-none')"
+                                            title="Tautkan ke Master" style="font-size:0.72rem;">
+                                            <i class="fas fa-link me-1"></i>Tautkan
+                                        </button>
+                                        <form
+                                            action="{{ route('marketplace_products.clone_and_publish', $product->id) }}"
+                                            method="POST" class="d-inline">
+                                            @csrf
+                                            <button type="submit" class="btn btn-outline-secondary btn-sm py-0 px-2"
+                                                title="Salin ke Toko Lain" style="font-size:0.72rem;">
+                                                <i class="fas fa-copy me-1"></i>Salin ke Toko Lain
+                                            </button>
+                                        </form>
+                                    </div>
+
+                                    <form id="link-form-{{ $product->id }}"
+                                        action="{{ route('marketplace_products.link', $product->id) }}" method="POST"
+                                        class="d-none mt-2 p-2 border rounded text-start">
+                                        @csrf
+                                        <select name="master_product_id" class="form-select form-select-sm mb-2" required>
+                                            <option value="">-- Pilih Master --</option>
+                                            @foreach ($masterProducts as $master)
+                                                <option value="{{ $master->id }}">{{ $master->name }} (SKU:
+                                                    {{ $master->sku }})</option>
+                                            @endforeach
+                                        </select>
+                                        <div class="d-flex gap-2">
+                                            <button type="submit" class="btn btn-success btn-sm flex-grow-1"
+                                                style="font-size:0.72rem;">Simpan</button>
+                                            <button type="button" class="btn btn-secondary btn-sm flex-grow-1"
+                                                style="font-size:0.72rem;"
+                                                onclick="document.getElementById('link-form-{{ $product->id }}').classList.add('d-none')">Batal</button>
+                                        </div>
+                                    </form>
+                                @endif
                             </td>
                         </tr>
                     @empty
