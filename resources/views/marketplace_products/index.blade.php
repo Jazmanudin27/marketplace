@@ -1,6 +1,15 @@
 @extends('layouts.app')
 @section('title', 'Produk Marketplace')
 @section('page-title', 'Produk Marketplace')
+@section('topbar-actions')
+    <form action="{{ route('marketplace_products.auto_link') }}" method="POST" class="d-inline"
+        onsubmit="return confirm('Tautkan semua produk marketplace secara otomatis berdasarkan kesamaan SKU?');">
+        @csrf
+        <button type="submit" class="btn btn-success btn-sm fw-bold text-white">
+            <i class="fas fa-magic me-1"></i> Tautkan Otomatis (Masal)
+        </button>
+    </form>
+@endsection
 
 @section('content')
     @if (session('success'))

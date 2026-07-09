@@ -360,6 +360,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/marketplace-products/{product}/unlink', [MarketplaceProductController::class, 'unlink'])->name('marketplace_products.unlink');
         Route::put('/marketplace-products/{product}/update-settings', [MarketplaceProductController::class, 'updateSettings'])->name('marketplace_products.update_settings');
         Route::post('/marketplace-products/{product}/clone-and-publish', [MarketplaceProductController::class, 'cloneAndPublish'])->name('marketplace_products.clone_and_publish');
+        Route::post('/marketplace-products/auto-link', [MarketplaceProductController::class, 'autoLink'])->name('marketplace_products.auto_link');
     });
 
     // Orders (Pesanan Masuk)

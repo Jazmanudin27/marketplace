@@ -241,4 +241,60 @@ class ProductCloningTest extends TestCase
         $response->assertSee('Sandal Gunung Eiger');
         $response->assertDontSee('Sepatu Compass');
     }
+
+    public function test_bulk_auto_link_by_sku(): void
+    {
+        $this->actingAs($this->user);
+
+        // 1. Create a Master Product
+        $master = MasterProduct::create([
+            'tenant_id' => $this->tenant->id,
+            'sku' => 'SKU-AUTO-LINK',
+            'name' => 'Master Product Auto Link',
+            'price' => 150000,
+            'stock' => 50,
+            'is_active' => true,
+        ]);
+
+        // 2. Create multiple unlinked Marketplace Products with the same SKU (with whitespaces)
+        $mp1 = MarketplaceProduct::create([
+            'store_id' => $this->store->id,
+            'master_product_id' => null,
+            'marketplace_product_id' => 'MP-AUTO-1',
+            'marketplace_sku' => '  SKU-AUTO-LINK  ', // test whitespace trim
+            'name' => 'MP Product 1',
+            'price' => 150000,
+            'stock' => 50,
+        ]);
+
+        $mp2 = MarketplaceProduct::create([
+            'store_id' => $this->store->id,
+            'master_product_id' => null,
+            'marketplace_product_id' => 'MP-AUTO-2',
+            'marketplace_sku' => 'SKU-AUTO-LINK',
+            'name' => 'MP Product 2',
+            'price' => 150000,
+            'stock' => 50,
+        ]);
+
+        // 3. Make POST request to auto_link route
+        $response = $this->post(route('marketplace_products.auto_link'));
+
+        // 4. Assert redirect back and correct flash message
+        $response->assertRedirect();
+        $response->assertSessionHas('success', 'Berhasil menautkan secara otomatis 2 produk marketplace berdasarkan kesamaan SKU.');
+
+        // 5. Verify database has been updated
+        $this->assertDatabaseHas('marketplace_products', [
+            'id' => $mp1->id,
+            'master_product_id' => $master->id,
+            'sync_stock' => true,
+        ]);
+
+        $this->assertDatabaseHas('marketplace_products', [
+            'id' => $mp2->id,
+            'master_product_id' => $master->id,
+            'sync_stock' => true,
+        ]);
+    }
 }

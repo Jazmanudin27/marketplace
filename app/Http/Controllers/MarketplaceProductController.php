@@ -254,6 +254,40 @@ class MarketplaceProductController extends Controller
         return back()->with('success', "Tautan produk marketplace '{$product->name}' berhasil dibatalkan.");
     }
 
+    public function autoLink()
+    {
+        $tenantId = Auth::user()->tenant_id;
+
+        // Ambil produk marketplace yang belum memiliki master_product_id tetapi memiliki SKU
+        $unlinkedProducts = MarketplaceProduct::whereNull('master_product_id')
+            ->whereHas('store', function($q) use ($tenantId) {
+                $q->where('tenant_id', $tenantId);
+            })
+            ->whereNotNull('marketplace_sku')
+            ->where('marketplace_sku', '!=', '')
+            ->get();
+
+        $linkedCount = 0;
+
+        foreach ($unlinkedProducts as $product) {
+            $skuClean = trim($product->marketplace_sku);
+            
+            $master = MasterProduct::where('tenant_id', $tenantId)
+                ->where('sku', $skuClean)
+                ->first();
+
+            if ($master) {
+                $product->update([
+                    'master_product_id' => $master->id,
+                    'sync_stock' => true, // Otomatis aktifkan sinkronisasi stok
+                ]);
+                $linkedCount++;
+            }
+        }
+
+        return back()->with('success', "Berhasil menautkan secara otomatis {$linkedCount} produk marketplace berdasarkan kesamaan SKU.");
+    }
+
     /**
      * Parse ukuran and warna from variation name.
      */

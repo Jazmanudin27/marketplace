@@ -36,8 +36,9 @@ class MarketplaceProduct extends Model
             if (empty($product->master_product_id) && !empty($product->marketplace_sku)) {
                 $store = $product->store;
                 if ($store) {
+                    $skuClean = trim($product->marketplace_sku);
                     $master = MasterProduct::where('tenant_id', $store->tenant_id)
-                        ->where('sku', $product->marketplace_sku)
+                        ->where('sku', $skuClean)
                         ->first();
                     if ($master) {
                         $product->master_product_id = $master->id;
