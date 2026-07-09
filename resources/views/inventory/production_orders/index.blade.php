@@ -16,25 +16,30 @@
     </div>
 @endif
 
-<ul class="nav nav-tabs mb-4" id="spkTab" role="tablist">
-    <li class="nav-item" role="presentation">
-        <button class="nav-link active small fw-semibold" id="antrean-tab" data-bs-toggle="tab" data-bs-target="#panel-antrean" type="button" role="tab">
-            <i class="fas fa-hourglass-half me-1"></i> Antrean Permintaan (Pending)
-            <span class="badge bg-warning text-dark ms-1">{{ count($pendingOrders) }}</span>
-        </button>
-    </li>
-    <li class="nav-item" role="presentation">
-        <button class="nav-link small fw-semibold text-primary" id="proses-tab" data-bs-toggle="tab" data-bs-target="#panel-proses" type="button" role="tab">
-            <i class="fas fa-cog fa-spin me-1"></i> Sedang Diproses (In Progress)
-            <span class="badge bg-primary ms-1">{{ count($producingOrders) }}</span>
-        </button>
-    </li>
-    <li class="nav-item" role="presentation">
-        <button class="nav-link small fw-semibold" id="riwayat-tab" data-bs-toggle="tab" data-bs-target="#panel-riwayat" type="button" role="tab">
-            <i class="fas fa-history me-1"></i> Riwayat Produksi
-        </button>
-    </li>
-</ul>
+<div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-2">
+    <ul class="nav nav-tabs border-0 m-0" id="spkTab" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active small fw-semibold border-0" id="antrean-tab" data-bs-toggle="tab" data-bs-target="#panel-antrean" type="button" role="tab">
+                <i class="fas fa-hourglass-half me-1"></i> Antrean Permintaan (Pending)
+                <span class="badge bg-warning text-dark ms-1">{{ count($pendingOrders) }}</span>
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link small fw-semibold text-primary border-0" id="proses-tab" data-bs-toggle="tab" data-bs-target="#panel-proses" type="button" role="tab">
+                <i class="fas fa-cog fa-spin me-1"></i> Sedang Diproses (In Progress)
+                <span class="badge bg-primary ms-1">{{ count($producingOrders) }}</span>
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link small fw-semibold border-0" id="riwayat-tab" data-bs-toggle="tab" data-bs-target="#panel-riwayat" type="button" role="tab">
+                <i class="fas fa-history me-1"></i> Riwayat Produksi
+            </button>
+        </li>
+    </ul>
+    <button type="button" class="btn btn-sm btn-primary px-3 rounded-2 fw-semibold" data-bs-toggle="modal" data-bs-target="#createManualSpkModal">
+        <i class="fas fa-plus me-1"></i> Buat SPK Manual
+    </button>
+</div>
 
 <div class="tab-content" id="spkTabContent">
     {{-- Tab 1: Antrean Pending --}}
@@ -459,4 +464,43 @@ $(document).ready(function() {
     });
 });
 </script>
+
+<!-- Modal Buat SPK Manual -->
+<div class="modal fade" id="createManualSpkModal" tabindex="-1" aria-labelledby="createManualSpkModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <form action="{{ route('production_orders.create_from_order') }}" method="POST">
+                @csrf
+                <div class="modal-header bg-primary text-white py-2 px-3">
+                    <h6 class="modal-title fw-bold" id="createManualSpkModalLabel">Buat Perintah Kerja (SPK) Baru</h6>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-3">
+                    <div class="mb-3">
+                        <label class="form-label form-label-sm fw-semibold">Produk Master Jadi</label>
+                        <select name="master_product_id" class="form-select form-select-sm" required style="width: 100%;">
+                            <option value="">-- Pilih Produk Master --</option>
+                            @php
+                                $allProducts = \App\Models\MasterProduct::where('tenant_id', auth()->user()->tenant_id)->where('is_active', true)->orderBy('name')->get();
+                            @endphp
+                            @foreach($allProducts as $p)
+                                <option value="{{ $p->id }}">{{ $p->sku ? '['.$p->sku.'] ' : '' }}{{ $p->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="mb-1">
+                        <label class="form-label form-label-sm fw-semibold">Kuantitas Produksi (Qty)</label>
+                        <input type="number" name="quantity" class="form-control form-control-sm" min="1" required placeholder="Contoh: 100">
+                    </div>
+                </div>
+                <div class="modal-footer py-2 px-3">
+                    <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-sm btn-primary fw-bold">
+                        <i class="fas fa-check me-1"></i> Simpan SPK
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 @endpush
