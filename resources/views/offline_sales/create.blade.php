@@ -32,7 +32,8 @@
                     <div class="col-lg-8">
                         <div class="card border-0 shadow-sm mb-3">
                             <div class="card-header bg-light py-2 px-3 border-bottom">
-                                <h6 class="fw-bold mb-0 text-dark"><i class="fas fa-box me-2 text-primary"></i>Pilih Produk</h6>
+                                <h6 class="fw-bold mb-0 text-dark"><i class="fas fa-box me-2 text-primary"></i>Pilih Produk
+                                </h6>
                             </div>
                             <div class="card-body p-3">
                                 {{-- Pencarian produk --}}
@@ -50,14 +51,13 @@
                                     style="max-height:300px;overflow-y:auto;">
                                     @foreach ($products as $product)
                                         <div class="product-row d-flex align-items-center justify-content-between px-3 py-2 border-bottom"
-                                            style="cursor:pointer;transition:.15s;"
-                                            data-id="{{ $product->id }}" data-name="{{ $product->name }}"
-                                            data-sku="{{ $product->sku }}" data-price="{{ $product->price }}"
-                                            data-stock="{{ $product->stock }}">
+                                            style="cursor:pointer;transition:.15s;" data-id="{{ $product->id }}"
+                                            data-name="{{ $product->name }}" data-sku="{{ $product->sku }}"
+                                            data-price="{{ $product->price }}" data-stock="{{ $product->stock }}">
                                             <div>
                                                 <div class="fw-semibold text-dark">{{ $product->name }}</div>
-                                                <div class="text-muted small font-monospace">{{ $product->sku }} &bull; <span
-                                                        class="text-secondary fw-semibold">Stok: {{ $product->stock }}
+                                                <div class="text-muted small font-monospace">{{ $product->sku }} &bull;
+                                                    <span class="text-secondary fw-semibold">Stok: {{ $product->stock }}
                                                         {{ $product->unit }}</span></div>
                                             </div>
                                             <div class="text-end">
@@ -77,8 +77,7 @@
                                     Belum ada produk yang dipilih
                                 </div>
 
-                                <div class="table-responsive rounded border mt-3"
-                                    id="cart-table" style="display:none;">
+                                <div class="table-responsive rounded border mt-3" id="cart-table" style="display:none;">
                                     <table class="table table-sm table-bordered table-striped align-middle mb-0 text-dark">
                                         <thead class="table-light">
                                             <tr>
@@ -112,11 +111,12 @@
                                 <div class="mb-3">
                                     <label class="form-label form-label-sm text-muted">Diskon (Rp)</label>
                                     <input type="text" name="discount_amount" id="discount-input"
-                                        class="form-control form-control-sm"
-                                        value="0">
-                                    <span id="reseller-info-badge" class="badge bg-success text-white mt-1 w-100 py-1" style="display: none; font-size: 0.7rem; white-space: normal;"></span>
+                                        class="form-control form-control-sm" value="0">
+                                    <span id="reseller-info-badge" class="badge bg-success text-white mt-1 w-100 py-1"
+                                        style="display: none; font-size: 0.7rem; white-space: normal;"></span>
                                 </div>
-                                <div class="d-flex justify-content-between mb-3 p-3 bg-success bg-opacity-10 border border-success border-opacity-10 rounded">
+                                <div
+                                    class="d-flex justify-content-between mb-3 p-3 bg-success bg-opacity-10 border border-success border-opacity-10 rounded">
                                     <span class="fw-bold text-dark small align-self-center">GRAND TOTAL</span>
                                     <span class="fw-extrabold text-success fs-5 font-monospace" id="display-grand-total">Rp
                                         0</span>
@@ -159,7 +159,8 @@
                                 <div class="mb-3 p-3 text-center rounded bg-primary bg-opacity-10 border border-primary border-opacity-10"
                                     id="change-section">
                                     <div class="text-muted small">Kembalian</div>
-                                    <div class="fw-extrabold fs-4 text-primary font-monospace" id="display-change">Rp 0</div>
+                                    <div class="fw-extrabold fs-4 text-primary font-monospace" id="display-change">Rp 0
+                                    </div>
                                 </div>
 
                                 <hr class="my-3">
@@ -167,17 +168,22 @@
                                 <div class="mb-3">
                                     <label class="form-label form-label-sm text-muted d-block">Tipe Pelanggan</label>
                                     <div class="form-check form-check-inline">
-                                        <input class="form-check-input" type="radio" name="customer_type" id="customer_type_registered" value="registered" checked>
-                                        <label class="form-check-label text-dark small" for="customer_type_registered">Terdaftar</label>
+                                        <input class="form-check-input" type="radio" name="customer_type"
+                                            id="customer_type_registered" value="registered" checked>
+                                        <label class="form-check-label text-dark small"
+                                            for="customer_type_registered">Terdaftar</label>
                                     </div>
                                     <div class="form-check form-check-inline">
-                                        <input class="form-check-input" type="radio" name="customer_type" id="customer_type_manual" value="manual">
-                                        <label class="form-check-label text-dark small" for="customer_type_manual">Pelanggan Baru</label>
+                                        <input class="form-check-input" type="radio" name="customer_type"
+                                            id="customer_type_manual" value="manual">
+                                        <label class="form-check-label text-dark small"
+                                            for="customer_type_manual">Pelanggan Baru</label>
                                     </div>
                                 </div>
 
                                 <div class="mb-3" id="customer-select-wrapper">
-                                    <label class="form-label form-label-sm text-muted">Pelanggan / Pembeli (Opsional)</label>
+                                    <label class="form-label form-label-sm text-muted">Pelanggan / Pembeli
+                                        (Opsional)</label>
                                     <select name="customer_id" id="customer-select"
                                         class="form-select form-select-sm select2" style="width: 100%;">
                                         <option value="">-- Pelanggan Umum --</option>
@@ -193,68 +199,75 @@
                                 </div>
 
                                 {{-- Reseller Balance Indicator --}}
-                                <div id="reseller-balance-card" class="p-2 mb-2 rounded bg-success bg-opacity-10 border border-success border-opacity-10" style="display:none;">
+                                <div id="reseller-balance-card"
+                                    class="p-2 mb-2 rounded bg-success bg-opacity-10 border border-success border-opacity-10"
+                                    style="display:none;">
                                     <div class="d-flex justify-content-between align-items-center">
-                                        <span class="small text-muted"><i class="fas fa-wallet me-1 text-success"></i> Saldo Reseller</span>
-                                        <span class="fw-bold font-monospace text-success small" id="display-reseller-balance">Rp 0</span>
+                                        <span class="small text-muted"><i class="fas fa-wallet me-1 text-success"></i>
+                                            Saldo Reseller</span>
+                                        <span class="fw-bold font-monospace text-success small"
+                                            id="display-reseller-balance">Rp 0</span>
                                     </div>
-                                    <div id="reseller-balance-warning" class="text-danger mt-1" style="display:none; font-size:0.7rem;">
-                                        <i class="fas fa-exclamation-circle me-1"></i> Saldo tidak cukup untuk grand total ini!
+                                    <div id="reseller-balance-warning" class="text-danger mt-1"
+                                        style="display:none; font-size:0.7rem;">
+                                        <i class="fas fa-exclamation-circle me-1"></i> Saldo tidak cukup untuk grand total
+                                        ini!
                                     </div>
                                 </div>
                                 <div class="mb-3">
-                                    <label class="form-label form-label-sm text-muted" id="buyer-name-label">Nama Pembeli</label>
+                                    <label class="form-label form-label-sm text-muted" id="buyer-name-label">Nama
+                                        Pembeli</label>
                                     <input type="text" name="buyer_name" id="buyer-name-input"
-                                        class="form-control form-control-sm"
-                                        placeholder="Pelanggan Umum">
+                                        class="form-control form-control-sm" placeholder="Pelanggan Umum">
                                 </div>
                                 <div class="mb-3">
-                                    <label class="form-label form-label-sm text-muted" id="buyer-phone-label">No. HP Pembeli</label>
+                                    <label class="form-label form-label-sm text-muted" id="buyer-phone-label">No. HP
+                                        Pembeli</label>
                                     <input type="text" name="buyer_phone" id="buyer-phone-input"
-                                        class="form-control form-control-sm"
-                                        placeholder="0812...">
+                                        class="form-control form-control-sm" placeholder="0812...">
                                 </div>
                                 <div class="mb-3">
                                     <label class="form-label form-label-sm text-muted">Alamat Pelanggan</label>
-                                    <textarea name="buyer_address" id="buyer-address-input"
-                                        class="form-control form-control-sm"
-                                        rows="2" placeholder="Alamat lengkap pelanggan..."></textarea>
+                                    <textarea name="buyer_address" id="buyer-address-input" class="form-control form-control-sm" rows="2"
+                                        placeholder="Alamat lengkap pelanggan..."></textarea>
                                 </div>
                                 <!-- Dropship Toggle & Inputs -->
                                 <div class="mb-3 mt-3">
                                     <div class="form-check form-switch">
-                                        <input class="form-check-input" type="checkbox" name="is_dropship" id="is-dropship-toggle" value="1">
-                                        <label class="form-check-label text-warning fw-bold small" for="is-dropship-toggle">
+                                        <input class="form-check-input" type="checkbox" name="is_dropship"
+                                            id="is-dropship-toggle" value="1">
+                                        <label class="form-check-label text-warning fw-bold small"
+                                            for="is-dropship-toggle">
                                             <i class="fas fa-shipping-fast me-1"></i> Kirim Sebagai Dropshipper
                                         </label>
                                     </div>
                                 </div>
-                                
-                                <div id="dropship-inputs" style="display: none; background: rgba(245, 158, 11, 0.05); padding: 10px; border-radius: 8px; border: 1px solid rgba(245, 158, 11, 0.15); margin-bottom: 1rem;">
+
+                                <div id="dropship-inputs"
+                                    style="display: none; background: rgba(245, 158, 11, 0.05); padding: 10px; border-radius: 8px; border: 1px solid rgba(245, 158, 11, 0.15); margin-bottom: 1rem;">
                                     <div class="mb-2">
-                                        <label class="form-label form-label-sm text-muted">Nama Pengirim (Dropshipper) <span class="text-danger">*</span></label>
+                                        <label class="form-label form-label-sm text-muted">Nama Pengirim (Dropshipper)
+                                            <span class="text-danger">*</span></label>
                                         <input type="text" name="dropshipper_name" id="dropshipper-name-input"
-                                            class="form-control form-control-sm"
-                                            placeholder="Nama Dropshipper">
+                                            class="form-control form-control-sm" placeholder="Nama Dropshipper">
                                     </div>
                                     <div>
-                                         <label class="form-label form-label-sm text-muted">No. HP Pengirim (Dropshipper) <span class="text-danger">*</span></label>
-                                         <input type="text" name="dropshipper_phone" id="dropshipper-phone-input"
-                                             class="form-control form-control-sm"
-                                             placeholder="No. HP Dropshipper">
+                                        <label class="form-label form-label-sm text-muted">No. HP Pengirim (Dropshipper)
+                                            <span class="text-danger">*</span></label>
+                                        <input type="text" name="dropshipper_phone" id="dropshipper-phone-input"
+                                            class="form-control form-control-sm" placeholder="No. HP Dropshipper">
                                     </div>
                                 </div>
 
                                 <div class="mb-3">
                                     <label class="form-label form-label-sm text-muted">Catatan</label>
-                                    <textarea name="notes"
-                                        class="form-control form-control-sm"
-                                        rows="2" placeholder="Tulis catatan transaksi jika ada..."></textarea>
+                                    <textarea name="notes" class="form-control form-control-sm" rows="2"
+                                        placeholder="Tulis catatan transaksi jika ada..."></textarea>
                                 </div>
 
                                 <div class="d-grid mt-4">
-                                    <button type="submit" class="btn btn-success btn-sm py-2 fw-semibold" id="btn-submit"
-                                        disabled>
+                                    <button type="submit" class="btn btn-success btn-sm py-2 fw-semibold"
+                                        id="btn-submit" disabled>
                                         <i class="fas fa-check-circle me-2"></i>Selesaikan Transaksi
                                     </button>
                                 </div>
@@ -293,24 +306,24 @@
                     $('#buyer-name-input').prop('readonly', true);
                     $('#buyer-phone-input').prop('readonly', true);
                     $('#buyer-address-input').prop('readonly', true);
-                    
+
                     // Remove required markers
                     $('#buyer-name-label').html('Nama Pembeli');
                     $('#buyer-phone-label').html('No. HP Pembeli');
                     $('#buyer-name-input').prop('required', false);
                     $('#buyer-phone-input').prop('required', false);
-                    
+
                     triggerCustomerSelectChange();
                 } else {
                     $('#customer-select-wrapper').hide();
-                    
+
                     // Reset customer select
                     $('#customer-select').val('').trigger('change.select2');
-                    
+
                     $('#buyer-name-input').val('').prop('readonly', false);
                     $('#buyer-phone-input').val('').prop('readonly', false);
                     $('#buyer-address-input').val('').prop('readonly', false);
-                    
+
                     // Add required markers
                     $('#buyer-name-label').html('Nama Pembeli <span class="text-danger">*</span>');
                     $('#buyer-phone-label').html('No. HP Pembeli <span class="text-danger">*</span>');
@@ -350,7 +363,9 @@
 
                         // Show info badge and update discount
                         updateResellerDiscount();
-                        $('#reseller-info-badge').html('<i class="fas fa-percent me-1"></i> Diskon Reseller 10% diterapkan otomatis').show();
+                        $('#reseller-info-badge').html(
+                            '<i class="fas fa-percent me-1"></i> Diskon Reseller 10% diterapkan otomatis')
+                        .show();
                     } else {
                         // Regular registered customer
                         $('#is-dropship-toggle').prop('checked', false).trigger('change');
@@ -681,7 +696,8 @@
                 const selectedOption = $('#customer-select').find('option:selected');
                 const tags = String(selectedOption.data('tags') || '');
                 const balance = parseFloat(selectedOption.data('balance') || 0);
-                const isReseller = tags.toLowerCase().includes('reseller') || tags.toLowerCase().includes('dropship');
+                const isReseller = tags.toLowerCase().includes('reseller') || tags.toLowerCase().includes(
+                    'dropship');
 
                 if (isReseller) {
                     const subtotal = Object.values(cartItems).reduce((s, i) => s + i.qty * i.price, 0);
@@ -700,10 +716,10 @@
             // Initialize on load
             // Set payment button to active tunai
             $('.payment-btn[for="pm-tunai"]').addClass('active btn-selected').removeClass('btn-outline-secondary');
-            
+
             // Set initial customer type toggle
             toggleCustomerType('registered');
-            
+
             recalculate();
 
             // Limit product list to 5 initially
