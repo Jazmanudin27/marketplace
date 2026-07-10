@@ -506,6 +506,14 @@ Route::middleware('auth')->group(function () {
         Route::post('/production-orders/create-from-order', [\App\Http\Controllers\Inventory\ProductionOrderController::class, 'createFromOrder'])->name('production_orders.create_from_order');
         Route::get('/production-orders/{order}', [\App\Http\Controllers\Inventory\ProductionOrderController::class, 'show'])->name('production_orders.show');
 
+        // ── PERMINTAAN PRODUKSI (Production Requests) ────────────────────────────
+        Route::get('/production-requests', [\App\Http\Controllers\Inventory\ProductionRequestController::class, 'index'])->name('production_requests.index');
+        Route::get('/production-requests/create', [\App\Http\Controllers\Inventory\ProductionRequestController::class, 'create'])->name('production_requests.create');
+        Route::post('/production-requests', [\App\Http\Controllers\Inventory\ProductionRequestController::class, 'store'])->name('production_requests.store');
+        Route::get('/production-requests/{productionRequest}', [\App\Http\Controllers\Inventory\ProductionRequestController::class, 'show'])->name('production_requests.show');
+        Route::post('/production-requests/{productionRequest}/approve', [\App\Http\Controllers\Inventory\ProductionRequestController::class, 'approve'])->name('production_requests.approve');
+        Route::post('/production-requests/{productionRequest}/reject', [\App\Http\Controllers\Inventory\ProductionRequestController::class, 'reject'])->name('production_requests.reject');
+
         // Stock Sync
         Route::get('/stock-sync', [StockSyncController::class, 'index'])->name('inventory.stock_sync');
         Route::post('/stock-sync/all', [StockSyncController::class, 'forceSyncAll'])->name('inventory.stock_sync.all');

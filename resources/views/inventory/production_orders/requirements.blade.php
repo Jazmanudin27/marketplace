@@ -13,8 +13,8 @@
         </div>
         <div class="d-flex gap-2">
             <input type="text" id="search-requirements" class="form-control form-control-sm" placeholder="Cari SKU / nama produk / Invoice..." style="width: 280px;">
-            <a href="{{ route('orders.create') }}" class="btn btn-sm btn-primary px-3 rounded-2 fw-semibold d-flex align-items-center">
-                <i class="fas fa-plus me-1"></i> Input Pesanan Manual (PO)
+            <a href="{{ route('production_requests.create') }}" class="btn btn-sm btn-primary px-3 rounded-2 fw-semibold d-flex align-items-center">
+                <i class="fas fa-plus me-1"></i> Buat Permintaan Produksi
             </a>
         </div>
     </div>

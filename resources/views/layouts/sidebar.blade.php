@@ -438,6 +438,8 @@
                             class="nav-link py-1 {{ request()->routeIs('production_orders.index') || request()->routeIs('production_orders.show') ? 'active text-white' : 'text-secondary' }}">Perintah Kerja (SPK)</a>
                         <a href="{{ route('production_orders.requirements') }}"
                             class="nav-link py-1 {{ request()->routeIs('production_orders.requirements') ? 'active text-white' : 'text-secondary' }}">Kebutuhan SPK (PO)</a>
+                        <a href="{{ route('production_requests.index') }}"
+                            class="nav-link py-1 {{ request()->routeIs('production_requests.*') ? 'active text-white' : 'text-secondary' }}">Permintaan Produksi</a>
                         <a href="{{ route('produksi_mutations.pending_approvals') }}"
                             class="nav-link py-1 d-flex align-items-center justify-content-between pe-3 {{ request()->routeIs('produksi_mutations.pending_approvals') ? 'active text-white' : 'text-secondary' }}">
                             <span>Penerimaan (Approval)</span>
