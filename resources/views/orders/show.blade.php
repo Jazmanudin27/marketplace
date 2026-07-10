@@ -169,7 +169,11 @@
                             @endif
                             <div class="col-md-6">
                                 <div class="p-3 border rounded h-100 bg-light">
-                                    <small class="text-muted d-block text-uppercase fw-semibold mb-1" style="font-size: 0.65rem;">Pembeli</small>
+                                    @if(str_starts_with($order->order_marketplace_id, 'MANUAL-'))
+                                        <small class="text-muted d-block text-uppercase fw-semibold mb-1" style="font-size: 0.65rem;">Departemen Pengaju</small>
+                                    @else
+                                        <small class="text-muted d-block text-uppercase fw-semibold mb-1" style="font-size: 0.65rem;">Pembeli</small>
+                                    @endif
                                     <span class="fw-bold text-dark small">
                                         @if ($order->customer_id)
                                             <a href="{{ route('customers.show', $order->customer_id) }}"
@@ -184,14 +188,23 @@
                             </div>
                             <div class="col-md-6">
                                 <div class="p-3 border rounded h-100 bg-light">
-                                    <small class="text-muted d-block text-uppercase fw-semibold mb-1" style="font-size: 0.65rem;">No. Telp</small>
-                                    <span class="font-monospace fw-semibold text-dark small">{{ $order->buyer_phone ?? '-' }}</span>
+                                    @if(str_starts_with($order->order_marketplace_id, 'MANUAL-'))
+                                        <small class="text-muted d-block text-uppercase fw-semibold mb-1" style="font-size: 0.65rem;">Tipe Permintaan</small>
+                                        <span class="fw-bold text-primary small">{{ $order->buyer_phone ?? '-' }}</span>
+                                    @else
+                                        <small class="text-muted d-block text-uppercase fw-semibold mb-1" style="font-size: 0.65rem;">No. Telp</small>
+                                        <span class="font-monospace fw-semibold text-dark small">{{ $order->buyer_phone ?? '-' }}</span>
+                                    @endif
                                 </div>
                             </div>
                             <div class="col-md-12">
                                 <div class="p-3 border rounded h-100 bg-light">
-                                    <small class="text-muted d-block text-uppercase fw-semibold mb-1" style="font-size: 0.65rem;">Alamat Pengiriman</small>
-                                    <span class="fw-semibold text-dark text-wrap small">{{ $order->shipping_address ?? '-' }}</span>
+                                    @if(str_starts_with($order->order_marketplace_id, 'MANUAL-'))
+                                        <small class="text-muted d-block text-uppercase fw-semibold mb-1" style="font-size: 0.65rem;">Tujuan / Detail Pengiriman</small>
+                                    @else
+                                        <small class="text-muted d-block text-uppercase fw-semibold mb-1" style="font-size: 0.65rem;">Alamat Pengiriman</small>
+                                    @endif
+                                    <span class="fw-semibold text-dark text-wrap small" style="white-space: pre-line;">{{ $order->shipping_address ?? '-' }}</span>
                                 </div>
                             </div>
                             @if ($order->is_dropship)

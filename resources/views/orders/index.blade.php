@@ -212,7 +212,7 @@
                                             <input type="checkbox" id="check-all" class="form-check-input">
                                         </th>
                                         <th>INVOICE / ID</th>
-                                        <th>PEMBELI</th>
+                                        <th>PEMBELI / DEPT</th>
                                         <th>TOKO &amp; CHANNEL</th>
                                         <th class="text-end">TOTAL</th>
                                         <th>KURIR</th>

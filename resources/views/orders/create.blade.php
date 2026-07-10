@@ -1,20 +1,19 @@
 ﻿@extends('layouts.app')
 
-@section('title', 'Input Pesanan Manual (PO)')
-@section('page-title', 'Input Pesanan Manual (PO)')
+@section('title', 'Input Permintaan Produksi (Manual PO)')
+@section('page-title', 'Input Permintaan Produksi')
 
 @section('content')
     <div class="mx-auto" style="max-width:860px">
 
         <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4">
-
             {{-- Header --}}
             <div
                 class="card-header bg-primary text-white py-3 px-4 d-flex justify-content-between align-items-center border-0">
                 <div>
-                    <h5 class="fw-bold mb-1"><i class="fas fa-file-invoice me-2"></i>Input Pesanan Manual (PO)</h5>
-                    <small class="text-white-50">Pesanan akan tercatat dengan status
-                        <strong class="text-white">Ready to Ship</strong> untuk antrean SPK</small>
+                    <h5 class="fw-bold mb-1"><i class="fas fa-file-invoice me-2"></i>Input Permintaan Produksi</h5>
+                    <small class="text-white-50">Pesanan manual untuk diproduksi & disimpan di gudang jadi sebelum
+                        diserahkan</small>
                 </div>
                 <a href="{{ route('production_orders.requirements') }}" class="btn btn-sm btn-light fw-semibold px-3">
                     <i class="fas fa-arrow-left me-1"></i> Kembali
@@ -32,7 +31,7 @@
                             <i class="fas fa-store fa-sm"></i>
                         </div>
                         <span class="text-uppercase fw-semibold text-primary mt-1"
-                            style="font-size:0.65rem;letter-spacing:0.06em;">Info Toko</span>
+                            style="font-size:0.65rem;letter-spacing:0.06em;">Info & Tipe</span>
                     </div>
 
                     <div class="flex-grow-1 border-top border-2 mx-2 mb-3" id="conn-1" style="max-width:80px;"></div>
@@ -41,10 +40,10 @@
                     <div class="d-flex flex-column align-items-center" id="step-dot-2">
                         <div class="rounded-circle d-flex align-items-center justify-content-center fw-bold border border-2 bg-light border-secondary text-secondary"
                             style="width:40px;height:40px;font-size:0.95rem;" id="step-icon-2">
-                            <i class="fas fa-user fa-sm"></i>
+                            <i class="fas fa-user-tag fa-sm"></i>
                         </div>
                         <span class="text-uppercase fw-semibold text-secondary mt-1" id="step-label-2"
-                            style="font-size:0.65rem;letter-spacing:0.06em;">Pembeli</span>
+                            style="font-size:0.65rem;letter-spacing:0.06em;">Pengaju & Detail</span>
                     </div>
 
                     <div class="flex-grow-1 border-top border-2 mx-2 mb-3 border-secondary" id="conn-2"
@@ -78,16 +77,23 @@
 
             <form action="{{ route('orders.store') }}" method="POST" id="manual-order-form">
                 @csrf
+
+                {{-- Hidden inputs to be populated via JavaScript --}}
+                <input type="hidden" name="invoice_number" id="real_invoice_number" value="" />
+                <input type="hidden" name="buyer_name" id="real_buyer_name" value="" />
+                <input type="hidden" name="buyer_phone" id="real_buyer_phone" value="" />
+                <input type="hidden" name="shipping_address" id="real_shipping_address" value="" />
+
                 <div class="card-body p-4">
 
-                    {{-- ========== STEP 1: Info Toko ========== --}}
+                    {{-- ========== STEP 1: Info Toko & Tipe ========== --}}
                     <div id="step-1">
                         <p class="text-uppercase text-muted fw-semibold mb-3 small">
-                            <i class="fas fa-store me-1"></i> Informasi Toko & No. Pesanan
+                            <i class="fas fa-store me-1"></i> Informasi Toko & Tipe Permintaan
                         </p>
                         <div class="row g-3 mb-4">
                             <div class="col-md-6">
-                                <label class="form-label fw-semibold small">Akun / Toko Tujuan <span
+                                <label class="form-label fw-semibold small">Toko Tujuan <span
                                         class="text-danger">*</span></label>
                                 <select name="store_id" id="store_id" class="form-select form-select-sm" required
                                     style="width:100%">
@@ -100,10 +106,19 @@
                                 </select>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label fw-semibold small">No. Invoice / No. Pesanan (PO) <span
+                                <label class="form-label fw-semibold small">Tipe Permintaan Produksi <span
                                         class="text-danger">*</span></label>
-                                <input type="text" name="invoice_number" id="invoice_number"
-                                    class="form-control form-control-sm" required placeholder="Contoh: INV/2026/0012">
+                                <select id="request_type" class="form-select form-select-sm" required>
+                                    <option value="Stok Gudang Jadi" selected>Stok Gudang Jadi (Untuk Persediaan)</option>
+                                    <option value="PO Pelanggan">PO Pelanggan (Pesanan Khusus Pelanggan)</option>
+                                </select>
+                            </div>
+                            <div class="col-md-12">
+                                <label class="form-label fw-semibold small">No. Invoice / Permintaan</label>
+                                <input type="text" class="form-control form-control-sm bg-light" readonly
+                                    value="[Otomatis Digenerate Sistem]">
+                                <span class="text-muted small" style="font-size: 0.72rem;">Nomor permintaan produksi akan
+                                    otomatis terbit dengan format <strong>REQ-YYYYMMDD-XXXX</strong></span>
                             </div>
                         </div>
                         <div class="d-flex justify-content-end">
@@ -113,30 +128,51 @@
                         </div>
                     </div>
 
-                    {{-- ========== STEP 2: Data Pembeli ========== --}}
+                    {{-- ========== STEP 2: Pengaju & Detail ========== --}}
                     <div id="step-2" class="d-none">
                         <p class="text-uppercase text-muted fw-semibold mb-3 small">
-                            <i class="fas fa-user me-1"></i> Data Pembeli
+                            <i class="fas fa-user-tie me-1"></i> Pengaju Permintaan
                         </p>
                         <div class="row g-3 mb-4">
-                            <div class="col-md-6">
-                                <label class="form-label fw-semibold small">Nama Pembeli <span
+                            <div class="col-md-12">
+                                <label class="form-label fw-semibold small">Departemen yang Mengajukan <span
                                         class="text-danger">*</span></label>
-                                <input type="text" name="buyer_name" id="buyer_name" class="form-control form-control-sm"
-                                    required placeholder="Nama lengkap pembeli">
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label fw-semibold small">No. HP Pembeli</label>
-                                <input type="text" name="buyer_phone" id="buyer_phone"
-                                    class="form-control form-control-sm" placeholder="Contoh: 08123456789">
-                            </div>
-                            <div class="col-12">
-                                <label class="form-label fw-semibold small">Alamat Pengiriman</label>
-                                <textarea name="shipping_address" id="shipping_address" class="form-control form-control-sm" rows="3"
-                                    placeholder="Alamat lengkap tujuan pengiriman..."></textarea>
+                                <select id="department_id" class="form-select form-select-sm" required>
+                                    <option value="">-- Pilih Departemen --</option>
+                                    @foreach ($departments as $dept)
+                                        <option value="{{ $dept->name }}">{{ $dept->name }}</option>
+                                    @endforeach
+                                </select>
                             </div>
                         </div>
-                        <div class="d-flex justify-content-between">
+
+                        {{-- Customer Details Form - Shown only for PO Pelanggan --}}
+                        <div id="customer_section" class="d-none border-top pt-3 mt-3">
+                            <p class="text-uppercase text-primary fw-bold mb-3 small">
+                                <i class="fas fa-user-tag me-1"></i> Detail Pembeli / Pelanggan PO
+                            </p>
+                            <div class="row g-3 mb-4">
+                                <div class="col-md-6">
+                                    <label class="form-label fw-semibold small">Nama Pelanggan <span
+                                            class="text-danger">*</span></label>
+                                    <input type="text" id="cust_name" class="form-control form-control-sm"
+                                        placeholder="Nama lengkap pelanggan">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-semibold small">No. HP Pelanggan</label>
+                                    <input type="text" id="cust_phone" class="form-control form-control-sm"
+                                        placeholder="Contoh: 08123456789">
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label fw-semibold small">Alamat Pengiriman <span
+                                            class="text-danger">*</span></label>
+                                    <textarea id="cust_address" class="form-control form-control-sm" rows="3"
+                                        placeholder="Alamat lengkap pengiriman..."></textarea>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between mt-3">
                             <button type="button" class="btn btn-outline-secondary btn-sm px-3 fw-semibold"
                                 onclick="goToStep(1)">
                                 <i class="fas fa-arrow-left me-1"></i> Kembali
@@ -150,7 +186,7 @@
                     {{-- ========== STEP 3: Item Produk ========== --}}
                     <div id="step-3" class="d-none">
                         <p class="text-uppercase text-muted fw-semibold mb-3 small">
-                            <i class="fas fa-boxes me-1"></i> Item Produk Dipesan
+                            <i class="fas fa-boxes me-1"></i> Item Produk untuk Diproduksi
                         </p>
 
                         <div id="item-list" class="mb-3"></div>
@@ -163,7 +199,7 @@
                         <div class="alert alert-primary d-flex justify-content-between align-items-center py-2 px-3 mb-4">
                             <div>
                                 <div class="text-uppercase fw-semibold" style="font-size:0.65rem;letter-spacing:0.06em;">
-                                    Grand Total</div>
+                                    Estimasi Nilai</div>
                                 <div id="order-grand-total" class="fw-bold fs-5 mb-0">Rp 0</div>
                             </div>
                             <span class="badge bg-primary rounded-pill" id="item-count-label">0 item</span>
@@ -176,7 +212,7 @@
                             </button>
                             <button type="button" class="btn btn-primary btn-sm px-4 fw-semibold"
                                 onclick="goToReview()">
-                                Review Pesanan <i class="fas fa-eye ms-1"></i>
+                                Review Permintaan <i class="fas fa-eye ms-1"></i>
                             </button>
                         </div>
                     </div>
@@ -193,7 +229,7 @@
                                     <div class="card-body py-3 px-3">
                                         <p class="text-uppercase fw-bold text-muted mb-2"
                                             style="font-size:0.65rem;letter-spacing:0.06em;">
-                                            <i class="fas fa-store me-1"></i>Info Toko & PO
+                                            <i class="fas fa-store me-1"></i>Toko & Tipe Permintaan
                                         </p>
                                         <table class="table table-sm table-borderless mb-0 small">
                                             <tr>
@@ -201,8 +237,13 @@
                                                 <td class="fw-semibold" id="rev-store">-</td>
                                             </tr>
                                             <tr>
+                                                <td class="text-muted ps-0">Tipe Permintaan</td>
+                                                <td class="fw-bold text-primary" id="rev-type">-</td>
+                                            </tr>
+                                            <tr>
                                                 <td class="text-muted ps-0">No. Invoice</td>
-                                                <td class="fw-semibold" id="rev-invoice">-</td>
+                                                <td class="text-muted font-monospace" id="rev-invoice">[Otomatis
+                                                    Generated]</td>
                                             </tr>
                                         </table>
                                     </div>
@@ -213,21 +254,25 @@
                                     <div class="card-body py-3 px-3">
                                         <p class="text-uppercase fw-bold text-muted mb-2"
                                             style="font-size:0.65rem;letter-spacing:0.06em;">
-                                            <i class="fas fa-user me-1"></i>Data Pembeli
+                                            <i class="fas fa-user me-1"></i>Pengaju & Tujuan
                                         </p>
                                         <table class="table table-sm table-borderless mb-0 small">
                                             <tr>
-                                                <td class="text-muted ps-0" style="width:30%">Nama</td>
-                                                <td class="fw-semibold" id="rev-buyer">-</td>
+                                                <td class="text-muted ps-0" style="width:30%">Departemen</td>
+                                                <td class="fw-bold text-success" id="rev-buyer">-</td>
                                             </tr>
-                                            <tr>
-                                                <td class="text-muted ps-0">No. HP</td>
-                                                <td class="fw-semibold" id="rev-phone">-</td>
+                                            <tr class="po-details-row d-none">
+                                                <td class="text-muted ps-0">Pelanggan PO</td>
+                                                <td class="fw-semibold" id="rev-customer-detail">-</td>
                                             </tr>
-                                            <tr>
-                                                <td class="text-muted ps-0">Alamat</td>
+                                            <tr class="po-details-row d-none">
+                                                <td class="text-muted ps-0">Alamat Kirim</td>
                                                 <td class="fw-semibold" id="rev-address" style="word-break:break-word;">-
                                                 </td>
+                                            </tr>
+                                            <tr class="stock-details-row">
+                                                <td class="text-muted ps-0">Tujuan</td>
+                                                <td class="fw-semibold text-secondary">Gudang Jadi (Masuk Stok)</td>
                                             </tr>
                                         </table>
                                     </div>
@@ -239,12 +284,12 @@
                             <div class="card-body py-3 px-3">
                                 <p class="text-uppercase fw-bold text-muted mb-2"
                                     style="font-size:0.65rem;letter-spacing:0.06em;">
-                                    <i class="fas fa-boxes me-1"></i>Item Dipesan
+                                    <i class="fas fa-boxes me-1"></i>Item Permintaan Produksi
                                 </p>
                                 <div id="rev-items" class="mb-2"></div>
                                 <hr class="my-2">
                                 <div class="d-flex justify-content-between align-items-center">
-                                    <span class="text-uppercase fw-bold text-muted small">Total Pembayaran</span>
+                                    <span class="text-uppercase fw-bold text-muted small">Total Estimasi</span>
                                     <span class="fw-bold fs-5 text-success" id="rev-grand-total">Rp 0</span>
                                 </div>
                             </div>
@@ -256,7 +301,7 @@
                                 <i class="fas fa-arrow-left me-1"></i> Edit Pesanan
                             </button>
                             <button type="submit" class="btn btn-success btn-sm px-4 fw-bold">
-                                <i class="fas fa-paper-plane me-1"></i> Konfirmasi & Simpan PO
+                                <i class="fas fa-paper-plane me-1"></i> Konfirmasi & Ajukan Permintaan
                             </button>
                         </div>
                     </div>
@@ -335,6 +380,20 @@
                 theme: 'bootstrap-5',
                 width: '100%',
                 placeholder: '-- Pilih Toko --'
+            });
+
+            // Conditional toggle customer info section on Tipe Permintaan change
+            $('#request_type').on('change', function() {
+                let type = $(this).val();
+                if (type === 'PO Pelanggan') {
+                    $('#customer_section').removeClass('d-none');
+                } else {
+                    $('#customer_section').addClass('d-none');
+                    // Reset customer inputs
+                    $('#cust_name').val('');
+                    $('#cust_phone').val('');
+                    $('#cust_address').val('');
+                }
             });
 
             // ===== Select2 for product selects =====
@@ -418,19 +477,41 @@
                 $('#item-count-label').text(count + ' item');
             }
 
+            // ===== Update Hidden Fields before proceeding/submitting =====
+            function populateHiddenFields() {
+                let type = $('#request_type').val();
+                let dept = $('#department_id').val();
+
+                $('#real_buyer_name').val(dept);
+                $('#real_buyer_phone').val(type); // Store type of request here
+
+                if (type === 'PO Pelanggan') {
+                    let custName = $('#cust_name').val().trim();
+                    let custPhone = $('#cust_phone').val().trim() || '-';
+                    let custAddress = $('#cust_address').val().trim();
+
+                    let fullAddress = `Pelanggan: ${custName} (${custPhone})\nAlamat: ${custAddress}`;
+                    $('#real_shipping_address').val(fullAddress);
+                } else {
+                    $('#real_shipping_address').val('Stok Gudang Jadi (Penyimpanan Utama)');
+                }
+            }
+
             // ===== Step Navigation =====
             window.goToStep = function(target) {
                 if (target > currentStep && !validateStep(currentStep)) return;
+
+                // Populate hidden fields as we move
+                populateHiddenFields();
 
                 // Update step visuals
                 for (let i = 1; i <= 4; i++) {
                     const $icon = $('#step-icon-' + i);
                     const $label = $('#step-label-' + i);
-                    const $dot = $('#step-dot-' + i);
 
                     $icon.removeClass(
                         'bg-primary border-primary text-white bg-success border-success bg-light border-secondary text-secondary'
-                        );
+                    );
                     $label && $label.removeClass('text-primary text-success text-secondary');
 
                     if (i < target) {
@@ -475,11 +556,23 @@
                 if (!allOk) return showWarn('Semua item harus memilih produk.');
 
                 // Build review data
+                populateHiddenFields();
+
+                let type = $('#request_type').val();
                 $('#rev-store').text($('#store_id option:selected').text().trim() || '-');
-                $('#rev-invoice').text($('#invoice_number').val() || '-');
-                $('#rev-buyer').text($('#buyer_name').val() || '-');
-                $('#rev-phone').text($('#buyer_phone').val() || '-');
-                $('#rev-address').text($('#shipping_address').val() || '-');
+                $('#rev-type').text(type);
+                $('#rev-buyer').text($('#department_id').val() || '-');
+
+                if (type === 'PO Pelanggan') {
+                    $('.po-details-row').removeClass('d-none');
+                    $('.stock-details-row').addClass('d-none');
+                    $('#rev-customer-detail').text($('#cust_name').val() + ' (' + ($('#cust_phone').val() ||
+                        '-') + ')');
+                    $('#rev-address').text($('#cust_address').val() || '-');
+                } else {
+                    $('.po-details-row').addClass('d-none');
+                    $('.stock-details-row').removeClass('d-none');
+                }
 
                 let html = '',
                     total = 0;
@@ -491,7 +584,7 @@
                     total += sub;
                     html += `<div class="d-flex justify-content-between align-items-center border rounded px-3 py-2 mb-1 small bg-white">
                 <span class="fw-semibold text-truncate me-2">${name}</span>
-                <span class="text-muted text-nowrap">${qty} Ã— ${fmt(price)} = <strong class="text-primary">${fmt(sub)}</strong></span>
+                <span class="text-muted text-nowrap">${qty} × ${fmt(price)} = <strong class="text-primary">${fmt(sub)}</strong></span>
             </div>`;
                 });
                 $('#rev-items').html(html);
@@ -506,15 +599,23 @@
                         showWarn('Pilih toko terlebih dahulu.');
                         return false;
                     }
-                    if (!$('#invoice_number').val().trim()) {
-                        showWarn('Isi nomor invoice / pesanan.');
-                        return false;
-                    }
                 }
                 if (step === 2) {
-                    if (!$('#buyer_name').val().trim()) {
-                        showWarn('Isi nama pembeli.');
+                    if (!$('#department_id').val()) {
+                        showWarn('Pilih departemen pengaju terlebih dahulu.');
                         return false;
+                    }
+
+                    let type = $('#request_type').val();
+                    if (type === 'PO Pelanggan') {
+                        if (!$('#cust_name').val().trim()) {
+                            showWarn('Isi nama pelanggan.');
+                            return false;
+                        }
+                        if (!$('#cust_address').val().trim()) {
+                            showWarn('Isi alamat pengiriman pelanggan.');
+                            return false;
+                        }
                     }
                 }
                 return true;

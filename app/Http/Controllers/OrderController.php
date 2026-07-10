@@ -518,8 +518,9 @@ class OrderController extends Controller
         $tenantId = Auth::user()->tenant_id;
         $stores = \App\Models\Store::where('tenant_id', $tenantId)->get();
         $products = \App\Models\MasterProduct::where('tenant_id', $tenantId)->where('is_active', true)->orderBy('name')->get();
+        $departments = \App\Models\Department::where('tenant_id', $tenantId)->where('is_active', true)->orderBy('name')->get();
 
-        return view('orders.create', compact('stores', 'products'));
+        return view('orders.create', compact('stores', 'products', 'departments'));
     }
 
     public function store(Request $request)
@@ -528,7 +529,7 @@ class OrderController extends Controller
 
         $request->validate([
             'store_id' => 'required|exists:stores,id',
-            'invoice_number' => 'required|string|max:100',
+            'invoice_number' => 'nullable|string|max:100',
             'buyer_name' => 'required|string|max:255',
             'buyer_phone' => 'nullable|string|max:50',
             'shipping_address' => 'nullable|string',
@@ -547,12 +548,20 @@ class OrderController extends Controller
                 $totalAmount += $item['price'] * $item['quantity'];
             }
 
+            // Auto-generate invoice number if not provided (formatted as REQ-YYYYMMDD-XXXX)
+            $invoiceNumber = $request->invoice_number;
+            if (empty($invoiceNumber)) {
+                $today = date('Ymd');
+                $count = Order::where('invoice_number', 'like', "REQ-{$today}-%")->count();
+                $invoiceNumber = 'REQ-' . $today . '-' . sprintf('%04d', $count + 1);
+            }
+
             // Create Order
             $order = Order::create([
                 'tenant_id' => $tenantId,
                 'store_id' => $store->id,
                 'order_marketplace_id' => 'MANUAL-' . time() . '-' . rand(100, 999),
-                'invoice_number' => $request->invoice_number,
+                'invoice_number' => $invoiceNumber,
                 'order_status' => Order::STATUS_PENDING_APPROVAL, // Marketing submits, awaits approval
                 'buyer_name' => $request->buyer_name,
                 'buyer_phone' => $request->buyer_phone,
@@ -580,7 +589,7 @@ class OrderController extends Controller
         });
 
         return redirect()->route('orders.show', $order->id)
-            ->with('success', 'Pesanan manual (PO) berhasil diajukan! Menunggu persetujuan Gudang Jadi dan Produksi.');
+            ->with('success', 'Permintaan produksi manual (PO) berhasil diajukan! Menunggu persetujuan Gudang Jadi dan Produksi.');
     }
 
     public function approveWarehouse(Order $order)
