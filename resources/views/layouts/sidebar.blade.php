@@ -17,8 +17,7 @@
         request()->routeIs('purchase_returns.*') ||
         request()->routeIs('goods_receipts.*') ||
         request()->routeIs('incoming_goods.*') ||
-        request()->routeIs('warehouse_mutations.*') ||
-        request()->routeIs('ga_mutations.*');
+        request()->routeIs('pembelian.*');
 
     $isGudangJadiActive =
         request()->routeIs('inventory.index') ||
@@ -237,12 +236,26 @@
                             <a href="{{ route('goods_receipts.index') }}"
                                 class="nav-link py-1 {{ request()->routeIs('goods_receipts.*') ? 'active text-white' : 'text-secondary' }}">Penerimaan
                                 Barang</a>
-                            <a href="{{ route('warehouse_mutations.index_out') }}"
-                                class="nav-link py-1 {{ request()->routeIs('warehouse_mutations.index_out') || request()->routeIs('warehouse_mutations.create_out') ? 'active text-white' : 'text-secondary' }}">Pengeluaran
+                            <a href="{{ route('pembelian.goods_issue.index') }}"
+                                class="nav-link py-1 {{ request()->routeIs('pembelian.goods_issue.*') ? 'active text-white' : 'text-secondary' }}">Pengeluaran
                                 Barang</a>
                             <a href="{{ route('purchase_returns.index') }}"
                                 class="nav-link py-1 {{ request()->routeIs('purchase_returns.*') ? 'active text-white' : 'text-secondary' }}">Retur
                                 Pembelian</a>
+                            
+                            {{-- Laporan Stok & Mutasi Pembelian --}}
+                            <a href="{{ route('pembelian.stock_report') }}"
+                                class="nav-link py-1 {{ request()->routeIs('pembelian.stock_report') || request()->routeIs('pembelian.print_stock_report') ? 'active text-white' : 'text-secondary' }}">Laporan
+                                Stok</a>
+                            <a href="{{ route('pembelian.report_mutation') }}"
+                                class="nav-link py-1 {{ request()->routeIs('pembelian.report_mutation') || request()->routeIs('pembelian.print_report_mutation') ? 'active text-white' : 'text-secondary' }}">Laporan
+                                Mutasi</a>
+                            <a href="{{ route('pembelian.report_summary') }}"
+                                class="nav-link py-1 {{ request()->routeIs('pembelian.report_summary') || request()->routeIs('pembelian.print_report_summary') ? 'active text-white' : 'text-secondary' }}">Rekap
+                                Persediaan</a>
+                            <a href="{{ route('pembelian.stock_card') }}"
+                                class="nav-link py-1 {{ request()->routeIs('pembelian.stock_card') || request()->routeIs('pembelian.print_stock_card') ? 'active text-white' : 'text-secondary' }}">Kartu
+                                Stok</a>
                         @endcan
                     </div>
                 </div>

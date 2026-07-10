@@ -449,6 +449,23 @@ Route::middleware('auth')->group(function () {
         Route::post('/goods-receipts/{goodsReceipt}/approve', [GoodsReceiptController::class, 'approve'])->name('goods_receipts.approve');
         Route::delete('/goods-receipts/{goodsReceipt}', [GoodsReceiptController::class, 'destroy'])->name('goods_receipts.destroy');
 
+        // ── LAPORAN PEMBELIAN (Stok & Mutasi) ──────────────────────────────────
+        Route::get('/pembelian/stok-barang', [WarehouseMutationController::class, 'stockReportPembelian'])->name('pembelian.stock_report');
+        Route::get('/pembelian/stok-barang/print', [WarehouseMutationController::class, 'printStockReportPembelian'])->name('pembelian.print_stock_report');
+        Route::get('/pembelian/mutasi', [WarehouseMutationController::class, 'reportMutationPembelian'])->name('pembelian.report_mutation');
+        Route::get('/pembelian/mutasi/print', [WarehouseMutationController::class, 'printReportMutationPembelian'])->name('pembelian.print_report_mutation');
+        Route::get('/pembelian/rekap-persediaan', [WarehouseMutationController::class, 'reportSummaryPembelian'])->name('pembelian.report_summary');
+        Route::get('/pembelian/rekap-persediaan/print', [WarehouseMutationController::class, 'printReportSummaryPembelian'])->name('pembelian.print_report_summary');
+        Route::get('/pembelian/kartu-stok', [WarehouseMutationController::class, 'stockCardPembelian'])->name('pembelian.stock_card');
+        Route::get('/pembelian/kartu-stok/print', [WarehouseMutationController::class, 'printStockCardPembelian'])->name('pembelian.print_stock_card');
+
+        // ── PENGELUARAN BARANG PEMBELIAN (Goods Issue) ────────────────────────
+        Route::get('/pembelian/pengeluaran', [WarehouseMutationController::class, 'goodsIssueIndex'])->name('pembelian.goods_issue.index');
+        Route::get('/pembelian/pengeluaran/create', [WarehouseMutationController::class, 'goodsIssueCreate'])->name('pembelian.goods_issue.create');
+        Route::post('/pembelian/pengeluaran', [WarehouseMutationController::class, 'goodsIssueStore'])->name('pembelian.goods_issue.store');
+        Route::get('/pembelian/pengeluaran/{warehouseMutation}', [WarehouseMutationController::class, 'goodsIssueShow'])->name('pembelian.goods_issue.show');
+        Route::delete('/pembelian/pengeluaran/{warehouseMutation}', [WarehouseMutationController::class, 'goodsIssueDestroy'])->name('pembelian.goods_issue.destroy');
+
 
         // ── PRODUKSI (Production) Mutations ──────────────────────────────────────
         Route::get('/produksi-mutations/pending-approvals', [WarehouseMutationController::class, 'pendingApprovalsProduksi'])->name('produksi_mutations.pending_approvals');

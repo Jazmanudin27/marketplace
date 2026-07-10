@@ -65,11 +65,7 @@
     {{-- Kiri: Konfigurasi Penerimaan --}}
     <div class="col-md-4">
         <div class="card border-0 shadow-sm rounded-3 bg-white mb-3 sticky-top" style="top:80px">
-            <div class="card-header border-0 py-3 px-4" style="background:linear-gradient(135deg,#10b981,#059669)">
-                <h6 class="fw-bold text-white mb-0">
-                    <i class="fas fa-truck me-2"></i>Penerimaan Langsung
-                </h6>
-            </div>
+
             <div class="card-body p-4">
                 @if($errors->any())
                     <div class="alert alert-danger py-2 small mb-3">
@@ -79,17 +75,6 @@
                     </div>
                 @endif
 
-                {{-- Jenis Penerimaan --}}
-                <div class="mb-3">
-                    <label class="form-label fw-semibold small text-muted">
-                        <i class="fas fa-tag me-1 text-success"></i>Jenis Penerimaan <span class="text-danger">*</span>
-                    </label>
-                    <select name="source" id="sel-source" class="form-select" required>
-                        <option value="direct" {{ old('source','direct') === 'direct' ? 'selected' : '' }}>🛒 Pembelian Langsung (Cash)</option>
-                        <option value="walk_in" {{ old('source') === 'walk_in' ? 'selected' : '' }}>🏪 Walk-in / Beli di Toko</option>
-                        <option value="emergency" {{ old('source') === 'emergency' ? 'selected' : '' }}>🚨 Pembelian Darurat</option>
-                    </select>
-                </div>
 
                 {{-- Tanggal --}}
                 <div class="mb-3">
@@ -121,21 +106,6 @@
                     </div>
                 </div>
 
-                {{-- Departemen --}}
-                <div class="mb-3">
-                    <label class="form-label fw-semibold small text-muted">
-                        <i class="fas fa-building-user me-1 text-success"></i>Departemen Penerima
-                    </label>
-                    <select name="department_id" id="sel-dept" class="form-select"
-                        data-placeholder="— Pilih departemen penerima —">
-                        <option value=""></option>
-                        @foreach($departments as $dept)
-                            <option value="{{ $dept->id }}" {{ old('department_id') == $dept->id ? 'selected' : '' }}>
-                                {{ $dept->name }}
-                            </option>
-                        @endforeach
-                    </select>
-                </div>
 
                 {{-- Catatan --}}
                 <div class="mb-4">
@@ -298,13 +268,6 @@ $(document).ready(function () {
         $('#supplier-info').addClass('d-none');
     });
 
-    // ── Select2: Departemen ──────────────────────────────────────────────
-    $('#sel-dept').select2({
-        theme: 'bootstrap-5',
-        width: '100%',
-        placeholder: '— Pilih departemen —',
-        allowClear: true,
-    });
 
     // ── Select2: Product Picker (template custom dgn harga & stok) ──────
     function formatItem(opt) {

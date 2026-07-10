@@ -75,7 +75,7 @@ class GoodsReceiptController extends Controller
             'supplier_id'   => 'nullable|exists:suppliers,id',
             'department_id' => 'nullable|exists:departments,id',
             'receipt_date'  => 'required|date',
-            'source'        => 'required|in:direct,emergency,walk_in',
+            'source'        => 'nullable|in:direct,emergency,walk_in',
             'notes'         => 'nullable|string|max:1000',
             'items'         => 'required|array|min:1',
             'items.*.item_type' => 'required|in:inventory,product',
@@ -95,7 +95,7 @@ class GoodsReceiptController extends Controller
                 'department_id' => $request->department_id,
                 'receipt_number' => $receiptNumber,
                 'receipt_date'  => $request->receipt_date,
-                'source'        => $request->source,
+                'source'        => $request->input('source', 'direct'),
                 'status'        => 'pending', // menunggu approval
                 'notes'         => $request->notes,
                 'total_amount'  => 0,
