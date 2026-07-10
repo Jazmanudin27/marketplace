@@ -142,13 +142,18 @@
                                         </span>
                                         <span class="small fw-medium">{{ $product->masterProduct->name }}</span>
                                         @if ($product->sync_stock)
-                                            <span class="text-info small">
-                                                <i class="fas fa-sync-alt me-1"></i>Sync Aktif (Safety:
-                                                {{ $product->safety_stock }})
+                                            <span class="text-info small d-block">
+                                                <i class="fas fa-sync-alt me-1"></i>Sync Stok: Aktif (Safety: {{ $product->safety_stock }})
                                             </span>
                                         @else
-                                            <span class="text-muted small"><i class="fas fa-ban me-1"></i>Sync
-                                                Mati</span>
+                                            <span class="text-muted small d-block"><i class="fas fa-ban me-1"></i>Sync Stok: Mati</span>
+                                        @endif
+                                        @if ($product->sync_price)
+                                            <span class="text-success small d-block">
+                                                <i class="fas fa-sync-alt me-1"></i>Sync Harga: Aktif
+                                            </span>
+                                        @else
+                                            <span class="text-muted small d-block"><i class="fas fa-ban me-1"></i>Sync Harga: Mati</span>
                                         @endif
                                     </div>
                                 @endif
@@ -189,7 +194,7 @@
                                         <div class="modal-content text-start">
                                             <div class="modal-header">
                                                 <h5 class="modal-title fw-bold text-primary">
-                                                    <i class="fas fa-cog me-2"></i>Pengaturan Stok
+                                                    <i class="fas fa-cog me-2"></i>Pengaturan Sinkronisasi
                                                 </h5>
                                                 <button type="button" class="btn-close"
                                                     data-bs-dismiss="modal"></button>
@@ -217,6 +222,22 @@
                                                         </div>
                                                         <div class="form-text small">Jika dinonaktifkan, perubahan stok
                                                             Master Product tidak akan didorong ke marketplace ini.</div>
+                                                    </div>
+                                                    <div class="mb-3">
+                                                        <label class="form-label fw-semibold small">Sinkronisasi
+                                                            Harga</label>
+                                                        <div class="form-check form-switch">
+                                                            <input class="form-check-input" type="checkbox"
+                                                                name="sync_price" id="syncPrice-{{ $product->id }}"
+                                                                value="1"
+                                                                {{ $product->sync_price ? 'checked' : '' }}>
+                                                            <label class="form-check-label small"
+                                                                for="syncPrice-{{ $product->id }}">
+                                                                Otomatis sinkronkan harga dari Master Product
+                                                            </label>
+                                                        </div>
+                                                        <div class="form-text small">Jika dinonaktifkan, perubahan harga
+                                                            Master Product tidak akan didorong ke marketplace ini, sehingga Anda bisa menggunakan harga berbeda.</div>
                                                     </div>
                                                     <div class="mb-3">
                                                         <label for="safetyStock-{{ $product->id }}"

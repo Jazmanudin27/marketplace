@@ -449,36 +449,6 @@ Route::middleware('auth')->group(function () {
         Route::post('/goods-receipts/{goodsReceipt}/approve', [GoodsReceiptController::class, 'approve'])->name('goods_receipts.approve');
         Route::delete('/goods-receipts/{goodsReceipt}', [GoodsReceiptController::class, 'destroy'])->name('goods_receipts.destroy');
 
-        // Mutasi Gudang Bahan & Kemasan (Barang Masuk / Keluar)
-        Route::get('/warehouse-mutations/in', [WarehouseMutationController::class, 'indexIn'])->name('warehouse_mutations.index_in');
-        Route::get('/warehouse-mutations/out', [WarehouseMutationController::class, 'indexOut'])->name('warehouse_mutations.index_out');
-        Route::get('/warehouse-mutations/in/create', [WarehouseMutationController::class, 'createIn'])->name('warehouse_mutations.create_in');
-        Route::get('/warehouse-mutations/out/create', [WarehouseMutationController::class, 'createOut'])->name('warehouse_mutations.create_out');
-        Route::post('/warehouse-mutations/in', [WarehouseMutationController::class, 'storeIn'])->name('warehouse_mutations.store_in');
-        Route::post('/warehouse-mutations/out', [WarehouseMutationController::class, 'storeOut'])->name('warehouse_mutations.store_out');
-        Route::get('/warehouse-mutations/report', [WarehouseMutationController::class, 'reportMutation'])->name('warehouse_mutations.report_mutation');
-        Route::get('/warehouse-mutations/report/print', [WarehouseMutationController::class, 'printReportMutation'])->name('warehouse_mutations.print_report_mutation');
-        Route::get('/warehouse-mutations/summary', [WarehouseMutationController::class, 'reportSummary'])->name('warehouse_mutations.report_summary');
-        Route::get('/warehouse-mutations/summary/print', [WarehouseMutationController::class, 'printReportSummary'])->name('warehouse_mutations.print_report_summary');
-        Route::get('/warehouse-mutations/stock-report', [WarehouseMutationController::class, 'stockReport'])->name('warehouse_mutations.stock_report');
-        Route::get('/warehouse-mutations/stock-report/print', [WarehouseMutationController::class, 'printStockReport'])->name('warehouse_mutations.print_stock_report');
-        Route::get('/warehouse-mutations/{warehouseMutation}', [WarehouseMutationController::class, 'show'])->name('warehouse_mutations.show');
-        Route::delete('/warehouse-mutations/{warehouseMutation}', [WarehouseMutationController::class, 'destroy'])->name('warehouse_mutations.destroy');
-
-        // ── GENERAL AFFAIR (GA) Mutations ──────────────────────────────────────
-        Route::get('/ga-mutations/in', [WarehouseMutationController::class, 'indexInGa'])->name('ga_mutations.index_in');
-        Route::get('/ga-mutations/out', [WarehouseMutationController::class, 'indexOutGa'])->name('ga_mutations.index_out');
-        Route::get('/ga-mutations/in/create', [WarehouseMutationController::class, 'createInGa'])->name('ga_mutations.create_in');
-        Route::get('/ga-mutations/out/create', [WarehouseMutationController::class, 'createOutGa'])->name('ga_mutations.create_out');
-        Route::post('/ga-mutations/in', [WarehouseMutationController::class, 'storeInGa'])->name('ga_mutations.store_in');
-        Route::post('/ga-mutations/out', [WarehouseMutationController::class, 'storeOutGa'])->name('ga_mutations.store_out');
-        Route::get('/ga-mutations/stock-report', [WarehouseMutationController::class, 'stockReportGa'])->name('ga_mutations.stock_report');
-        Route::get('/ga-mutations/stock-report/print', [WarehouseMutationController::class, 'printStockReportGa'])->name('ga_mutations.print_stock_report');
-        Route::get('/ga-mutations/report', [WarehouseMutationController::class, 'reportMutationGa'])->name('ga_mutations.report_mutation');
-        Route::get('/ga-mutations/report/print', [WarehouseMutationController::class, 'printReportMutationGa'])->name('ga_mutations.print_report_mutation');
-        Route::get('/ga-mutations/summary', [WarehouseMutationController::class, 'reportSummaryGa'])->name('ga_mutations.report_summary');
-        Route::get('/ga-mutations/summary/print', [WarehouseMutationController::class, 'printReportSummaryGa'])->name('ga_mutations.print_report_summary');
-        Route::get('/ga-mutations/{warehouseMutation}', [WarehouseMutationController::class, 'showGa'])->name('ga_mutations.show');
 
         // ── PRODUKSI (Production) Mutations ──────────────────────────────────────
         Route::get('/produksi-mutations/pending-approvals', [WarehouseMutationController::class, 'pendingApprovalsProduksi'])->name('produksi_mutations.pending_approvals');

@@ -153,14 +153,20 @@ class MarketplaceProductController extends Controller
         ]);
 
         $syncStock = $request->boolean('sync_stock');
+        $syncPrice = $request->boolean('sync_price');
 
         $product->update([
             'sync_stock' => $syncStock,
+            'sync_price' => $syncPrice,
             'safety_stock' => $data['safety_stock'],
         ]);
 
         if ($syncStock && $product->master_product_id) {
             \App\Jobs\PushStockToMarketplaces::dispatch($product->master_product_id, $product->masterProduct->stock);
+        }
+
+        if ($syncPrice && $product->master_product_id) {
+            \App\Jobs\PushPriceToMarketplaces::dispatch($product->master_product_id, (float)$product->masterProduct->price);
         }
 
         return back()->with('success', "Pengaturan sinkronisasi untuk produk '{$product->name}' berhasil diperbarui.");

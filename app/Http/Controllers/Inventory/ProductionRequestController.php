@@ -43,11 +43,10 @@ class ProductionRequestController extends Controller
     public function create()
     {
         $tenantId = Auth::user()->tenant_id;
-        $stores = Store::where('tenant_id', $tenantId)->get();
         $products = MasterProduct::where('tenant_id', $tenantId)->where('is_active', true)->orderBy('name')->get();
         $departments = Department::where('tenant_id', $tenantId)->where('is_active', true)->orderBy('name')->get();
 
-        return view('inventory.production_requests.create', compact('stores', 'products', 'departments'));
+        return view('inventory.production_requests.create', compact('products', 'departments'));
     }
 
     public function store(Request $request)
@@ -57,7 +56,6 @@ class ProductionRequestController extends Controller
         $request->validate([
             'department_name' => 'required|string',
             'request_type' => 'required|in:Stok Gudang Jadi,PO Pelanggan',
-            'store_id' => 'nullable|exists:stores,id',
             'customer_name' => 'nullable|required_if:request_type,PO Pelanggan|string|max:255',
             'customer_phone' => 'nullable|string|max:50',
             'shipping_address' => 'nullable|required_if:request_type,PO Pelanggan|string',
@@ -90,7 +88,6 @@ class ProductionRequestController extends Controller
                 'request_number' => $requestNumber,
                 'request_type' => $request->request_type === 'PO Pelanggan' ? 'po' : 'stock',
                 'department_id' => $dept->id,
-                'store_id' => $request->store_id,
                 'customer_name' => $request->customer_name,
                 'customer_phone' => $request->customer_phone,
                 'shipping_address' => $request->request_type === 'PO Pelanggan' ? $request->shipping_address : 'Stok Gudang Jadi (Penyimpanan Utama)',

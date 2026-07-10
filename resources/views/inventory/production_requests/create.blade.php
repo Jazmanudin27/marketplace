@@ -27,9 +27,9 @@
                 <div class="d-flex flex-column align-items-center" id="step-dot-1">
                     <div class="rounded-circle d-flex align-items-center justify-content-center fw-bold border border-2 bg-primary border-primary text-white"
                         style="width:40px;height:40px;font-size:0.95rem;" id="step-icon-1">
-                        <i class="fas fa-store fa-sm"></i>
+                        <i class="fas fa-list fa-sm"></i>
                     </div>
-                    <span class="text-uppercase fw-semibold text-primary mt-1" style="font-size:0.65rem;letter-spacing:0.06em;">Toko & Tipe</span>
+                    <span class="text-uppercase fw-semibold text-primary mt-1" style="font-size:0.65rem;letter-spacing:0.06em;">Tipe</span>
                 </div>
 
                 <div class="flex-grow-1 border-top border-2 mx-2 mb-3" id="conn-1" style="max-width:80px;"></div>
@@ -73,24 +73,13 @@
 
             <div class="card-body p-4">
 
-                {{-- ========== STEP 1: Info Toko & Tipe ========== --}}
+                {{-- ========== STEP 1: Tipe Permintaan ========== --}}
                 <div id="step-1">
                     <p class="text-uppercase text-muted fw-semibold mb-3 small">
-                        <i class="fas fa-store me-1"></i> Informasi Toko & Tipe Permintaan
+                        <i class="fas fa-list me-1"></i> Tipe Permintaan Produksi
                     </p>
                     <div class="row g-3 mb-4">
-                        <div class="col-md-6">
-                            <label class="form-label fw-semibold small">Toko Tujuan <span class="text-danger">*</span></label>
-                            <select name="store_id" id="store_id" class="form-select form-select-sm" required style="width:100%">
-                                <option value="">-- Pilih Toko --</option>
-                                @foreach ($stores as $store)
-                                    <option value="{{ $store->id }}">
-                                        {{ $store->store_name }} ({{ $store->channel->name ?? 'Marketplace' }})
-                                    </option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div class="col-md-6">
+                        <div class="col-md-12">
                             <label class="form-label fw-semibold small">Tipe Permintaan Produksi <span class="text-danger">*</span></label>
                             <select name="request_type" id="request_type" class="form-select form-select-sm" required>
                                 <option value="Stok Gudang Jadi" selected>Stok Gudang Jadi (Untuk Persediaan)</option>
@@ -200,15 +189,11 @@
                             <div class="card border bg-light h-100">
                                 <div class="card-body py-3 px-3">
                                     <p class="text-uppercase fw-bold text-muted mb-2" style="font-size:0.65rem;letter-spacing:0.06em;">
-                                        <i class="fas fa-store me-1"></i>Toko & Tipe Permintaan
+                                        <i class="fas fa-file-invoice me-1"></i>Informasi Permintaan
                                     </p>
                                     <table class="table table-sm table-borderless mb-0 small">
                                         <tr>
-                                            <td class="text-muted ps-0" style="width:40%">Toko</td>
-                                            <td class="fw-semibold" id="rev-store">-</td>
-                                        </tr>
-                                        <tr>
-                                            <td class="text-muted ps-0">Tipe Permintaan</td>
+                                            <td class="text-muted ps-0" style="width:40%">Tipe Permintaan</td>
                                             <td class="fw-bold text-primary" id="rev-type">-</td>
                                         </tr>
                                         <tr>
@@ -337,8 +322,7 @@ $(document).ready(function () {
 
     const fmt = n => 'Rp ' + parseFloat(n || 0).toLocaleString('id-ID');
 
-    // Init store select2
-    $('#store_id').select2({ theme: 'bootstrap-5', width: '100%', placeholder: '-- Pilih Toko --' });
+    // No store init
 
     // Conditional toggle customer info section on Tipe Permintaan change
     $('#request_type').on('change', function () {
@@ -483,7 +467,6 @@ $(document).ready(function () {
         if (!allOk) return showWarn('Semua item harus memilih produk.');
 
         let type = $('#request_type').val();
-        $('#rev-store').text($('#store_id option:selected').text().trim() || '-');
         $('#rev-type').text(type);
         $('#rev-buyer').text($('#department_name').val() || '-');
 
@@ -517,7 +500,7 @@ $(document).ready(function () {
 
     function validateStep(step) {
         if (step === 1) {
-            if (!$('#store_id').val()) { showWarn('Pilih toko terlebih dahulu.'); return false; }
+            // Step 1 is request type only, always valid
         }
         if (step === 2) {
             if (!$('#department_name').val()) { showWarn('Pilih departemen pengaju terlebih dahulu.'); return false; }

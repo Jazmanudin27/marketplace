@@ -78,13 +78,7 @@
                             </div>
                         </div>
 
-                        <div class="col-md-6">
-                            <div class="p-3 border rounded h-100 bg-light">
-                                <small class="text-muted d-block text-uppercase fw-semibold mb-1" style="font-size: 0.65rem;">Toko Tujuan</small>
-                                <span class="fw-semibold text-dark small">{{ $productionRequest->store->store_name ?? '-' }}</span>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
+                        <div class="col-md-12">
                             <div class="p-3 border rounded h-100 bg-light">
                                 <small class="text-muted d-block text-uppercase fw-semibold mb-1" style="font-size: 0.65rem;">Tanggal Pengajuan</small>
                                 <span class="fw-semibold text-dark small">{{ $productionRequest->created_at->format('d M Y, H:i') }}</span>

@@ -19,6 +19,7 @@ class MarketplaceProduct extends Model
         'stock',
         'image_url',
         'sync_stock',
+        'sync_price',
         'safety_stock',
         'last_synced_at',
     ];
@@ -26,6 +27,7 @@ class MarketplaceProduct extends Model
     protected $casts = [
         'price' => 'decimal:2',
         'sync_stock' => 'boolean',
+        'sync_price' => 'boolean',
         'safety_stock' => 'integer',
         'last_synced_at' => 'datetime',
     ];

@@ -16,7 +16,9 @@
         request()->routeIs('purchase_orders.*') ||
         request()->routeIs('purchase_returns.*') ||
         request()->routeIs('goods_receipts.*') ||
-        request()->routeIs('incoming_goods.*');
+        request()->routeIs('incoming_goods.*') ||
+        request()->routeIs('warehouse_mutations.*') ||
+        request()->routeIs('ga_mutations.*');
 
     $isGudangJadiActive =
         request()->routeIs('inventory.index') ||
@@ -54,13 +56,6 @@
         request()->routeIs('offline_sales.*');
 
     $isHrdActive = request()->routeIs('hr.*') || request()->routeIs('employees.*');
-    $isGudangBahanActive =
-        (request()->routeIs('inventory_items.*') && in_array(request('type'), ['bahan_kemasan', 'bahan', 'kemasan'])) ||
-        request()->routeIs('warehouse_mutations.*');
-    $isGudangAtkActive =
-        (request()->routeIs('inventory_items.*') &&
-            in_array(request('type'), ['atk_inventaris', 'atk', 'inventaris'])) ||
-        request()->routeIs('ga_mutations.*');
 
     $isProduksiActive =
         request()->routeIs('produksi_mutations.*') ||
@@ -242,6 +237,9 @@
                             <a href="{{ route('goods_receipts.index') }}"
                                 class="nav-link py-1 {{ request()->routeIs('goods_receipts.*') ? 'active text-white' : 'text-secondary' }}">Penerimaan
                                 Barang</a>
+                            <a href="{{ route('warehouse_mutations.index_out') }}"
+                                class="nav-link py-1 {{ request()->routeIs('warehouse_mutations.index_out') || request()->routeIs('warehouse_mutations.create_out') ? 'active text-white' : 'text-secondary' }}">Pengeluaran
+                                Barang</a>
                             <a href="{{ route('purchase_returns.index') }}"
                                 class="nav-link py-1 {{ request()->routeIs('purchase_returns.*') ? 'active text-white' : 'text-secondary' }}">Retur
                                 Pembelian</a>
@@ -321,83 +319,7 @@
             </div>
         @endif
 
-        <!-- GUDANG BAHAN & KEMASAN -->
-        @if (auth()->user()->isSuperAdmin() ||
-                auth()->user()->role === 'admin' ||
-                auth()->user()->hasAnyPermission(['manage-inventory']))
-            <div>
-                <a class="nav-link d-flex align-items-center justify-content-between text-dark {{ $isGudangBahanActive ? '' : 'collapsed' }}"
-                    data-bs-toggle="collapse" data-bs-target="#collapseGudangBahan" role="button"
-                    aria-expanded="{{ $isGudangBahanActive ? 'true' : 'false' }}"
-                    aria-controls="collapseGudangBahan">
-                    <div class="d-flex align-items-center gap-2">
-                        <i class="bi bi-recycle"></i>
-                        <span>Gudang Bahan & Kemasan</span>
-                    </div>
-                    <i class="bi bi-chevron-down small"></i>
-                </a>
-                <div class="collapse {{ $isGudangBahanActive ? 'show' : '' }}" id="collapseGudangBahan">
-                    <div class="nav flex-column ms-3 mt-1 gap-1 border-start ps-2">
-                        <a href="{{ route('warehouse_mutations.index_in') }}"
-                            class="nav-link py-1 {{ request()->routeIs('warehouse_mutations.index_in') ? 'active text-white' : 'text-secondary' }}">
-                            <i class="fas fa-sign-in-alt me-1"></i> Barang Masuk (WMI)
-                        </a>
-                        <a href="{{ route('warehouse_mutations.index_out') }}"
-                            class="nav-link py-1 {{ request()->routeIs('warehouse_mutations.index_out') ? 'active text-white' : 'text-secondary' }}">
-                            <i class="fas fa-sign-out-alt me-1"></i> Barang Keluar (WMO)
-                        </a>
-                        <a href="{{ route('warehouse_mutations.report_mutation') }}"
-                            class="nav-link py-1 {{ request()->routeIs('warehouse_mutations.report_mutation') ? 'active text-white' : 'text-secondary' }}">
-                            <i class="fas fa-file-invoice-dollar me-1"></i> Laporan Mutasi
-                        </a>
-                        <a href="{{ route('warehouse_mutations.report_summary') }}"
-                            class="nav-link py-1 {{ request()->routeIs('warehouse_mutations.report_summary') ? 'active text-white' : 'text-secondary' }}">
-                            <i class="fas fa-boxes me-1"></i> Rekap Persediaan
-                        </a>
-                        <a href="{{ route('warehouse_mutations.stock_report') }}"
-                            class="nav-link py-1 {{ request()->routeIs('warehouse_mutations.stock_report') ? 'active text-white' : 'text-secondary' }}">
-                            <i class="fas fa-boxes me-1"></i> Laporan Stok Gudang
-                        </a>
-                    </div>
-                </div>
-            </div>
-        @endif
 
-        <!-- GUDANG LOGISTIK -->
-        @if (auth()->user()->isSuperAdmin() ||
-                auth()->user()->role === 'admin' ||
-                auth()->user()->hasAnyPermission(['manage-inventory']))
-            <div>
-                <a class="nav-link d-flex align-items-center justify-content-between text-dark {{ $isGudangAtkActive ? '' : 'collapsed' }}"
-                    data-bs-toggle="collapse" data-bs-target="#collapseGudangAtk" role="button"
-                    aria-expanded="{{ $isGudangAtkActive ? 'true' : 'false' }}" aria-controls="collapseGudangAtk">
-                    <div class="d-flex align-items-center gap-2">
-                        <i class="bi bi-building"></i>
-                        <span>Gudang Logistik</span>
-                    </div>
-                    <i class="bi bi-chevron-down small"></i>
-                </a>
-                <div class="collapse {{ $isGudangAtkActive ? 'show' : '' }}" id="collapseGudangAtk">
-                    <div class="nav flex-column ms-3 mt-1 gap-1 border-start ps-2">
-                        <a href="{{ route('ga_mutations.index_in') }}"
-                            class="nav-link py-1 {{ request()->routeIs('ga_mutations.index_in') ? 'active text-white' : 'text-secondary' }}">Barang
-                            Masuk</a>
-                        <a href="{{ route('ga_mutations.index_out') }}"
-                            class="nav-link py-1 {{ request()->routeIs('ga_mutations.index_out') ? 'active text-white' : 'text-secondary' }}">Barang
-                            Keluar</a>
-                        <a href="{{ route('ga_mutations.report_mutation') }}"
-                            class="nav-link py-1 {{ request()->routeIs('ga_mutations.report_mutation') ? 'active text-white' : 'text-secondary' }}">Laporan
-                            Mutasi</a>
-                        <a href="{{ route('ga_mutations.report_summary') }}"
-                            class="nav-link py-1 {{ request()->routeIs('ga_mutations.report_summary') ? 'active text-white' : 'text-secondary' }}">Rekap
-                            Persediaan</a>
-                        <a href="{{ route('ga_mutations.stock_report') }}"
-                            class="nav-link py-1 {{ request()->routeIs('ga_mutations.stock_report') ? 'active text-white' : 'text-secondary' }}">Laporan
-                            Stok</a>
-                    </div>
-                </div>
-            </div>
-        @endif
 
         <!-- PRODUKSI -->
         @if (auth()->user()->isSuperAdmin() ||
