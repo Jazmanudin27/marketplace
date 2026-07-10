@@ -51,7 +51,8 @@
                     </div>
                     <div class="d-flex gap-2">
                         @can('orders.export')
-                            <a href="{{ route('orders.export', request()->all()) }}" class="btn btn-outline-secondary btn-sm px-3 rounded-3">
+                            <a href="{{ route('orders.export', request()->all()) }}"
+                                class="btn btn-outline-secondary btn-sm px-3 rounded-3">
                                 <i class="fas fa-file-export me-1"></i> Ekspor CSV
                             </a>
                         @endcan
@@ -152,8 +153,10 @@
                                     </label>
                                     <select name="is_dropship" class="form-select form-select-sm">
                                         <option value="">Semua Tipe</option>
-                                        <option value="1" {{ request('is_dropship') === '1' ? 'selected' : '' }}>Dropship</option>
-                                        <option value="0" {{ request('is_dropship') === '0' ? 'selected' : '' }}>Non-Dropship</option>
+                                        <option value="1" {{ request('is_dropship') === '1' ? 'selected' : '' }}>
+                                            Dropship</option>
+                                        <option value="0" {{ request('is_dropship') === '0' ? 'selected' : '' }}>
+                                            Non-Dropship</option>
                                     </select>
                                 </div>
                                 <div class="col-12 col-sm-6 col-md-3">
@@ -171,13 +174,24 @@
                                     <label class="form-label fw-bold small text-dark mb-1">
                                         <i class="fas fa-comment-slash me-1 text-secondary"></i>Alasan Batal
                                     </label>
-                                    <input type="text" name="cancel_reason" class="form-control form-control-sm" placeholder="Cari alasan pembatalan..." value="{{ request('cancel_reason') }}">
+                                    <input type="text" name="cancel_reason" class="form-control form-control-sm"
+                                        placeholder="Cari alasan pembatalan..." value="{{ request('cancel_reason') }}">
                                 </div>
                                 <div class="col-12 col-sm-6 col-md-auto d-flex gap-2">
                                     <button type="submit" class="btn btn-primary btn-sm px-3 rounded-3">
                                         <i class="fas fa-search me-1"></i> Cari
                                     </button>
-                                    @if (request()->anyFilled(['channel_id', 'store_id', 'courier', 'status', 'start_date', 'end_date', 'deadline_status', 'is_dropship', 'cancel_reason']))
+                                    @if (request()->anyFilled([
+                                            'channel_id',
+                                            'store_id',
+                                            'courier',
+                                            'status',
+                                            'start_date',
+                                            'end_date',
+                                            'deadline_status',
+                                            'is_dropship',
+                                            'cancel_reason',
+                                        ]))
                                         <a href="{{ route('orders.index') }}"
                                             class="btn btn-secondary btn-sm px-3 rounded-3">
                                             <i class="fas fa-times me-1"></i> Reset
@@ -220,7 +234,8 @@
                                                     {{ $order->invoice_number ?? $order->order_marketplace_id }}
                                                 </a>
                                                 @if ($order->is_dropship)
-                                                    <span class="badge bg-warning text-dark ms-1 font-monospace" style="font-size: 0.6rem; padding: 0.15em 0.3em;">Dropship</span>
+                                                    <span class="badge bg-warning text-dark ms-1 font-monospace"
+                                                        style="font-size: 0.6rem; padding: 0.15em 0.3em;">Dropship</span>
                                                 @endif
                                                 <div class="text-muted small mt-1" style="font-size:0.68rem;">ID:
                                                     {{ $order->order_marketplace_id }}</div>
@@ -291,7 +306,9 @@
                                                     {{ str_replace('_', ' ', $order->order_status) }}
                                                 </span>
                                                 @if ($order->order_status === 'CANCELLED' && $order->cancel_reason)
-                                                    <div class="text-danger small mt-1 text-truncate mx-auto" style="max-width: 120px; font-size: 0.65rem;" title="{{ $order->cancel_reason }}">
+                                                    <div class="text-danger small mt-1 text-truncate mx-auto"
+                                                        style="max-width: 120px; font-size: 0.65rem;"
+                                                        title="{{ $order->cancel_reason }}">
                                                         {{ $order->cancel_reason }}
                                                     </div>
                                                 @endif

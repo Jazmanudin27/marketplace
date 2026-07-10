@@ -1,36 +1,96 @@
-@extends('layouts.app')
+﻿@extends('layouts.app')
 
 @section('title', 'Input Pesanan Manual (PO)')
 @section('page-title', 'Input Pesanan Manual (PO)')
 
 @section('content')
-    <div class="row justify-content-center">
-        <div class="col-md-12">
-            <div class="card border-0 shadow-sm rounded-3">
-                <div class="card-header bg-primary text-white py-3 px-4 d-flex justify-content-between align-items-center">
-                    <div>
-                        <h5 class="fw-bold mb-0">
-                            <i class="fas fa-file-invoice me-2"></i>Formulir Input Pesanan Manual
-                        </h5>
-                        <small class="text-white-50">Pesanan manual akan tercatat dengan status Ready to Ship untuk antrean
-                            SPK</small>
-                    </div>
-                    <a href="{{ route('production_orders.requirements') }}"
-                        class="btn btn-outline-light btn-sm px-3 fw-semibold">
-                        <i class="fas fa-arrow-left me-1"></i> Kembali
-                    </a>
-                </div>
+    <div class="mx-auto" style="max-width:860px">
 
-                <form action="{{ route('orders.store') }}" method="POST" id="manual-order-form">
-                    @csrf
-                    <div class="card-body p-4">
-                        <!-- Section 1: Informasi Toko & No Pesanan -->
+        <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4">
+
+            {{-- Header --}}
+            <div
+                class="card-header bg-primary text-white py-3 px-4 d-flex justify-content-between align-items-center border-0">
+                <div>
+                    <h5 class="fw-bold mb-1"><i class="fas fa-file-invoice me-2"></i>Input Pesanan Manual (PO)</h5>
+                    <small class="text-white-50">Pesanan akan tercatat dengan status
+                        <strong class="text-white">Ready to Ship</strong> untuk antrean SPK</small>
+                </div>
+                <a href="{{ route('production_orders.requirements') }}" class="btn btn-sm btn-light fw-semibold px-3">
+                    <i class="fas fa-arrow-left me-1"></i> Kembali
+                </a>
+            </div>
+
+            {{-- Progress Steps --}}
+            <div class="bg-white border-bottom px-4 pt-3 pb-2">
+                <div class="d-flex align-items-center justify-content-center">
+
+                    {{-- Step 1 --}}
+                    <div class="d-flex flex-column align-items-center" id="step-dot-1">
+                        <div class="rounded-circle d-flex align-items-center justify-content-center fw-bold border border-2 bg-primary border-primary text-white"
+                            style="width:40px;height:40px;font-size:0.95rem;" id="step-icon-1">
+                            <i class="fas fa-store fa-sm"></i>
+                        </div>
+                        <span class="text-uppercase fw-semibold text-primary mt-1"
+                            style="font-size:0.65rem;letter-spacing:0.06em;">Info Toko</span>
+                    </div>
+
+                    <div class="flex-grow-1 border-top border-2 mx-2 mb-3" id="conn-1" style="max-width:80px;"></div>
+
+                    {{-- Step 2 --}}
+                    <div class="d-flex flex-column align-items-center" id="step-dot-2">
+                        <div class="rounded-circle d-flex align-items-center justify-content-center fw-bold border border-2 bg-light border-secondary text-secondary"
+                            style="width:40px;height:40px;font-size:0.95rem;" id="step-icon-2">
+                            <i class="fas fa-user fa-sm"></i>
+                        </div>
+                        <span class="text-uppercase fw-semibold text-secondary mt-1" id="step-label-2"
+                            style="font-size:0.65rem;letter-spacing:0.06em;">Pembeli</span>
+                    </div>
+
+                    <div class="flex-grow-1 border-top border-2 mx-2 mb-3 border-secondary" id="conn-2"
+                        style="max-width:80px;"></div>
+
+                    {{-- Step 3 --}}
+                    <div class="d-flex flex-column align-items-center" id="step-dot-3">
+                        <div class="rounded-circle d-flex align-items-center justify-content-center fw-bold border border-2 bg-light border-secondary text-secondary"
+                            style="width:40px;height:40px;font-size:0.95rem;" id="step-icon-3">
+                            <i class="fas fa-boxes fa-sm"></i>
+                        </div>
+                        <span class="text-uppercase fw-semibold text-secondary mt-1" id="step-label-3"
+                            style="font-size:0.65rem;letter-spacing:0.06em;">Produk</span>
+                    </div>
+
+                    <div class="flex-grow-1 border-top border-2 mx-2 mb-3 border-secondary" id="conn-3"
+                        style="max-width:80px;"></div>
+
+                    {{-- Step 4 --}}
+                    <div class="d-flex flex-column align-items-center" id="step-dot-4">
+                        <div class="rounded-circle d-flex align-items-center justify-content-center fw-bold border border-2 bg-light border-secondary text-secondary"
+                            style="width:40px;height:40px;font-size:0.95rem;" id="step-icon-4">
+                            <i class="fas fa-clipboard-check fa-sm"></i>
+                        </div>
+                        <span class="text-uppercase fw-semibold text-secondary mt-1" id="step-label-4"
+                            style="font-size:0.65rem;letter-spacing:0.06em;">Review</span>
+                    </div>
+
+                </div>
+            </div>
+
+            <form action="{{ route('orders.store') }}" method="POST" id="manual-order-form">
+                @csrf
+                <div class="card-body p-4">
+
+                    {{-- ========== STEP 1: Info Toko ========== --}}
+                    <div id="step-1">
+                        <p class="text-uppercase text-muted fw-semibold mb-3 small">
+                            <i class="fas fa-store me-1"></i> Informasi Toko & No. Pesanan
+                        </p>
                         <div class="row g-3 mb-4">
                             <div class="col-md-6">
-                                <label class="form-label form-label-sm fw-semibold">Akun / Toko Tujuan <span
+                                <label class="form-label fw-semibold small">Akun / Toko Tujuan <span
                                         class="text-danger">*</span></label>
-                                <select name="store_id" class="form-select form-select-sm select2" required
-                                    style="width: 100%;">
+                                <select name="store_id" id="store_id" class="form-select form-select-sm" required
+                                    style="width:100%">
                                     <option value="">-- Pilih Toko --</option>
                                     @foreach ($stores as $store)
                                         <option value="{{ $store->id }}">
@@ -40,217 +100,442 @@
                                 </select>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label form-label-sm fw-semibold">No. Invoice / No. Pesanan (PO) <span
+                                <label class="form-label fw-semibold small">No. Invoice / No. Pesanan (PO) <span
                                         class="text-danger">*</span></label>
-                                <input type="text" name="invoice_number" class="form-control form-control-sm" required
-                                    placeholder="Contoh: INV/2026/0012">
+                                <input type="text" name="invoice_number" id="invoice_number"
+                                    class="form-control form-control-sm" required placeholder="Contoh: INV/2026/0012">
                             </div>
                         </div>
+                        <div class="d-flex justify-content-end">
+                            <button type="button" class="btn btn-primary btn-sm px-4 fw-semibold" onclick="goToStep(2)">
+                                Selanjutnya <i class="fas fa-arrow-right ms-1"></i>
+                            </button>
+                        </div>
+                    </div>
 
-                        <!-- Section 2: Informasi Pembeli -->
+                    {{-- ========== STEP 2: Data Pembeli ========== --}}
+                    <div id="step-2" class="d-none">
+                        <p class="text-uppercase text-muted fw-semibold mb-3 small">
+                            <i class="fas fa-user me-1"></i> Data Pembeli
+                        </p>
                         <div class="row g-3 mb-4">
                             <div class="col-md-6">
-                                <label class="form-label form-label-sm fw-semibold">Nama Pembeli <span
+                                <label class="form-label fw-semibold small">Nama Pembeli <span
                                         class="text-danger">*</span></label>
-                                <input type="text" name="buyer_name" class="form-control form-control-sm" required
-                                    placeholder="Nama lengkap pembeli">
+                                <input type="text" name="buyer_name" id="buyer_name" class="form-control form-control-sm"
+                                    required placeholder="Nama lengkap pembeli">
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label form-label-sm fw-semibold">No. HP Pembeli</label>
-                                <input type="text" name="buyer_phone" class="form-control form-control-sm"
-                                    placeholder="Contoh: 08123456789">
+                                <label class="form-label fw-semibold small">No. HP Pembeli</label>
+                                <input type="text" name="buyer_phone" id="buyer_phone"
+                                    class="form-control form-control-sm" placeholder="Contoh: 08123456789">
                             </div>
-                            <div class="col-md-12">
-                                <label class="form-label form-label-sm fw-semibold">Alamat Pengiriman</label>
-                                <textarea name="shipping_address" class="form-control form-control-sm" rows="2"
+                            <div class="col-12">
+                                <label class="form-label fw-semibold small">Alamat Pengiriman</label>
+                                <textarea name="shipping_address" id="shipping_address" class="form-control form-control-sm" rows="3"
                                     placeholder="Alamat lengkap tujuan pengiriman..."></textarea>
                             </div>
                         </div>
-
-                        <hr class="my-4 text-muted">
-
-                        <!-- Section 3: Item Pesanan -->
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <h6 class="fw-bold mb-0 text-dark">
-                                <i class="fas fa-boxes me-2 text-primary"></i>Daftar Item Produk Dipesan
-                            </h6>
-                            <button type="button" class="btn btn-sm btn-outline-primary fw-semibold" id="btn-add-item">
-                                <i class="fas fa-plus me-1"></i> Tambah Item
+                        <div class="d-flex justify-content-between">
+                            <button type="button" class="btn btn-outline-secondary btn-sm px-3 fw-semibold"
+                                onclick="goToStep(1)">
+                                <i class="fas fa-arrow-left me-1"></i> Kembali
+                            </button>
+                            <button type="button" class="btn btn-primary btn-sm px-4 fw-semibold" onclick="goToStep(3)">
+                                Selanjutnya <i class="fas fa-arrow-right ms-1"></i>
                             </button>
                         </div>
+                    </div>
 
-                        <div class="table-responsive border rounded mb-3">
-                            <table class="table table-sm table-bordered table-striped align-middle mb-0"
-                                id="table-order-items">
-                                <thead class="table-light">
-                                    <tr class="small text-uppercase text-muted" style="font-size: 11px;">
-                                        <th class="text-center" style="width: 5%">No</th>
-                                        <th style="width: 50%">Nama Produk Master</th>
-                                        <th class="text-center" style="width: 12%">Qty (PCS)</th>
-                                        <th class="text-end" style="width: 15%">Harga Satuan (Rp)</th>
-                                        <th class="text-end" style="width: 15%">Subtotal (Rp)</th>
-                                        <th class="text-center" style="width: 8%">Aksi</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr class="item-row">
-                                        <td class="text-center text-muted small row-num">1</td>
-                                        <td>
-                                            <select name="items[0][master_product_id]"
-                                                class="form-select form-select-sm product-select select2" required
-                                                style="width:100%">
-                                                <option value="">-- Pilih Produk --</option>
-                                                @foreach ($products as $p)
-                                                    <option value="{{ $p->id }}" data-price="{{ $p->price }}">
-                                                        {{ $p->sku ? '[' . $p->sku . '] ' : '' }}{{ $p->name }}
-                                                    </option>
-                                                @endforeach
-                                            </select>
-                                        </td>
-                                        <td>
-                                            <input type="number" name="items[0][quantity]"
-                                                class="form-control form-control-sm text-center qty-input" value="1"
-                                                min="1" required>
-                                        </td>
-                                        <td>
-                                            <input type="number" name="items[0][price]"
-                                                class="form-control form-control-sm text-end price-input" value="0"
-                                                min="0" required>
-                                        </td>
-                                        <td class="text-end font-monospace small fw-bold row-subtotal">Rp 0</td>
-                                        <td class="text-center">
-                                            <button type="button" class="btn btn-sm btn-link text-danger btn-remove-row"
-                                                disabled>
-                                                <i class="fas fa-trash-alt"></i>
-                                            </button>
-                                        </td>
-                                    </tr>
-                                </tbody>
-                                <tfoot>
-                                    <tr class="table-light fw-bold">
-                                        <td colspan="4" class="text-end">GRAND TOTAL:</td>
-                                        <td class="text-end font-monospace text-success fs-6" id="order-grand-total">Rp 0
-                                        </td>
-                                        <td></td>
-                                    </tr>
-                                </tfoot>
-                            </table>
+                    {{-- ========== STEP 3: Item Produk ========== --}}
+                    <div id="step-3" class="d-none">
+                        <p class="text-uppercase text-muted fw-semibold mb-3 small">
+                            <i class="fas fa-boxes me-1"></i> Item Produk Dipesan
+                        </p>
+
+                        <div id="item-list" class="mb-3"></div>
+
+                        <button type="button" id="btn-add-item"
+                            class="btn btn-outline-primary btn-sm w-100 mb-4 fw-semibold">
+                            <i class="fas fa-plus-circle me-1"></i> Tambah Item Produk
+                        </button>
+
+                        <div class="alert alert-primary d-flex justify-content-between align-items-center py-2 px-3 mb-4">
+                            <div>
+                                <div class="text-uppercase fw-semibold" style="font-size:0.65rem;letter-spacing:0.06em;">
+                                    Grand Total</div>
+                                <div id="order-grand-total" class="fw-bold fs-5 mb-0">Rp 0</div>
+                            </div>
+                            <span class="badge bg-primary rounded-pill" id="item-count-label">0 item</span>
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <button type="button" class="btn btn-outline-secondary btn-sm px-3 fw-semibold"
+                                onclick="goToStep(2)">
+                                <i class="fas fa-arrow-left me-1"></i> Kembali
+                            </button>
+                            <button type="button" class="btn btn-primary btn-sm px-4 fw-semibold"
+                                onclick="goToReview()">
+                                Review Pesanan <i class="fas fa-eye ms-1"></i>
+                            </button>
                         </div>
                     </div>
 
-                    <div class="card-footer bg-light py-3 px-4 d-flex justify-content-end gap-2">
-                        <a href="{{ route('production_orders.requirements') }}"
-                            class="btn btn-sm btn-secondary px-3">Batal</a>
-                        <button type="submit" class="btn btn-sm btn-primary px-4 fw-bold">
-                            <i class="fas fa-save me-1"></i> Simpan Pesanan (PO)
-                        </button>
+                    {{-- ========== STEP 4: Review & Submit ========== --}}
+                    <div id="step-4" class="d-none">
+                        <p class="text-uppercase text-muted fw-semibold mb-3 small">
+                            <i class="fas fa-clipboard-check me-1"></i> Ringkasan & Konfirmasi
+                        </p>
+
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <div class="card border bg-light h-100">
+                                    <div class="card-body py-3 px-3">
+                                        <p class="text-uppercase fw-bold text-muted mb-2"
+                                            style="font-size:0.65rem;letter-spacing:0.06em;">
+                                            <i class="fas fa-store me-1"></i>Info Toko & PO
+                                        </p>
+                                        <table class="table table-sm table-borderless mb-0 small">
+                                            <tr>
+                                                <td class="text-muted ps-0" style="width:40%">Toko</td>
+                                                <td class="fw-semibold" id="rev-store">-</td>
+                                            </tr>
+                                            <tr>
+                                                <td class="text-muted ps-0">No. Invoice</td>
+                                                <td class="fw-semibold" id="rev-invoice">-</td>
+                                            </tr>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card border bg-light h-100">
+                                    <div class="card-body py-3 px-3">
+                                        <p class="text-uppercase fw-bold text-muted mb-2"
+                                            style="font-size:0.65rem;letter-spacing:0.06em;">
+                                            <i class="fas fa-user me-1"></i>Data Pembeli
+                                        </p>
+                                        <table class="table table-sm table-borderless mb-0 small">
+                                            <tr>
+                                                <td class="text-muted ps-0" style="width:30%">Nama</td>
+                                                <td class="fw-semibold" id="rev-buyer">-</td>
+                                            </tr>
+                                            <tr>
+                                                <td class="text-muted ps-0">No. HP</td>
+                                                <td class="fw-semibold" id="rev-phone">-</td>
+                                            </tr>
+                                            <tr>
+                                                <td class="text-muted ps-0">Alamat</td>
+                                                <td class="fw-semibold" id="rev-address" style="word-break:break-word;">-
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card border bg-light mb-3">
+                            <div class="card-body py-3 px-3">
+                                <p class="text-uppercase fw-bold text-muted mb-2"
+                                    style="font-size:0.65rem;letter-spacing:0.06em;">
+                                    <i class="fas fa-boxes me-1"></i>Item Dipesan
+                                </p>
+                                <div id="rev-items" class="mb-2"></div>
+                                <hr class="my-2">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span class="text-uppercase fw-bold text-muted small">Total Pembayaran</span>
+                                    <span class="fw-bold fs-5 text-success" id="rev-grand-total">Rp 0</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <button type="button" class="btn btn-outline-secondary btn-sm px-3 fw-semibold"
+                                onclick="goToStep(3)">
+                                <i class="fas fa-arrow-left me-1"></i> Edit Pesanan
+                            </button>
+                            <button type="submit" class="btn btn-success btn-sm px-4 fw-bold">
+                                <i class="fas fa-paper-plane me-1"></i> Konfirmasi & Simpan PO
+                            </button>
+                        </div>
                     </div>
-                </form>
-            </div>
+
+                </div>
+            </form>
         </div>
     </div>
+
+    {{-- Item Card Template --}}
+    <template id="item-tpl">
+        <div class="card border mb-2 item-card" data-index="__IDX__">
+            <div class="card-body py-2 px-3">
+                <div class="d-flex align-items-start gap-2">
+                    <span
+                        class="badge bg-primary rounded-circle d-flex align-items-center justify-content-center mt-1 flex-shrink-0 item-num-badge"
+                        style="width:24px;height:24px;font-size:0.7rem;">__NUM__</span>
+                    <div class="flex-grow-1">
+                        <div class="row g-2 align-items-end">
+                            <div class="col-12">
+                                <label class="form-label form-label-sm fw-semibold mb-1">
+                                    Nama Produk <span class="text-danger">*</span>
+                                </label>
+                                <select name="items[__IDX__][master_product_id]"
+                                    class="form-select form-select-sm product-select" required style="width:100%">
+                                    <option value="">-- Pilih Produk --</option>
+                                    @foreach ($products as $p)
+                                        <option value="{{ $p->id }}" data-price="{{ $p->price }}">
+                                            {{ $p->sku ? '[' . $p->sku . '] ' : '' }}{{ $p->name }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="col-5 col-md-3">
+                                <label class="form-label form-label-sm fw-semibold mb-1">Qty</label>
+                                <input type="number" name="items[__IDX__][quantity]"
+                                    class="form-control form-control-sm text-center qty-input" value="1"
+                                    min="1" required>
+                            </div>
+                            <div class="col-7 col-md-5">
+                                <label class="form-label form-label-sm fw-semibold mb-1">Harga Satuan (Rp)</label>
+                                <input type="number" name="items[__IDX__][price]"
+                                    class="form-control form-control-sm text-end price-input" value="0"
+                                    min="0" required>
+                            </div>
+                            <div class="col-md-4 d-none d-md-block">
+                                <label class="form-label form-label-sm text-muted mb-1">Subtotal</label>
+                                <div class="fw-bold text-success small item-subtotal">Rp 0</div>
+                            </div>
+                        </div>
+                        <div class="d-flex d-md-none justify-content-end mt-1">
+                            <small class="text-muted me-1">Subtotal:</small>
+                            <span class="fw-bold text-success small item-subtotal">Rp 0</span>
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-link text-danger p-0 mt-1 flex-shrink-0 btn-remove-item"
+                        title="Hapus">
+                        <i class="fas fa-times-circle"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </template>
 @endsection
 
 @push('scripts')
     <script>
         $(document).ready(function() {
-            let rowIndex = 1;
+            let rowIndex = 0;
+            let currentStep = 1;
 
-            // Initialize select2 on dynamic select elements
-            function initSelect2(element) {
-                if ($(element).hasClass('select2-hidden-accessible')) {
-                    return;
-                }
-                $(element).select2({
+            const fmt = n => 'Rp ' + parseFloat(n || 0).toLocaleString('id-ID');
+
+            // Init store select2
+            $('#store_id').select2({
+                theme: 'bootstrap-5',
+                width: '100%',
+                placeholder: '-- Pilih Toko --'
+            });
+
+            // ===== Select2 for product selects =====
+            function initProductSelect(el) {
+                if ($(el).hasClass('select2-hidden-accessible')) return;
+                $(el).select2({
                     theme: 'bootstrap-5',
-                    dropdownParent: $(element).parent()
+                    width: '100%',
+                    placeholder: '-- Pilih Produk --',
+                    dropdownParent: $(el).closest('.item-card')
                 });
             }
 
-            // Init first row select
-            initSelect2('.product-select');
-
-            $('#btn-add-item').on('click', function() {
-                const tbody = $('#table-order-items tbody');
-                const newRow = $(`
-            <tr class="item-row">
-                <td class="text-center text-muted small row-num">${rowIndex + 1}</td>
-                <td>
-                    <select name="items[${rowIndex}][master_product_id]" class="form-select form-select-sm product-select" required style="width:100%">
-                        <option value="">-- Pilih Produk --</option>
-                        @foreach ($products as $p)
-                            <option value="{{ $p->id }}" data-price="{{ $p->price }}">{{ $p->sku ? '[' . $p->sku . '] ' : '' }}{{ $p->name }}</option>
-                        @endforeach
-                    </select>
-                </td>
-                <td>
-                    <input type="number" name="items[${rowIndex}][quantity]" class="form-control form-control-sm text-center qty-input" value="1" min="1" required>
-                </td>
-                <td>
-                    <input type="number" name="items[${rowIndex}][price]" class="form-control form-control-sm text-end price-input" value="0" min="0" required>
-                </td>
-                <td class="text-end font-monospace small fw-bold row-subtotal">Rp 0</td>
-                <td class="text-center">
-                    <button type="button" class="btn btn-sm btn-link text-danger btn-remove-row">
-                        <i class="fas fa-trash-alt"></i>
-                    </button>
-                </td>
-            </tr>
-        `);
-                tbody.append(newRow);
-
-                // Init select2 for new row dropdown
-                initSelect2(newRow.find('.product-select'));
-
+            // ===== Add Item Card =====
+            function addItemCard() {
+                const tpl = document.getElementById('item-tpl').innerHTML;
+                const html = tpl.replace(/__IDX__/g, rowIndex).replace(/__NUM__/g, rowIndex + 1);
+                const $card = $(html);
+                $('#item-list').append($card);
+                initProductSelect($card.find('.product-select')[0]);
                 rowIndex++;
-                updateRowNumbers();
-                recalculateTotals();
-            });
-
-            $(document).on('click', '.btn-remove-row', function() {
-                $(this).closest('tr').remove();
-                updateRowNumbers();
-                recalculateTotals();
-            });
-
-            $(document).on('change', '.product-select', function() {
-                const selected = $(this).find('option:selected');
-                const price = parseFloat(selected.data('price') || 0);
-                $(this).closest('tr').find('.price-input').val(price);
-                recalculateTotals();
-            });
-
-            $(document).on('input', '.qty-input, .price-input', function() {
-                recalculateTotals();
-            });
-
-            function updateRowNumbers() {
-                $('#table-order-items tbody tr').each(function(index) {
-                    $(this).find('.row-num').text(index + 1);
-                });
-
-                // Enable/Disable delete button depending on row count
-                const rowCount = $('#table-order-items tbody tr').length;
-                if (rowCount <= 1) {
-                    $('.btn-remove-row').prop('disabled', true);
-                } else {
-                    $('.btn-remove-row').prop('disabled', false);
-                }
+                refreshRemoveButtons();
+                recalc();
             }
 
-            function recalculateTotals() {
-                let grandTotal = 0;
+            function ensureFirstItem() {
+                if ($('.item-card').length === 0) addItemCard();
+            }
 
-                $('#table-order-items tbody tr').each(function() {
+            $('#btn-add-item').on('click', addItemCard);
+
+            // Remove item
+            $(document).on('click', '.btn-remove-item', function() {
+                $(this).closest('.item-card').remove();
+                reIndexCards();
+                refreshRemoveButtons();
+                recalc();
+            });
+
+            function reIndexCards() {
+                $('.item-card').each(function(i) {
+                    $(this).attr('data-index', i);
+                    $(this).find('.item-num-badge').text(i + 1);
+                    $(this).find('[name]').each(function() {
+                        $(this).attr('name', $(this).attr('name').replace(/items\[\d+\]/, 'items[' +
+                            i + ']'));
+                    });
+                });
+            }
+
+            function refreshRemoveButtons() {
+                const n = $('.item-card').length;
+                $('.btn-remove-item').prop('disabled', n <= 1);
+            }
+
+            // Auto price fill
+            $(document).on('change', '.product-select', function() {
+                const price = $(this).find('option:selected').data('price') || 0;
+                $(this).closest('.item-card').find('.price-input').val(price).trigger('input');
+            });
+
+            // Recalculate subtotals
+            $(document).on('input', '.qty-input, .price-input', function() {
+                const card = $(this).closest('.item-card');
+                const sub = parseFloat(card.find('.qty-input').val() || 0) * parseFloat(card.find(
+                    '.price-input').val() || 0);
+                card.find('.item-subtotal').text(fmt(sub));
+                recalc();
+            });
+
+            function recalc() {
+                let total = 0,
+                    count = 0;
+                $('.item-card').each(function() {
                     const qty = parseFloat($(this).find('.qty-input').val() || 0);
                     const price = parseFloat($(this).find('.price-input').val() || 0);
-                    const subtotal = qty * price;
-
-                    $(this).find('.row-subtotal').text('Rp ' + subtotal.toLocaleString('id-ID'));
-                    grandTotal += subtotal;
+                    total += qty * price;
+                    if ($(this).find('.product-select').val()) count++;
                 });
+                $('#order-grand-total').text(fmt(total));
+                $('#item-count-label').text(count + ' item');
+            }
 
-                $('#order-grand-total').text('Rp ' + grandTotal.toLocaleString('id-ID'));
+            // ===== Step Navigation =====
+            window.goToStep = function(target) {
+                if (target > currentStep && !validateStep(currentStep)) return;
+
+                // Update step visuals
+                for (let i = 1; i <= 4; i++) {
+                    const $icon = $('#step-icon-' + i);
+                    const $label = $('#step-label-' + i);
+                    const $dot = $('#step-dot-' + i);
+
+                    $icon.removeClass(
+                        'bg-primary border-primary text-white bg-success border-success bg-light border-secondary text-secondary'
+                        );
+                    $label && $label.removeClass('text-primary text-success text-secondary');
+
+                    if (i < target) {
+                        // Done
+                        $icon.addClass('bg-success border-success text-white');
+                        $label.addClass('text-success');
+                    } else if (i === target) {
+                        // Active
+                        $icon.addClass('bg-primary border-primary text-white');
+                        $label.addClass('text-primary');
+                    } else {
+                        // Pending
+                        $icon.addClass('bg-light border-secondary text-secondary');
+                        $label.addClass('text-secondary');
+                    }
+                }
+
+                // Update connector colors
+                for (let i = 1; i <= 3; i++) {
+                    const $conn = $('#conn-' + i);
+                    $conn.removeClass('border-primary border-success border-secondary');
+                    $conn.addClass(i < target ? 'border-success' : 'border-secondary');
+                }
+
+                // Show / hide panels
+                $('#step-1, #step-2, #step-3, #step-4').addClass('d-none');
+                $('#step-' + target).removeClass('d-none');
+                currentStep = target;
+
+                $('html, body').animate({
+                    scrollTop: $('.card').first().offset().top - 16
+                }, 280);
+                if (target === 3) ensureFirstItem();
+            };
+
+            window.goToReview = function() {
+                if ($('.item-card').length === 0) return showWarn('Tambahkan minimal 1 item produk.');
+                let allOk = true;
+                $('.item-card').each(function() {
+                    if (!$(this).find('.product-select').val()) allOk = false;
+                });
+                if (!allOk) return showWarn('Semua item harus memilih produk.');
+
+                // Build review data
+                $('#rev-store').text($('#store_id option:selected').text().trim() || '-');
+                $('#rev-invoice').text($('#invoice_number').val() || '-');
+                $('#rev-buyer').text($('#buyer_name').val() || '-');
+                $('#rev-phone').text($('#buyer_phone').val() || '-');
+                $('#rev-address').text($('#shipping_address').val() || '-');
+
+                let html = '',
+                    total = 0;
+                $('.item-card').each(function() {
+                    const name = $(this).find('.product-select option:selected').text().trim();
+                    const qty = parseFloat($(this).find('.qty-input').val() || 0);
+                    const price = parseFloat($(this).find('.price-input').val() || 0);
+                    const sub = qty * price;
+                    total += sub;
+                    html += `<div class="d-flex justify-content-between align-items-center border rounded px-3 py-2 mb-1 small bg-white">
+                <span class="fw-semibold text-truncate me-2">${name}</span>
+                <span class="text-muted text-nowrap">${qty} Ã— ${fmt(price)} = <strong class="text-primary">${fmt(sub)}</strong></span>
+            </div>`;
+                });
+                $('#rev-items').html(html);
+                $('#rev-grand-total').text(fmt(total));
+
+                goToStep(4);
+            };
+
+            function validateStep(step) {
+                if (step === 1) {
+                    if (!$('#store_id').val()) {
+                        showWarn('Pilih toko terlebih dahulu.');
+                        return false;
+                    }
+                    if (!$('#invoice_number').val().trim()) {
+                        showWarn('Isi nomor invoice / pesanan.');
+                        return false;
+                    }
+                }
+                if (step === 2) {
+                    if (!$('#buyer_name').val().trim()) {
+                        showWarn('Isi nama pembeli.');
+                        return false;
+                    }
+                }
+                return true;
+            }
+
+            function showWarn(msg) {
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Perhatian',
+                        text: msg,
+                        confirmButtonColor: '#0d6efd',
+                        timer: 3500,
+                        confirmButtonText: 'OK',
+                        customClass: {
+                            popup: 'border border-light-subtle shadow-sm'
+                        }
+                    });
+                } else {
+                    alert(msg);
+                }
             }
         });
     </script>
