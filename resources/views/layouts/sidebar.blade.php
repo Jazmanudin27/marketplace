@@ -338,22 +338,6 @@
         @if (auth()->user()->isSuperAdmin() ||
                 auth()->user()->role === 'admin' ||
                 auth()->user()->hasAnyPermission(['manage-inventory', 'production-orders.index']))
-            @php
-                $produksiDept = \App\Models\Department::where('tenant_id', Auth::user()->tenant_id)
-                    ->where(function($q) {
-                        $q->where('name', 'like', '%produksi%')
-                          ->orWhere('code', 'like', '%produksi%');
-                    })
-                    ->first();
-                $pendingProduksiCount = 0;
-                if ($produksiDept) {
-                    $pendingProduksiCount = \App\Models\WarehouseMutation::where('tenant_id', Auth::user()->tenant_id)
-                        ->where('type', 'out')
-                        ->where('to_department_id', $produksiDept->id)
-                        ->where('status', 'pending')
-                        ->count();
-                }
-            @endphp
             <div>
                 <a class="nav-link d-flex align-items-center justify-content-between text-dark {{ $isProduksiActive ? '' : 'collapsed' }}"
                     data-bs-toggle="collapse" data-bs-target="#collapseProduksi" role="button"
@@ -361,9 +345,6 @@
                     <div class="d-flex align-items-center gap-2">
                         <i class="bi bi-tools"></i>
                         <span>Produksi</span>
-                        @if ($pendingProduksiCount > 0)
-                            <span class="badge bg-danger rounded-pill ms-1 small">{{ $pendingProduksiCount }}</span>
-                        @endif
                     </div>
                     <i class="bi bi-chevron-down small"></i>
                 </a>
@@ -375,23 +356,6 @@
                             class="nav-link py-1 {{ request()->routeIs('production_orders.requirements') ? 'active text-white' : 'text-secondary' }}">Kebutuhan SPK (PO)</a>
                         <a href="{{ route('production_requests.index') }}"
                             class="nav-link py-1 {{ request()->routeIs('production_requests.*') ? 'active text-white' : 'text-secondary' }}">Permintaan Produksi</a>
-                        <a href="{{ route('produksi_mutations.pending_approvals') }}"
-                            class="nav-link py-1 d-flex align-items-center justify-content-between pe-3 {{ request()->routeIs('produksi_mutations.pending_approvals') ? 'active text-white' : 'text-secondary' }}">
-                            <span>Penerimaan (Approval)</span>
-                            @if ($pendingProduksiCount > 0)
-                                <span class="badge bg-danger rounded-pill small">{{ $pendingProduksiCount }}</span>
-                            @endif
-                        </a>
-                        <a href="{{ route('produksi_mutations.index_in') }}"
-                            class="nav-link py-1 {{ request()->routeIs('produksi_mutations.index_in') ? 'active text-white' : 'text-secondary' }}">Barang Masuk</a>
-                        <a href="{{ route('produksi_mutations.index_out') }}"
-                            class="nav-link py-1 {{ request()->routeIs('produksi_mutations.index_out') ? 'active text-white' : 'text-secondary' }}">Barang Keluar (Penggunaan)</a>
-                        <a href="{{ route('produksi_mutations.report_mutation') }}"
-                            class="nav-link py-1 {{ request()->routeIs('produksi_mutations.report_mutation') ? 'active text-white' : 'text-secondary' }}">Laporan Mutasi</a>
-                        <a href="{{ route('produksi_mutations.report_summary') }}"
-                            class="nav-link py-1 {{ request()->routeIs('produksi_mutations.report_summary') ? 'active text-white' : 'text-secondary' }}">Rekap Persediaan</a>
-                        <a href="{{ route('produksi_mutations.stock_report') }}"
-                            class="nav-link py-1 {{ request()->routeIs('produksi_mutations.stock_report') ? 'active text-white' : 'text-secondary' }}">Laporan Stok</a>
                     </div>
                 </div>
             </div>

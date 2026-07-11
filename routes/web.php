@@ -467,22 +467,7 @@ Route::middleware('auth')->group(function () {
         Route::delete('/pembelian/pengeluaran/{warehouseMutation}', [WarehouseMutationController::class, 'goodsIssueDestroy'])->name('pembelian.goods_issue.destroy');
 
 
-        // ── PRODUKSI (Production) Mutations ──────────────────────────────────────
-        Route::get('/produksi-mutations/pending-approvals', [WarehouseMutationController::class, 'pendingApprovalsProduksi'])->name('produksi_mutations.pending_approvals');
-        Route::post('/produksi-mutations/approve/{warehouseMutation}', [WarehouseMutationController::class, 'approveProduksi'])->name('produksi_mutations.approve');
-        Route::get('/produksi-mutations/in', [WarehouseMutationController::class, 'indexInProduksi'])->name('produksi_mutations.index_in');
-        Route::get('/produksi-mutations/out', [WarehouseMutationController::class, 'indexOutProduksi'])->name('produksi_mutations.index_out');
-        Route::get('/produksi-mutations/in/create', [WarehouseMutationController::class, 'createInProduksi'])->name('produksi_mutations.create_in');
-        Route::get('/produksi-mutations/out/create', [WarehouseMutationController::class, 'createOutProduksi'])->name('produksi_mutations.create_out');
-        Route::post('/produksi-mutations/in', [WarehouseMutationController::class, 'storeInProduksi'])->name('produksi_mutations.store_in');
-        Route::post('/produksi-mutations/out', [WarehouseMutationController::class, 'storeOutProduksi'])->name('produksi_mutations.store_out');
-        Route::get('/produksi-mutations/stock-report', [WarehouseMutationController::class, 'stockReportProduksi'])->name('produksi_mutations.stock_report');
-        Route::get('/produksi-mutations/stock-report/print', [WarehouseMutationController::class, 'printStockReportProduksi'])->name('produksi_mutations.print_stock_report');
-        Route::get('/produksi-mutations/report', [WarehouseMutationController::class, 'reportMutationProduksi'])->name('produksi_mutations.report_mutation');
-        Route::get('/produksi-mutations/report/print', [WarehouseMutationController::class, 'printReportMutationProduksi'])->name('produksi_mutations.print_report_mutation');
-        Route::get('/produksi-mutations/summary', [WarehouseMutationController::class, 'reportSummaryProduksi'])->name('produksi_mutations.report_summary');
-        Route::get('/produksi-mutations/summary/print', [WarehouseMutationController::class, 'printReportSummaryProduksi'])->name('produksi_mutations.print_report_summary');
-        Route::get('/produksi-mutations/{warehouseMutation}', [WarehouseMutationController::class, 'showProduksi'])->name('produksi_mutations.show');
+
 
         // ── PESANAN PRODUKSI (Production Orders - Desktop) ──────────────────────
         Route::get('/production-orders', [\App\Http\Controllers\Inventory\ProductionOrderController::class, 'index'])->name('production_orders.index');
