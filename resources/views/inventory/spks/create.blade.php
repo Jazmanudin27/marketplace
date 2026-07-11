@@ -3,7 +3,7 @@
 @section('page-title', 'Buat SPK Baru')
 
 @section('content')
-    <div class="container py-3">
+    <div class="container-fluid py-3">
         <div class="row justify-content-center">
             <div class="col-lg-12">
                 <div class="card border-0 shadow-sm rounded-3 bg-white mb-4">
