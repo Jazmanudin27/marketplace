@@ -119,10 +119,27 @@
 <script>
     let rowIndex = 0;
 
+    function escapeHtml(text) {
+        if (!text) return '';
+        return String(text)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+
     function addRow() {
         const tbody = document.querySelector('#itemsTable tbody');
         const tr = document.createElement('tr');
         tr.id = `row-${rowIndex}`;
+        
+        let tailorOptions = '<option value="">-- Pilih Tukang Jahit --</option>';
+        tailorsList.forEach(e => {
+            const escapedName = escapeHtml(e.name);
+            tailorOptions += `<option value="${escapedName}">${escapedName}</option>`;
+        });
+
         tr.innerHTML = `
             <td>
                 <div class="position-relative">
@@ -152,8 +169,7 @@
             </td>
             <td>
                 <select name="items[${rowIndex}][tailor]" class="form-select form-select-sm">
-                    <option value="">-- Pilih Tukang Jahit --</option>
-                    ${tailorsList.map(e => `<option value="${e.name}">${e.name}</option>`).join('')}
+                    ${tailorOptions}
                 </select>
             </td>
             <td class="text-center">
@@ -248,15 +264,6 @@
 
         // Hide box
         tr.querySelector('.suggestions-box').classList.add('d-none');
-    }
-
-    function escapeHtml(text) {
-        return text
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;")
-            .replace(/"/g, "&quot;")
-            .replace(/'/g, "&#039;");
     }
 
     // Close suggestion boxes when clicking outside
