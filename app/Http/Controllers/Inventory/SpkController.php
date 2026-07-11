@@ -53,13 +53,13 @@ class SpkController extends Controller
             ->orderBy('name')
             ->get();
 
-        // Load active employees as tailor choices
-        $employees = Employee::where('tenant_id', $tenantId)
+        // Load active tailors as tailor choices
+        $tailors = \App\Models\Tailor::where('tenant_id', $tenantId)
             ->where('is_active', true)
             ->orderBy('name')
             ->get();
 
-        return view('inventory.spks.create', compact('products', 'employees'));
+        return view('inventory.spks.create', compact('products', 'tailors'));
     }
 
     public function store(Request $request)

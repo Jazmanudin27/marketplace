@@ -200,6 +200,9 @@ Route::middleware('auth')->group(function () {
         Route::post('customers/{customer}/topup', [CustomerController::class, 'topup'])->name('customers.topup');
     });
 
+    // Tailors (Tukang Jahit)
+    Route::resource('tailors', \App\Http\Controllers\Inventory\TailorController::class);
+
     // Employees
     Route::middleware('permission:manage-employees')->group(function () {
         Route::resource('employees', EmployeeController::class)->except(['show']);

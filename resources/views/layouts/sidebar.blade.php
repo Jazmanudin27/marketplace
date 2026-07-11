@@ -10,6 +10,7 @@
         request()->routeIs('roles.*') ||
         request()->routeIs('settings.tenant.*') ||
         request()->routeIs('products.*') ||
+        request()->routeIs('tailors.*') ||
         request()->routeIs('marketplace_products.*');
 
     $isPembelianActive =
@@ -179,6 +180,8 @@
                         @can('manage-employees')
                             <a href="{{ route('employees.index') }}"
                                 class="nav-link py-1 {{ request()->routeIs('employees.*') ? 'active text-white' : 'text-secondary' }}">Karyawan</a>
+                            <a href="{{ route('tailors.index') }}"
+                                class="nav-link py-1 {{ request()->routeIs('tailors.*') ? 'active text-white' : 'text-secondary' }}">Tukang Jahit</a>
                         @endcan
                         @can('manage-users')
                             <a href="{{ route('users.index') }}"

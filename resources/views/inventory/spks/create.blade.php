@@ -113,7 +113,7 @@
 {{-- JSON catalog data to help javascript auto-fill product details --}}
 <script>
     const catalogProducts = @json($products);
-    const tailorsList = @json($employees);
+    const tailorsList = @json($tailors);
 </script>
 
 <script>
@@ -125,11 +125,10 @@
         tr.id = `row-${rowIndex}`;
         tr.innerHTML = `
             <td>
-                <select class="form-select form-select-sm select-catalog mb-1" onchange="autoFillProduct(${rowIndex}, this)">
-                    <option value="">-- Manual (Ketik Sendiri) --</option>
-                    ${catalogProducts.map(p => `<option value="${p.id}" data-sku="${p.sku || ''}" data-sku-induk="${p.sku_induk || ''}" data-name="${p.name || ''}" data-size="${p.ukuran || ''}">${p.name} (${p.sku || 'N/A'})</option>`).join('')}
-                </select>
-                <input type="text" name="items[${rowIndex}][name]" class="form-control form-control-sm item-name" required placeholder="Nama Produk">
+                <div class="position-relative">
+                    <input type="text" name="items[${rowIndex}][name]" class="form-control form-control-sm item-name" required placeholder="Ketik nama / SKU untuk mencari..." oninput="searchProduct(${rowIndex}, this)" onfocus="searchProduct(${rowIndex}, this)" autocomplete="off">
+                    <div class="suggestions-box position-absolute bg-white border rounded shadow-sm w-100 d-none" style="z-index: 1050; max-height: 180px; overflow-y: auto; font-size: 11px; left:0; top:100%;"></div>
+                </div>
             </td>
             <td>
                 <input type="text" name="items[${rowIndex}][sku_induk]" class="form-control form-control-sm item-sku-induk" placeholder="e.g. LPJ">
@@ -174,27 +173,60 @@
         }
     }
 
-    function autoFillProduct(index, selectEl) {
+    function searchProduct(index, inputEl) {
         const tr = document.getElementById(`row-${index}`);
-        const selectedOption = selectEl.options[selectEl.selectedIndex];
-        
-        if (selectedOption.value === "") {
-            // Clear details for manual input
-            tr.querySelector('.item-name').value = "";
-            tr.querySelector('.item-sku').value = "";
-            tr.querySelector('.item-sku-induk').value = "";
+        const box = tr.querySelector('.suggestions-box');
+        const q = inputEl.value.trim().toLowerCase();
+
+        // Clear existing suggestions
+        box.innerHTML = '';
+
+        // If search query is empty, hide suggestions box
+        if (q.length === 0) {
+            box.classList.add('d-none');
             return;
         }
 
-        const name = selectedOption.getAttribute('data-name');
-        const sku = selectedOption.getAttribute('data-sku');
-        const skuInduk = selectedOption.getAttribute('data-sku-induk');
-        const size = selectedOption.getAttribute('data-size');
+        // Filter products
+        const matches = catalogProducts.filter(p => {
+            const name = (p.name || '').toLowerCase();
+            const sku = (p.sku || '').toLowerCase();
+            const skuInduk = (p.sku_induk || '').toLowerCase();
+            return name.includes(q) || sku.includes(q) || skuInduk.includes(q);
+        }).slice(0, 10); // Limit to top 10 results
 
-        tr.querySelector('.item-name').value = name;
-        tr.querySelector('.item-sku').value = sku;
-        tr.querySelector('.item-sku-induk').value = skuInduk;
+        if (matches.length === 0) {
+            const div = document.createElement('div');
+            div.className = 'p-2 text-muted text-center italic';
+            div.innerText = 'Produk tidak ditemukan';
+            box.appendChild(div);
+        } else {
+            matches.forEach(p => {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'p-2 border-bottom suggestion-item cursor-pointer hover:bg-light';
+                itemDiv.style.cursor = 'pointer';
+                itemDiv.innerHTML = `
+                    <div class="fw-bold">${escapeHtml(p.name)}</div>
+                    <div class="text-muted" style="font-size:10px;">SKU: ${escapeHtml(p.sku || 'N/A')} | Induk: ${escapeHtml(p.sku_induk || 'N/A')}</div>
+                `;
+                itemDiv.onclick = function() {
+                    selectProduct(index, p);
+                };
+                box.appendChild(itemDiv);
+            });
+        }
+
+        box.classList.remove('d-none');
+    }
+
+    function selectProduct(index, product) {
+        const tr = document.getElementById(`row-${index}`);
         
+        tr.querySelector('.item-name').value = product.name;
+        tr.querySelector('.item-sku').value = product.sku || '';
+        tr.querySelector('.item-sku-induk').value = product.sku_induk || '';
+
+        const size = product.ukuran;
         if (size) {
             const sizeSelect = tr.querySelector('.item-size');
             let sizeExists = false;
@@ -206,7 +238,6 @@
                 }
             }
             if (!sizeExists) {
-                // Add size dynamically if not standard S/M/L etc.
                 const opt = document.createElement('option');
                 opt.value = size;
                 opt.text = size;
@@ -214,7 +245,37 @@
                 sizeSelect.value = size;
             }
         }
+
+        // Hide box
+        tr.querySelector('.suggestions-box').classList.add('d-none');
     }
+
+    function escapeHtml(text) {
+        return text
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+
+    // Close suggestion boxes when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!e.target.classList.contains('item-name')) {
+            document.querySelectorAll('.suggestions-box').forEach(box => {
+                box.classList.add('d-none');
+            });
+        }
+    });
+
+    // CSS styling helper for hover background
+    const style = document.createElement('style');
+    style.innerHTML = `
+        .suggestion-item:hover {
+            background-color: #f8fafc;
+        }
+    `;
+    document.head.appendChild(style);
 
     // Initialize with 1 empty row
     window.onload = function() {
