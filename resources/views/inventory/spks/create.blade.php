@@ -77,10 +77,10 @@
                 {{-- Detail Produk --}}
                 <div class="border-top pt-4 mt-4">
                     <h6 class="fw-bold mb-3"><i class="fas fa-boxes text-primary me-2"></i>Detail Item Produk &amp; Tugas Penjahit</h6>
-                    <div class="table-responsive rounded border mb-3">
-                        <table class="table table-sm table-striped table-bordered align-middle mb-0" id="itemsTable">
+                    <div class="rounded border mb-3">
+                        <table class="table table-striped table-bordered align-middle mb-0" id="itemsTable">
                             <thead class="table-light">
-                                <tr class="small text-uppercase text-muted" style="font-size: 10px;">
+                                <tr class="small text-uppercase text-muted" style="font-size: 11px;">
                                     <th style="width: 35%;">Nama Produk / Pilih Katalog</th>
                                     <th style="width: 15%;">SKU Induk</th>
                                     <th style="width: 15%;">SKU Varian</th>
