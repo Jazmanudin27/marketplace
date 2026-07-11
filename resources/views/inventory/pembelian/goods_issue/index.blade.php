@@ -57,6 +57,7 @@
                     <tr class="small text-uppercase text-muted text-success">
                         <th class="py-2 px-3">Tanggal</th>
                         <th>No. Transaksi</th>
+                        <th>Tujuan</th>
                         <th>Keterangan</th>
                         <th class="text-center">Jumlah Item</th>
                         <th>Operator</th>
@@ -72,6 +73,20 @@
                             <td class="small text-muted py-3 px-3">{{ $mDate }}</td>
                             <td class="font-monospace fw-bold small text-dark">
                                 {{ $row->mutation_number }}
+                            </td>
+                            <td>
+                                @if($row->toDepartment)
+                                    @php
+                                        $badgeColor = match($row->toDepartment->name) {
+                                            'Produksi' => 'bg-success text-white',
+                                            'Percetakan' => 'bg-info text-dark',
+                                            default => 'bg-secondary text-white'
+                                        };
+                                    @endphp
+                                    <span class="badge {{ $badgeColor }}">{{ $row->toDepartment->name }}</span>
+                                @else
+                                    <span class="badge bg-secondary">Lain-lain</span>
+                                @endif
                             </td>
                             <td class="small text-muted text-wrap" style="max-width: 300px;">
                                 {{ $row->notes ?: '—' }}

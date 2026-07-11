@@ -42,6 +42,16 @@
                     <span class="badge bg-success text-uppercase">Approved</span>
                 </div>
                 <div class="mb-3">
+                    <label class="small text-muted fw-semibold d-block">Tujuan Pengeluaran</label>
+                    <div class="fw-bold text-dark">
+                        @if($warehouseMutation->toDepartment)
+                            {{ $warehouseMutation->toDepartment->name }}
+                        @else
+                            Lain-lain
+                        @endif
+                    </div>
+                </div>
+                <div class="mb-3">
                     <label class="small text-muted fw-semibold d-block">Operator Pencatat</label>
                     <div class="fw-bold text-dark">{{ $warehouseMutation->createdBy->name ?? 'System' }}</div>
                 </div>

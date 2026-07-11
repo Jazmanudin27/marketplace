@@ -76,6 +76,19 @@
                 @endif
 
 
+                {{-- Jenis Penerimaan --}}
+                <div class="mb-3">
+                    <label class="form-label fw-semibold small text-muted">
+                        <i class="fas fa-tag me-1 text-success"></i>Jenis Penerimaan <span class="text-danger">*</span>
+                    </label>
+                    <select name="source" id="sel-source" class="form-select" required>
+                        <option value="pembelian" {{ old('source') === 'pembelian' ? 'selected' : '' }}>🛒 Pembelian</option>
+                        <option value="percetakan" {{ old('source') === 'percetakan' ? 'selected' : '' }}>🖨️ Percetakan</option>
+                        <option value="produksi" {{ old('source') === 'produksi' ? 'selected' : '' }}>🏭 Produksi</option>
+                        <option value="lain_lain" {{ old('source') === 'lain_lain' ? 'selected' : '' }}>❓ Lain-lain</option>
+                    </select>
+                </div>
+
                 {{-- Tanggal --}}
                 <div class="mb-3">
                     <label class="form-label fw-semibold small text-muted">

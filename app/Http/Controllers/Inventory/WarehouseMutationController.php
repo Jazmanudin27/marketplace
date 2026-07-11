@@ -818,10 +818,9 @@ class WarehouseMutationController extends Controller
     public function goodsIssueIndex(Request $request)
     {
         $tenantId = Auth::user()->tenant_id;
-        $query = WarehouseMutation::with(['items.inventoryItem'])
+        $query = WarehouseMutation::with(['items.inventoryItem', 'toDepartment'])
             ->where('tenant_id', $tenantId)
             ->where('type', 'out')
-            ->whereNull('to_department_id') // avoid mixing with produksi output mutations
             ->orderByDesc('mutation_date');
 
         if ($request->filled('search')) {
@@ -851,12 +850,31 @@ class WarehouseMutationController extends Controller
         return view('inventory.pembelian.goods_issue.create', compact('inventoryItems'));
     }
 
+    private function getDepartmentIdByName($name)
+    {
+        $tenantId = Auth::user()->tenant_id;
+        $dept = Department::where('tenant_id', $tenantId)
+            ->where('name', $name)
+            ->first();
+            
+        if (!$dept) {
+            $dept = Department::create([
+                'tenant_id' => $tenantId,
+                'name'      => $name,
+                'code'      => strtoupper(str_replace(' ', '_', $name)),
+                'is_active' => true,
+            ]);
+        }
+        return $dept->id;
+    }
+
     public function goodsIssueStore(Request $request)
     {
         $tenantId = Auth::user()->tenant_id;
 
         $request->validate([
             'mutation_date'    => 'required|date',
+            'tujuan'           => 'required|in:produksi,percetakan,lain_lain',
             'notes'            => 'nullable|string|max:1000',
             'items'            => 'required|array|min:1',
             'items.*.item_id'  => 'required|exists:inventory_items,id',
@@ -874,10 +892,20 @@ class WarehouseMutationController extends Controller
             $userId         = Auth::id();
             $mutationNumber = WarehouseMutation::generateMutationNumber('out');
 
+            $toDeptId = null;
+            if ($request->tujuan === 'produksi') {
+                $toDeptId = $this->getDepartmentIdByName('Produksi');
+            } elseif ($request->tujuan === 'percetakan') {
+                $toDeptId = $this->getDepartmentIdByName('Percetakan');
+            } elseif ($request->tujuan === 'lain_lain') {
+                $toDeptId = $this->getDepartmentIdByName('Lain-lain');
+            }
+
             $mutation = WarehouseMutation::create([
                 'tenant_id'       => $tenantId,
                 'mutation_number' => $mutationNumber,
                 'type'            => 'out',
+                'to_department_id'=> $toDeptId,
                 'mutation_date'   => $request->mutation_date,
                 'status'          => 'approved',
                 'notes'           => $request->notes,
@@ -920,7 +948,7 @@ class WarehouseMutationController extends Controller
     public function goodsIssueShow(WarehouseMutation $warehouseMutation)
     {
         abort_unless($warehouseMutation->tenant_id === Auth::user()->tenant_id, 403);
-        $warehouseMutation->load(['items.inventoryItem', 'createdBy']);
+        $warehouseMutation->load(['items.inventoryItem', 'createdBy', 'toDepartment']);
 
         return view('inventory.pembelian.goods_issue.show', compact('warehouseMutation'));
     }

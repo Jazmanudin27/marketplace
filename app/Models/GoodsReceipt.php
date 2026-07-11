@@ -68,6 +68,10 @@ class GoodsReceipt extends Model
     public function getSourceLabelAttribute(): string
     {
         return match ($this->source) {
+            'pembelian' => 'Pembelian',
+            'percetakan'=> 'Percetakan',
+            'produksi'  => 'Produksi',
+            'lain_lain' => 'Lain-lain',
             'direct'    => 'Pembelian Langsung',
             'emergency' => 'Pembelian Darurat',
             'walk_in'   => 'Walk-in / Beli di Toko',
@@ -79,6 +83,10 @@ class GoodsReceipt extends Model
     public function getSourceBadgeAttribute(): string
     {
         return match ($this->source) {
+            'pembelian' => 'primary',
+            'percetakan'=> 'info',
+            'produksi'  => 'warning text-dark',
+            'lain_lain' => 'secondary',
             'direct'    => 'primary',
             'emergency' => 'danger',
             'walk_in'   => 'info',

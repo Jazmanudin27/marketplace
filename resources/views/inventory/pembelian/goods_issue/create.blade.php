@@ -48,6 +48,18 @@
                         value="{{ old('mutation_date', date('Y-m-d')) }}" required>
                 </div>
 
+                {{-- Tujuan Keluar --}}
+                <div class="mb-3">
+                    <label class="form-label fw-semibold small text-muted">
+                        <i class="fas fa-route me-1 text-success"></i>Tujuan Keluar <span class="text-danger">*</span>
+                    </label>
+                    <select name="tujuan" class="form-select form-select-sm" required>
+                        <option value="produksi" {{ old('tujuan') === 'produksi' ? 'selected' : '' }}>🏭 Ke Produksi</option>
+                        <option value="percetakan" {{ old('tujuan') === 'percetakan' ? 'selected' : '' }}>🖨️ Ke Percetakan</option>
+                        <option value="lain_lain" {{ old('tujuan') === 'lain_lain' ? 'selected' : '' }}>❓ Lain-lain</option>
+                    </select>
+                </div>
+
                 {{-- Catatan --}}
                 <div class="mb-4">
                     <label class="form-label fw-semibold small text-muted">
