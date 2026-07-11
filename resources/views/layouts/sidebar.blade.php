@@ -334,32 +334,7 @@
 
 
 
-        <!-- PRODUKSI -->
-        @if (auth()->user()->isSuperAdmin() ||
-                auth()->user()->role === 'admin' ||
-                auth()->user()->hasAnyPermission(['manage-inventory', 'production-orders.index']))
-            <div>
-                <a class="nav-link d-flex align-items-center justify-content-between text-dark {{ $isProduksiActive ? '' : 'collapsed' }}"
-                    data-bs-toggle="collapse" data-bs-target="#collapseProduksi" role="button"
-                    aria-expanded="{{ $isProduksiActive ? 'true' : 'false' }}" aria-controls="collapseProduksi">
-                    <div class="d-flex align-items-center gap-2">
-                        <i class="bi bi-tools"></i>
-                        <span>Produksi</span>
-                    </div>
-                    <i class="bi bi-chevron-down small"></i>
-                </a>
-                <div class="collapse {{ $isProduksiActive ? 'show' : '' }}" id="collapseProduksi">
-                    <div class="nav flex-column ms-3 mt-1 gap-1 border-start ps-2">
-                        <a href="{{ route('production_orders.index') }}"
-                            class="nav-link py-1 {{ request()->routeIs('production_orders.index') || request()->routeIs('production_orders.show') ? 'active text-white' : 'text-secondary' }}">Perintah Kerja (SPK)</a>
-                        <a href="{{ route('production_orders.requirements') }}"
-                            class="nav-link py-1 {{ request()->routeIs('production_orders.requirements') ? 'active text-white' : 'text-secondary' }}">Kebutuhan SPK (PO)</a>
-                        <a href="{{ route('production_requests.index') }}"
-                            class="nav-link py-1 {{ request()->routeIs('production_requests.*') ? 'active text-white' : 'text-secondary' }}">Permintaan Produksi</a>
-                    </div>
-                </div>
-            </div>
-        @endif
+
 
         <!-- MARKETING -->
         @if (auth()->user()->isSuperAdmin() ||

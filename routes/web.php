@@ -469,23 +469,7 @@ Route::middleware('auth')->group(function () {
 
 
 
-        // ── PESANAN PRODUKSI (Production Orders - Desktop) ──────────────────────
-        Route::get('/production-orders', [\App\Http\Controllers\Inventory\ProductionOrderController::class, 'index'])->name('production_orders.index');
-        Route::post('/production-orders/{order}/start', [\App\Http\Controllers\Inventory\ProductionOrderController::class, 'start'])->name('production_orders.start');
-        Route::post('/production-orders/{order}/complete', [\App\Http\Controllers\Inventory\ProductionOrderController::class, 'complete'])->name('production_orders.complete');
-        Route::post('/production-orders/{order}/cancel', [\App\Http\Controllers\Inventory\ProductionOrderController::class, 'cancel'])->name('production_orders.cancel');
-        Route::get('/production-orders/requirements', [\App\Http\Controllers\Inventory\ProductionOrderController::class, 'orderRequirements'])->name('production_orders.requirements');
-        Route::post('/production-orders/create-from-order', [\App\Http\Controllers\Inventory\ProductionOrderController::class, 'createFromOrder'])->name('production_orders.create_from_order');
-        Route::get('/production-orders/{order}', [\App\Http\Controllers\Inventory\ProductionOrderController::class, 'show'])->name('production_orders.show');
 
-        // ── PERMINTAAN PRODUKSI (Production Requests) ────────────────────────────
-        Route::get('/production-requests', [\App\Http\Controllers\Inventory\ProductionRequestController::class, 'index'])->name('production_requests.index');
-        Route::get('/production-requests/create', [\App\Http\Controllers\Inventory\ProductionRequestController::class, 'create'])->name('production_requests.create');
-        Route::post('/production-requests', [\App\Http\Controllers\Inventory\ProductionRequestController::class, 'store'])->name('production_requests.store');
-        Route::get('/production-requests/{productionRequest}', [\App\Http\Controllers\Inventory\ProductionRequestController::class, 'show'])->name('production_requests.show');
-        Route::get('/production-requests/{productionRequest}/print-spk', [\App\Http\Controllers\Inventory\ProductionRequestController::class, 'printSpk'])->name('production_requests.print_spk');
-        Route::post('/production-requests/{productionRequest}/approve', [\App\Http\Controllers\Inventory\ProductionRequestController::class, 'approve'])->name('production_requests.approve');
-        Route::post('/production-requests/{productionRequest}/reject', [\App\Http\Controllers\Inventory\ProductionRequestController::class, 'reject'])->name('production_requests.reject');
 
         // Stock Sync
         Route::get('/stock-sync', [StockSyncController::class, 'index'])->name('inventory.stock_sync');
