@@ -87,6 +87,10 @@
                             </select>
                         </div>
                         <div class="col-md-12">
+                            <label class="form-label fw-semibold small">Tanggal Jatuh Tempo / Deadline <span class="text-danger">*</span></label>
+                            <input type="date" name="deadline_date" id="deadline_date" class="form-control form-control-sm" required value="{{ date('Y-m-d', strtotime('+14 days')) }}">
+                        </div>
+                        <div class="col-md-12">
                             <label class="form-label fw-semibold small">No. Invoice / Permintaan</label>
                             <input type="text" class="form-control form-control-sm bg-light" readonly value="[Otomatis Digenerate Sistem]">
                             <span class="text-muted small" style="font-size: 0.72rem;">Nomor permintaan produksi akan otomatis terbit dengan format <strong>REQ-YYYYMMDD-XXXX</strong></span>

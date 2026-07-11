@@ -59,6 +59,7 @@ class ProductionRequestController extends Controller
             'customer_name' => 'nullable|required_if:request_type,PO Pelanggan|string|max:255',
             'customer_phone' => 'nullable|string|max:50',
             'shipping_address' => 'nullable|required_if:request_type,PO Pelanggan|string',
+            'deadline_date' => 'required|date',
             'items' => 'required|array|min:1',
             'items.*.master_product_id' => 'required|exists:master_products,id',
             'items.*.quantity' => 'required|integer|min:1',
@@ -85,12 +86,14 @@ class ProductionRequestController extends Controller
             // Create request
             $productionRequest = ProductionRequest::create([
                 'tenant_id' => $tenantId,
+                'created_by' => Auth::id(),
                 'request_number' => $requestNumber,
                 'request_type' => $request->request_type === 'PO Pelanggan' ? 'po' : 'stock',
                 'department_id' => $dept->id,
                 'customer_name' => $request->customer_name,
                 'customer_phone' => $request->customer_phone,
                 'shipping_address' => $request->request_type === 'PO Pelanggan' ? $request->shipping_address : 'Stok Gudang Jadi (Penyimpanan Utama)',
+                'deadline_date' => $request->deadline_date,
                 'total_amount' => $totalAmount,
                 'status' => 'pending',
             ]);
@@ -113,7 +116,7 @@ class ProductionRequestController extends Controller
     public function show(ProductionRequest $productionRequest)
     {
         abort_unless($productionRequest->tenant_id === Auth::user()->tenant_id, 403);
-        $productionRequest->load(['items.masterProduct', 'department', 'store', 'approvedBy', 'rejectedBy']);
+        $productionRequest->load(['items.masterProduct', 'department', 'store', 'approvedBy', 'rejectedBy', 'createdBy']);
 
         return view('inventory.production_requests.show', compact('productionRequest'));
     }
@@ -175,7 +178,7 @@ class ProductionRequestController extends Controller
     public function printSpk(ProductionRequest $productionRequest)
     {
         abort_unless($productionRequest->tenant_id === Auth::user()->tenant_id, 403);
-        $productionRequest->load(['items.masterProduct', 'department', 'approvedBy']);
+        $productionRequest->load(['items.masterProduct', 'department', 'approvedBy', 'createdBy']);
 
         $grouped = [];
         $sizesHeader = ['S', 'M', 'L', 'XL', 'XXL', '3XL'];

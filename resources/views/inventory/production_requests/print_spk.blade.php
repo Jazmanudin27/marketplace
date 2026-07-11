@@ -79,8 +79,8 @@
                 <div class="spk-subtitle">Surat Perintah Kerja</div>
             </td>
             <td class="header-right">
-                <div><span class="info-label">ORDER DATE :</span> <strong>{{ $productionRequest->created_at->format('Y-m-d') }}</strong></div>
-                <div style="margin-top: 3px;"><span class="info-label">DEADLINE :</span> <span class="info-val-red">{{ $productionRequest->approved_at ? $productionRequest->approved_at->addDays(14)->format('Y-m-d') : $productionRequest->created_at->addDays(14)->format('Y-m-d') }}</span></div>
+                <div><span class="info-label">TANGGAL :</span> <strong>{{ $productionRequest->created_at->format('Y-m-d') }}</strong></div>
+                <div style="margin-top: 3px;"><span class="info-label">JATUH TEMPO :</span> <span class="info-val-red">{{ $productionRequest->deadline_date ? date('Y-m-d', strtotime($productionRequest->deadline_date)) : $productionRequest->created_at->addDays(14)->format('Y-m-d') }}</span></div>
             </td>
             <td style="width: 60px; padding-left: 15px;">
                 <img src="https://api.qrserver.com/v1/create-qr-code/?size=55x55&data={{ $productionRequest->request_number }}" alt="QR Code" style="display:block;">
@@ -112,9 +112,9 @@
     <!-- Client / Order Bar -->
     <div class="pemesan-bar">
         PEMESAN: {{ strtoupper($productionRequest->customer_name ?: 'INTERNAL STOCK') }} 
-        @if($productionRequest->customer_phone) ({{ $productionRequest->customer_phone }}) @endif
+        | NO HP PEMESAN: {{ $productionRequest->customer_phone ?: '—' }}
         | INSTANSI: {{ strtoupper($productionRequest->department->name ?? 'GUDANG UTAMA') }}
-        | ADMIN: {{ strtoupper($productionRequest->approvedBy->name ?? Auth::user()->name) }}
+        | PENGINPUT: {{ strtoupper($productionRequest->createdBy->name ?? ($productionRequest->approvedBy->name ?? 'SYSTEM')) }}
     </div>
 
     <!-- Rincian Produk Title -->
