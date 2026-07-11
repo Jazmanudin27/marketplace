@@ -123,7 +123,7 @@
                                 <div class="input-group input-group-sm">
                                     <span class="input-group-text"><i class="fas fa-warehouse"></i></span>
                                     <input type="number" id="stock" name="stock"
-                                        class="form-control form-control-sm {{ $isLinked ? 'bg-light text-muted' : '' }}"
+                                        class="form-control form-control-sm {{ $isLinked ? 'bg-light text-muted readonly-by-link' : '' }}"
                                         value="{{ old('stock', $product->stock ?? 0) }}" min="0" required
                                         placeholder="0" {{ $isLinked ? 'readonly' : '' }}>
                                 </div>
@@ -176,6 +176,18 @@
                                         Produk Pre-Order (PO)</label>
                                 </div>
                             </div>
+                            <div class="col-md-6 mb-3">
+                                <div class="form-check form-switch mt-4 pt-2">
+                                    <input class="form-check-input" type="checkbox" id="is_bundle" name="is_bundle"
+                                        value="1"
+                                        {{ old('is_bundle', $product->is_bundle ?? 0) == 1 ? 'checked' : '' }}>
+                                    <label class="form-label form-label-sm fw-semibold ms-2" for="is_bundle">Jadikan
+                                        Produk Set / Bundling (Paket)</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
                             <div class="col-md-6 mb-3" id="preorder_days_wrapper"
                                 style="display: {{ old('is_preorder', $product->is_preorder ?? 0) == 1 ? 'block' : 'none' }};">
                                 <label for="preorder_days" class="form-label form-label-sm fw-semibold">Estimasi Waktu
@@ -407,6 +419,54 @@
                             @error('description')
                                 <div class="text-danger mt-1 small">{{ $message }}</div>
                             @enderror
+                        </div>
+
+                        {{-- ── KOMPONEN BUNDLING / SET ── --}}
+                        <div id="bundle-components-section" class="border rounded-3 p-3 mb-3 bg-light" style="display: {{ old('is_bundle', $product->is_bundle ?? 0) == 1 ? 'block' : 'none' }}; border-color: #cbd5e1 !important;">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h6 class="fw-bold text-dark mb-0"><i class="fas fa-cubes text-success me-2"></i>Komponen Produk Set / Paket</h6>
+                                <button type="button" class="btn btn-xs btn-outline-success fw-semibold" id="btn-add-component-row">
+                                    <i class="fas fa-plus me-1"></i> Tambah Produk
+                                </button>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table table-sm table-hover align-middle bg-white rounded shadow-sm mb-0" id="table-components" style="font-size: 12px;">
+                                    <thead>
+                                        <tr class="small text-uppercase text-muted" style="font-size:10px">
+                                            <th style="width: 70%" class="ps-2">Nama Produk / SKU Komponen</th>
+                                            <th style="width: 20%">Jumlah (Qty)</th>
+                                            <th style="width: 10%" class="text-center"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @if(isset($product) && $product->is_bundle && $product->components->count() > 0)
+                                            @foreach($product->components as $cIdx => $comp)
+                                                <tr class="component-row">
+                                                    <td class="ps-2">
+                                                        <select name="components[{{ $cIdx }}][child_id]" class="form-select form-select-sm select-component-item" required>
+                                                            <option value=""></option>
+                                                            @foreach($allProducts as $ap)
+                                                                <option value="{{ $ap->id }}" data-sku="{{ $ap->sku }}" {{ $comp->id == $ap->id ? 'selected' : '' }}>
+                                                                    {{ $ap->name }} ({{ $ap->sku }})
+                                                                </option>
+                                                            @endforeach
+                                                        </select>
+                                                    </td>
+                                                    <td>
+                                                        <input type="number" name="components[{{ $cIdx }}][quantity]" class="form-control form-control-sm text-center" min="1" value="{{ $comp->pivot->quantity }}" required>
+                                                    </td>
+                                                    <td class="text-center">
+                                                        <button type="button" class="btn btn-sm btn-link text-danger btn-remove-component-row"><i class="fas fa-trash-alt"></i></button>
+                                                    </td>
+                                                </tr>
+                                            @endforeach
+                                        @endif
+                                    </tbody>
+                                </table>
+                            </div>
+                            <small class="text-muted d-block mt-2" style="font-size:10px;">
+                                <i class="fas fa-info-circle me-1"></i> Stok produk set ini akan dihitung otomatis oleh sistem mengikuti jumlah terkecil dari produk anak penyusunnya.
+                            </small>
                         </div>
 
                         <div class="d-flex justify-content-end gap-2 mt-4">
@@ -1355,6 +1415,85 @@
             togglePreorderDays($('#is_preorder').is(':checked'));
             $('#is_preorder').on('change', function() {
                 togglePreorderDays(this.checked);
+            });
+
+            // Initialize Bundle Components visibility
+            function toggleBundleSection(isChecked) {
+                const section = $('#bundle-components-section');
+                const stockInput = $('#stock');
+                if (isChecked) {
+                    section.show();
+                    stockInput.val(0).prop('readonly', true).addClass('bg-light text-muted');
+                    if (!$('#stock-bundle-note').length) {
+                        stockInput.parent().after('<div id="stock-bundle-note" class="form-text text-success small mt-1"><i class="fas fa-magic me-1"></i> Stok dihitung otomatis dari produk anak.</div>');
+                    }
+                    $('.form-text.text-warning').hide();
+                } else {
+                    section.hide();
+                    if (!stockInput.hasClass('readonly-by-link')) {
+                        stockInput.prop('readonly', false).removeClass('bg-light text-muted');
+                    }
+                    $('#stock-bundle-note').remove();
+                    $('.form-text.text-warning').show();
+                }
+            }
+
+            toggleBundleSection($('#is_bundle').is(':checked'));
+            $('#is_bundle').on('change', function() {
+                toggleBundleSection(this.checked);
+            });
+
+            // Dynamic Component row indexing
+            let componentRowIndex = {{ isset($product) && $product->is_bundle && $product->components->count() > 0 ? $product->components->count() : 0 }};
+
+            $('#btn-add-component-row').on('click', function() {
+                let optionsHtml = '<option value=""></option>';
+                @if(isset($allProducts))
+                    @foreach($allProducts as $ap)
+                        optionsHtml += `<option value="{{ $ap->id }}" data-sku="{{ $ap->sku }}">{{ $ap->name }} ({{ $ap->sku }})</option>`;
+                    @endforeach
+                @endif
+
+                const rowHtml = `
+                    <tr class="component-row">
+                        <td>
+                            <select name="components[\${componentRowIndex}][child_id]" class="form-select form-select-sm select-component-item" required>
+                                \${optionsHtml}
+                            </select>
+                        </td>
+                        <td>
+                            <input type="number" name="components[\${componentRowIndex}][quantity]" class="form-control form-control-sm text-center" min="1" value="1" required>
+                        </td>
+                        <td class="text-center">
+                            <button type="button" class="btn btn-sm btn-link text-danger btn-remove-component-row"><i class="fas fa-trash-alt"></i></button>
+                        </td>
+                    </tr>
+                `;
+
+                $('#table-components tbody').append(rowHtml);
+                initSelect2ForComponent($('#table-components tbody tr:last-child'));
+                componentRowIndex++;
+            });
+
+            function initSelect2ForComponent(row) {
+                row.find('.select-component-item').select2({
+                    theme: 'bootstrap-5',
+                    placeholder: '— Pilih Produk Komponen —',
+                    allowClear: true,
+                    dropdownParent: $('#table-components')
+                });
+            }
+
+            $(document).on('click', '.btn-remove-component-row', function() {
+                $(this).closest('.component-row').remove();
+            });
+
+            // Initialize existing select2 for components
+            $('.select-component-item').select2({
+                theme: 'bootstrap-5',
+                placeholder: '— Pilih Produk Komponen —',
+                allowClear: true,
+                dropdownParent: $('#table-components')
             });
 
             // Initialize name counter on page load

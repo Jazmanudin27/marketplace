@@ -32,6 +32,16 @@ class MasterProduct extends Model
         'warna',
         'is_preorder',
         'preorder_days',
+        'is_bundle',
+    ];
+
+    protected $casts = [
+        'price'     => 'decimal:2',
+        'cost_price'=> 'decimal:2',
+        'is_active' => 'boolean',
+        'is_preorder' => 'boolean',
+        'preorder_days' => 'integer',
+        'is_bundle' => 'boolean',
     ];
 
     public function category()
@@ -43,14 +53,6 @@ class MasterProduct extends Model
     {
         return $this->belongsTo(Brand::class);
     }
-
-    protected $casts = [
-        'price'     => 'decimal:2',
-        'cost_price'=> 'decimal:2',
-        'is_active' => 'boolean',
-        'is_preorder' => 'boolean',
-        'preorder_days' => 'integer',
-    ];
 
     public function tenant(): BelongsTo
     {
@@ -67,11 +69,50 @@ class MasterProduct extends Model
         return $this->hasMany(OrderItem::class);
     }
 
+    public function components()
+    {
+        return $this->belongsToMany(MasterProduct::class, 'master_product_bundles', 'parent_id', 'child_id')
+            ->withPivot('quantity')
+            ->withTimestamps();
+    }
+
+    public function getStockAttribute()
+    {
+        if ($this->is_bundle) {
+            $comps = $this->components;
+            if ($comps->isEmpty()) {
+                return 0;
+            }
+            return $comps->map(function ($comp) {
+                $qtyNeeded = max(1, $comp->pivot->quantity);
+                return (int) floor($comp->stock / $qtyNeeded);
+            })->min();
+        }
+        return $this->attributes['stock'] ?? 0;
+    }
+
     /**
      * Catat pergerakan stok, perbarui stok lokal, dan sinkronisasikan ke marketplace.
      */
     public function recordStockMovement(int $quantity, string $type, string $reference, ?int $userId = null, ?string $date = null): void
     {
+        if ($this->is_bundle) {
+            // Deduct components instead of bundle parent directly
+            foreach ($this->components as $component) {
+                $compQty = $quantity * $component->pivot->quantity;
+                $component->recordStockMovement($compQty, $type, $reference . " (Komponen dari Set: " . $this->sku . ")", $userId, $date);
+            }
+
+            // Sync parent set stock to connected marketplace listings
+            $newStock = $this->stock; // Calls getStockAttribute() dynamically
+            $this->marketplaceProducts()
+                 ->where('sync_stock', true)
+                 ->update(['stock' => $newStock]);
+
+            \App\Jobs\PushStockToMarketplaces::dispatch($this->id, $newStock);
+            return;
+        }
+
         // 1. Update stok
         if ($type === 'out') {
             $this->decrement('stock', abs($quantity));
@@ -112,6 +153,20 @@ class MasterProduct extends Model
              
         // 4. Push stok ke API Marketplace secara otomatis (Shopee, Tokopedia, dll)
         \App\Jobs\PushStockToMarketplaces::dispatch($this->id, $newStock);
+
+        // 5. Update bundle parent stocks if this product is a component of any bundle
+        $parentBundles = MasterProduct::where('is_bundle', true)
+            ->whereHas('components', function ($q) {
+                $q->where('child_id', $this->id);
+            })->get();
+
+        foreach ($parentBundles as $parent) {
+            $parentStock = $parent->stock; // Recalculates dynamically
+            $parent->marketplaceProducts()
+                   ->where('sync_stock', true)
+                   ->update(['stock' => $parentStock]);
+            \App\Jobs\PushStockToMarketplaces::dispatch($parent->id, $parentStock);
+        }
     }
 
     /**

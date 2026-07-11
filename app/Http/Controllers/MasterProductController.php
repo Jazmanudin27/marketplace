@@ -91,7 +91,13 @@ class MasterProductController extends Controller
         $product = new MasterProduct();
         $categories = \App\Models\Category::where('tenant_id', Auth::user()->tenant_id)->get();
         $brands = \App\Models\Brand::where('tenant_id', Auth::user()->tenant_id)->get();
-        return view('products.form', compact('product', 'categories', 'brands'));
+        
+        $allProducts = MasterProduct::where('tenant_id', Auth::user()->tenant_id)
+            ->where('is_bundle', false)
+            ->orderBy('name')
+            ->get(['id', 'sku', 'name', 'stock']);
+
+        return view('products.form', compact('product', 'categories', 'brands', 'allProducts'));
     }
 
     public function store(Request $request)
@@ -123,11 +129,20 @@ class MasterProductController extends Controller
             'is_active'    => 'nullable|boolean',
             'is_preorder'  => 'nullable|boolean',
             'preorder_days'=> 'nullable|integer|min:0',
+            'is_bundle'    => 'nullable|boolean',
+            'components'   => 'nullable|array',
+            'components.*.child_id' => 'required_with:components|exists:master_products,id',
+            'components.*.quantity' => 'required_with:components|integer|min:1',
         ]);
 
+        $data['is_bundle'] = $request->has('is_bundle') ? true : false;
         $data['is_preorder'] = $request->has('is_preorder') ? true : false;
         if (!$data['is_preorder']) {
             $data['preorder_days'] = null;
+        }
+
+        if ($data['is_bundle']) {
+            $data['stock'] = 0;
         }
 
         // Handle file upload — takes priority over URL
@@ -163,7 +178,16 @@ class MasterProductController extends Controller
 
         $data['tenant_id'] = Auth::user()->tenant_id;
 
-        MasterProduct::create($data);
+        $product = MasterProduct::create($data);
+
+        // Save bundle components
+        if ($product->is_bundle && $request->has('components')) {
+            foreach ($request->components as $comp) {
+                if (!empty($comp['child_id'])) {
+                    $product->components()->attach($comp['child_id'], ['quantity' => $comp['quantity'] ?? 1]);
+                }
+            }
+        }
 
         return redirect()->route('products.index')->with('success', 'Produk berhasil ditambahkan.');
     }
@@ -184,7 +208,13 @@ class MasterProductController extends Controller
             ->orderBy('name')
             ->get();
             
-        return view('products.form', compact('product', 'categories', 'brands', 'recipe', 'inventoryItems'));
+        $allProducts = MasterProduct::where('tenant_id', Auth::user()->tenant_id)
+            ->where('id', '!=', $product->id)
+            ->where('is_bundle', false)
+            ->orderBy('name')
+            ->get(['id', 'sku', 'name', 'stock']);
+
+        return view('products.form', compact('product', 'categories', 'brands', 'recipe', 'inventoryItems', 'allProducts'));
     }
 
     public function saveRecipe(Request $request, MasterProduct $product)
@@ -194,11 +224,11 @@ class MasterProductController extends Controller
         $request->validate([
             'batch_qty' => 'required|integer|min:1',
             'items' => 'nullable|array',
-            'items.*.inventory_item_id' => 'required|exists:inventory_items,id',
-            'items.*.quantity' => 'required|numeric|min:0.0001',
+            'items.*.inventory_item_id' => 'required_with:items|exists:inventory_items,id',
+            'items.*.quantity' => 'required_with:items|numeric|min:0.0001',
             'labors' => 'nullable|array',
-            'labors.*.service_name' => 'required|string|max:255',
-            'labors.*.default_cost' => 'required|numeric|min:0',
+            'labors.*.service_name' => 'required_with:labors|string|max:255',
+            'labors.*.default_cost' => 'required_with:labors|numeric|min:0',
         ]);
 
         \DB::transaction(function() use ($request, $product) {
@@ -266,11 +296,20 @@ class MasterProductController extends Controller
             'is_active'    => 'nullable|boolean',
             'is_preorder'  => 'nullable|boolean',
             'preorder_days'=> 'nullable|integer|min:0',
+            'is_bundle'    => 'nullable|boolean',
+            'components'   => 'nullable|array',
+            'components.*.child_id' => 'required_with:components|exists:master_products,id',
+            'components.*.quantity' => 'required_with:components|integer|min:1',
         ]);
 
+        $data['is_bundle'] = $request->has('is_bundle') ? true : false;
         $data['is_preorder'] = $request->has('is_preorder') ? true : false;
         if (!$data['is_preorder']) {
             $data['preorder_days'] = null;
+        }
+
+        if ($data['is_bundle']) {
+            $data['stock'] = 0;
         }
 
         // Handle file upload — takes priority over URL
@@ -284,8 +323,8 @@ class MasterProductController extends Controller
             $data['image_url'] = \Illuminate\Support\Facades\Storage::url($path);
         }
 
-        // Prevent direct stock updates if mapped to marketplace
-        if ($product->marketplaceProducts()->exists()) {
+        // Prevent direct stock updates if mapped to marketplace or is bundle
+        if ($product->marketplaceProducts()->exists() || $data['is_bundle']) {
             unset($data['stock']);
         }
 
@@ -294,6 +333,21 @@ class MasterProductController extends Controller
         $oldName = $product->name;
         
         $product->update($data);
+
+        // Sync components
+        if ($product->is_bundle) {
+            $syncData = [];
+            if ($request->has('components')) {
+                foreach ($request->components as $comp) {
+                    if (!empty($comp['child_id'])) {
+                        $syncData[$comp['child_id']] = ['quantity' => $comp['quantity'] ?? 1];
+                    }
+                }
+            }
+            $product->components()->sync($syncData);
+        } else {
+            $product->components()->detach();
+        }
         
         if (isset($data['stock']) && $oldStock !== (int)$data['stock']) {
             \App\Jobs\PushStockToMarketplaces::dispatch($product->id, (int)$data['stock']);
