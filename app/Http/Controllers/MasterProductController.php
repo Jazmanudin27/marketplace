@@ -57,6 +57,18 @@ class MasterProductController extends Controller
             }
         }
 
+        if ($request->filled('name')) {
+            $query->where('name', 'like', '%' . $request->name . '%');
+        }
+
+        if ($request->filled('sku')) {
+            $sku = $request->sku;
+            $query->where(function($q) use ($sku) {
+                $q->where('sku', 'like', '%' . $sku . '%')
+                  ->orWhere('sku_induk', 'like', '%' . $sku . '%');
+            });
+        }
+
         $products = $query->orderBy('name')->paginate(25)->withQueryString();
 
         $publicationLogs = PublicationLog::with(['masterProduct', 'store.channel'])

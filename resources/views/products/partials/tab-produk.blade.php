@@ -20,7 +20,19 @@
                     <div class="row g-2 align-items-end">
                         <div class="col-md-3">
                             <label class="form-label form-label-sm fw-semibold mb-1">
-                                <i class="fas fa-layer-group text-muted me-1"></i>Filter Channel
+                                <i class="fas fa-tag text-muted me-1"></i>Nama Barang
+                            </label>
+                            <input type="text" name="name" class="form-control form-control-sm" placeholder="Cari nama barang..." value="{{ request('name') }}">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label form-label-sm fw-semibold mb-1">
+                                <i class="fas fa-barcode text-muted me-1"></i>SKU
+                            </label>
+                            <input type="text" name="sku" class="form-control form-control-sm" placeholder="Cari SKU..." value="{{ request('sku') }}">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label form-label-sm fw-semibold mb-1">
+                                <i class="fas fa-layer-group text-muted me-1"></i>Channel
                             </label>
                             <select name="channel_id" class="form-select form-select-sm">
                                 <option value="">-- Semua Channel --</option>
@@ -32,9 +44,9 @@
                                 @endforeach
                             </select>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-2">
                             <label class="form-label form-label-sm fw-semibold mb-1">
-                                <i class="fas fa-store text-muted me-1"></i>Filter Akun / Toko
+                                <i class="fas fa-store text-muted me-1"></i>Akun / Toko
                             </label>
                             <select name="store_id" class="form-select form-select-sm">
                                 <option value="">-- Semua Toko --</option>
@@ -46,9 +58,9 @@
                                 @endforeach
                             </select>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-2">
                             <label class="form-label form-label-sm fw-semibold mb-1">
-                                <i class="fas fa-link text-muted me-1"></i>Status Tautan Toko
+                                <i class="fas fa-link text-muted me-1"></i>Tautan Toko
                             </label>
                             <select name="link_status" class="form-select form-select-sm">
                                 <option value="">-- Semua Status --</option>
@@ -67,7 +79,7 @@
                             <button type="submit" class="btn btn-primary btn-sm px-3">
                                 <i class="fas fa-search me-1"></i>Terapkan
                             </button>
-                            @if (request()->anyFilled(['channel_id', 'store_id', 'link_status']))
+                            @if (request()->anyFilled(['channel_id', 'store_id', 'link_status', 'name', 'sku']))
                                 <a href="{{ route('products.index') }}" class="btn btn-secondary btn-sm px-3 ms-1">
                                     <i class="fas fa-times me-1"></i>Reset
                                 </a>
