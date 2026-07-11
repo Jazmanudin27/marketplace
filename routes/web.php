@@ -202,6 +202,7 @@ Route::middleware('auth')->group(function () {
 
     // Tailors (Tukang Jahit)
     Route::resource('tailors', \App\Http\Controllers\Inventory\TailorController::class);
+    Route::resource('production-statuses', \App\Http\Controllers\Master\ProductionStatusController::class);
 
     // Employees
     Route::middleware('permission:manage-employees')->group(function () {
@@ -476,6 +477,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/spks/{spk}', [\App\Http\Controllers\Inventory\SpkController::class, 'show'])->name('spks.show');
         Route::get('/spks/{spk}/print', [\App\Http\Controllers\Inventory\SpkController::class, 'print'])->name('spks.print');
         Route::delete('/spks/{spk}', [\App\Http\Controllers\Inventory\SpkController::class, 'destroy'])->name('spks.destroy');
+        Route::post('/spks/items/{item}/status', [\App\Http\Controllers\Inventory\SpkController::class, 'updateItemStatus'])->name('spks.items.update_status');
 
         // Stock Sync
         Route::get('/stock-sync', [StockSyncController::class, 'index'])->name('inventory.stock_sync');

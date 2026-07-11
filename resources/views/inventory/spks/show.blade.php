@@ -158,19 +158,49 @@
                             $subtotal = $item->hpp * $item->quantity;
                             $grandTotalCost += $subtotal;
                         @endphp
+                        @php
+                            $activeStatus = $productionStatuses->firstWhere('name', $item->status) ?? $productionStatuses->first();
+                            $badgeColors = [
+                                'secondary' => 'bg-secondary text-white',
+                                'dark' => 'bg-dark text-white',
+                                'warning' => 'bg-warning text-dark',
+                                'info' => 'bg-info text-dark',
+                                'primary' => 'bg-primary text-white',
+                                'success' => 'bg-success text-white',
+                                'danger' => 'bg-danger text-white'
+                            ];
+                            $currentStatusColor = $badgeColors[$activeStatus->color ?? 'secondary'] ?? 'bg-secondary text-white';
+                            $currentStatusName = $activeStatus->name ?? 'Belum Mulai';
+                        @endphp
                         <div class="card border mb-2">
                             <div class="card-header bg-light py-2 px-3 d-flex justify-content-between align-items-center">
                                 <div>
                                     <span class="fw-bold text-dark">{{ $item->nama_produk }}</span>
                                     <span class="badge bg-light text-dark border ms-2">{{ $item->ukuran ?: 'All Size' }}</span>
-                                    @if($item->alur_proses)
-                                        <span class="badge bg-info-subtle text-info border border-info border-opacity-10 ms-1">{{ $item->alur_proses }}</span>
-                                    @endif
+                                    <span class="badge {{ $currentStatusColor }} ms-2" style="font-size: 10px;">
+                                        @if($currentStatusName === 'Selesai')
+                                            <i class="fas fa-check-circle me-1"></i>
+                                        @else
+                                            <i class="fas fa-spinner fa-spin me-1"></i>
+                                        @endif
+                                        {{ $currentStatusName }}
+                                    </span>
                                 </div>
-                                <div class="text-end">
-                                    <span class="text-muted small me-3">Penjahit: <strong>{{ $item->penjahit ?: '—' }}</strong></span>
-                                    <span class="text-muted small me-3">Qty: <strong>{{ $item->quantity }} pcs</strong></span>
-                                    <span class="fw-bold text-success">HPP: Rp {{ number_format($item->hpp, 0, ',', '.') }}/pcs</span>
+                                <div class="text-end d-flex align-items-center gap-2">
+                                    {{-- Status Selector Form --}}
+                                    <form action="{{ route('spks.items.update_status', $item->id) }}" method="POST" class="d-inline-block m-0">
+                                        @csrf
+                                        <div class="input-group input-group-sm">
+                                            <select name="status" class="form-select form-select-sm py-0 border-primary-subtle text-primary fw-semibold" style="font-size: 10px; height: 22px;" onchange="this.form.submit()">
+                                                @foreach($productionStatuses as $pStat)
+                                                    <option value="{{ $pStat->name }}" {{ ($item->status ?? 'Belum Mulai') == $pStat->name ? 'selected' : '' }}>{{ $pStat->name }}</option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+                                    </form>
+                                    <span class="text-muted small ms-2">Penjahit: <strong>{{ $item->penjahit ?: '—' }}</strong></span>
+                                    <span class="text-muted small ms-2">Qty: <strong>{{ $item->quantity }} pcs</strong></span>
+                                    <span class="fw-bold text-success ms-2">HPP: Rp {{ number_format($item->hpp, 0, ',', '.') }}/pcs</span>
                                     <span class="fw-bold text-primary ms-3">Subtotal: Rp {{ number_format($subtotal, 0, ',', '.') }}</span>
                                 </div>
                             </div>

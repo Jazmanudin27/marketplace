@@ -11,7 +11,7 @@ class SpkItem extends Model
     protected $fillable = [
         'spk_id', 'master_product_id',
         // Identitas
-        'nama_produk', 'sku', 'sku_induk', 'ukuran', 'quantity', 'penjahit', 'alur_proses',
+        'nama_produk', 'sku', 'sku_induk', 'ukuran', 'quantity', 'penjahit', 'alur_proses', 'status',
         // Biaya Jasa
         'jasa_konveksi', 'jasa_potong', 'jasa_printing', 'jasa_jahit', 'jasa_labsas',
         // Biaya Bahan

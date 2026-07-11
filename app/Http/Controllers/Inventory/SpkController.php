@@ -210,7 +210,14 @@ class SpkController extends Controller
         abort_unless($spk->tenant_id === Auth::user()->tenant_id, 403);
         $spk->load(['penginput', 'items.extras']);
         $grouped = $this->getGroupedItems($spk);
-        return view('inventory.spks.show', compact('spk', 'grouped'));
+
+        // Fetch dynamic production statuses (with seed fallback)
+        \App\Models\ProductionStatus::seedDefaultsForTenant($spk->tenant_id);
+        $productionStatuses = \App\Models\ProductionStatus::where('tenant_id', $spk->tenant_id)
+            ->orderBy('sort_order')
+            ->get();
+
+        return view('inventory.spks.show', compact('spk', 'grouped', 'productionStatuses'));
     }
 
     public function print(Spk $spk)
@@ -228,6 +235,27 @@ class SpkController extends Controller
         }
 
         return view('inventory.spks.print', compact('spk', 'grouped', 'sizesHeader'));
+    }
+
+    public function updateItemStatus(Request $request, $itemId)
+    {
+        $item = SpkItem::findOrFail($itemId);
+        $spk = $item->spk;
+        abort_unless($spk->tenant_id === Auth::user()->tenant_id, 403);
+
+        $validStatuses = \App\Models\ProductionStatus::where('tenant_id', $spk->tenant_id)
+            ->pluck('name')
+            ->toArray();
+
+        $request->validate([
+            'status' => 'required|string|in:' . implode(',', $validStatuses),
+        ]);
+
+        $item->update([
+            'status' => $request->status
+        ]);
+
+        return redirect()->back()->with('success', 'Status item "' . $item->nama_produk . '" berhasil diubah.');
     }
 
     public function destroy(Spk $spk)

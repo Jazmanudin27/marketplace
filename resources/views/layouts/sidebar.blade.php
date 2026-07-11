@@ -11,6 +11,7 @@
         request()->routeIs('settings.tenant.*') ||
         request()->routeIs('products.*') ||
         request()->routeIs('tailors.*') ||
+        request()->routeIs('production-statuses.*') ||
         request()->routeIs('marketplace_products.*');
 
     $isPembelianActive =
@@ -182,6 +183,8 @@
                                 class="nav-link py-1 {{ request()->routeIs('employees.*') ? 'active text-white' : 'text-secondary' }}">Karyawan</a>
                             <a href="{{ route('tailors.index') }}"
                                 class="nav-link py-1 {{ request()->routeIs('tailors.*') ? 'active text-white' : 'text-secondary' }}">Tukang Jahit</a>
+                            <a href="{{ route('production-statuses.index') }}"
+                                class="nav-link py-1 {{ request()->routeIs('production-statuses.*') ? 'active text-white' : 'text-secondary' }}">Status Produksi</a>
                         @endcan
                         @can('manage-users')
                             <a href="{{ route('users.index') }}"

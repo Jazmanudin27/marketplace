@@ -40,6 +40,7 @@ return new class extends Migration
             $table->integer('quantity')->default(1);
             $table->string('penjahit')->nullable();
             $table->string('alur_proses')->default('Langsung Jahit');
+            $table->string('status')->default('Belum Mulai');
 
             // Biaya Jasa
             $table->decimal('jasa_konveksi', 15, 2)->default(0);
