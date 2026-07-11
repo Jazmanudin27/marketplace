@@ -82,6 +82,10 @@ class SpkController extends Controller
             'items.*.size'   => 'nullable|string|max:100',
             'items.*.qty'    => 'required|integer|min:1',
             'items.*.tailor' => 'nullable|string|max:255',
+            'items.*.biaya_bahan' => 'nullable|numeric|min:0',
+            'items.*.ongkos_jahit' => 'nullable|numeric|min:0',
+            'items.*.ongkos_printing' => 'nullable|numeric|min:0',
+            'items.*.alur_proses' => 'nullable|string|max:255',
         ]);
 
         $imagePath = null;
@@ -118,6 +122,11 @@ class SpkController extends Controller
                     }
                 }
 
+                $biayaBahan = floatval($row['biaya_bahan'] ?? 0);
+                $ongkosJahit = floatval($row['ongkos_jahit'] ?? 0);
+                $ongkosPrinting = floatval($row['ongkos_printing'] ?? 0);
+                $hpp = $biayaBahan + $ongkosJahit + $ongkosPrinting;
+
                 SpkItem::create([
                     'spk_id'            => $spk->id,
                     'master_product_id' => $prodId,
@@ -127,6 +136,11 @@ class SpkController extends Controller
                     'ukuran'            => $row['size'] ?? 'All Size',
                     'quantity'          => (int) $row['qty'],
                     'penjahit'          => $row['tailor'] ?? null,
+                    'biaya_bahan'       => $biayaBahan,
+                    'ongkos_jahit'      => $ongkosJahit,
+                    'ongkos_printing'   => $ongkosPrinting,
+                    'hpp'               => $hpp,
+                    'alur_proses'       => $row['alur_proses'] ?? 'Langsung Jahit',
                 ]);
             }
 

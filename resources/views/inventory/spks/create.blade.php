@@ -96,17 +96,22 @@
                             <div class="border-top pt-4 mt-4">
                                 <h6 class="fw-bold mb-3"><i class="fas fa-boxes text-primary me-2"></i>Detail Item Produk
                                     &amp; Tugas Penjahit</h6>
-                                <div class="rounded border mb-3">
+                                <div class="rounded border mb-3 overflow-auto">
                                     <table class="table table-striped table-bordered align-middle mb-0" id="itemsTable">
                                         <thead class="table-light">
                                             <tr class="small text-uppercase text-muted">
-                                                <th class="col-4">Nama Produk / Pilih Katalog</th>
-                                                <th class="col-2">SKU Induk</th>
-                                                <th class="col-2">SKU Varian</th>
-                                                <th class="col-1">Ukuran</th>
-                                                <th class="col-1">Qty</th>
-                                                <th class="col-1">Tukang Jahit</th>
-                                                <th class="col-1 text-center">Aksi</th>
+                                                <th>Nama Produk / Katalog</th>
+                                                <th>SKU Induk</th>
+                                                <th>SKU Varian</th>
+                                                <th>Ukuran</th>
+                                                <th>Qty</th>
+                                                <th>Alur Kerja</th>
+                                                <th>Penjahit</th>
+                                                <th>Biaya Bahan (Rp)</th>
+                                                <th>Ongkos Jahit (Rp)</th>
+                                                <th>Ongkos Print (Rp)</th>
+                                                <th>HPP / Pcs (Rp)</th>
+                                                <th class="text-center">Aksi</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -162,21 +167,29 @@
             return options;
         }
 
+        function calculateRowHpp($row) {
+            const bahan = parseFloat($row.find('.item-biaya-bahan').val()) || 0;
+            const jahit = parseFloat($row.find('.item-ongkos-jahit').val()) || 0;
+            const printing = parseFloat($row.find('.item-ongkos-printing').val()) || 0;
+            const hpp = bahan + jahit + printing;
+            $row.find('.item-hpp-label').text('Rp ' + hpp.toLocaleString('id-ID'));
+        }
+
         function addRow() {
             const tailorOpts = generateTailorOptions();
             const rowHtml = `
             <tr id="row-${rowIndex}">
                 <td>
                     <div class="position-relative">
-                        <input type="text" name="items[${rowIndex}][name]" class="form-control form-control-sm item-name" required placeholder="Ketik nama / SKU produk..." autocomplete="off">
+                        <input type="text" name="items[${rowIndex}][name]" class="form-control form-control-sm item-name" required placeholder="Cari produk..." autocomplete="off">
                         <div class="suggestions-box position-absolute bg-white border rounded shadow-sm w-100 d-none" style="z-index: 1050; max-height: 180px; overflow-y: auto;"></div>
                     </div>
                 </td>
                 <td>
-                    <input type="text" name="items[${rowIndex}][sku_induk]" class="form-control form-control-sm item-sku-induk" placeholder="Contoh: LPJ">
+                    <input type="text" name="items[${rowIndex}][sku_induk]" class="form-control form-control-sm item-sku-induk" placeholder="Induk">
                 </td>
                 <td>
-                    <input type="text" name="items[${rowIndex}][sku]" class="form-control form-control-sm item-sku" placeholder="Contoh: LPJ-M">
+                    <input type="text" name="items[${rowIndex}][sku]" class="form-control form-control-sm item-sku" placeholder="Varian">
                 </td>
                 <td>
                     <select name="items[${rowIndex}][size]" class="form-select form-select-sm item-size">
@@ -193,9 +206,28 @@
                     <input type="number" name="items[${rowIndex}][qty]" class="form-control form-control-sm text-center" required min="1" value="1">
                 </td>
                 <td>
+                    <select name="items[${rowIndex}][alur_proses]" class="form-select form-select-sm">
+                        <option value="Langsung Jahit">Langsung Jahit</option>
+                        <option value="Printing -> Jahit">Printing -> Jahit</option>
+                        <option value="Sablon/Bordir -> Jahit">Sablon/Bordir -> Jahit</option>
+                    </select>
+                </td>
+                <td>
                     <select name="items[${rowIndex}][tailor]" class="form-select form-select-sm">
                         ${tailorOpts}
                     </select>
+                </td>
+                <td>
+                    <input type="number" name="items[${rowIndex}][biaya_bahan]" class="form-control form-control-sm item-biaya-bahan text-end" min="0" value="0">
+                </td>
+                <td>
+                    <input type="number" name="items[${rowIndex}][ongkos_jahit]" class="form-control form-control-sm item-ongkos-jahit text-end" min="0" value="0">
+                </td>
+                <td>
+                    <input type="number" name="items[${rowIndex}][ongkos_printing]" class="form-control form-control-sm item-ongkos-printing text-end" min="0" value="0">
+                </td>
+                <td>
+                    <span class="fw-bold text-dark item-hpp-label small">Rp 0</span>
                 </td>
                 <td class="text-center">
                     <button type="button" class="btn btn-sm btn-outline-danger btn-remove-row">
@@ -220,6 +252,11 @@
             // Remove row on click
             $(document).on('click', '.btn-remove-row', function() {
                 $(this).closest('tr').remove();
+            });
+
+            // Calculate HPP dynamically as user types
+            $(document).on('input change', '.item-biaya-bahan, .item-ongkos-jahit, .item-ongkos-printing', function() {
+                calculateRowHpp($(this).closest('tr'));
             });
 
             // Search product auto-suggest
@@ -266,6 +303,7 @@
                             $input.val(p.name);
                             $row.find('.item-sku').val(p.sku || '');
                             $row.find('.item-sku-induk').val(p.sku_induk || '');
+                            $row.find('.item-biaya-bahan').val(p.cost_price || 0);
 
                             if (p.ukuran) {
                                 const $sizeSelect = $row.find('.item-size');
@@ -288,6 +326,7 @@
                                 }
                             }
 
+                            calculateRowHpp($row);
                             $box.addClass('d-none');
                         });
 

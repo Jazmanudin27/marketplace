@@ -148,6 +148,51 @@
         </tbody>
     </table>
 
+    <!-- HPP Production Details (Office Only) -->
+    <div style="font-weight: bold; font-size: 10px; margin-top: 15px; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.5px;">
+        Rincian HPP Produksi (Internal Office Only):
+    </div>
+    <table class="product-table">
+        <thead>
+            <tr>
+                <th style="width: 30%; text-align: left; padding-left: 8px;">Nama Produk &amp; Size</th>
+                <th style="width: 15%;">Alur Kerja</th>
+                <th style="width: 15%;">Tukang Jahit</th>
+                <th style="width: 8%;">Bahan / pcs</th>
+                <th style="width: 8%;">Jahit / pcs</th>
+                <th style="width: 8%;">Print / pcs</th>
+                <th style="width: 10%;">HPP / Pcs</th>
+                <th style="width: 5%;">Qty</th>
+                <th style="width: 11%;">Subtotal HPP</th>
+            </tr>
+        </thead>
+        <tbody>
+            @php $grandTotalHpp = 0; @endphp
+            @foreach($spk->items as $item)
+                @php
+                    $subtotal = $item->hpp * $item->quantity;
+                    $grandTotalHpp += $subtotal;
+                @endphp
+                <tr>
+                    <td style="text-align: left; font-weight: bold; padding-left: 8px;">{{ $item->nama_produk }} ({{ $item->ukuran ?: 'All Size' }})</td>
+                    <td>{{ $item->alur_proses ?: 'Langsung Jahit' }}</td>
+                    <td>{{ $item->penjahit ?: '—' }}</td>
+                    <td>Rp {{ number_format($item->biaya_bahan, 0, ',', '.') }}</td>
+                    <td>Rp {{ number_format($item->ongkos_jahit, 0, ',', '.') }}</td>
+                    <td>Rp {{ number_format($item->ongkos_printing, 0, ',', '.') }}</td>
+                    <td class="bg-red-light">Rp {{ number_format($item->hpp, 0, ',', '.') }}</td>
+                    <td>{{ $item->quantity }}</td>
+                    <td style="font-weight: bold;">Rp {{ number_format($subtotal, 0, ',', '.') }}</td>
+                </tr>
+            @endforeach
+            <tr style="background: #f1f5f9; font-weight: bold;">
+                <td colspan="7" style="text-align: right; padding-right: 10px;">Total HPP Produksi SPK:</td>
+                <td>{{ $spk->items->sum('quantity') }}</td>
+                <td>Rp {{ number_format($grandTotalHpp, 0, ',', '.') }}</td>
+            </tr>
+        </tbody>
+    </table>
+
     <!-- Additional Attributes -->
     <div class="attrib-box">
         <div class="attrib-title">Atribut &amp; Aksesoris Tambahan:</div>

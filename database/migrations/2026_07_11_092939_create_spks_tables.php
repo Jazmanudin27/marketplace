@@ -37,6 +37,11 @@ return new class extends Migration
             $table->string('ukuran')->nullable();
             $table->integer('quantity');
             $table->string('penjahit')->nullable();
+            $table->decimal('biaya_bahan', 15, 2)->default(0);
+            $table->decimal('ongkos_jahit', 15, 2)->default(0);
+            $table->decimal('ongkos_printing', 15, 2)->default(0);
+            $table->decimal('hpp', 15, 2)->default(0);
+            $table->string('alur_proses')->default('Langsung Jahit');
             $table->timestamps();
 
             $table->foreign('spk_id')->references('id')->on('spks')->onDelete('cascade');

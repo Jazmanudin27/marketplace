@@ -16,6 +16,11 @@ class SpkItem extends Model
         'ukuran',
         'quantity',
         'penjahit',
+        'biaya_bahan',
+        'ongkos_jahit',
+        'ongkos_printing',
+        'hpp',
+        'alur_proses',
     ];
 
     public function spk(): BelongsTo
