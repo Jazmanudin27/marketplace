@@ -148,59 +148,90 @@
                         </table>
                     </div>
 
-                    {{-- Raw Items Table List --}}
-                    <h6 class="fw-bold text-dark mt-4 mb-2"><i class="fas fa-list me-2 text-primary"></i>Daftar Item Flat &amp; HPP Produksi</h6>
-                    <div class="table-responsive border rounded">
-                        <table class="table table-sm table-striped align-middle mb-0" style="font-size: 11px;">
-                            <thead class="table-light">
-                                <tr class="text-muted">
-                                    <th class="ps-3">Nama Produk</th>
-                                    <th>SKU Induk</th>
-                                    <th>SKU Varian</th>
-                                    <th>Ukuran</th>
-                                    <th class="text-center">Qty</th>
-                                    <th>Tukang Jahit</th>
-                                    <th>Alur Kerja</th>
-                                    <th class="text-end">Bahan (pcs)</th>
-                                    <th class="text-end">Jahit (pcs)</th>
-                                    <th class="text-end">Print (pcs)</th>
-                                    <th class="text-end">HPP / Pcs</th>
-                                    <th class="text-end pe-3">Subtotal Biaya</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @php $grandTotalCost = 0; @endphp
-                                @foreach($spk->items as $item)
-                                    @php 
-                                        $subtotal = $item->hpp * $item->quantity; 
-                                        $grandTotalCost += $subtotal;
-                                    @endphp
-                                    <tr>
-                                        <td class="ps-3 fw-semibold text-dark">{{ $item->nama_produk }}</td>
-                                        <td class="font-monospace text-muted">{{ $item->sku_induk ?: '—' }}</td>
-                                        <td class="font-monospace text-primary fw-bold">{{ $item->sku ?: '—' }}</td>
-                                        <td><span class="badge bg-light text-dark border">{{ $item->ukuran ?: 'All Size' }}</span></td>
-                                        <td class="text-center fw-bold">{{ $item->quantity }}</td>
-                                        <td class="font-monospace text-muted">{{ $item->penjahit ?: '—' }}</td>
-                                        <td>
-                                            <span class="badge bg-info-subtle text-info border border-info border-opacity-10">{{ $item->alur_proses ?: 'Langsung Jahit' }}</span>
-                                        </td>
-                                        <td class="text-end font-monospace">Rp {{ number_format($item->biaya_bahan, 0, ',', '.') }}</td>
-                                        <td class="text-end font-monospace">Rp {{ number_format($item->ongkos_jahit, 0, ',', '.') }}</td>
-                                        <td class="text-end font-monospace">Rp {{ number_format($item->ongkos_printing, 0, ',', '.') }}</td>
-                                        <td class="text-end fw-bold text-success font-monospace">Rp {{ number_format($item->hpp, 0, ',', '.') }}</td>
-                                        <td class="text-end fw-bold text-primary pe-3 font-monospace">Rp {{ number_format($subtotal, 0, ',', '.') }}</td>
-                                    </tr>
-                                @endforeach
-                            </tbody>
-                            <tfoot class="table-light fw-bold text-dark" style="font-size: 12px;">
-                                <tr>
-                                    <td colspan="4" class="ps-3 text-start">Total Kuantitas</td>
-                                    <td class="text-center bg-light text-primary">{{ $spk->items->sum('quantity') }} pcs</td>
-                                    <td colspan="6" class="text-end">Total HPP Produksi SPK:</td>
-                                    <td class="text-end text-primary pe-3 font-monospace fs-6">Rp {{ number_format($grandTotalCost, 0, ',', '.') }}</td>
-                                </tr>
-                            </tfoot>
+                    {{-- Rincian HPP Per Item --}}
+                    <h6 class="fw-bold text-dark mt-4 mb-2">
+                        <i class="fas fa-calculator me-2 text-primary"></i>Rincian HPP Per Item Produksi
+                    </h6>
+                    @php $grandTotalCost = 0; @endphp
+                    @foreach($spk->items as $item)
+                        @php
+                            $subtotal = $item->hpp * $item->quantity;
+                            $grandTotalCost += $subtotal;
+                        @endphp
+                        <div class="card border mb-2">
+                            <div class="card-header bg-light py-2 px-3 d-flex justify-content-between align-items-center">
+                                <div>
+                                    <span class="fw-bold text-dark">{{ $item->nama_produk }}</span>
+                                    <span class="badge bg-light text-dark border ms-2">{{ $item->ukuran ?: 'All Size' }}</span>
+                                    @if($item->alur_proses)
+                                        <span class="badge bg-info-subtle text-info border border-info border-opacity-10 ms-1">{{ $item->alur_proses }}</span>
+                                    @endif
+                                </div>
+                                <div class="text-end">
+                                    <span class="text-muted small me-3">Penjahit: <strong>{{ $item->penjahit ?: '—' }}</strong></span>
+                                    <span class="text-muted small me-3">Qty: <strong>{{ $item->quantity }} pcs</strong></span>
+                                    <span class="fw-bold text-success">HPP: Rp {{ number_format($item->hpp, 0, ',', '.') }}/pcs</span>
+                                    <span class="fw-bold text-primary ms-3">Subtotal: Rp {{ number_format($subtotal, 0, ',', '.') }}</span>
+                                </div>
+                            </div>
+                            <div class="card-body p-2">
+                                <div class="row g-2" style="font-size:11px;">
+                                    <div class="col-md-3">
+                                        <p class="fw-semibold text-primary mb-1">Biaya Jasa</p>
+                                        <table class="table table-sm mb-0">
+                                            <tr><td class="text-muted">Jasa Konveksi</td><td class="text-end font-monospace">Rp {{ number_format($item->jasa_konveksi, 0, ',', '.') }}</td></tr>
+                                            <tr><td class="text-muted">Jasa Potong</td><td class="text-end font-monospace">Rp {{ number_format($item->jasa_potong, 0, ',', '.') }}</td></tr>
+                                            <tr><td class="text-muted">Jasa Printing</td><td class="text-end font-monospace">Rp {{ number_format($item->jasa_printing, 0, ',', '.') }}</td></tr>
+                                            <tr><td class="text-muted">Jasa Jahit</td><td class="text-end font-monospace">Rp {{ number_format($item->jasa_jahit, 0, ',', '.') }}</td></tr>
+                                            <tr><td class="text-muted">Jasa Labsas</td><td class="text-end font-monospace">Rp {{ number_format($item->jasa_labsas, 0, ',', '.') }}</td></tr>
+                                        </table>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <p class="fw-semibold text-success mb-1">Biaya Bahan</p>
+                                        <table class="table table-sm mb-0">
+                                            <tr><td class="text-muted">Kebutuhan Kain</td><td class="text-end font-monospace">{{ $item->kebutuhan_kain }} m</td></tr>
+                                            <tr><td class="text-muted">Biaya Kain</td><td class="text-end font-monospace">Rp {{ number_format($item->biaya_kain, 0, ',', '.') }}</td></tr>
+                                            <tr><td class="text-muted">SBS</td><td class="text-end font-monospace">Rp {{ number_format($item->biaya_sbs, 0, ',', '.') }}</td></tr>
+                                            <tr><td class="text-muted">Pitta</td><td class="text-end font-monospace">Rp {{ number_format($item->biaya_pitta, 0, ',', '.') }}</td></tr>
+                                        </table>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <p class="fw-semibold text-warning mb-1">Komponen Kecil</p>
+                                        <table class="table table-sm mb-0">
+                                            <tr><td class="text-muted">Kancing</td><td class="text-end font-monospace">Rp {{ number_format($item->biaya_kancing, 0, ',', '.') }}</td></tr>
+                                            <tr><td class="text-muted">Kancing Kait</td><td class="text-end font-monospace">Rp {{ number_format($item->biaya_kancing_kait, 0, ',', '.') }}</td></tr>
+                                            <tr><td class="text-muted">Karet</td><td class="text-end font-monospace">Rp {{ number_format($item->biaya_karet, 0, ',', '.') }}</td></tr>
+                                            <tr><td class="text-muted">Plastik</td><td class="text-end font-monospace">Rp {{ number_format($item->biaya_plastik, 0, ',', '.') }}</td></tr>
+                                            <tr><td class="text-muted">String/Tali</td><td class="text-end font-monospace">Rp {{ number_format($item->biaya_string, 0, ',', '.') }}</td></tr>
+                                        </table>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <p class="fw-semibold text-danger mb-1">Finishing & Lainnya</p>
+                                        <table class="table table-sm mb-0">
+                                            <tr><td class="text-muted">Bordir/Logo</td><td class="text-end font-monospace">Rp {{ number_format($item->biaya_bordir, 0, ',', '.') }}</td></tr>
+                                            <tr><td class="text-muted">Servis</td><td class="text-end font-monospace">Rp {{ number_format($item->biaya_servis, 0, ',', '.') }}</td></tr>
+                                            <tr><td class="text-muted">Finishing</td><td class="text-end font-monospace">Rp {{ number_format($item->biaya_finishing, 0, ',', '.') }}</td></tr>
+                                            <tr><td class="text-muted">Pengiriman</td><td class="text-end font-monospace">Rp {{ number_format($item->biaya_pengiriman, 0, ',', '.') }}</td></tr>
+                                            @foreach($item->extras as $extra)
+                                                <tr><td class="text-muted">{{ $extra->keterangan }}</td><td class="text-end font-monospace">Rp {{ number_format($extra->nominal, 0, ',', '.') }}</td></tr>
+                                            @endforeach
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    @endforeach
+
+                    <div class="d-flex justify-content-end gap-4 mt-2 p-3 bg-light rounded border">
+                        <div class="text-end">
+                            <div class="text-muted small">Total Quantity</div>
+                            <div class="fw-bold text-dark fs-6">{{ $spk->items->sum('quantity') }} pcs</div>
+                        </div>
+                        <div class="text-end">
+                            <div class="text-muted small">Total HPP Produksi SPK</div>
+                            <div class="fw-bold text-primary fs-5">Rp {{ number_format($grandTotalCost, 0, ',', '.') }}</div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
