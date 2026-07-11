@@ -189,7 +189,7 @@
 
             {{-- ── Identitas Utama ── --}}
             <div class="row g-2 mb-3">
-                <div class="col-md-3 position-relative">
+                <div class="col-md-4 position-relative">
                     <label class="form-label small fw-semibold mb-1">Nama Produk / Katalog <span class="text-danger">*</span></label>
                     <input type="text" name="items[${idx}][name]" class="form-control form-control-sm item-name" required
                         placeholder="Ketik nama / SKU..." autocomplete="off">
@@ -204,7 +204,7 @@
                     <label class="form-label small fw-semibold mb-1">SKU Varian</label>
                     <input type="text" name="items[${idx}][sku]" class="form-control form-control-sm item-sku" placeholder="Varian">
                 </div>
-                <div class="col-md-2 col-6">
+                <div class="col-md-1 col-6">
                     <label class="form-label small fw-semibold mb-1">Ukuran</label>
                     <select name="items[${idx}][size]" class="form-select form-select-sm item-size">
                         <option value="S">S</option><option value="M">M</option>
@@ -213,20 +213,20 @@
                         <option value="All Size">All Size</option>
                     </select>
                 </div>
-                <div class="col-md-2 col-6">
+                <div class="col-md-1 col-6">
                     <label class="form-label small fw-semibold mb-1">Qty</label>
                     <input type="number" name="items[${idx}][qty]" class="form-control form-control-sm item-qty text-center" required min="1" value="1">
                 </div>
-            </div>
-
-            {{-- ── Penjahit & HPP Summary ── --}}
-            <div class="row g-2 align-items-center">
-                <div class="col-md-4">
+                <div class="col-md-2 col-6">
                     <label class="form-label small fw-semibold mb-1">Tukang Jahit</label>
                     <select name="items[${idx}][tailor]" class="form-select form-select-sm">
                         ${tailorOpts()}
                     </select>
                 </div>
+            </div>
+
+            {{-- ── Penjahit & HPP Summary ── --}}
+            <div class="row g-2 align-items-center">
                 <div class="col-md-8 text-end pt-3">
                     <button class="btn btn-sm btn-outline-primary fw-semibold px-3 py-1-5 collapsed" type="button" 
                         data-bs-toggle="collapse" data-bs-target="#hppCollapse-${idx}">
@@ -530,7 +530,7 @@
                                 if (!found) {
                                     $sel.append(
                                         `<option value="${p.ukuran}">${p.ukuran}</option>`
-                                        );
+                                    );
                                     $sel.val(p.ukuran);
                                 }
                             }
