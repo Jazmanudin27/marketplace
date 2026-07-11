@@ -171,4 +171,61 @@ class ProductionRequestController extends Controller
         return redirect()->route('production_requests.show', $productionRequest)
             ->with('success', 'Permintaan produksi telah ditolak.');
     }
+
+    public function printSpk(ProductionRequest $productionRequest)
+    {
+        abort_unless($productionRequest->tenant_id === Auth::user()->tenant_id, 403);
+        $productionRequest->load(['items.masterProduct', 'department', 'approvedBy']);
+
+        $grouped = [];
+        $sizesHeader = ['S', 'M', 'L', 'XL', 'XXL', '3XL'];
+
+        foreach ($productionRequest->items as $item) {
+            $product = $item->masterProduct;
+            if (!$product) continue;
+
+            $modelKey = $product->sku_induk;
+            if (empty($modelKey)) {
+                $modelKey = $product->name;
+                if ($product->ukuran) {
+                    $modelKey = trim(str_ireplace($product->ukuran, '', $modelKey));
+                }
+            }
+
+            if (!isset($grouped[$modelKey])) {
+                $grouped[$modelKey] = [
+                    'model' => $modelKey,
+                    'name'  => $product->name,
+                    'color' => $product->warna ?: '—',
+                    'image' => $product->image_url,
+                    'sizes' => [
+                        'S'   => 0,
+                        'M'   => 0,
+                        'L'   => 0,
+                        'XL'  => 0,
+                        'XXL' => 0,
+                        '3XL' => 0,
+                    ],
+                    'total' => 0,
+                ];
+            }
+
+            $sz = strtoupper(trim($product->ukuran));
+            if ($sz === 'XXXL' || $sz === '3XL') {
+                $sz = '3XL';
+            }
+
+            if (array_key_exists($sz, $grouped[$modelKey]['sizes'])) {
+                $grouped[$modelKey]['sizes'][$sz] += $item->quantity;
+            } else {
+                $grouped[$modelKey]['sizes'][$sz] = $item->quantity;
+                if (!in_array($sz, $sizesHeader)) {
+                    $sizesHeader[] = $sz;
+                }
+            }
+            $grouped[$modelKey]['total'] += $item->quantity;
+        }
+
+        return view('inventory.production_requests.print_spk', compact('productionRequest', 'grouped', 'sizesHeader'));
+    }
 }

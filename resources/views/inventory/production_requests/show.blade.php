@@ -6,9 +6,12 @@
 @section('content')
 <div class="container-fluid p-0">
     <!-- Back Button -->
-    <div class="mb-3">
+    <div class="mb-3 d-flex justify-content-between align-items-center">
         <a href="{{ route('production_requests.index') }}" class="btn btn-secondary btn-sm rounded-3">
             <i class="fas fa-arrow-left me-1"></i> Kembali ke Daftar
+        </a>
+        <a href="{{ route('production_requests.print_spk', $productionRequest) }}" target="_blank" class="btn btn-primary btn-sm rounded-3 fw-bold">
+            <i class="fas fa-print me-1"></i> Cetak SPK
         </a>
     </div>
 

@@ -498,6 +498,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/production-requests/create', [\App\Http\Controllers\Inventory\ProductionRequestController::class, 'create'])->name('production_requests.create');
         Route::post('/production-requests', [\App\Http\Controllers\Inventory\ProductionRequestController::class, 'store'])->name('production_requests.store');
         Route::get('/production-requests/{productionRequest}', [\App\Http\Controllers\Inventory\ProductionRequestController::class, 'show'])->name('production_requests.show');
+        Route::get('/production-requests/{productionRequest}/print-spk', [\App\Http\Controllers\Inventory\ProductionRequestController::class, 'printSpk'])->name('production_requests.print_spk');
         Route::post('/production-requests/{productionRequest}/approve', [\App\Http\Controllers\Inventory\ProductionRequestController::class, 'approve'])->name('production_requests.approve');
         Route::post('/production-requests/{productionRequest}/reject', [\App\Http\Controllers\Inventory\ProductionRequestController::class, 'reject'])->name('production_requests.reject');
 
