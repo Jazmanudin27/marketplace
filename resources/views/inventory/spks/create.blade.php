@@ -34,8 +34,8 @@
                     <div class="row g-3 mb-4">
                         <div class="col-md-6 col-lg-3">
                             <label class="form-label fw-semibold small">No. Produksi</label>
-                            <input type="text" name="no_produksi" class="form-control form-control-sm"
-                                placeholder="Contoh: JN26148" value="{{ old('no_produksi') }}">
+                            <input type="text" class="form-control form-control-sm bg-light text-muted" readonly
+                                value="[Otomatis: JN{{ date('ym') }}xxx]">
                         </div>
                         <div class="col-md-6 col-lg-3">
                             <label class="form-label fw-semibold small">No. SPK</label>

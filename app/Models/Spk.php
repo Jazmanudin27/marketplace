@@ -48,4 +48,21 @@ class Spk extends Model
         $count = self::where('no_spk', 'like', "SPK-{$today}-%")->count();
         return 'SPK-' . $today . '-' . sprintf('%04d', $count + 1);
     }
+
+    public static function generateNoProduksi()
+    {
+        $prefix = 'JN' . date('ym');
+        $latest = self::where('no_produksi', 'like', "{$prefix}%")
+            ->orderByDesc('no_produksi')
+            ->value('no_produksi');
+
+        if ($latest) {
+            $lastNum = (int) substr($latest, strlen($prefix));
+            $next = $lastNum + 1;
+        } else {
+            $next = 1;
+        }
+
+        return $prefix . sprintf('%03d', $next);
+    }
 }

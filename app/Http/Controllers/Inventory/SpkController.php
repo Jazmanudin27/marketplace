@@ -119,10 +119,11 @@ class SpkController extends Controller
 
         $spk = DB::transaction(function () use ($request, $tenantId, $imagePath) {
             $noSpk = Spk::generateNoSpk();
+            $noProduksi = Spk::generateNoProduksi();
 
             $spk = Spk::create([
                 'tenant_id'     => $tenantId,
-                'no_produksi'   => $request->no_produksi,
+                'no_produksi'   => $noProduksi,
                 'no_spk'        => $noSpk,
                 'tanggal'       => $request->tanggal,
                 'deadline'      => $request->deadline,
