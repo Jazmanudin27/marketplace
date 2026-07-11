@@ -17,6 +17,7 @@
         request()->routeIs('purchase_returns.*') ||
         request()->routeIs('goods_receipts.*') ||
         request()->routeIs('incoming_goods.*') ||
+        request()->routeIs('spks.*') ||
         request()->routeIs('pembelian.*');
 
     $isGudangJadiActive =
@@ -55,11 +56,6 @@
         request()->routeIs('offline_sales.*');
 
     $isHrdActive = request()->routeIs('hr.*') || request()->routeIs('employees.*');
-
-    $isProduksiActive =
-        request()->routeIs('produksi_mutations.*') ||
-        request()->routeIs('production_orders.*') ||
-        request()->routeIs('mobile.produksi');
 @endphp
 
 <div class="d-flex flex-column p-3 bg-primary text-white w-100" id="sidebar">
@@ -242,6 +238,8 @@
                             <a href="{{ route('purchase_returns.index') }}"
                                 class="nav-link py-1 {{ request()->routeIs('purchase_returns.*') ? 'active text-white' : 'text-secondary' }}">Retur
                                 Pembelian</a>
+                            <a href="{{ route('spks.index') }}"
+                                class="nav-link py-1 {{ request()->routeIs('spks.*') ? 'active text-white' : 'text-secondary' }}">Surat Perintah Kerja (SPK)</a>
                             
                             {{-- Laporan Stok & Mutasi Pembelian --}}
                             <a href="{{ route('pembelian.stock_report') }}"

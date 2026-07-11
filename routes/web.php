@@ -466,10 +466,13 @@ Route::middleware('auth')->group(function () {
         Route::get('/pembelian/pengeluaran/{warehouseMutation}', [WarehouseMutationController::class, 'goodsIssueShow'])->name('pembelian.goods_issue.show');
         Route::delete('/pembelian/pengeluaran/{warehouseMutation}', [WarehouseMutationController::class, 'goodsIssueDestroy'])->name('pembelian.goods_issue.destroy');
 
-
-
-
-
+        // ── SURAT PERINTAH KERJA (SPK) ────────────────────────────────────────
+        Route::get('/spks', [\App\Http\Controllers\Inventory\SpkController::class, 'index'])->name('spks.index');
+        Route::get('/spks/create', [\App\Http\Controllers\Inventory\SpkController::class, 'create'])->name('spks.create');
+        Route::post('/spks', [\App\Http\Controllers\Inventory\SpkController::class, 'store'])->name('spks.store');
+        Route::get('/spks/{spk}', [\App\Http\Controllers\Inventory\SpkController::class, 'show'])->name('spks.show');
+        Route::get('/spks/{spk}/print', [\App\Http\Controllers\Inventory\SpkController::class, 'print'])->name('spks.print');
+        Route::delete('/spks/{spk}', [\App\Http\Controllers\Inventory\SpkController::class, 'destroy'])->name('spks.destroy');
 
         // Stock Sync
         Route::get('/stock-sync', [StockSyncController::class, 'index'])->name('inventory.stock_sync');
