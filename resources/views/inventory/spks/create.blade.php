@@ -4,11 +4,11 @@
 
 @section('content')
 <div class="container-fluid py-3">
-    <div class="card border-0 shadow-sm">
+    <div class="card border-0 shadow-sm rounded-3">
         <div class="card-header bg-primary text-white py-3 px-4 d-flex justify-content-between align-items-center border-0">
             <div>
                 <h5 class="fw-bold mb-1"><i class="fas fa-file-invoice me-2"></i>Buat SPK Baru</h5>
-                <small class="text-white-50">Isi data produksi, rancangan, dan rincian biaya produksi per item.</small>
+                <small class="text-white-50">Isi data produksi, rancangan, dan rincian biaya HPP per item.</small>
             </div>
             <a href="{{ route('spks.index') }}" class="btn btn-sm btn-light fw-semibold px-3">
                 <i class="fas fa-arrow-left me-1"></i> Kembali
@@ -34,7 +34,7 @@
                     </div>
                     <div class="col-md-6 col-lg-3">
                         <label class="form-label fw-semibold small">No. SPK</label>
-                        <input type="text" class="form-control form-control-sm bg-light" readonly
+                        <input type="text" class="form-control form-control-sm bg-light text-muted" readonly
                             value="[Otomatis Digenerate Sistem]">
                     </div>
                     <div class="col-md-6 col-lg-3">
@@ -70,7 +70,7 @@
                     <div class="col-md-4">
                         <label class="form-label fw-semibold small">Upload Foto Desain</label>
                         <input type="file" name="image" class="form-control form-control-sm" accept="image/*">
-                        <small class="text-muted d-block mt-1">JPEG/PNG/JPG, maks 4MB</small>
+                        <small class="text-muted d-block mt-1" style="font-size:10px;">JPEG/PNG/JPG, maks 4MB</small>
                     </div>
                 </div>
 
@@ -78,20 +78,20 @@
                 <div class="border-top pt-4">
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h6 class="fw-bold mb-0">
-                            <i class="fas fa-boxes text-primary me-2"></i>Detail Item Produk &amp; Rincian Biaya HPP
+                            <i class="fas fa-boxes text-primary me-2"></i>Daftar Item Produk &amp; Tugas Produksi
                         </h6>
-                        <button type="button" class="btn btn-outline-primary btn-sm fw-bold px-3" id="btnAddRow">
-                            <i class="fas fa-plus-circle me-1"></i> Tambah Item
+                        <button type="button" class="btn btn-primary btn-sm fw-bold px-3 shadow-sm" id="btnAddRow">
+                            <i class="fas fa-plus-circle me-1"></i> Tambah Item Baru
                         </button>
                     </div>
 
                     <div id="itemsContainer">
-                        {{-- Rows injected by jQuery --}}
+                        {{-- Dynamic cards will be generated here --}}
                     </div>
                 </div>
 
             </div>
-            <div class="card-footer bg-light py-3 px-4 d-flex justify-content-end gap-2">
+            <div class="card-footer bg-light py-3 px-4 d-flex justify-content-end gap-2 border-0">
                 <a href="{{ route('spks.index') }}" class="btn btn-sm btn-outline-secondary px-3">Batal</a>
                 <button type="submit" class="btn btn-sm btn-primary px-4 fw-bold">
                     <i class="fas fa-save me-1"></i> Simpan SPK
@@ -144,33 +144,33 @@ function recalcHpp(card) {
 function addRow() {
     const idx = rowIndex++;
     const html = `
-    <div class="card border mb-3 item-card" id="item-card-${idx}">
-        <div class="card-header bg-light py-2 px-3 d-flex justify-content-between align-items-center">
-            <span class="fw-bold small text-primary">Item #<span class="item-num">${idx+1}</span></span>
-            <button type="button" class="btn btn-sm btn-outline-danger btn-remove-row py-0 px-2">
-                <i class="fas fa-trash-alt"></i>
+    <div class="card border border-light-subtle shadow-sm mb-3 item-card" id="item-card-${idx}">
+        <div class="card-header bg-light-subtle py-2 px-3 d-flex justify-content-between align-items-center">
+            <span class="fw-bold text-dark small"><i class="fas fa-box text-primary me-2"></i>Item #<span class="item-num">${idx+1}</span></span>
+            <button type="button" class="btn btn-sm btn-outline-danger btn-remove-row py-0 px-2 fs-7">
+                <i class="fas fa-trash-alt me-1"></i>Hapus
             </button>
         </div>
-        <div class="card-body p-3">
+        <div class="card-body p-3 bg-white">
 
-            {{-- ── Identitas ── --}}
-            <div class="row g-2 mb-2">
-                <div class="col-md-4 position-relative">
-                    <label class="form-label small fw-semibold mb-1">Nama Produk <span class="text-danger">*</span></label>
+            {{-- ── Identitas Utama ── --}}
+            <div class="row g-2 mb-3">
+                <div class="col-md-3 position-relative">
+                    <label class="form-label small fw-semibold mb-1">Nama Produk / Katalog <span class="text-danger">*</span></label>
                     <input type="text" name="items[${idx}][name]" class="form-control form-control-sm item-name" required
-                        placeholder="Cari nama / SKU produk..." autocomplete="off">
+                        placeholder="Ketik nama / SKU..." autocomplete="off">
                     <div class="suggestions-box position-absolute bg-white border rounded shadow-sm w-100 d-none"
                         style="z-index:1050;max-height:180px;overflow-y:auto;top:100%;left:0;"></div>
                 </div>
-                <div class="col-md-2">
+                <div class="col-md-2 col-6">
                     <label class="form-label small fw-semibold mb-1">SKU Induk</label>
                     <input type="text" name="items[${idx}][sku_induk]" class="form-control form-control-sm item-sku-induk" placeholder="Induk">
                 </div>
-                <div class="col-md-2">
+                <div class="col-md-2 col-6">
                     <label class="form-label small fw-semibold mb-1">SKU Varian</label>
                     <input type="text" name="items[${idx}][sku]" class="form-control form-control-sm item-sku" placeholder="Varian">
                 </div>
-                <div class="col-md-2">
+                <div class="col-md-2 col-6">
                     <label class="form-label small fw-semibold mb-1">Ukuran</label>
                     <select name="items[${idx}][size]" class="form-select form-select-sm item-size">
                         <option value="S">S</option><option value="M">M</option>
@@ -179,11 +179,11 @@ function addRow() {
                         <option value="All Size">All Size</option>
                     </select>
                 </div>
-                <div class="col-md-1">
-                    <label class="form-label small fw-semibold mb-1">Qty <span class="text-danger">*</span></label>
+                <div class="col-md-1 col-6">
+                    <label class="form-label small fw-semibold mb-1">Qty</label>
                     <input type="number" name="items[${idx}][qty]" class="form-control form-control-sm item-qty text-center" required min="1" value="1">
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-2">
                     <label class="form-label small fw-semibold mb-1">Alur Kerja</label>
                     <select name="items[${idx}][alur_proses]" class="form-select form-select-sm">
                         <option value="Langsung Jahit">Langsung Jahit</option>
@@ -191,96 +191,147 @@ function addRow() {
                         <option value="Sablon/Bordir -> Jahit">Sablon/Bordir → Jahit</option>
                     </select>
                 </div>
-                <div class="col-md-3">
+            </div>
+
+            {{-- ── Penjahit & HPP Summary ── --}}
+            <div class="row g-2 align-items-center">
+                <div class="col-md-4">
                     <label class="form-label small fw-semibold mb-1">Tukang Jahit</label>
                     <select name="items[${idx}][tailor]" class="form-select form-select-sm">
                         ${tailorOpts()}
                     </select>
                 </div>
+                <div class="col-md-8 text-end pt-3">
+                    <button class="btn btn-sm btn-outline-primary fw-semibold px-3 py-1-5 collapsed" type="button" 
+                        data-bs-toggle="collapse" data-bs-target="#hppCollapse-${idx}">
+                        <i class="fas fa-calculator me-1"></i> Rincian HPP / Pcs: <strong class="text-success hpp-per-pcs ms-1">Rp 0</strong> <i class="fas fa-chevron-down ms-2"></i>
+                    </button>
+                    <span class="ms-3 small text-muted">Subtotal: <strong class="text-primary hpp-subtotal">Rp 0</strong></span>
+                </div>
             </div>
 
-            {{-- ── Rincian Biaya ── --}}
-            <div class="border rounded p-2 bg-light mt-2">
-                <p class="small fw-bold text-secondary mb-2 text-uppercase" style="font-size:10px; letter-spacing:.5px;">
-                    <i class="fas fa-calculator me-1"></i>Rincian Biaya HPP / Pcs
-                </p>
+            {{-- ── Collapsible HPP Details Tabbed Panel ── --}}
+            <div class="collapse mt-3 border rounded-3 p-3 bg-light" id="hppCollapse-${idx}">
+                
+                {{-- Tabs Nav --}}
+                <ul class="nav nav-pills nav-fill mb-3" role="tablist">
+                    <li class="nav-item">
+                        <button class="nav-link nav-link-sm py-1 fw-bold small active" data-bs-toggle="pill" data-bs-target="#jasaTab-${idx}" type="button" role="tab"><i class="fas fa-cut me-1 text-primary"></i> 1. Biaya Jasa</button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link nav-link-sm py-1 fw-bold small" data-bs-toggle="pill" data-bs-target="#bahanTab-${idx}" type="button" role="tab"><i class="fas fa-scroll me-1 text-success"></i> 2. Bahan &amp; Aksesoris</button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link nav-link-sm py-1 fw-bold small" data-bs-toggle="pill" data-bs-target="#finishingTab-${idx}" type="button" role="tab"><i class="fas fa-gift me-1 text-danger"></i> 3. Finishing &amp; Lainnya</button>
+                    </li>
+                </ul>
 
-                {{-- Biaya Jasa --}}
-                <p class="small fw-semibold text-primary mb-1">Biaya Jasa</p>
-                <div class="row g-2 mb-2">
-                    <div class="col"><label class="form-label mb-0" style="font-size:10px;">Jasa Konveksi</label>
-                        <input type="number" name="items[${idx}][jasa_konveksi]" data-field="jasa_konveksi" class="form-control form-control-sm cost-field text-end" min="0" value="0"></div>
-                    <div class="col"><label class="form-label mb-0" style="font-size:10px;">Jasa Potong</label>
-                        <input type="number" name="items[${idx}][jasa_potong]" data-field="jasa_potong" class="form-control form-control-sm cost-field text-end" min="0" value="0"></div>
-                    <div class="col"><label class="form-label mb-0" style="font-size:10px;">Jasa Printing</label>
-                        <input type="number" name="items[${idx}][jasa_printing]" data-field="jasa_printing" class="form-control form-control-sm cost-field text-end" min="0" value="0"></div>
-                    <div class="col"><label class="form-label mb-0" style="font-size:10px;">Jasa Jahit</label>
-                        <input type="number" name="items[${idx}][jasa_jahit]" data-field="jasa_jahit" class="form-control form-control-sm cost-field text-end" min="0" value="0"></div>
-                    <div class="col"><label class="form-label mb-0" style="font-size:10px;">Jasa Labsas</label>
-                        <input type="number" name="items[${idx}][jasa_labsas]" data-field="jasa_labsas" class="form-control form-control-sm cost-field text-end" min="0" value="0"></div>
-                </div>
-
-                {{-- Biaya Bahan --}}
-                <p class="small fw-semibold text-success mb-1">Biaya Bahan</p>
-                <div class="row g-2 mb-2">
-                    <div class="col"><label class="form-label mb-0" style="font-size:10px;">Kebutuhan Kain (m)</label>
-                        <input type="number" name="items[${idx}][kebutuhan_kain]" data-field="kebutuhan_kain" class="form-control form-control-sm text-end" step="0.01" min="0" value="0"></div>
-                    <div class="col"><label class="form-label mb-0" style="font-size:10px;">Biaya Kain</label>
-                        <input type="number" name="items[${idx}][biaya_kain]" data-field="biaya_kain" class="form-control form-control-sm cost-field text-end" min="0" value="0"></div>
-                    <div class="col"><label class="form-label mb-0" style="font-size:10px;">SBS (Resleting)</label>
-                        <input type="number" name="items[${idx}][biaya_sbs]" data-field="biaya_sbs" class="form-control form-control-sm cost-field text-end" min="0" value="0"></div>
-                    <div class="col"><label class="form-label mb-0" style="font-size:10px;">Pitta</label>
-                        <input type="number" name="items[${idx}][biaya_pitta]" data-field="biaya_pitta" class="form-control form-control-sm cost-field text-end" min="0" value="0"></div>
-                </div>
-
-                {{-- Komponen Kecil --}}
-                <p class="small fw-semibold text-warning mb-1">Komponen Kecil</p>
-                <div class="row g-2 mb-2">
-                    <div class="col"><label class="form-label mb-0" style="font-size:10px;">Kancing</label>
-                        <input type="number" name="items[${idx}][biaya_kancing]" data-field="biaya_kancing" class="form-control form-control-sm cost-field text-end" min="0" value="0"></div>
-                    <div class="col"><label class="form-label mb-0" style="font-size:10px;">Kancing Kait</label>
-                        <input type="number" name="items[${idx}][biaya_kancing_kait]" data-field="biaya_kancing_kait" class="form-control form-control-sm cost-field text-end" min="0" value="0"></div>
-                    <div class="col"><label class="form-label mb-0" style="font-size:10px;">Karet</label>
-                        <input type="number" name="items[${idx}][biaya_karet]" data-field="biaya_karet" class="form-control form-control-sm cost-field text-end" min="0" value="0"></div>
-                    <div class="col"><label class="form-label mb-0" style="font-size:10px;">Plastik</label>
-                        <input type="number" name="items[${idx}][biaya_plastik]" data-field="biaya_plastik" class="form-control form-control-sm cost-field text-end" min="0" value="0"></div>
-                    <div class="col"><label class="form-label mb-0" style="font-size:10px;">String/Tali</label>
-                        <input type="number" name="items[${idx}][biaya_string]" data-field="biaya_string" class="form-control form-control-sm cost-field text-end" min="0" value="0"></div>
-                </div>
-
-                {{-- Finishing --}}
-                <p class="small fw-semibold text-danger mb-1">Finishing</p>
-                <div class="row g-2 mb-2">
-                    <div class="col"><label class="form-label mb-0" style="font-size:10px;">Bordir/Logo</label>
-                        <input type="number" name="items[${idx}][biaya_bordir]" data-field="biaya_bordir" class="form-control form-control-sm cost-field text-end" min="0" value="0"></div>
-                    <div class="col"><label class="form-label mb-0" style="font-size:10px;">Servis</label>
-                        <input type="number" name="items[${idx}][biaya_servis]" data-field="biaya_servis" class="form-control form-control-sm cost-field text-end" min="0" value="0"></div>
-                    <div class="col"><label class="form-label mb-0" style="font-size:10px;">Finishing</label>
-                        <input type="number" name="items[${idx}][biaya_finishing]" data-field="biaya_finishing" class="form-control form-control-sm cost-field text-end" min="0" value="0"></div>
-                    <div class="col"><label class="form-label mb-0" style="font-size:10px;">Biaya Pengiriman</label>
-                        <input type="number" name="items[${idx}][biaya_pengiriman]" data-field="biaya_pengiriman" class="form-control form-control-sm cost-field text-end" min="0" value="0"></div>
-                </div>
-
-                {{-- Biaya Tambahan Dinamis --}}
-                <div class="extras-container mt-1">
-                    <p class="small fw-semibold text-secondary mb-1">Biaya Tambahan Lainnya</p>
-                    <div class="extras-list"></div>
-                    <button type="button" class="btn btn-outline-secondary btn-sm mt-1 btn-add-extra" style="font-size:11px;">
-                        <i class="fas fa-plus me-1"></i> Tambah Biaya Lain
-                    </button>
-                </div>
-
-                {{-- Total HPP --}}
-                <div class="d-flex justify-content-end align-items-center mt-3 gap-4">
-                    <div class="text-end">
-                        <div class="text-muted" style="font-size:11px;">HPP / Pcs</div>
-                        <div class="fw-bold text-success fs-6 hpp-per-pcs">Rp 0</div>
+                {{-- Tab Content --}}
+                <div class="tab-content bg-white p-3 rounded-3 border border-light-subtle shadow-sm">
+                    
+                    {{-- Tab 1: Jasa --}}
+                    <div class="tab-pane fade show active" id="jasaTab-${idx}" role="tabpanel">
+                        <div class="row row-cols-2 row-cols-md-5 g-2">
+                            <div class="col">
+                                <label class="form-label mb-0 small text-muted" style="font-size:10px;">Jasa Konveksi</label>
+                                <input type="number" name="items[${idx}][jasa_konveksi]" data-field="jasa_konveksi" class="form-control form-control-sm cost-field text-end" min="0" value="0">
+                            </div>
+                            <div class="col">
+                                <label class="form-label mb-0 small text-muted" style="font-size:10px;">Jasa Potong</label>
+                                <input type="number" name="items[${idx}][jasa_potong]" data-field="jasa_potong" class="form-control form-control-sm cost-field text-end" min="0" value="0">
+                            </div>
+                            <div class="col">
+                                <label class="form-label mb-0 small text-muted" style="font-size:10px;">Jasa Printing</label>
+                                <input type="number" name="items[${idx}][jasa_printing]" data-field="jasa_printing" class="form-control form-control-sm cost-field text-end" min="0" value="0">
+                            </div>
+                            <div class="col">
+                                <label class="form-label mb-0 small text-muted" style="font-size:10px;">Jasa Jahit</label>
+                                <input type="number" name="items[${idx}][jasa_jahit]" data-field="jasa_jahit" class="form-control form-control-sm cost-field text-end" min="0" value="0">
+                            </div>
+                            <div class="col">
+                                <label class="form-label mb-0 small text-muted" style="font-size:10px;">Jasa Labsas</label>
+                                <input type="number" name="items[${idx}][jasa_labsas]" data-field="jasa_labsas" class="form-control form-control-sm cost-field text-end" min="0" value="0">
+                            </div>
+                        </div>
                     </div>
-                    <div class="text-end">
-                        <div class="text-muted" style="font-size:11px;">Subtotal (× Qty)</div>
-                        <div class="fw-bold text-primary fs-6 hpp-subtotal">Rp 0</div>
+
+                    {{-- Tab 2: Bahan --}}
+                    <div class="tab-pane fade" id="bahanTab-${idx}" role="tabpanel">
+                        <div class="row row-cols-2 row-cols-md-5 g-2">
+                            <div class="col">
+                                <label class="form-label mb-0 small text-muted" style="font-size:10px;">Kebutuhan Kain (m)</label>
+                                <input type="number" name="items[${idx}][kebutuhan_kain]" data-field="kebutuhan_kain" class="form-control form-control-sm text-end" step="0.01" min="0" value="0">
+                            </div>
+                            <div class="col">
+                                <label class="form-label mb-0 small text-muted" style="font-size:10px;">Biaya Kain</label>
+                                <input type="number" name="items[${idx}][biaya_kain]" data-field="biaya_kain" class="form-control form-control-sm cost-field text-end" min="0" value="0">
+                            </div>
+                            <div class="col">
+                                <label class="form-label mb-0 small text-muted" style="font-size:10px;">SBS (Resleting)</label>
+                                <input type="number" name="items[${idx}][biaya_sbs]" data-field="biaya_sbs" class="form-control form-control-sm cost-field text-end" min="0" value="0">
+                            </div>
+                            <div class="col">
+                                <label class="form-label mb-0 small text-muted" style="font-size:10px;">Pitta</label>
+                                <input type="number" name="items[${idx}][biaya_pitta]" data-field="biaya_pitta" class="form-control form-control-sm cost-field text-end" min="0" value="0">
+                            </div>
+                            <div class="col">
+                                <label class="form-label mb-0 small text-muted" style="font-size:10px;">Kancing</label>
+                                <input type="number" name="items[${idx}][biaya_kancing]" data-field="biaya_kancing" class="form-control form-control-sm cost-field text-end" min="0" value="0">
+                            </div>
+                            <div class="col">
+                                <label class="form-label mb-0 small text-muted" style="font-size:10px;">Kancing Kait</label>
+                                <input type="number" name="items[${idx}][biaya_kancing_kait]" data-field="biaya_kancing_kait" class="form-control form-control-sm cost-field text-end" min="0" value="0">
+                            </div>
+                            <div class="col">
+                                <label class="form-label mb-0 small text-muted" style="font-size:10px;">Karet</label>
+                                <input type="number" name="items[${idx}][biaya_karet]" data-field="biaya_karet" class="form-control form-control-sm cost-field text-end" min="0" value="0">
+                            </div>
+                            <div class="col">
+                                <label class="form-label mb-0 small text-muted" style="font-size:10px;">Plastik</label>
+                                <input type="number" name="items[${idx}][biaya_plastik]" data-field="biaya_plastik" class="form-control form-control-sm cost-field text-end" min="0" value="0">
+                            </div>
+                            <div class="col">
+                                <label class="form-label mb-0 small text-muted" style="font-size:10px;">String / Tali</label>
+                                <input type="number" name="items[${idx}][biaya_string]" data-field="biaya_string" class="form-control form-control-sm cost-field text-end" min="0" value="0">
+                            </div>
+                        </div>
                     </div>
+
+                    {{-- Tab 3: Finishing & Tambahan --}}
+                    <div class="tab-pane fade" id="finishingTab-${idx}" role="tabpanel">
+                        <div class="row row-cols-2 row-cols-md-4 g-2 mb-3">
+                            <div class="col">
+                                <label class="form-label mb-0 small text-muted" style="font-size:10px;">Bordir / Logo</label>
+                                <input type="number" name="items[${idx}][biaya_bordir]" data-field="biaya_bordir" class="form-control form-control-sm cost-field text-end" min="0" value="0">
+                            </div>
+                            <div class="col">
+                                <label class="form-label mb-0 small text-muted" style="font-size:10px;">Servis</label>
+                                <input type="number" name="items[${idx}][biaya_servis]" data-field="biaya_servis" class="form-control form-control-sm cost-field text-end" min="0" value="0">
+                            </div>
+                            <div class="col">
+                                <label class="form-label mb-0 small text-muted" style="font-size:10px;">Finishing M</label>
+                                <input type="number" name="items[${idx}][biaya_finishing]" data-field="biaya_finishing" class="form-control form-control-sm cost-field text-end" min="0" value="0">
+                            </div>
+                            <div class="col">
+                                <label class="form-label mb-0 small text-muted" style="font-size:10px;">Biaya Pengiriman</label>
+                                <input type="number" name="items[${idx}][biaya_pengiriman]" data-field="biaya_pengiriman" class="form-control form-control-sm cost-field text-end" min="0" value="0">
+                            </div>
+                        </div>
+
+                        {{-- Dinamis Extras --}}
+                        <div class="extras-container pt-3 border-top">
+                            <p class="small fw-bold text-secondary mb-2" style="font-size:11px;">
+                                <i class="fas fa-plus-circle text-primary me-1"></i>Biaya / Jasa Tambahan Dinamis
+                            </p>
+                            <div class="extras-list mb-2"></div>
+                            <button type="button" class="btn btn-outline-secondary btn-sm btn-add-extra py-1" style="font-size:11px;">
+                                <i class="fas fa-plus me-1"></i> Tambah Biaya Lain
+                            </button>
+                        </div>
+                    </div>
+
                 </div>
+
             </div>
 
         </div>
@@ -303,7 +354,7 @@ function addExtraRow(card) {
     <div class="row g-1 mb-1 extra-row align-items-center">
         <div class="col">
             <input type="text" name="items[${idx}][extras][${eIdx}][keterangan]"
-                class="form-control form-control-sm" placeholder="Nama biaya tambahan...">
+                class="form-control form-control-sm" placeholder="Keterangan biaya tambahan...">
         </div>
         <div class="col-auto" style="width:130px;">
             <input type="number" name="items[${idx}][extras][${eIdx}][nominal]"
