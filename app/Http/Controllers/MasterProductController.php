@@ -356,12 +356,6 @@ class MasterProductController extends Controller
         if ($oldPrice != $data['price']) {
             \App\Jobs\PushPriceToMarketplaces::dispatch($product->id, (float)$data['price']);
         }
-
-        if ($oldName !== $data['name']) {
-            \App\Jobs\PushItemInfoToMarketplaces::dispatch($product->id, [
-                'name' => $data['name']
-            ]);
-        }
         
         return redirect()->route('products.index')->with('success', 'Produk berhasil diperbarui.');
     }
