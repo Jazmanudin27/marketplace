@@ -79,7 +79,11 @@ class SpkController extends Controller
             ->orderBy('name')
             ->get(['id', 'name']);
 
-        return view('inventory.spks.create', compact('products', 'tailors'));
+        $laborServices = \App\Models\LaborService::where('tenant_id', $tenantId)
+            ->orderBy('name')
+            ->get(['name', 'default_cost']);
+
+        return view('inventory.spks.create', compact('products', 'tailors', 'laborServices'));
     }
 
     public function store(Request $request)

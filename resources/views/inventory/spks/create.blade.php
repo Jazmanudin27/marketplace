@@ -111,6 +111,7 @@
     <script>
         const catalogProducts = @json($products);
         const tailorsList = @json($tailors);
+        const laborServicesData = @json($laborServices ?? []);
     </script>
 
     <script>
@@ -256,12 +257,20 @@
         // ——— Tambah baris extra ke card ———
         function addExtraRow(card) {
             const idx = $(card).attr('id').replace('item-card-', '');
-            const eIdx = $(card).find('.extra-row').length;
+            const eIdx = 'ex_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
+            
+            let optionsHtml = '<option value=""></option>';
+            laborServicesData.forEach(function(item) {
+                optionsHtml += `<option value="${item.name}" data-cost="${parseInt(item.default_cost) || 0}">${item.name}</option>`;
+            });
+
             const html = `
     <div class="row g-1 mb-1 extra-row align-items-center">
         <div class="col">
-            <input type="text" name="items[${idx}][extras][${eIdx}][keterangan]"
-                class="form-control form-control-sm" placeholder="Keterangan biaya tambahan...">
+            <select name="items[${idx}][extras][${eIdx}][keterangan]"
+                class="form-select form-select-sm select-extra-keterangan" style="width: 100%;">
+                ${optionsHtml}
+            </select>
         </div>
         <div class="col-auto" style="width:130px;">
             <input type="text" name="items[${idx}][extras][${eIdx}][nominal]"
@@ -273,13 +282,21 @@
             </button>
         </div>
     </div>`;
-            $(card).find('.extras-list').append(html);
+            const $row = $(html);
+            $(card).find('.extras-list').append($row);
+
+            $row.find('.select-extra-keterangan').select2({
+                theme: 'bootstrap-5',
+                placeholder: 'Pilih Jasa / Ketik Biaya...',
+                tags: true,
+                allowClear: true
+            });
         }
 
         // ——— Tambah baris extra dengan nilai bawaan ———
         function addExtraRowWithValues(card, desc, val) {
             const idx = $(card).attr('id').replace('item-card-', '');
-            const eIdx = $(card).find('.extra-row').length;
+            const eIdx = 'ex_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
             const html = `
     <div class="row g-1 mb-1 extra-row align-items-center">
         <div class="col">
@@ -330,6 +347,17 @@
                 const card = $(this).closest('.item-card');
                 $(this).closest('.extra-row').remove();
                 recalcHpp(card);
+            });
+
+            // Update extra nominal when a master labor service is selected
+            $(document).on('change', '.select-extra-keterangan', function() {
+                const row = $(this).closest('.extra-row');
+                const selected = $(this).find('option:selected');
+                const card = $(this).closest('.item-card');
+                if (selected.val() && selected.data('cost') !== undefined) {
+                    const cost = parseFloat(selected.data('cost')) || 0;
+                    row.find('.extra-nominal').val(formatRupiah(cost)).trigger('change');
+                }
             });
 
             // Format Rupiah mask as user types

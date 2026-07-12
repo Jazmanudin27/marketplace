@@ -585,21 +585,37 @@
                                                     </tr>
                                                 </thead>
                                                 <tbody>
-                                                    @if($recipe && $recipe->labors->count() > 0)
-                                                        @foreach($recipe->labors as $idx => $rLabor)
-                                                            <tr class="labor-row">
-                                                                <td>
-                                                                    <input type="text" name="labors[{{ $idx }}][service_name]" class="form-control form-control-sm" value="{{ $rLabor->service_name }}" placeholder="Misal: QC, Operator" required>
-                                                                </td>
-                                                                <td>
-                                                                    <input type="number" name="labors[{{ $idx }}][default_cost]" class="form-control form-control-sm" value="{{ (int)$rLabor->default_cost }}" min="0" required>
-                                                                </td>
-                                                                <td class="text-center">
-                                                                    <button type="button" class="btn btn-sm btn-link text-danger btn-remove-labor-row"><i class="fas fa-trash-alt"></i></button>
-                                                                </td>
-                                                            </tr>
-                                                        @endforeach
-                                                    @endif
+                                                     @if($recipe && $recipe->labors->count() > 0)
+                                                         @foreach($recipe->labors as $idx => $rLabor)
+                                                             <tr class="labor-row">
+                                                                 <td>
+                                                                     <select name="labors[{{ $idx }}][service_name]" class="form-select form-select-sm select-labor-item" required>
+                                                                         <option value=""></option>
+                                                                         @php $found = false; @endphp
+                                                                         @foreach($laborServices as $ls)
+                                                                             @if($rLabor->service_name === $ls->name)
+                                                                                 @php $found = true; @endphp
+                                                                             @endif
+                                                                             <option value="{{ $ls->name }}" data-cost="{{ (int)$ls->default_cost }}" {{ $rLabor->service_name === $ls->name ? 'selected' : '' }}>
+                                                                                 {{ $ls->name }}
+                                                                             </option>
+                                                                         @endforeach
+                                                                         @if(!$found && !empty($rLabor->service_name))
+                                                                             <option value="{{ $rLabor->service_name }}" data-cost="{{ (int)$rLabor->default_cost }}" selected>
+                                                                                 {{ $rLabor->service_name }} (Kustom)
+                                                                             </option>
+                                                                         @endif
+                                                                     </select>
+                                                                 </td>
+                                                                 <td>
+                                                                     <input type="number" name="labors[{{ $idx }}][default_cost]" class="form-control form-control-sm" value="{{ (int)$rLabor->default_cost }}" min="0" required>
+                                                                 </td>
+                                                                 <td class="text-center">
+                                                                     <button type="button" class="btn btn-sm btn-link text-danger btn-remove-labor-row"><i class="fas fa-trash-alt"></i></button>
+                                                                 </td>
+                                                             </tr>
+                                                         @endforeach
+                                                     @endif
                                                 </tbody>
                                             </table>
                                         </div>
@@ -2091,6 +2107,7 @@
         @if(isset($product->id))
                 // Pass all inventory items safely to Javascript
                 const inventoryItemsData = @json($inventoryItems ?? []);
+                const laborServicesData = @json($laborServices ?? []);
 
                 let bomRowIndex = {{ $recipe && $recipe->items->count() > 0 ? $recipe->items->count() : 0 }};
                 let laborRowIndex = {{ $recipe && $recipe->labors->count() > 0 ? $recipe->labors->count() : 0 }};
@@ -2148,10 +2165,17 @@
                 });
 
                 $('#btn-add-labor-row').on('click', function() {
+                    let optionsHtml = '<option value=""></option>';
+                    laborServicesData.forEach(function(item) {
+                        optionsHtml += `<option value="${item.name}" data-cost="${parseInt(item.default_cost) || 0}">${item.name}</option>`;
+                    });
+
                     const rowHtml = `
                         <tr class="labor-row">
                             <td>
-                                <input type="text" name="labors[${laborRowIndex}][service_name]" class="form-control form-control-sm" placeholder="Misal: QC, Operator" required>
+                                <select name="labors[${laborRowIndex}][service_name]" class="form-select form-select-sm select-labor-item" required>
+                                    ${optionsHtml}
+                                </select>
                             </td>
                             <td>
                                 <input type="number" name="labors[${laborRowIndex}][default_cost]" class="form-control form-control-sm" min="0" value="0" required>
@@ -2162,7 +2186,26 @@
                         </tr>
                     `;
                     $('#table-labor tbody').append(rowHtml);
+                    initSelect2ForLabor($('#table-labor tbody tr:last-child'));
                     laborRowIndex++;
+                });
+
+                function initSelect2ForLabor(row) {
+                    row.find('.select-labor-item').select2({
+                        theme: 'bootstrap-5',
+                        placeholder: '— Pilih Jasa —',
+                        allowClear: true
+                    });
+                }
+
+                $(document).on('change', '.select-labor-item', function() {
+                    const row = $(this).closest('.labor-row');
+                    const selected = $(this).find('option:selected');
+                    if (selected.val()) {
+                        row.find('input[name*="[default_cost]"]').val(selected.data('cost'));
+                    } else {
+                        row.find('input[name*="[default_cost]"]').val(0);
+                    }
                 });
 
                 $(document).on('click', '.btn-remove-labor-row', function() {
@@ -2173,6 +2216,13 @@
                 $('.select-bom-item').select2({
                     theme: 'bootstrap-5',
                     placeholder: '— Pilih Bahan —',
+                    allowClear: true
+                });
+
+                // Initialize existing select2 for Labor rows
+                $('.select-labor-item').select2({
+                    theme: 'bootstrap-5',
+                    placeholder: '— Pilih Jasa —',
                     allowClear: true
                 });
             @endif

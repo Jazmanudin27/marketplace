@@ -33,6 +33,7 @@ use App\Http\Controllers\Master\SupplierController;
 use App\Http\Controllers\Master\CustomerController;
 use App\Http\Controllers\Master\DepartmentController;
 use App\Http\Controllers\Master\InventoryItemController;
+use App\Http\Controllers\Master\LaborServiceController;
 // HRD
 use App\Http\Controllers\Hrd\EmployeeController;
 use App\Http\Controllers\Hrd\AttendanceController;
@@ -207,6 +208,7 @@ Route::middleware('auth')->group(function () {
     // Employees
     Route::middleware('permission:manage-employees')->group(function () {
         Route::resource('employees', EmployeeController::class)->except(['show']);
+        Route::resource('labor_services', LaborServiceController::class);
         Route::put('employees/{employee}/salary', [EmployeeController::class, 'updateSalary'])->name('employees.salary.update');
         Route::put('employees/{employee}/credentials', [EmployeeController::class, 'updateCredentials'])->name('employees.credentials.update');
 

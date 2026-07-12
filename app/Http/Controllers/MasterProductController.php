@@ -111,7 +111,11 @@ class MasterProductController extends Controller
             ->orderBy('name')
             ->get(['id', 'sku', 'name', 'stock']);
 
-        return view('products.form', compact('product', 'categories', 'brands', 'allProducts'));
+        $laborServices = \App\Models\LaborService::where('tenant_id', Auth::user()->tenant_id)
+            ->orderBy('name')
+            ->get(['name', 'default_cost']);
+
+        return view('products.form', compact('product', 'categories', 'brands', 'allProducts', 'laborServices'));
     }
 
     public function store(Request $request)
@@ -230,6 +234,10 @@ class MasterProductController extends Controller
             ->orderBy('name')
             ->get(['id', 'sku', 'name', 'stock']);
 
+        $laborServices = \App\Models\LaborService::where('tenant_id', Auth::user()->tenant_id)
+            ->orderBy('name')
+            ->get(['name', 'default_cost']);
+
         if (request()->has('debug')) {
             return response()->json([
                 'tenant_id' => Auth::user()->tenant_id,
@@ -239,7 +247,7 @@ class MasterProductController extends Controller
             ]);
         }
 
-        return view('products.form', compact('product', 'categories', 'brands', 'recipe', 'inventoryItems', 'allProducts'));
+        return view('products.form', compact('product', 'categories', 'brands', 'recipe', 'inventoryItems', 'allProducts', 'laborServices'));
     }
 
     public function saveRecipe(Request $request, MasterProduct $product)
