@@ -96,6 +96,20 @@ class MasterProduct extends Model
         return $this->attributes['stock'] ?? 0;
     }
 
+    public function getCostPriceAttribute()
+    {
+        if ($this->is_bundle) {
+            $comps = $this->components;
+            if ($comps->isEmpty()) {
+                return 0.0;
+            }
+            return (float) $comps->sum(function ($comp) {
+                return (float) $comp->cost_price * $comp->pivot->quantity;
+            });
+        }
+        return (float) ($this->attributes['cost_price'] ?? 0.0);
+    }
+
     /**
      * Catat pergerakan stok, perbarui stok lokal, dan sinkronisasikan ke marketplace.
      */

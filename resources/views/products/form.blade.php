@@ -1428,6 +1428,11 @@
                         stockInput.parent().after('<div id="stock-bundle-note" class="form-text text-success small mt-1"><i class="fas fa-magic me-1"></i> Stok dihitung otomatis dari produk anak.</div>');
                     }
                     $('.form-text.text-warning').hide();
+
+                    // Auto-add first component row if empty
+                    if ($('.component-row').length === 0) {
+                        $('#btn-add-component-row').trigger('click');
+                    }
                 } else {
                     section.hide();
                     if (!stockInput.hasClass('readonly-by-link')) {
