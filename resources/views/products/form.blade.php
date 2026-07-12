@@ -1448,26 +1448,27 @@
                 toggleBundleSection(this.checked);
             });
 
+            // Pass all products safely to Javascript
+            const allProductsData = @json($allProducts ?? []);
+
             // Dynamic Component row indexing
             let componentRowIndex = {{ isset($product) && $product->is_bundle && $product->components->count() > 0 ? $product->components->count() : 0 }};
 
             $('#btn-add-component-row').on('click', function() {
                 let optionsHtml = '<option value=""></option>';
-                @if(isset($allProducts))
-                    @foreach($allProducts as $ap)
-                        optionsHtml += `<option value="{{ $ap->id }}" data-sku="{{ $ap->sku }}">{{ $ap->name }} ({{ $ap->sku }})</option>`;
-                    @endforeach
-                @endif
+                allProductsData.forEach(function(ap) {
+                    optionsHtml += `<option value="${ap.id}" data-sku="${ap.sku}">${ap.name} (${ap.sku})</option>`;
+                });
 
                 const rowHtml = `
                     <tr class="component-row">
                         <td>
-                            <select name="components[\${componentRowIndex}][child_id]" class="form-select form-select-sm select-component-item" required>
-                                \${optionsHtml}
+                            <select name="components[${componentRowIndex}][child_id]" class="form-select form-select-sm select-component-item" required>
+                                ${optionsHtml}
                             </select>
                         </td>
                         <td>
-                            <input type="number" name="components[\${componentRowIndex}][quantity]" class="form-control form-control-sm text-center" min="1" value="1" required>
+                            <input type="number" name="components[${componentRowIndex}][quantity]" class="form-control form-control-sm text-center" min="1" value="1" required>
                         </td>
                         <td class="text-center">
                             <button type="button" class="btn btn-sm btn-link text-danger btn-remove-component-row"><i class="fas fa-trash-alt"></i></button>
@@ -2051,25 +2052,28 @@
 
         // JS Code for BOM & Labor Rows
         @if(isset($product->id))
+                // Pass all inventory items safely to Javascript
+                const inventoryItemsData = @json($inventoryItems ?? []);
+
                 let bomRowIndex = {{ $recipe && $recipe->items->count() > 0 ? $recipe->items->count() : 0 }};
                 let laborRowIndex = {{ $recipe && $recipe->labors->count() > 0 ? $recipe->labors->count() : 0 }};
 
                 $('#btn-add-bom-row').on('click', function() {
                     let optionsHtml = '<option value=""></option>';
-                    @foreach($inventoryItems as $item)
-                        optionsHtml += `<option value="{{ $item->id }}" data-unit="{{ $item->unit }}">{{ $item->name }} ({{ $item->sku }})</option>`;
-                    @endforeach
+                    inventoryItemsData.forEach(function(item) {
+                        optionsHtml += `<option value="${item.id}" data-unit="${item.unit}">${item.name} (${item.sku})</option>`;
+                    });
 
                     const rowHtml = `
                         <tr class="bom-row">
                             <td>
-                                <select name="items[\${bomRowIndex}][inventory_item_id]" class="form-select select-bom-item" required>
-                                    \${optionsHtml}
+                                <select name="items[${bomRowIndex}][inventory_item_id]" class="form-select select-bom-item" required>
+                                    ${optionsHtml}
                                 </select>
                             </td>
                             <td>
                                 <div class="input-group input-group-sm">
-                                    <input type="number" step="0.0001" name="items[\${bomRowIndex}][quantity]" class="form-control" min="0.0001" value="1" required>
+                                    <input type="number" step="0.0001" name="items[${bomRowIndex}][quantity]" class="form-control" min="0.0001" value="1" required>
                                     <span class="input-group-text span-bom-unit" style="font-size:10px">—</span>
                                 </div>
                             </td>
@@ -2110,10 +2114,10 @@
                     const rowHtml = `
                         <tr class="labor-row">
                             <td>
-                                <input type="text" name="labors[\${laborRowIndex}][service_name]" class="form-control form-control-sm" placeholder="Misal: QC, Operator" required>
+                                <input type="text" name="labors[${laborRowIndex}][service_name]" class="form-control form-control-sm" placeholder="Misal: QC, Operator" required>
                             </td>
                             <td>
-                                <input type="number" name="labors[\${laborRowIndex}][default_cost]" class="form-control form-control-sm" min="0" value="0" required>
+                                <input type="number" name="labors[${laborRowIndex}][default_cost]" class="form-control form-control-sm" min="0" value="0" required>
                             </td>
                             <td class="text-center">
                                 <button type="button" class="btn btn-sm btn-link text-danger btn-remove-labor-row"><i class="fas fa-trash-alt"></i></button>
