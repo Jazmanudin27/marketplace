@@ -520,7 +520,7 @@
 
                                 <div class="row g-4">
                                     <!-- Kiri: Bahan Baku & Kemasan -->
-                                    <div class="col-lg-7 border-end">
+                                    <div class="col-lg-5 border-end">
                                         <div class="d-flex justify-content-between align-items-center mb-3">
                                             <h6 class="fw-bold text-dark mb-0"><i class="fas fa-boxes me-2 text-primary"></i>1. Bahan Baku &amp; Kemasan (BOM)</h6>
                                             <button type="button" class="btn btn-sm btn-outline-primary fw-semibold" id="btn-add-bom-row">
@@ -568,7 +568,7 @@
                                     </div>
 
                                     <!-- Kanan: Template Jasa Ahli -->
-                                    <div class="col-lg-5">
+                                    <div class="col-lg-7">
                                         <div class="d-flex justify-content-between align-items-center mb-3">
                                             <h6 class="fw-bold text-dark mb-0"><i class="fas fa-user-cog me-2 text-warning"></i>2. Template Jasa Ahli &amp; QC</h6>
                                             <button type="button" class="btn btn-sm btn-outline-warning fw-semibold" id="btn-add-labor-row">
