@@ -353,6 +353,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/products/{product}/publish', [MasterProductController::class, 'publish'])->name('products.publish');
         Route::post('/products/{product}/publish', [MasterProductController::class, 'storePublish'])->name('products.publish.store');
         Route::post('/products/{product}/recipe', [MasterProductController::class, 'saveRecipe'])->name('products.save_recipe');
+        Route::resource('product_recipes', \App\Http\Controllers\Production\ProductRecipeController::class)
+            ->only(['index', 'create', 'store', 'edit', 'update', 'destroy']);
         Route::get('/api/shopee/categories', [MasterProductController::class, 'shopeeCategories'])->name('shopee.categories');
         Route::get('/api/tiktok/categories', [MasterProductController::class, 'tiktokCategories'])->name('tiktok.categories');
         Route::post('/products/publish/retry/{log}', [MasterProductController::class, 'retryPublish'])->name('products.publish.retry');

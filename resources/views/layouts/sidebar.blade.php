@@ -20,8 +20,11 @@
         request()->routeIs('purchase_returns.*') ||
         request()->routeIs('goods_receipts.*') ||
         request()->routeIs('incoming_goods.*') ||
-        request()->routeIs('spks.*') ||
         request()->routeIs('pembelian.*');
+
+    $isProduksiActive =
+        request()->routeIs('spks.*') ||
+        request()->routeIs('product_recipes.*');
 
     $isGudangJadiActive =
         request()->routeIs('inventory.index') ||
@@ -247,8 +250,6 @@
                             <a href="{{ route('purchase_returns.index') }}"
                                 class="nav-link py-1 {{ request()->routeIs('purchase_returns.*') ? 'active text-white' : 'text-secondary' }}">Retur
                                 Pembelian</a>
-                            <a href="{{ route('spks.index') }}"
-                                class="nav-link py-1 {{ request()->routeIs('spks.*') ? 'active text-white' : 'text-secondary' }}">Surat Perintah Kerja (SPK)</a>
                             
                             {{-- Laporan Stok & Mutasi Pembelian --}}
                             <a href="{{ route('pembelian.stock_report') }}"
@@ -263,6 +264,35 @@
                             <a href="{{ route('pembelian.stock_card') }}"
                                 class="nav-link py-1 {{ request()->routeIs('pembelian.stock_card') || request()->routeIs('pembelian.print_stock_card') ? 'active text-white' : 'text-secondary' }}">Kartu
                                 Stok</a>
+                        @endcan
+                    </div>
+                </div>
+            </div>
+        @endif
+
+        <!-- PRODUKSI -->
+        @if (auth()->user()->isSuperAdmin() ||
+                auth()->user()->role === 'admin' ||
+                auth()->user()->hasAnyPermission(['manage-inventory', 'manage-products']))
+            <div>
+                <a class="nav-link d-flex align-items-center justify-content-between text-dark {{ $isProduksiActive ? '' : 'collapsed' }}"
+                    data-bs-toggle="collapse" data-bs-target="#collapseProduksi" role="button"
+                    aria-expanded="{{ $isProduksiActive ? 'true' : 'false' }}" aria-controls="collapseProduksi">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-hammer"></i>
+                        <span>Produksi</span>
+                    </div>
+                    <i class="bi bi-chevron-down small"></i>
+                </a>
+                <div class="collapse {{ $isProduksiActive ? 'show' : '' }}" id="collapseProduksi">
+                    <div class="nav flex-column ms-3 mt-1 gap-1 border-start ps-2">
+                        @can('manage-inventory')
+                            <a href="{{ route('spks.index') }}"
+                                class="nav-link py-1 {{ request()->routeIs('spks.*') ? 'active text-white' : 'text-secondary' }}">Surat Perintah Kerja (SPK)</a>
+                        @endcan
+                        @can('manage-products')
+                            <a href="{{ route('product_recipes.index') }}"
+                                class="nav-link py-1 {{ request()->routeIs('product_recipes.*') ? 'active text-white' : 'text-secondary' }}">Formula Produk (BOM)</a>
                         @endcan
                     </div>
                 </div>
