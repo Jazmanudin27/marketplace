@@ -69,6 +69,11 @@ class MasterProduct extends Model
         return $this->hasMany(OrderItem::class);
     }
 
+    public function activeRecipe()
+    {
+        return $this->hasOne(ProductRecipe::class, 'master_product_id')->where('is_active', true);
+    }
+
     public function components()
     {
         return $this->belongsToMany(MasterProduct::class, 'master_product_bundles', 'parent_id', 'child_id')

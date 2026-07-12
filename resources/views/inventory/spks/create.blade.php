@@ -152,19 +152,7 @@
 
         // ——— Hitung HPP per baris ———
         function recalcHpp(card) {
-            const fields = [
-                'jasa_konveksi', 'jasa_potong', 'jasa_printing', 'jasa_jahit', 'jasa_labsas',
-                'biaya_kain', 'biaya_sbs', 'biaya_pitta',
-                'biaya_kancing', 'biaya_kancing_kait', 'biaya_karet', 'biaya_plastik', 'biaya_string',
-                'biaya_bordir', 'biaya_servis', 'biaya_finishing', 'biaya_pengiriman'
-            ];
             let total = 0;
-            fields.forEach(f => {
-                let val = $(card).find(`[data-field="${f}"]`).val();
-                if (f !== 'kebutuhan_kain') {
-                    total += getCleanNumber(val);
-                }
-            });
             // tambah extras
             $(card).find('.extra-nominal').each(function() {
                 total += getCleanNumber($(this).val());
@@ -236,128 +224,19 @@
                 </div>
             </div>
 
-            {{-- ── Collapsible HPP Details Tabbed Panel ── --}}
+            {{-- ── Collapsible HPP Details Dynamic Panel ── --}}
             <div class="collapse mt-3 border rounded-3 p-3 bg-light" id="hppCollapse-${idx}">
-                
-                {{-- Tabs Nav --}}
-                <ul class="nav nav-pills nav-fill mb-3" role="tablist">
-                    <li class="nav-item">
-                        <button class="nav-link nav-link-sm py-1 fw-bold small active" data-bs-toggle="pill" data-bs-target="#jasaTab-${idx}" type="button" role="tab"><i class="fas fa-cut me-1 text-primary"></i> 1. Biaya Jasa</button>
-                    </li>
-                    <li class="nav-item">
-                        <button class="nav-link nav-link-sm py-1 fw-bold small" data-bs-toggle="pill" data-bs-target="#bahanTab-${idx}" type="button" role="tab"><i class="fas fa-scroll me-1 text-success"></i> 2. Bahan &amp; Aksesoris</button>
-                    </li>
-                    <li class="nav-item">
-                        <button class="nav-link nav-link-sm py-1 fw-bold small" data-bs-toggle="pill" data-bs-target="#finishingTab-${idx}" type="button" role="tab"><i class="fas fa-gift me-1 text-danger"></i> 3. Finishing &amp; Lainnya</button>
-                    </li>
-                </ul>
-
-                {{-- Tab Content --}}
-                <div class="tab-content bg-white p-3 rounded-3 border border-light-subtle shadow-sm">
-                    
-                    {{-- Tab 1: Jasa --}}
-                    <div class="tab-pane fade show active" id="jasaTab-${idx}" role="tabpanel">
-                        <div class="row row-cols-2 row-cols-md-5 g-2">
-                            <div class="col">
-                                <label class="form-label mb-0 small text-muted" style="font-size:10px;">Jasa Konveksi</label>
-                                <input type="text" name="items[${idx}][jasa_konveksi]" data-field="jasa_konveksi" class="form-control form-control-sm cost-field rupiah-mask text-end" value="0">
-                            </div>
-                            <div class="col">
-                                <label class="form-label mb-0 small text-muted" style="font-size:10px;">Jasa Potong</label>
-                                <input type="text" name="items[${idx}][jasa_potong]" data-field="jasa_potong" class="form-control form-control-sm cost-field rupiah-mask text-end" value="0">
-                            </div>
-                            <div class="col">
-                                <label class="form-label mb-0 small text-muted" style="font-size:10px;">Jasa Printing</label>
-                                <input type="text" name="items[${idx}][jasa_printing]" data-field="jasa_printing" class="form-control form-control-sm cost-field rupiah-mask text-end" value="0">
-                            </div>
-                            <div class="col">
-                                <label class="form-label mb-0 small text-muted" style="font-size:10px;">Jasa Jahit</label>
-                                <input type="text" name="items[${idx}][jasa_jahit]" data-field="jasa_jahit" class="form-control form-control-sm cost-field rupiah-mask text-end" value="0">
-                            </div>
-                            <div class="col">
-                                <label class="form-label mb-0 small text-muted" style="font-size:10px;">Jasa Labsas</label>
-                                <input type="text" name="items[${idx}][jasa_labsas]" data-field="jasa_labsas" class="form-control form-control-sm cost-field rupiah-mask text-end" value="0">
-                            </div>
-                        </div>
+                <div class="p-3 bg-white rounded-3 border border-light-subtle shadow-sm">
+                    <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
+                        <span class="small fw-bold text-secondary" style="font-size:11px;">
+                            <i class="fas fa-boxes text-primary me-1"></i>Komponen Biaya Produksi (BOM &amp; Jasa)
+                        </span>
+                        <button type="button" class="btn btn-outline-primary btn-sm btn-add-extra py-0 px-2 fw-semibold" style="font-size:11px;">
+                            <i class="fas fa-plus me-1"></i> Tambah Baris Biaya
+                        </button>
                     </div>
-
-                    {{-- Tab 2: Bahan --}}
-                    <div class="tab-pane fade" id="bahanTab-${idx}" role="tabpanel">
-                        <div class="row row-cols-2 row-cols-md-5 g-2">
-                            <div class="col">
-                                <label class="form-label mb-0 small text-muted" style="font-size:10px;">Kebutuhan Kain (m)</label>
-                                <input type="number" name="items[${idx}][kebutuhan_kain]" data-field="kebutuhan_kain" class="form-control form-control-sm text-end" step="0.01" min="0" value="0">
-                            </div>
-                            <div class="col">
-                                <label class="form-label mb-0 small text-muted" style="font-size:10px;">Biaya Kain</label>
-                                <input type="text" name="items[${idx}][biaya_kain]" data-field="biaya_kain" class="form-control form-control-sm cost-field rupiah-mask text-end" value="0">
-                            </div>
-                            <div class="col">
-                                <label class="form-label mb-0 small text-muted" style="font-size:10px;">SBS (Resleting)</label>
-                                <input type="text" name="items[${idx}][biaya_sbs]" data-field="biaya_sbs" class="form-control form-control-sm cost-field rupiah-mask text-end" value="0">
-                            </div>
-                            <div class="col">
-                                <label class="form-label mb-0 small text-muted" style="font-size:10px;">Pitta</label>
-                                <input type="text" name="items[${idx}][biaya_pitta]" data-field="biaya_pitta" class="form-control form-control-sm cost-field rupiah-mask text-end" value="0">
-                            </div>
-                            <div class="col">
-                                <label class="form-label mb-0 small text-muted" style="font-size:10px;">Kancing</label>
-                                <input type="text" name="items[${idx}][biaya_kancing]" data-field="biaya_kancing" class="form-control form-control-sm cost-field rupiah-mask text-end" value="0">
-                            </div>
-                            <div class="col">
-                                <label class="form-label mb-0 small text-muted" style="font-size:10px;">Kancing Kait</label>
-                                <input type="text" name="items[${idx}][biaya_kancing_kait]" data-field="biaya_kancing_kait" class="form-control form-control-sm cost-field rupiah-mask text-end" value="0">
-                            </div>
-                            <div class="col">
-                                <label class="form-label mb-0 small text-muted" style="font-size:10px;">Karet</label>
-                                <input type="text" name="items[${idx}][biaya_karet]" data-field="biaya_karet" class="form-control form-control-sm cost-field rupiah-mask text-end" value="0">
-                            </div>
-                            <div class="col">
-                                <label class="form-label mb-0 small text-muted" style="font-size:10px;">Plastik</label>
-                                <input type="text" name="items[${idx}][biaya_plastik]" data-field="biaya_plastik" class="form-control form-control-sm cost-field rupiah-mask text-end" value="0">
-                            </div>
-                            <div class="col">
-                                <label class="form-label mb-0 small text-muted" style="font-size:10px;">String / Tali</label>
-                                <input type="text" name="items[${idx}][biaya_string]" data-field="biaya_string" class="form-control form-control-sm cost-field rupiah-mask text-end" value="0">
-                            </div>
-                        </div>
-                    </div>
-
-                    {{-- Tab 3: Finishing & Tambahan --}}
-                    <div class="tab-pane fade" id="finishingTab-${idx}" role="tabpanel">
-                        <div class="row row-cols-2 row-cols-md-4 g-2 mb-3">
-                            <div class="col">
-                                <label class="form-label mb-0 small text-muted" style="font-size:10px;">Bordir / Logo</label>
-                                <input type="text" name="items[${idx}][biaya_bordir]" data-field="biaya_bordir" class="form-control form-control-sm cost-field rupiah-mask text-end" value="0">
-                            </div>
-                            <div class="col">
-                                <label class="form-label mb-0 small text-muted" style="font-size:10px;">Servis</label>
-                                <input type="text" name="items[${idx}][biaya_servis]" data-field="biaya_servis" class="form-control form-control-sm cost-field rupiah-mask text-end" value="0">
-                            </div>
-                            <div class="col">
-                                <label class="form-label mb-0 small text-muted" style="font-size:10px;">Finishing M</label>
-                                <input type="text" name="items[${idx}][biaya_finishing]" data-field="biaya_finishing" class="form-control form-control-sm cost-field rupiah-mask text-end" value="0">
-                            </div>
-                            <div class="col">
-                                <label class="form-label mb-0 small text-muted" style="font-size:10px;">Biaya Pengiriman</label>
-                                <input type="text" name="items[${idx}][biaya_pengiriman]" data-field="biaya_pengiriman" class="form-control form-control-sm cost-field rupiah-mask text-end" value="0">
-                            </div>
-                        </div>
-
-                        {{-- Dinamis Extras --}}
-                        <div class="extras-container pt-3 border-top">
-                            <p class="small fw-bold text-secondary mb-2" style="font-size:11px;">
-                                <i class="fas fa-plus-circle text-primary me-1"></i>Biaya / Jasa Tambahan Dinamis
-                            </p>
-                            <div class="extras-list mb-2"></div>
-                            <button type="button" class="btn btn-outline-secondary btn-sm btn-add-extra py-1" style="font-size:11px;">
-                                <i class="fas fa-plus me-1"></i> Tambah Biaya Lain
-                            </button>
-                        </div>
-                    </div>
-
+                    <div class="extras-list mb-2"></div>
                 </div>
-
             </div>
 
         </div>
@@ -387,6 +266,29 @@
         <div class="col-auto" style="width:130px;">
             <input type="text" name="items[${idx}][extras][${eIdx}][nominal]"
                 class="form-control form-control-sm extra-nominal rupiah-mask text-end" value="0" placeholder="0">
+        </div>
+        <div class="col-auto">
+            <button type="button" class="btn btn-sm btn-outline-danger btn-remove-extra py-0 px-1">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    </div>`;
+            $(card).find('.extras-list').append(html);
+        }
+
+        // ——— Tambah baris extra dengan nilai bawaan ———
+        function addExtraRowWithValues(card, desc, val) {
+            const idx = $(card).attr('id').replace('item-card-', '');
+            const eIdx = $(card).find('.extra-row').length;
+            const html = `
+    <div class="row g-1 mb-1 extra-row align-items-center">
+        <div class="col">
+            <input type="text" name="items[${idx}][extras][${eIdx}][keterangan]"
+                class="form-control form-control-sm" placeholder="Keterangan biaya tambahan..." value="${escapeHtml(desc)}">
+        </div>
+        <div class="col-auto" style="width:130px;">
+            <input type="text" name="items[${idx}][extras][${eIdx}][nominal]"
+                class="form-control form-control-sm extra-nominal rupiah-mask text-end" value="${formatRupiah(val)}" placeholder="0">
         </div>
         <div class="col-auto">
             <button type="button" class="btn btn-sm btn-outline-danger btn-remove-extra py-0 px-1">
@@ -483,12 +385,80 @@
                             $card.find('.item-sku').val(p.sku || '');
                             $card.find('.item-sku-induk').val(p.sku_induk || '');
 
-                            // AUTO-POPULATE: Ambil rincian biaya dari riwayat input SPK terakhir untuk produk ini
-                            if (p.latest_costs) {
+                            // Clear existing dynamic extras first
+                            $card.find('.extras-list').empty();
+
+                            // Reset all fields to 0 first
+                            $card.find('.cost-field').val('0');
+                            $card.find('[data-field="kebutuhan_kain"]').val('0');
+
+                            if (p.active_recipe) {
+                                // AUTO-POPULATE: Ambil dari Resep / BOM Aktif
+                                const recipe = p.active_recipe;
+                                const batchQty = Math.max(1, parseInt(recipe.batch_qty) || 1);
+
+                                // 1. Map Labors (Services)
+                                if (recipe.labors && recipe.labors.length > 0) {
+                                    recipe.labors.forEach(labor => {
+                                        const name = (labor.service_name || '').toLowerCase();
+                                        const cost = parseFloat(labor.default_cost || 0) / batchQty;
+
+                                        if (name.includes('jahit')) {
+                                            $card.find('[data-field="jasa_jahit"]').val(formatRupiah(cost));
+                                        } else if (name.includes('potong')) {
+                                            $card.find('[data-field="jasa_potong"]').val(formatRupiah(cost));
+                                        } else if (name.includes('print') || name.includes('sablon')) {
+                                            $card.find('[data-field="jasa_printing"]').val(formatRupiah(cost));
+                                        } else if (name.includes('label') || name.includes('labsas')) {
+                                            $card.find('[data-field="jasa_labsas"]').val(formatRupiah(cost));
+                                        } else if (name.includes('konveksi')) {
+                                            $card.find('[data-field="jasa_konveksi"]').val(formatRupiah(cost));
+                                        } else {
+                                            // Add as dynamic extra
+                                            addExtraRowWithValues($card, labor.service_name, cost);
+                                        }
+                                    });
+                                }
+
+                                // 2. Map Materials (Bahan)
+                                if (recipe.items && recipe.items.length > 0) {
+                                    recipe.items.forEach(rItem => {
+                                        const invItem = rItem.inventory_item;
+                                        if (invItem) {
+                                            const name = (invItem.name || '').toLowerCase();
+                                            const itemQty = parseFloat(rItem.quantity || 0) / batchQty;
+                                            const itemCost = itemQty * parseFloat(invItem.cost_price || 0);
+
+                                            if (name.includes('kain')) {
+                                                $card.find('[data-field="kebutuhan_kain"]').val(itemQty.toFixed(2));
+                                                $card.find('[data-field="biaya_kain"]').val(formatRupiah(itemCost));
+                                            } else if (name.includes('resleting') || name.includes('sbs')) {
+                                                $card.find('[data-field="biaya_sbs"]').val(formatRupiah(itemCost));
+                                            } else if (name.includes('pita') || name.includes('pitta')) {
+                                                $card.find('[data-field="biaya_pitta"]').val(formatRupiah(itemCost));
+                                            } else if (name.includes('kancing kait')) {
+                                                $card.find('[data-field="biaya_kancing_kait"]').val(formatRupiah(itemCost));
+                                            } else if (name.includes('kancing')) {
+                                                $card.find('[data-field="biaya_kancing"]').val(formatRupiah(itemCost));
+                                            } else if (name.includes('karet')) {
+                                                $card.find('[data-field="biaya_karet"]').val(formatRupiah(itemCost));
+                                            } else if (name.includes('plastik')) {
+                                                $card.find('[data-field="biaya_plastik"]').val(formatRupiah(itemCost));
+                                            } else if (name.includes('tali') || name.includes('string')) {
+                                                $card.find('[data-field="biaya_string"]').val(formatRupiah(itemCost));
+                                            } else {
+                                                // Add as dynamic extra
+                                                addExtraRowWithValues($card, 'Bahan: ' + invItem.name, itemCost);
+                                            }
+                                        }
+                                    });
+                                }
+                            } else if (p.latest_costs) {
+                                // AUTO-POPULATE: Ambil rincian biaya dari riwayat input SPK terakhir untuk produk ini
                                 const fields = [
                                     'jasa_konveksi', 'jasa_potong', 'jasa_printing',
                                     'jasa_jahit', 'jasa_labsas',
-                                    'biaya_kain', 'biaya_sbs', 'biaya_pitta',
+                                    'kebutuhan_kain', 'biaya_kain', 'biaya_sbs', 'biaya_pitta',
                                     'biaya_kancing', 'biaya_kancing_kait',
                                     'biaya_karet', 'biaya_plastik', 'biaya_string',
                                     'biaya_bordir', 'biaya_servis', 'biaya_finishing',
@@ -504,10 +474,6 @@
                                     }
                                 });
                             } else {
-                                // Reset all HPP fields to 0 if no history
-                                $card.find('.cost-field').val('0');
-                                $card.find('[data-field="kebutuhan_kain"]').val('0');
-
                                 // Default biaya kain dari Master Product catalog cost_price jika ada
                                 if (p.cost_price) {
                                     $card.find('[data-field="biaya_kain"]').val(

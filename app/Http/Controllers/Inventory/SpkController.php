@@ -50,10 +50,12 @@ class SpkController extends Controller
         $products = MasterProduct::where('tenant_id', $tenantId)
             ->where('is_active', true)
             ->orderBy('name')
-            ->get(['id', 'name', 'sku', 'sku_induk', 'ukuran', 'cost_price']);
+            ->with(['activeRecipe.items.inventoryItem', 'activeRecipe.labors'])
+            ->get();
 
         foreach ($products as $product) {
-            $latestItem = SpkItem::whereHas('spk', function($q) use ($tenantId) {
+            $latestItem = SpkItem::with('extras')
+                ->whereHas('spk', function($q) use ($tenantId) {
                     $q->where('tenant_id', $tenantId);
                 })
                 ->where('master_product_id', $product->id)
@@ -61,26 +63,12 @@ class SpkController extends Controller
                 ->first();
 
             if ($latestItem) {
-                $product->latest_costs = [
-                    'jasa_konveksi' => (float)$latestItem->jasa_konveksi,
-                    'jasa_potong' => (float)$latestItem->jasa_potong,
-                    'jasa_printing' => (float)$latestItem->jasa_printing,
-                    'jasa_jahit' => (float)$latestItem->jasa_jahit,
-                    'jasa_labsas' => (float)$latestItem->jasa_labsas,
-                    'kebutuhan_kain' => (float)$latestItem->kebutuhan_kain,
-                    'biaya_kain' => (float)$latestItem->biaya_kain,
-                    'biaya_sbs' => (float)$latestItem->biaya_sbs,
-                    'biaya_pitta' => (float)$latestItem->biaya_pitta,
-                    'biaya_kancing' => (float)$latestItem->biaya_kancing,
-                    'biaya_kancing_kait' => (float)$latestItem->biaya_kancing_kait,
-                    'biaya_karet' => (float)$latestItem->biaya_karet,
-                    'biaya_plastik' => (float)$latestItem->biaya_plastik,
-                    'biaya_string' => (float)$latestItem->biaya_string,
-                    'biaya_bordir' => (float)$latestItem->biaya_bordir,
-                    'biaya_servis' => (float)$latestItem->biaya_servis,
-                    'biaya_finishing' => (float)$latestItem->biaya_finishing,
-                    'biaya_pengiriman' => (float)$latestItem->biaya_pengiriman,
-                ];
+                $product->latest_costs = $latestItem->extras->map(function($ex) {
+                    return [
+                        'keterangan' => $ex->keterangan,
+                        'nominal' => (float)$ex->nominal
+                    ];
+                })->toArray();
             } else {
                 $product->latest_costs = null;
             }
@@ -143,22 +131,6 @@ class SpkController extends Controller
                     if ($prod) $prodId = $prod->id;
                 }
 
-                // Collect all standard cost fields
-                $fields = [
-                    'jasa_konveksi', 'jasa_potong', 'jasa_printing', 'jasa_jahit', 'jasa_labsas',
-                    'kebutuhan_kain', 'biaya_kain', 'biaya_sbs', 'biaya_pitta',
-                    'biaya_kancing', 'biaya_kancing_kait', 'biaya_karet', 'biaya_plastik', 'biaya_string',
-                    'biaya_bordir', 'biaya_servis', 'biaya_finishing', 'biaya_pengiriman',
-                ];
-
-                $costData = [];
-                foreach ($fields as $f) {
-                    $costData[$f] = floatval($row[$f] ?? 0);
-                }
-
-                // Sum all standard costs
-                $hppStandar = array_sum(array_filter($costData, fn($k) => $k !== 'kebutuhan_kain', ARRAY_FILTER_USE_KEY));
-
                 // Sum extra costs
                 $extrasTotal = 0;
                 if (!empty($row['extras']) && is_array($row['extras'])) {
@@ -169,9 +141,9 @@ class SpkController extends Controller
                     }
                 }
 
-                $hpp = $hppStandar + $extrasTotal;
+                $hpp = $extrasTotal;
 
-                $item = SpkItem::create(array_merge([
+                $item = SpkItem::create([
                     'spk_id'            => $spk->id,
                     'master_product_id' => $prodId,
                     'nama_produk'       => $row['name'],
@@ -182,7 +154,7 @@ class SpkController extends Controller
                     'penjahit'          => $row['tailor'] ?? null,
                     'alur_proses'       => $row['alur_proses'] ?? 'Langsung Jahit',
                     'hpp'               => $hpp,
-                ], $costData));
+                ]);
 
                 // Save dynamic extras
                 if (!empty($row['extras']) && is_array($row['extras'])) {

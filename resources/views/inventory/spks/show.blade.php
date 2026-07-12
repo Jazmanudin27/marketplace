@@ -205,46 +205,51 @@
                                 </div>
                             </div>
                             <div class="card-body p-2">
-                                <div class="row g-2" style="font-size:11px;">
-                                    <div class="col-md-3">
-                                        <p class="fw-semibold text-primary mb-1">Biaya Jasa</p>
-                                        <table class="table table-sm mb-0">
-                                            <tr><td class="text-muted">Jasa Konveksi</td><td class="text-end font-monospace">Rp {{ number_format($item->jasa_konveksi, 0, ',', '.') }}</td></tr>
-                                            <tr><td class="text-muted">Jasa Potong</td><td class="text-end font-monospace">Rp {{ number_format($item->jasa_potong, 0, ',', '.') }}</td></tr>
-                                            <tr><td class="text-muted">Jasa Printing</td><td class="text-end font-monospace">Rp {{ number_format($item->jasa_printing, 0, ',', '.') }}</td></tr>
-                                            <tr><td class="text-muted">Jasa Jahit</td><td class="text-end font-monospace">Rp {{ number_format($item->jasa_jahit, 0, ',', '.') }}</td></tr>
-                                            <tr><td class="text-muted">Jasa Labsas</td><td class="text-end font-monospace">Rp {{ number_format($item->jasa_labsas, 0, ',', '.') }}</td></tr>
+                                @php
+                                    $materials = [];
+                                    $services = [];
+                                    foreach($item->extras as $extra) {
+                                        $desc = strtolower($extra->keterangan);
+                                        if (str_starts_with($desc, 'bahan:') || str_contains($desc, 'bahan')) {
+                                            $materials[] = $extra;
+                                        } else {
+                                            $services[] = $extra;
+                                        }
+                                    }
+                                @endphp
+                                <div class="row g-3" style="font-size:11px;">
+                                    <div class="col-md-6">
+                                        <p class="fw-semibold text-success mb-1 border-bottom pb-1">
+                                            <i class="fas fa-boxes me-1"></i> Bahan Baku &amp; Kemasan
+                                        </p>
+                                        <table class="table table-sm mb-0 table-borderless">
+                                            @forelse($materials as $ex)
+                                                <tr>
+                                                    <td class="text-muted">{{ $ex->keterangan }}</td>
+                                                    <td class="text-end font-monospace fw-semibold">Rp {{ number_format($ex->nominal, 0, ',', '.') }}</td>
+                                                </tr>
+                                            @empty
+                                                <tr>
+                                                    <td colspan="2" class="text-muted text-center py-2">Tidak ada komponen bahan baku</td>
+                                                </tr>
+                                            @endforelse
                                         </table>
                                     </div>
-                                    <div class="col-md-3">
-                                        <p class="fw-semibold text-success mb-1">Biaya Bahan</p>
-                                        <table class="table table-sm mb-0">
-                                            <tr><td class="text-muted">Kebutuhan Kain</td><td class="text-end font-monospace">{{ $item->kebutuhan_kain }} m</td></tr>
-                                            <tr><td class="text-muted">Biaya Kain</td><td class="text-end font-monospace">Rp {{ number_format($item->biaya_kain, 0, ',', '.') }}</td></tr>
-                                            <tr><td class="text-muted">SBS</td><td class="text-end font-monospace">Rp {{ number_format($item->biaya_sbs, 0, ',', '.') }}</td></tr>
-                                            <tr><td class="text-muted">Pitta</td><td class="text-end font-monospace">Rp {{ number_format($item->biaya_pitta, 0, ',', '.') }}</td></tr>
-                                        </table>
-                                    </div>
-                                    <div class="col-md-3">
-                                        <p class="fw-semibold text-warning mb-1">Komponen Kecil</p>
-                                        <table class="table table-sm mb-0">
-                                            <tr><td class="text-muted">Kancing</td><td class="text-end font-monospace">Rp {{ number_format($item->biaya_kancing, 0, ',', '.') }}</td></tr>
-                                            <tr><td class="text-muted">Kancing Kait</td><td class="text-end font-monospace">Rp {{ number_format($item->biaya_kancing_kait, 0, ',', '.') }}</td></tr>
-                                            <tr><td class="text-muted">Karet</td><td class="text-end font-monospace">Rp {{ number_format($item->biaya_karet, 0, ',', '.') }}</td></tr>
-                                            <tr><td class="text-muted">Plastik</td><td class="text-end font-monospace">Rp {{ number_format($item->biaya_plastik, 0, ',', '.') }}</td></tr>
-                                            <tr><td class="text-muted">String/Tali</td><td class="text-end font-monospace">Rp {{ number_format($item->biaya_string, 0, ',', '.') }}</td></tr>
-                                        </table>
-                                    </div>
-                                    <div class="col-md-3">
-                                        <p class="fw-semibold text-danger mb-1">Finishing & Lainnya</p>
-                                        <table class="table table-sm mb-0">
-                                            <tr><td class="text-muted">Bordir/Logo</td><td class="text-end font-monospace">Rp {{ number_format($item->biaya_bordir, 0, ',', '.') }}</td></tr>
-                                            <tr><td class="text-muted">Servis</td><td class="text-end font-monospace">Rp {{ number_format($item->biaya_servis, 0, ',', '.') }}</td></tr>
-                                            <tr><td class="text-muted">Finishing</td><td class="text-end font-monospace">Rp {{ number_format($item->biaya_finishing, 0, ',', '.') }}</td></tr>
-                                            <tr><td class="text-muted">Pengiriman</td><td class="text-end font-monospace">Rp {{ number_format($item->biaya_pengiriman, 0, ',', '.') }}</td></tr>
-                                            @foreach($item->extras as $extra)
-                                                <tr><td class="text-muted">{{ $extra->keterangan }}</td><td class="text-end font-monospace">Rp {{ number_format($extra->nominal, 0, ',', '.') }}</td></tr>
-                                            @endforeach
+                                    <div class="col-md-6">
+                                        <p class="fw-semibold text-primary mb-1 border-bottom pb-1">
+                                            <i class="fas fa-cut me-1"></i> Biaya Jasa &amp; Operasional
+                                        </p>
+                                        <table class="table table-sm mb-0 table-borderless">
+                                            @forelse($services as $ex)
+                                                <tr>
+                                                    <td class="text-muted">{{ $ex->keterangan }}</td>
+                                                    <td class="text-end font-monospace fw-semibold">Rp {{ number_format($ex->nominal, 0, ',', '.') }}</td>
+                                                </tr>
+                                            @empty
+                                                <tr>
+                                                    <td colspan="2" class="text-muted text-center py-2">Tidak ada komponen jasa/operasional</td>
+                                                </tr>
+                                            @endforelse
                                         </table>
                                     </div>
                                 </div>
