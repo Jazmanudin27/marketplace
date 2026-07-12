@@ -576,12 +576,14 @@
                                             </button>
                                         </div>
                                         <div class="table-responsive">
-                                            <table class="table table-hover align-middle" id="table-labor">
+                                            <table class="table table-hover align-middle table-sm" id="table-labor">
                                                 <thead>
                                                     <tr class="small text-uppercase text-muted" style="font-size:11px">
-                                                        <th style="width: 55%">Nama Jasa / QC</th>
-                                                        <th style="width: 35%">Biaya Default (Rp)</th>
-                                                        <th style="width: 10%" class="text-center"></th>
+                                                        <th style="width: 40%">Nama Jasa / QC</th>
+                                                        <th style="width: 15%" class="text-center">Qty</th>
+                                                        <th style="width: 20%">Tarif (Rp)</th>
+                                                        <th style="width: 20%">Total (Rp)</th>
+                                                        <th style="width: 5%" class="text-center"></th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
@@ -601,14 +603,20 @@
                                                                              </option>
                                                                          @endforeach
                                                                          @if(!$found && !empty($rLabor->service_name))
-                                                                             <option value="{{ $rLabor->service_name }}" data-cost="{{ (int)$rLabor->default_cost }}" selected>
+                                                                             <option value="{{ $rLabor->service_name }}" data-cost="{{ (int)($rLabor->unit_cost ?? $rLabor->default_cost) }}" selected>
                                                                                  {{ $rLabor->service_name }} (Kustom)
                                                                              </option>
                                                                          @endif
                                                                      </select>
                                                                  </td>
                                                                  <td>
-                                                                     <input type="text" name="labors[{{ $idx }}][default_cost]" class="form-control form-control-sm rupiah-mask" value="{{ number_format($rLabor->default_cost, 0, ',', '.') }}" required>
+                                                                     <input type="number" name="labors[{{ $idx }}][qty]" class="form-control form-control-sm qty-labor-field text-center" value="{{ $rLabor->qty ?? 1 }}" min="1" required>
+                                                                 </td>
+                                                                 <td>
+                                                                     <input type="text" name="labors[{{ $idx }}][unit_cost]" class="form-control form-control-sm unit-cost-field rupiah-mask" value="{{ number_format($rLabor->unit_cost ?? $rLabor->default_cost, 0, ',', '.') }}" required>
+                                                                 </td>
+                                                                 <td>
+                                                                     <input type="text" class="form-control form-control-sm total-cost-field bg-light text-muted font-monospace" value="{{ number_format($rLabor->default_cost, 0, ',', '.') }}" readonly>
                                                                  </td>
                                                                  <td class="text-center">
                                                                      <button type="button" class="btn btn-sm btn-link text-danger btn-remove-labor-row"><i class="fas fa-trash-alt"></i></button>
@@ -2164,6 +2172,25 @@
                     $(this).closest('.bom-row').remove();
                 });
 
+                // Helpers for formatting and cleaning numbers
+                const cleanNumber = (val) => parseFloat(String(val).replace(/[^0-9]/g, '')) || 0;
+                const formatNumber = (num) => parseFloat(num).toLocaleString('id-ID');
+
+                // Function to update row total costs and grand total in the catalog form
+                function updateLaborRowCosts() {
+                    $('#table-labor tbody tr').each(function() {
+                        const qty = parseInt($(this).find('.qty-labor-field').val()) || 1;
+                        const unitCost = cleanNumber($(this).find('.unit-cost-field').val());
+                        const totalCost = qty * unitCost;
+
+                        // Update row total cost display
+                        $(this).find('.total-cost-field').val(formatNumber(totalCost));
+                    });
+                }
+
+                // Bind events to trigger live row updates
+                $(document).on('input change', '.qty-labor-field, .unit-cost-field', updateLaborRowCosts);
+
                 $('#btn-add-labor-row').on('click', function() {
                     let optionsHtml = '<option value=""></option>';
                     laborServicesData.forEach(function(item) {
@@ -2178,7 +2205,13 @@
                                 </select>
                             </td>
                             <td>
-                                                                <input type="text" name="labors[${laborRowIndex}][default_cost]" class="form-control form-control-sm rupiah-mask" value="0" required>
+                                <input type="number" name="labors[${laborRowIndex}][qty]" class="form-control form-control-sm qty-labor-field text-center" min="1" value="1" required>
+                            </td>
+                            <td>
+                                <input type="text" name="labors[${laborRowIndex}][unit_cost]" class="form-control form-control-sm unit-cost-field rupiah-mask" value="0" required>
+                            </td>
+                            <td>
+                                <input type="text" class="form-control form-control-sm total-cost-field bg-light text-muted font-monospace" value="0" readonly>
                             </td>
                             <td class="text-center">
                                 <button type="button" class="btn btn-sm btn-link text-danger btn-remove-labor-row"><i class="fas fa-trash-alt"></i></button>
@@ -2198,16 +2231,15 @@
                     });
                 }
 
-                const formatNumber = (num) => parseFloat(num).toLocaleString('id-ID');
-
                 $(document).on('change', '.select-labor-item', function() {
                     const row = $(this).closest('.labor-row');
                     const selected = $(this).find('option:selected');
                     if (selected.val()) {
-                        row.find('input[name*="[default_cost]"]').val(formatNumber(selected.data('cost')));
+                        row.find('.unit-cost-field').val(formatNumber(selected.data('cost')));
                     } else {
-                        row.find('input[name*="[default_cost]"]').val(0);
+                        row.find('.unit-cost-field').val(0);
                     }
+                    updateLaborRowCosts();
                 });
 
                 $(document).on('click', '.btn-remove-labor-row', function() {
@@ -2253,6 +2285,9 @@
                     placeholder: '— Pilih Jasa —',
                     allowClear: true
                 });
+
+                // Initial run to update loaded labor cost displays
+                updateLaborRowCosts();
             @endif
     </script>
 @endpush

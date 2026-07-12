@@ -72,7 +72,8 @@ class ProductRecipeController extends Controller
             'items.*.quantity' => 'required_with:items|numeric|min:0.0001',
             'labors' => 'nullable|array',
             'labors.*.service_name' => 'required_with:labors|string|max:255',
-            'labors.*.default_cost' => 'required_with:labors|numeric|min:0',
+            'labors.*.qty' => 'required_with:labors|integer|min:1',
+            'labors.*.unit_cost' => 'required_with:labors|numeric|min:0',
         ]);
 
         $product = MasterProduct::where('tenant_id', Auth::user()->tenant_id)
@@ -103,7 +104,9 @@ class ProductRecipeController extends Controller
                 foreach ($request->labors as $labor) {
                     $recipe->labors()->create([
                         'service_name' => $labor['service_name'],
-                        'default_cost' => $labor['default_cost'],
+                        'qty' => $labor['qty'],
+                        'unit_cost' => $labor['unit_cost'],
+                        'default_cost' => $labor['qty'] * $labor['unit_cost'],
                     ]);
                 }
             }
@@ -149,7 +152,8 @@ class ProductRecipeController extends Controller
             'items.*.quantity' => 'required_with:items|numeric|min:0.0001',
             'labors' => 'nullable|array',
             'labors.*.service_name' => 'required_with:labors|string|max:255',
-            'labors.*.default_cost' => 'required_with:labors|numeric|min:0',
+            'labors.*.qty' => 'required_with:labors|integer|min:1',
+            'labors.*.unit_cost' => 'required_with:labors|numeric|min:0',
         ]);
 
         $product = MasterProduct::where('tenant_id', Auth::user()->tenant_id)->findOrFail($id);
@@ -179,7 +183,9 @@ class ProductRecipeController extends Controller
                 foreach ($request->labors as $labor) {
                     $recipe->labors()->create([
                         'service_name' => $labor['service_name'],
-                        'default_cost' => $labor['default_cost'],
+                        'qty' => $labor['qty'],
+                        'unit_cost' => $labor['unit_cost'],
+                        'default_cost' => $labor['qty'] * $labor['unit_cost'],
                     ]);
                 }
             }
@@ -221,7 +227,9 @@ class ProductRecipeController extends Controller
             ]),
             'labors' => $recipe->labors->map(fn($labor) => [
                 'service_name' => $labor->service_name,
-                'default_cost' => (int)$labor->default_cost
+                'qty' => (int)($labor->qty ?? 1),
+                'unit_cost' => (float)($labor->unit_cost ?? $labor->default_cost),
+                'default_cost' => (float)$labor->default_cost
             ])
         ]);
     }

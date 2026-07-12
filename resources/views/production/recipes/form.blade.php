@@ -132,9 +132,11 @@
                                     <table class="table table-hover align-middle table-sm" id="table-labor">
                                         <thead>
                                             <tr class="small text-uppercase text-muted" style="font-size:11px">
-                                                <th style="width: 55%">Nama Jasa / QC</th>
-                                                <th style="width: 35%">Biaya (Rp)</th>
-                                                <th style="width: 10%" class="text-center"></th>
+                                                <th style="width: 40%">Nama Jasa / QC</th>
+                                                <th style="width: 15%" class="text-center">Qty</th>
+                                                <th style="width: 20%">Tarif (Rp)</th>
+                                                <th style="width: 20%">Total (Rp)</th>
+                                                <th style="width: 5%" class="text-center"></th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -154,15 +156,21 @@
                                                                     </option>
                                                                 @endforeach
                                                                 @if(!$found && !empty($rLabor->service_name))
-                                                                    <option value="{{ $rLabor->service_name }}" data-cost="{{ (int)$rLabor->default_cost }}" selected>
+                                                                    <option value="{{ $rLabor->service_name }}" data-cost="{{ (int)($rLabor->unit_cost ?? $rLabor->default_cost) }}" selected>
                                                                         {{ $rLabor->service_name }} (Kustom)
                                                                     </option>
                                                                 @endif
                                                             </select>
                                                         </td>
-                                                         <td>
-                                                             <input type="text" name="labors[{{ $idx }}][default_cost]" class="form-control form-control-sm cost-field rupiah-mask" value="{{ number_format($rLabor->default_cost, 0, ',', '.') }}" required>
-                                                         </td>
+                                                        <td>
+                                                            <input type="number" name="labors[{{ $idx }}][qty]" class="form-control form-control-sm qty-labor-field text-center" value="{{ $rLabor->qty ?? 1 }}" min="1" required>
+                                                        </td>
+                                                        <td>
+                                                            <input type="text" name="labors[{{ $idx }}][unit_cost]" class="form-control form-control-sm unit-cost-field rupiah-mask" value="{{ number_format($rLabor->unit_cost ?? $rLabor->default_cost, 0, ',', '.') }}" required>
+                                                        </td>
+                                                        <td>
+                                                            <input type="text" class="form-control form-control-sm total-cost-field bg-light text-muted font-monospace" value="{{ number_format($rLabor->default_cost, 0, ',', '.') }}" readonly>
+                                                        </td>
                                                         <td class="text-center">
                                                             <button type="button" class="btn btn-sm btn-link text-danger btn-remove-labor-row"><i class="fas fa-trash-alt"></i></button>
                                                         </td>
@@ -254,8 +262,14 @@
 
                     let laborsTotal = 0;
                     $('#table-labor tbody tr').each(function() {
-                        const cost = cleanNumber($(this).find('.cost-field').val());
-                        laborsTotal += cost;
+                        const qty = parseInt($(this).find('.qty-labor-field').val()) || 1;
+                        const unitCost = cleanNumber($(this).find('.unit-cost-field').val());
+                        const totalCost = qty * unitCost;
+
+                        // Update row total cost display
+                        $(this).find('.total-cost-field').val(formatNumber(totalCost));
+
+                        laborsTotal += totalCost;
                     });
 
                     const grandTotalHpp = (materialsTotal + laborsTotal) / batchQty;
@@ -263,7 +277,7 @@
                 }
 
                 // Bind events to trigger live recalculation
-                $(document).on('input change', '#batch_qty, .qty-field, .cost-field, .select-bom-item', calculateLiveHpp);
+                $(document).on('input change', '#batch_qty, .qty-field, .qty-labor-field, .unit-cost-field, .select-bom-item', calculateLiveHpp);
 
                 // --- Materials Row Actions ---
                 $('#btn-add-bom-row').on('click', function() {
@@ -335,7 +349,13 @@
                                 </select>
                             </td>
                             <td>
-                                <input type="text" name="labors[${laborRowIndex}][default_cost]" class="form-control form-control-sm cost-field rupiah-mask" value="0" required>
+                                <input type="number" name="labors[${laborRowIndex}][qty]" class="form-control form-control-sm qty-labor-field text-center" min="1" value="1" required>
+                            </td>
+                            <td>
+                                <input type="text" name="labors[${laborRowIndex}][unit_cost]" class="form-control form-control-sm unit-cost-field rupiah-mask" value="0" required>
+                            </td>
+                            <td>
+                                <input type="text" class="form-control form-control-sm total-cost-field bg-light text-muted font-monospace" value="0" readonly>
                             </td>
                             <td class="text-center">
                                 <button type="button" class="btn btn-sm btn-link text-danger btn-remove-labor-row"><i class="fas fa-trash-alt"></i></button>
@@ -360,9 +380,9 @@
                     const row = $(this).closest('.labor-row');
                     const selected = $(this).find('option:selected');
                     if (selected.val()) {
-                        row.find('.cost-field').val(formatNumber(selected.data('cost')));
+                        row.find('.unit-cost-field').val(formatNumber(selected.data('cost')));
                     } else {
-                        row.find('.cost-field').val(0);
+                        row.find('.unit-cost-field').val(0);
                     }
                     calculateLiveHpp();
                 });
@@ -478,7 +498,7 @@
                                             optionsHtml += `<option value="${ls.name}" data-cost="${parseInt(ls.default_cost) || 0}" ${ls.name === labor.service_name ? 'selected' : ''}>${ls.name}</option>`;
                                         });
                                         if (!found && labor.service_name) {
-                                            optionsHtml += `<option value="${labor.service_name}" data-cost="${labor.default_cost}" selected>${labor.service_name} (Kustom)</option>`;
+                                            optionsHtml += `<option value="${labor.service_name}" data-cost="${labor.unit_cost}" selected>${labor.service_name} (Kustom)</option>`;
                                         }
 
                                         const rowHtml = `
@@ -489,7 +509,13 @@
                                                     </select>
                                                 </td>
                                                 <td>
-                                                    <input type="text" name="labors[${laborRowIndex}][default_cost]" class="form-control form-control-sm cost-field rupiah-mask" value="${formatNumber(labor.default_cost)}" required>
+                                                    <input type="number" name="labors[${laborRowIndex}][qty]" class="form-control form-control-sm qty-labor-field text-center" min="1" value="${labor.qty}" required>
+                                                </td>
+                                                <td>
+                                                    <input type="text" name="labors[${laborRowIndex}][unit_cost]" class="form-control form-control-sm unit-cost-field rupiah-mask" value="${formatNumber(labor.unit_cost)}" required>
+                                                </td>
+                                                <td>
+                                                    <input type="text" class="form-control form-control-sm total-cost-field bg-light text-muted font-monospace" value="${formatNumber(labor.default_cost)}" readonly>
                                                 </td>
                                                 <td class="text-center">
                                                     <button type="button" class="btn btn-sm btn-link text-danger btn-remove-labor-row"><i class="fas fa-trash-alt"></i></button>

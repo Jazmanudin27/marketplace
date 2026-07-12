@@ -10,10 +10,14 @@ class ProductRecipeLabor extends Model
     protected $fillable = [
         'product_recipe_id',
         'service_name',
+        'qty',
+        'unit_cost',
         'default_cost',
     ];
 
     protected $casts = [
+        'qty' => 'integer',
+        'unit_cost' => 'decimal:2',
         'default_cost' => 'decimal:2',
     ];
 

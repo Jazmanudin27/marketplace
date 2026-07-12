@@ -261,7 +261,8 @@ class MasterProductController extends Controller
             'items.*.quantity' => 'required_with:items|numeric|min:0.0001',
             'labors' => 'nullable|array',
             'labors.*.service_name' => 'required_with:labors|string|max:255',
-            'labors.*.default_cost' => 'required_with:labors|numeric|min:0',
+            'labors.*.qty' => 'required_with:labors|integer|min:1',
+            'labors.*.unit_cost' => 'required_with:labors|numeric|min:0',
         ]);
 
         \DB::transaction(function() use ($request, $product) {
@@ -289,7 +290,9 @@ class MasterProductController extends Controller
                 foreach ($request->labors as $labor) {
                     $recipe->labors()->create([
                         'service_name' => $labor['service_name'],
-                        'default_cost' => $labor['default_cost'],
+                        'qty' => $labor['qty'],
+                        'unit_cost' => $labor['unit_cost'],
+                        'default_cost' => $labor['qty'] * $labor['unit_cost'],
                     ]);
                 }
             }
