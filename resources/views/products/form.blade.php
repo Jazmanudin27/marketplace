@@ -1484,8 +1484,7 @@
                 row.find('.select-component-item').select2({
                     theme: 'bootstrap-5',
                     placeholder: '— Pilih Produk Komponen —',
-                    allowClear: true,
-                    dropdownParent: $('#table-components')
+                    allowClear: true
                 });
             }
 
@@ -1497,8 +1496,7 @@
             $('.select-component-item').select2({
                 theme: 'bootstrap-5',
                 placeholder: '— Pilih Produk Komponen —',
-                allowClear: true,
-                dropdownParent: $('#table-components')
+                allowClear: true
             });
 
             // Initialize name counter on page load
@@ -2090,8 +2088,7 @@
                     row.find('.select-bom-item').select2({
                         theme: 'bootstrap-5',
                         placeholder: '— Pilih Bahan —',
-                        allowClear: true,
-                        dropdownParent: $('#table-bom')
+                        allowClear: true
                     });
                 }
 
@@ -2135,8 +2132,7 @@
                 $('.select-bom-item').select2({
                     theme: 'bootstrap-5',
                     placeholder: '— Pilih Bahan —',
-                    allowClear: true,
-                    dropdownParent: $('#table-bom')
+                    allowClear: true
                 });
             @endif
     </script>
