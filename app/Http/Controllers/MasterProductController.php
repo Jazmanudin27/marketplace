@@ -230,6 +230,15 @@ class MasterProductController extends Controller
             ->orderBy('name')
             ->get(['id', 'sku', 'name', 'stock']);
 
+        if (request()->has('debug')) {
+            return response()->json([
+                'tenant_id' => Auth::user()->tenant_id,
+                'product_id' => $product->id,
+                'count' => $allProducts->count(),
+                'products' => $allProducts
+            ]);
+        }
+
         return view('products.form', compact('product', 'categories', 'brands', 'recipe', 'inventoryItems', 'allProducts'));
     }
 
