@@ -139,9 +139,9 @@
                                                                 @endif
                                                             </select>
                                                         </td>
-                                                        <td>
-                                                            <input type="number" name="labors[{{ $idx }}][default_cost]" class="form-control form-control-sm cost-field" value="{{ (int)$rLabor->default_cost }}" min="0" required>
-                                                        </td>
+                                                         <td>
+                                                             <input type="text" name="labors[{{ $idx }}][default_cost]" class="form-control form-control-sm cost-field rupiah-mask" value="{{ number_format($rLabor->default_cost, 0, ',', '.') }}" required>
+                                                         </td>
                                                         <td class="text-center">
                                                             <button type="button" class="btn btn-sm btn-link text-danger btn-remove-labor-row"><i class="fas fa-trash-alt"></i></button>
                                                         </td>
@@ -206,6 +206,10 @@
                     allowClear: true
                 });
 
+                // Helpers for formatting and cleaning numbers
+                const cleanNumber = (val) => parseFloat(String(val).replace(/[^0-9]/g, '')) || 0;
+                const formatNumber = (num) => parseFloat(num).toLocaleString('id-ID');
+
                 // --- Live HPP Calculator ---
                 function calculateLiveHpp() {
                     const batchQty = parseInt($('#batch_qty').val()) || 1;
@@ -223,7 +227,7 @@
 
                     let laborsTotal = 0;
                     $('#table-labor tbody tr').each(function() {
-                        const cost = parseFloat($(this).find('.cost-field').val()) || 0;
+                        const cost = cleanNumber($(this).find('.cost-field').val());
                         laborsTotal += cost;
                     });
 
@@ -304,7 +308,7 @@
                                 </select>
                             </td>
                             <td>
-                                <input type="number" name="labors[${laborRowIndex}][default_cost]" class="form-control form-control-sm cost-field" min="0" value="0" required>
+                                <input type="text" name="labors[${laborRowIndex}][default_cost]" class="form-control form-control-sm cost-field rupiah-mask" value="0" required>
                             </td>
                             <td class="text-center">
                                 <button type="button" class="btn btn-sm btn-link text-danger btn-remove-labor-row"><i class="fas fa-trash-alt"></i></button>
@@ -329,7 +333,7 @@
                     const row = $(this).closest('.labor-row');
                     const selected = $(this).find('option:selected');
                     if (selected.val()) {
-                        row.find('.cost-field').val(selected.data('cost'));
+                        row.find('.cost-field').val(formatNumber(selected.data('cost')));
                     } else {
                         row.find('.cost-field').val(0);
                     }
@@ -339,6 +343,33 @@
                 $(document).on('click', '.btn-remove-labor-row', function() {
                     $(this).closest('.labor-row').remove();
                     calculateLiveHpp();
+                });
+
+                // Masking inputs
+                const handleRupiahInput = function(e) {
+                    let cursorPosition = e.target.selectionStart;
+                    let originalLength = e.target.value.length;
+                    let cleanValue = e.target.value.replace(/[^0-9]/g, '');
+                    if (cleanValue === '') {
+                        $(e.target).val('');
+                        return;
+                    }
+                    let formatted = formatNumber(cleanValue);
+                    $(e.target).val(formatted);
+
+                    let newLength = formatted.length;
+                    cursorPosition = cursorPosition + (newLength - originalLength);
+                    e.target.setSelectionRange(cursorPosition, cursorPosition);
+                };
+
+                $(document).on('input', '.rupiah-mask', handleRupiahInput);
+
+                // Strip thousand separators before form submit
+                $('#form-recipe').on('submit', function() {
+                    $('.rupiah-mask').each(function() {
+                        const clean = $(this).val().replace(/[^0-9]/g, '');
+                        $(this).val(clean);
+                    });
                 });
 
                 // Initial calculation on page load
