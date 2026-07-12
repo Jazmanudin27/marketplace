@@ -545,7 +545,7 @@
                                                                         <option value=""></option>
                                                                         @foreach($inventoryItems as $item)
                                                                             <option value="{{ $item->id }}" data-unit="{{ $item->unit }}" {{ $rItem->inventory_item_id == $item->id ? 'selected' : '' }}>
-                                                                                {{ $item->name }} ({{ $item->sku }})
+                                                                                {{ $item->name }}
                                                                             </option>
                                                                         @endforeach
                                                                     </select>
@@ -2123,7 +2123,7 @@
                 $('#btn-add-bom-row').on('click', function() {
                     let optionsHtml = '<option value=""></option>';
                     inventoryItemsData.forEach(function(item) {
-                        optionsHtml += `<option value="${item.id}" data-unit="${item.unit}">${item.name} (${item.sku})</option>`;
+                        optionsHtml += `<option value="${item.id}" data-unit="${item.unit}">${item.name}</option>`;
                     });
 
                     const rowHtml = `

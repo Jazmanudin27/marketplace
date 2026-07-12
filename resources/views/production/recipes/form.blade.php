@@ -342,7 +342,7 @@
                     let optionsHtml = '<option value=""></option>';
                     inventoryItemsData.forEach(function(item) {
                         optionsHtml +=
-                            `<option value="${item.id}" data-unit="${item.unit}" data-price="${parseFloat(item.cost_price) || 0}">${item.name} (${item.sku ?? '—'})</option>`;
+                            `<option value="${item.id}" data-unit="${item.unit}" data-price="${parseFloat(item.cost_price) || 0}">${item.name}</option>`;
                     });
 
                     const rowHtml = `
@@ -512,7 +512,7 @@
                                         let optionsHtml = '<option value=""></option>';
                                         inventoryItemsData.forEach(function(inv) {
                                             optionsHtml +=
-                                                `<option value="${inv.id}" data-unit="${inv.unit}" data-price="${parseFloat(inv.cost_price) || 0}" ${inv.id == item.inventory_item_id ? 'selected' : ''}>${inv.name} (${inv.sku ?? '—'})</option>`;
+                                                `<option value="${inv.id}" data-unit="${inv.unit}" data-price="${parseFloat(inv.cost_price) || 0}" ${inv.id == item.inventory_item_id ? 'selected' : ''}>${inv.name}</option>`;
                                         });
 
                                         const rowHtml = `
