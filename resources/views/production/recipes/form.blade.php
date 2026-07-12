@@ -84,7 +84,7 @@
                                                         </td>
                                                         <td>
                                                             <div class="input-group input-group-sm">
-                                                                <input type="number" step="0.0001" name="items[{{ $idx }}][quantity]" class="form-control qty-field" min="0.0001" value="{{ $rItem->quantity }}" required>
+                                                                <input type="number" step="0.0001" name="items[{{ $idx }}][quantity]" class="form-control qty-field" min="0.0001" value="{{ (float)$rItem->quantity }}" required>
                                                                 <span class="input-group-text span-bom-unit" style="font-size:10px">{{ $rItem->inventoryItem->unit ?? 'PCS' }}</span>
                                                             </div>
                                                         </td>
