@@ -23,6 +23,27 @@
                             @method('PUT')
                         @endif
 
+                        <!-- Salin Formula Panel -->
+                        <div class="card border bg-light shadow-sm p-3 mb-4 rounded-3">
+                            <div class="row g-2 align-items-end">
+                                <div class="col-md-7">
+                                    <label class="form-label fw-bold small text-dark mb-1"><i class="fas fa-copy me-1 text-primary"></i>Salin Formula Dari Produk Lain (Opsional)</label>
+                                    <select id="select-copy-source" class="form-select select-copy-source" style="width: 100%;">
+                                        <option value=""></option>
+                                        @foreach($productsWithRecipe as $p)
+                                            <option value="{{ $p->id }}">{{ $p->name }} ({{ $p->sku ?? '—' }})</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="col-md-5">
+                                    <button type="button" class="btn btn-outline-primary btn-sm px-3 w-100" id="btn-copy-recipe" style="height: 38px;">
+                                        <i class="fas fa-clone me-1"></i>Salin Komponen &amp; Jasa
+                                    </button>
+                                </div>
+                            </div>
+                            <small class="text-muted mt-2 d-block"><i class="fas fa-info-circle me-1"></i>Fitur ini akan menyalin seluruh bahan baku &amp; jasa dari resep produk lain untuk mempermudah input massal.</small>
+                        </div>
+
                         <div class="row g-3 mb-4 border-bottom pb-4">
                             <div class="col-md-8">
                                 <label class="form-label fw-bold small text-dark">Produk Jadi / Target Hasil Produksi <span class="text-danger">*</span></label>
@@ -191,6 +212,12 @@
                 $('.select-product-target').select2({
                     theme: 'bootstrap-5',
                     placeholder: '— Pilih Produk Jadi —',
+                    allowClear: true
+                });
+
+                $('.select-copy-source').select2({
+                    theme: 'bootstrap-5',
+                    placeholder: '— Cari & Pilih Produk Sumber Formula —',
                     allowClear: true
                 });
 
@@ -370,6 +397,127 @@
                         const clean = $(this).val().replace(/[^0-9]/g, '');
                         $(this).val(clean);
                     });
+                });
+
+                // --- Copy Formula AJAX Handler ---
+                $('#btn-copy-recipe').on('click', function() {
+                    const sourceProductId = $('#select-copy-source').val();
+                    if (!sourceProductId) {
+                        alert('Silakan pilih produk sumber terlebih dahulu.');
+                        return;
+                    }
+
+                    if (confirm('Menyalin formula akan menghapus komponen bahan baku dan jasa yang sudah Anda masukkan saat ini di form. Apakah Anda yakin ingin melanjutkan?')) {
+                        // Show loading state
+                        const $btn = $(this);
+                        $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i>Menyalin...');
+
+                        $.get('/api/product-recipes/' + sourceProductId + '/json')
+                            .done(function(data) {
+                                // 1. Clear current tables
+                                $('#table-bom tbody').empty();
+                                $('#table-labor tbody').empty();
+                                bomRowIndex = 0;
+                                laborRowIndex = 0;
+
+                                // 2. Update Batch Qty
+                                $('#batch_qty').val(data.batch_qty);
+
+                                // 3. Populate Materials (BOM)
+                                if (data.items && data.items.length > 0) {
+                                    data.items.forEach(function(item) {
+                                        let optionsHtml = '<option value=""></option>';
+                                        inventoryItemsData.forEach(function(inv) {
+                                            optionsHtml += `<option value="${inv.id}" data-unit="${inv.unit}" data-price="${parseFloat(inv.cost_price) || 0}" ${inv.id == item.inventory_item_id ? 'selected' : ''}>${inv.name} (${inv.sku ?? '—'})</option>`;
+                                        });
+
+                                        const rowHtml = `
+                                            <tr class="bom-row">
+                                                <td>
+                                                    <select name="items[${bomRowIndex}][inventory_item_id]" class="form-select form-select-sm select-bom-item" required style="width: 100%;">
+                                                        ${optionsHtml}
+                                                    </select>
+                                                </td>
+                                                <td>
+                                                    <div class="input-group input-group-sm">
+                                                        <input type="number" step="0.0001" name="items[${bomRowIndex}][quantity]" class="form-control qty-field" min="0.0001" value="${item.quantity}" required>
+                                                        <span class="input-group-text span-bom-unit" style="font-size:10px">—</span>
+                                                    </div>
+                                                </td>
+                                                <td class="text-center">
+                                                    <button type="button" class="btn btn-sm btn-link text-danger btn-remove-bom-row"><i class="fas fa-trash-alt"></i></button>
+                                                </td>
+                                            </tr>
+                                        `;
+                                        $('#table-bom tbody').append(rowHtml);
+                                        
+                                        const $addedRow = $('#table-bom tbody tr:last-child');
+                                        $addedRow.find('.select-bom-item').select2({
+                                            theme: 'bootstrap-5',
+                                            placeholder: '— Pilih Bahan Baku —',
+                                            allowClear: true
+                                        });
+                                        
+                                        // Set unit span
+                                        const selectedOpt = $addedRow.find('.select-bom-item option:selected');
+                                        if (selectedOpt.val()) {
+                                            $addedRow.find('.span-bom-unit').text(selectedOpt.data('unit'));
+                                        }
+
+                                        bomRowIndex++;
+                                    });
+                                }
+
+                                // 4. Populate Labors (Jasa)
+                                if (data.labors && data.labors.length > 0) {
+                                    data.labors.forEach(function(labor) {
+                                        let optionsHtml = '<option value=""></option>';
+                                        let found = false;
+                                        laborServicesData.forEach(function(ls) {
+                                            if (ls.name === labor.service_name) found = true;
+                                            optionsHtml += `<option value="${ls.name}" data-cost="${parseInt(ls.default_cost) || 0}" ${ls.name === labor.service_name ? 'selected' : ''}>${ls.name}</option>`;
+                                        });
+                                        if (!found && labor.service_name) {
+                                            optionsHtml += `<option value="${labor.service_name}" data-cost="${labor.default_cost}" selected>${labor.service_name} (Kustom)</option>`;
+                                        }
+
+                                        const rowHtml = `
+                                            <tr class="labor-row">
+                                                <td>
+                                                    <select name="labors[${laborRowIndex}][service_name]" class="form-select form-select-sm select-labor-item" required style="width: 100%;">
+                                                        ${optionsHtml}
+                                                    </select>
+                                                </td>
+                                                <td>
+                                                    <input type="text" name="labors[${laborRowIndex}][default_cost]" class="form-control form-control-sm cost-field rupiah-mask" value="${formatNumber(labor.default_cost)}" required>
+                                                </td>
+                                                <td class="text-center">
+                                                    <button type="button" class="btn btn-sm btn-link text-danger btn-remove-labor-row"><i class="fas fa-trash-alt"></i></button>
+                                                </td>
+                                            </tr>
+                                        `;
+                                        $('#table-labor tbody').append(rowHtml);
+                                        
+                                        const $addedRow = $('#table-labor tbody tr:last-child');
+                                        $addedRow.find('.select-labor-item').select2({
+                                            theme: 'bootstrap-5',
+                                            placeholder: '— Pilih Jasa / QC —',
+                                            allowClear: true
+                                        });
+
+                                        laborRowIndex++;
+                                    });
+                                }
+
+                                calculateLiveHpp();
+                            })
+                            .fail(function(xhr) {
+                                alert('Gagal menyalin resep: ' + (xhr.responseJSON?.error || 'Kesalahan sistem.'));
+                            })
+                            .always(function() {
+                                $btn.prop('disabled', false).html('<i class="fas fa-clone me-1"></i>Salin Komponen &amp; Jasa');
+                            });
+                    }
                 });
 
                 // Initial calculation on page load

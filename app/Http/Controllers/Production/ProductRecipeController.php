@@ -45,6 +45,11 @@ class ProductRecipeController extends Controller
             ->orderBy('name')
             ->get(['id', 'name', 'sku']);
 
+        $productsWithRecipe = MasterProduct::where('tenant_id', Auth::user()->tenant_id)
+            ->whereHas('activeRecipe')
+            ->orderBy('name')
+            ->get(['id', 'name', 'sku']);
+
         $inventoryItems = InventoryItem::where('tenant_id', Auth::user()->tenant_id)
             ->whereIn('type', ['bahan', 'kemasan'])
             ->orderBy('name')
@@ -54,7 +59,7 @@ class ProductRecipeController extends Controller
             ->orderBy('name')
             ->get(['name', 'default_cost']);
 
-        return view('production.recipes.form', compact('products', 'inventoryItems', 'laborServices'));
+        return view('production.recipes.form', compact('products', 'productsWithRecipe', 'inventoryItems', 'laborServices'));
     }
 
     public function store(Request $request)
@@ -118,6 +123,11 @@ class ProductRecipeController extends Controller
             ->where('is_active', true)
             ->first();
 
+        $productsWithRecipe = MasterProduct::where('tenant_id', Auth::user()->tenant_id)
+            ->whereHas('activeRecipe')
+            ->orderBy('name')
+            ->get(['id', 'name', 'sku']);
+
         $inventoryItems = InventoryItem::where('tenant_id', Auth::user()->tenant_id)
             ->whereIn('type', ['bahan', 'kemasan'])
             ->orderBy('name')
@@ -127,7 +137,7 @@ class ProductRecipeController extends Controller
             ->orderBy('name')
             ->get(['name', 'default_cost']);
 
-        return view('production.recipes.form', compact('product', 'recipe', 'inventoryItems', 'laborServices'));
+        return view('production.recipes.form', compact('product', 'recipe', 'productsWithRecipe', 'inventoryItems', 'laborServices'));
     }
 
     public function update(Request $request, $id)
@@ -188,5 +198,31 @@ class ProductRecipeController extends Controller
 
         return redirect()->route('product_recipes.index')
             ->with('success', 'Formula produk berhasil dihapus/dinonaktifkan.');
+    }
+
+    public function getRecipeJson($productId)
+    {
+        $product = MasterProduct::where('tenant_id', Auth::user()->tenant_id)->findOrFail($productId);
+        
+        $recipe = ProductRecipe::with(['items', 'labors'])
+            ->where('master_product_id', $product->id)
+            ->where('is_active', true)
+            ->first();
+
+        if (!$recipe) {
+            return response()->json(['error' => 'Produk ini belum memiliki formula resep aktif.'], 422);
+        }
+
+        return response()->json([
+            'batch_qty' => $recipe->batch_qty,
+            'items' => $recipe->items->map(fn($item) => [
+                'inventory_item_id' => $item->inventory_item_id,
+                'quantity' => (float)$item->quantity
+            ]),
+            'labors' => $recipe->labors->map(fn($labor) => [
+                'service_name' => $labor->service_name,
+                'default_cost' => (int)$labor->default_cost
+            ])
+        ]);
     }
 }
