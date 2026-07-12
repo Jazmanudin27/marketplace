@@ -446,7 +446,7 @@
                                                         <select name="components[{{ $cIdx }}][child_id]" class="form-select form-select-sm select-component-item" required>
                                                             <option value=""></option>
                                                             @foreach($allProducts as $ap)
-                                                                <option value="{{ $ap->id }}" data-sku="{{ $ap->sku }}" {{ $comp->id == $ap->id ? 'selected' : '' }}>
+                                                                <option value="{{ $ap->id }}" data-sku="{{ $ap->sku }}" data-stock="{{ $ap->stock }}" {{ $comp->id == $ap->id ? 'selected' : '' }}>
                                                                     {{ $ap->name }} ({{ $ap->sku }})
                                                                 </option>
                                                             @endforeach
@@ -1418,12 +1418,15 @@
             });
 
             // Initialize Bundle Components visibility
-            function toggleBundleSection(isChecked) {
+            function toggleBundleSection(isChecked, isPageLoad = false) {
                 const section = $('#bundle-components-section');
                 const stockInput = $('#stock');
                 if (isChecked) {
                     section.show();
-                    stockInput.val(0).prop('readonly', true).addClass('bg-light text-muted');
+                    stockInput.prop('readonly', true).addClass('bg-light text-muted');
+                    if (!isPageLoad) {
+                        stockInput.val(0);
+                    }
                     if (!$('#stock-bundle-note').length) {
                         stockInput.parent().after('<div id="stock-bundle-note" class="form-text text-success small mt-1"><i class="fas fa-magic me-1"></i> Stok dihitung otomatis dari produk anak.</div>');
                     }
@@ -1443,9 +1446,9 @@
                 }
             }
 
-            toggleBundleSection($('#is_bundle').is(':checked'));
+            toggleBundleSection($('#is_bundle').is(':checked'), true);
             $('#is_bundle').on('change', function() {
-                toggleBundleSection(this.checked);
+                toggleBundleSection(this.checked, false);
             });
 
             // Pass all products safely to Javascript
@@ -1457,7 +1460,7 @@
             $('#btn-add-component-row').on('click', function() {
                 let optionsHtml = '<option value=""></option>';
                 allProductsData.forEach(function(ap) {
-                    optionsHtml += `<option value="${ap.id}" data-sku="${ap.sku}">${ap.name} (${ap.sku})</option>`;
+                    optionsHtml += `<option value="${ap.id}" data-sku="${ap.sku}" data-stock="${ap.stock}">${ap.name} (${ap.sku})</option>`;
                 });
 
                 const rowHtml = `
@@ -1479,6 +1482,7 @@
                 $('#table-components tbody').append(rowHtml);
                 initSelect2ForComponent($('#table-components tbody tr:last-child'));
                 componentRowIndex++;
+                calculateDynamicBundleStock();
             });
 
             function initSelect2ForComponent(row) {
@@ -1489,8 +1493,41 @@
                 });
             }
 
+            // Real-time Bundle Stock Calculation
+            function calculateDynamicBundleStock() {
+                if (!$('#is_bundle').is(':checked')) {
+                    return;
+                }
+                let minStock = null;
+                let hasComponents = false;
+
+                $('#table-components tbody tr.component-row').each(function() {
+                    const select = $(this).find('.select-component-item');
+                    const qtyInput = $(this).find('input[type="number"]');
+                    
+                    const selectedOption = select.find('option:selected');
+                    if (selectedOption.val()) {
+                        hasComponents = true;
+                        const compStock = parseInt(selectedOption.data('stock')) || 0;
+                        const qtyNeeded = parseInt(qtyInput.val()) || 1;
+                        const possibleStock = Math.floor(compStock / qtyNeeded);
+                        
+                        if (minStock === null || possibleStock < minStock) {
+                            minStock = possibleStock;
+                        }
+                    }
+                });
+
+                const finalStock = hasComponents ? (minStock !== null ? minStock : 0) : 0;
+                $('#stock').val(finalStock);
+            }
+
+            $(document).on('change', '.select-component-item', calculateDynamicBundleStock);
+            $(document).on('input change', '#table-components tbody tr.component-row input[type="number"]', calculateDynamicBundleStock);
+
             $(document).on('click', '.btn-remove-component-row', function() {
                 $(this).closest('.component-row').remove();
+                calculateDynamicBundleStock();
             });
 
             // Initialize existing select2 for components
