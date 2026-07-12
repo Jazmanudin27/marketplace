@@ -105,7 +105,9 @@ class MasterProductController extends Controller
         $brands = \App\Models\Brand::where('tenant_id', Auth::user()->tenant_id)->get();
         
         $allProducts = MasterProduct::where('tenant_id', Auth::user()->tenant_id)
-            ->where('is_bundle', false)
+            ->where(function($q) {
+                $q->where('is_bundle', false)->orWhereNull('is_bundle');
+            })
             ->orderBy('name')
             ->get(['id', 'sku', 'name', 'stock']);
 
@@ -222,7 +224,9 @@ class MasterProductController extends Controller
             
         $allProducts = MasterProduct::where('tenant_id', Auth::user()->tenant_id)
             ->where('id', '!=', $product->id)
-            ->where('is_bundle', false)
+            ->where(function($q) {
+                $q->where('is_bundle', false)->orWhereNull('is_bundle');
+            })
             ->orderBy('name')
             ->get(['id', 'sku', 'name', 'stock']);
 
