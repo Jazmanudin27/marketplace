@@ -270,7 +270,7 @@
 
                 let bomRowIndex = {{ isset($recipe) && $recipe->items->count() > 0 ? $recipe->items->count() : 0 }};
                 let laborRowIndex =
-                {{ isset($recipe) && $recipe->labors->count() > 0 ? $recipe->labors->count() : 0 }};
+                    {{ isset($recipe) && $recipe->labors->count() > 0 ? $recipe->labors->count() : 0 }};
 
                 // Initialize select2 components
                 $('.select-product-target').select2({
@@ -335,7 +335,7 @@
                 // Bind events to trigger live recalculation
                 $(document).on('input change',
                     '#batch_qty, .qty-field, .qty-labor-field, .unit-cost-field, .select-bom-item', calculateLiveHpp
-                    );
+                );
 
                 // --- Materials Row Actions ---
                 $('#btn-add-bom-row').on('click', function() {
@@ -489,7 +489,7 @@
 
                     if (confirm(
                             'Menyalin formula akan menghapus komponen bahan baku dan jasa yang sudah Anda masukkan saat ini di form. Apakah Anda yakin ingin melanjutkan?'
-                            )) {
+                        )) {
                         // Show loading state
                         const $btn = $(this);
                         $btn.prop('disabled', true).html(
@@ -561,7 +561,7 @@
                                         let found = false;
                                         laborServicesData.forEach(function(ls) {
                                             if (ls.name === labor.service_name) found =
-                                            true;
+                                                true;
                                             optionsHtml +=
                                                 `<option value="${ls.name}" data-cost="${parseInt(ls.default_cost) || 0}" ${ls.name === labor.service_name ? 'selected' : ''}>${ls.name}</option>`;
                                         });
