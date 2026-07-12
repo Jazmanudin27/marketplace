@@ -2154,7 +2154,8 @@
                     row.find('.select-bom-item').select2({
                         theme: 'bootstrap-5',
                         placeholder: '— Pilih Bahan —',
-                        allowClear: true
+                        allowClear: true,
+                        width: '100%'
                     });
                 }
 
@@ -2227,7 +2228,8 @@
                     row.find('.select-labor-item').select2({
                         theme: 'bootstrap-5',
                         placeholder: '— Pilih Jasa —',
-                        allowClear: true
+                        allowClear: true,
+                        width: '100%'
                     });
                 }
 
@@ -2276,14 +2278,16 @@
                 $('.select-bom-item').select2({
                     theme: 'bootstrap-5',
                     placeholder: '— Pilih Bahan —',
-                    allowClear: true
+                    allowClear: true,
+                    width: '100%'
                 });
 
                 // Initialize existing select2 for Labor rows
                 $('.select-labor-item').select2({
                     theme: 'bootstrap-5',
                     placeholder: '— Pilih Jasa —',
-                    allowClear: true
+                    allowClear: true,
+                    width: '100%'
                 });
 
                 // Initial run to update loaded labor cost displays

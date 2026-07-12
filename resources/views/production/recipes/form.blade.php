@@ -37,11 +37,14 @@
                                         (Opsional)</label>
                                     <select id="select-copy-source" class="form-select select-copy-source"
                                         style="width: 100%;">
-                                        <option value=""></option>
-                                        @foreach ($productsWithRecipe as $p)
-                                            <option value="{{ $p->id }}">{{ $p->name }} ({{ $p->sku ?? '—' }})
-                                            </option>
-                                        @endforeach
+                                        @if($productsWithRecipe->isEmpty())
+                                            <option value="" disabled>— Belum ada formula produk lain yang tersimpan —</option>
+                                        @else
+                                            <option value=""></option>
+                                            @foreach ($productsWithRecipe as $p)
+                                                <option value="{{ $p->id }}">{{ $p->name }} ({{ $p->sku ?? '—' }})</option>
+                                            @endforeach
+                                        @endif
                                     </select>
                                 </div>
                                 <div class="col-md-5">
@@ -276,25 +279,29 @@
                 $('.select-product-target').select2({
                     theme: 'bootstrap-5',
                     placeholder: '— Pilih Produk Jadi —',
-                    allowClear: true
+                    allowClear: true,
+                    width: '100%'
                 });
 
                 $('.select-copy-source').select2({
                     theme: 'bootstrap-5',
                     placeholder: '— Cari & Pilih Produk Sumber Formula —',
-                    allowClear: true
+                    allowClear: true,
+                    width: '100%'
                 });
 
                 $('.select-bom-item').select2({
                     theme: 'bootstrap-5',
                     placeholder: '— Pilih Bahan Baku —',
-                    allowClear: true
+                    allowClear: true,
+                    width: '100%'
                 });
 
                 $('.select-labor-item').select2({
                     theme: 'bootstrap-5',
                     placeholder: '— Pilih Jasa / QC —',
-                    allowClear: true
+                    allowClear: true,
+                    width: '100%'
                 });
 
                 // Helpers for formatting and cleaning numbers
@@ -370,7 +377,8 @@
                     $addedRow.find('.select-bom-item').select2({
                         theme: 'bootstrap-5',
                         placeholder: '— Pilih Bahan Baku —',
-                        allowClear: true
+                        allowClear: true,
+                        width: '100%'
                     });
 
                     bomRowIndex++;
@@ -429,7 +437,8 @@
                     $addedRow.find('.select-labor-item').select2({
                         theme: 'bootstrap-5',
                         placeholder: '— Pilih Jasa / QC —',
-                        allowClear: true
+                        allowClear: true,
+                        width: '100%'
                     });
 
                     laborRowIndex++;
@@ -536,11 +545,12 @@
                                         $('#table-bom tbody').append(rowHtml);
 
                                         const $addedRow = $('#table-bom tbody tr:last-child');
-                                        $addedRow.find('.select-bom-item').select2({
-                                            theme: 'bootstrap-5',
-                                            placeholder: '— Pilih Bahan Baku —',
-                                            allowClear: true
-                                        });
+                                         $addedRow.find('.select-bom-item').select2({
+                                             theme: 'bootstrap-5',
+                                             placeholder: '— Pilih Bahan Baku —',
+                                             allowClear: true,
+                                             width: '100%'
+                                         });
 
                                         // Set unit span
                                         const selectedOpt = $addedRow.find(
@@ -597,7 +607,8 @@
                                         $addedRow.find('.select-labor-item').select2({
                                             theme: 'bootstrap-5',
                                             placeholder: '— Pilih Jasa / QC —',
-                                            allowClear: true
+                                            allowClear: true,
+                                            width: '100%'
                                         });
 
                                         laborRowIndex++;
