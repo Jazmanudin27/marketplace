@@ -391,7 +391,7 @@ class ProductRecipeController extends Controller
             }
         }
 
-        $products = $query->orderBy('name')->paginate(10)->withQueryString();
+        $products = $query->orderBy('name')->paginate(20)->withQueryString();
 
         $inventoryItems = InventoryItem::where('tenant_id', $tenantId)
             ->whereIn('type', ['bahan', 'kemasan'])
