@@ -268,6 +268,14 @@
         let saveTimeouts = {};
 
         $(document).ready(function() {
+            // Initialize select2
+            $('.bom-item-select').select2({
+                theme: 'bootstrap-5',
+                placeholder: '— Pilih Bahan Baku —',
+                allowClear: true,
+                width: '100%'
+            });
+
             // Initial calculations
             $('.product-recipe-card').each(function() {
                 const productId = $(this).data('product-id');
@@ -332,7 +340,14 @@
                 const tbody = card.find('.bom-tbody');
                 
                 const rowHtml = generateBomRow(productId);
-                tbody.append(rowHtml);
+                const newRow = $(rowHtml);
+                tbody.append(newRow);
+                newRow.find('.bom-item-select').select2({
+                    theme: 'bootstrap-5',
+                    placeholder: '— Pilih Bahan Baku —',
+                    allowClear: true,
+                    width: '100%'
+                });
             });
 
             // Add Labor Row Button
