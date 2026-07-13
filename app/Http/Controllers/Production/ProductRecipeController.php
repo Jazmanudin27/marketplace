@@ -112,7 +112,7 @@ class ProductRecipeController extends Controller
             }
         });
 
-        return redirect()->route('product_recipes.index')
+        return redirect()->route('product_recipes.index', $request->query())
             ->with('success', 'Formula produk berhasil ditambahkan.');
     }
 
@@ -191,7 +191,7 @@ class ProductRecipeController extends Controller
             }
         });
 
-        return redirect()->route('product_recipes.index')
+        return redirect()->route('product_recipes.index', $request->query())
             ->with('success', 'Formula produk berhasil diperbarui.');
     }
 
@@ -202,7 +202,7 @@ class ProductRecipeController extends Controller
         ProductRecipe::where('master_product_id', $product->id)
             ->update(['is_active' => false]);
 
-        return redirect()->route('product_recipes.index')
+        return redirect()->route('product_recipes.index', request()->query())
             ->with('success', 'Formula produk berhasil dihapus/dinonaktifkan.');
     }
 

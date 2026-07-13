@@ -21,7 +21,7 @@
 
                 <div class="card-body p-4">
                     <form
-                        action="{{ isset($product) ? route('product_recipes.update', $product->id) : route('product_recipes.store') }}"
+                        action="{{ isset($product) ? route('product_recipes.update', array_merge([$product->id], request()->query())) : route('product_recipes.store', request()->query()) }}"
                         method="POST" id="form-recipe">
                         @csrf
                         @if (isset($product))
@@ -264,7 +264,7 @@
                         </div>
 
                         <div class="d-flex justify-content-end mt-4 pt-3 border-top">
-                            <a href="{{ route('product_recipes.index') }}"
+                            <a href="{{ route('product_recipes.index', request()->query()) }}"
                                 class="btn btn-secondary fw-semibold px-4 me-2">Batal</a>
                             <button type="submit" class="btn btn-success fw-bold px-4">
                                 <i class="fas fa-save me-1"></i> Simpan Formula Produk

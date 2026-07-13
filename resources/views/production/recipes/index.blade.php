@@ -14,7 +14,7 @@
                         </h6>
                         <small class="text-muted d-block">Kelola resep bahan baku dan biaya jasa produksi produk jadi</small>
                     </div>
-                    <a href="{{ route('product_recipes.create') }}" class="btn btn-primary btn-sm px-3 rounded-3">
+                    <a href="{{ route('product_recipes.create', request()->query()) }}" class="btn btn-primary btn-sm px-3 rounded-3">
                         <i class="fas fa-plus me-1"></i> Tambah Formula
                     </a>
                 </div>
@@ -170,11 +170,11 @@
                                                         data-bs-toggle="modal" data-bs-target="#viewRecipeModal">
                                                         <i class="fas fa-eye me-1"></i>Detail
                                                     </button>
-                                                    <a href="{{ route('product_recipes.edit', $p->id) }}"
+                                                    <a href="{{ route('product_recipes.edit', array_merge([$p->id], request()->query())) }}"
                                                         class="btn btn-xs btn-outline-warning">
                                                         <i class="fas fa-pencil-alt me-1"></i>Edit
                                                     </a>
-                                                    <form action="{{ route('product_recipes.destroy', $p->id) }}"
+                                                    <form action="{{ route('product_recipes.destroy', array_merge([$p->id], request()->query())) }}"
                                                         method="POST" class="confirm-delete d-inline"
                                                         data-message="Formula resep produk ini akan dinonaktifkan!">
                                                         @csrf
@@ -185,7 +185,7 @@
                                                     </form>
                                                 </div>
                                             @else
-                                                <a href="{{ route('product_recipes.edit', $p->id) }}"
+                                                <a href="{{ route('product_recipes.edit', array_merge([$p->id], request()->query())) }}"
                                                     class="btn btn-xs btn-outline-primary px-3">
                                                     <i class="fas fa-plus me-1"></i>Buat Formula
                                                 </a>
@@ -326,7 +326,6 @@
                                 <tr>
                                     <td>
                                         <div class="fw-bold text-dark">${item.name}</div>
-                                        <div class="text-muted font-monospace" style="font-size:10px;">${item.sku || '—'}</div>
                                     </td>
                                     <td class="text-center">${parseFloat(item.qty).toLocaleString('id-ID')} ${item.unit}</td>
                                     <td class="text-end">${formatRupiah(item.price)}</td>
