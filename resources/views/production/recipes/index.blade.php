@@ -14,9 +14,24 @@
                         </h6>
                         <small class="text-muted d-block">Kelola resep bahan baku dan biaya jasa produksi produk jadi</small>
                     </div>
-                    <a href="{{ route('product_recipes.create', request()->query()) }}" class="btn btn-primary btn-sm px-3 rounded-3">
-                        <i class="fas fa-plus me-1"></i> Tambah Formula
-                    </a>
+                    <div class="d-flex gap-2">
+                        <a href="{{ route('product_recipes.export', request()->query()) }}"
+                            class="btn btn-outline-success btn-sm px-3 rounded-3">
+                            <i class="fas fa-file-excel me-1"></i> Export Excel
+                        </a>
+                        <a href="{{ route('product_recipes.print_report', request()->query()) }}" target="_blank"
+                            class="btn btn-outline-danger btn-sm px-3 rounded-3">
+                            <i class="fas fa-print me-1"></i> Cetak Laporan
+                        </a>
+                        <a href="{{ route('product_recipes.bulk', request()->query()) }}"
+                            class="btn btn-warning btn-sm px-3 rounded-3 fw-semibold">
+                            <i class="fas fa-edit me-1"></i> Input Massal
+                        </a>
+                        <a href="{{ route('product_recipes.create', request()->query()) }}"
+                            class="btn btn-primary btn-sm px-3 rounded-3">
+                            <i class="fas fa-plus me-1"></i> Tambah Formula
+                        </a>
+                    </div>
                 </div>
 
                 <div class="card-body p-3">
@@ -161,6 +176,7 @@
                                                 <div class="btn-group btn-group-sm">
                                                     <button type="button"
                                                         class="btn btn-xs btn-outline-info view-recipe-btn"
+                                                        data-product-id="{{ $p->id }}"
                                                         data-product-name="{{ $p->name }}"
                                                         data-product-sku="{{ $p->sku }}"
                                                         data-recipe-name="{{ $recipe->name }}"
@@ -174,7 +190,8 @@
                                                         class="btn btn-xs btn-outline-warning">
                                                         <i class="fas fa-pencil-alt me-1"></i>Edit
                                                     </a>
-                                                    <form action="{{ route('product_recipes.destroy', array_merge([$p->id], request()->query())) }}"
+                                                    <form
+                                                        action="{{ route('product_recipes.destroy', array_merge([$p->id], request()->query())) }}"
                                                         method="POST" class="confirm-delete d-inline"
                                                         data-message="Formula resep produk ini akan dinonaktifkan!">
                                                         @csrf
@@ -291,6 +308,9 @@
                     </div>
                 </div>
                 <div class="modal-footer bg-light px-4 py-3 border-top">
+                    <a href="#" id="print-recipe-link" target="_blank" class="btn btn-outline-primary btn-sm px-4 rounded-3 me-auto">
+                        <i class="fas fa-print me-1"></i> Cetak Detail BOM
+                    </a>
                     <button type="button" class="btn btn-secondary btn-sm px-4 rounded-3"
                         data-bs-dismiss="modal">Tutup</button>
                 </div>
@@ -304,6 +324,7 @@
                 const formatRupiah = (num) => 'Rp ' + Math.round(num).toLocaleString('id-ID');
 
                 $('.view-recipe-btn').on('click', function() {
+                    const productId = $(this).data('product-id');
                     const productName = $(this).data('product-name');
                     const productSku = $(this).data('product-sku');
                     const recipeName = $(this).data('recipe-name');
@@ -314,6 +335,7 @@
                     $('#detail-product-info').text(`${productName} (${productSku}) — ${recipeName}`);
                     $('#detail-batch-info').text(
                         `Dihitung berdasarkan pembagian Output Batch: ${batchQty} Pcs`);
+                    $('#print-recipe-link').attr('href', `/product_recipes/${productId}/print`);
 
                     // 1. Render Materials
                     let materialsHtml = '';

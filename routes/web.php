@@ -353,8 +353,18 @@ Route::middleware('auth')->group(function () {
         Route::get('/products/{product}/publish', [MasterProductController::class, 'publish'])->name('products.publish');
         Route::post('/products/{product}/publish', [MasterProductController::class, 'storePublish'])->name('products.publish.store');
         Route::post('/products/{product}/recipe', [MasterProductController::class, 'saveRecipe'])->name('products.save_recipe');
+        Route::get('/product_recipes/bulk', [\App\Http\Controllers\Production\ProductRecipeController::class, 'bulkEdit'])
+            ->name('product_recipes.bulk');
+        Route::post('/api/product-recipes/bulk-save', [\App\Http\Controllers\Production\ProductRecipeController::class, 'bulkSaveAjax'])
+            ->name('product_recipes.bulk_save');
         Route::resource('product_recipes', \App\Http\Controllers\Production\ProductRecipeController::class)
             ->only(['index', 'create', 'store', 'edit', 'update', 'destroy']);
+        Route::get('/product_recipes/print-report', [\App\Http\Controllers\Production\ProductRecipeController::class, 'printReport'])
+            ->name('product_recipes.print_report');
+        Route::get('/product_recipes/{id}/print', [\App\Http\Controllers\Production\ProductRecipeController::class, 'print'])
+            ->name('product_recipes.print');
+        Route::get('/product_recipes/export', [\App\Http\Controllers\Production\ProductRecipeController::class, 'export'])
+            ->name('product_recipes.export');
         Route::get('/api/product-recipes/{productId}/json', [\App\Http\Controllers\Production\ProductRecipeController::class, 'getRecipeJson'])
             ->name('product_recipes.json');
         Route::get('/api/shopee/categories', [MasterProductController::class, 'shopeeCategories'])->name('shopee.categories');
