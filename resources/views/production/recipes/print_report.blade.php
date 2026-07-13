@@ -1,41 +1,139 @@
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8">
     <title>Laporan Daftar Formula &amp; HPP Produk</title>
     <style>
-        body { font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 11px; color: #000; margin: 20px 30px; line-height: 1.4; }
-        .header-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; border-bottom: 2px solid #000; padding-bottom: 10px; }
-        .header-table td { vertical-align: top; }
-        .header-left { width: 60%; }
-        .header-right { width: 40%; text-align: right; }
-        .company-name { font-size: 14px; font-weight: bold; text-transform: uppercase; margin: 0 0 5px 0; }
-        .doc-title { font-size: 18px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; margin: 0 0 5px 0; color: #1e293b; }
-        
-        .filter-info { font-size: 9px; color: #555; background: #f8fafc; padding: 6px 10px; border: 1px solid #e2e8f0; border-radius: 4px; margin-bottom: 15px; }
-        
-        .data-table { width: 100%; border-collapse: collapse; margin-bottom: 15px; }
-        .data-table th, .data-table td { border: 1px solid #ddd; padding: 6px 8px; text-align: left; }
-        .data-table th { background: #f8fafc; font-size: 10px; font-weight: bold; text-transform: uppercase; border-bottom: 2px solid #000; }
-        .data-table td.text-center { text-align: center; }
-        .data-table td.text-end { text-align: right; }
-        .data-table th.text-center { text-align: center; }
-        .data-table th.text-end { text-align: right; }
-        .font-mono { font-family: monospace; }
-        
-        .btn-print-container { text-align: right; margin-bottom: 20px; }
-        .btn-print { padding: 6px 15px; background: #3b82f6; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 11px; }
-        
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            font-size: 11px;
+            color: #000;
+            margin: 20px 30px;
+            line-height: 1.4;
+        }
+
+        .header-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #000;
+            padding-bottom: 10px;
+        }
+
+        .header-table td {
+            vertical-align: top;
+        }
+
+        .header-left {
+            width: 60%;
+        }
+
+        .header-right {
+            width: 40%;
+            text-align: right;
+        }
+
+        .company-name {
+            font-size: 14px;
+            font-weight: bold;
+            text-transform: uppercase;
+            margin: 0 0 5px 0;
+        }
+
+        .doc-title {
+            font-size: 18px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin: 0 0 5px 0;
+            color: #1e293b;
+        }
+
+        .filter-info {
+            font-size: 9px;
+            color: #555;
+            background: #f8fafc;
+            padding: 6px 10px;
+            border: 1px solid #e2e8f0;
+            border-radius: 4px;
+            margin-bottom: 15px;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+        }
+
+        .data-table th,
+        .data-table td {
+            border: 1px solid #ddd;
+            padding: 6px 8px;
+            text-align: left;
+        }
+
+        .data-table th {
+            background: #f8fafc;
+            font-size: 10px;
+            font-weight: bold;
+            text-transform: uppercase;
+            border-bottom: 2px solid #000;
+        }
+
+        .data-table td.text-center {
+            text-align: center;
+        }
+
+        .data-table td.text-end {
+            text-align: right;
+        }
+
+        .data-table th.text-center {
+            text-align: center;
+        }
+
+        .data-table th.text-end {
+            text-align: right;
+        }
+
+        .font-mono {
+            font-family: monospace;
+        }
+
+        .btn-print-container {
+            text-align: right;
+            margin-bottom: 20px;
+        }
+
+        .btn-print {
+            padding: 6px 15px;
+            background: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 11px;
+        }
+
         @media print {
-            .no-print { display: none; }
-            body { margin: 10mm 15mm; }
+            .no-print {
+                display: none;
+            }
+
+            body {
+                margin: 10mm 15mm;
+            }
         }
     </style>
 </head>
+
 <body>
 
     <div class="btn-print-container no-print">
-        <button class="btn-print" onclick="window.print()"><i class="fas fa-print"></i> Cetak Halaman (Print / PDF)</button>
+        <button class="btn-print" onclick="window.print()"><i class="fas fa-print"></i> Cetak Halaman (Print /
+            PDF)</button>
     </div>
 
     <table class="header-table">
@@ -51,13 +149,13 @@
         </tr>
     </table>
 
-    @if(request()->anyFilled(['search', 'status']))
+    @if (request()->anyFilled(['search', 'status']))
         <div class="filter-info">
             <strong>Filter Aktif:</strong>
-            @if(request('search'))
+            @if (request('search'))
                 Pencarian: "{{ request('search') }}" &nbsp;&nbsp;&nbsp;
             @endif
-            @if(request('status'))
+            @if (request('status'))
                 Status: {{ request('status') === 'has_recipe' ? 'Sudah Ada Formula' : 'Belum Ada Formula' }}
             @endif
         </div>
@@ -67,7 +165,8 @@
         <thead>
             <tr>
                 <th style="width: 40px;" class="text-center">#</th>
-                <th>Nama Produk &amp; SKU</th>
+                <th>SKU</th>
+                <th>Nama Produk</th>
                 <th style="width: 100px;" class="text-center">Tipe Produk</th>
                 <th>Nama Formula Terpasang</th>
                 <th style="width: 90px;" class="text-center">Bahan Baku</th>
@@ -76,8 +175,8 @@
             </tr>
         </thead>
         <tbody>
-            @php 
-                $grandTotalHpp = 0; 
+            @php
+                $grandTotalHpp = 0;
                 $countWithRecipe = 0;
             @endphp
             @forelse($products as $i => $p)
@@ -107,10 +206,8 @@
                 @endphp
                 <tr>
                     <td class="text-center">{{ $i + 1 }}</td>
-                    <td>
-                        <strong>{{ $p->name }}</strong>
-                        <div style="font-size: 9px; color: #555; font-family: monospace;">{{ $p->sku ?: '—' }}</div>
-                    </td>
+                    <td>{{ $p->name }}</td>
+                    <td>{{ $p->sku }}</td>
                     <td class="text-center">
                         {{ $p->is_bundle ? 'Set / Bundle' : 'Single' }}
                     </td>
@@ -158,14 +255,16 @@
                 <td>Produk Belum Memiliki Formula</td>
                 <td class="text-center"><strong>{{ $products->count() - $countWithRecipe }}</strong></td>
             </tr>
-            @if($countWithRecipe > 0)
+            @if ($countWithRecipe > 0)
                 <tr style="font-weight: bold;">
                     <td>Rata-rata HPP Terpasang</td>
-                    <td class="text-end font-mono">Rp {{ number_format($grandTotalHpp / $countWithRecipe, 0, ',', '.') }}</td>
+                    <td class="text-end font-mono">Rp
+                        {{ number_format($grandTotalHpp / $countWithRecipe, 0, ',', '.') }}</td>
                 </tr>
             @endif
         </tbody>
     </table>
 
 </body>
+
 </html>
