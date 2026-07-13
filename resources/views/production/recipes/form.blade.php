@@ -4,7 +4,7 @@
 
 @section('content')
     <div class="row justify-content-center">
-        <div class="col-lg-11">
+        <div class="col-lg-12">
             <div class="card border shadow-sm overflow-hidden">
                 <div class="card-header bg-primary bg-opacity-10 d-flex align-items-center border-bottom py-2 px-3">
                     <a href="{{ route('product_recipes.index') }}" class="btn btn-sm btn-link text-secondary me-2 p-0"><i
@@ -95,7 +95,7 @@
 
                         <div class="row g-4">
                             <!-- Kiri: Formulasi Bahan Baku -->
-                            <div class="col-lg-5 border-end pe-lg-4">
+                            <div class="col-lg-6 border-end pe-lg-4">
                                 <div class="d-flex justify-content-between align-items-center mb-3">
                                     <h6 class="fw-bold text-dark mb-0"><i class="fas fa-boxes me-2 text-primary"></i>1.
                                         Formulasi Bahan Baku (BOM)</h6>
@@ -108,9 +108,11 @@
                                     <table class="table table-hover align-middle table-sm" id="table-bom">
                                         <thead>
                                             <tr class="small text-uppercase text-muted" style="font-size:11px">
-                                                <th style="width: 60%">Bahan Baku</th>
-                                                <th style="width: 30%">Qty Takaran</th>
-                                                <th style="width: 10%" class="text-center"></th>
+                                                <th style="width: 40%">Bahan Baku</th>
+                                                <th style="width: 25%">Qty Takaran</th>
+                                                <th style="width: 15%">Harga (Rp)</th>
+                                                <th style="width: 15%">Subtotal (Rp)</th>
+                                                <th style="width: 5%" class="text-center"></th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -142,6 +144,16 @@
                                                                     style="font-size:10px">{{ $rItem->inventoryItem->unit ?? 'PCS' }}</span>
                                                             </div>
                                                         </td>
+                                                        <td>
+                                                            <input type="text"
+                                                                class="form-control form-control-sm bom-price-field bg-light text-muted text-end font-monospace"
+                                                                value="0" readonly>
+                                                        </td>
+                                                        <td>
+                                                            <input type="text"
+                                                                class="form-control form-control-sm bom-subtotal-field bg-light text-muted text-end font-monospace"
+                                                                value="0" readonly>
+                                                        </td>
                                                         <td class="text-center">
                                                             <button type="button"
                                                                 class="btn btn-sm btn-link text-danger btn-remove-bom-row"><i
@@ -156,7 +168,7 @@
                             </div>
 
                             <!-- Kanan: Template Jasa Ahli -->
-                            <div class="col-lg-7 ps-lg-4">
+                            <div class="col-lg-6 ps-lg-4">
                                 <div class="d-flex justify-content-between align-items-center mb-3">
                                     <h6 class="fw-bold text-dark mb-0"><i class="fas fa-user-cog me-2 text-warning"></i>2.
                                         Jasa Ahli &amp; QC</h6>
@@ -317,10 +329,15 @@
                     $('#table-bom tbody tr').each(function() {
                         const selectedOption = $(this).find('.select-bom-item option:selected');
                         const qty = parseFloat($(this).find('.qty-field').val()) || 0;
+                        let price = 0;
+                        let subtotal = 0;
                         if (selectedOption.val()) {
-                            const price = parseFloat(selectedOption.data('price')) || 0;
-                            materialsTotal += (qty * price);
+                            price = parseFloat(selectedOption.data('price')) || 0;
+                            subtotal = qty * price;
+                            materialsTotal += subtotal;
                         }
+                        $(this).find('.bom-price-field').val(formatNumber(price));
+                        $(this).find('.bom-subtotal-field').val(formatNumber(subtotal));
                     });
 
                     let laborsTotal = 0;
@@ -364,6 +381,12 @@
                                     <input type="number" step="0.0001" name="items[${bomRowIndex}][quantity]" class="form-control qty-field" min="0.0001" value="1" required>
                                     <span class="input-group-text span-bom-unit" style="font-size:10px">—</span>
                                 </div>
+                            </td>
+                            <td>
+                                <input type="text" class="form-control form-control-sm bom-price-field bg-light text-muted text-end font-monospace" value="0" readonly>
+                            </td>
+                            <td>
+                                <input type="text" class="form-control form-control-sm bom-subtotal-field bg-light text-muted text-end font-monospace" value="0" readonly>
                             </td>
                             <td class="text-center">
                                 <button type="button" class="btn btn-sm btn-link text-danger btn-remove-bom-row"><i class="fas fa-trash-alt"></i></button>
@@ -536,6 +559,12 @@
                                                         <input type="number" step="0.0001" name="items[${bomRowIndex}][quantity]" class="form-control qty-field" min="0.0001" value="${item.quantity}" required>
                                                         <span class="input-group-text span-bom-unit" style="font-size:10px">—</span>
                                                     </div>
+                                                </td>
+                                                <td>
+                                                    <input type="text" class="form-control form-control-sm bom-price-field bg-light text-muted text-end font-monospace" value="0" readonly>
+                                                </td>
+                                                <td>
+                                                    <input type="text" class="form-control form-control-sm bom-subtotal-field bg-light text-muted text-end font-monospace" value="0" readonly>
                                                 </td>
                                                 <td class="text-center">
                                                     <button type="button" class="btn btn-sm btn-link text-danger btn-remove-bom-row"><i class="fas fa-trash-alt"></i></button>
