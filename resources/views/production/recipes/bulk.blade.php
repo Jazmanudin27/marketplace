@@ -65,10 +65,15 @@
                 <hr class="my-3 text-muted">
 
                 <form method="GET" action="{{ route('product_recipes.bulk') }}" class="row g-2 align-items-end">
-                    <div class="col-12 col-md-5 col-lg-4">
+                    <div class="col-12 col-md-4 col-lg-3">
                         <label class="form-label small fw-bold text-dark">Cari Produk / SKU</label>
                         <input type="text" name="search" class="form-control form-control-sm"
                             placeholder="Ketik nama atau SKU..." value="{{ request('search') }}">
+                    </div>
+                    <div class="col-12 col-md-3 col-lg-3">
+                        <label class="form-label small fw-bold text-dark">SKU Induk</label>
+                        <input type="text" name="sku_induk" class="form-control form-control-sm"
+                            placeholder="Ketik SKU Induk..." value="{{ request('sku_induk') }}">
                     </div>
                     <div class="col-12 col-md-3 col-lg-3">
                         <label class="form-label small fw-bold text-dark">Status Formula</label>
@@ -78,11 +83,11 @@
                             <option value="no_recipe" {{ request('status') === 'no_recipe' ? 'selected' : '' }}>Belum Ada Formula</option>
                         </select>
                     </div>
-                    <div class="col-12 col-md-4 col-lg-3 d-flex gap-2">
+                    <div class="col-12 col-md-2 col-lg-3 d-flex gap-2">
                         <button type="submit" class="btn btn-primary btn-sm px-4">
                             <i class="fas fa-search me-1"></i> Filter
                         </button>
-                        @if (request()->anyFilled(['search', 'status']))
+                        @if (request()->anyFilled(['search', 'sku_induk', 'status']))
                             <a href="{{ route('product_recipes.bulk') }}" class="btn btn-secondary btn-sm px-3">
                                 <i class="fas fa-times me-1"></i> Reset
                             </a>

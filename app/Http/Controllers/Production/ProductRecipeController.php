@@ -378,6 +378,11 @@ class ProductRecipeController extends Controller
             });
         }
 
+        if ($request->filled('sku_induk')) {
+            $skuInduk = $request->sku_induk;
+            $query->where('sku_induk', 'like', '%' . $skuInduk . '%');
+        }
+
         if ($request->filled('status')) {
             if ($request->status === 'has_recipe') {
                 $query->whereHas('activeRecipe');
