@@ -164,14 +164,11 @@
     <table class="data-table">
         <thead>
             <tr>
-                <th style="width: 40px;" class="text-center">#</th>
-                <th>SKU</th>
+                <th style="width: 3%;" class="text-center">#</th>
+                <th style="width: 12%;">SKU</th>
                 <th>Nama Produk</th>
-                <th style="width: 100px;" class="text-center">Tipe Produk</th>
-                <th>Nama Formula Terpasang</th>
-                <th style="width: 90px;" class="text-center">Bahan Baku</th>
-                <th style="width: 90px;" class="text-center">Operasional Jasa</th>
-                <th style="width: 140px;" class="text-end">Total HPP (Per Pcs)</th>
+                <th style="width: 7%;" class="text-center">Tipe Produk</th>
+                <th class="text-end">Total HPP (Per Pcs)</th>
             </tr>
         </thead>
         <tbody>
@@ -206,23 +203,14 @@
                 @endphp
                 <tr>
                     <td class="text-center">{{ $i + 1 }}</td>
-                    <td>{{ $p->name }}</td>
                     <td>{{ $p->sku }}</td>
+                    <td>{{ $p->name }}</td>
                     <td class="text-center">
                         {{ $p->is_bundle ? 'Set / Bundle' : 'Single' }}
                     </td>
-                    <td>
-                        {{ $recipe ? $recipe->name : '— (Belum dikonfigurasi)' }}
-                    </td>
-                    <td class="text-center">
-                        {{ $recipe && $materialsCount > 0 ? $materialsCount . ' item' : '—' }}
-                    </td>
-                    <td class="text-center">
-                        {{ $recipe && $laborsCount > 0 ? $laborsCount . ' operasional' : '—' }}
-                    </td>
                     <td class="text-end font-mono" style="font-weight: bold;">
                         @if ($recipe)
-                            Rp {{ number_format($totalCost, 0, ',', '.') }}
+                            {{ number_format($totalCost, 0, ',', '.') }}
                         @else
                             —
                         @endif
