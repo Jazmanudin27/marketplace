@@ -301,4 +301,16 @@ class Order extends Model
             ->whereNotNull('ship_before_date')
             ->where('ship_before_date', '<=', now()->addHours(24));
     }
+
+    public function spks(): HasMany
+    {
+        return $this->hasMany(Spk::class);
+    }
+
+    public function hasPreorderItems(): bool
+    {
+        return $this->items->contains(function ($item) {
+            return $item->masterProduct && $item->masterProduct->is_preorder;
+        });
+    }
 }

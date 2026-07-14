@@ -18,6 +18,9 @@
 
             <form action="{{ route('spks.store') }}" method="POST" enctype="multipart/form-data" id="spkForm">
                 @csrf
+                @if (isset($order))
+                    <input type="hidden" name="order_id" value="{{ $order->id }}">
+                @endif
                 <div class="card-body p-4">
 
                     @if ($errors->any())
@@ -56,12 +59,12 @@
                         <div class="col-md-4">
                             <label class="form-label fw-semibold small">Nama Pemesan</label>
                             <input type="text" name="pemesan" class="form-control form-control-sm"
-                                placeholder="Contoh: Ibu Yanti" value="{{ old('pemesan') }}">
+                                placeholder="Contoh: Ibu Yanti" value="{{ old('pemesan', $order->buyer_name ?? '') }}">
                         </div>
                         <div class="col-md-4">
                             <label class="form-label fw-semibold small">No. HP Pemesan</label>
                             <input type="text" name="no_hp_pemesan" class="form-control form-control-sm"
-                                placeholder="0852-xxxx-xxxx" value="{{ old('no_hp_pemesan') }}">
+                                placeholder="0852-xxxx-xxxx" value="{{ old('no_hp_pemesan', $order->buyer_phone ?? '') }}">
                         </div>
                         <div class="col-md-4">
                             <label class="form-label fw-semibold small">Instansi</label>
@@ -71,7 +74,7 @@
                         <div class="col-md-8">
                             <label class="form-label fw-semibold small">Aksesoris / Atribut Tambahan</label>
                             <textarea name="tambahan" class="form-control form-control-sm" rows="2"
-                                placeholder="Misal: Bordir Logo 46 Pcs, Kancing Emas...">{{ old('tambahan') }}</textarea>
+                                placeholder="Misal: Bordir Logo 46 Pcs, Kancing Emas...">{{ old('tambahan', isset($order) ? 'Diproduksi untuk Pesanan #' . ($order->invoice_number ?? $order->order_marketplace_id) : '') }}</textarea>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label fw-semibold small">Upload Foto Desain</label>
@@ -319,8 +322,71 @@
         // ——— jQuery Ready ———
         $(document).ready(function() {
 
-            // First row
-            addRow();
+            // Populate from order if set, otherwise add a single blank row
+            @if(isset($order))
+                @foreach($order->items as $item)
+                    (function() {
+                        addRow();
+                        const $card = $('.item-card').last();
+                        $card.find('.item-name').val("{{ $item->product_name }}");
+                        $card.find('.item-sku').val("{{ $item->sku }}");
+                        $card.find('.item-sku-induk').val("{{ $item->sku_induk }}");
+                        $card.find('.item-qty').val("{{ $item->quantity }}");
+                        
+                        @if($item->ukuran)
+                            const sizeVal = "{{ $item->ukuran }}";
+                            const $sel = $card.find('.item-size');
+                            let found = false;
+                            $sel.find('option').each(function() {
+                                if ($(this).val().toUpperCase() === sizeVal.toUpperCase()) {
+                                    $sel.val($(this).val());
+                                    found = true;
+                                    return false;
+                                }
+                            });
+                            if (!found) {
+                                $sel.append(`<option value="${sizeVal}">${sizeVal}</option>`);
+                                $sel.val(sizeVal);
+                            }
+                        @endif
+
+                        // Auto-populate costs using matching catalog product
+                        const matchedProduct = catalogProducts.find(p => p.sku === "{{ $item->sku }}");
+                        if (matchedProduct) {
+                            $card.find('.item-name').val(matchedProduct.name);
+                            if (matchedProduct.active_recipe) {
+                                const recipe = matchedProduct.active_recipe;
+                                const batchQty = Math.max(1, parseInt(recipe.batch_qty) || 1);
+
+                                // 1. Map Labors
+                                if (recipe.labors && recipe.labors.length > 0) {
+                                    recipe.labors.forEach(labor => {
+                                        const cost = parseFloat(labor.default_cost || 0) / batchQty;
+                                        addExtraRowWithValues($card, labor.service_name, cost);
+                                    });
+                                }
+
+                                // 2. Map Materials
+                                if (recipe.items && recipe.items.length > 0) {
+                                    recipe.items.forEach(rItem => {
+                                        const invItem = rItem.inventory_item;
+                                        if (invItem) {
+                                            const itemQty = parseFloat(rItem.quantity || 0) / batchQty;
+                                            const itemCost = itemQty * parseFloat(invItem.cost_price || 0);
+                                            addExtraRowWithValues($card, 'Bahan: ' + invItem.name + ' (' + itemQty.toFixed(2) + ' ' + (invItem.unit || 'm') + '/pcs)', itemCost);
+                                        }
+                                    });
+                                }
+                            } else if (matchedProduct.cost_price) {
+                                addExtraRowWithValues($card, 'Bahan: Kain', parseFloat(matchedProduct.cost_price) || 0);
+                            }
+                        }
+                        recalcHpp($card);
+                    })();
+                @endforeach
+            @else
+                addRow();
+            @endif
 
             // Tambah item baru
             $('#btnAddRow').on('click', function() {
@@ -428,23 +494,8 @@
                                 // 1. Map Labors (Services)
                                 if (recipe.labors && recipe.labors.length > 0) {
                                     recipe.labors.forEach(labor => {
-                                        const name = (labor.service_name || '').toLowerCase();
                                         const cost = parseFloat(labor.default_cost || 0) / batchQty;
-
-                                        if (name.includes('jahit')) {
-                                            $card.find('[data-field="jasa_jahit"]').val(formatRupiah(cost));
-                                        } else if (name.includes('potong')) {
-                                            $card.find('[data-field="jasa_potong"]').val(formatRupiah(cost));
-                                        } else if (name.includes('print') || name.includes('sablon')) {
-                                            $card.find('[data-field="jasa_printing"]').val(formatRupiah(cost));
-                                        } else if (name.includes('label') || name.includes('labsas')) {
-                                            $card.find('[data-field="jasa_labsas"]').val(formatRupiah(cost));
-                                        } else if (name.includes('konveksi')) {
-                                            $card.find('[data-field="jasa_konveksi"]').val(formatRupiah(cost));
-                                        } else {
-                                            // Add as dynamic extra
-                                            addExtraRowWithValues($card, labor.service_name, cost);
-                                        }
+                                        addExtraRowWithValues($card, labor.service_name, cost);
                                     });
                                 }
 
@@ -453,60 +504,20 @@
                                     recipe.items.forEach(rItem => {
                                         const invItem = rItem.inventory_item;
                                         if (invItem) {
-                                            const name = (invItem.name || '').toLowerCase();
                                             const itemQty = parseFloat(rItem.quantity || 0) / batchQty;
                                             const itemCost = itemQty * parseFloat(invItem.cost_price || 0);
-
-                                            if (name.includes('kain')) {
-                                                $card.find('[data-field="kebutuhan_kain"]').val(itemQty.toFixed(2));
-                                                $card.find('[data-field="biaya_kain"]').val(formatRupiah(itemCost));
-                                            } else if (name.includes('resleting') || name.includes('sbs')) {
-                                                $card.find('[data-field="biaya_sbs"]').val(formatRupiah(itemCost));
-                                            } else if (name.includes('pita') || name.includes('pitta')) {
-                                                $card.find('[data-field="biaya_pitta"]').val(formatRupiah(itemCost));
-                                            } else if (name.includes('kancing kait')) {
-                                                $card.find('[data-field="biaya_kancing_kait"]').val(formatRupiah(itemCost));
-                                            } else if (name.includes('kancing')) {
-                                                $card.find('[data-field="biaya_kancing"]').val(formatRupiah(itemCost));
-                                            } else if (name.includes('karet')) {
-                                                $card.find('[data-field="biaya_karet"]').val(formatRupiah(itemCost));
-                                            } else if (name.includes('plastik')) {
-                                                $card.find('[data-field="biaya_plastik"]').val(formatRupiah(itemCost));
-                                            } else if (name.includes('tali') || name.includes('string')) {
-                                                $card.find('[data-field="biaya_string"]').val(formatRupiah(itemCost));
-                                            } else {
-                                                // Add as dynamic extra
-                                                addExtraRowWithValues($card, 'Bahan: ' + invItem.name, itemCost);
-                                            }
+                                            addExtraRowWithValues($card, 'Bahan: ' + invItem.name + ' (' + itemQty.toFixed(2) + ' ' + (invItem.unit || 'm') + '/pcs)', itemCost);
                                         }
                                     });
                                 }
-                            } else if (p.latest_costs) {
+                            } else if (p.latest_costs && p.latest_costs.length > 0) {
                                 // AUTO-POPULATE: Ambil rincian biaya dari riwayat input SPK terakhir untuk produk ini
-                                const fields = [
-                                    'jasa_konveksi', 'jasa_potong', 'jasa_printing',
-                                    'jasa_jahit', 'jasa_labsas',
-                                    'kebutuhan_kain', 'biaya_kain', 'biaya_sbs', 'biaya_pitta',
-                                    'biaya_kancing', 'biaya_kancing_kait',
-                                    'biaya_karet', 'biaya_plastik', 'biaya_string',
-                                    'biaya_bordir', 'biaya_servis', 'biaya_finishing',
-                                    'biaya_pengiriman'
-                                ];
-                                fields.forEach(f => {
-                                    let val = p.latest_costs[f] || 0;
-                                    let $inp = $card.find(`[data-field="${f}"]`);
-                                    if (f === 'kebutuhan_kain') {
-                                        $inp.val(val);
-                                    } else {
-                                        $inp.val(formatRupiah(val));
-                                    }
+                                p.latest_costs.forEach(extra => {
+                                    addExtraRowWithValues($card, extra.keterangan, extra.nominal);
                                 });
-                            } else {
+                            } else if (p.cost_price) {
                                 // Default biaya kain dari Master Product catalog cost_price jika ada
-                                if (p.cost_price) {
-                                    $card.find('[data-field="biaya_kain"]').val(
-                                        formatRupiah(parseFloat(p.cost_price) || 0));
-                                }
+                                addExtraRowWithValues($card, 'Bahan: Kain', parseFloat(p.cost_price) || 0);
                             }
 
                             // Set ukuran

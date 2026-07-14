@@ -89,7 +89,7 @@
                                     <th class="text-center">Bahan Baku</th>
                                     <th class="text-center">Jasa Ahli / QC</th>
                                     <th class="text-end">Total HPP Formula</th>
-                                    <th class="text-center" style="width: 180px;">Aksi</th>
+                                    <th class="text-center" style="width: 120px;">Aksi</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -173,9 +173,9 @@
                                         </td>
                                         <td class="text-center">
                                             @if ($recipe)
-                                                <div class="btn-group btn-group-sm">
+                                                <div class="d-flex gap-1 justify-content-center">
                                                     <button type="button"
-                                                        class="btn btn-xs btn-outline-info view-recipe-btn"
+                                                        class="btn btn-sm btn-info text-white rounded-3 view-recipe-btn"
                                                         data-product-id="{{ $p->id }}"
                                                         data-product-name="{{ $p->name }}"
                                                         data-product-sku="{{ $p->sku }}"
@@ -183,12 +183,14 @@
                                                         data-batch-qty="{{ $recipe->batch_qty }}"
                                                         data-items="{{ json_encode($recipe->items->map(fn($item) => ['name' => $item->inventoryItem->name, 'sku' => $item->inventoryItem->sku, 'qty' => $item->quantity, 'unit' => $item->inventoryItem->unit, 'price' => (float) $item->inventoryItem->cost_price])) }}"
                                                         data-labors="{{ json_encode($recipe->labors->map(fn($labor) => ['name' => $labor->service_name, 'cost' => (float) $labor->default_cost])) }}"
-                                                        data-bs-toggle="modal" data-bs-target="#viewRecipeModal">
-                                                        <i class="fas fa-eye me-1"></i>Detail
+                                                        data-bs-toggle="modal" data-bs-target="#viewRecipeModal"
+                                                        title="Detail Formula">
+                                                        <i class="fas fa-eye"></i>
                                                     </button>
                                                     <a href="{{ route('product_recipes.edit', array_merge([$p->id], request()->query())) }}"
-                                                        class="btn btn-xs btn-outline-warning">
-                                                        <i class="fas fa-pencil-alt me-1"></i>Edit
+                                                        class="btn btn-sm btn-warning text-white rounded-3"
+                                                        title="Edit Formula">
+                                                        <i class="fas fa-pencil-alt"></i>
                                                     </a>
                                                     <form
                                                         action="{{ route('product_recipes.destroy', array_merge([$p->id], request()->query())) }}"
@@ -196,16 +198,20 @@
                                                         data-message="Formula resep produk ini akan dinonaktifkan!">
                                                         @csrf
                                                         @method('DELETE')
-                                                        <button type="submit" class="btn btn-xs btn-outline-danger">
-                                                            <i class="fas fa-trash-alt me-1"></i>Hapus
+                                                        <button type="submit" class="btn btn-sm btn-danger rounded-3"
+                                                            title="Hapus Formula">
+                                                            <i class="fas fa-trash-alt"></i>
                                                         </button>
                                                     </form>
                                                 </div>
                                             @else
-                                                <a href="{{ route('product_recipes.edit', array_merge([$p->id], request()->query())) }}"
-                                                    class="btn btn-xs btn-outline-primary px-3">
-                                                    <i class="fas fa-plus me-1"></i>Buat Formula
-                                                </a>
+                                                <div class="d-flex justify-content-center">
+                                                    <a href="{{ route('product_recipes.edit', array_merge([$p->id], request()->query())) }}"
+                                                        class="btn btn-sm btn-primary rounded-3"
+                                                        title="Buat Formula">
+                                                        <i class="fas fa-plus"></i>
+                                                    </a>
+                                                </div>
                                             @endif
                                         </td>
                                     </tr>

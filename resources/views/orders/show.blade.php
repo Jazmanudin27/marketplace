@@ -411,6 +411,65 @@
                     </div>
                 </div>
 
+                <!-- SPK Produksi Card -->
+                <div class="card border shadow-sm mb-3">
+                    <div class="card-header bg-primary bg-opacity-10 p-3 border-bottom">
+                        <h6 class="mb-0 fw-bold text-dark"><i class="fas fa-tools me-2 text-primary"></i>SPK / Produksi</h6>
+                    </div>
+                    <div class="card-body p-3">
+                        @if ($order->spks->isNotEmpty())
+                            <div class="list-group list-group-flush small">
+                                @foreach ($order->spks as $spk)
+                                    <div class="list-group-item px-0 py-2 border-0 border-bottom">
+                                        <div class="d-flex justify-content-between align-items-center mb-1">
+                                            <a href="{{ route('spks.show', $spk->id) }}" class="fw-bold text-primary text-decoration-none">
+                                                {{ $spk->no_spk }}
+                                            </a>
+                                            <span class="badge bg-secondary-subtle text-secondary small border">
+                                                {{ $spk->tanggal->format('d M Y') }}
+                                            </span>
+                                        </div>
+                                        <div class="d-flex justify-content-between align-items-center mb-1">
+                                            <span class="text-muted">Deadline: <strong>{{ $spk->deadline->format('d M Y') }}</strong></span>
+                                        </div>
+                                        @if ($spk->items->isNotEmpty())
+                                            <div class="mt-1 ps-2 border-start border-primary" style="font-size: 0.75rem;">
+                                                @foreach ($spk->items as $spkItem)
+                                                    <div class="d-flex justify-content-between text-dark">
+                                                        <span>{{ $spkItem->nama_produk }} x{{ $spkItem->quantity }}</span>
+                                                        <span class="badge bg-{{ $spkItem->status === 'Selesai' ? 'success' : ($spkItem->status === 'Belum Mulai' ? 'warning' : 'info') }} py-0.5" style="font-size: 0.65rem;">
+                                                            {{ $spkItem->status }}
+                                                        </span>
+                                                    </div>
+                                                @endforeach
+                                            </div>
+                                        @endif
+                                    </div>
+                                @endforeach
+                            </div>
+                            <div class="mt-2 text-center">
+                                <a href="{{ route('spks.create', ['order_id' => $order->id]) }}" class="btn btn-outline-primary btn-sm w-100 py-1 rounded-3">
+                                    <i class="fas fa-plus me-1"></i> Buat SPK Tambahan
+                                </a>
+                            </div>
+                        @else
+                            <p class="text-muted small mb-3">Pesanan ini belum memiliki Surat Perintah Kerja (SPK) produksi.</p>
+                            @if ($order->hasPreorderItems() || str_starts_with($order->order_marketplace_id, 'MANUAL-'))
+                                <a href="{{ route('spks.create', ['order_id' => $order->id]) }}" class="btn btn-sm btn-primary w-100 fw-bold py-1.5 rounded-3 text-white">
+                                    <i class="fas fa-tools me-1"></i> Buat SPK Produksi
+                                </a>
+                            @else
+                                <div class="alert alert-light py-2 px-3 m-0 small border">
+                                    <i class="fas fa-info-circle me-1 text-muted"></i> Ini adalah produk ready stock. Anda tetap bisa membuat SPK jika ingin diproduksi khusus.
+                                    <a href="{{ route('spks.create', ['order_id' => $order->id]) }}" class="btn btn-xs btn-outline-secondary w-100 mt-2 py-1">
+                                        <i class="fas fa-tools me-1"></i> Buat SPK Kustom
+                                    </a>
+                                </div>
+                            @endif
+                        @endif
+                    </div>
+                </div>
+
                 <!-- Profit Analysis Card -->
                 @php
                     $order->load('items.masterProduct');

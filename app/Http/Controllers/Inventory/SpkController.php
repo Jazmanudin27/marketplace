@@ -43,7 +43,7 @@ class SpkController extends Controller
         return view('inventory.spks.index', compact('spks'));
     }
 
-    public function create()
+    public function create(Request $request)
     {
         $tenantId = Auth::user()->tenant_id;
 
@@ -83,7 +83,12 @@ class SpkController extends Controller
             ->orderBy('name')
             ->get(['name', 'default_cost']);
 
-        return view('inventory.spks.create', compact('products', 'tailors', 'laborServices'));
+        $order = null;
+        if ($request->filled('order_id')) {
+            $order = \App\Models\Order::with('items.masterProduct')->where('tenant_id', $tenantId)->find($request->order_id);
+        }
+
+        return view('inventory.spks.create', compact('products', 'tailors', 'laborServices', 'order'));
     }
 
     public function store(Request $request)
@@ -91,6 +96,7 @@ class SpkController extends Controller
         $tenantId = Auth::user()->tenant_id;
 
         $request->validate([
+            'order_id'       => 'nullable|integer|exists:orders,id',
             'no_produksi'    => 'nullable|string|max:255',
             'tanggal'        => 'required|date',
             'deadline'       => 'required|date|after_or_equal:tanggal',
@@ -115,6 +121,7 @@ class SpkController extends Controller
 
             $spk = Spk::create([
                 'tenant_id'     => $tenantId,
+                'order_id'      => $request->order_id,
                 'no_produksi'   => $noProduksi,
                 'no_spk'        => $noSpk,
                 'tanggal'       => $request->tanggal,
@@ -278,6 +285,14 @@ class SpkController extends Controller
                                         Auth::id()
                                     );
                                 }
+                            }
+                        }
+
+                        // 4. If SPK is linked to an order, process stock deduction for the order
+                        if ($spk->order_id) {
+                            $order = \App\Models\Order::find($spk->order_id);
+                            if ($order) {
+                                $order->processStockDeduction();
                             }
                         }
                     }
