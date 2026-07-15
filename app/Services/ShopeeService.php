@@ -1204,7 +1204,9 @@ class ShopeeService
             throw new \RuntimeException('Shopee error mengambil daftar size chart: ' . ($data['message'] ?? 'Unknown') . ' | RAW: ' . json_encode($data));
         }
 
-        return $data['response']['size_chart_list'] ?? $data['response']['size_chart'] ?? $data['response'] ?? [];
+        $list = $data['response']['size_chart_list'] ?? [];
+        // Pastikan selalu array indexed (bukan associative object)
+        return is_array($list) && !empty($list) ? array_values($list) : [];
     }
 
     /**

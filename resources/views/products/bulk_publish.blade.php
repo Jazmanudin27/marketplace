@@ -533,13 +533,19 @@
                     success: function(res) {
                         $select.empty();
                         $select.append('<option value="">-- Pilih Template Size Chart (Atau Input Manual) --</option>');
-                        if (res.success && res.data && res.data.length > 0) {
+                        // Pastikan res.data adalah array (bukan object {total_count, next_cursor})
+                        if (res.success && Array.isArray(res.data) && res.data.length > 0) {
                             res.data.forEach(function(chart) {
-                                const isSelected = savedVal == chart.size_chart_id ? 'selected' : '';
-                                $select.append('<option value="' + chart.size_chart_id + '" ' + isSelected + '>' + chart.size_chart_name + ' (ID: ' + chart.size_chart_id + ')</option>');
+                                const chartId   = chart.size_chart_id   ?? '';
+                                const chartName = chart.size_chart_name ?? '(Tanpa Nama)';
+                                const isSelected = savedVal == chartId ? 'selected' : '';
+                                $select.append('<option value="' + chartId + '" ' + isSelected + '>' + chartName + ' (ID: ' + chartId + ')</option>');
                             });
                         } else {
-                            $select.append('<option value="">-- Tidak ada template di Shopee --</option>');
+                            // Tidak ada template tabel — bersihkan nilai lama agar tidak kirim ID yang salah
+                            $select.append('<option value="" selected>🖼️ Gunakan Gambar Produk (Otomatis)</option>');
+                            $('#size_chart_id_' + storeId).val('');
+                            $('#size_chart_manual_' + storeId).val('');
                         }
                     },
                     error: function() {
