@@ -63,21 +63,12 @@ try {
 // Test get_attribute_tree
 echo "=== GET ATTRIBUTE TREE KATEGORI 101760 ===\n";
 try {
-    $path = '/api/v2/product/get_attribute_tree';
-    $timestamp = time();
-    $sign = $shopeeService->signShopRequest($path, $timestamp, $accessToken, (int)$store->marketplace_store_id);
-    $response = Http::get($shopeeService->baseUrl . $path, [
-        'partner_id'   => $shopeeService->partnerId,
-        'timestamp'    => $timestamp,
-        'sign'         => $sign,
-        'access_token' => $accessToken,
-        'shop_id'      => (int)$store->marketplace_store_id,
-        'category_id'  => 101760,
-    ]);
-    echo "Attribute Tree Response: " . $response->body() . "\n\n";
+    $res = $shopeeService->getAttributeTree($accessToken, (int)$store->marketplace_store_id, 101760);
+    echo "Attribute Tree Response: " . json_encode($res, JSON_PRETTY_PRINT) . "\n\n";
 } catch (\Exception $e) {
     echo "ERROR Attribute Tree: " . $e->getMessage() . "\n\n";
 }
+
 
 $channels = $shopeeService->getChannelList($accessToken, (int)$store->marketplace_store_id);
 $logisticInfo = [];
