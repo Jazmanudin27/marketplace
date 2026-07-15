@@ -1169,24 +1169,33 @@ class ShopeeService
         return $data['response']['list'][0]['attribute_tree'] ?? [];
     }
 
-    public function getSizeChartList(string $accessToken, int $shopId): array
+    public function getSizeChartList(string $accessToken, int $shopId, int $categoryId = 0): array
     {
         $path = '/api/v2/product/get_size_chart_list';
         $timestamp = time();
         $sign = $this->signShopRequest($path, $timestamp, $accessToken, $shopId);
 
         $queryParams = [
-            'partner_id'      => $this->partnerId,
-            'timestamp'       => $timestamp,
-            'sign'            => $sign,
-            'access_token'    => $accessToken,
-            'shop_id'         => $shopId,
-            'page_size'       => 50,
-            'page_no'         => 1,
-            'size_chart_name' => '',
+            'partner_id'   => $this->partnerId,
+            'timestamp'    => $timestamp,
+            'sign'         => $sign,
+            'access_token' => $accessToken,
+            'shop_id'      => $shopId,
+            'page_size'    => 50,
+            'page_no'      => 1,
         ];
 
+        // Only add category_id if a specific one is requested
+        if ($categoryId > 0) {
+            $queryParams['category_id'] = $categoryId;
+        }
+
         $response = Http::timeout(30)->get($this->baseUrl . $path, $queryParams);
+
+        Log::info('[Shopee] getSizeChartList raw response', [
+            'status' => $response->status(),
+            'body'   => $response->body(),
+        ]);
 
         if ($response->failed()) {
             throw new \RuntimeException('Gagal mengambil daftar size chart Shopee: ' . $response->body());
@@ -1195,10 +1204,10 @@ class ShopeeService
         $data = $response->json();
 
         if (($data['error'] ?? '') !== '' && ($data['error'] ?? 'OK') !== 'OK') {
-            throw new \RuntimeException('Shopee error mengambil daftar size chart: ' . ($data['message'] ?? 'Unknown'));
+            throw new \RuntimeException('Shopee error mengambil daftar size chart: ' . ($data['message'] ?? 'Unknown') . ' | RAW: ' . json_encode($data));
         }
 
-        return $data['response']['size_chart_list'] ?? $data['response']['size_chart'] ?? [];
+        return $data['response']['size_chart_list'] ?? $data['response']['size_chart'] ?? $data['response'] ?? [];
     }
 
     /**
