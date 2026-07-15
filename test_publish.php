@@ -29,21 +29,12 @@ echo "Testing Shopee addItem with various size_chart payloads...\n\n";
 // Test get_size_chart_detail
 echo "=== GET SIZE CHART DETAIL (1104825612) ===\n";
 try {
-    $path = '/api/v2/product/get_size_chart_detail';
-    $timestamp = time();
-    $sign = $shopeeService->signShopRequest($path, $timestamp, $accessToken, (int)$store->marketplace_store_id);
-    $response = Http::get($shopeeService->baseUrl . $path, [
-        'partner_id'    => $shopeeService->partnerId,
-        'timestamp'     => $timestamp,
-        'sign'          => $sign,
-        'access_token'  => $accessToken,
-        'shop_id'       => (int)$store->marketplace_store_id,
-        'size_chart_id' => 1104825612,
-    ]);
-    echo "Detail Response: " . $response->body() . "\n\n";
+    $res = $shopeeService->getSizeChartDetail($accessToken, (int)$store->marketplace_store_id, 1104825612);
+    echo "Detail Response: " . json_encode($res, JSON_PRETTY_PRINT) . "\n\n";
 } catch (\Exception $e) {
     echo "ERROR Detail: " . $e->getMessage() . "\n\n";
 }
+
 
 
 

@@ -1228,6 +1228,25 @@ class ShopeeService
         return $response->json();
     }
 
+    public function getSizeChartDetail(string $accessToken, int $shopId, int $sizeChartId): array
+    {
+        $path = '/api/v2/product/get_size_chart_detail';
+        $timestamp = time();
+        $sign = $this->signShopRequest($path, $timestamp, $accessToken, $shopId);
+
+        $queryParams = [
+            'partner_id'    => $this->partnerId,
+            'timestamp'     => $timestamp,
+            'sign'          => $sign,
+            'access_token'  => $accessToken,
+            'shop_id'       => $shopId,
+            'size_chart_id' => $sizeChartId,
+        ];
+
+        $response = Http::timeout(30)->get($this->baseUrl . $path, $queryParams);
+        return $response->json();
+    }
+
     /**
      * Ambil data performa iklan Shopee (GMV Max/Search Ads).
      *
