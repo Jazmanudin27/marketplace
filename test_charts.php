@@ -29,13 +29,7 @@ foreach ($categoryIds as $catId => $catName) {
     echo "=== Kategori: $catName (ID: $catId) ===\n";
     try {
         $charts = $shopeeService->getSizeChartList($accessToken, (int)$store->marketplace_store_id, $catId);
-        if (empty($charts)) {
-            echo "  -> Tidak ada template size chart untuk kategori ini.\n";
-        } else {
-            foreach ($charts as $chart) {
-                echo "  -> ID: " . ($chart['size_chart_id'] ?? $chart['id'] ?? '?') . " | Nama: " . ($chart['size_chart_name'] ?? $chart['name'] ?? json_encode($chart)) . "\n";
-            }
-        }
+        echo json_encode($charts, JSON_PRETTY_PRINT) . "\n";
     } catch (\Exception $e) {
         echo "  -> ERROR: " . $e->getMessage() . "\n";
     }
