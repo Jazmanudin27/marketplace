@@ -260,7 +260,17 @@ class PublishProductToMarketplace implements ShouldQueue
                     $itemData['attribute_list'] = $attributeList;
                 }
 
-                $res = $shopeeService->addItem($accessToken, (int)$store->marketplace_store_id, $itemData);
+                try {
+                    $res = $shopeeService->addItem($accessToken, (int)$store->marketplace_store_id, $itemData);
+                } catch (\Exception $e) {
+                    if ((stripos($e->getMessage(), 'size chart') !== false || stripos($e->getMessage(), 'sizechart') !== false) && !empty($imageId)) {
+                        Log::info('[Shopee] Retrying product publish with main image as size chart fallback for product ' . $product->id);
+                        $itemData['size_chart'] = $imageId;
+                        $res = $shopeeService->addItem($accessToken, (int)$store->marketplace_store_id, $itemData);
+                    } else {
+                        throw $e;
+                    }
+                }
                 $marketplaceProductId = $res['item_id'] ?? null;
 
                 if (!$marketplaceProductId) {
