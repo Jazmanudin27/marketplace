@@ -20,6 +20,12 @@ if (!$product) {
     exit;
 }
 
+$shopeeService = app(ShopeeService::class);
+$accessToken = $store->getValidAccessToken();
+
+echo "Toko: {$store->store_name} (Shop ID: {$store->marketplace_store_id})\n";
+echo "Testing Shopee addItem with various size_chart payloads...\n\n";
+
 // Test get_size_chart_detail
 echo "=== GET SIZE CHART DETAIL (1104825612) ===\n";
 try {
@@ -38,6 +44,7 @@ try {
 } catch (\Exception $e) {
     echo "ERROR Detail: " . $e->getMessage() . "\n\n";
 }
+
 
 
 $imageId = "sg-11134201-8259m-mqoi1a7oj11f74"; // Valid uploaded image ID
