@@ -227,16 +227,16 @@ class PublishProductToMarketplace implements ShouldQueue
                     ]
                 ];
 
-                // Hanya kirim size_chart_id jika diisi manual oleh user (dari form),
-                // BUKAN dari API get_size_chart_list (karena template image tidak muncul di API tersebut).
+                // Kirim size_chart dalam format nested object {size_chart_id: N}
+                // Ini format yang paling mungkin benar berdasarkan struktur API Shopee
                 if ($sizeChartId && (int)$sizeChartId > 0) {
-                    $itemData['size_chart_id'] = (int) $sizeChartId;
+                    $itemData['size_chart'] = ['size_chart_id' => (int) $sizeChartId];
+                    Log::info('[Shopee] Attempt 1 - size_chart nested object', ['size_chart' => $itemData['size_chart']]);
                 } else {
-                    // Gunakan gambar produk sebagai size_chart (image-based) sebagai fallback.
-                    // Format yang benar di Shopee adalah object {image_id: "..."}.
+                    // Fallback: gunakan gambar produk
                     if (!empty($imageId)) {
                         $itemData['size_chart'] = ['image_id' => $imageId];
-                        Log::info('[Shopee] Menggunakan gambar produk sebagai size_chart object, image_id: ' . $imageId);
+                        Log::info('[Shopee] Attempt 1 - size_chart image fallback', ['image_id' => $imageId]);
                     }
                 }
 
@@ -351,26 +351,39 @@ class PublishProductToMarketplace implements ShouldQueue
                     $res = $shopeeService->addItem($accessToken, (int)$store->marketplace_store_id, $itemData);
                 } catch (\Exception $e) {
                     if (stripos($e->getMessage(), 'size chart') !== false || stripos($e->getMessage(), 'sizechart') !== false) {
-                        Log::warning('[Shopee] Size chart error pada attempt 1. Mencoba format lain...');
 
-                        // Attempt 2: hapus size_chart_id, gunakan image object {image_id: ...}
-                        unset($itemData['size_chart_id']);
+                        // Attempt 2: top-level size_chart_id (integer)
+                        Log::warning('[Shopee] Attempt 1 gagal. Coba format 2: top-level size_chart_id...');
                         unset($itemData['size_chart']);
-                        if (!empty($imageId)) {
-                            $itemData['size_chart'] = ['image_id' => $imageId];
+                        if ($sizeChartId && (int)$sizeChartId > 0) {
+                            $itemData['size_chart_id'] = (int) $sizeChartId;
                         }
-                        Log::info('[Shopee] Attempt 2 - size_chart as object', ['size_chart' => $itemData['size_chart'] ?? null]);
+                        Log::info('[Shopee] Attempt 2 payload', ['size_chart_id' => $itemData['size_chart_id'] ?? null]);
                         try {
                             $res = $shopeeService->addItem($accessToken, (int)$store->marketplace_store_id, $itemData);
                         } catch (\Exception $e2) {
                             if (stripos($e2->getMessage(), 'size chart') !== false || stripos($e2->getMessage(), 'sizechart') !== false) {
-                                Log::warning('[Shopee] Attempt 2 juga gagal. Mencoba tanpa field size_chart sama sekali...');
 
-                                // Attempt 3: hapus semua size_chart field, lihat error apa yang muncul
-                                unset($itemData['size_chart']);
+                                // Attempt 3: size_chart dengan image_id produk
+                                Log::warning('[Shopee] Attempt 2 gagal. Coba format 3: size_chart image...');
                                 unset($itemData['size_chart_id']);
-                                Log::info('[Shopee] Attempt 3 - tanpa size_chart field sama sekali');
-                                $res = $shopeeService->addItem($accessToken, (int)$store->marketplace_store_id, $itemData);
+                                if (!empty($imageId)) {
+                                    $itemData['size_chart'] = ['image_id' => $imageId];
+                                }
+                                Log::info('[Shopee] Attempt 3 payload', ['size_chart' => $itemData['size_chart'] ?? null]);
+                                try {
+                                    $res = $shopeeService->addItem($accessToken, (int)$store->marketplace_store_id, $itemData);
+                                } catch (\Exception $e3) {
+                                    if (stripos($e3->getMessage(), 'size chart') !== false || stripos($e3->getMessage(), 'sizechart') !== false) {
+                                        // Attempt 4: tanpa size_chart sama sekali - lihat error lain apa yang muncul
+                                        Log::warning('[Shopee] Attempt 3 gagal. Coba tanpa size_chart field...');
+                                        unset($itemData['size_chart']);
+                                        unset($itemData['size_chart_id']);
+                                        $res = $shopeeService->addItem($accessToken, (int)$store->marketplace_store_id, $itemData);
+                                    } else {
+                                        throw $e3;
+                                    }
+                                }
                             } else {
                                 throw $e2;
                             }
