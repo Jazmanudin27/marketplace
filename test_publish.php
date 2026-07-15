@@ -28,18 +28,25 @@ echo "Testing Shopee addItem with various size_chart payloads...\n\n";
 
 $imageId = "sg-11134201-8259m-mqoi1a7oj11f74"; // Valid uploaded image ID
 
+$channels = $shopeeService->getChannelList($accessToken, (int)$store->marketplace_store_id);
+$logisticInfo = [];
+foreach ($channels as $chan) {
+    if (!empty($chan['enabled'])) {
+        $logisticInfo[] = [
+            'logistic_id' => (int) $chan['logistics_channel_id'],
+            'enabled' => true
+        ];
+    }
+}
+echo "Jasa Kirim Aktif Ditemukan: " . count($logisticInfo) . " channel (" . json_encode(array_column($logisticInfo, 'logistic_id')) . ")\n\n";
+
 $baseItemData = [
     'original_price' => (float) 50000,
     'item_name' => 'TEST PUBLISH HARAP ABAIKAN ' . rand(100, 999),
     'description' => 'Ini adalah tes deskripsi produk baju batik anak untuk pengujian API Shopee yang valid dan lengkap.',
     'weight' => 0.1,
-    'item_status' => 'UNLISTED', // Disimpan sebagai unlisted / draft agar tidak mengganggu toko
-    'logistic_info' => [
-        [
-            'logistic_id' => 80001,
-            'enabled' => true
-        ]
-    ],
+    'item_status' => 'UNLISTED',
+    'logistic_info' => $logisticInfo,
     'brand' => [
         'brand_id' => 0
     ],
@@ -63,14 +70,19 @@ $tests = [
         'extra' => ['size_chart_id' => 1104825612]
     ],
     [
-        'label' => 'Cat 101776 (Atasan Perempuan) + size_chart_id (int)',
-        'cat_id' => 101776,
-        'extra' => ['size_chart_id' => 1104825612]
+        'label' => 'Cat 101760 + size_chart (int)',
+        'cat_id' => 101760,
+        'extra' => ['size_chart' => 1104825612]
     ],
     [
-        'label' => 'Cat 101760 + size_chart_id (string)',
+        'label' => 'Cat 101760 + size_chart_template_id (int)',
         'cat_id' => 101760,
-        'extra' => ['size_chart_id' => "1104825612"]
+        'extra' => ['size_chart_template_id' => 1104825612]
+    ],
+    [
+        'label' => 'Cat 101760 + size_chart image_id object',
+        'cat_id' => 101760,
+        'extra' => ['size_chart' => ['image_id' => $imageId]]
     ],
 ];
 
@@ -85,3 +97,4 @@ foreach ($tests as $t) {
     }
     echo "\n";
 }
+
