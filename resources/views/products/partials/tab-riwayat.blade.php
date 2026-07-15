@@ -100,8 +100,14 @@
                                             <i class="fas fa-link me-1"></i>ID: {{ $log->marketplace_product_id }}
                                         </span>
                                     @elseif($log->status === 'failed' && $log->error_message)
-                                        <span class="text-danger small" title="{{ $log->error_message }}">
+                                        <span class="text-danger small cursor-pointer show-error-detail" 
+                                            data-error="{{ e($log->error_message) }}"
+                                            style="cursor: pointer;"
+                                            title="Klik untuk detail error lengkap">
                                             <i class="fas fa-exclamation-circle me-1"></i>{{ Str::limit($log->error_message, 70) }}
+                                            <span class="badge bg-danger bg-opacity-10 text-danger border border-danger-subtle ms-1 px-2 py-1 rounded">
+                                                <i class="fas fa-search-plus me-1"></i>Detail
+                                            </span>
                                         </span>
                                     @elseif(in_array($log->status, ['pending', 'processing']))
                                         <span class="text-muted small">Queue worker sedang memproses...</span>

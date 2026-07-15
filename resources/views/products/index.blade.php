@@ -91,6 +91,21 @@
                         if (panel && panel.classList.contains('show')) location.reload();
                     }, 10000);
                 }
+
+                // Show error details in SweetAlert modal
+                $(document).on('click', '.show-error-detail', function() {
+                    const errorMsg = $(this).data('error');
+                    Swal.fire({
+                        title: 'Detail Error Publikasi',
+                        html: '<div class="text-start alert alert-danger border-0 small font-monospace" style="white-space: pre-wrap; overflow-wrap: break-word; max-height: 350px; overflow-y: auto;">' + errorMsg + '</div>',
+                        icon: 'error',
+                        confirmButtonText: 'Tutup',
+                        customClass: {
+                            confirmButton: 'btn btn-secondary rounded-3 px-4'
+                        },
+                        buttonsStyling: false
+                    });
+                });
             });
         </script>
     @endpush
