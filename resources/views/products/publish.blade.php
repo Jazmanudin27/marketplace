@@ -170,16 +170,29 @@
                                         </label>
 
                                         @if ($existingMapping)
+                                            @php
+                                                $mappedCatIdRaw = $existingMapping['marketplace_category_id'] ?? '';
+                                                $mappedCatId = $mappedCatIdRaw;
+                                                $mappedSizeChartId = '';
+                                                if (strpos((string)$mappedCatIdRaw, '|') !== false) {
+                                                    $parts = explode('|', (string)$mappedCatIdRaw);
+                                                    $mappedCatId = $parts[0];
+                                                    $mappedSizeChartId = $parts[1];
+                                                }
+                                            @endphp
                                             <div class="alert alert-info py-2 px-3 mb-2 d-flex align-items-center flex-wrap gap-2 border-0 bg-primary bg-opacity-10 text-primary-emphasis">
                                                 <i class="fas fa-bookmark text-primary"></i>
                                                 <span class="small me-auto text-dark">
                                                     Pemetaan Tersimpan:
                                                     <strong>{{ $existingMapping['marketplace_category_name'] }}</strong>
-                                                    <span class="text-muted">(ID: {{ $existingMapping['marketplace_category_id'] }})</span>
+                                                    <span class="text-muted">(ID: {{ $mappedCatId }})</span>
+                                                    @if ($mappedSizeChartId)
+                                                        <span class="badge bg-secondary ms-1 small text-white">Size Chart ID: {{ $mappedSizeChartId }}</span>
+                                                    @endif
                                                 </span>
                                                 <div class="d-flex gap-2">
                                                     <button type="button" class="btn btn-sm btn-primary px-3 rounded-3"
-                                                        onclick="useMapping({{ $store->id }}, '{{ $existingMapping['marketplace_category_id'] }}', '{{ addslashes($existingMapping['marketplace_category_name']) }}')">
+                                                        onclick="useMapping({{ $store->id }}, '{{ $mappedCatId }}', '{{ addslashes($existingMapping['marketplace_category_name']) }}', '{{ $mappedSizeChartId }}')">
                                                         <i class="fas fa-check me-1"></i> Gunakan
                                                     </button>
                                                     <button type="button" class="btn btn-sm btn-outline-secondary rounded-3"
@@ -189,7 +202,7 @@
                                                 </div>
                                             </div>
                                         @endif
-
+ 
                                         @if (in_array($store->channel->code, ['shopee', 'tiktok']))
                                             {{-- Shopee/Tiktok Category Picker --}}
                                             <div class="shopee-category-picker position-relative"
@@ -197,12 +210,12 @@
                                                 data-channel="{{ $store->channel->code }}">
                                                 <input type="hidden" name="categories[{{ $store->id }}]"
                                                     id="cat_id_{{ $store->id }}"
-                                                    value="{{ $existingMapping['marketplace_category_id'] ?? '' }}"
+                                                    value="{{ $mappedCatId ?? '' }}"
                                                     {{ $existingMapping ? '' : 'required' }}>
                                                 <input type="hidden" name="category_names[{{ $store->id }}]"
                                                     id="cat_name_{{ $store->id }}"
                                                     value="{{ $existingMapping['marketplace_category_name'] ?? '' }}">
-
+ 
                                                 {{-- Search Input Wrapper --}}
                                                 <div class="input-group input-group-sm {{ $existingMapping ? 'd-none' : '' }}" id="cat_search_wrapper_{{ $store->id }}">
                                                     <span class="input-group-text"><i class="fas fa-search"></i></span>
@@ -213,7 +226,7 @@
                                                     <button type="button" id="cat_clear_{{ $store->id }}"
                                                         class="btn btn-outline-secondary btn-sm shopee-cat-clear d-none"><i class="fas fa-times"></i></button>
                                                 </div>
-
+ 
                                                 {{-- Selected Badge --}}
                                                 <div id="cat_selected_{{ $store->id }}"
                                                     class="shopee-cat-selected mt-2 {{ $existingMapping ? '' : 'd-none' }}">
@@ -221,20 +234,20 @@
                                                         <i class="fas fa-check-circle me-1 text-success bg-white rounded-circle"></i>
                                                         <span id="cat_selected_name_{{ $store->id }}">{{ $existingMapping['marketplace_category_name'] ?? '' }}</span>
                                                         <span id="cat_selected_id_{{ $store->id }}"
-                                                            class="opacity-75 ms-1 font-monospace">{{ $existingMapping ? '(ID: ' . $existingMapping['marketplace_category_id'] . ')' : '' }}</span>
+                                                            class="opacity-75 ms-1 font-monospace">{{ $existingMapping ? '(ID: ' . $mappedCatId . ')' : '' }}</span>
                                                         <button type="button"
                                                             class="btn btn-link p-0 text-white ms-2 text-decoration-none small"
                                                             onclick="clearCategorySelection({{ $store->id }}, '{{ $store->channel->code }}')"><i
                                                                 class="fas fa-pen"></i> Ubah</button>
                                                     </span>
                                                 </div>
-
+ 
                                                 {{-- Dropdown list --}}
                                                 <div id="cat_dropdown_{{ $store->id }}"
                                                     class="list-group shadow rounded border mt-1 position-absolute w-100 overflow-y-auto d-none">
                                                 </div>
                                             </div>
-
+ 
                                             {{-- Shopee-specific Size Chart Template ID --}}
                                             @if ($store->channel->code === 'shopee')
                                                 <div class="mt-3">
@@ -243,7 +256,8 @@
                                                     </label>
                                                     <input type="number" name="size_chart_ids[{{ $store->id }}]" 
                                                         class="form-control form-control-sm rounded-3" 
-                                                        placeholder="Contoh ID Template: 123456789">
+                                                        placeholder="Contoh ID Template: 123456789"
+                                                        value="{{ $mappedSizeChartId ?? '' }}">
                                                     <small class="text-muted d-block mt-1">
                                                         Wajib diisi jika kategori produk Shopee mewajibkan tabel ukuran (seperti Pakaian Anak/Fashion). Dapatkan ID dari Seller Centre Shopee (Kelola Ukuran).
                                                     </small>
@@ -410,8 +424,13 @@
                 $('#cat_search_' + storeId).focus();
             };
 
-            window.useMapping = function(storeId, catId, catName) {
+            window.useMapping = function(storeId, catId, catName, sizeChartId) {
                 selectCategory(storeId, catId, catName);
+                if (sizeChartId) {
+                    $('input[name="size_chart_ids[' + storeId + ']"]').val(sizeChartId);
+                } else {
+                    $('input[name="size_chart_ids[' + storeId + ']"]').val('');
+                }
                 $('#save_mapping_' + storeId).prop('checked', true);
                 $('#store_' + storeId).prop('checked', true);
             };

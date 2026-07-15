@@ -193,4 +193,56 @@ class MasterProductBulkPublishTest extends TestCase
             'category_id' => '101776|998877',
         ]);
     }
+
+    public function test_retry_publish_appends_size_chart_id_from_mapping(): void
+    {
+        $this->actingAs($this->user);
+        Queue::fake();
+
+        // Create a category
+        $category = \App\Models\Category::create([
+            'tenant_id' => $this->tenant->id,
+            'name' => 'Pakaian Anak',
+        ]);
+ 
+        // 1. Create a Master Product with category mapping in db
+        $prod = MasterProduct::create([
+            'tenant_id' => $this->tenant->id,
+            'category_id' => $category->id,
+            'sku' => 'SKU-RETRY',
+            'name' => 'Baju RETRY',
+            'price' => 100000,
+            'stock' => 5,
+        ]);
+ 
+        \App\Models\CategoryMapping::create([
+            'tenant_id' => $this->tenant->id,
+            'category_id' => $category->id,
+            'store_id' => $this->storeShopee->id,
+            'marketplace_category_id' => '101776|998877',
+            'marketplace_category_name' => 'Atasan Lainnya',
+        ]);
+
+        // 2. Create a failed Publication Log without size chart ID
+        $log = \App\Models\PublicationLog::create([
+            'tenant_id' => $this->tenant->id,
+            'master_product_id' => $prod->id,
+            'store_id' => $this->storeShopee->id,
+            'status' => 'failed',
+            'category_id' => '101776',
+            'error_message' => 'Size Chart is required for selected category',
+        ]);
+
+        // 3. Post to retry route
+        $response = $this->post(route('products.publish.retry', ['log' => $log->id]));
+        $response->assertStatus(302);
+
+        // 4. Assert the log's category_id was updated to 101776|998877
+        $log->refresh();
+        $this->assertEquals('101776|998877', $log->category_id);
+        $this->assertEquals('pending', $log->status);
+        $this->assertNull($log->error_message);
+
+        Queue::assertPushed(PublishProductToMarketplace::class);
+    }
 }

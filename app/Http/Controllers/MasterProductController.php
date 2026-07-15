@@ -508,22 +508,36 @@ class MasterProductController extends Controller
                 continue;
             }
 
+            // Strip size chart ID from catId if present in form input
+            $sizeChartIdFromForm = $sizeChartIds[$storeId] ?? null;
+            if (strpos((string)$catId, '|') !== false) {
+                $parts = explode('|', (string)$catId);
+                $catId = $parts[0];
+                if (empty($sizeChartIdFromForm) && isset($parts[1])) {
+                    $sizeChartIdFromForm = $parts[1];
+                }
+            }
+
             // Save mapping if requested and product has category
             if ($product->category_id && !empty($saveMapping[$storeId])) {
+                $mappedValue = $catId;
+                if (!empty($sizeChartIdFromForm)) {
+                    $mappedValue = $catId . '|' . $sizeChartIdFromForm;
+                }
                 CategoryMapping::updateOrCreate([
                     'tenant_id' => Auth::user()->tenant_id,
                     'category_id' => $product->category_id,
                     'store_id' => $storeId,
                 ], [
-                    'marketplace_category_id' => $catId,
+                    'marketplace_category_id' => $mappedValue,
                     'marketplace_category_name' => $catName,
                 ]);
             }
 
             // Append size_chart_id to category_id in logs if provided
             $finalCatId = $catId;
-            if (!empty($sizeChartIds[$storeId])) {
-                $finalCatId = $catId . '|' . $sizeChartIds[$storeId];
+            if (!empty($sizeChartIdFromForm)) {
+                $finalCatId = $catId . '|' . $sizeChartIdFromForm;
             }
 
             // Create or update background job log entry
@@ -555,14 +569,39 @@ class MasterProductController extends Controller
     {
         $log = PublicationLog::findOrFail($logId);
         abort_unless($log->tenant_id === Auth::user()->tenant_id, 403);
+ 
+        // Self-healing: if the store is Shopee, check if there is a category mapping with a size chart ID
+        if ($log->store->channel->code === 'shopee') {
+            $catIdRaw = $log->category_id;
+            $shopeeCatId = $catIdRaw;
+            if (strpos((string)$catIdRaw, '|') !== false) {
+                $shopeeCatId = explode('|', (string)$catIdRaw)[0];
+            }
+
+            // Check if there is an existing mapping for this product's category to pull the size chart ID
+            $product = $log->masterProduct;
+            if ($product && $product->category_id) {
+                $mapping = CategoryMapping::where('category_id', $product->category_id)
+                    ->where('store_id', $log->store_id)
+                    ->first();
+                if ($mapping) {
+                    $rawMappedCatId = $mapping->marketplace_category_id;
+                    if (strpos((string)$rawMappedCatId, '|') !== false) {
+                        // Update log's category_id to include the mapped size_chart_id
+                        $log->category_id = $rawMappedCatId;
+                        $log->save();
+                    }
+                }
+            }
+        }
 
         $log->update([
             'status' => 'pending',
             'error_message' => null
         ]);
-
+ 
         PublishProductToMarketplace::dispatch($log->id);
-
+ 
         return back()->with('success', 'Percobaan ulang publikasi telah dikirim ke antrean.');
     }
 
@@ -903,45 +942,66 @@ class MasterProductController extends Controller
                 // 1. Check if specific category mapping exists for this product's category
                 $catId = null;
                 $catName = null;
-
+                $mappedSizeChartId = null;
+ 
                 if ($product->category_id) {
                     $mapping = CategoryMapping::where('category_id', $product->category_id)
                         ->where('store_id', $storeId)
                         ->first();
                     if ($mapping) {
-                        $catId = $mapping->marketplace_category_id;
+                        $rawMappedCatId = $mapping->marketplace_category_id;
+                        if (strpos((string)$rawMappedCatId, '|') !== false) {
+                            $parts = explode('|', (string)$rawMappedCatId);
+                            $catId = $parts[0];
+                            $mappedSizeChartId = $parts[1];
+                        } else {
+                            $catId = $rawMappedCatId;
+                        }
                         $catName = $mapping->marketplace_category_name;
                     }
                 }
-
+ 
                 // 2. If no specific mapping, fallback to default category selected for this store
                 if (empty($catId)) {
-                    $catId = $defaultCategories[$storeId] ?? null;
+                    $rawDefaultCatId = $defaultCategories[$storeId] ?? null;
+                    if (strpos((string)$rawDefaultCatId, '|') !== false) {
+                        $parts = explode('|', (string)$rawDefaultCatId);
+                        $catId = $parts[0];
+                    } else {
+                        $catId = $rawDefaultCatId;
+                    }
                     $catName = $defaultCategoryNames[$storeId] ?? 'Unknown Category';
                 }
-
+ 
                 if (empty($catId)) {
                     continue;
                 }
 
+                // Determine final size chart ID: use form input, fallback to mapped size chart ID
+                $finalSizeChartId = !empty($sizeChartIds[$storeId]) ? $sizeChartIds[$storeId] : $mappedSizeChartId;
+ 
                 // Save mapping if requested and product has category
-                if ($product->category_id && !empty($saveMapping[$storeId]) && empty($mapping)) {
+                if ($product->category_id && !empty($saveMapping[$storeId])) {
+                    $mappedValue = $catId;
+                    if (!empty($finalSizeChartId)) {
+                        $mappedValue = $catId . '|' . $finalSizeChartId;
+                    }
                     CategoryMapping::updateOrCreate([
                         'tenant_id' => $tenantId,
                         'category_id' => $product->category_id,
                         'store_id' => $storeId,
                     ], [
-                        'marketplace_category_id' => $catId,
+                        'marketplace_category_id' => $mappedValue,
                         'marketplace_category_name' => $catName,
                     ]);
                 }
-
+ 
                 // Append size_chart_id to category_id in logs if provided
                 $finalCatId = $catId;
-                if (!empty($sizeChartIds[$storeId])) {
-                    $finalCatId = $catId . '|' . $sizeChartIds[$storeId];
+                if (!empty($finalSizeChartId)) {
+                    $finalCatId = $catId . '|' . $finalSizeChartId;
                 }
-
+ 
                 // Create Publication Log entry
                 $log = PublicationLog::updateOrCreate([
                     'tenant_id' => $tenantId,
