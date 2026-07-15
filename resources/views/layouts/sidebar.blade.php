@@ -134,6 +134,14 @@
             <span>Dashboard</span>
         </a>
 
+        @can('manage-stores')
+            <a href="{{ route('stores.index') }}"
+                class="nav-link d-flex align-items-center gap-2 {{ request()->routeIs('stores.*') ? 'active text-white' : 'text-dark' }}">
+                <i class="bi bi-shop"></i>
+                <span>Kelola Toko (Integrasi)</span>
+            </a>
+        @endcan
+
         <!-- MASTER DATA -->
         @if (auth()->user()->isSuperAdmin() ||
                 auth()->user()->role === 'admin' ||
@@ -421,11 +429,7 @@
                                 class="nav-link py-1 {{ request()->routeIs('chats.*') ? 'active text-white' : 'text-secondary' }}">Inbox
                                 Chat</a>
                         @endcan
-                        @can('manage-stores')
-                            <a href="{{ route('stores.index') }}"
-                                class="nav-link py-1 {{ request()->routeIs('stores.*') ? 'active text-white' : 'text-secondary' }}">Kelola
-                                Toko (Integrasi)</a>
-                        @endcan
+
                         @if (auth()->user()->isSuperAdmin() ||
                                 auth()->user()->role === 'admin' ||
                                 auth()->user()->hasAnyPermission(['view-financial-reports', 'manage-finance']))

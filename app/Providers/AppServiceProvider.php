@@ -42,10 +42,12 @@ class AppServiceProvider extends ServiceProvider
             }
         }
 
-        // Jalankan migrasi otomatis jika tabel permission belum ada
+        // Jalankan migrasi otomatis jika tabel permission belum ada dan tidak sedang berjalan di console/testing
         try {
-            if (!\Illuminate\Support\Facades\Schema::hasTable('permissions')) {
-                \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
+            if (!app()->runningInConsole()) {
+                if (!\Illuminate\Support\Facades\Schema::hasTable('permissions')) {
+                    \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
+                }
             }
         } catch (\Exception $e) {
             // Abaikan error jika database belum siap

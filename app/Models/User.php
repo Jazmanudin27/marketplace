@@ -53,7 +53,23 @@ class User extends Authenticatable
     public function getTenantIdAttribute($value)
     {
         if ($this->role === 'super-admin') {
-            return session('selected_tenant_id', $value);
+            try {
+                $session = app('session');
+                if (!$session->has('selected_tenant_id')) {
+                    $selectedTenantId = $value;
+                    if (!$selectedTenantId) {
+                        $firstTenant = Tenant::first();
+                        $selectedTenantId = $firstTenant ? $firstTenant->id : null;
+                    }
+                    if ($selectedTenantId) {
+                        $session->put('selected_tenant_id', $selectedTenantId);
+                    }
+                    return $selectedTenantId;
+                }
+                return $session->get('selected_tenant_id');
+            } catch (\Exception $e) {
+                return $value;
+            }
         }
         return $value;
     }
@@ -61,7 +77,7 @@ class User extends Authenticatable
     public function getTenantAttribute()
     {
         if ($this->role === 'super-admin') {
-            $selectedTenantId = session('selected_tenant_id');
+            $selectedTenantId = $this->tenant_id;
             if ($selectedTenantId) {
                 $loaded = $this->getRelationValue('tenant');
                 if ($loaded && $loaded->id == $selectedTenantId) {

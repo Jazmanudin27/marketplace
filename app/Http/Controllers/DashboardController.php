@@ -14,6 +14,11 @@ class DashboardController extends Controller
     {
         $tenant = Auth::user()->tenant;
 
+        if (!$tenant) {
+            Auth::logout();
+            return redirect()->route('login')->with('error', 'Perusahaan tidak ditemukan. Silakan hubungi Administrator.');
+        }
+
         // Statistik ringkasan
         $totalStores        = Store::where('tenant_id', $tenant->id)->count();
         $totalProducts      = MasterProduct::where('tenant_id', $tenant->id)->count();
