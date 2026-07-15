@@ -1209,6 +1209,25 @@ class ShopeeService
         return is_array($list) && !empty($list) ? array_values($list) : [];
     }
 
+    public function checkSupportSizeChart(string $accessToken, int $shopId, int $categoryId): array
+    {
+        $path = '/api/v2/product/support_size_chart';
+        $timestamp = time();
+        $sign = $this->signShopRequest($path, $timestamp, $accessToken, $shopId);
+
+        $queryParams = [
+            'partner_id'   => $this->partnerId,
+            'timestamp'    => $timestamp,
+            'sign'         => $sign,
+            'access_token' => $accessToken,
+            'shop_id'      => $shopId,
+            'category_id'  => $categoryId,
+        ];
+
+        $response = Http::timeout(30)->get($this->baseUrl . $path, $queryParams);
+        return $response->json();
+    }
+
     /**
      * Ambil data performa iklan Shopee (GMV Max/Search Ads).
      *
