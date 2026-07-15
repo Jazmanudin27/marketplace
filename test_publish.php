@@ -20,6 +20,18 @@ if (!$product) {
     exit;
 }
 
+// Test category mapping query
+echo "=== CATEGORY MAPPINGS FROM DB ===\n";
+try {
+    $mappings = \App\Models\CategoryMapping::limit(15)->get();
+    foreach ($mappings as $m) {
+        echo "ERP Cat: {$m->category_id} | Name: {$m->name} | Shopee ID: {$m->marketplace_category_id}\n";
+    }
+} catch (\Exception $e) {
+    echo "ERROR DB: " . $e->getMessage() . "\n";
+}
+echo "\n";
+
 $shopeeService = app(ShopeeService::class);
 $accessToken = $store->getValidAccessToken();
 
@@ -27,6 +39,7 @@ echo "Toko: {$store->store_name} (Shop ID: {$store->marketplace_store_id})\n";
 echo "Testing Shopee addItem with various size_chart payloads...\n\n";
 
 // Test get_size_chart_detail
+
 echo "=== GET SIZE CHART DETAIL (1104825612) ===\n";
 try {
     $res = $shopeeService->getSizeChartDetail($accessToken, (int)$store->marketplace_store_id, 1104825612);
