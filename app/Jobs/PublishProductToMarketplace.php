@@ -144,11 +144,30 @@ class PublishProductToMarketplace implements ShouldQueue
                 // 3. Brand ID (Otomatis menggunakan 100234 / No Brand Shopee)
                 $brandId = 100234;
 
-                // 4. Prepare Item Data
+                // 4. Prepare Description with auto-padding if it's too short (Shopee requires at least 20-100 characters)
+                $description = $product->description ?: $product->name;
+                $description = strip_tags($description);
+                if (strlen($description) < 100) {
+                    $padding = "\n\nDetail Produk:\n";
+                    $padding .= "- Nama: " . $product->name . "\n";
+                    $padding .= "- SKU: " . ($product->sku ?: '-') . "\n";
+                    if ($product->ukuran) {
+                        $padding .= "- Ukuran: " . $product->ukuran . "\n";
+                    }
+                    if ($product->warna) {
+                        $padding .= "- Warna: " . $product->warna . "\n";
+                    }
+                    $padding .= "- Kondisi: Baru dan Berkualitas Tinggi.\n";
+                    $padding .= "- Silakan tanyakan ketersediaan stok terlebih dahulu sebelum berbelanja.\n";
+                    $padding .= "- Terima kasih atas kepercayaan Anda di toko kami!\n";
+                    $description .= $padding;
+                }
+
+                // 5. Prepare Item Data
                 $itemData = [
                     'original_price' => (float) $product->price,
                     'item_name' => $product->name,
-                    'description' => $product->description ?: $product->name,
+                    'description' => $description,
                     'category_id' => (int) $shopeeCatId,
                     'weight' => (float) $product->weight,
                     'item_status' => 'NORMAL',
@@ -542,6 +561,8 @@ class PublishProductToMarketplace implements ShouldQueue
             '/duplicate.*sku/i' => 'Kode SKU produk sudah terdaftar di marketplace.',
             '/attribute.*mandatory/i' => 'Atribut kategori wajib ada yang belum terisi.',
             '/attribute.*required/i' => 'Atribut wajib untuk kategori ini belum lengkap.',
+            '/desc_len/i' => 'Deskripsi produk terlalu pendek. Shopee mewajibkan deskripsi minimal 20 atau 100 karakter. Kami telah menambahkan deskripsi otomatis untuk perbaikan mandiri.',
+            '/description.*validation/i' => 'Deskripsi produk terlalu pendek. Shopee mewajibkan deskripsi minimal 20 atau 100 karakter. Kami telah menambahkan deskripsi otomatis untuk perbaikan mandiri.',
         ];
 
         foreach ($translations as $pattern => $translation) {
