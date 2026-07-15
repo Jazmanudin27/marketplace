@@ -77,19 +77,14 @@ $tests = [
         'extra' => ['size_chart_id' => 1104825612]
     ],
     [
-        'label' => 'Cat 101757 (Kaos) + size_chart_id (int)',
-        'cat_id' => 101757,
-        'extra' => ['size_chart_id' => 1104825612]
+        'label' => 'Cat 101760 + size_chart as plain string (image_id)',
+        'cat_id' => 101760,
+        'extra' => ['size_chart' => $imageId]
     ],
     [
-        'label' => 'Cat 101760 + size_chart (int)',
+        'label' => 'Cat 101760 + size_chart_id as plain string (image_id)',
         'cat_id' => 101760,
-        'extra' => ['size_chart' => 1104825612]
-    ],
-    [
-        'label' => 'Cat 101760 + size_chart_template_id (int)',
-        'cat_id' => 101760,
-        'extra' => ['size_chart_template_id' => 1104825612]
+        'extra' => ['size_chart_id' => $imageId]
     ],
     [
         'label' => 'Cat 101760 + size_chart image_id object',
@@ -97,6 +92,7 @@ $tests = [
         'extra' => ['size_chart' => ['image_id' => $imageId]]
     ],
 ];
+
 
 foreach ($tests as $t) {
     echo "=== TEST: {$t['label']} ===\n";
