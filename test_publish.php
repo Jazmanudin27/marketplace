@@ -117,10 +117,17 @@ if ($imageUrl) {
 }
 
 $tests[] = [
+    'label' => 'Cat 101769 (Celana Bawahan) - NO size chart fields at all',
+    'cat_id' => 101769,
+    'extra' => []
+];
+
+$tests[] = [
     'label' => 'Cat 101760 + size_chart_id as int (template_id)',
     'cat_id' => 101760,
     'extra' => ['size_chart_id' => 1104825612]
 ];
+
 
 
 
