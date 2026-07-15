@@ -1259,7 +1259,7 @@ class ShopeeService
             'sign'             => $sign,
             'access_token'     => $accessToken,
             'shop_id'          => $shopId,
-            'category_id_list' => json_encode([$categoryId]),
+            'category_id_list' => $categoryId,
         ];
 
         $response = Http::timeout(30)->get($this->baseUrl . $path, $queryParams);
