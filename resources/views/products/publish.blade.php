@@ -235,6 +235,21 @@
                                                 </div>
                                             </div>
 
+                                            {{-- Shopee-specific Size Chart Template ID --}}
+                                            @if ($store->channel->code === 'shopee')
+                                                <div class="mt-3">
+                                                    <label class="form-label form-label-sm fw-semibold mb-1 text-dark">
+                                                        <i class="fas fa-ruler-combined text-muted me-1"></i> ID Template Size Chart Shopee (Opsional)
+                                                    </label>
+                                                    <input type="number" name="size_chart_ids[{{ $store->id }}]" 
+                                                        class="form-control form-control-sm rounded-3" 
+                                                        placeholder="Contoh ID Template: 123456789">
+                                                    <small class="text-muted d-block mt-1">
+                                                        Wajib diisi jika kategori produk Shopee mewajibkan tabel ukuran (seperti Pakaian Anak/Fashion). Dapatkan ID dari Seller Centre Shopee (Kelola Ukuran).
+                                                    </small>
+                                                </div>
+                                            @endif
+
                                             {{-- Save Mapping checkbox --}}
                                             @if ($product->category_id)
                                                 <div class="form-check mt-3 small">

@@ -466,6 +466,7 @@ class MasterProductController extends Controller
         $categories = $request->input('categories');
         $categoryNames = $request->input('category_names');
         $saveMapping = $request->input('save_mapping', []);
+        $sizeChartIds = $request->input('size_chart_ids', []);
 
         // Check if weight is filled
         if (empty($product->weight) || $product->weight <= 0) {
@@ -519,6 +520,12 @@ class MasterProductController extends Controller
                 ]);
             }
 
+            // Append size_chart_id to category_id in logs if provided
+            $finalCatId = $catId;
+            if (!empty($sizeChartIds[$storeId])) {
+                $finalCatId = $catId . '|' . $sizeChartIds[$storeId];
+            }
+
             // Create or update background job log entry
             $log = PublicationLog::updateOrCreate([
                 'tenant_id' => Auth::user()->tenant_id,
@@ -526,7 +533,7 @@ class MasterProductController extends Controller
                 'store_id' => $storeId,
             ], [
                 'status' => 'pending',
-                'category_id' => $catId,
+                'category_id' => $finalCatId,
                 'category_name' => $catName,
                 'error_message' => null,
                 'marketplace_product_id' => null,
@@ -841,6 +848,7 @@ class MasterProductController extends Controller
         $defaultCategories = $request->input('categories');
         $defaultCategoryNames = $request->input('category_names');
         $saveMapping = $request->input('save_mapping', []);
+        $sizeChartIds = $request->input('size_chart_ids', []);
 
         $queuedCount = 0;
         $skippedCount = 0;
@@ -928,6 +936,12 @@ class MasterProductController extends Controller
                     ]);
                 }
 
+                // Append size_chart_id to category_id in logs if provided
+                $finalCatId = $catId;
+                if (!empty($sizeChartIds[$storeId])) {
+                    $finalCatId = $catId . '|' . $sizeChartIds[$storeId];
+                }
+
                 // Create Publication Log entry
                 $log = PublicationLog::updateOrCreate([
                     'tenant_id' => $tenantId,
@@ -935,7 +949,7 @@ class MasterProductController extends Controller
                     'store_id' => $storeId,
                 ], [
                     'status' => 'pending',
-                    'category_id' => $catId,
+                    'category_id' => $finalCatId,
                     'category_name' => $catName,
                     'error_message' => null,
                     'marketplace_product_id' => null,

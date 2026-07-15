@@ -98,6 +98,14 @@ class PublishProductToMarketplace implements ShouldQueue
             $tiktokService = app(TiktokService::class);
 
             if ($store->channel->code === 'shopee') {
+                $shopeeCatId = $catId;
+                $sizeChartId = null;
+                if (strpos((string)$catId, '|') !== false) {
+                    $parts = explode('|', (string)$catId);
+                    $shopeeCatId = $parts[0];
+                    $sizeChartId = $parts[1];
+                }
+
                 // 1. Get enabled shipping options
                 $channels = $shopeeService->getChannelList($accessToken, (int)$store->marketplace_store_id);
                 $logisticInfo = [];
@@ -141,7 +149,7 @@ class PublishProductToMarketplace implements ShouldQueue
                     'original_price' => (float) $product->price,
                     'item_name' => $product->name,
                     'description' => $product->description ?: $product->name,
-                    'category_id' => (int) $catId,
+                    'category_id' => (int) $shopeeCatId,
                     'weight' => (float) $product->weight,
                     'item_status' => 'NORMAL',
                     'logistic_info' => $logisticInfo,
@@ -154,6 +162,10 @@ class PublishProductToMarketplace implements ShouldQueue
                         ]
                     ]
                 ];
+
+                if ($sizeChartId) {
+                    $itemData['size_chart_id'] = (int) $sizeChartId;
+                }
 
                 if ($product->length) {
                     $itemData['package_length'] = (int) $product->length;
@@ -173,7 +185,7 @@ class PublishProductToMarketplace implements ShouldQueue
                 // Auto-fill mandatory attributes
                 $attributes = [];
                 try {
-                    $attributes = $shopeeService->getCategoryAttributes($accessToken, (int)$store->marketplace_store_id, (int)$catId);
+                    $attributes = $shopeeService->getCategoryAttributes($accessToken, (int)$store->marketplace_store_id, (int)$shopeeCatId);
                 } catch (\Exception $e) {
                     Log::warning('Failed to get Shopee category attributes in Job: ' . $e->getMessage());
                 }

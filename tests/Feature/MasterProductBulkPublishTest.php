@@ -154,4 +154,43 @@ class MasterProductBulkPublishTest extends TestCase
         // Dispatches 4 jobs: 2 products * 2 stores
         Queue::assertPushed(PublishProductToMarketplace::class, 4);
     }
+
+    public function test_store_bulk_publish_appends_size_chart_id(): void
+    {
+        $this->actingAs($this->user);
+        Queue::fake();
+
+        $prod = MasterProduct::create([
+            'tenant_id' => $this->tenant->id,
+            'sku'       => 'SKU-SIZE-CHART',
+            'name'      => 'Baju Koko Modern',
+            'price'     => 120000,
+            'stock'     => 5,
+            'weight'    => 0.3,
+        ]);
+
+        $postData = [
+            'product_ids' => [$prod->id],
+            'stores' => [$this->storeShopee->id],
+            'categories' => [
+                $this->storeShopee->id => '101776',
+            ],
+            'category_names' => [
+                $this->storeShopee->id => 'Atasan Lainnya',
+            ],
+            'size_chart_ids' => [
+                $this->storeShopee->id => '998877',
+            ]
+        ];
+
+        $response = $this->post(route('products.bulk_publish.store'), $postData);
+        $response->assertStatus(302);
+
+        // Verify the PublicationLog category_id is stored as 101776|998877
+        $this->assertDatabaseHas('publication_logs', [
+            'master_product_id' => $prod->id,
+            'store_id' => $this->storeShopee->id,
+            'category_id' => '101776|998877',
+        ]);
+    }
 }
