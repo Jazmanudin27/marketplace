@@ -102,28 +102,26 @@ $baseItemData = [
     ]
 ];
 
-$tests = [
-    [
-        'label' => 'Cat 101760 + size_chart as plain string image_id (scene=size_chart)',
+$tests = [];
+$imageUrl = $resData['image_info']['image_url_list'][3]['image_url'] ?? $resData['image_info']['image_url_list'][0]['image_url'] ?? null;
+
+if ($imageUrl) {
+    echo "Image URL found: $imageUrl\n\n";
+    $tests[] = [
+        'label' => 'Cat 101760 + size_chart as plain URL string',
         'cat_id' => 101760,
-        'extra' => ['size_chart' => $imageId]
-    ],
-    [
-        'label' => 'Cat 101760 + size_chart_id as int (template_id)',
-        'cat_id' => 101760,
-        'extra' => ['size_chart_id' => 1104825612]
-    ],
-    [
-        'label' => 'Cat 101760 + size_chart_id as string (template_id)',
-        'cat_id' => 101760,
-        'extra' => ['size_chart_id' => "1104825612"]
-    ],
-    [
-        'label' => 'Cat 101760 + size_chart as int (template_id)',
-        'cat_id' => 101760,
-        'extra' => ['size_chart' => 1104825612]
-    ],
+        'extra' => ['size_chart' => $imageUrl]
+    ];
+} else {
+    echo "Failed to extract image URL from response: " . json_encode($resData) . "\n\n";
+}
+
+$tests[] = [
+    'label' => 'Cat 101760 + size_chart_id as int (template_id)',
+    'cat_id' => 101760,
+    'extra' => ['size_chart_id' => 1104825612]
 ];
+
 
 
 
