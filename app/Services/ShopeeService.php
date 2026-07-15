@@ -1176,11 +1176,14 @@ class ShopeeService
         $sign = $this->signShopRequest($path, $timestamp, $accessToken, $shopId);
 
         $queryParams = [
-            'partner_id'   => $this->partnerId,
-            'timestamp'    => $timestamp,
-            'sign'         => $sign,
-            'access_token' => $accessToken,
-            'shop_id'      => $shopId,
+            'partner_id'      => $this->partnerId,
+            'timestamp'       => $timestamp,
+            'sign'            => $sign,
+            'access_token'    => $accessToken,
+            'shop_id'         => $shopId,
+            'page_size'       => 50,
+            'page_no'         => 1,
+            'size_chart_name' => '',
         ];
 
         $response = Http::timeout(30)->get($this->baseUrl . $path, $queryParams);
@@ -1195,7 +1198,7 @@ class ShopeeService
             throw new \RuntimeException('Shopee error mengambil daftar size chart: ' . ($data['message'] ?? 'Unknown'));
         }
 
-        return $data['response']['size_chart_list'] ?? [];
+        return $data['response']['size_chart_list'] ?? $data['response']['size_chart'] ?? [];
     }
 
     /**
