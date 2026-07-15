@@ -347,50 +347,53 @@ class PublishProductToMarketplace implements ShouldQueue
 
                 Log::info('[Shopee] addItem payload', ['payload' => array_merge($itemData, ['logistic_info' => '[...]', 'attribute_list' => '[...]'])]);
 
-                try {
-                    $res = $shopeeService->addItem($accessToken, (int)$store->marketplace_store_id, $itemData);
-                } catch (\Exception $e) {
-                    if (stripos($e->getMessage(), 'size chart') !== false || stripos($e->getMessage(), 'sizechart') !== false) {
+                $sizeChartAttempts = [];
 
-                        // Attempt 2: top-level size_chart_id (integer)
-                        Log::warning('[Shopee] Attempt 1 gagal. Coba format 2: top-level size_chart_id...');
-                        unset($itemData['size_chart']);
-                        if ($sizeChartId && (int)$sizeChartId > 0) {
-                            $itemData['size_chart_id'] = (int) $sizeChartId;
-                        }
-                        Log::info('[Shopee] Attempt 2 payload', ['size_chart_id' => $itemData['size_chart_id'] ?? null]);
-                        try {
-                            $res = $shopeeService->addItem($accessToken, (int)$store->marketplace_store_id, $itemData);
-                        } catch (\Exception $e2) {
-                            if (stripos($e2->getMessage(), 'size chart') !== false || stripos($e2->getMessage(), 'sizechart') !== false) {
+                if ($sizeChartId && (int)$sizeChartId > 0) {
+                    $intChartId = (int) $sizeChartId;
+                    $strChartId = (string) $sizeChartId;
+                    $sizeChartAttempts[] = ['name' => 'size_chart as int', 'data' => ['size_chart' => $intChartId]];
+                    $sizeChartAttempts[] = ['name' => 'size_chart as string', 'data' => ['size_chart' => $strChartId]];
+                    $sizeChartAttempts[] = ['name' => 'size_chart_id as int', 'data' => ['size_chart_id' => $intChartId]];
+                    $sizeChartAttempts[] = ['name' => 'size_chart_id as string', 'data' => ['size_chart_id' => $strChartId]];
+                    $sizeChartAttempts[] = ['name' => 'size_chart_template_id as int', 'data' => ['size_chart_template_id' => $intChartId]];
+                    $sizeChartAttempts[] = ['name' => 'nested object size_chart_id', 'data' => ['size_chart' => ['size_chart_id' => $intChartId]]];
+                }
 
-                                // Attempt 3: size_chart dengan image_id produk
-                                Log::warning('[Shopee] Attempt 2 gagal. Coba format 3: size_chart image...');
-                                unset($itemData['size_chart_id']);
-                                if (!empty($imageId)) {
-                                    $itemData['size_chart'] = ['image_id' => $imageId];
-                                }
-                                Log::info('[Shopee] Attempt 3 payload', ['size_chart' => $itemData['size_chart'] ?? null]);
-                                try {
-                                    $res = $shopeeService->addItem($accessToken, (int)$store->marketplace_store_id, $itemData);
-                                } catch (\Exception $e3) {
-                                    if (stripos($e3->getMessage(), 'size chart') !== false || stripos($e3->getMessage(), 'sizechart') !== false) {
-                                        // Attempt 4: tanpa size_chart sama sekali - lihat error lain apa yang muncul
-                                        Log::warning('[Shopee] Attempt 3 gagal. Coba tanpa size_chart field...');
-                                        unset($itemData['size_chart']);
-                                        unset($itemData['size_chart_id']);
-                                        $res = $shopeeService->addItem($accessToken, (int)$store->marketplace_store_id, $itemData);
-                                    } else {
-                                        throw $e3;
-                                    }
-                                }
-                            } else {
-                                throw $e2;
-                            }
+                if (!empty($imageId)) {
+                    $sizeChartAttempts[] = ['name' => 'size_chart image object', 'data' => ['size_chart' => ['image_id' => $imageId]]];
+                }
+
+                $res = null;
+                $lastException = null;
+
+                foreach ($sizeChartAttempts as $index => $attempt) {
+                    $attemptPayload = $itemData;
+                    unset($attemptPayload['size_chart'], $attemptPayload['size_chart_id'], $attemptPayload['size_chart_template_id']);
+                    $attemptPayload = array_merge($attemptPayload, $attempt['data']);
+
+                    Log::info('[Shopee] Attempting addItem (' . ($index + 1) . '/' . count($sizeChartAttempts) . ') - Format: ' . $attempt['name'], [
+                        'payload_fields' => array_intersect_key($attemptPayload, array_flip(['size_chart', 'size_chart_id', 'size_chart_template_id']))
+                    ]);
+
+                    try {
+                        $res = $shopeeService->addItem($accessToken, (int)$store->marketplace_store_id, $attemptPayload);
+                        Log::info('[Shopee] SUCCESS with size chart format: ' . $attempt['name']);
+                        break;
+                    } catch (\Exception $e) {
+                        $lastException = $e;
+                        if (stripos($e->getMessage(), 'size chart') !== false || stripos($e->getMessage(), 'sizechart') !== false) {
+                            Log::warning('[Shopee] Format ' . $attempt['name'] . ' failed with size chart error, trying next format...');
+                            continue;
+                        } else {
+                            // If it's a different error, break and throw
+                            throw $e;
                         }
-                    } else {
-                        throw $e;
                     }
+                }
+
+                if (!$res) {
+                    throw $lastException ?: new \RuntimeException('Gagal menambahkan produk ke Shopee setelah mencoba semua format size chart.');
                 }
                 $marketplaceProductId = $res['item_id'] ?? null;
 
