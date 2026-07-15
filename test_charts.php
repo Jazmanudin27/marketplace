@@ -21,6 +21,7 @@ $accessToken = $store->getValidAccessToken();
 // Coba beberapa category ID yang relevan
 $categoryIds = [
     101757 => 'Kaos (Atasan Anak Laki)',
+    101760 => 'Atasan Lainnya (Anak Laki-Laki) ← KATEGORI PRODUK',
     101776 => 'Atasan Lainnya (Anak Perempuan)',
     101769 => 'Celana (Bawahan Anak Laki)',
 ];
