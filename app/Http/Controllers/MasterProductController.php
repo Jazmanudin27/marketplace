@@ -833,7 +833,8 @@ class MasterProductController extends Controller
 
     public function shopeeSizeCharts(Request $request)
     {
-        $storeId = $request->query('store_id');
+        $storeId    = $request->query('store_id');
+        $categoryId = (int) $request->query('category_id', 0);
         $store = \App\Models\Store::where('tenant_id', Auth::user()->tenant_id)
             ->where('id', $storeId)
             ->first();
@@ -850,7 +851,7 @@ class MasterProductController extends Controller
             }
 
             $shopeeService = app(ShopeeService::class);
-            $charts = $shopeeService->getSizeChartList($accessToken, (int)$store->marketplace_store_id);
+            $charts = $shopeeService->getSizeChartList($accessToken, (int)$store->marketplace_store_id, $categoryId);
             return response()->json(['success' => true, 'data' => $charts]);
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::error('shopeeSizeCharts error: ' . $e->getMessage());

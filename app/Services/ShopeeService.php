@@ -1183,18 +1183,15 @@ class ShopeeService
             'shop_id'      => $shopId,
             'page_size'    => 50,
             'page_no'      => 1,
+            'category_id'  => $categoryId > 0 ? $categoryId : 101757, // Default: Kaos Anak
         ];
-
-        // Only add category_id if a specific one is requested
-        if ($categoryId > 0) {
-            $queryParams['category_id'] = $categoryId;
-        }
 
         $response = Http::timeout(30)->get($this->baseUrl . $path, $queryParams);
 
         Log::info('[Shopee] getSizeChartList raw response', [
-            'status' => $response->status(),
-            'body'   => $response->body(),
+            'status'      => $response->status(),
+            'body'        => $response->body(),
+            'category_id' => $queryParams['category_id'],
         ]);
 
         if ($response->failed()) {

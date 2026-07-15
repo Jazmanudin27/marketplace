@@ -13,15 +13,31 @@ if (!$store) {
     exit;
 }
 
-echo "Toko Ditemukan: {$store->store_name} (Shop ID: {$store->marketplace_store_id})\n";
+echo "Toko Ditemukan: {$store->store_name} (Shop ID: {$store->marketplace_store_id})\n\n";
 
 $shopeeService = app(ShopeeService::class);
 $accessToken = $store->getValidAccessToken();
 
-try {
-    $charts = $shopeeService->getSizeChartList($accessToken, (int)$store->marketplace_store_id);
-    echo "\n=== DAFTAR TEMPLATE SIZE CHART DI SHOPEE ===\n";
-    echo json_encode($charts, JSON_PRETTY_PRINT) . "\n";
-} catch (\Exception $e) {
-    echo "Error: " . $e->getMessage() . "\n";
+// Coba beberapa category ID yang relevan
+$categoryIds = [
+    101757 => 'Kaos (Atasan Anak Laki)',
+    101776 => 'Atasan Lainnya (Anak Perempuan)',
+    101769 => 'Celana (Bawahan Anak Laki)',
+];
+
+foreach ($categoryIds as $catId => $catName) {
+    echo "=== Kategori: $catName (ID: $catId) ===\n";
+    try {
+        $charts = $shopeeService->getSizeChartList($accessToken, (int)$store->marketplace_store_id, $catId);
+        if (empty($charts)) {
+            echo "  -> Tidak ada template size chart untuk kategori ini.\n";
+        } else {
+            foreach ($charts as $chart) {
+                echo "  -> ID: " . ($chart['size_chart_id'] ?? $chart['id'] ?? '?') . " | Nama: " . ($chart['size_chart_name'] ?? $chart['name'] ?? json_encode($chart)) . "\n";
+            }
+        }
+    } catch (\Exception $e) {
+        echo "  -> ERROR: " . $e->getMessage() . "\n";
+    }
+    echo "\n";
 }
