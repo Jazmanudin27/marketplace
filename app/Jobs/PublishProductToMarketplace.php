@@ -106,6 +106,43 @@ class PublishProductToMarketplace implements ShouldQueue
                     $sizeChartId = $parts[1];
                 }
 
+                if (empty($sizeChartId)) {
+                    // Check if there is an existing mapping for this category that has a size chart ID
+                    if ($product->category_id) {
+                        $mapping = \App\Models\CategoryMapping::where('category_id', $product->category_id)
+                            ->where('store_id', $store->id)
+                            ->first();
+                        if ($mapping && strpos((string)$mapping->marketplace_category_id, '|') !== false) {
+                            $sizeChartId = explode('|', (string)$mapping->marketplace_category_id)[1];
+                        }
+                    }
+                }
+
+                if (empty($sizeChartId)) {
+                    // Fallback: Fetch all size charts from their Shopee account via API
+                    try {
+                        $charts = $shopeeService->getSizeChartList($accessToken, (int)$store->marketplace_store_id);
+                        if (!empty($charts) && is_array($charts)) {
+                            // Automatically select the first size chart template
+                            $sizeChartId = $charts[0]['size_chart_id'] ?? null;
+                            Log::info('[Shopee] Auto-resolved missing size chart to: ' . $sizeChartId);
+                            
+                            // Save it back to CategoryMapping so it's permanently stored!
+                            if ($product->category_id && $sizeChartId) {
+                                \App\Models\CategoryMapping::updateOrCreate([
+                                    'tenant_id' => $product->tenant_id,
+                                    'category_id' => $product->category_id,
+                                    'store_id' => $store->id,
+                                ], [
+                                    'marketplace_category_id' => $shopeeCatId . '|' . $sizeChartId,
+                                ]);
+                            }
+                        }
+                    } catch (\Exception $e) {
+                        Log::warning('[Shopee] Fallback get_size_chart_list failed: ' . $e->getMessage());
+                    }
+                }
+
                 // 1. Get enabled shipping options
                 $channels = $shopeeService->getChannelList($accessToken, (int)$store->marketplace_store_id);
                 $logisticInfo = [];
