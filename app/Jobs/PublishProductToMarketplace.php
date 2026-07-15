@@ -227,8 +227,18 @@ class PublishProductToMarketplace implements ShouldQueue
                     ]
                 ];
 
-                if ($sizeChartId) {
+                // Hanya kirim size_chart_id jika diisi manual oleh user (dari form),
+                // BUKAN dari API get_size_chart_list (karena template image tidak muncul di API tersebut).
+                if ($sizeChartId && (int)$sizeChartId > 0) {
                     $itemData['size_chart_id'] = (int) $sizeChartId;
+                } else {
+                    // Gunakan gambar produk sebagai size_chart (image-based) sebagai fallback.
+                    // Ini adalah cara resmi Shopee untuk kategori yang mewajibkan size chart
+                    // tapi tidak memiliki template tabel.
+                    if (!empty($imageId)) {
+                        $itemData['size_chart'] = $imageId;
+                        Log::info('[Shopee] Menggunakan gambar produk sebagai size_chart (image fallback), image_id: ' . $imageId);
+                    }
                 }
 
                 if ($product->length) {
@@ -336,12 +346,19 @@ class PublishProductToMarketplace implements ShouldQueue
                     $itemData['attribute_list'] = $attributeList;
                 }
 
+                Log::info('[Shopee] addItem payload', ['payload' => array_merge($itemData, ['logistic_info' => '[...]', 'attribute_list' => '[...]'])]);
+
                 try {
                     $res = $shopeeService->addItem($accessToken, (int)$store->marketplace_store_id, $itemData);
                 } catch (\Exception $e) {
-                    if ((stripos($e->getMessage(), 'size chart') !== false || stripos($e->getMessage(), 'sizechart') !== false) && !empty($imageId)) {
-                        Log::info('[Shopee] Retrying product publish with main image as size chart fallback for product ' . $product->id);
-                        $itemData['size_chart'] = $imageId;
+                    // Jika masih error size chart, coba kirim ulang dengan dan tanpa size_chart_id
+                    if (stripos($e->getMessage(), 'size chart') !== false || stripos($e->getMessage(), 'sizechart') !== false) {
+                        Log::warning('[Shopee] Size chart error, retrying with image fallback: ' . $e->getMessage());
+                        unset($itemData['size_chart_id']);
+                        if (!empty($imageId)) {
+                            $itemData['size_chart'] = $imageId;
+                        }
+                        Log::info('[Shopee] addItem retry payload', ['has_size_chart' => isset($itemData['size_chart']), 'has_size_chart_id' => isset($itemData['size_chart_id'])]);
                         $res = $shopeeService->addItem($accessToken, (int)$store->marketplace_store_id, $itemData);
                     } else {
                         throw $e;
