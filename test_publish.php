@@ -104,26 +104,27 @@ $baseItemData = [
 
 $tests = [
     [
-        'label' => 'Cat 101760 + size_chart as array ["sg-xxx"]',
+        'label' => 'Cat 101760 + size_chart as plain string image_id (scene=size_chart)',
         'cat_id' => 101760,
-        'extra' => ['size_chart' => [$imageId]]
+        'extra' => ['size_chart' => $imageId]
     ],
     [
-        'label' => 'Cat 101760 + size_chart as nested image_id_list',
+        'label' => 'Cat 101760 + size_chart_id as int (template_id)',
         'cat_id' => 101760,
-        'extra' => ['size_chart' => ['image_id_list' => [$imageId]]]
+        'extra' => ['size_chart_id' => 1104825612]
     ],
     [
-        'label' => 'Cat 101760 + size_chart as object with size_chart_id',
+        'label' => 'Cat 101760 + size_chart_id as string (template_id)',
         'cat_id' => 101760,
-        'extra' => ['size_chart' => ['size_chart_id' => 1104825612]]
+        'extra' => ['size_chart_id' => "1104825612"]
     ],
     [
-        'label' => 'Cat 101760 + size_chart_id as nested object {size_chart_id: ...}',
+        'label' => 'Cat 101760 + size_chart as int (template_id)',
         'cat_id' => 101760,
-        'extra' => ['size_chart_id' => ['size_chart_id' => 1104825612]]
+        'extra' => ['size_chart' => 1104825612]
     ],
 ];
+
 
 
 
