@@ -37,11 +37,21 @@ foreach ($categoryIds as $catId => $catName) {
     echo "\n";
 }
 
-// ======== CEK ATRIBUT KATEGORI 101760 ========
-echo "\n=== ATRIBUT KATEGORI 101760 RAW ===\n";
+// ======== CEK support_size_chart KATEGORI 101760 ========
+echo "\n=== CEK support_size_chart KATEGORI 101760 ===\n";
 try {
-    $attrs = $shopeeService->getCategoryAttributes($accessToken, (int)$store->marketplace_store_id, 101760);
-    echo json_encode($attrs, JSON_PRETTY_PRINT) . "\n";
+    $path = '/api/v2/product/support_size_chart';
+    $timestamp = time();
+    $sign = $shopeeService->signShopRequest($path, $timestamp, $accessToken, (int)$store->marketplace_store_id);
+    $response = Http::get($shopeeService->baseUrl . $path, [
+        'partner_id'   => $shopeeService->partnerId,
+        'timestamp'    => $timestamp,
+        'sign'         => $sign,
+        'access_token' => $accessToken,
+        'shop_id'      => (int)$store->marketplace_store_id,
+        'category_id'  => 101760,
+    ]);
+    echo "Respon support_size_chart: " . $response->body() . "\n";
 } catch (\Exception $e) {
-    echo "ERROR atribut: " . $e->getMessage() . "\n";
+    echo "ERROR support_size_chart: " . $e->getMessage() . "\n";
 }
