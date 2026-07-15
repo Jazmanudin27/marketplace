@@ -102,6 +102,17 @@
                             $isShopee = $store->channel->code === 'shopee';
                             $isTiktok = $store->channel->code === 'tiktok';
                             $existingMapping = $categoryMappings[$store->id] ?? null;
+                            $mappedCatId = '';
+                            $mappedSizeChartId = '';
+                            if ($existingMapping) {
+                                $mappedCatIdRaw = $existingMapping['marketplace_category_id'] ?? '';
+                                $mappedCatId = $mappedCatIdRaw;
+                                if (strpos((string)$mappedCatIdRaw, '|') !== false) {
+                                    $parts = explode('|', (string)$mappedCatIdRaw);
+                                    $mappedCatId = $parts[0];
+                                    $mappedSizeChartId = $parts[1];
+                                }
+                            }
                         @endphp
 
                         <div class="card mb-3 border {{ $isMapped || $isProcessing ? 'opacity-75' : 'shadow-sm' }}">
@@ -169,18 +180,8 @@
                                             @endif
                                         </label>
 
-                                        @if ($existingMapping)
-                                            @php
-                                                $mappedCatIdRaw = $existingMapping['marketplace_category_id'] ?? '';
-                                                $mappedCatId = $mappedCatIdRaw;
-                                                $mappedSizeChartId = '';
-                                                if (strpos((string)$mappedCatIdRaw, '|') !== false) {
-                                                    $parts = explode('|', (string)$mappedCatIdRaw);
-                                                    $mappedCatId = $parts[0];
-                                                    $mappedSizeChartId = $parts[1];
-                                                }
-                                            @endphp
-                                            <div class="alert alert-info py-2 px-3 mb-2 d-flex align-items-center flex-wrap gap-2 border-0 bg-primary bg-opacity-10 text-primary-emphasis">
+                                         @if ($existingMapping)
+                                             <div class="alert alert-info py-2 px-3 mb-2 d-flex align-items-center flex-wrap gap-2 border-0 bg-primary bg-opacity-10 text-primary-emphasis">
                                                 <i class="fas fa-bookmark text-primary"></i>
                                                 <span class="small me-auto text-dark">
                                                     Pemetaan Tersimpan:
