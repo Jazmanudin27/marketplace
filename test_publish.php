@@ -46,39 +46,19 @@ try {
     $tempFile = tempnam(sys_get_temp_dir(), 'size_chart_');
     file_put_contents($tempFile, file_get_contents('https://placehold.co/600x600.png'));
     
-    $path = '/api/v2/media_space/upload_image';
-    $timestamp = time();
-    $sign = $shopeeService->signShopRequest($path, $timestamp, $accessToken, (int)$store->marketplace_store_id);
+    $resData = $shopeeService->uploadImage($accessToken, (int)$store->marketplace_store_id, $tempFile, 'size_chart');
     
-    $queryParams = [
-        'partner_id' => $shopeeService->partnerId,
-        'timestamp' => $timestamp,
-        'sign' => $sign,
-        'access_token' => $accessToken,
-        'shop_id' => (int)$store->marketplace_store_id,
-    ];
-
-    $response = Http::asMultipart()
-        ->attach('image', file_get_contents($tempFile), 'size_chart.png')
-        ->post($shopeeService->baseUrl . $path . '?' . http_build_query($queryParams), [
-            'scene' => 'size_chart'
-        ]);
-        
     @unlink($tempFile);
     
-    $resData = $response->json();
-    if (empty($resData['error'])) {
-        $sizeChartImageId = $resData['response']['image_info']['image_id'] ?? null;
-        echo "Berhasil upload size chart image! ID: $sizeChartImageId\n\n";
-        if ($sizeChartImageId) {
-            $imageId = $sizeChartImageId;
-        }
-    } else {
-        echo "Gagal upload size chart: " . json_encode($resData) . "\n\n";
+    $sizeChartImageId = $resData['image_info']['image_id'] ?? null;
+    echo "Berhasil upload size chart image! ID: $sizeChartImageId\n\n";
+    if ($sizeChartImageId) {
+        $imageId = $sizeChartImageId;
     }
 } catch (\Exception $e) {
     echo "ERROR Upload: " . $e->getMessage() . "\n\n";
 }
+
 
 $channels = $shopeeService->getChannelList($accessToken, (int)$store->marketplace_store_id);
 $logisticInfo = [];

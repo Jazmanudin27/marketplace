@@ -695,7 +695,7 @@ class ShopeeService
         return $data['response']['logistics_channel_list'] ?? [];
     }
 
-    public function uploadImage(string $accessToken, int $shopId, string $imagePath): array
+    public function uploadImage(string $accessToken, int $shopId, string $imagePath, string $scene = 'normal'): array
     {
         $path = '/api/v2/media_space/upload_image';
         $timestamp = time();
@@ -712,7 +712,7 @@ class ShopeeService
         $response = Http::asMultipart()
             ->attach('image', file_get_contents($imagePath), basename($imagePath))
             ->post($this->baseUrl . $path . '?' . http_build_query($queryParams), [
-                'scene' => 'normal'
+                'scene' => $scene
             ]);
 
         if ($response->failed()) {
