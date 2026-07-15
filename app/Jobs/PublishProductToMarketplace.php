@@ -178,8 +178,16 @@ class PublishProductToMarketplace implements ShouldQueue
                     throw new \RuntimeException('Produk wajib memiliki gambar utama untuk di-upload ke Shopee. Pastikan Master Produk sudah memiliki gambar dan valid.');
                 }
 
-                // 3. Brand ID (Otomatis menggunakan 100234 / No Brand Shopee)
-                $brandId = 100234;
+                // 3. Resolve Brand ID (Fallback to 0 for No Brand to conform to "must be either 0 or greater than 1000000")
+                $brandId = 0;
+                if ($product->brand_id) {
+                    $brandMapping = \App\Models\BrandMapping::where('brand_id', $product->brand_id)
+                        ->where('store_id', $store->id)
+                        ->first();
+                    if ($brandMapping) {
+                        $brandId = (int) $brandMapping->marketplace_brand_id;
+                    }
+                }
 
                 // 4. Prepare Description with auto-padding if it's too short (Shopee requires at least 20-100 characters)
                 $description = $product->description ?: $product->name;
