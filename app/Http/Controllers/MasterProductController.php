@@ -784,4 +784,177 @@ class MasterProductController extends Controller
             return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
         }
     }
+
+    public function bulkPublish(Request $request)
+    {
+        $tenantId = Auth::user()->tenant_id;
+        $ids = $request->input('ids', []);
+        
+        if (empty($ids) || !is_array($ids)) {
+            return redirect()->route('products.index')->with('error', 'Silakan pilih setidaknya satu produk untuk dipublikasikan.');
+        }
+
+        $products = MasterProduct::whereIn('id', $ids)
+            ->where('tenant_id', $tenantId)
+            ->get();
+
+        if ($products->isEmpty()) {
+            return redirect()->route('products.index')->with('error', 'Produk tidak ditemukan.');
+        }
+
+        $stores = \App\Models\Store::with('channel')
+            ->where('tenant_id', $tenantId)
+            ->where('status', 'connected')
+            ->get();
+
+        $categoryIds = $products->pluck('category_id')->filter()->unique();
+        $categoryMappings = [];
+        if ($categoryIds->isNotEmpty()) {
+            $categoryMappings = CategoryMapping::whereIn('category_id', $categoryIds)
+                ->where('tenant_id', $tenantId)
+                ->get()
+                ->groupBy('store_id')
+                ->map(function ($items) {
+                    return $items->keyBy('category_id')->toArray();
+                })
+                ->toArray();
+        }
+
+        return view('products.bulk_publish', compact('products', 'stores', 'categoryMappings'));
+    }
+
+    public function storeBulkPublish(Request $request)
+    {
+        $tenantId = Auth::user()->tenant_id;
+
+        $request->validate([
+            'product_ids' => 'required|array',
+            'product_ids.*' => 'exists:master_products,id',
+            'stores' => 'required|array',
+            'stores.*' => 'exists:stores,id',
+            'categories' => 'required|array',
+            'category_names' => 'required|array',
+        ]);
+
+        $productIds = $request->input('product_ids');
+        $selectedStoreIds = $request->input('stores');
+        $defaultCategories = $request->input('categories');
+        $defaultCategoryNames = $request->input('category_names');
+        $saveMapping = $request->input('save_mapping', []);
+
+        $queuedCount = 0;
+        $skippedCount = 0;
+        $weightErrors = 0;
+
+        foreach ($productIds as $productId) {
+            $product = MasterProduct::where('id', $productId)
+                ->where('tenant_id', $tenantId)
+                ->first();
+
+            if (!$product) {
+                continue;
+            }
+
+            // Check if weight is filled
+            if (empty($product->weight) || $product->weight <= 0) {
+                $weightErrors++;
+                continue;
+            }
+
+            foreach ($selectedStoreIds as $storeId) {
+                $store = \App\Models\Store::find($storeId);
+                if (!$store || $store->tenant_id !== $tenantId) {
+                    continue;
+                }
+
+                // Check if already mapped
+                $exists = \App\Models\MarketplaceProduct::where('store_id', $store->id)
+                    ->where(function($q) use ($product) {
+                        $q->where('master_product_id', $product->id);
+                        if ($product->sku) {
+                            $q->orWhere('marketplace_sku', $product->sku);
+                        }
+                    })
+                    ->exists();
+                if ($exists) {
+                    $skippedCount++;
+                    continue;
+                }
+
+                // Check if currently being published (pending or processing)
+                $isProcessing = PublicationLog::where('store_id', $store->id)
+                    ->where('master_product_id', $product->id)
+                    ->whereIn('status', ['pending', 'processing'])
+                    ->exists();
+                if ($isProcessing) {
+                    $skippedCount++;
+                    continue;
+                }
+
+                // Resolve category:
+                // 1. Check if specific category mapping exists for this product's category
+                $catId = null;
+                $catName = null;
+
+                if ($product->category_id) {
+                    $mapping = CategoryMapping::where('category_id', $product->category_id)
+                        ->where('store_id', $storeId)
+                        ->first();
+                    if ($mapping) {
+                        $catId = $mapping->marketplace_category_id;
+                        $catName = $mapping->marketplace_category_name;
+                    }
+                }
+
+                // 2. If no specific mapping, fallback to default category selected for this store
+                if (empty($catId)) {
+                    $catId = $defaultCategories[$storeId] ?? null;
+                    $catName = $defaultCategoryNames[$storeId] ?? 'Unknown Category';
+                }
+
+                if (empty($catId)) {
+                    continue;
+                }
+
+                // Save mapping if requested and product has category
+                if ($product->category_id && !empty($saveMapping[$storeId]) && empty($mapping)) {
+                    CategoryMapping::updateOrCreate([
+                        'tenant_id' => $tenantId,
+                        'category_id' => $product->category_id,
+                        'store_id' => $storeId,
+                    ], [
+                        'marketplace_category_id' => $catId,
+                        'marketplace_category_name' => $catName,
+                    ]);
+                }
+
+                // Create Publication Log entry
+                $log = PublicationLog::updateOrCreate([
+                    'tenant_id' => $tenantId,
+                    'master_product_id' => $product->id,
+                    'store_id' => $storeId,
+                ], [
+                    'status' => 'pending',
+                    'category_id' => $catId,
+                    'category_name' => $catName,
+                    'error_message' => null,
+                    'marketplace_product_id' => null,
+                ]);
+
+                // Dispatch job
+                PublishProductToMarketplace::dispatch($log->id);
+                $queuedCount++;
+            }
+        }
+
+        $msg = "Berhasil mengirim $queuedCount publikasi produk massal ke latar belakang.";
+        if ($skippedCount > 0) {
+            $msg .= " ($skippedCount dilewati karena sudah terhubung/sedang diproses).";
+        }
+        if ($weightErrors > 0) {
+            $msg .= " ($weightErrors dilewati karena berat produk kosong/0).";
+        }
+
+        return redirect()->route('products.index')->with('success', $msg);
+    }
 }

@@ -352,6 +352,8 @@ Route::middleware('auth')->group(function () {
         Route::delete('/products/{product}', [MasterProductController::class, 'destroy'])->name('products.destroy');
         Route::get('/products/{product}/publish', [MasterProductController::class, 'publish'])->name('products.publish');
         Route::post('/products/{product}/publish', [MasterProductController::class, 'storePublish'])->name('products.publish.store');
+        Route::get('/products/bulk-publish', [MasterProductController::class, 'bulkPublish'])->name('products.bulk_publish');
+        Route::post('/products/bulk-publish', [MasterProductController::class, 'storeBulkPublish'])->name('products.bulk_publish.store');
         Route::post('/products/{product}/recipe', [MasterProductController::class, 'saveRecipe'])->name('products.save_recipe');
         Route::get('/product_recipes/bulk', [\App\Http\Controllers\Production\ProductRecipeController::class, 'bulkEdit'])
             ->name('product_recipes.bulk');

@@ -8,9 +8,14 @@
                 Kelola produk, harga, stok, dan koneksi marketplace
             </small>
         </div>
-        <a href="{{ route('products.create') }}" class="btn btn-primary btn-sm px-3 rounded-3">
-            <i class="fas fa-plus me-1"></i>Tambah Produk
-        </a>
+        <div class="d-flex align-items-center gap-2">
+            <button type="button" id="btnBulkPublish" class="btn btn-outline-primary btn-sm px-3 rounded-3 d-none">
+                <i class="fas fa-cloud-upload-alt me-1"></i>Publish Massal (<span id="selectedCount">0</span>)
+            </button>
+            <a href="{{ route('products.create') }}" class="btn btn-primary btn-sm px-3 rounded-3">
+                <i class="fas fa-plus me-1"></i>Tambah Produk
+            </a>
+        </div>
     </div>
 
     <div class="card-body p-3">
@@ -98,6 +103,7 @@
             <table class="table table-sm table-striped table-bordered align-middle mb-0">
                 <thead>
                     <tr>
+                        <th class="text-center" style="width: 40px;"><input type="checkbox" id="selectAllProducts" class="form-check-input"></th>
                         <th>SKU VARIASI</th>
                         <th>NAMA BARANG</th>
                         <th>SKU INDUK</th>
@@ -113,6 +119,9 @@
                 <tbody>
                     @forelse($products as $product)
                         <tr>
+                            <td class="text-center">
+                                <input type="checkbox" value="{{ $product->id }}" class="form-check-input product-select-checkbox">
+                            </td>
                             <td>
                                 <code class="text-primary font-monospace">{{ $product->sku }}</code>
                             </td>
@@ -267,7 +276,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="10" class="text-center text-muted py-5">
+                            <td colspan="11" class="text-center text-muted py-5">
                                 <i class="fas fa-box-open d-block mb-2 opacity-25 fs-2"></i>
                                 Belum ada produk.
                                 <a href="{{ route('products.create') }}"
@@ -291,3 +300,60 @@
         @endif
     </div>
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const selectAll = document.getElementById('selectAllProducts');
+        const checkboxes = document.querySelectorAll('.product-select-checkbox');
+        const btnBulkPublish = document.getElementById('btnBulkPublish');
+        const selectedCountSpan = document.getElementById('selectedCount');
+
+        function updateBulkButton() {
+            const checkedCount = document.querySelectorAll('.product-select-checkbox:checked').length;
+            if (checkedCount > 0) {
+                selectedCountSpan.textContent = checkedCount;
+                btnBulkPublish.classList.remove('d-none');
+            } else {
+                btnBulkPublish.classList.add('d-none');
+            }
+        }
+
+        if (selectAll) {
+            selectAll.addEventListener('change', function () {
+                checkboxes.forEach(cb => {
+                    cb.checked = selectAll.checked;
+                });
+                updateBulkButton();
+            });
+        }
+
+        checkboxes.forEach(cb => {
+            cb.addEventListener('change', function () {
+                if (!this.checked) {
+                    if (selectAll) selectAll.checked = false;
+                } else {
+                    const allChecked = document.querySelectorAll('.product-select-checkbox:checked').length === checkboxes.length;
+                    if (selectAll) selectAll.checked = allChecked;
+                }
+                updateBulkButton();
+            });
+        });
+
+        if (btnBulkPublish) {
+            btnBulkPublish.addEventListener('click', function () {
+                const checkedBoxes = document.querySelectorAll('.product-select-checkbox:checked');
+                if (checkedBoxes.length === 0) return;
+
+                let url = "{{ route('products.bulk_publish') }}?";
+                checkedBoxes.forEach((cb, index) => {
+                    url += `ids[]=${cb.value}&`;
+                });
+                // Remove trailing &
+                if (url.endsWith('&')) {
+                    url = url.slice(0, -1);
+                }
+                window.location.href = url;
+            });
+        }
+    });
+</script>
