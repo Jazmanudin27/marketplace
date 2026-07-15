@@ -20,11 +20,25 @@ if (!$product) {
     exit;
 }
 
-$shopeeService = app(ShopeeService::class);
-$accessToken = $store->getValidAccessToken();
+// Test get_size_chart_detail
+echo "=== GET SIZE CHART DETAIL (1104825612) ===\n";
+try {
+    $path = '/api/v2/product/get_size_chart_detail';
+    $timestamp = time();
+    $sign = $shopeeService->signShopRequest($path, $timestamp, $accessToken, (int)$store->marketplace_store_id);
+    $response = Http::get($shopeeService->baseUrl . $path, [
+        'partner_id'    => $shopeeService->partnerId,
+        'timestamp'     => $timestamp,
+        'sign'          => $sign,
+        'access_token'  => $accessToken,
+        'shop_id'       => (int)$store->marketplace_store_id,
+        'size_chart_id' => 1104825612,
+    ]);
+    echo "Detail Response: " . $response->body() . "\n\n";
+} catch (\Exception $e) {
+    echo "ERROR Detail: " . $e->getMessage() . "\n\n";
+}
 
-echo "Toko: {$store->store_name} (Shop ID: {$store->marketplace_store_id})\n";
-echo "Testing Shopee addItem with various size_chart payloads...\n\n";
 
 $imageId = "sg-11134201-8259m-mqoi1a7oj11f74"; // Valid uploaded image ID
 
