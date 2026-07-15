@@ -38,16 +38,10 @@ foreach ($categoryIds as $catId => $catName) {
 }
 
 // ======== CEK ATRIBUT KATEGORI 101760 ========
-echo "\n=== ATRIBUT KATEGORI 101760 (cari size_chart) ===\n";
+echo "\n=== ATRIBUT KATEGORI 101760 RAW ===\n";
 try {
     $attrs = $shopeeService->getCategoryAttributes($accessToken, (int)$store->marketplace_store_id, 101760);
-    foreach ($attrs as $attr) {
-        $name = $attr['attribute_info']['display_attribute_name'] ?? $attr['attribute_info']['attribute_name'] ?? 'N/A';
-        $id   = $attr['attribute_id'] ?? '?';
-        $type = $attr['attribute_info']['input_type'] ?? '?';
-        $mandatory = !empty($attr['mandatory']) || !empty($attr['is_mandatory']) ? 'WAJIB' : 'opsional';
-        echo "  [ID: $id] $name | type: $type | $mandatory\n";
-    }
+    echo json_encode($attrs, JSON_PRETTY_PRINT) . "\n";
 } catch (\Exception $e) {
     echo "ERROR atribut: " . $e->getMessage() . "\n";
 }
