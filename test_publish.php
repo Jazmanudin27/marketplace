@@ -60,6 +60,25 @@ try {
 }
 
 
+// Test get_attribute_tree
+echo "=== GET ATTRIBUTE TREE KATEGORI 101760 ===\n";
+try {
+    $path = '/api/v2/product/get_attribute_tree';
+    $timestamp = time();
+    $sign = $shopeeService->signShopRequest($path, $timestamp, $accessToken, (int)$store->marketplace_store_id);
+    $response = Http::get($shopeeService->baseUrl . $path, [
+        'partner_id'   => $shopeeService->partnerId,
+        'timestamp'    => $timestamp,
+        'sign'         => $sign,
+        'access_token' => $accessToken,
+        'shop_id'      => (int)$store->marketplace_store_id,
+        'category_id'  => 101760,
+    ]);
+    echo "Attribute Tree Response: " . $response->body() . "\n\n";
+} catch (\Exception $e) {
+    echo "ERROR Attribute Tree: " . $e->getMessage() . "\n\n";
+}
+
 $channels = $shopeeService->getChannelList($accessToken, (int)$store->marketplace_store_id);
 $logisticInfo = [];
 foreach ($channels as $chan) {
@@ -70,6 +89,7 @@ foreach ($channels as $chan) {
         ];
     }
 }
+
 
 echo "Jasa Kirim Aktif Ditemukan: " . count($logisticInfo) . " channel (" . json_encode(array_column($logisticInfo, 'logistic_id')) . ")\n\n";
 
