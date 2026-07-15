@@ -405,7 +405,21 @@ class PublishProductToMarketplace implements ShouldQueue
                     ]
                 ];
 
-                $res = $tiktokService->addProduct($accessToken, $store->shop_cipher, $productData);
+                try {
+                    $res = $tiktokService->addProduct($accessToken, $store->shop_cipher, $productData);
+                } catch (\Exception $e) {
+                    if ((strpos($e->getMessage(), '12052673') !== false || stripos($e->getMessage(), 'sizechart') !== false || stripos($e->getMessage(), 'size chart') !== false) && !empty($mainImages[0]['uri'])) {
+                        Log::info('[TikTok] Retrying product publish with main image as size chart fallback for product ' . $product->id);
+                        $productData['size_chart'] = [
+                            'image' => [
+                                'uri' => $mainImages[0]['uri']
+                            ]
+                        ];
+                        $res = $tiktokService->addProduct($accessToken, $store->shop_cipher, $productData);
+                    } else {
+                        throw $e;
+                    }
+                }
                 $marketplaceProductId = $res['product_id'] ?? null;
                 $marketplaceVariantId = $res['skus'][0]['id'] ?? null;
 
