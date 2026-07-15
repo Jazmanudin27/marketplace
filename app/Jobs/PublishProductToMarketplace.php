@@ -534,6 +534,7 @@ class PublishProductToMarketplace implements ShouldQueue
             '/brand is mandatory/i' => 'Merk/Brand wajib diisi untuk kategori ini.',
             '/category_id.*invalid/i' => 'ID Kategori tidak valid atau tidak didukung di toko ini.',
             '/size chart is a mandatory/i' => 'Tabel ukuran (Size Chart) wajib disertakan untuk kategori ini.',
+            '/size chart.*required/i' => 'Kategori produk Shopee yang Anda pilih (Pakaian/Fashion) wajib menyertakan Size Chart. Silakan pilih template Size Chart di form publish (atau buat template di Seller Centre Shopee jika belum ada, lalu pilih/masukkan ID-nya).',
             '/gtin is a mandatory/i' => 'Kode barcode (GTIN) wajib disertakan untuk kategori ini.',
             '/token.*expired/i' => 'Token akses toko kedaluwarsa. Silakan hubungkan ulang toko Anda.',
             '/invalid.*access_token/i' => 'Token akses toko tidak valid. Silakan hubungkan ulang toko Anda.',

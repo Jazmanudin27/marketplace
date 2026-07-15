@@ -1169,6 +1169,35 @@ class ShopeeService
         return $data['response']['list'][0]['attribute_tree'] ?? [];
     }
 
+    public function getSizeChartList(string $accessToken, int $shopId): array
+    {
+        $path = '/api/v2/product/get_size_chart_list';
+        $timestamp = time();
+        $sign = $this->signShopRequest($path, $timestamp, $accessToken, $shopId);
+
+        $queryParams = [
+            'partner_id'   => $this->partnerId,
+            'timestamp'    => $timestamp,
+            'sign'         => $sign,
+            'access_token' => $accessToken,
+            'shop_id'      => $shopId,
+        ];
+
+        $response = Http::timeout(30)->get($this->baseUrl . $path, $queryParams);
+
+        if ($response->failed()) {
+            throw new \RuntimeException('Gagal mengambil daftar size chart Shopee: ' . $response->body());
+        }
+
+        $data = $response->json();
+
+        if (($data['error'] ?? '') !== '' && ($data['error'] ?? 'OK') !== 'OK') {
+            throw new \RuntimeException('Shopee error mengambil daftar size chart: ' . ($data['message'] ?? 'Unknown'));
+        }
+
+        return $data['response']['size_chart_list'] ?? [];
+    }
+
     /**
      * Ambil data performa iklan Shopee (GMV Max/Search Ads).
      *

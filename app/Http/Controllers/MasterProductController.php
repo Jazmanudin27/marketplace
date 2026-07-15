@@ -831,6 +831,33 @@ class MasterProductController extends Controller
         }
     }
 
+    public function shopeeSizeCharts(Request $request)
+    {
+        $storeId = $request->query('store_id');
+        $store = \App\Models\Store::where('tenant_id', Auth::user()->tenant_id)
+            ->where('id', $storeId)
+            ->first();
+
+        if (!$store) {
+            return response()->json(['success' => false, 'message' => 'Store not found'], 404);
+        }
+
+        try {
+            $accessToken = $store->getValidAccessToken();
+
+            if (empty($accessToken)) {
+                return response()->json(['success' => false, 'message' => 'Toko belum terhubung atau token kosong.'], 400);
+            }
+
+            $shopeeService = app(ShopeeService::class);
+            $charts = $shopeeService->getSizeChartList($accessToken, (int)$store->marketplace_store_id);
+            return response()->json(['success' => true, 'data' => $charts]);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('shopeeSizeCharts error: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => $e->getMessage()]);
+        }
+    }
+
     public function bulkPublish(Request $request)
     {
         $tenantId = Auth::user()->tenant_id;

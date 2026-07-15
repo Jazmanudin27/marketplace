@@ -178,19 +178,23 @@
                                         </div>
 
                                         {{-- Shopee-specific Size Chart Template ID --}}
-                                        @if ($store->channel->code === 'shopee')
-                                            <div class="mt-3">
-                                                <label class="form-label form-label-sm fw-semibold mb-1 text-dark">
-                                                    <i class="fas fa-ruler-combined text-muted me-1"></i> ID Template Size Chart Shopee (Opsional)
-                                                </label>
-                                                <input type="number" name="size_chart_ids[{{ $store->id }}]" 
-                                                    class="form-control form-control-sm rounded-3" 
-                                                    placeholder="Contoh ID Template: 123456789">
-                                                <small class="text-muted d-block mt-1">
-                                                    Wajib diisi jika kategori produk Shopee mewajibkan tabel ukuran (seperti Pakaian Anak/Fashion). Dapatkan ID dari Seller Centre Shopee (Kelola Ukuran).
-                                                </small>
-                                            </div>
-                                        @endif
+                                         @if ($store->channel->code === 'shopee')
+                                             <div class="mt-3">
+                                                 <label class="form-label form-label-sm fw-semibold mb-1 text-dark">
+                                                     <i class="fas fa-ruler-combined text-muted me-1"></i> Template Size Chart Shopee (Opsional)
+                                                 </label>
+                                                 <input type="hidden" name="size_chart_ids[{{ $store->id }}]" id="size_chart_id_{{ $store->id }}" value="">
+                                                 <div class="d-flex gap-2">
+                                                     <select id="size_chart_select_{{ $store->id }}" class="form-select form-select-sm rounded-3 size-chart-selector" data-store-id="{{ $store->id }}">
+                                                         <option value="">-- Memuat Template Shopee... --</option>
+                                                     </select>
+                                                     <input type="number" id="size_chart_manual_{{ $store->id }}" class="form-control form-control-sm rounded-3 size-chart-manual-input" style="max-width: 160px;" placeholder="Input Manual ID" data-store-id="{{ $store->id }}">
+                                                 </div>
+                                                 <small class="text-muted d-block mt-1">
+                                                     Wajib diisi jika kategori produk Shopee mewajibkan tabel ukuran. Pilihan akan otomatis dimuat jika toko terhubung.
+                                                 </small>
+                                             </div>
+                                         @endif
 
                                         <div class="form-check mt-3 small">
                                             <input type="checkbox" name="save_mapping[{{ $store->id }}]"
@@ -513,6 +517,51 @@
             $('.shopee-category-picker').each(function() {
                 const channel = $(this).data('channel');
                 loadAllCategories(channel).catch(() => {});
+            });
+
+            // Load size charts list from Shopee store via AJAX
+            $('.size-chart-selector').each(function() {
+                const $select = $(this);
+                const storeId = $select.data('store-id');
+                const savedVal = $('#size_chart_id_' + storeId).val();
+                
+                $.ajax({
+                    url: '{{ route('shopee.size_charts') }}',
+                    data: { store_id: storeId },
+                    method: 'GET',
+                    dataType: 'json',
+                    success: function(res) {
+                        $select.empty();
+                        $select.append('<option value="">-- Pilih Template Size Chart (Atau Input Manual) --</option>');
+                        if (res.success && res.data && res.data.length > 0) {
+                            res.data.forEach(function(chart) {
+                                const isSelected = savedVal == chart.size_chart_id ? 'selected' : '';
+                                $select.append('<option value="' + chart.size_chart_id + '" ' + isSelected + '>' + chart.size_chart_name + ' (ID: ' + chart.size_chart_id + ')</option>');
+                            });
+                        } else {
+                            $select.append('<option value="">-- Tidak ada template di Shopee --</option>');
+                        }
+                    },
+                    error: function() {
+                        $select.empty();
+                        $select.append('<option value="">-- Gagal memuat template dari Shopee --</option>');
+                    }
+                });
+            });
+
+            // Keep select and manual input and hidden input in sync
+            $(document).on('change', '.size-chart-selector', function() {
+                const storeId = $(this).data('store-id');
+                const val = $(this).val();
+                $('#size_chart_id_' + storeId).val(val);
+                $('#size_chart_manual_' + storeId).val(val);
+            });
+
+            $(document).on('input', '.size-chart-manual-input', function() {
+                const storeId = $(this).data('store-id');
+                const val = $(this).val();
+                $('#size_chart_id_' + storeId).val(val);
+                $('#size_chart_select_' + storeId).val(val);
             });
         });
     </script>

@@ -245,4 +245,42 @@ class MasterProductBulkPublishTest extends TestCase
 
         Queue::assertPushed(PublishProductToMarketplace::class);
     }
+
+    public function test_shopee_size_charts_endpoint(): void
+    {
+        $this->actingAs($this->user);
+
+        // Update store with valid access token mock info
+        $this->storeShopee->update([
+            'access_token' => 'mocked-access-token',
+            'token_expires_at' => now()->addHours(2),
+        ]);
+
+        // 1. Mock ShopeeService
+        $mockShopee = $this->createMock(\App\Services\ShopeeService::class);
+        $mockShopee->expects($this->once())
+            ->method('getSizeChartList')
+            ->willReturn([
+                [
+                    'size_chart_id' => 998877,
+                    'size_chart_name' => 'Tabel Anak Perempuan',
+                ]
+            ]);
+
+        $this->app->instance(\App\Services\ShopeeService::class, $mockShopee);
+
+        // 2. Access the endpoint
+        $response = $this->get(route('shopee.size_charts', ['store_id' => $this->storeShopee->id]));
+        
+        $response->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+                'data' => [
+                    [
+                        'size_chart_id' => 998877,
+                        'size_chart_name' => 'Tabel Anak Perempuan',
+                    ]
+                ]
+            ]);
+    }
 }

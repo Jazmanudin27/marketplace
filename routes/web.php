@@ -370,6 +370,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/api/product-recipes/{productId}/json', [\App\Http\Controllers\Production\ProductRecipeController::class, 'getRecipeJson'])
             ->name('product_recipes.json');
         Route::get('/api/shopee/categories', [MasterProductController::class, 'shopeeCategories'])->name('shopee.categories');
+        Route::get('/api/shopee/size-charts', [MasterProductController::class, 'shopeeSizeCharts'])->name('shopee.size_charts');
         Route::get('/api/tiktok/categories', [MasterProductController::class, 'tiktokCategories'])->name('tiktok.categories');
         Route::post('/products/publish/retry/{log}', [MasterProductController::class, 'retryPublish'])->name('products.publish.retry');
         Route::post('/products/mappings/brand', [MasterProductController::class, 'storeBrandMapping'])->name('products.mappings.brand.store');
