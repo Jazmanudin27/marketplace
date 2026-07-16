@@ -78,6 +78,9 @@ class PullProductsFromTiktok implements ShouldQueue
                         $mainImage = $detailData['main_images'][0]['urls'][0];
                     }
 
+                    // Ambil deskripsi produk
+                    $description = $detailData['description'] ?? null;
+
                     // Use SKUs from detail data if available, otherwise fallback to search data
                     $skus = $detailData['skus'] ?? $product['skus'] ?? [];
 
@@ -91,6 +94,7 @@ class PullProductsFromTiktok implements ShouldQueue
                             ],
                             [
                                 'name' => $productName,
+                                'description' => $description,
                                 'marketplace_sku' => null,
                                 'price' => 0, // Harga default jika tidak ada SKU
                                 'stock' => 0,
@@ -124,6 +128,7 @@ class PullProductsFromTiktok implements ShouldQueue
                             ],
                             [
                                 'name' => $skuName,
+                                'description' => $description,
                                 'marketplace_sku' => $sku['seller_sku'] ?: null, // seller_sku might be ""
                                 'price' => $price,
                                 'stock' => $stock,

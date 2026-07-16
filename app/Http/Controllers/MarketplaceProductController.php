@@ -87,6 +87,7 @@ class MarketplaceProductController extends Controller
                     'tenant_id' => Auth::user()->tenant_id,
                     'sku' => $sku,
                     'name' => $product->name,
+                    'description' => $product->description,
                     'price' => $product->price,
                     'stock' => $product->stock,
                     'image_url' => $product->image_url,
@@ -136,6 +137,9 @@ class MarketplaceProductController extends Controller
         }
         if (empty($master->warna) && !empty($attrs['warna'])) {
             $updateData['warna'] = $attrs['warna'];
+        }
+        if (empty($master->description) && !empty($product->description)) {
+            $updateData['description'] = $product->description;
         }
         if (!empty($updateData)) {
             $master->update($updateData);
@@ -218,6 +222,7 @@ class MarketplaceProductController extends Controller
                     'tenant_id'   => Auth::user()->tenant_id,
                     'sku'         => $product->marketplace_sku ?: ('SKU-' . time() . '-' . rand(100, 999)),
                     'name'        => $product->name,
+                    'description' => $product->description,
                     'price'       => $product->price,
                     'stock'       => $product->stock,
                     'image_url'   => $product->image_url,
@@ -341,6 +346,7 @@ class MarketplaceProductController extends Controller
                     'tenant_id'   => $tenantId,
                     'sku'         => $skuClean,
                     'name'        => $product->name,
+                    'description' => $product->description,
                     'price'       => $product->price,
                     'stock'       => $product->stock,
                     'image_url'   => $product->image_url,

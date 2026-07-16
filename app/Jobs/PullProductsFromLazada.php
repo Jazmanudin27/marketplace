@@ -54,6 +54,7 @@ class PullProductsFromLazada implements ShouldQueue
                 $productId = $product['id'];
                 $productName = $product['name'];
                 $mainImage = $product['image_url'];
+                $description = $product['description'] ?? null;
                 $skus = $product['skus'] ?? [];
 
                 if (empty($skus)) {
@@ -65,6 +66,7 @@ class PullProductsFromLazada implements ShouldQueue
                         ],
                         [
                             'name' => $productName,
+                            'description' => $description,
                             'marketplace_sku' => $product['sku'],
                             'price' => $product['price'],
                             'stock' => $product['stock'],
@@ -105,6 +107,7 @@ class PullProductsFromLazada implements ShouldQueue
                         ],
                         [
                             'name' => $skuName,
+                            'description' => $description,
                             'marketplace_sku' => $sellerSku ?: null,
                             'price' => $price,
                             'stock' => $stock,

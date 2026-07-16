@@ -257,9 +257,14 @@ class LazadaService
         foreach ($productsRaw as $p) {
             $skus = $p['skus'] ?? [];
             $primarySku = $skus[0] ?? [];
+            $description = $p['attributes']['short_description'] ?? $p['attributes']['description'] ?? null;
+            if (is_array($description)) {
+                $description = implode("\n", $description);
+            }
             $products[] = [
                 'id' => (string) ($p['item_id'] ?? ''),
                 'name' => $p['attributes']['name'] ?? 'Lazada Item',
+                'description' => $description,
                 'sku' => $primarySku['SellerSku'] ?? null,
                 'price' => (float) ($primarySku['price'] ?? 0),
                 'stock' => (int) ($primarySku['quantity'] ?? 0),

@@ -182,6 +182,16 @@ class ShopeeController extends Controller
                         $imageUrl = $item['image']['image_url_list'][0];
                     }
 
+                    // Ambil deskripsi produk
+                    $description = null;
+                    if (isset($item['description'])) {
+                        $description = $item['description'];
+                    } elseif (isset($item['description_info']['extended_description'])) {
+                        $description = $item['description_info']['extended_description'];
+                    } elseif (isset($item['description_info']['description'])) {
+                        $description = $item['description_info']['description'];
+                    }
+
                     if (!empty($item['has_model'])) {
                         // Jika punya varian (model), harus panggil API get_model_list
                         try {
@@ -226,6 +236,7 @@ class ShopeeController extends Controller
                                         [
                                             'marketplace_sku' => $model['model_sku'] ?? null,
                                             'name' => $variantName,
+                                            'description' => $description,
                                             'price' => $price,
                                             'stock' => $stock,
                                             'image_url' => $finalImageUrl,
@@ -252,6 +263,7 @@ class ShopeeController extends Controller
                             [
                                 'marketplace_sku' => $item['item_sku'] ?? null,
                                 'name' => $item['item_name'],
+                                'description' => $description,
                                 'price' => $price,
                                 'stock' => $stock,
                                 'image_url' => $imageUrl,

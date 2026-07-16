@@ -15,6 +15,7 @@ class MarketplaceProduct extends Model
         'marketplace_variant_id',
         'marketplace_sku',
         'name',
+        'description',
         'price',
         'stock',
         'image_url',
@@ -46,6 +47,15 @@ class MarketplaceProduct extends Model
                         $product->master_product_id = $master->id;
                         $product->sync_stock = true; // Otomatis aktifkan sinkronisasi stok
                     }
+                }
+            }
+
+            // Jika produk sudah ditautkan ke Master Product, dan Master Product belum memiliki deskripsi,
+            // isi deskripsi di Master Product secara otomatis.
+            if (!empty($product->master_product_id) && !empty($product->description)) {
+                $master = $product->masterProduct;
+                if ($master && empty($master->description)) {
+                    $master->update(['description' => $product->description]);
                 }
             }
         });
