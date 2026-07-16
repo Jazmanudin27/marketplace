@@ -19,11 +19,7 @@ class ProductRecipeController extends Controller
             ->with(['activeRecipe.items.inventoryItem', 'activeRecipe.labors']);
 
         if ($request->filled('search')) {
-            $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', '%' . $search . '%')
-                  ->orWhere('sku', 'like', '%' . $search . '%');
-            });
+            $this->applySearch($query, $request->search);
         }
 
         if ($request->filled('status')) {
@@ -265,11 +261,7 @@ class ProductRecipeController extends Controller
             ->with(['activeRecipe.items.inventoryItem', 'activeRecipe.labors']);
 
         if ($request->filled('search')) {
-            $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', '%' . $search . '%')
-                  ->orWhere('sku', 'like', '%' . $search . '%');
-            });
+            $this->applySearch($query, $request->search);
         }
 
         if ($request->filled('status')) {
@@ -291,11 +283,7 @@ class ProductRecipeController extends Controller
             ->with(['activeRecipe.items.inventoryItem', 'activeRecipe.labors']);
 
         if ($request->filled('search')) {
-            $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', '%' . $search . '%')
-                  ->orWhere('sku', 'like', '%' . $search . '%');
-            });
+            $this->applySearch($query, $request->search);
         }
 
         if ($request->filled('status')) {
@@ -380,11 +368,7 @@ class ProductRecipeController extends Controller
             ->with(['activeRecipe.items.inventoryItem', 'activeRecipe.labors']);
 
         if ($request->filled('search')) {
-            $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', '%' . $search . '%')
-                  ->orWhere('sku', 'like', '%' . $search . '%');
-            });
+            $this->applySearch($query, $request->search);
         }
 
         if ($request->filled('sku_induk')) {
@@ -551,5 +535,29 @@ class ProductRecipeController extends Controller
 
         return redirect()->back()
             ->with('success', 'Formula berhasil disalin ke ' . count($destinationProductIds) . ' produk.');
+    }
+
+    private function applySearch($query, $search)
+    {
+        $search = trim($search);
+        
+        if (str_starts_with($search, '!=')) {
+            $term = trim(substr($search, 2));
+            if ($term !== '') {
+                $query->where('name', 'not like', '%' . $term . '%')
+                      ->where('sku', 'not like', '%' . $term . '%');
+            }
+        } elseif (str_starts_with($search, '!')) {
+            $term = trim(substr($search, 1));
+            if ($term !== '') {
+                $query->where('name', 'not like', '%' . $term . '%')
+                      ->where('sku', 'not like', '%' . $term . '%');
+            }
+        } else {
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', '%' . $search . '%')
+                  ->orWhere('sku', 'like', '%' . $search . '%');
+            });
+        }
     }
 }

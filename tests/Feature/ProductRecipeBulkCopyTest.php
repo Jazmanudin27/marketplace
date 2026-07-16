@@ -133,4 +133,43 @@ class ProductRecipeBulkCopyTest extends TestCase
         $this->assertEquals('Jasa Jahit', $recipe1->labors->first()->service_name);
         $this->assertEquals(5000, $recipe1->labors->first()->unit_cost);
     }
+
+    public function test_can_perform_negative_search(): void
+    {
+        $this->actingAs($this->user);
+
+        // Create Batik product
+        MasterProduct::create([
+            'tenant_id' => $this->tenant->id,
+            'sku' => 'BTK-001',
+            'name' => 'Baju Batik Pria',
+            'price' => 100000,
+        ]);
+
+        // Create Polos product
+        MasterProduct::create([
+            'tenant_id' => $this->tenant->id,
+            'sku' => 'PLS-001',
+            'name' => 'Kaos Polos Hitam',
+            'price' => 50000,
+        ]);
+
+        // Search normally for batik
+        $response = $this->get(route('product_recipes.index', ['search' => 'Batik']));
+        $response->assertStatus(200);
+        $response->assertSee('Baju Batik Pria');
+        $response->assertDontSee('Kaos Polos Hitam');
+
+        // Search with != batik
+        $responseNeg = $this->get(route('product_recipes.index', ['search' => '!= Batik']));
+        $responseNeg->assertStatus(200);
+        $responseNeg->assertDontSee('Baju Batik Pria');
+        $responseNeg->assertSee('Kaos Polos Hitam');
+
+        // Search with !batik
+        $responseNeg2 = $this->get(route('product_recipes.index', ['search' => '!Batik']));
+        $responseNeg2->assertStatus(200);
+        $responseNeg2->assertDontSee('Baju Batik Pria');
+        $responseNeg2->assertSee('Kaos Polos Hitam');
+    }
 }
