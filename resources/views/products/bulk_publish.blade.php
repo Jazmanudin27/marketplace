@@ -174,6 +174,12 @@
                                                 </span>
                                             </div>
 
+                                            {{-- Dropdown list --}}
+                                            <div id="cat_dropdown_{{ $store->id }}"
+                                                class="list-group shadow rounded border mt-1 position-absolute w-100 overflow-y-auto d-none"
+                                                style="z-index: 1050; max-height: 200px;">
+                                            </div>
+
                                             </div>
                                         </div>
 

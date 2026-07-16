@@ -675,7 +675,7 @@ class MasterProductController extends Controller
 
             $shopee     = app(\App\Services\ShopeeService::class);
             $lastError  = 'Semua toko Shopee gagal memuat kategori.';
-            $allCategories = null;
+            $result     = [];
             $usedStore  = null;
 
             foreach ($stores as $store) {
@@ -689,12 +689,47 @@ class MasterProductController extends Controller
                     continue; // Coba toko berikutnya
                 }
 
-                // Hapus cache lama
-                \Illuminate\Support\Facades\Cache::forget("shopee_categories_{$shopId}_id");
+                $cacheKey = "shopee_categories_parsed_{$store->id}";
 
                 try {
-                    $allCategories = $shopee->getCategoryTree($accessToken, $shopId, 'id');
-                    $usedStore     = $store;
+                    $result = \Illuminate\Support\Facades\Cache::remember($cacheKey, now()->addHours(24), function () use ($shopee, $accessToken, $shopId) {
+                        $allCategories = $shopee->getCategoryTree($accessToken, $shopId, 'id');
+                        
+                        $leafCategories = array_filter($allCategories, fn($cat) => !($cat['has_children'] ?? false));
+
+                        $categoryMap = [];
+                        $parentMap   = [];
+                        foreach ($allCategories as $cat) {
+                            $id = $cat['category_id'];
+                            $categoryMap[$id] = $cat['display_category_name'] ?? '';
+                            $parentMap[$id]   = $cat['parent_category_id'] ?? 0;
+                        }
+
+                        $parsedResult = [];
+                        foreach ($leafCategories as $cat) {
+                            $path     = [];
+                            $parentId = $cat['parent_category_id'] ?? 0;
+
+                            $visited = [];
+                            while ($parentId && !isset($visited[$parentId]) && isset($categoryMap[$parentId])) {
+                                $visited[$parentId]  = true;
+                                $path[] = $categoryMap[$parentId];
+                                $parentId = $parentMap[$parentId] ?? 0;
+                            }
+
+                            $path = array_reverse($path);
+                            $path[] = $cat['display_category_name'] ?? '';
+                            $parsedResult[] = [
+                                'id'   => $cat['category_id'],
+                                'name' => implode(' > ', $path),
+                            ];
+                        }
+
+                        usort($parsedResult, fn($a, $b) => strcmp($a['name'], $b['name']));
+                        return $parsedResult;
+                    });
+                    
+                    $usedStore = $store;
                     break; // Berhasil — keluar dari loop
                 } catch (\Throwable $apiErr) {
                     \Illuminate\Support\Facades\Log::warning("[shopeeCategories] API error untuk store {$store->id}: " . $apiErr->getMessage());
@@ -703,41 +738,9 @@ class MasterProductController extends Controller
                 }
             }
 
-            if ($allCategories === null) {
+            if ($usedStore === null || empty($result)) {
                 return response()->json(['success' => false, 'message' => $lastError], 500);
             }
-
-            // Bangun path lengkap untuk setiap leaf category
-            $leafCategories = array_filter($allCategories, fn($cat) => !($cat['has_children'] ?? false));
-
-            $categoryMap = [];
-            $parentMap   = [];
-            foreach ($allCategories as $cat) {
-                $id = $cat['category_id'];
-                $categoryMap[$id] = $cat['display_category_name'] ?? '';
-                $parentMap[$id]   = $cat['parent_category_id'] ?? 0;
-            }
-
-            $result = [];
-            foreach ($leafCategories as $cat) {
-                $path     = [];
-                $parentId = $cat['parent_category_id'] ?? 0;
-
-                $visited = [];
-                while ($parentId && !in_array($parentId, $visited) && isset($categoryMap[$parentId])) {
-                    $visited[]  = $parentId;
-                    array_unshift($path, $categoryMap[$parentId]);
-                    $parentId = $parentMap[$parentId] ?? 0;
-                }
-
-                $path[]   = $cat['display_category_name'] ?? '';
-                $result[] = [
-                    'id'   => $cat['category_id'],
-                    'name' => implode(' > ', $path),
-                ];
-            }
-
-            usort($result, fn($a, $b) => strcmp($a['name'], $b['name']));
 
             return response()->json([
                 'success' => true,
@@ -766,57 +769,63 @@ class MasterProductController extends Controller
                 return response()->json(['success' => false, 'message' => 'Toko TikTok tidak ditemukan.'], 404);
             }
 
-            $tiktokService = app(\App\Services\TiktokService::class);
-            $rawCategories = $tiktokService->getCategories($store->access_token, $store->shop_cipher);
-            
-            $officialCategories = array_map(function($c) {
-                return [
-                    'category_id' => (int) $c['id'],
-                    'parent_category_id' => (int) $c['parent_id'],
-                    'display_category_name' => $c['local_name'],
-                    'has_children' => !$c['is_leaf'],
-                    'permission_statuses' => $c['permission_statuses'] ?? []
-                ];
-            }, $rawCategories);
+            $cacheKey = "tiktok_categories_parsed_{$store->id}";
 
-            $categoryMap = [];
-            $parentMap   = [];
-            foreach ($officialCategories as $cat) {
-                $id = $cat['category_id'];
-                $categoryMap[$id] = $cat['display_category_name'] ?? '';
-                $parentMap[$id]   = $cat['parent_category_id'] ?? 0;
-            }
+            $result = \Illuminate\Support\Facades\Cache::remember($cacheKey, now()->addHours(24), function () use ($store) {
+                $tiktokService = app(\App\Services\TiktokService::class);
+                $rawCategories = $tiktokService->getCategories($store->access_token, $store->shop_cipher);
+                
+                $officialCategories = array_map(function($c) {
+                    return [
+                        'category_id' => (int) $c['id'],
+                        'parent_category_id' => (int) $c['parent_id'],
+                        'display_category_name' => $c['local_name'],
+                        'has_children' => !$c['is_leaf'],
+                        'permission_statuses' => $c['permission_statuses'] ?? []
+                    ];
+                }, $rawCategories);
 
-            $leafCategories = array_filter($officialCategories, function($cat) {
-                if ($cat['has_children'] ?? false) {
-                    return false;
+                $categoryMap = [];
+                $parentMap   = [];
+                foreach ($officialCategories as $cat) {
+                    $id = $cat['category_id'];
+                    $categoryMap[$id] = $cat['display_category_name'] ?? '';
+                    $parentMap[$id]   = $cat['parent_category_id'] ?? 0;
                 }
-                return in_array('AVAILABLE', $cat['permission_statuses'] ?? []);
+
+                $leafCategories = array_filter($officialCategories, function($cat) {
+                    if ($cat['has_children'] ?? false) {
+                        return false;
+                    }
+                    return in_array('AVAILABLE', $cat['permission_statuses'] ?? []);
+                });
+
+                $resultList = [];
+                foreach ($leafCategories as $cat) {
+                    $path     = [];
+                    $parentId = $cat['parent_category_id'] ?? 0;
+
+                    $visited = [];
+                    while ($parentId && !isset($visited[$parentId]) && isset($categoryMap[$parentId])) {
+                        $visited[$parentId]  = true;
+                        $path[] = $categoryMap[$parentId];
+                        $parentId = $parentMap[$parentId] ?? 0;
+                    }
+
+                    $path = array_reverse($path);
+                    $leafName = $cat['display_category_name'] ?? '';
+                    $path[]   = $leafName;
+                    $fullPath = implode(' > ', $path);
+
+                    $resultList[] = [
+                        'id'   => $cat['category_id'],
+                        'name' => $fullPath,
+                    ];
+                }
+
+                usort($resultList, fn($a, $b) => strcmp($a['name'], $b['name']));
+                return $resultList;
             });
-
-            $result = [];
-            foreach ($leafCategories as $cat) {
-                $path     = [];
-                $parentId = $cat['parent_category_id'] ?? 0;
-
-                $visited = [];
-                while ($parentId && !in_array($parentId, $visited) && isset($categoryMap[$parentId])) {
-                    $visited[]  = $parentId;
-                    array_unshift($path, $categoryMap[$parentId]);
-                    $parentId = $parentMap[$parentId] ?? 0;
-                }
-
-                $leafName = $cat['display_category_name'] ?? '';
-                $path[]   = $leafName;
-                $fullPath = implode(' > ', $path);
-
-                $result[] = [
-                    'id'   => $cat['category_id'],
-                    'name' => $fullPath,
-                ];
-            }
-
-            usort($result, fn($a, $b) => strcmp($a['name'], $b['name']));
 
             return response()->json([
                 'success' => true,

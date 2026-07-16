@@ -230,13 +230,13 @@ class PublishProductToMarketplace implements ShouldQueue
                 // Kirim size_chart dalam format nested object {size_chart_id: N}
                 // Ini format yang paling mungkin benar berdasarkan struktur API Shopee
                 if ($sizeChartId && (int)$sizeChartId > 0) {
-                    $itemData['size_chart'] = ['size_chart_id' => (int) $sizeChartId];
-                    Log::info('[Shopee] Attempt 1 - size_chart nested object', ['size_chart' => $itemData['size_chart']]);
+                    $itemData['size_chart_info'] = ['size_chart_id' => (int) $sizeChartId];
+                    Log::info('[Shopee] Attempt 1 - size_chart_info nested object', ['size_chart_info' => $itemData['size_chart_info']]);
                 } else {
                     // Fallback: gunakan gambar produk
                     if (!empty($imageId)) {
-                        $itemData['size_chart'] = ['image_id' => $imageId];
-                        Log::info('[Shopee] Attempt 1 - size_chart image fallback', ['image_id' => $imageId]);
+                        $itemData['size_chart_info'] = ['size_chart' => $imageId];
+                        Log::info('[Shopee] Attempt 1 - size_chart_info image fallback', ['size_chart_info' => $itemData['size_chart_info']]);
                     }
                 }
 
@@ -352,15 +352,26 @@ class PublishProductToMarketplace implements ShouldQueue
                 if ($sizeChartId && (int)$sizeChartId > 0) {
                     $intChartId = (int) $sizeChartId;
                     $strChartId = (string) $sizeChartId;
+                    
+                    // Shopee API v2 standard format
+                    $sizeChartAttempts[] = ['name' => 'size_chart_info with size_chart_id as int', 'data' => ['size_chart_info' => ['size_chart_id' => $intChartId]]];
+                    $sizeChartAttempts[] = ['name' => 'size_chart_info with size_chart_id as string', 'data' => ['size_chart_info' => ['size_chart_id' => $strChartId]]];
+                    
+                    // Legacy formats
+                    $sizeChartAttempts[] = ['name' => 'nested object size_chart_id', 'data' => ['size_chart' => ['size_chart_id' => $intChartId]]];
                     $sizeChartAttempts[] = ['name' => 'size_chart as int', 'data' => ['size_chart' => $intChartId]];
                     $sizeChartAttempts[] = ['name' => 'size_chart as string', 'data' => ['size_chart' => $strChartId]];
                     $sizeChartAttempts[] = ['name' => 'size_chart_id as int', 'data' => ['size_chart_id' => $intChartId]];
                     $sizeChartAttempts[] = ['name' => 'size_chart_id as string', 'data' => ['size_chart_id' => $strChartId]];
                     $sizeChartAttempts[] = ['name' => 'size_chart_template_id as int', 'data' => ['size_chart_template_id' => $intChartId]];
-                    $sizeChartAttempts[] = ['name' => 'nested object size_chart_id', 'data' => ['size_chart' => ['size_chart_id' => $intChartId]]];
                 }
 
                 if (!empty($imageId)) {
+                    // Shopee API v2 standard formats for image-based size chart
+                    $sizeChartAttempts[] = ['name' => 'size_chart_info with image_id', 'data' => ['size_chart_info' => ['size_chart' => $imageId]]];
+                    $sizeChartAttempts[] = ['name' => 'size_chart_info with image_id object', 'data' => ['size_chart_info' => ['size_chart' => ['image_id' => $imageId]]]];
+                    
+                    // Legacy image formats
                     $sizeChartAttempts[] = ['name' => 'size_chart image object', 'data' => ['size_chart' => ['image_id' => $imageId]]];
                 }
 
@@ -369,11 +380,16 @@ class PublishProductToMarketplace implements ShouldQueue
 
                 foreach ($sizeChartAttempts as $index => $attempt) {
                     $attemptPayload = $itemData;
-                    unset($attemptPayload['size_chart'], $attemptPayload['size_chart_id'], $attemptPayload['size_chart_template_id']);
+                    unset(
+                        $attemptPayload['size_chart'], 
+                        $attemptPayload['size_chart_id'], 
+                        $attemptPayload['size_chart_template_id'],
+                        $attemptPayload['size_chart_info']
+                    );
                     $attemptPayload = array_merge($attemptPayload, $attempt['data']);
 
                     Log::info('[Shopee] Attempting addItem (' . ($index + 1) . '/' . count($sizeChartAttempts) . ') - Format: ' . $attempt['name'], [
-                        'payload_fields' => array_intersect_key($attemptPayload, array_flip(['size_chart', 'size_chart_id', 'size_chart_template_id']))
+                        'payload_fields' => array_intersect_key($attemptPayload, array_flip(['size_chart_info', 'size_chart', 'size_chart_id', 'size_chart_template_id']))
                     ]);
 
                     try {
