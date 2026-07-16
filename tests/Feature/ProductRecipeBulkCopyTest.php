@@ -93,8 +93,8 @@ class ProductRecipeBulkCopyTest extends TestCase
             'default_cost' => 5000,
         ]);
 
-        // 3. Post to bulk-copy route
-        $response = $this->post(route('product_recipes.bulk_copy'), [
+        // 3. Post to bulk-copy route from the index page
+        $response = $this->from(route('product_recipes.index'))->post(route('product_recipes.bulk_copy'), [
             'source_product_id' => $sourceProduct->id,
             'destination_product_ids' => [
                 $destProduct1->id,

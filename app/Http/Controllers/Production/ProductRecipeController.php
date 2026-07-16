@@ -549,7 +549,7 @@ class ProductRecipeController extends Controller
             }
         });
 
-        return redirect()->route('product_recipes.index')
+        return redirect()->back()
             ->with('success', 'Formula berhasil disalin ke ' . count($destinationProductIds) . ' produk.');
     }
 }
