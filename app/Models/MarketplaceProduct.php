@@ -56,24 +56,18 @@ class MarketplaceProduct extends Model
             }
 
             // Jika produk sudah ditautkan ke Master Product, dan Master Product belum memiliki deskripsi
-            // atau deskripsi lamanya masih berformat HTML (belum bersih), perbarui secara otomatis.
+            // atau deskripsi lamanya berbeda dengan marketplace, perbarui secara otomatis.
             if (!empty($product->master_product_id) && !empty($product->description)) {
                 $master = $product->masterProduct;
-                if ($master) {
-                    $hasHtml = str_contains($master->description, '<p>') || 
-                               str_contains($master->description, '<br>') || 
-                               str_contains($master->description, 'amp;');
-                               
-                    if (empty($master->description) || $hasHtml) {
-                        $master->update(['description' => $product->description]);
-                    }
+                if ($master && (empty($master->description) || $master->description !== $product->description)) {
+                    $master->update(['description' => $product->description]);
                 }
             }
         });
     }
 
     /**
-     * Bersihkan deskripsi HTML menjadi teks biasa yang rapi untuk textarea.
+     * Bersihkan deskripsi HTML dari entitas karakter yang rusak untuk ditampilkan di Text Editor.
      */
     public static function cleanHtmlDescription(?string $html): ?string
     {
@@ -87,18 +81,7 @@ class MarketplaceProduct extends Model
         // Perbaiki jika ada string "amp;" mentah (tanpa tanda & di depan)
         $html = preg_replace('/amp;/i', '&', $html);
 
-        // Ganti tag <br> dan </p> menjadi baris baru (newline)
-        $html = preg_replace('/<(br|br\s*\/)>/i', "\n", $html);
-        $html = preg_replace('/<\/p>/i', "\n", $html);
-        $html = preg_replace('/<p>/i', "", $html);
-
-        // Hapus semua tag HTML lainnya
-        $text = strip_tags($html);
-
-        // Batasi baris kosong berturut-turut maksimal 2 agar rapi
-        $text = preg_replace("/\n{3,}/", "\n\n", $text);
-
-        return trim($text);
+        return trim($html);
     }
 
     public function store(): BelongsTo

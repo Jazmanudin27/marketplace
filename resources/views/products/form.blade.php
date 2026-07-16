@@ -410,12 +410,8 @@
 
                         <div class="mb-3">
                             <label for="description" class="form-label form-label-sm fw-semibold">Deskripsi Produk</label>
-                            <div class="input-group input-group-sm">
-                                <span class="input-group-text align-items-start pt-2"><i
-                                        class="fas fa-align-left"></i></span>
-                                <textarea id="description" name="description" class="form-control form-control-sm" rows="4"
-                                    placeholder="Deskripsi lengkap produk...">{{ old('description', $product->description ?? '') }}</textarea>
-                            </div>
+                            <textarea id="description" name="description" class="form-control form-control-sm" rows="6"
+                                placeholder="Deskripsi lengkap produk...">{{ old('description', $product->description ?? '') }}</textarea>
                             @error('description')
                                 <div class="text-danger mt-1 small">{{ $message }}</div>
                             @enderror
@@ -1411,8 +1407,29 @@
 @endsection
 
 @push('scripts')
+    <script src="https://cdn.ckeditor.com/ckeditor5/39.0.1/classic/ckeditor.js"></script>
+    <style>
+        .ck-editor__editable_inline {
+            min-height: 250px;
+        }
+    </style>
     <script>
         $(document).ready(function() {
+            // Initialize CKEditor 5 on description textarea
+            if (document.querySelector('#description')) {
+                ClassicEditor
+                    .create(document.querySelector('#description'), {
+                        toolbar: [ 'heading', '|', 'bold', 'italic', 'link', 'bulletedList', 'numberedList', 'blockQuote', 'undo', 'redo' ]
+                    })
+                    .then(editor => {
+                        $('#product-form').on('submit', function() {
+                            $('#description').val(editor.getData());
+                        });
+                    })
+                    .catch(error => {
+                        console.error(error);
+                    });
+            }
             // Select2 initialization
             $('.select2').each(function() {
                 const select = $(this);
