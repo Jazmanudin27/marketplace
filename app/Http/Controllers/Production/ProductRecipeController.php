@@ -36,7 +36,16 @@ class ProductRecipeController extends Controller
 
         $products = $query->orderBy('name')->paginate(15)->withQueryString();
 
-        return view('production.recipes.index', compact('products'));
+        $allProducts = MasterProduct::where('tenant_id', Auth::user()->tenant_id)
+            ->orderBy('name')
+            ->get(['id', 'name', 'sku']);
+
+        $productsWithRecipe = MasterProduct::where('tenant_id', Auth::user()->tenant_id)
+            ->whereHas('activeRecipe')
+            ->orderBy('name')
+            ->get(['id', 'name', 'sku']);
+
+        return view('production.recipes.index', compact('products', 'allProducts', 'productsWithRecipe'));
     }
 
     public function create()
@@ -476,5 +485,71 @@ class ProductRecipeController extends Controller
             'message' => 'Formula berhasil disimpan.',
             'status' => 'saved'
         ]);
+    }
+
+    public function bulkCopy(Request $request)
+    {
+        $request->validate([
+            'source_product_id' => 'required|exists:master_products,id',
+            'destination_product_ids' => 'required|array',
+            'destination_product_ids.*' => 'exists:master_products,id',
+        ]);
+
+        $tenantId = Auth::user()->tenant_id;
+
+        $sourceProduct = MasterProduct::where('tenant_id', $tenantId)
+            ->findOrFail($request->source_product_id);
+
+        $sourceRecipe = ProductRecipe::with(['items', 'labors'])
+            ->where('master_product_id', $sourceProduct->id)
+            ->where('is_active', true)
+            ->first();
+
+        if (!$sourceRecipe) {
+            return redirect()->back()
+                ->with('error', 'Produk sumber tidak memiliki formula aktif.');
+        }
+
+        $destinationProductIds = array_diff($request->destination_product_ids, [$sourceProduct->id]);
+
+        if (empty($destinationProductIds)) {
+            return redirect()->back()
+                ->with('error', 'Silakan pilih minimal satu produk tujuan yang berbeda.');
+        }
+
+        DB::transaction(function () use ($tenantId, $sourceRecipe, $destinationProductIds) {
+            // Deactivate existing recipes for all destination products
+            ProductRecipe::whereIn('master_product_id', $destinationProductIds)
+                ->update(['is_active' => false]);
+
+            foreach ($destinationProductIds as $destProductId) {
+                $newRecipe = ProductRecipe::create([
+                    'tenant_id' => $tenantId,
+                    'master_product_id' => $destProductId,
+                    'name' => 'Salinan ' . $sourceRecipe->name,
+                    'batch_qty' => $sourceRecipe->batch_qty,
+                    'is_active' => true,
+                ]);
+
+                foreach ($sourceRecipe->items as $item) {
+                    $newRecipe->items()->create([
+                        'inventory_item_id' => $item->inventory_item_id,
+                        'quantity' => $item->quantity,
+                    ]);
+                }
+
+                foreach ($sourceRecipe->labors as $labor) {
+                    $newRecipe->labors()->create([
+                        'service_name' => $labor->service_name,
+                        'qty' => $labor->qty,
+                        'unit_cost' => $labor->unit_cost,
+                        'default_cost' => $labor->default_cost,
+                    ]);
+                }
+            }
+        });
+
+        return redirect()->route('product_recipes.index')
+            ->with('success', 'Formula berhasil disalin ke ' . count($destinationProductIds) . ' produk.');
     }
 }

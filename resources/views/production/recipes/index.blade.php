@@ -23,6 +23,10 @@
                             class="btn btn-outline-danger btn-sm px-3 rounded-3">
                             <i class="fas fa-print me-1"></i> Cetak Laporan
                         </a>
+                        <button type="button" class="btn btn-info btn-sm px-3 rounded-3 text-white fw-semibold"
+                            data-bs-toggle="modal" data-bs-target="#bulkCopyModal">
+                            <i class="fas fa-copy me-1"></i> Salin ke Beberapa Produk
+                        </button>
                         <a href="{{ route('product_recipes.bulk', request()->query()) }}"
                             class="btn btn-warning btn-sm px-3 rounded-3 fw-semibold">
                             <i class="fas fa-edit me-1"></i> Input Massal
@@ -38,6 +42,13 @@
                     @if (session('success'))
                         <div class="alert alert-success alert-dismissible fade show" role="alert">
                             <i class="fas fa-check-circle me-2"></i>{{ session('success') }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    @endif
+
+                    @if (session('error'))
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <i class="fas fa-exclamation-circle me-2"></i>{{ session('error') }}
                             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                         </div>
                     @endif
@@ -324,6 +335,65 @@
         </div>
     </div>
 
+    {{-- Modal Salin Formula --}}
+    <div class="modal fade" id="bulkCopyModal" tabindex="-1" aria-labelledby="bulkCopyModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <form action="{{ route('product_recipes.bulk_copy') }}" method="POST" id="form-bulk-copy">
+                    @csrf
+                    <div class="d-flex align-items-center gap-3 p-3 border-bottom bg-primary bg-opacity-10">
+                        <div class="bg-primary text-white rounded-3 d-flex align-items-center justify-content-center flex-shrink-0 fs-5 p-2"
+                            style="width: 38px; height: 38px;">
+                            <i class="fas fa-copy"></i>
+                        </div>
+                        <div class="flex-grow-1">
+                            <h5 class="modal-title fw-bold fs-6 mb-0 text-dark" id="bulkCopyModalLabel">Salin Formula ke Beberapa Produk</h5>
+                            <p class="mb-0 text-muted small">Salin seluruh komponen formula (BOM &amp; Jasa) dari satu produk ke satu atau beberapa produk sekaligus</p>
+                        </div>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body p-4">
+                        <div class="mb-4">
+                            <label class="form-label fw-bold text-dark small">1. Produk Sumber Formula <span class="text-danger">*</span></label>
+                            <select name="source_product_id" id="bulk-copy-source" class="form-select" required style="width: 100%;">
+                                <option value=""></option>
+                                @foreach ($productsWithRecipe as $p)
+                                    <option value="{{ $p->id }}">{{ $p->name }} ({{ $p->sku ?? '—' }})</option>
+                                @endforeach
+                            </select>
+                            <small class="text-muted mt-1 d-block">Pilih produk yang resep/formulanya ingin disalin (hanya produk yang sudah memiliki formula aktif).</small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold text-dark small">2. Produk Tujuan Salinan <span class="text-danger">*</span></label>
+                            <select name="destination_product_ids[]" id="bulk-copy-destinations" class="form-select" required multiple="multiple" style="width: 100%;">
+                                @foreach ($allProducts as $p)
+                                    <option value="{{ $p->id }}">{{ $p->name }} ({{ $p->sku ?? '—' }})</option>
+                                @endforeach
+                            </select>
+                            <small class="text-muted mt-1 d-block">Pilih satu atau lebih produk yang akan menerima formula ini. Formula aktif yang lama pada produk tujuan akan otomatis dinonaktifkan.</small>
+                        </div>
+
+                        <div class="alert alert-warning mb-0 border-warning border-opacity-20 bg-warning bg-opacity-10 d-flex align-items-start gap-2">
+                            <i class="fas fa-exclamation-triangle text-warning mt-1"></i>
+                            <div>
+                                <span class="fw-bold">Peringatan:</span> Proses salin formula ini bersifat permanen. Formula aktif yang sudah ada pada produk tujuan akan dinonaktifkan dan digantikan sepenuhnya dengan formula dari produk sumber.
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer bg-light px-4 py-3 border-top">
+                        <button type="button" class="btn btn-secondary btn-sm px-4 rounded-3"
+                            data-bs-dismiss="modal">Batal</button>
+                        <button type="submit" class="btn btn-primary btn-sm px-4 rounded-3">
+                            <i class="fas fa-check me-1"></i> Mulai Salin Formula
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     @push('scripts')
         <script>
             $(document).ready(function() {
@@ -391,6 +461,53 @@
                     // 3. Render HPP summary
                     const totalHpp = (materialsTotal + laborsTotal) / batchQty;
                     $('#detail-hpp-per-unit').text(formatRupiah(totalHpp));
+                });
+
+                // Initialize select2 for bulk copy modal
+                $('#bulk-copy-source').select2({
+                    theme: 'bootstrap-5',
+                    placeholder: '— Pilih Produk Sumber —',
+                    allowClear: true,
+                    dropdownParent: $('#bulkCopyModal'),
+                    width: '100%'
+                });
+
+                $('#bulk-copy-destinations').select2({
+                    theme: 'bootstrap-5',
+                    placeholder: '— Pilih Produk Tujuan —',
+                    allowClear: true,
+                    dropdownParent: $('#bulkCopyModal'),
+                    width: '100%'
+                });
+
+                // Dynamically disable selected source product from destinations
+                $('#bulk-copy-source').on('change', function() {
+                    const sourceVal = $(this).val();
+                    const destSelect = $('#bulk-copy-destinations');
+                    
+                    // Enable all options first
+                    destSelect.find('option').prop('disabled', false);
+                    
+                    if (sourceVal) {
+                        // Disable option with matching source ID in destinations
+                        destSelect.find(`option[value="${sourceVal}"]`).prop('disabled', true);
+                        
+                        // If it was already selected in destinations, unselect it
+                        const selectedVals = destSelect.val() || [];
+                        const index = selectedVals.indexOf(sourceVal);
+                        if (index > -1) {
+                            selectedVals.splice(index, 1);
+                            destSelect.val(selectedVals).trigger('change');
+                        }
+                    }
+                    
+                    destSelect.select2({
+                        theme: 'bootstrap-5',
+                        placeholder: '— Pilih Produk Tujuan —',
+                        allowClear: true,
+                        dropdownParent: $('#bulkCopyModal'),
+                        width: '100%'
+                    });
                 });
             });
         </script>

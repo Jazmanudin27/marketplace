@@ -359,6 +359,8 @@ Route::middleware('auth')->group(function () {
             ->name('product_recipes.bulk');
         Route::post('/api/product-recipes/bulk-save', [\App\Http\Controllers\Production\ProductRecipeController::class, 'bulkSaveAjax'])
             ->name('product_recipes.bulk_save');
+        Route::post('/product_recipes/bulk-copy', [\App\Http\Controllers\Production\ProductRecipeController::class, 'bulkCopy'])
+            ->name('product_recipes.bulk_copy');
         Route::resource('product_recipes', \App\Http\Controllers\Production\ProductRecipeController::class)
             ->only(['index', 'create', 'store', 'edit', 'update', 'destroy']);
         Route::get('/product_recipes/print-report', [\App\Http\Controllers\Production\ProductRecipeController::class, 'printReport'])
