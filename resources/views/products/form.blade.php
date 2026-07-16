@@ -2191,7 +2191,7 @@
                 });
 
                 // Helpers for formatting and cleaning numbers
-                const cleanNumber = (val) => parseFloat(String(val).replace(/[^0-9]/g, '')) || 0;
+                // cleanNumber is already declared globally
                 const formatNumber = (num) => parseFloat(num).toLocaleString('id-ID');
 
                 // Function to update row total costs and grand total in the catalog form
