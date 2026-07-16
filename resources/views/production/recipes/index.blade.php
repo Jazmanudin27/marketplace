@@ -23,10 +23,7 @@
                             class="btn btn-outline-danger btn-sm px-3 rounded-3">
                             <i class="fas fa-print me-1"></i> Cetak Laporan
                         </a>
-                        <button type="button" class="btn btn-info btn-sm px-3 rounded-3 text-white fw-semibold"
-                            data-bs-toggle="modal" data-bs-target="#bulkCopyModal">
-                            <i class="fas fa-copy me-1"></i> Salin ke Beberapa Produk
-                        </button>
+
                         <a href="{{ route('product_recipes.bulk', request()->query()) }}"
                             class="btn btn-warning btn-sm px-3 rounded-3 fw-semibold">
                             <i class="fas fa-edit me-1"></i> Input Massal
@@ -52,6 +49,38 @@
                             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                         </div>
                     @endif
+
+                    {{-- Bar Aksi Massal (Bulk Action Bar) --}}
+                    <div class="card border border-info border-opacity-25 bg-info bg-opacity-10 p-3 mb-3 rounded-3 d-none animate__animated animate__fadeIn" id="bulk-action-bar">
+                        <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="badge bg-info text-white fs-6" id="checked-count-badge">0</span>
+                                <span class="fw-semibold text-dark small">produk terpilih untuk disalin formula.</span>
+                            </div>
+                            <div class="d-flex align-items-center gap-2 flex-grow-1 justify-content-end" style="max-width: 600px;">
+                                <label class="fw-bold small text-dark mb-0 me-2 text-nowrap">Salin Formula Dari:</label>
+                                <div style="width: 250px;">
+                                    <select id="bulk-copy-source-select" class="form-select form-select-sm" style="width: 100%;">
+                                        <option value=""></option>
+                                        @foreach ($productsWithRecipe as $p)
+                                            <option value="{{ $p->id }}">{{ $p->name }} ({{ $p->sku ?? '—' }})</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <button type="button" class="btn btn-primary btn-sm px-3 rounded-3" id="btn-submit-bulk-copy">
+                                    <i class="fas fa-check me-1"></i> Terapkan Salin
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary btn-sm px-2 rounded-3" id="btn-clear-selection">
+                                    Batal
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <form action="{{ route('product_recipes.bulk_copy') }}" method="POST" id="form-bulk-copy-checkbox" class="d-none">
+                        @csrf
+                        <input type="hidden" name="source_product_id" id="bulk-copy-source-id">
+                    </form>
 
                     {{-- Filter --}}
                     <div class="card border shadow-sm p-3 mb-3">
@@ -93,6 +122,9 @@
                         <table class="table table-sm table-striped table-bordered align-middle mb-0">
                             <thead>
                                 <tr class="small text-uppercase text-muted" style="background: #f8f9fa;">
+                                    <th class="text-center" style="width: 40px;">
+                                        <input type="checkbox" id="check-all" class="form-check-input">
+                                    </th>
                                     <th class="text-center" style="width: 50px;">#</th>
                                     <th>Produk &amp; SKU</th>
                                     <th class="text-center">Tipe Produk</th>
@@ -126,6 +158,9 @@
                                         $totalCost = ($materialsCost + $laborCost) / ($recipe->batch_qty ?? 1);
                                     @endphp
                                     <tr>
+                                        <td class="text-center">
+                                            <input type="checkbox" class="product-checkbox form-check-input" value="{{ $p->id }}">
+                                        </td>
                                         <td class="text-center">
                                             <span class="badge bg-light text-secondary border small">
                                                 {{ $products->firstItem() + $i }}
@@ -228,7 +263,7 @@
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="8" class="text-center text-muted py-3 small">
+                                        <td colspan="9" class="text-center text-muted py-3 small">
                                             Tidak ditemukan produk yang cocok.
                                         </td>
                                     </tr>
@@ -335,65 +370,6 @@
         </div>
     </div>
 
-    {{-- Modal Salin Formula --}}
-    <div class="modal fade" id="bulkCopyModal" tabindex="-1" aria-labelledby="bulkCopyModalLabel"
-        aria-hidden="true">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <form action="{{ route('product_recipes.bulk_copy') }}" method="POST" id="form-bulk-copy">
-                    @csrf
-                    <div class="d-flex align-items-center gap-3 p-3 border-bottom bg-primary bg-opacity-10">
-                        <div class="bg-primary text-white rounded-3 d-flex align-items-center justify-content-center flex-shrink-0 fs-5 p-2"
-                            style="width: 38px; height: 38px;">
-                            <i class="fas fa-copy"></i>
-                        </div>
-                        <div class="flex-grow-1">
-                            <h5 class="modal-title fw-bold fs-6 mb-0 text-dark" id="bulkCopyModalLabel">Salin Formula ke Beberapa Produk</h5>
-                            <p class="mb-0 text-muted small">Salin seluruh komponen formula (BOM &amp; Jasa) dari satu produk ke satu atau beberapa produk sekaligus</p>
-                        </div>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body p-4">
-                        <div class="mb-4">
-                            <label class="form-label fw-bold text-dark small">1. Produk Sumber Formula <span class="text-danger">*</span></label>
-                            <select name="source_product_id" id="bulk-copy-source" class="form-select" required style="width: 100%;">
-                                <option value=""></option>
-                                @foreach ($productsWithRecipe as $p)
-                                    <option value="{{ $p->id }}">{{ $p->name }} ({{ $p->sku ?? '—' }})</option>
-                                @endforeach
-                            </select>
-                            <small class="text-muted mt-1 d-block">Pilih produk yang resep/formulanya ingin disalin (hanya produk yang sudah memiliki formula aktif).</small>
-                        </div>
-
-                        <div class="mb-3">
-                            <label class="form-label fw-bold text-dark small">2. Produk Tujuan Salinan <span class="text-danger">*</span></label>
-                            <select name="destination_product_ids[]" id="bulk-copy-destinations" class="form-select" required multiple="multiple" style="width: 100%;">
-                                @foreach ($allProducts as $p)
-                                    <option value="{{ $p->id }}">{{ $p->name }} ({{ $p->sku ?? '—' }})</option>
-                                @endforeach
-                            </select>
-                            <small class="text-muted mt-1 d-block">Pilih satu atau lebih produk yang akan menerima formula ini. Formula aktif yang lama pada produk tujuan akan otomatis dinonaktifkan.</small>
-                        </div>
-
-                        <div class="alert alert-warning mb-0 border-warning border-opacity-20 bg-warning bg-opacity-10 d-flex align-items-start gap-2">
-                            <i class="fas fa-exclamation-triangle text-warning mt-1"></i>
-                            <div>
-                                <span class="fw-bold">Peringatan:</span> Proses salin formula ini bersifat permanen. Formula aktif yang sudah ada pada produk tujuan akan dinonaktifkan dan digantikan sepenuhnya dengan formula dari produk sumber.
-                            </div>
-                        </div>
-                    </div>
-                    <div class="modal-footer bg-light px-4 py-3 border-top">
-                        <button type="button" class="btn btn-secondary btn-sm px-4 rounded-3"
-                            data-bs-dismiss="modal">Batal</button>
-                        <button type="submit" class="btn btn-primary btn-sm px-4 rounded-3">
-                            <i class="fas fa-check me-1"></i> Mulai Salin Formula
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
     @push('scripts')
         <script>
             $(document).ready(function() {
@@ -463,51 +439,98 @@
                     $('#detail-hpp-per-unit').text(formatRupiah(totalHpp));
                 });
 
-                // Initialize select2 for bulk copy modal
-                $('#bulk-copy-source').select2({
-                    theme: 'bootstrap-5',
-                    placeholder: '— Pilih Produk Sumber —',
-                    allowClear: true,
-                    dropdownParent: $('#bulkCopyModal'),
-                    width: '100%'
-                });
+                // --- Checkbox & Bulk Action Bar Logic ---
+                const bulkActionBar = $('#bulk-action-bar');
+                const checkedCountBadge = $('#checked-count-badge');
+                const checkAll = $('#check-all');
+                const productCheckboxes = $('.product-checkbox');
 
-                $('#bulk-copy-destinations').select2({
-                    theme: 'bootstrap-5',
-                    placeholder: '— Pilih Produk Tujuan —',
-                    allowClear: true,
-                    dropdownParent: $('#bulkCopyModal'),
-                    width: '100%'
-                });
+                function updateBulkActionBar() {
+                    const checkedCount = $('.product-checkbox:checked').length;
+                    checkedCountBadge.text(checkedCount);
 
-                // Dynamically disable selected source product from destinations
-                $('#bulk-copy-source').on('change', function() {
-                    const sourceVal = $(this).val();
-                    const destSelect = $('#bulk-copy-destinations');
-                    
-                    // Enable all options first
-                    destSelect.find('option').prop('disabled', false);
-                    
-                    if (sourceVal) {
-                        // Disable option with matching source ID in destinations
-                        destSelect.find(`option[value="${sourceVal}"]`).prop('disabled', true);
-                        
-                        // If it was already selected in destinations, unselect it
-                        const selectedVals = destSelect.val() || [];
-                        const index = selectedVals.indexOf(sourceVal);
-                        if (index > -1) {
-                            selectedVals.splice(index, 1);
-                            destSelect.val(selectedVals).trigger('change');
-                        }
+                    if (checkedCount > 0) {
+                        bulkActionBar.removeClass('d-none');
+                    } else {
+                        bulkActionBar.addClass('d-none');
                     }
                     
-                    destSelect.select2({
-                        theme: 'bootstrap-5',
-                        placeholder: '— Pilih Produk Tujuan —',
-                        allowClear: true,
-                        dropdownParent: $('#bulkCopyModal'),
-                        width: '100%'
+                    // Keep check-all checkbox in sync
+                    checkAll.prop('checked', checkedCount === productCheckboxes.length && productCheckboxes.length > 0);
+                }
+
+                // Check-all checkbox change handler
+                checkAll.on('change', function() {
+                    productCheckboxes.prop('checked', this.checked);
+                    updateBulkActionBar();
+                });
+
+                // Individual product checkbox change handler
+                $(document).on('change', '.product-checkbox', function() {
+                    updateBulkActionBar();
+                });
+
+                // Clear selection handler
+                $('#btn-clear-selection').on('click', function() {
+                    productCheckboxes.prop('checked', false);
+                    checkAll.prop('checked', false);
+                    updateBulkActionBar();
+                });
+
+                // Initialize select2 for source product selection
+                $('#bulk-copy-source-select').select2({
+                    theme: 'bootstrap-5',
+                    placeholder: '— Pilih Produk Sumber Formula —',
+                    allowClear: true,
+                    width: '100%'
+                });
+
+                // Submit bulk copy form handler
+                $('#btn-submit-bulk-copy').on('click', function(e) {
+                    e.preventDefault();
+                    
+                    const sourceProductId = $('#bulk-copy-source-select').val();
+                    if (!sourceProductId) {
+                        alert('Silakan pilih produk sumber formula terlebih dahulu.');
+                        return;
+                    }
+
+                    const destinationProductIds = [];
+                    $('.product-checkbox:checked').each(function() {
+                        destinationProductIds.push($(this).val());
                     });
+
+                    if (destinationProductIds.length === 0) {
+                        alert('Silakan pilih minimal satu produk tujuan melalui ceklist.');
+                        return;
+                    }
+
+                    // Exclude source product from destinations list
+                    const finalDestIds = destinationProductIds.filter(id => id != sourceProductId);
+
+                    if (finalDestIds.length === 0) {
+                        alert('Produk tujuan tidak boleh sama dengan produk sumber formula.');
+                        return;
+                    }
+
+                    const confirmMsg = `Apakah Anda yakin ingin menyalin formula ke ${finalDestIds.length} produk terpilih? Tindakan ini akan menonaktifkan formula aktif lama pada produk tujuan tersebut.`;
+                    
+                    if (confirm(confirmMsg)) {
+                        const form = $('#form-bulk-copy-checkbox');
+                        
+                        // Clear any previous dynamic inputs
+                        form.find('input[name="destination_product_ids[]"]').remove();
+                        
+                        // Set source ID
+                        $('#bulk-copy-source-id').val(sourceProductId);
+                        
+                        // Append destination IDs
+                        finalDestIds.forEach(id => {
+                            form.append(`<input type="hidden" name="destination_product_ids[]" value="${id}">`);
+                        });
+                        
+                        form.submit();
+                    }
                 });
             });
         </script>
