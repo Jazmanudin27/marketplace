@@ -672,6 +672,7 @@ class PublishProductToMarketplace implements ShouldQueue
             '/attribute.*required/i' => 'Atribut wajib untuk kategori ini belum lengkap.',
             '/desc_len/i' => 'Deskripsi produk terlalu pendek. Shopee mewajibkan deskripsi minimal 20 atau 100 karakter. Kami telah menambahkan deskripsi otomatis untuk perbaikan mandiri.',
             '/description.*validation/i' => 'Deskripsi produk terlalu pendek. Shopee mewajibkan deskripsi minimal 20 atau 100 karakter. Kami telah menambahkan deskripsi otomatis untuk perbaikan mandiri.',
+            '/probation period.*limit/i' => 'Toko TikTok Anda sedang dalam masa percobaan (probation period) dan dibatasi maksimal 100 produk aktif. Hapus produk tidak aktif di TikTok Seller Center terlebih dahulu.',
         ];
 
         foreach ($translations as $pattern => $translation) {
