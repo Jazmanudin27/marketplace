@@ -215,6 +215,9 @@
                             <a href="{{ route('products.index') }}"
                                 class="nav-link py-1 {{ request()->routeIs('products.*') ? 'active text-white' : 'text-secondary' }}">Master
                                 Produk</a>
+                            <a href="{{ route('reports.master_product') }}"
+                                class="nav-link py-1 {{ request()->routeIs('reports.master_product*') ? 'active text-white' : 'text-secondary' }}">Laporan
+                                Master Produk</a>
                             <a href="{{ route('marketplace_products.index') }}"
                                 class="nav-link py-1 {{ request()->routeIs('marketplace_products.*') ? 'active text-white' : 'text-secondary' }}">Marketplace
                                 Produk</a>

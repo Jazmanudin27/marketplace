@@ -683,4 +683,220 @@ class ReportController extends Controller
 
         return view('reports.print_production_hpp', compact('reportData'));
     }
+
+    public function masterProductReport(Request $request)
+    {
+        $tenantId = Auth::user()->tenant_id;
+        $categories = Category::where('tenant_id', $tenantId)->orderBy('name')->get();
+        $brands = Brand::where('tenant_id', $tenantId)->orderBy('name')->get();
+
+        $query = MasterProduct::with(['category', 'brand', 'components'])
+            ->where('tenant_id', $tenantId);
+
+        if ($request->filled('search')) {
+            $s = $request->search;
+            $query->where(function ($q) use ($s) {
+                $q->where('name', 'like', "%{$s}%")
+                  ->orWhere('sku', 'like', "%{$s}%")
+                  ->orWhere('sku_induk', 'like', "%{$s}%");
+            });
+        }
+
+        if ($request->filled('is_bundle')) {
+            if ($request->is_bundle === '1') {
+                $query->where('is_bundle', true);
+            } elseif ($request->is_bundle === '0') {
+                $query->where(function ($q) {
+                    $q->where('is_bundle', false)->orWhereNull('is_bundle');
+                });
+            }
+        }
+
+        if ($request->filled('category_id')) {
+            $query->where('category_id', $request->category_id);
+        }
+
+        if ($request->filled('brand_id')) {
+            $query->where('brand_id', $request->brand_id);
+        }
+
+        if ($request->filled('is_active')) {
+            $query->where('is_active', $request->is_active == '1');
+        }
+
+        $products = $query->orderBy('is_bundle', 'desc')->orderBy('name', 'asc')->get();
+
+        $totalCount = $products->count();
+        $bundleCount = $products->where('is_bundle', true)->count();
+        $singleCount = $totalCount - $bundleCount;
+        $totalStockValue = $products->sum(function ($p) {
+            return $p->stock * $p->cost_price;
+        });
+
+        return view('reports.master_product', compact(
+            'products',
+            'categories',
+            'brands',
+            'totalCount',
+            'bundleCount',
+            'singleCount',
+            'totalStockValue'
+        ));
+    }
+
+    public function printMasterProductReport(Request $request)
+    {
+        $tenantId = Auth::user()->tenant_id;
+
+        $query = MasterProduct::with(['category', 'brand', 'components'])
+            ->where('tenant_id', $tenantId);
+
+        if ($request->filled('search')) {
+            $s = $request->search;
+            $query->where(function ($q) use ($s) {
+                $q->where('name', 'like', "%{$s}%")
+                  ->orWhere('sku', 'like', "%{$s}%")
+                  ->orWhere('sku_induk', 'like', "%{$s}%");
+            });
+        }
+
+        if ($request->filled('is_bundle')) {
+            if ($request->is_bundle === '1') {
+                $query->where('is_bundle', true);
+            } elseif ($request->is_bundle === '0') {
+                $query->where(function ($q) {
+                    $q->where('is_bundle', false)->orWhereNull('is_bundle');
+                });
+            }
+        }
+
+        if ($request->filled('category_id')) {
+            $query->where('category_id', $request->category_id);
+        }
+
+        if ($request->filled('brand_id')) {
+            $query->where('brand_id', $request->brand_id);
+        }
+
+        if ($request->filled('is_active')) {
+            $query->where('is_active', $request->is_active == '1');
+        }
+
+        $products = $query->orderBy('is_bundle', 'desc')->orderBy('name', 'asc')->get();
+
+        $totalCount = $products->count();
+        $bundleCount = $products->where('is_bundle', true)->count();
+        $singleCount = $totalCount - $bundleCount;
+        $totalStockValue = $products->sum(function ($p) {
+            return $p->stock * $p->cost_price;
+        });
+
+        return view('reports.print_master_product', compact(
+            'products',
+            'totalCount',
+            'bundleCount',
+            'singleCount',
+            'totalStockValue'
+        ));
+    }
+
+    public function exportMasterProductReport(Request $request)
+    {
+        $tenantId = Auth::user()->tenant_id;
+
+        $query = MasterProduct::with(['category', 'brand', 'components'])
+            ->where('tenant_id', $tenantId);
+
+        if ($request->filled('search')) {
+            $s = $request->search;
+            $query->where(function ($q) use ($s) {
+                $q->where('name', 'like', "%{$s}%")
+                  ->orWhere('sku', 'like', "%{$s}%")
+                  ->orWhere('sku_induk', 'like', "%{$s}%");
+            });
+        }
+
+        if ($request->filled('is_bundle')) {
+            if ($request->is_bundle === '1') {
+                $query->where('is_bundle', true);
+            } elseif ($request->is_bundle === '0') {
+                $query->where(function ($q) {
+                    $q->where('is_bundle', false)->orWhereNull('is_bundle');
+                });
+            }
+        }
+
+        if ($request->filled('category_id')) {
+            $query->where('category_id', $request->category_id);
+        }
+
+        if ($request->filled('brand_id')) {
+            $query->where('brand_id', $request->brand_id);
+        }
+
+        if ($request->filled('is_active')) {
+            $query->where('is_active', $request->is_active == '1');
+        }
+
+        $products = $query->orderBy('is_bundle', 'desc')->orderBy('name', 'asc')->get();
+
+        $filename = 'Laporan_Master_Produk_' . date('Ymd_His') . '.csv';
+
+        $headers = [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => "attachment; filename=\"$filename\"",
+        ];
+
+        $callback = function () use ($products) {
+            $file = fopen('php://output', 'w');
+
+            // UTF-8 BOM for Excel
+            fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF));
+
+            fputcsv($file, [
+                'No',
+                'SKU Produk',
+                'SKU Induk',
+                'Nama Produk',
+                'Tipe Produk',
+                'Kategori',
+                'Merk',
+                'Ukuran',
+                'Warna',
+                'Detail Komponen (Jika Set/Bundle)',
+                'HPP (Modal)',
+                'Harga Jual',
+                'Stok',
+                'Status'
+            ]);
+
+            foreach ($products as $i => $p) {
+                $type = $p->is_bundle ? 'Set / Bundling' : 'Single';
+                $comps = $p->is_bundle 
+                    ? $p->components->map(fn($c) => "{$c->pivot->quantity}x {$c->sku} ({$c->name})")->implode(' + ')
+                    : '-';
+
+                fputcsv($file, [
+                    $i + 1,
+                    $p->sku,
+                    $p->sku_induk ?? '-',
+                    $p->name,
+                    $type,
+                    $p->category->name ?? '-',
+                    $p->brand->name ?? '-',
+                    $p->ukuran ?? '-',
+                    $p->warna ?? '-',
+                    $comps,
+                    $p->cost_price,
+                    $p->price,
+                    $p->stock,
+                    $p->is_active ? 'Aktif' : 'Nonaktif'
+                ]);
+            }
+
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
+    }
 }

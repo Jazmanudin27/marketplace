@@ -18,6 +18,9 @@
                     <i class="fas fa-magic me-1"></i>Auto Set / Bundling
                 </button>
             </form>
+            <a href="{{ route('reports.master_product') }}" class="btn btn-outline-secondary btn-sm px-3 rounded-3" title="Laporan & Cetak Master Produk">
+                <i class="fas fa-file-alt me-1"></i>Laporan Master Produk
+            </a>
             <a href="{{ route('products.create') }}" class="btn btn-primary btn-sm px-3 rounded-3">
                 <i class="fas fa-plus me-1"></i>Tambah Produk
             </a>
