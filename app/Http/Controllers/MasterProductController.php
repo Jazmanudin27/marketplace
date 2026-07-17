@@ -1068,4 +1068,73 @@ class MasterProductController extends Controller
 
         return redirect()->route('products.index')->with('success', $msg);
     }
+
+    public function autoBundle(Request $request)
+    {
+        $tenantId = Auth::user()->tenant_id;
+
+        $query = MasterProduct::where('tenant_id', $tenantId);
+
+        if ($request->filled('ids') && is_array($request->ids)) {
+            $query->whereIn('id', $request->ids);
+        } else {
+            $query->where(function ($q) {
+                $q->where('sku', 'like', 'SET-%')
+                  ->orWhere('sku', 'like', 'PAKET-%')
+                  ->orWhere('sku', 'like', 'BUNDLE-%');
+            });
+        }
+
+        $targetProducts = $query->get();
+
+        if ($targetProducts->isEmpty()) {
+            return redirect()->back()->with('error', 'Tidak ditemukan produk Set/Bundling (berawalan SET-, PAKET-, atau BUNDLE-) untuk diproses.');
+        }
+
+        $singleProducts = MasterProduct::where('tenant_id', $tenantId)
+            ->where(function ($q) {
+                $q->where('is_bundle', false)->orWhereNull('is_bundle');
+            })
+            ->get();
+
+        $bundleCount = 0;
+        $componentCount = 0;
+
+        \Illuminate\Support\Facades\DB::transaction(function () use ($targetProducts, $singleProducts, &$bundleCount, &$componentCount) {
+            foreach ($targetProducts as $product) {
+                $sku = $product->sku;
+                if (empty($sku)) continue;
+
+                $matchedChildIds = [];
+                foreach ($singleProducts as $single) {
+                    if ($single->id === $product->id) continue;
+                    if (!empty($single->sku) && str_contains($sku, $single->sku)) {
+                        $matchedChildIds[] = $single->id;
+                    }
+                }
+
+                if (!empty($matchedChildIds)) {
+                    $product->update([
+                        'is_bundle' => true,
+                        'stock' => 0
+                    ]);
+
+                    $syncData = [];
+                    foreach ($matchedChildIds as $childId) {
+                        $syncData[$childId] = ['quantity' => 1];
+                    }
+                    $product->components()->sync($syncData);
+
+                    $bundleCount++;
+                    $componentCount += count($syncData);
+                }
+            }
+        });
+
+        if ($bundleCount === 0) {
+            return redirect()->back()->with('error', 'Tidak ditemukan komponen produk single yang cocok dalam SKU produk Set yang diproses.');
+        }
+
+        return redirect()->back()->with('success', "Berhasil memproses $bundleCount produk Set/Bundling dengan total $componentCount komponen terpasang secara otomatis!");
+    }
 }

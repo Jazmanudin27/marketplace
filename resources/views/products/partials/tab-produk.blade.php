@@ -12,6 +12,12 @@
             <button type="button" id="btnBulkPublish" class="btn btn-outline-primary btn-sm px-3 rounded-3 d-none">
                 <i class="fas fa-cloud-upload-alt me-1"></i>Publish Massal (<span id="selectedCount">0</span>)
             </button>
+            <form action="{{ route('products.auto_bundle') }}" method="POST" class="d-inline" id="formAutoBundle">
+                @csrf
+                <button type="submit" class="btn btn-outline-purple btn-sm px-3 rounded-3 fw-semibold" style="color: #6f42c1; border-color: #6f42c1;" onclick="return confirm('Sistem akan otomatis mendeteksi produk Set/Bundling (berawalan SET-, PAKET-, atau BUNDLE-) dan mencocokkan komponennya dari produk single. Lanjutkan?')">
+                    <i class="fas fa-magic me-1"></i>Auto Set / Bundling
+                </button>
+            </form>
             <a href="{{ route('products.create') }}" class="btn btn-primary btn-sm px-3 rounded-3">
                 <i class="fas fa-plus me-1"></i>Tambah Produk
             </a>
@@ -353,6 +359,22 @@
                     url = url.slice(0, -1);
                 }
                 window.location.href = url;
+            });
+        }
+
+        const formAutoBundle = document.getElementById('formAutoBundle');
+        if (formAutoBundle) {
+            formAutoBundle.addEventListener('submit', function (e) {
+                const checkedBoxes = document.querySelectorAll('.product-select-checkbox:checked');
+                if (checkedBoxes.length > 0) {
+                    checkedBoxes.forEach(cb => {
+                        const hiddenInput = document.createElement('input');
+                        hiddenInput.type = 'hidden';
+                        hiddenInput.name = 'ids[]';
+                        hiddenInput.value = cb.value;
+                        formAutoBundle.appendChild(hiddenInput);
+                    });
+                }
             });
         }
     });
