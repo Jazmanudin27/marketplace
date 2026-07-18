@@ -43,7 +43,7 @@
                             <i class="fas fa-user-tag fa-sm"></i>
                         </div>
                         <span class="text-uppercase fw-semibold text-secondary mt-1" id="step-label-2"
-                            style="font-size:0.65rem;letter-spacing:0.06em;">Pengaju & Detail</span>
+                            style="font-size:0.65rem;letter-spacing:0.06em;">Pelanggan & Detail</span>
                     </div>
 
                     <div class="flex-grow-1 border-top border-2 mx-2 mb-3 border-secondary" id="conn-2"
@@ -128,47 +128,28 @@
                         </div>
                     </div>
 
-                    {{-- ========== STEP 2: Pengaju & Detail ========== --}}
+                    {{-- ========== STEP 2: Detail Pelanggan ========== --}}
                     <div id="step-2" class="d-none">
-                        <p class="text-uppercase text-muted fw-semibold mb-3 small">
-                            <i class="fas fa-user-tie me-1"></i> Pengaju Permintaan
+                        <p class="text-uppercase text-muted fw-semibold mb-3 small" id="step-2-title">
+                            <i class="fas fa-user-tag me-1"></i> Detail Pembeli / Pelanggan PO
                         </p>
                         <div class="row g-3 mb-4">
-                            <div class="col-md-12">
-                                <label class="form-label fw-semibold small">Departemen yang Mengajukan <span
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold small" id="lbl_cust_name">Nama Pelanggan <span
                                         class="text-danger">*</span></label>
-                                <select id="department_id" class="form-select form-select-sm" required>
-                                    <option value="">-- Pilih Departemen --</option>
-                                    @foreach ($departments as $dept)
-                                        <option value="{{ $dept->name }}">{{ $dept->name }}</option>
-                                    @endforeach
-                                </select>
+                                <input type="text" id="cust_name" class="form-control form-control-sm"
+                                    placeholder="Nama lengkap pelanggan">
                             </div>
-                        </div>
-
-                        {{-- Customer Details Form - Shown only for PO Pelanggan --}}
-                        <div id="customer_section" class="d-none border-top pt-3 mt-3">
-                            <p class="text-uppercase text-primary fw-bold mb-3 small">
-                                <i class="fas fa-user-tag me-1"></i> Detail Pembeli / Pelanggan PO
-                            </p>
-                            <div class="row g-3 mb-4">
-                                <div class="col-md-6">
-                                    <label class="form-label fw-semibold small">Nama Pelanggan <span
-                                            class="text-danger">*</span></label>
-                                    <input type="text" id="cust_name" class="form-control form-control-sm"
-                                        placeholder="Nama lengkap pelanggan">
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label fw-semibold small">No. HP Pelanggan</label>
-                                    <input type="text" id="cust_phone" class="form-control form-control-sm"
-                                        placeholder="Contoh: 08123456789">
-                                </div>
-                                <div class="col-12">
-                                    <label class="form-label fw-semibold small">Alamat Pengiriman <span
-                                            class="text-danger">*</span></label>
-                                    <textarea id="cust_address" class="form-control form-control-sm" rows="3"
-                                        placeholder="Alamat lengkap pengiriman..."></textarea>
-                                </div>
+                            <div class="col-md-6" id="cust_phone_container">
+                                <label class="form-label fw-semibold small">No. HP Pelanggan</label>
+                                <input type="text" id="cust_phone" class="form-control form-control-sm"
+                                    placeholder="Contoh: 08123456789">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label fw-semibold small" id="lbl_cust_address">Alamat Pengiriman <span
+                                        class="text-danger">*</span></label>
+                                <textarea id="cust_address" class="form-control form-control-sm" rows="3"
+                                    placeholder="Alamat lengkap pengiriman..."></textarea>
                             </div>
                         </div>
 
@@ -254,25 +235,20 @@
                                     <div class="card-body py-3 px-3">
                                         <p class="text-uppercase fw-bold text-muted mb-2"
                                             style="font-size:0.65rem;letter-spacing:0.06em;">
-                                            <i class="fas fa-user me-1"></i>Pengaju & Tujuan
+                                            <i class="fas fa-user me-1"></i>Pelanggan &amp; Tujuan
                                         </p>
                                         <table class="table table-sm table-borderless mb-0 small">
                                             <tr>
-                                                <td class="text-muted ps-0" style="width:30%">Departemen</td>
+                                                <td class="text-muted ps-0" style="width:30%" id="rev-buyer-label">Nama Pelanggan</td>
                                                 <td class="fw-bold text-success" id="rev-buyer">-</td>
                                             </tr>
-                                            <tr class="po-details-row d-none">
-                                                <td class="text-muted ps-0">Pelanggan PO</td>
-                                                <td class="fw-semibold" id="rev-customer-detail">-</td>
+                                            <tr id="rev-phone-row">
+                                                <td class="text-muted ps-0">No. HP</td>
+                                                <td class="fw-semibold" id="rev-phone">-</td>
                                             </tr>
-                                            <tr class="po-details-row d-none">
-                                                <td class="text-muted ps-0">Alamat Kirim</td>
-                                                <td class="fw-semibold" id="rev-address" style="word-break:break-word;">-
-                                                </td>
-                                            </tr>
-                                            <tr class="stock-details-row">
-                                                <td class="text-muted ps-0">Tujuan</td>
-                                                <td class="fw-semibold text-secondary">Gudang Jadi (Masuk Stok)</td>
+                                            <tr>
+                                                <td class="text-muted ps-0" id="rev-address-label">Alamat Kirim</td>
+                                                <td class="fw-semibold" id="rev-address" style="word-break:break-word;">-</td>
                                             </tr>
                                         </table>
                                     </div>
@@ -382,19 +358,45 @@
                 placeholder: '-- Pilih Toko --'
             });
 
-            // Conditional toggle customer info section on Tipe Permintaan change
-            $('#request_type').on('change', function() {
-                let type = $(this).val();
-                if (type === 'PO Pelanggan') {
-                    $('#customer_section').removeClass('d-none');
+            // Conditional label/placeholder changes based on request type
+            function updateStep2Labels() {
+                let type = $('#request_type').val();
+                if (type === 'Stok Gudang Jadi') {
+                    $('#step-2-title').html('<i class="fas fa-warehouse me-1"></i> Detail Pengaju &amp; Gudang');
+                    $('#lbl_cust_name').html('Nama Pengaju / Penerima <span class="text-danger">*</span>');
+                    $('#lbl_cust_address').html('Lokasi Penyimpanan / Deskripsi <span class="text-danger">*</span>');
+                    $('#cust_name').attr('placeholder', 'Contoh: Bagian Gudang / Nama Pengaju');
+                    $('#cust_address').attr('placeholder', 'Contoh: Rak B, Gudang Utama...');
+                    
+                    // Pre-fill if fields are empty
+                    if (!$('#cust_name').val().trim()) {
+                        $('#cust_name').val('INTERNAL GUDANG JADI');
+                    }
+                    if (!$('#cust_address').val().trim()) {
+                        $('#cust_address').val('Gudang Jadi (Penyimpanan Utama)');
+                    }
+                    $('#cust_phone_container').addClass('d-none');
                 } else {
-                    $('#customer_section').addClass('d-none');
-                    // Reset customer inputs
-                    $('#cust_name').val('');
-                    $('#cust_phone').val('');
-                    $('#cust_address').val('');
+                    $('#step-2-title').html('<i class="fas fa-user-tag me-1"></i> Detail Pembeli / Pelanggan PO');
+                    $('#lbl_cust_name').html('Nama Pelanggan <span class="text-danger">*</span>');
+                    $('#lbl_cust_address').html('Alamat Pengiriman <span class="text-danger">*</span>');
+                    $('#cust_name').attr('placeholder', 'Nama lengkap pelanggan');
+                    $('#cust_address').attr('placeholder', 'Alamat lengkap pengiriman...');
+                    
+                    // Clear if it was internal
+                    if ($('#cust_name').val() === 'INTERNAL GUDANG JADI') {
+                        $('#cust_name').val('');
+                    }
+                    if ($('#cust_address').val() === 'Gudang Jadi (Penyimpanan Utama)') {
+                        $('#cust_address').val('');
+                    }
+                    $('#cust_phone_container').removeClass('d-none');
                 }
-            });
+            }
+
+            $('#request_type').on('change', updateStep2Labels);
+            // Run on initial load
+            updateStep2Labels();
 
             // ===== Select2 for product selects =====
             function initProductSelect(el) {
@@ -480,21 +482,18 @@
             // ===== Update Hidden Fields before proceeding/submitting =====
             function populateHiddenFields() {
                 let type = $('#request_type').val();
-                let dept = $('#department_id').val();
+                let custName = $('#cust_name').val().trim();
+                let custPhone = $('#cust_phone').val().trim() || '-';
+                let custAddress = $('#cust_address').val().trim();
 
-                $('#real_buyer_name').val(dept);
-                $('#real_buyer_phone').val(type); // Store type of request here
-
-                if (type === 'PO Pelanggan') {
-                    let custName = $('#cust_name').val().trim();
-                    let custPhone = $('#cust_phone').val().trim() || '-';
-                    let custAddress = $('#cust_address').val().trim();
-
-                    let fullAddress = `Pelanggan: ${custName} (${custPhone})\nAlamat: ${custAddress}`;
-                    $('#real_shipping_address').val(fullAddress);
-                } else {
-                    $('#real_shipping_address').val('Stok Gudang Jadi (Penyimpanan Utama)');
+                if (type === 'Stok Gudang Jadi') {
+                    if (!custName) custName = 'INTERNAL GUDANG JADI';
+                    if (!custAddress) custAddress = 'Gudang Jadi (Penyimpanan Utama)';
                 }
+
+                $('#real_buyer_name').val(custName);
+                $('#real_buyer_phone').val(custPhone);
+                $('#real_shipping_address').val(custAddress);
             }
 
             // ===== Step Navigation =====
@@ -561,17 +560,23 @@
                 let type = $('#request_type').val();
                 $('#rev-store').text($('#store_id option:selected').text().trim() || '-');
                 $('#rev-type').text(type);
-                $('#rev-buyer').text($('#department_id').val() || '-');
+
+                let custName = $('#cust_name').val().trim();
+                let custPhone = $('#cust_phone').val().trim();
+                let custAddress = $('#cust_address').val().trim();
+
+                $('#rev-buyer').text(custName || '-');
+                $('#rev-address').text(custAddress || '-');
 
                 if (type === 'PO Pelanggan') {
-                    $('.po-details-row').removeClass('d-none');
-                    $('.stock-details-row').addClass('d-none');
-                    $('#rev-customer-detail').text($('#cust_name').val() + ' (' + ($('#cust_phone').val() ||
-                        '-') + ')');
-                    $('#rev-address').text($('#cust_address').val() || '-');
+                    $('#rev-buyer-label').text('Nama Pelanggan');
+                    $('#rev-address-label').text('Alamat Kirim');
+                    $('#rev-phone-row').removeClass('d-none');
+                    $('#rev-phone').text(custPhone || '-');
                 } else {
-                    $('.po-details-row').addClass('d-none');
-                    $('.stock-details-row').removeClass('d-none');
+                    $('#rev-buyer-label').text('Nama Pengaju');
+                    $('#rev-address-label').text('Lokasi / Deskripsi');
+                    $('#rev-phone-row').addClass('d-none');
                 }
 
                 let html = '',
@@ -601,21 +606,14 @@
                     }
                 }
                 if (step === 2) {
-                    if (!$('#department_id').val()) {
-                        showWarn('Pilih departemen pengaju terlebih dahulu.');
+                    let type = $('#request_type').val();
+                    if (!$('#cust_name').val().trim()) {
+                        showWarn(type === 'PO Pelanggan' ? 'Isi nama pelanggan.' : 'Isi nama pengaju.');
                         return false;
                     }
-
-                    let type = $('#request_type').val();
-                    if (type === 'PO Pelanggan') {
-                        if (!$('#cust_name').val().trim()) {
-                            showWarn('Isi nama pelanggan.');
-                            return false;
-                        }
-                        if (!$('#cust_address').val().trim()) {
-                            showWarn('Isi alamat pengiriman pelanggan.');
-                            return false;
-                        }
+                    if (!$('#cust_address').val().trim()) {
+                        showWarn(type === 'PO Pelanggan' ? 'Isi alamat pengiriman.' : 'Isi lokasi penyimpanan.');
+                        return false;
                     }
                 }
                 return true;
