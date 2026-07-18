@@ -96,15 +96,21 @@ class ProductRecipeController extends Controller
                 'is_active' => true,
             ]);
 
+            $materialsCost = 0;
             if ($request->has('items')) {
                 foreach ($request->items as $item) {
                     $recipe->items()->create([
                         'inventory_item_id' => $item['inventory_item_id'],
                         'quantity' => $item['quantity'],
                     ]);
+                    $invItem = InventoryItem::where('tenant_id', Auth::user()->tenant_id)->find($item['inventory_item_id']);
+                    if ($invItem) {
+                        $materialsCost += $item['quantity'] * ($invItem->cost_price ?? 0);
+                    }
                 }
             }
 
+            $laborCost = 0;
             if ($request->has('labors')) {
                 foreach ($request->labors as $labor) {
                     $recipe->labors()->create([
@@ -113,8 +119,14 @@ class ProductRecipeController extends Controller
                         'unit_cost' => $labor['unit_cost'],
                         'default_cost' => $labor['qty'] * $labor['unit_cost'],
                     ]);
+                    $laborCost += $labor['qty'] * $labor['unit_cost'];
                 }
             }
+
+            $batchQty = max(1, $request->batch_qty);
+            $product->update([
+                'cost_price' => ($materialsCost + $laborCost) / $batchQty
+            ]);
         });
 
         return redirect()->route('product_recipes.index', $request->query())
@@ -175,15 +187,21 @@ class ProductRecipeController extends Controller
                 'is_active' => true,
             ]);
 
+            $materialsCost = 0;
             if ($request->has('items')) {
                 foreach ($request->items as $item) {
                     $recipe->items()->create([
                         'inventory_item_id' => $item['inventory_item_id'],
                         'quantity' => $item['quantity'],
                     ]);
+                    $invItem = InventoryItem::where('tenant_id', Auth::user()->tenant_id)->find($item['inventory_item_id']);
+                    if ($invItem) {
+                        $materialsCost += $item['quantity'] * ($invItem->cost_price ?? 0);
+                    }
                 }
             }
 
+            $laborCost = 0;
             if ($request->has('labors')) {
                 foreach ($request->labors as $labor) {
                     $recipe->labors()->create([
@@ -192,8 +210,14 @@ class ProductRecipeController extends Controller
                         'unit_cost' => $labor['unit_cost'],
                         'default_cost' => $labor['qty'] * $labor['unit_cost'],
                     ]);
+                    $laborCost += $labor['qty'] * $labor['unit_cost'];
                 }
             }
+
+            $batchQty = max(1, $request->batch_qty);
+            $product->update([
+                'cost_price' => ($materialsCost + $laborCost) / $batchQty
+            ]);
         });
 
         return redirect()->route('product_recipes.index', $request->query())
@@ -443,15 +467,21 @@ class ProductRecipeController extends Controller
                 'is_active' => true,
             ]);
 
+            $materialsCost = 0;
             if ($request->has('items')) {
                 foreach ($request->items as $item) {
                     $recipe->items()->create([
                         'inventory_item_id' => $item['inventory_item_id'],
                         'quantity' => $item['quantity'],
                     ]);
+                    $invItem = InventoryItem::where('tenant_id', Auth::user()->tenant_id)->find($item['inventory_item_id']);
+                    if ($invItem) {
+                        $materialsCost += $item['quantity'] * ($invItem->cost_price ?? 0);
+                    }
                 }
             }
 
+            $laborCost = 0;
             if ($request->has('labors')) {
                 foreach ($request->labors as $labor) {
                     $recipe->labors()->create([
@@ -460,8 +490,14 @@ class ProductRecipeController extends Controller
                         'unit_cost' => $labor['unit_cost'],
                         'default_cost' => $labor['qty'] * $labor['unit_cost'],
                     ]);
+                    $laborCost += $labor['qty'] * $labor['unit_cost'];
                 }
             }
+
+            $batchQty = max(1, $request->batch_qty);
+            $product->update([
+                'cost_price' => ($materialsCost + $laborCost) / $batchQty
+            ]);
         });
 
         return response()->json([
@@ -506,6 +542,15 @@ class ProductRecipeController extends Controller
             ProductRecipe::whereIn('master_product_id', $destinationProductIds)
                 ->update(['is_active' => false]);
 
+            // Calculate HPP of the source recipe
+            $materialsCost = 0;
+            foreach ($sourceRecipe->items as $item) {
+                $materialsCost += $item->quantity * ($item->inventoryItem->cost_price ?? 0);
+            }
+            $laborCost = $sourceRecipe->labors->sum('default_cost');
+            $batchQty = max(1, $sourceRecipe->batch_qty);
+            $hppPerUnit = ($materialsCost + $laborCost) / $batchQty;
+
             foreach ($destinationProductIds as $destProductId) {
                 $newRecipe = ProductRecipe::create([
                     'tenant_id' => $tenantId,
@@ -530,6 +575,11 @@ class ProductRecipeController extends Controller
                         'default_cost' => $labor->default_cost,
                     ]);
                 }
+
+                // Update destination product cost_price in DB
+                MasterProduct::where('id', $destProductId)->update([
+                    'cost_price' => $hppPerUnit
+                ]);
             }
         });
 
@@ -559,5 +609,48 @@ class ProductRecipeController extends Controller
                   ->orWhere('sku', 'like', '%' . $search . '%');
             });
         }
+    }
+
+    public function syncHppBulk(Request $request)
+    {
+        $tenantId = Auth::user()->tenant_id;
+
+        // Get all products of the tenant with their active recipes, items, and labors
+        $products = MasterProduct::where('tenant_id', $tenantId)
+            ->where('is_bundle', false) // Only single products have direct recipes
+            ->with(['activeRecipe.items.inventoryItem', 'activeRecipe.labors'])
+            ->get();
+
+        $updatedCount = 0;
+
+        foreach ($products as $product) {
+            $recipe = $product->activeRecipe;
+            if (!$recipe) {
+                continue;
+            }
+
+            // Calculate total materials cost
+            $materialsCost = 0;
+            foreach ($recipe->items as $item) {
+                $materialsCost += $item->quantity * ($item->inventoryItem->cost_price ?? 0);
+            }
+
+            // Calculate total labor cost
+            $laborCost = $recipe->labors->sum('default_cost');
+
+            // HPP per unit (divided by batch_qty)
+            $batchQty = max(1, $recipe->batch_qty);
+            $hppPerUnit = ($materialsCost + $laborCost) / $batchQty;
+
+            // Update master product cost_price
+            $product->update([
+                'cost_price' => $hppPerUnit
+            ]);
+
+            $updatedCount++;
+        }
+
+        return redirect()->route('product_recipes.index')
+            ->with('success', "Berhasil mensinkronisasi HPP massal! {$updatedCount} produk berhasil diperbarui berdasarkan formula BOM.");
     }
 }

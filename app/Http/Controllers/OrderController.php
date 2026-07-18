@@ -562,13 +562,17 @@ class OrderController extends Controller
                 'store_id' => $store->id,
                 'order_marketplace_id' => 'MANUAL-' . time() . '-' . rand(100, 999),
                 'invoice_number' => $invoiceNumber,
-                'order_status' => Order::STATUS_PENDING_APPROVAL, // Marketing submits, awaits approval
+                'order_status' => Order::STATUS_READY_TO_SHIP, // Bypass approval, directly ready to ship/produce
                 'buyer_name' => $request->buyer_name,
                 'buyer_phone' => $request->buyer_phone,
                 'shipping_address' => $request->shipping_address,
                 'total_amount' => $totalAmount,
                 'net_amount' => $totalAmount,
                 'order_date' => now(),
+                'approved_warehouse_at' => now(),
+                'approved_warehouse_by' => Auth::id(),
+                'approved_production_at' => now(),
+                'approved_production_by' => Auth::id(),
             ]);
 
             // Create Order Items
@@ -589,7 +593,7 @@ class OrderController extends Controller
         });
 
         return redirect()->route('orders.show', $order->id)
-            ->with('success', 'Permintaan produksi manual (PO) berhasil diajukan! Menunggu persetujuan Gudang Jadi dan Produksi.');
+            ->with('success', 'Permintaan produksi manual (PO) berhasil diajukan dan siap diproses!');
     }
 
     public function approveWarehouse(Order $order)

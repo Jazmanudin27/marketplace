@@ -24,6 +24,13 @@
                             <i class="fas fa-print me-1"></i> Cetak Laporan
                         </a>
 
+                        <form action="{{ route('product_recipes.sync_hpp_bulk') }}" method="POST" class="d-inline m-0">
+                            @csrf
+                            <button type="submit" class="btn btn-outline-primary btn-sm px-3 rounded-3 fw-semibold" title="Perbarui HPP semua produk berdasarkan rumus formula aktif">
+                                <i class="fas fa-sync me-1"></i> Sinkronisasi HPP Massal
+                            </button>
+                        </form>
+
                         <a href="{{ route('product_recipes.bulk', request()->query()) }}"
                             class="btn btn-warning btn-sm px-3 rounded-3 fw-semibold">
                             <i class="fas fa-edit me-1"></i> Input Massal
