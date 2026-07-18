@@ -14,9 +14,8 @@
             <input type="hidden" name="buyer_phone" id="real_buyer_phone" value="" />
             <input type="hidden" name="shipping_address" id="real_shipping_address" value="" />
 
-            <div class="row g-4">
-                {{-- Kolom Kiri: Form Wizard --}}
-                <div class="col-lg-8">
+            <div class="row">
+                <div class="col-12">
                     <div class="card border shadow-sm rounded-3 mb-4">
                         {{-- Header --}}
                         <div class="card-header bg-primary text-white py-3 px-4 d-flex justify-content-between align-items-center border-0">
@@ -338,60 +337,6 @@
                                 </div>
                             </div>
 
-                        </div>
-                    </div>
-                </div>
-
-                {{-- Kolom Kanan: Live Summary --}}
-                <div class="col-lg-4">
-                    <div class="card border shadow-sm rounded-3 position-sticky" style="top: 1.5rem;">
-                        <div class="card-header bg-dark text-white py-3">
-                            <h6 class="mb-0 fw-bold"><i class="fas fa-receipt me-2"></i>Ringkasan Permintaan PO</h6>
-                        </div>
-                        <div class="card-body">
-                            <!-- Toko & Tipe -->
-                            <div class="mb-3 pb-3 border-bottom">
-                                <span class="text-uppercase fw-bold text-muted d-block small mb-1" style="font-size: 0.72rem; letter-spacing: 0.05em;">Toko &amp; Tipe</span>
-                                <div class="d-flex justify-content-between mb-1 small">
-                                    <span class="text-secondary">Toko:</span>
-                                    <span class="fw-semibold text-dark text-truncate text-end ps-2" id="summary-store" style="max-width: 70%;">—</span>
-                                </div>
-                                <div class="d-flex justify-content-between small">
-                                    <span class="text-secondary">Tipe:</span>
-                                    <span class="fw-bold text-primary" id="summary-type">—</span>
-                                </div>
-                            </div>
-
-                            <!-- Detail Pelanggan -->
-                            <div class="mb-3 pb-3 border-bottom" id="summary-customer-section">
-                                <span class="text-uppercase fw-bold text-muted d-block small mb-1" style="font-size: 0.72rem; letter-spacing: 0.05em;">Detail Pelanggan</span>
-                                <div class="d-flex justify-content-between mb-1 small">
-                                    <span class="text-secondary" id="summary-name-label">Nama:</span>
-                                    <span class="fw-semibold text-dark text-truncate text-end ps-2" id="summary-name" style="max-width: 70%;">—</span>
-                                </div>
-                                <div class="d-flex justify-content-between mb-1 small" id="summary-phone-row">
-                                    <span class="text-secondary">No HP:</span>
-                                    <span class="fw-semibold text-dark" id="summary-phone">—</span>
-                                </div>
-                                <div class="small">
-                                    <span class="text-secondary d-block" id="summary-address-label">Alamat:</span>
-                                    <span class="fw-semibold text-dark d-block text-break mt-1 bg-light p-2 rounded-2" id="summary-address">—</span>
-                                </div>
-                            </div>
-
-                            <!-- Daftar Item -->
-                            <div class="mb-3 pb-3 border-bottom">
-                                <span class="text-uppercase fw-bold text-muted d-block small mb-1" style="font-size: 0.72rem; letter-spacing: 0.05em;">Daftar Item</span>
-                                <div id="summary-items-list" class="my-2" style="max-height: 200px; overflow-y: auto;">
-                                    <span class="text-muted small italic">Belum ada item dipilih</span>
-                                </div>
-                            </div>
-
-                            <!-- Total -->
-                            <div class="d-flex justify-content-between align-items-center">
-                                <span class="text-uppercase fw-bold text-muted small">Total Estimasi</span>
-                                <h4 class="fw-bold text-success mb-0" id="summary-grand-total">Rp 0</h4>
-                            </div>
                         </div>
                     </div>
                 </div>
