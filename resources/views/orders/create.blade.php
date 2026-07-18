@@ -354,7 +354,7 @@
                         style="width:24px;height:24px;font-size:0.7rem;">__NUM__</span>
                     <div class="flex-grow-1">
                         <div class="row g-2 align-items-end">
-                            <div class="col-md-6 col-12">
+                            <div class="col-12">
                                 <label class="form-label form-label-sm fw-semibold mb-1">
                                     Nama Produk <span class="text-danger">*</span>
                                 </label>
@@ -368,19 +368,19 @@
                                     @endforeach
                                 </select>
                             </div>
-                            <div class="col-md-2 col-4">
+                            <div class="col-md-3 col-4">
                                 <label class="form-label form-label-sm fw-semibold mb-1">Qty</label>
                                 <input type="number" name="items[__IDX__][quantity]"
                                     class="form-control form-control-sm text-center qty-input" value="1"
                                     min="1" required>
                             </div>
-                            <div class="col-md-2 col-8">
+                            <div class="col-md-5 col-8">
                                 <label class="form-label form-label-sm fw-semibold mb-1">Harga Satuan</label>
                                 <input type="number" name="items[__IDX__][price]"
                                     class="form-control form-control-sm text-end price-input" value="0"
                                     min="0" required>
                             </div>
-                            <div class="col-md-2 col-12 text-md-end text-start mb-2">
+                            <div class="col-md-4 col-12 text-md-end text-start mb-2">
                                 <small class="text-muted d-md-block d-inline me-1">Subtotal:</small>
                                 <span class="fw-bold text-success small item-subtotal">Rp 0</span>
                             </div>
