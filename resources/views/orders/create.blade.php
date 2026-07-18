@@ -541,22 +541,25 @@
                         total += subtotal;
                         count += item.qty;
 
-                        // Cart table row
+                        // Cart table rows with nested two-row layout per item
                         html += `<tr>
-                            <td class="text-center fw-semibold">${index + 1}</td>
-                            <td class="text-wrap">${item.name}</td>
+                            <td rowspan="2" class="text-center align-middle fw-semibold bg-light" style="width: 5%">${index + 1}</td>
+                            <td colspan="4" class="fw-bold text-wrap bg-light py-2 text-primary">${item.name}</td>
+                            <td rowspan="2" class="text-center align-middle bg-light" style="width: 10%">
+                                <button type="button" class="btn btn-sm btn-link text-danger p-0 btn-remove-cart-item" data-index="${index}" title="Hapus">
+                                    <i class="fas fa-trash-alt fs-5"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted small align-middle text-nowrap text-secondary">Rincian Nilai:</td>
                             <td class="text-center">
                                 <input type="number" class="form-control form-control-sm text-center mx-auto cart-qty-edit" data-index="${index}" value="${item.qty}" min="1" style="width: 70px;">
                             </td>
                             <td class="text-end">
                                 <input type="number" class="form-control form-control-sm text-end ms-auto cart-price-edit" data-index="${index}" value="${item.price}" min="0" style="width: 110px;">
                             </td>
-                            <td class="text-end fw-semibold text-success">${fmt(subtotal)}</td>
-                            <td class="text-center">
-                                <button type="button" class="btn btn-sm btn-link text-danger p-0 btn-remove-cart-item" data-index="${index}" title="Hapus">
-                                    <i class="fas fa-trash-alt"></i>
-                                </button>
-                            </td>
+                            <td class="text-end fw-semibold text-success align-middle">${fmt(subtotal)}</td>
                         </tr>`;
 
                         // Hidden form inputs for submission
