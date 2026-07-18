@@ -410,11 +410,15 @@
                     <div class="nav flex-column ms-3 mt-1 gap-1 border-start ps-2">
                         @can('manage-orders')
                             <a href="{{ route('orders.index') }}"
-                                class="nav-link py-1 d-flex align-items-center justify-content-between pe-3 {{ request()->routeIs('orders.*') ? 'active text-white' : 'text-secondary' }}">
+                                class="nav-link py-1 d-flex align-items-center justify-content-between pe-3 {{ (request()->routeIs('orders.*') && !request()->routeIs('orders.create')) ? 'active text-white' : 'text-secondary' }}">
                                 <span>Pesanan Masuk</span>
                                 @if (isset($pendingOrdersCount) && $pendingOrdersCount > 0)
                                     <span class="badge bg-danger rounded-pill small">{{ $pendingOrdersCount }}</span>
                                 @endif
+                            </a>
+                            <a href="{{ route('orders.create') }}"
+                                class="nav-link py-1 {{ request()->routeIs('orders.create') ? 'active text-white' : 'text-secondary' }}">
+                                <span>Input Pesanan Manual</span>
                             </a>
                         @endcan
                         @can('manage-offline-sales')

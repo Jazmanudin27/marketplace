@@ -1,4 +1,4 @@
-﻿@extends('layouts.app')
+@extends('layouts.app')
 
 @section('title', 'Input Permintaan Produksi (Manual PO)')
 @section('page-title', 'Input Permintaan Produksi')
@@ -15,7 +15,7 @@
                     <small class="text-white-50">Pesanan manual untuk diproduksi & disimpan di gudang jadi sebelum
                         diserahkan</small>
                 </div>
-                <a href="{{ route('production_orders.requirements') }}" class="btn btn-sm btn-light fw-semibold px-3">
+                <a href="{{ route('orders.index') }}" class="btn btn-sm btn-light fw-semibold px-3">
                     <i class="fas fa-arrow-left me-1"></i> Kembali
                 </a>
             </div>
