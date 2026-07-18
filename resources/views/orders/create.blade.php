@@ -167,15 +167,70 @@
                             {{-- ========== STEP 3: Item Produk ========== --}}
                             <div id="step-3" class="d-none">
                                 <p class="text-uppercase text-muted fw-semibold mb-3 small">
-                                    <i class="fas fa-boxes me-1"></i> Item Produk untuk Diproduksi
+                                    <i class="fas fa-boxes me-1"></i> Input Produk
                                 </p>
 
-                                <div id="item-list" class="mb-3"></div>
+                                <!-- Form Input Sementara (Single Row) -->
+                                <div class="card border bg-light mb-4">
+                                    <div class="card-body py-3 px-3">
+                                        <div class="row g-2 align-items-end">
+                                            <div class="col-md-6 col-12">
+                                                <label class="form-label form-label-sm fw-semibold mb-1">
+                                                    Pilih Produk <span class="text-danger">*</span>
+                                                </label>
+                                                <select id="input_product_id" class="form-select form-select-sm" style="width:100%">
+                                                    <option value="">-- Cari / Pilih Barang --</option>
+                                                    @foreach ($products as $p)
+                                                        <option value="{{ $p->id }}" data-price="{{ $p->price }}">
+                                                            {{ $p->sku ? '[' . $p->sku . '] ' : '' }}{{ $p->name }}
+                                                        </option>
+                                                    @endforeach
+                                                </select>
+                                            </div>
+                                            <div class="col-md-2 col-4">
+                                                <label class="form-label form-label-sm fw-semibold mb-1">Qty</label>
+                                                <input type="number" id="input_qty" class="form-control form-control-sm text-center" value="1" min="1">
+                                            </div>
+                                            <div class="col-md-3 col-6">
+                                                <label class="form-label form-label-sm fw-semibold mb-1">Harga Satuan</label>
+                                                <input type="number" id="input_price" class="form-control form-control-sm text-end" value="0" min="0">
+                                            </div>
+                                            <div class="col-md-1 col-2 text-end">
+                                                <button type="button" id="btn-add-to-cart" class="btn btn-primary btn-sm w-100 fw-bold py-1">
+                                                    <i class="fas fa-plus"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
 
-                                <button type="button" id="btn-add-item"
-                                    class="btn btn-outline-primary btn-sm w-100 mb-4 fw-semibold">
-                                    <i class="fas fa-plus-circle me-1"></i> Tambah Item Produk
-                                </button>
+                                <p class="text-uppercase text-muted fw-semibold mb-2 small">
+                                    <i class="fas fa-shopping-cart me-1"></i> Daftar Item yang Ditambahkan
+                                </p>
+
+                                <!-- Container Keranjang Hidden Inputs -->
+                                <div id="cart-hidden-inputs"></div>
+
+                                <!-- Tabel Daftar Item -->
+                                <div class="table-responsive mb-4">
+                                    <table class="table table-sm table-bordered align-middle" id="cart-table">
+                                        <thead class="table-dark">
+                                            <tr>
+                                                <th class="text-center" style="width: 5%">No</th>
+                                                <th>Nama Barang</th>
+                                                <th class="text-center" style="width: 15%">Qty</th>
+                                                <th class="text-end" style="width: 20%">Harga</th>
+                                                <th class="text-end" style="width: 20%">Subtotal</th>
+                                                <th class="text-center" style="width: 10%">Aksi</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="cart-table-body">
+                                            <tr>
+                                                <td colspan="6" class="text-center text-muted py-3">Belum ada item barang</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
 
                                 <div class="alert alert-primary d-flex justify-content-between align-items-center py-2 px-3 mb-4">
                                     <div>
@@ -344,63 +399,13 @@
         </form>
     </div>
 
-    {{-- Item Card Template --}}
-    <template id="item-tpl">
-        <div class="card border shadow-sm mb-2 item-card" data-index="__IDX__">
-            <div class="card-body py-2 px-3">
-                <div class="d-flex align-items-center gap-2">
-                    <span
-                        class="badge bg-primary rounded-circle d-flex align-items-center justify-content-center flex-shrink-0 item-num-badge"
-                        style="width:24px;height:24px;font-size:0.7rem;">__NUM__</span>
-                    <div class="flex-grow-1">
-                        <div class="row g-2 align-items-end">
-                            <div class="col-12">
-                                <label class="form-label form-label-sm fw-semibold mb-1">
-                                    Nama Produk <span class="text-danger">*</span>
-                                </label>
-                                <select name="items[__IDX__][master_product_id]"
-                                    class="form-select form-select-sm product-select" required style="width:100%">
-                                    <option value="">-- Pilih Produk --</option>
-                                    @foreach ($products as $p)
-                                        <option value="{{ $p->id }}" data-price="{{ $p->price }}">
-                                            {{ $p->sku ? '[' . $p->sku . '] ' : '' }}{{ $p->name }}
-                                        </option>
-                                    @endforeach
-                                </select>
-                            </div>
-                            <div class="col-md-3 col-4">
-                                <label class="form-label form-label-sm fw-semibold mb-1">Qty</label>
-                                <input type="number" name="items[__IDX__][quantity]"
-                                    class="form-control form-control-sm text-center qty-input" value="1"
-                                    min="1" required>
-                            </div>
-                            <div class="col-md-5 col-8">
-                                <label class="form-label form-label-sm fw-semibold mb-1">Harga Satuan</label>
-                                <input type="number" name="items[__IDX__][price]"
-                                    class="form-control form-control-sm text-end price-input" value="0"
-                                    min="0" required>
-                            </div>
-                            <div class="col-md-4 col-12 text-md-end text-start mb-2">
-                                <small class="text-muted d-md-block d-inline me-1">Subtotal:</small>
-                                <span class="fw-bold text-success small item-subtotal">Rp 0</span>
-                            </div>
-                        </div>
-                    </div>
-                    <button type="button" class="btn btn-sm btn-link text-danger p-0 flex-shrink-0 btn-remove-item"
-                        title="Hapus">
-                        <i class="fas fa-times-circle fs-5"></i>
-                    </button>
-                </div>
-            </div>
-        </div>
-    </template>
 @endsection
 
 @push('scripts')
     <script>
         $(document).ready(function() {
-            let rowIndex = 0;
             let currentStep = 1;
+            let cartItems = []; // Array of { id, name, qty, price }
 
             const fmt = n => 'Rp ' + parseFloat(n || 0).toLocaleString('id-ID');
 
@@ -410,6 +415,183 @@
                 width: '100%',
                 placeholder: '-- Pilih Toko --'
             });
+
+            // Init product search select2
+            $('#input_product_id').select2({
+                theme: 'bootstrap-5',
+                width: '100%',
+                placeholder: '-- Cari / Pilih Barang --'
+            });
+
+            // Auto price fill & focus Qty
+            $('#input_product_id').on('change', function() {
+                const price = $(this).find('option:selected').data('price') || 0;
+                $('#input_price').val(price);
+            });
+
+            $('#input_product_id').on('select2:select', function() {
+                setTimeout(function() {
+                    $('#input_qty').focus().select();
+                }, 50);
+            });
+
+            // Function to add item to cart
+            function addItemToCart() {
+                const productId = $('#input_product_id').val();
+                const productName = $('#input_product_id option:selected').text().trim();
+                const qty = parseInt($('#input_qty').val() || 0);
+                const price = parseFloat($('#input_price').val() || 0);
+
+                if (!productId) {
+                    showWarn('Silakan pilih produk terlebih dahulu.');
+                    $('#input_product_id').select2('open');
+                    return;
+                }
+                if (qty < 1) {
+                    showWarn('Quantity minimal 1.');
+                    $('#input_qty').focus();
+                    return;
+                }
+
+                // Check if product already exists in cart
+                const existingIndex = cartItems.findIndex(item => item.id === productId);
+                if (existingIndex > -1) {
+                    // Update qty
+                    cartItems[existingIndex].qty += qty;
+                    cartItems[existingIndex].price = price;
+                } else {
+                    // Add new item
+                    cartItems.push({
+                        id: productId,
+                        name: productName,
+                        qty: qty,
+                        price: price
+                    });
+                }
+
+                // Clear input fields
+                $('#input_product_id').val('').trigger('change');
+                $('#input_qty').val('1');
+                $('#input_price').val('0');
+
+                // Render cart
+                renderCart();
+
+                // Focus back on search dropdown
+                setTimeout(function() {
+                    $('#input_product_id').select2('open');
+                }, 50);
+            }
+
+            $('#btn-add-to-cart').on('click', addItemToCart);
+
+            // Trigger add to cart on Enter inside inputs
+            $('#input_qty, #input_price').on('keypress', function(e) {
+                if (e.which === 13) { // Enter key
+                    e.preventDefault();
+                    addItemToCart();
+                }
+            });
+
+            // Edit qty in cart
+            $(document).on('change', '.cart-qty-edit', function() {
+                const index = $(this).data('index');
+                const newQty = parseInt($(this).val() || 1);
+                if (newQty < 1) {
+                    $(this).val(1);
+                    cartItems[index].qty = 1;
+                } else {
+                    cartItems[index].qty = newQty;
+                }
+                renderCart();
+            });
+
+            // Edit price in cart
+            $(document).on('change', '.cart-price-edit', function() {
+                const index = $(this).data('index');
+                const newPrice = parseFloat($(this).val() || 0);
+                if (newPrice < 0) {
+                    $(this).val(0);
+                    cartItems[index].price = 0;
+                } else {
+                    cartItems[index].price = newPrice;
+                }
+                renderCart();
+            });
+
+            // Remove item from cart
+            $(document).on('click', '.btn-remove-cart-item', function() {
+                const index = $(this).data('index');
+                cartItems.splice(index, 1);
+                renderCart();
+            });
+
+            function renderCart() {
+                let html = '';
+                let hiddenInputs = '';
+                let total = 0;
+                let count = 0;
+                let summaryHtml = '';
+
+                if (cartItems.length === 0) {
+                    html = '<tr><td colspan="6" class="text-center text-muted py-3">Belum ada item barang</td></tr>';
+                } else {
+                    cartItems.forEach((item, index) => {
+                        const subtotal = item.qty * item.price;
+                        total += subtotal;
+                        count += item.qty;
+
+                        // Cart table row
+                        html += `<tr>
+                            <td class="text-center fw-semibold">${index + 1}</td>
+                            <td class="text-wrap">${item.name}</td>
+                            <td class="text-center">
+                                <input type="number" class="form-control form-control-sm text-center mx-auto cart-qty-edit" data-index="${index}" value="${item.qty}" min="1" style="width: 70px;">
+                            </td>
+                            <td class="text-end">
+                                <input type="number" class="form-control form-control-sm text-end ms-auto cart-price-edit" data-index="${index}" value="${item.price}" min="0" style="width: 110px;">
+                            </td>
+                            <td class="text-end fw-semibold text-success">${fmt(subtotal)}</td>
+                            <td class="text-center">
+                                <button type="button" class="btn btn-sm btn-link text-danger p-0 btn-remove-cart-item" data-index="${index}" title="Hapus">
+                                    <i class="fas fa-trash-alt"></i>
+                                </button>
+                            </td>
+                        </tr>`;
+
+                        // Hidden form inputs for submission
+                        hiddenInputs += `
+                            <input type="hidden" name="items[${index}][master_product_id]" value="${item.id}">
+                            <input type="hidden" name="items[${index}][quantity]" value="${item.qty}">
+                            <input type="hidden" name="items[${index}][price]" value="${item.price}">
+                        `;
+
+                        // Sidebar Summary row
+                        summaryHtml += `<div class="d-flex justify-content-between align-items-center mb-1 small">
+                            <span class="text-truncate text-secondary me-2" style="max-width: 180px;">${item.name}</span>
+                            <span class="fw-semibold text-dark text-nowrap">${item.qty} x ${fmt(item.price)}</span>
+                        </div>`;
+                    });
+                }
+
+                // Update table body
+                $('#cart-table-body').html(html);
+
+                // Update hidden inputs container
+                $('#cart-hidden-inputs').html(hiddenInputs);
+
+                // Update totals
+                $('#order-grand-total').text(fmt(total));
+                $('#item-count-label').text(cartItems.length + ' item');
+
+                // Update right sidebar live summary
+                $('#summary-grand-total').text(fmt(total));
+                if (summaryHtml) {
+                    $('#summary-items-list').html(summaryHtml);
+                } else {
+                    $('#summary-items-list').html('<span class="text-muted small italic">Belum ada item dipilih</span>');
+                }
+            }
 
             // Conditional label/placeholder changes based on request type
             function updateStep2Labels() {
@@ -454,112 +636,6 @@
             $('#store_id').on('change', populateHiddenFields);
             $('#cust_name, #cust_phone, #cust_address').on('input', populateHiddenFields);
 
-            // Run on initial load
-            updateStep2Labels();
-            populateHiddenFields();
-
-            // ===== Select2 for product selects =====
-            function initProductSelect(el) {
-                if ($(el).hasClass('select2-hidden-accessible')) return;
-                $(el).select2({
-                    theme: 'bootstrap-5',
-                    width: '100%',
-                    placeholder: '-- Pilih Produk --',
-                    dropdownParent: $(el).closest('.item-card')
-                });
-            }
-
-            // ===== Add Item Card =====
-            function addItemCard() {
-                const tpl = document.getElementById('item-tpl').innerHTML;
-                const html = tpl.replace(/__IDX__/g, rowIndex).replace(/__NUM__/g, rowIndex + 1);
-                const $card = $(html);
-                $('#item-list').append($card);
-                initProductSelect($card.find('.product-select')[0]);
-                rowIndex++;
-                refreshRemoveButtons();
-                recalc();
-            }
-
-            function ensureFirstItem() {
-                if ($('.item-card').length === 0) addItemCard();
-            }
-
-            $('#btn-add-item').on('click', addItemCard);
-
-            // Remove item
-            $(document).on('click', '.btn-remove-item', function() {
-                $(this).closest('.item-card').remove();
-                reIndexCards();
-                refreshRemoveButtons();
-                recalc();
-            });
-
-            function reIndexCards() {
-                $('.item-card').each(function(i) {
-                    $(this).attr('data-index', i);
-                    $(this).find('.item-num-badge').text(i + 1);
-                    $(this).find('[name]').each(function() {
-                        $(this).attr('name', $(this).attr('name').replace(/items\[\d+\]/, 'items[' +
-                            i + ']'));
-                    });
-                });
-            }
-
-            function refreshRemoveButtons() {
-                const n = $('.item-card').length;
-                $('.btn-remove-item').prop('disabled', n <= 1);
-            }
-
-            // Auto price fill
-            $(document).on('change', '.product-select', function() {
-                const price = $(this).find('option:selected').data('price') || 0;
-                $(this).closest('.item-card').find('.price-input').val(price).trigger('input');
-            });
-
-            // Recalculate subtotals
-            $(document).on('input', '.qty-input, .price-input', function() {
-                const card = $(this).closest('.item-card');
-                const sub = parseFloat(card.find('.qty-input').val() || 0) * parseFloat(card.find(
-                    '.price-input').val() || 0);
-                card.find('.item-subtotal').text(fmt(sub));
-                recalc();
-            });
-
-            function recalc() {
-                let total = 0,
-                    count = 0;
-                let summaryHtml = '';
-                
-                $('.item-card').each(function() {
-                    const selectOption = $(this).find('.product-select option:selected');
-                    const name = selectOption.val() ? selectOption.text().trim() : '';
-                    const qty = parseFloat($(this).find('.qty-input').val() || 0);
-                    const price = parseFloat($(this).find('.price-input').val() || 0);
-                    const sub = qty * price;
-                    total += sub;
-                    if (selectOption.val()) {
-                        count++;
-                        // Add item row to summary list
-                        summaryHtml += `<div class="d-flex justify-content-between align-items-center mb-1 small">
-                            <span class="text-truncate text-secondary me-2" style="max-width: 180px;">${name}</span>
-                            <span class="fw-semibold text-dark text-nowrap">${qty} x ${fmt(price)}</span>
-                        </div>`;
-                    }
-                });
-
-                $('#order-grand-total').text(fmt(total));
-                $('#item-count-label').text(count + ' item');
-
-                // Update right sidebar live summary
-                $('#summary-grand-total').text(fmt(total));
-                if (summaryHtml) {
-                    $('#summary-items-list').html(summaryHtml);
-                } else {
-                    $('#summary-items-list').html('<span class="text-muted small italic">Belum ada item dipilih</span>');
-                }
-            }
-
             // ===== Update Hidden Fields before proceeding/submitting =====
             function populateHiddenFields() {
                 let type = $('#request_type').val();
@@ -593,11 +669,6 @@
                     $('#summary-phone-row').removeClass('d-none');
                 }
             }
-
-            // Trigger recalc on product select changes to show in sidebar summary
-            $(document).on('change', '.product-select', function() {
-                recalc();
-            });
 
             // ===== Step Navigation =====
             window.goToStep = function(target) {
@@ -646,16 +717,10 @@
                 $('html, body').animate({
                     scrollTop: $('.card').first().offset().top - 16
                 }, 280);
-                if (target === 3) ensureFirstItem();
             };
 
             window.goToReview = function() {
-                if ($('.item-card').length === 0) return showWarn('Tambahkan minimal 1 item produk.');
-                let allOk = true;
-                $('.item-card').each(function() {
-                    if (!$(this).find('.product-select').val()) allOk = false;
-                });
-                if (!allOk) return showWarn('Semua item harus memilih produk.');
+                if (cartItems.length === 0) return showWarn('Tambahkan minimal 1 item produk ke keranjang.');
 
                 // Build review data
                 populateHiddenFields();
@@ -684,16 +749,13 @@
 
                 let html = '',
                     total = 0;
-                $('.item-card').each(function() {
-                    const name = $(this).find('.product-select option:selected').text().trim();
-                    const qty = parseFloat($(this).find('.qty-input').val() || 0);
-                    const price = parseFloat($(this).find('.price-input').val() || 0);
-                    const sub = qty * price;
+                cartItems.forEach((item) => {
+                    const sub = item.qty * item.price;
                     total += sub;
                     html += `<div class="d-flex justify-content-between align-items-center border rounded px-3 py-2 mb-1 small bg-white">
-                <span class="fw-semibold text-truncate me-2">${name}</span>
-                <span class="text-muted text-nowrap">${qty} × ${fmt(price)} = <strong class="text-primary">${fmt(sub)}</strong></span>
-            </div>`;
+                        <span class="fw-semibold text-truncate me-2">${item.name}</span>
+                        <span class="text-muted text-nowrap">${item.qty} × ${fmt(item.price)} = <strong class="text-primary">${fmt(sub)}</strong></span>
+                    </div>`;
                 });
                 $('#rev-items').html(html);
                 $('#rev-grand-total').text(fmt(total));
@@ -739,6 +801,10 @@
                     alert(msg);
                 }
             }
+
+            // Run initial load functions
+            updateStep2Labels();
+            populateHiddenFields();
         });
     </script>
 @endpush
