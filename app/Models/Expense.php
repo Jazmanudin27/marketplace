@@ -42,10 +42,11 @@ class Expense extends Model
     public function getCategoryLabelAttribute()
     {
         return [
-            'salary' => 'Gaji Karyawan',
-            'rent' => 'Sewa Tempat',
-            'utilities' => 'Utilitas & Operasional',
-            'other' => 'Lain-lain',
+            'salary'               => 'Gaji Karyawan',
+            'rent'                 => 'Sewa Tempat',
+            'utilities'            => 'Utilitas & Operasional',
+            'pembelian_supplier'   => 'Bayar Hutang Supplier',
+            'other'                => 'Lain-lain',
         ][$this->category] ?? ucfirst($this->category);
     }
 }

@@ -480,6 +480,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/supplier-payables', [SupplierPayableController::class, 'index'])->name('supplier_payables.index');
         Route::get('/supplier-payables/{supplierPayable}', [SupplierPayableController::class, 'show'])->name('supplier_payables.show');
         Route::post('/supplier-payables/{supplierPayable}/pay', [SupplierPayableController::class, 'storePayment'])->name('supplier_payables.pay');
+        Route::post('/supplier-payables/{supplierPayable}/payments/{payment}/approve', [SupplierPayableController::class, 'approvePayment'])->name('supplier_payables.approve');
+        Route::post('/supplier-payables/{supplierPayable}/payments/{payment}/reject', [SupplierPayableController::class, 'rejectPayment'])->name('supplier_payables.reject');
 
         // ── LAPORAN PEMBELIAN (Stok & Mutasi) ──────────────────────────────────
         Route::get('/pembelian/stok-barang', [WarehouseMutationController::class, 'stockReportPembelian'])->name('pembelian.stock_report');

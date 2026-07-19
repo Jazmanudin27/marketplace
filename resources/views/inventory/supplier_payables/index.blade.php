@@ -23,6 +23,17 @@
         </div>
     @endif
 
+    {{-- Pending Approval Alert --}}
+    @if($pendingApprovalCount > 0)
+    <div class="alert alert-warning border-warning d-flex align-items-center gap-3 mb-3 py-2" role="alert">
+        <i class="bi bi-hourglass-split fs-5 text-warning flex-shrink-0"></i>
+        <div class="flex-grow-1">
+            <strong>{{ $pendingApprovalCount }} pengajuan pembayaran menunggu persetujuan.</strong>
+            Buka detail hutang untuk menyetujui atau menolak.
+        </div>
+    </div>
+    @endif
+
     {{-- KPI Cards --}}
     <div class="row g-3 mb-3">
         <div class="col-sm-6 col-lg-3">
