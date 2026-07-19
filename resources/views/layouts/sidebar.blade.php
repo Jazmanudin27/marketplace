@@ -165,12 +165,12 @@
         @if (auth()->user()->isSuperAdmin() ||
                 auth()->user()->role === 'admin' ||
                 auth()->user()->hasAnyPermission([
-                        'manage-categories',
-                        'manage-brands',
-                        'manage-suppliers',
-                        'manage-employees',
-                        'manage-customers',
-                        'manage-users',
+                        'categories.index',
+                        'brands.index',
+                        'suppliers.index',
+                        'customers.index',
+                        'employees.index',
+                        'users.index',
                         'settings.tenant.edit',
                     ]))
             <div>
@@ -237,7 +237,12 @@
         <!-- 6. KEUANGAN -->
         @if (auth()->user()->isSuperAdmin() ||
                 auth()->user()->role === 'admin' ||
-                auth()->user()->hasAnyPermission(['view-financial-reports', 'manage-finance']))
+                auth()->user()->hasAnyPermission([
+                        'finance.reconciliation.index',
+                        'finance.incomes.index',
+                        'finance.expenses.index',
+                        'finance.transfers.index',
+                    ]))
             <div>
                 <a class="nav-link d-flex align-items-center justify-content-between text-dark {{ $isFinanceActive ? '' : 'collapsed' }}"
                     data-bs-toggle="collapse" data-bs-target="#collapseFinance" role="button"
@@ -277,7 +282,12 @@
         <!-- 7. PEMBELIAN -->
         @if (auth()->user()->isSuperAdmin() ||
                 auth()->user()->role === 'admin' ||
-                auth()->user()->hasAnyPermission(['manage-incoming-goods', 'manage-inventory']))
+                auth()->user()->hasAnyPermission([
+                        'purchase-orders.index',
+                        'goods-receipts.index',
+                        'goods-issues.index',
+                        'purchase-returns.index',
+                    ]))
             <div>
                 <a class="nav-link d-flex align-items-center justify-content-between text-dark {{ $isPembelianActive ? '' : 'collapsed' }}"
                     data-bs-toggle="collapse" data-bs-target="#collapsePembelian" role="button"
@@ -318,7 +328,7 @@
         <!-- 8. PRODUKSI -->
         @if (auth()->user()->isSuperAdmin() ||
                 auth()->user()->role === 'admin' ||
-                auth()->user()->hasAnyPermission(['manage-inventory', 'manage-products']))
+                auth()->user()->hasAnyPermission(['spks.index', 'product-recipes.index']))
             <div>
                 <a class="nav-link d-flex align-items-center justify-content-between text-dark {{ $isProduksiActive ? '' : 'collapsed' }}"
                     data-bs-toggle="collapse" data-bs-target="#collapseProduksi" role="button"
@@ -331,11 +341,11 @@
                 </a>
                 <div class="collapse {{ $isProduksiActive ? 'show' : '' }}" id="collapseProduksi">
                     <div class="nav flex-column ms-3 mt-1 gap-1 border-start ps-2">
-                        @can('manage-inventory')
+                        @can('spks.index')
                             <a href="{{ route('spks.index') }}"
                                 class="nav-link py-1 {{ request()->routeIs('spks.*') ? 'active text-white' : 'text-secondary' }}">Surat Perintah Kerja (SPK)</a>
                         @endcan
-                        @can('manage-products')
+                        @can('product-recipes.index')
                             <a href="{{ route('product_recipes.index') }}"
                                 class="nav-link py-1 {{ request()->routeIs('product_recipes.*') ? 'active text-white' : 'text-secondary' }}">Formula Produk (BOM)</a>
                         @endcan
@@ -348,9 +358,11 @@
         @if (auth()->user()->isSuperAdmin() ||
                 auth()->user()->role === 'admin' ||
                 auth()->user()->hasAnyPermission([
-                        'manage-inventory',
-                        'manage-fulfillment',
-                        'manage-complaints',
+                        'inventory.index',
+                        'stock-opnames.index',
+                        'inventory.stock_sync',
+                        'fulfillment.index',
+                        'complaints.index',
                     ]))
             <div>
                 <a class="nav-link d-flex align-items-center justify-content-between text-dark {{ $isGudangJadiActive ? '' : 'collapsed' }}"
@@ -398,11 +410,11 @@
         @if (auth()->user()->isSuperAdmin() ||
                 auth()->user()->role === 'admin' ||
                 auth()->user()->hasAnyPermission([
-                        'manage-chats',
-                        'manage-stores',
-                        'manage-orders',
-                        'manage-returns',
-                        'manage-offline-sales',
+                        'orders.index',
+                        'orders.create',
+                        'offline-sales.index',
+                        'returns.index',
+                        'chats.index',
                     ]))
             <div>
                 <a class="nav-link d-flex align-items-center justify-content-between text-dark {{ $isMarketingActive ? '' : 'collapsed' }}"
