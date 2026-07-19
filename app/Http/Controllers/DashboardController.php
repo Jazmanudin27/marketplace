@@ -52,6 +52,15 @@ class DashboardController extends Controller
                                          ->limit(8)
                                          ->get();
 
+        // Stok Bahan Baku & Kemasan hampir habis
+        $lowStockMaterials = \App\Models\InventoryItem::where('tenant_id', $tenant->id)
+                                         ->whereIn('type', ['bahan', 'kemasan'])
+                                         ->whereColumn('stock', '<=', 'min_stock')
+                                         ->where('is_active', true)
+                                         ->orderBy('stock')
+                                         ->limit(8)
+                                         ->get();
+
         // Pesanan mendekati/melewati batas pengiriman (deadline ≤ 24 jam dari sekarang)
         $urgentOrders = Order::with('store.channel')
                              ->where('tenant_id', $tenant->id)
@@ -106,6 +115,7 @@ class DashboardController extends Controller
         return view('dashboard.index', compact(
             'totalStores', 'totalProducts', 'todayOrders', 'todayRevenue',
             'monthRevenue', 'pendingOrders', 'recentOrders', 'lowStockProducts',
+            'lowStockMaterials',
             'urgentOrders', 'stores', 'initialChartData',
             'onlineDropshipCount', 'onlineDropshipRevenue',
             'offlineDropshipCount', 'offlineDropshipRevenue',

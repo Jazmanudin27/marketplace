@@ -7,6 +7,9 @@
 
     @php
         $hasExpiredStores = $stores->contains('status', 'expired');
+        $hasFinanceAccess = auth()->user()->isSuperAdmin() ||
+                            auth()->user()->role === 'admin' ||
+                            auth()->user()->hasAnyPermission(['view-financial-reports', 'manage-finance']);
     @endphp
 
     @if ($hasExpiredStores)
@@ -95,7 +98,7 @@
     <div class="row g-3 mb-3">
 
         <!-- Card 1: Today's Orders -->
-        <div class="col-lg-3 col-md-6">
+        <div class="{{ $hasFinanceAccess ? 'col-lg-3 col-md-6' : 'col-lg-6 col-md-6' }}">
             <div class="card border shadow-sm h-100">
                 <div class="card-body p-3 py-2">
                     <div class="d-flex justify-content-between align-items-center">
@@ -114,6 +117,7 @@
             </div>
         </div>
 
+        @if ($hasFinanceAccess)
         <!-- Card 2: Today's Revenue -->
         <div class="col-lg-3 col-md-6">
             <div class="card border shadow-sm h-100">
@@ -154,9 +158,10 @@
                 </div>
             </div>
         </div>
+        @endif
 
         <!-- Card 4: Ready to Ship -->
-        <div class="col-lg-3 col-md-6">
+        <div class="{{ $hasFinanceAccess ? 'col-lg-3 col-md-6' : 'col-lg-6 col-md-6' }}">
             <div class="card border shadow-sm h-100">
                 <div class="card-body p-3 py-2">
                     <div class="d-flex justify-content-between align-items-center">
@@ -192,7 +197,9 @@
                                 <h4 class="fw-bold mb-0 text-dark">{{ number_format($onlineDropshipCount) }}</h4>
                                 <span class="text-muted small ms-2" style="font-size: 0.75rem;">pesanan</span>
                             </div>
-                            <small class="text-muted d-block mt-1" style="font-size: 0.75rem;">Omset: <span class="fw-semibold text-dark">Rp {{ number_format($onlineDropshipRevenue, 0, ',', '.') }}</span></small>
+                            @if ($hasFinanceAccess)
+                                <small class="text-muted d-block mt-1" style="font-size: 0.75rem;">Omset: <span class="fw-semibold text-dark">Rp {{ number_format($onlineDropshipRevenue, 0, ',', '.') }}</span></small>
+                            @endif
                         </div>
                         <div class="fs-2 text-warning opacity-75">
                             <i class="bi bi-globe2"></i>
@@ -213,7 +220,9 @@
                                 <h4 class="fw-bold mb-0 text-dark">{{ number_format($offlineDropshipCount) }}</h4>
                                 <span class="text-muted small ms-2" style="font-size: 0.75rem;">transaksi</span>
                             </div>
-                            <small class="text-muted d-block mt-1" style="font-size: 0.75rem;">Omset: <span class="fw-semibold text-dark">Rp {{ number_format($offlineDropshipRevenue, 0, ',', '.') }}</span></small>
+                            @if ($hasFinanceAccess)
+                                <small class="text-muted d-block mt-1" style="font-size: 0.75rem;">Omset: <span class="fw-semibold text-dark">Rp {{ number_format($offlineDropshipRevenue, 0, ',', '.') }}</span></small>
+                            @endif
                         </div>
                         <div class="fs-2 text-info opacity-75">
                             <i class="bi bi-shop"></i>
@@ -343,6 +352,7 @@
 
     <!-- Chart & Integrations Summary Row -->
     <div class="row g-3 mb-3">
+        @if ($hasFinanceAccess)
         <!-- Column: Sales Analytics Chart -->
         <div class="col-lg-8">
             <div class="card border rounded-3 h-100">
@@ -371,10 +381,11 @@
                 </div>
             </div>
         </div>
+        @endif
 
         <!-- Column: Operational Summary -->
-        <div class="col-lg-4">
-            <div class="card border rounded-3 h-100">
+        <div class="{{ $hasFinanceAccess ? 'col-lg-4' : 'col-lg-12' }}">
+            <div class="card border rounded-3 h-100 text-dark">
                 <div class="card-header py-2 px-3">
                     <div class="d-flex align-items-center gap-2">
                         <i class="bi bi-info-circle text-primary fs-6"></i>
@@ -523,6 +534,61 @@
 
         <!-- Column: Low Stock Products list & Cancel Reasons -->
         <div class="col-12 col-xxl-4 d-flex flex-column gap-3">
+            <!-- Card: Stok Bahan Baku Menipis -->
+            <div class="card border rounded-3">
+                <div class="card-header d-flex align-items-center justify-content-between py-2 px-3">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-boxes text-danger fs-6"></i>
+                        <span class="fw-bold text-dark">Stok Bahan Baku Menipis</span>
+                        @if ($lowStockMaterials->count() > 0)
+                            <span class="badge bg-danger rounded-pill px-2 py-1">{{ $lowStockMaterials->count() }}</span>
+                        @endif
+                    </div>
+                    <a href="{{ route('pembelian.stock_report') }}"
+                        class="btn btn-link btn-sm text-decoration-none p-0 fw-bold text-primary">Lihat Semua</a>
+                </div>
+                <div class="card-body p-3">
+                    @forelse($lowStockMaterials as $material)
+                        @php
+                            $pct =
+                                $material->min_stock > 0
+                                    ? min(100, round(($material->stock / $material->min_stock) * 100))
+                                    : 0;
+                            $isCritical = $material->stock == 0;
+                            $barColor = $isCritical ? 'bg-danger' : ($pct <= 50 ? 'bg-warning' : 'bg-success');
+                            $textColor = $isCritical ? 'text-danger' : ($pct <= 50 ? 'text-warning' : 'text-success');
+                        @endphp
+                        <div class="d-flex align-items-center justify-content-between py-2 border-bottom border-light">
+                            <div class="flex-grow-1 min-width-0 pe-3">
+                                <div class="fw-semibold text-truncate text-dark small" title="{{ $material->name }}">
+                                    {{ $material->name }}</div>
+                                <div class="text-secondary font-monospace small" style="font-size: 11px;">
+                                    SKU: {{ $material->sku ?? '-' }} | Tipe: {{ ucfirst($material->type) }}</div>
+                                <div class="progress mt-1" style="height: 5px;">
+                                    <div class="progress-bar {{ $barColor }}" role="progressbar"
+                                        style="width: {{ $pct }}%;" aria-valuenow="{{ $pct }}"
+                                        aria-valuemin="0" aria-valuemax="100"></div>
+                                </div>
+                            </div>
+                            <div class="text-end flex-shrink-0">
+                                <div class="fw-bold fs-5 {{ $textColor }}">{{ number_format($material->stock) }} <span style="font-size: 10px; font-weight: normal; color: #666;">{{ $material->unit }}</span></div>
+                                <div class="text-secondary small">min {{ number_format($material->min_stock) }}</div>
+                                @if ($isCritical)
+                                    <span
+                                        class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 mt-1 small">HABIS</span>
+                                @endif
+                            </div>
+                        </div>
+                    @empty
+                        <div class="text-center py-4 text-secondary">
+                            <i class="bi bi-check-circle-fill fs-3 text-success opacity-75 mb-2 d-block"></i>
+                            <p class="mb-0 small">Semua stok bahan baku aman! ✅</p>
+                        </div>
+                    @endforelse
+                </div>
+            </div>
+
+            <!-- Card: Low Stock Finished Goods -->
             <div class="card border rounded-3">
                 <div class="card-header d-flex align-items-center justify-content-between py-2 px-3">
                     <div class="d-flex align-items-center gap-2">
@@ -610,6 +676,7 @@
 
 @endsection
 
+@if ($hasFinanceAccess)
 @push('scripts')
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
@@ -668,24 +735,48 @@
                         mode: 'index',
                         intersect: false,
                     },
+                    scales: {
+                        y: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            ticks: {
+                                color: '#475569',
+                                callback: function(value) {
+                                    if (value >= 1e6) return 'Rp ' + (value / 1e6).toFixed(1) + 'M';
+                                    if (value >= 1e3) return 'Rp ' + (value / 1e3).toFixed(0) + 'k';
+                                    return 'Rp ' + value;
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(241, 245, 249, 1)',
+                                drawBorder: false
+                            }
+                        }
+                    },
                     plugins: {
                         legend: {
-                            display: true,
-                            position: 'top',
+                            position: 'bottom',
                             labels: {
-                                color: '#475569',
+                                boxWidth: 12,
+                                boxHeight: 12,
+                                usePointStyle: true,
                                 font: {
-                                    family: 'Inter, Outfit, sans-serif',
-                                    size: 11
+                                    size: 11,
+                                    weight: 'bold'
                                 }
                             }
                         },
                         tooltip: {
-                            backgroundColor: '#ffffff',
-                            titleColor: '#0f172a',
-                            bodyColor: '#334155',
-                            borderColor: '#e2e8f0',
-                            borderWidth: 1,
+                            padding: 12,
+                            backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                            titleFont: {
+                                size: 13,
+                                weight: 'bold'
+                            },
+                            bodyFont: {
+                                size: 12
+                            },
                             callbacks: {
                                 label: function(context) {
                                     let label = context.dataset.label || '';
@@ -703,12 +794,6 @@
                                 }
                             }
                         }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            grid: {
-                                color: 'rgba(0, 0, 0, 0.05)',
                                 drawBorder: false,
                             },
                             ticks: {
