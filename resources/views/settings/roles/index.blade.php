@@ -305,9 +305,22 @@
                         // Check the role's current permissions
                         if (permissions && permissions.length > 0) {
                             permissions.forEach(function(permName) {
-                                $('#edit_' + permName).prop('checked', true);
+                                $(document.getElementById('edit_' + permName)).prop('checked', true);
                             });
                         }
+
+                        // Update the "Pilih Semua" button text for each card
+                        $('#editRoleModal .card').each(function() {
+                            const card = $(this);
+                            const checkboxes = card.find('.edit-perm-checkbox');
+                            if (checkboxes.length > 0) {
+                                let allChecked = true;
+                                checkboxes.each(function() {
+                                    if (!this.checked) allChecked = false;
+                                });
+                                card.find('.select-all-btn').text(allChecked ? 'Batal Pilih' : 'Pilih Semua');
+                            }
+                        });
                     }
 
                     var myModal = new bootstrap.Modal(document.getElementById('editRoleModal'));
