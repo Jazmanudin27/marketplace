@@ -676,8 +676,8 @@
 
 @endsection
 
-@if ($hasFinanceAccess)
 @push('scripts')
+@if ($hasFinanceAccess)
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
@@ -752,6 +752,20 @@
                                 color: 'rgba(241, 245, 249, 1)',
                                 drawBorder: false
                             }
+                        },
+                        x: {
+                            grid: {
+                                display: false,
+                                drawBorder: false,
+                            },
+                            ticks: {
+                                color: '#64748b',
+                                font: {
+                                    family: 'Inter, Outfit, sans-serif',
+                                    size: 10
+                                },
+                                maxTicksLimit: 12
+                            }
                         }
                     },
                     plugins: {
@@ -794,38 +808,6 @@
                                 }
                             }
                         }
-                                drawBorder: false,
-                            },
-                            ticks: {
-                                color: '#64748b',
-                                font: {
-                                    family: 'Inter, Outfit, sans-serif',
-                                    size: 10
-                                },
-                                callback: function(value, index, values) {
-                                    if (value >= 1000000) {
-                                        return 'Rp ' + (value / 1000000) + ' Jt';
-                                    } else if (value >= 1000) {
-                                        return 'Rp ' + (value / 1000) + ' Rb';
-                                    }
-                                    return 'Rp ' + value;
-                                }
-                            }
-                        },
-                        x: {
-                            grid: {
-                                display: false,
-                                drawBorder: false,
-                            },
-                            ticks: {
-                                color: '#64748b',
-                                font: {
-                                    family: 'Inter, Outfit, sans-serif',
-                                    size: 10
-                                },
-                                maxTicksLimit: 12
-                            }
-                        }
                     }
                 }
             });
@@ -852,4 +834,5 @@
             });
         });
     </script>
+@endif
 @endpush
