@@ -213,7 +213,7 @@
                                 class="nav-link py-1 {{ request()->routeIs('employees.*') ? 'active text-white' : 'text-secondary' }}">Karyawan</a>
                             <a href="{{ route('tailors.index') }}"
                                 class="nav-link py-1 {{ request()->routeIs('tailors.*') ? 'active text-white' : 'text-secondary' }}">Tukang Jahit</a>
-                            <a href="{{ route('labor-services.index') }}"
+                            <a href="{{ route('labor_services.index') }}"
                                 class="nav-link py-1 {{ request()->routeIs('labor_services.*') ? 'active text-white' : 'text-secondary' }}">Jasa Produksi</a>
                             <a href="{{ route('production-statuses.index') }}"
                                 class="nav-link py-1 {{ request()->routeIs('production-statuses.*') ? 'active text-white' : 'text-secondary' }}">Status Produksi</a>
