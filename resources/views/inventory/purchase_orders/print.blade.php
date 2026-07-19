@@ -162,10 +162,6 @@
                     <td>: <strong>{{ $purchaseOrder->po_date->format('d F Y') }}</strong></td>
                 </tr>
                 <tr>
-                    <td>Departemen</td>
-                    <td>: {{ $purchaseOrder->department ? $purchaseOrder->department->name : '-' }}</td>
-                </tr>
-                <tr>
                     <td>Status PO</td>
                     <td>: {{ $purchaseOrder->status_label }}</td>
                 </tr>

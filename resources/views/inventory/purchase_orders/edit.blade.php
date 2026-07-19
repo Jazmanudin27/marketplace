@@ -103,21 +103,6 @@
                     </div>
                 </div>
 
-                {{-- Departemen --}}
-                <div class="mb-3">
-                    <label class="form-label fw-semibold small text-muted">
-                        <i class="fas fa-building-user me-1 text-primary"></i>Departemen Pemesan <span class="text-danger">*</span>
-                    </label>
-                    <select name="department_id" id="sel-dept" class="form-select" required
-                        data-placeholder="— Pilih departemen —">
-                        <option value=""></option>
-                        @foreach($departments as $dept)
-                            <option value="{{ $dept->id }}" {{ old('department_id', $purchaseOrder->department_id) == $dept->id ? 'selected' : '' }}>
-                                {{ $dept->name }}
-                            </option>
-                        @endforeach
-                    </select>
-                </div>
 
                 {{-- Tanggal --}}
                 <div class="mb-3">
@@ -362,13 +347,6 @@ $(document).ready(function () {
         $('#supplier-info').addClass('d-none');
     });
 
-    // ── Select2: Departemen ──────────────────────────────────────────────
-    $('#sel-dept').select2({
-        theme: 'bootstrap-5',
-        width: '100%',
-        placeholder: '— Pilih departemen —',
-        allowClear: true,
-    });
 
     // ── Select2: Product Picker (template custom dgn harga & stok) ──────
     function formatItem(opt) {

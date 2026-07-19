@@ -57,7 +57,6 @@
                     <tr>
                         <th>NO. PO</th>
                         <th>SUPPLIER</th>
-                        <th>DEPARTEMEN</th>
                         <th>TANGGAL PO</th>
                         <th class="text-end">TOTAL NOMINAL</th>
                         <th>STATUS</th>
@@ -72,7 +71,6 @@
                                 <div class="fw-semibold text-dark">{{ $po->supplier->name }}</div>
                                 <div class="small text-muted">{{ $po->supplier->phone }}</div>
                             </td>
-                            <td><span class="badge bg-light text-dark border">{{ $po->department ? $po->department->name : '-' }}</span></td>
                             <td>{{ $po->po_date->format('d M Y') }}</td>
                             <td class="font-monospace text-end fw-semibold text-dark">Rp {{ number_format($po->total_amount, 0, ',', '.') }}</td>
                             <td>

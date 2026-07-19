@@ -27,10 +27,7 @@
                         <span class="text-muted small">Supplier</span>
                         <span class="fw-semibold small text-dark text-end">{{ $purchaseOrder->supplier->name }}</span>
                     </div>
-                    <div class="d-flex justify-content-between py-1 border-bottom">
-                        <span class="text-muted small">Departemen</span>
-                        <span class="fw-semibold small text-dark">{{ $purchaseOrder->department ? $purchaseOrder->department->name : '-' }}</span>
-                    </div>
+
                     <div class="d-flex justify-content-between py-1">
                         <span class="text-muted small">Status</span>
                         <span class="badge bg-{{ $purchaseOrder->status_badge }} py-1 px-2 text-uppercase small">{{ $purchaseOrder->status_label }}</span>

@@ -25,10 +25,6 @@
                 <span class="fw-semibold small text-dark text-end">{{ $purchaseOrder->supplier->name }}</span>
             </div>
             <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
-                <span class="text-secondary small">Departemen</span>
-                <span class="fw-semibold small text-dark text-end">{{ $purchaseOrder->department ? $purchaseOrder->department->name : '-' }}</span>
-            </div>
-            <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
                 <span class="text-secondary small">Total Nominal</span>
                 <span class="font-monospace text-success fw-bold small">Rp {{ number_format($purchaseOrder->total_amount, 0, ',', '.') }}</span>
             </div>
