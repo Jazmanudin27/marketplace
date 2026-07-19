@@ -22,7 +22,10 @@ use Spatie\Permission\Traits\HasRoles;
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable, HasRoles;
+    use HasFactory, Notifiable;
+    use HasRoles {
+        hasPermissionTo as traitHasPermissionTo;
+    }
 
     protected $fillable = [
         'tenant_id',
@@ -182,5 +185,77 @@ class User extends Authenticatable
         }
 
         return true;
+    }
+
+    /**
+     * Override hasPermissionTo to bridge legacy module permissions and granular permissions.
+     */
+    public function hasPermissionTo($permission, $guardName = null): bool
+    {
+        // 1. Check if user directly or via role has the requested permission
+        try {
+            if ($this->traitHasPermissionTo($permission, $guardName)) {
+                return true;
+            }
+        } catch (\Exception $e) {
+            // Ignore if permission doesn't exist in database
+        }
+
+        // 2. Define legacy module-level permissions and their child granular permissions mapping
+        $mapping = [
+            'manage-categories' => ['categories.index', 'categories.create', 'categories.edit', 'categories.destroy'],
+            'manage-brands' => ['brands.index', 'brands.create', 'brands.edit', 'brands.destroy'],
+            'manage-suppliers' => ['suppliers.index', 'suppliers.create', 'suppliers.edit', 'suppliers.destroy'],
+            'manage-employees' => [
+                'employees.index', 'employees.create', 'employees.edit', 'employees.destroy', 'employees.salary',
+                'attendance.index', 'attendance.create', 'attendance.edit', 'attendance.destroy', 'attendance.report', 'attendance.print',
+                'attendance-corrections.propose', 'attendance-corrections.approve',
+                'overtime.index', 'overtime.create', 'overtime.edit', 'overtime.destroy', 'overtime.approve',
+                'leave-requests.index', 'leave-requests.create', 'leave-requests.edit', 'leave-requests.destroy', 'leave-requests.approve',
+                'cash-advances.index', 'cash-advances.create', 'cash-advances.edit', 'cash-advances.destroy', 'cash-advances.approve',
+                'payroll.index', 'payroll.show', 'payroll.generate', 'payroll.edit', 'payroll.pay', 'payroll.print', 'payroll.destroy',
+                'holidays.index', 'holidays.create', 'holidays.edit', 'holidays.destroy',
+                'allowance-types.index', 'allowance-types.create', 'allowance-types.edit', 'allowance-types.destroy',
+                'late-penalties.index', 'late-penalties.create', 'late-penalties.edit', 'late-penalties.destroy'
+            ],
+            'manage-customers' => ['customers.index', 'customers.show', 'customers.create', 'customers.edit', 'customers.destroy'],
+            'manage-users' => ['users.index', 'users.create', 'users.edit', 'users.destroy', 'roles.index', 'roles.create', 'roles.edit', 'roles.destroy'],
+            'manage-products' => [
+                'products.index', 'products.show', 'products.create', 'products.edit', 'products.destroy', 'products.publish', 'products.export',
+                'marketplace-products.index', 'marketplace-products.link', 'marketplace-products.settings', 'marketplace-products.promote'
+            ],
+            'manage-stores' => ['stores.index', 'stores.create', 'stores.edit', 'stores.destroy', 'stores.sync'],
+            'manage-incoming-goods' => ['incoming-goods.index', 'incoming-goods.create', 'purchase-orders.index', 'purchase-orders.create', 'purchase-orders.edit', 'purchase-orders.destroy', 'purchase-orders.report'],
+            'manage-orders' => ['orders.index', 'orders.show', 'orders.create', 'orders.process', 'orders.ship', 'orders.print', 'orders.export', 'orders.sync'],
+            'manage-fulfillment' => ['fulfillment.index', 'fulfillment.scan', 'fulfillment.complete'],
+            'manage-returns' => ['returns.index', 'returns.sync', 'returns.restock'],
+            'manage-offline-sales' => ['offline-sales.index', 'offline-sales.show', 'offline-sales.create', 'offline-sales.complete', 'offline-sales.cancel', 'offline-sales.print'],
+            'manage-chats' => ['chats.index', 'chats.show', 'chats.reply', 'chats.sync'],
+            'manage-inventory' => ['inventory.index', 'inventory.ledger', 'inventory.adjust', 'inventory.stock_sync', 'stock-opnames.index', 'stock-opnames.create'],
+            'view-warehouse-reports' => ['reports.summary', 'reports.summary.print', 'reports.stock', 'reports.stock.print', 'reports.ledger', 'reports.ledger.print', 'reports.opname', 'reports.opname.print', 'reports.analytics', 'reports.master_product', 'reports.production_hpp', 'reports.production_hpp.print'],
+            'view-financial-reports' => ['profit.index', 'profit.margin', 'finance.profit-loss.index', 'reports.product_margins', 'reports.store_sales', 'reports.reseller_receivables', 'reports.inventory_turnover'],
+            'manage-finance' => ['finance.incomes.index', 'finance.incomes.create', 'finance.incomes.edit', 'finance.incomes.destroy', 'finance.expenses.index', 'finance.expenses.create', 'finance.expenses.edit', 'finance.expenses.destroy', 'finance.transfers.index', 'finance.transfers.create', 'finance.transfers.edit', 'finance.transfers.destroy', 'finance.reconciliation.index'],
+            'view-attendance' => ['attendance.index', 'attendance.report'],
+            'propose-attendance-correction' => ['attendance-corrections.propose'],
+            'approve-attendance-correction' => ['attendance-corrections.approve'],
+            'approve-attendance-corrections' => ['attendance-corrections.approve'],
+            'print-attendance-report' => ['attendance.print'],
+        ];
+
+        // 3. Resolve parent to child permissions checks
+        $permName = is_string($permission) ? $permission : ($permission->name ?? null);
+        if ($permName && isset($mapping[$permName])) {
+            foreach ($mapping[$permName] as $sub) {
+                try {
+                    if ($this->traitHasPermissionTo($sub, $guardName)) {
+                        return true;
+                    }
+                } catch (\Exception $e) {
+                    // Ignore if sub-permission doesn't exist
+                }
+            }
+        }
+
+        return false;
     }
 }
