@@ -14,9 +14,28 @@ class UserController extends Controller
 {
     private function getPermissionGroups()
     {
+        // Ensure new granular dashboard permissions exist in database
+        $newDashPermissions = [
+            'dashboard.marketing',
+            'dashboard.finance',
+            'dashboard.production_purchase',
+            'dashboard.warehouse'
+        ];
+        foreach ($newDashPermissions as $pName) {
+            try {
+                \Spatie\Permission\Models\Permission::findOrCreate($pName, 'web');
+            } catch (\Exception $e) {
+                // Ignore any DB check exceptions
+            }
+        }
+
         return [
             'Dashboard' => [
-                'dashboard.index' => 'Melihat Dashboard',
+                'dashboard.index' => 'Melihat Dashboard Utama (Selamat Datang)',
+                'dashboard.marketing' => 'Melihat Dashboard Marketing',
+                'dashboard.finance' => 'Melihat Dashboard Keuangan',
+                'dashboard.production_purchase' => 'Melihat Dashboard Pembelian & Produksi',
+                'dashboard.warehouse' => 'Melihat Dashboard Gudang Jadi',
             ],
             'Master Kategori & Merk' => [
                 'categories.index' => 'Lihat Kategori',

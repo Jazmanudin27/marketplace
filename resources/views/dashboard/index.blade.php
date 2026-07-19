@@ -7,9 +7,25 @@
 
     @php
         $hasExpiredStores = $stores->contains('status', 'expired');
-        $hasFinanceAccess = auth()->user()->isSuperAdmin() ||
-                            auth()->user()->role === 'admin' ||
-                            auth()->user()->hasAnyPermission(['view-financial-reports', 'manage-finance']);
+        
+        $isAdmin = auth()->user()->isSuperAdmin() || auth()->user()->role === 'admin';
+        
+        $hasGeneralAccess = $isAdmin || auth()->user()->can('dashboard.index');
+        $hasMarketingAccess = $isAdmin || auth()->user()->can('dashboard.marketing');
+        $hasFinanceAccess = $isAdmin || auth()->user()->can('dashboard.finance');
+        $hasProdPurchaseAccess = $isAdmin || auth()->user()->can('dashboard.production_purchase');
+        $hasWarehouseAccess = $isAdmin || auth()->user()->can('dashboard.warehouse');
+        
+        // Calculate dynamic card classes for stats cards
+        $visibleCards = 0;
+        if ($hasMarketingAccess) $visibleCards++;
+        if ($hasFinanceAccess) $visibleCards += 2;
+        if ($hasWarehouseAccess) $visibleCards++;
+        
+        $cardCol = 'col-lg-3 col-md-6';
+        if ($visibleCards == 3) $cardCol = 'col-lg-4 col-md-6';
+        elseif ($visibleCards == 2) $cardCol = 'col-lg-6 col-md-6';
+        elseif ($visibleCards == 1) $cardCol = 'col-lg-12 col-md-12';
     @endphp
 
     @if ($hasExpiredStores)
@@ -95,10 +111,12 @@
     </div>
 
     <!-- Statistik Cards -->
+    @if ($visibleCards > 0)
     <div class="row g-3 mb-3">
 
+        @if ($hasMarketingAccess)
         <!-- Card 1: Today's Orders -->
-        <div class="{{ $hasFinanceAccess ? 'col-lg-3 col-md-6' : 'col-lg-6 col-md-6' }}">
+        <div class="{{ $cardCol }}">
             <div class="card border shadow-sm h-100">
                 <div class="card-body p-3 py-2">
                     <div class="d-flex justify-content-between align-items-center">
@@ -116,10 +134,11 @@
                 </div>
             </div>
         </div>
+        @endif
 
         @if ($hasFinanceAccess)
         <!-- Card 2: Today's Revenue -->
-        <div class="col-lg-3 col-md-6">
+        <div class="{{ $cardCol }}">
             <div class="card border shadow-sm h-100">
                 <div class="card-body p-3 py-2">
                     <div class="d-flex justify-content-between align-items-center">
@@ -139,7 +158,7 @@
         </div>
 
         <!-- Card 3: Monthly Revenue -->
-        <div class="col-lg-3 col-md-6">
+        <div class="{{ $cardCol }}">
             <div class="card border shadow-sm h-100">
                 <div class="card-body p-3 py-2">
                     <div class="d-flex justify-content-between align-items-center">
@@ -160,8 +179,9 @@
         </div>
         @endif
 
+        @if ($hasWarehouseAccess)
         <!-- Card 4: Ready to Ship -->
-        <div class="{{ $hasFinanceAccess ? 'col-lg-3 col-md-6' : 'col-lg-6 col-md-6' }}">
+        <div class="{{ $cardCol }}">
             <div class="card border shadow-sm h-100">
                 <div class="card-body p-3 py-2">
                     <div class="d-flex justify-content-between align-items-center">
@@ -181,10 +201,13 @@
                 </div>
             </div>
         </div>
+        @endif
 
     </div>
+    @endif
 
     <!-- Dropship Stats Cards -->
+    @if ($hasMarketingAccess)
     <div class="row g-3 mb-3">
         <!-- Card 1: Online Dropship Orders -->
         <div class="col-lg-4 col-md-6">
@@ -252,9 +275,11 @@
                 </div>
             </div>
         </div>
+    </div>
+    @endif
 
     <!-- Critical Stock Alert Card -->
-    @if ($lowStockProducts->count() > 0)
+    @if ($hasWarehouseAccess && $lowStockProducts->count() > 0)
         <div class="card bg-danger-subtle border-start border-4 border-danger border-0 mb-3 shadow-sm">
             <div class="card-body d-flex align-items-center justify-content-between gap-2 py-2 px-3">
                 <div class="d-flex align-items-center gap-2">
@@ -275,58 +300,30 @@
     @endif
 
     <!-- Marketplace Channels Overview -->
+    @if ($hasMarketingAccess)
     <div class="mb-3">
         <h6 class="text-secondary text-uppercase fw-bold mb-2 small d-flex align-items-center gap-2">
             <i class="bi bi-plug-fill text-primary"></i> Status Toko Marketplace
         </h6>
         <div class="row g-2">
             @forelse($stores as $store)
-                <div class="col-6 col-sm-4 col-md-3 col-lg-2">
-                    <div class="card border rounded-3 h-100 shadow-sm">
-                        <div class="card-body p-2">
-                            <div class="d-flex align-items-center justify-content-between mb-2">
-                                @php
-                                    $badgeClass = 'bg-secondary';
-                                    if ($store->channel->code === 'shopee') {
-                                        $badgeClass = 'bg-danger text-white';
-                                    } elseif ($store->channel->code === 'tokopedia') {
-                                        $badgeClass = 'bg-success text-white';
-                                    } elseif ($store->channel->code === 'tiktok') {
-                                        $badgeClass = 'bg-dark text-white';
-                                    }
-                                @endphp
-                                <span class="badge {{ $badgeClass }} px-2 py-1">
-                                    @if ($store->channel->code === 'shopee')
-                                        <i class="bi bi-bag-fill me-1"></i>
-                                    @elseif($store->channel->code === 'tiktok')
-                                        <i class="bi bi-tiktok me-1"></i>
-                                    @elseif($store->channel->code === 'tokopedia')
-                                        <i class="bi bi-shop me-1"></i>
-                                    @else
-                                        <i class="bi bi-globe me-1"></i>
-                                    @endif
-                                    {{ $store->channel->name }}
-                                </span>
-
-                                @if ($store->status === 'connected')
-                                    <span class="d-flex align-items-center gap-1 text-success fw-medium small">
-                                        <span class="bg-success rounded-circle p-1"></span>
-                                        Aktif
-                                    </span>
-                                @elseif($store->status === 'expired')
-                                    <span class="d-flex align-items-center gap-1 text-warning fw-medium small">
-                                        <span class="bg-warning rounded-circle p-1"></span>
-                                        Expired
-                                    </span>
-                                @else
-                                    <span class="d-flex align-items-center gap-1 text-danger fw-medium small">
-                                        <span class="bg-danger rounded-circle p-1"></span>
-                                        Off
-                                    </span>
-                                @endif
-                            </div>
-                            <h6 class="fw-bold mb-1 text-truncate text-dark" title="{{ $store->store_name }}">
-                                {{ $store->store_name }}</h6>
+                <div class="col-sm-6 col-md-4 col-lg-3">
+                    <div class="card border rounded-3 h-100 p-2 shadow-sm d-flex flex-row align-items-center gap-2 bg-white">
+                        <div class="flex-shrink-0">
+                            @if ($store->channel->logo_path ?? false)
+                                <img src="{{ asset($store->channel->logo_path) }}" alt="{{ $store->channel->name }}"
+                                    width="28" height="28" class="rounded-circle object-fit-contain">
+                            @else
+                                <div class="bg-light text-dark rounded-circle d-flex align-items-center justify-content-center fw-bold text-uppercase small"
+                                    style="width: 28px; height: 28px; font-size: 10px;">
+                                    {{ substr($store->channel->name ?? $store->name, 0, 2) }}
+                                </div>
+                            @endif
+                        </div>
+                        <div class="flex-grow-1 min-width-0">
+                            <span class="fw-semibold text-truncate text-dark small d-block" title="{{ $store->name }}">
+                                {{ $store->name }}
+                            </span>
                             <div class="text-secondary small d-flex align-items-center gap-1">
                                 <i class="bi bi-receipt"></i> {{ number_format($store->orders_count) }} Pesanan
                             </div>
@@ -349,8 +346,10 @@
             @endforelse
         </div>
     </div>
+    @endif
 
     <!-- Chart & Integrations Summary Row -->
+    @if ($hasFinanceAccess || $hasGeneralAccess)
     <div class="row g-3 mb-3">
         @if ($hasFinanceAccess)
         <!-- Column: Sales Analytics Chart -->
@@ -383,6 +382,7 @@
         </div>
         @endif
 
+        @if ($hasGeneralAccess)
         <!-- Column: Operational Summary -->
         <div class="{{ $hasFinanceAccess ? 'col-lg-4' : 'col-lg-12' }}">
             <div class="card border rounded-3 h-100 text-dark">
@@ -441,14 +441,26 @@
                 </div>
             </div>
         </div>
+        @endif
 
     </div>
+    @endif
 
     <!-- Recent Orders & Stock warning grid -->
+    @php
+        $showLeftCol = $hasMarketingAccess || $hasGeneralAccess;
+        $showRightCol = $hasWarehouseAccess || $hasProdPurchaseAccess;
+        
+        $leftColClass = $showRightCol ? 'col-12 col-xxl-8' : 'col-12 col-xxl-12';
+        $rightColClass = $showLeftCol ? 'col-12 col-xxl-4' : 'col-12 col-xxl-12';
+    @endphp
+
+    @if ($showLeftCol || $showRightCol)
     <div class="row g-3 p-2">
 
+        @if ($showLeftCol)
         <!-- Column: Recent Orders Table -->
-        <div class="col-12 col-xxl-8">
+        <div class="{{ $leftColClass }}">
             <div class="card border rounded-3 h-100">
                 <div class="card-header d-flex align-items-center justify-content-between py-2 px-3">
                     <div class="d-flex align-items-center gap-2">
@@ -478,24 +490,13 @@
                                             {{ $order->order_date ? \Carbon\Carbon::parse($order->order_date)->format('d/m/Y H:i') : '-' }}
                                         </td>
                                         <td class="font-monospace fw-semibold text-dark small">
-                                            {{ $order->invoice_number ?? $order->order_marketplace_id }}
+                                            {{ $order->order_marketplace_id }}
                                         </td>
-                                        <td class="fw-medium text-dark small">
-                                            {{ $order->buyer_name ?? '-' }}</td>
-                                        <td>
-                                            @php
-                                                $badgeClass = 'bg-secondary';
-                                                if ($order->store->channel->code === 'shopee') {
-                                                    $badgeClass = 'bg-danger text-white';
-                                                } elseif ($order->store->channel->code === 'tokopedia') {
-                                                    $badgeClass = 'bg-success text-white';
-                                                } elseif ($order->store->channel->code === 'tiktok') {
-                                                    $badgeClass = 'bg-dark text-white';
-                                                }
-                                            @endphp
-                                            <span class="badge {{ $badgeClass }} px-2 py-1">
-                                                {{ $order->store->store_name }}
-                                            </span>
+                                        <td class="text-dark small">
+                                            {{ $order->customer_name }}
+                                        </td>
+                                        <td class="text-dark small">
+                                            {{ $order->store->name ?? '-' }}
                                         </td>
                                         <td class="font-monospace fw-bold text-dark small">
                                             Rp {{ number_format($order->total_amount, 0, ',', '.') }}
@@ -531,9 +532,12 @@
                 </div>
             </div>
         </div>
+        @endif
 
+        @if ($showRightCol)
         <!-- Column: Low Stock Products list & Cancel Reasons -->
-        <div class="col-12 col-xxl-4 d-flex flex-column gap-3">
+        <div class="{{ $rightColClass }} d-flex flex-column gap-3">
+            @if ($hasProdPurchaseAccess)
             <!-- Card: Stok Bahan Baku Menipis -->
             <div class="card border rounded-3">
                 <div class="card-header d-flex align-items-center justify-content-between py-2 px-3">
@@ -587,7 +591,9 @@
                     @endforelse
                 </div>
             </div>
+            @endif
 
+            @if ($hasWarehouseAccess)
             <!-- Card: Low Stock Finished Goods -->
             <div class="card border rounded-3">
                 <div class="card-header d-flex align-items-center justify-content-between py-2 px-3">
@@ -641,7 +647,9 @@
                     @endforelse
                 </div>
             </div>
+            @endif
 
+            @if ($hasWarehouseAccess || $hasMarketingAccess)
             <!-- Card: Top Alasan Pembatalan -->
             <div class="card border rounded-3 shadow-sm">
                 <div class="card-header d-flex align-items-center justify-content-between py-2 px-3">
@@ -670,9 +678,12 @@
                     @endforelse
                 </div>
             </div>
+            @endif
         </div>
+        @endif
 
     </div>
+    @endif
 
 @endsection
 

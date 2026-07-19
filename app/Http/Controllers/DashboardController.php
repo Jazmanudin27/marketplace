@@ -20,7 +20,15 @@ class DashboardController extends Controller
         }
 
         $user = Auth::user();
-        if (!$user->isSuperAdmin() && $user->role !== 'admin' && !$user->can('dashboard.index')) {
+        $hasDashboardAccess = $user->isSuperAdmin() || 
+                              $user->role === 'admin' || 
+                              $user->can('dashboard.index') ||
+                              $user->can('dashboard.marketing') ||
+                              $user->can('dashboard.finance') ||
+                              $user->can('dashboard.production_purchase') ||
+                              $user->can('dashboard.warehouse');
+
+        if (!$hasDashboardAccess) {
             if ($user->can('orders.index')) {
                 return redirect()->route('orders.index');
             } elseif ($user->can('products.index')) {
@@ -142,7 +150,12 @@ class DashboardController extends Controller
     public function getChartData(Request $request)
     {
         $user = Auth::user();
-        if (!$user->isSuperAdmin() && $user->role !== 'admin' && !$user->can('dashboard.index')) {
+        $hasChartAccess = $user->isSuperAdmin() || 
+                          $user->role === 'admin' || 
+                          $user->can('dashboard.index') ||
+                          $user->can('dashboard.finance');
+
+        if (!$hasChartAccess) {
             return response()->json(['error' => 'Unauthorized'], 403);
         }
 

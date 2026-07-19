@@ -126,7 +126,7 @@
         <div class="text-uppercase text-muted fw-bold mb-1 mt-2 small">Utama</div>
 
         <!-- 1. Dashboard -->
-        @if(auth()->user()->isSuperAdmin() || auth()->user()->role === 'admin' || auth()->user()->can('dashboard.index'))
+        @if(auth()->user()->isSuperAdmin() || auth()->user()->role === 'admin' || auth()->user()->can('dashboard.index') || auth()->user()->can('dashboard.marketing') || auth()->user()->can('dashboard.finance') || auth()->user()->can('dashboard.production_purchase') || auth()->user()->can('dashboard.warehouse'))
         <a href="{{ route('dashboard') }}"
             class="nav-link d-flex align-items-center gap-2 {{ request()->routeIs('dashboard') ? 'active text-white' : 'text-dark' }}">
             <i class="bi bi-grid"></i>
