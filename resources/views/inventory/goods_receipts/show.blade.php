@@ -117,7 +117,39 @@
         <a href="{{ route('goods_receipts.index') }}" class="btn btn-outline-secondary btn-sm w-100">
             <i class="fas fa-arrow-left me-1"></i> Kembali ke Daftar
         </a>
+
+        {{-- Link ke Hutang Supplier --}}
+        @if($goodsReceipt->status === 'approved' && $goodsReceipt->supplier_id)
+            @php $payable = $goodsReceipt->payable; @endphp
+            @if($payable)
+            <div class="card border shadow-sm mt-3 {{ $payable->status === 'paid' ? 'border-success' : 'border-danger' }}">
+                <div class="card-body p-3">
+                    <h6 class="fw-bold small mb-2 d-flex align-items-center gap-2">
+                        <i class="bi bi-credit-card-2-back text-danger"></i>
+                        Status Hutang ke Supplier
+                    </h6>
+                    <div class="d-flex justify-content-between align-items-center small mb-1">
+                        <span class="text-secondary">Total</span>
+                        <span class="fw-bold font-monospace">Rp {{ number_format($payable->total_amount, 0, ',', '.') }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center small mb-2">
+                        <span class="text-secondary">Sisa</span>
+                        <span class="fw-bold font-monospace {{ $payable->remaining_amount > 0 ? 'text-danger' : 'text-success' }}">
+                            Rp {{ number_format($payable->remaining_amount, 0, ',', '.') }}
+                        </span>
+                    </div>
+                    <span class="badge bg-{{ $payable->status_badge }} d-block text-center py-1 mb-2">
+                        {{ $payable->status_label }}
+                    </span>
+                    <a href="{{ route('supplier_payables.show', $payable) }}" class="btn btn-outline-primary btn-sm w-100">
+                        <i class="bi bi-eye me-1"></i> Lihat & Bayar Hutang
+                    </a>
+                </div>
+            </div>
+            @endif
+        @endif
     </div>
+
 
     {{-- Kanan: Daftar Barang --}}
     <div class="col-md-8">

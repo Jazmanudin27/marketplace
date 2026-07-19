@@ -17,6 +17,7 @@
         (request()->routeIs('purchase_orders.*') && !request()->routeIs('purchase_orders.report')) ||
         request()->routeIs('purchase_returns.*') ||
         request()->routeIs('goods_receipts.*') ||
+        request()->routeIs('supplier_payables.*') ||
         request()->routeIs('incoming_goods.*') ||
         request()->routeIs('pembelian.goods_issue.*');
 
@@ -322,6 +323,10 @@
                                 class="nav-link py-1 {{ request()->routeIs('purchase_returns.*') ? 'active text-white' : 'text-secondary' }}">Retur
                                 Pembelian</a>
                         @endcan
+                        <a href="{{ route('supplier_payables.index') }}"
+                            class="nav-link py-1 {{ request()->routeIs('supplier_payables.*') ? 'active text-white' : 'text-secondary' }}">
+                            <i class="bi bi-credit-card-2-back me-1"></i>Hutang Supplier
+                        </a>
                     </div>
                 </div>
             </div>

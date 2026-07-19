@@ -52,6 +52,7 @@ use App\Http\Controllers\Inventory\ReceivePurchaseOrderController;
 use App\Http\Controllers\Inventory\PurchaseReturnController;
 use App\Http\Controllers\Inventory\GoodsReceiptController;
 use App\Http\Controllers\Inventory\WarehouseMutationController;
+use App\Http\Controllers\Inventory\SupplierPayableController;
 // Marketplace
 use App\Http\Controllers\Marketplace\StoreController;
 // Settings
@@ -474,6 +475,11 @@ Route::middleware('auth')->group(function () {
         Route::put('/goods-receipts/{goodsReceipt}', [GoodsReceiptController::class, 'update'])->name('goods_receipts.update');
         Route::post('/goods-receipts/{goodsReceipt}/approve', [GoodsReceiptController::class, 'approve'])->name('goods_receipts.approve');
         Route::delete('/goods-receipts/{goodsReceipt}', [GoodsReceiptController::class, 'destroy'])->name('goods_receipts.destroy');
+
+        // ── HUTANG SUPPLIER (Payables) ──────────────────────────────────────────
+        Route::get('/supplier-payables', [SupplierPayableController::class, 'index'])->name('supplier_payables.index');
+        Route::get('/supplier-payables/{supplierPayable}', [SupplierPayableController::class, 'show'])->name('supplier_payables.show');
+        Route::post('/supplier-payables/{supplierPayable}/pay', [SupplierPayableController::class, 'storePayment'])->name('supplier_payables.pay');
 
         // ── LAPORAN PEMBELIAN (Stok & Mutasi) ──────────────────────────────────
         Route::get('/pembelian/stok-barang', [WarehouseMutationController::class, 'stockReportPembelian'])->name('pembelian.stock_report');

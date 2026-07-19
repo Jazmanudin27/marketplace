@@ -10,6 +10,7 @@ use App\Models\InventoryItem;
 use App\Models\MasterProduct;
 use App\Models\StockMovement;
 use App\Models\Supplier;
+use App\Models\SupplierPayable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -72,7 +73,7 @@ class GoodsReceiptController extends Controller
         $tenantId = Auth::user()->tenant_id;
 
         $request->validate([
-            'supplier_id'   => 'nullable|exists:suppliers,id',
+            'supplier_id'   => 'required_if:source,pembelian|nullable|exists:suppliers,id',
             'department_id' => 'nullable|exists:departments,id',
             'receipt_date'  => 'required|date',
             'source'        => 'required|in:pembelian,percetakan,produksi,lain_lain',
@@ -82,6 +83,8 @@ class GoodsReceiptController extends Controller
             'items.*.item_id'   => 'required|integer',
             'items.*.quantity'  => 'required|integer|min:1',
             'items.*.unit_price' => 'required|numeric|min:0',
+        ], [
+            'supplier_id.required_if' => 'Supplier wajib diisi untuk penerimaan barang dari Pembelian.',
         ]);
 
         $receipt = DB::transaction(function () use ($request, $tenantId) {
@@ -352,6 +355,22 @@ class GoodsReceiptController extends Controller
                 'approved_by' => $userId,
                 'approved_at' => now(),
             ]);
+
+            // 5. Auto-create Hutang Supplier jika ada supplier & sumber pembelian
+            if ($goodsReceipt->supplier_id && !$goodsReceipt->payable()->exists()) {
+                SupplierPayable::create([
+                    'tenant_id'        => $tenantId,
+                    'supplier_id'      => $goodsReceipt->supplier_id,
+                    'goods_receipt_id' => $goodsReceipt->id,
+                    'reference_number' => SupplierPayable::generateReferenceNumber(),
+                    'payable_date'     => $goodsReceipt->receipt_date,
+                    'total_amount'     => $goodsReceipt->total_amount,
+                    'paid_amount'      => 0,
+                    'status'           => 'unpaid',
+                    'notes'            => 'Otomatis dari Penerimaan Barang: ' . $goodsReceipt->receipt_number,
+                    'created_by'       => $userId,
+                ]);
+            }
         });
 
         return redirect()->route('goods_receipts.show', $goodsReceipt)

@@ -44,56 +44,7 @@
         </div>
     @endif
 
-    @if ($urgentOrders->isNotEmpty())
-        @php
-            $overdueCount = $urgentOrders->filter(fn($o) => $o->ship_before_date->isPast())->count();
-            $soonCount = $urgentOrders->count() - $overdueCount;
-        @endphp
-        <div class="alert alert-dismissible fade show border-start border-4 p-0 mb-3 overflow-hidden shadow-sm {{ $overdueCount > 0 ? 'alert-danger border-danger' : 'alert-warning border-warning' }}"
-            role="alert">
-            <div class="d-flex align-items-stretch">
-                <div class="d-flex align-items-center justify-content-center px-3 {{ $overdueCount > 0 ? 'bg-danger' : 'bg-warning' }}"
-                    style="min-width:52px;">
-                    <i class="bi bi-clock-fill fs-4 text-white"></i>
-                </div>
-                <div class="flex-grow-1 p-2 px-3">
-                    <h6 class="fw-bold mb-1 {{ $overdueCount > 0 ? 'text-danger' : 'text-warning' }} small">
-                        ⚠️ {{ $urgentOrders->count() }} Pesanan Harus Segera Dikirim!
-                    </h6>
-                    <p class="mb-1 small text-secondary">
-                        @if ($overdueCount > 0)
-                            <span class="badge bg-danger me-1">{{ $overdueCount }} Overdue</span>
-                        @endif
-                        @if ($soonCount > 0)
-                            <span class="badge bg-warning text-dark me-1">{{ $soonCount }} Dalam 24 Jam</span>
-                        @endif
-                        Pesanan berikut memiliki batas waktu pengiriman yang sudah lewat atau kurang dari 24 jam.
-                    </p>
-                    <div class="d-flex flex-wrap gap-1 mt-1">
-                        @foreach ($urgentOrders->take(5) as $uo)
-                            <a href="{{ route('orders.show', $uo->id) }}"
-                                class="badge text-decoration-none {{ $uo->is_ship_overdue ? 'bg-danger' : 'bg-warning text-dark' }}">
-                                {{ $uo->order_marketplace_id }}
-                                &bull; {{ $uo->ship_before_date->diffForHumans() }}
-                            </a>
-                        @endforeach
-                        @if ($urgentOrders->count() > 5)
-                            <a href="{{ route('orders.index') }}" class="badge bg-secondary text-decoration-none">
-                                +{{ $urgentOrders->count() - 5 }} lainnya
-                            </a>
-                        @endif
-                    </div>
-                </div>
-                <div class="d-flex align-items-center pe-3">
-                    <a href="{{ route('orders.index', ['status' => 'READY_TO_SHIP']) }}"
-                        class="btn btn-sm {{ $overdueCount > 0 ? 'btn-danger' : 'btn-warning' }} fw-semibold me-2">
-                        Lihat Pesanan
-                    </a>
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-            </div>
-        </div>
-    @endif
+
 
     <!-- Welcome Card -->
     <div class="card bg-primary text-white border-0 rounded-3 shadow-sm mb-3">
