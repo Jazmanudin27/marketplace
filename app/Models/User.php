@@ -231,7 +231,13 @@ class User extends Authenticatable
             'manage-returns' => ['returns.index', 'returns.sync', 'returns.restock'],
             'manage-offline-sales' => ['offline-sales.index', 'offline-sales.show', 'offline-sales.create', 'offline-sales.complete', 'offline-sales.cancel', 'offline-sales.print'],
             'manage-chats' => ['chats.index', 'chats.show', 'chats.reply', 'chats.sync'],
-            'manage-inventory' => ['inventory.index', 'inventory.ledger', 'inventory.adjust', 'inventory.stock_sync', 'stock-opnames.index', 'stock-opnames.create'],
+            'manage-inventory' => [
+                'inventory.index', 'inventory.ledger', 'inventory.adjust', 'inventory.stock_sync', 'stock-opnames.index', 'stock-opnames.create',
+                'goods-receipts.index', 'goods-receipts.create', 'goods-receipts.edit', 'goods-receipts.destroy',
+                'goods-issues.index', 'goods-issues.create', 'goods-issues.edit', 'goods-issues.destroy',
+                'purchase-returns.index', 'purchase-returns.create', 'purchase-returns.edit', 'purchase-returns.destroy',
+                'pembelian.stock_report', 'pembelian.report_mutation', 'pembelian.report_summary', 'pembelian.stock_card'
+            ],
             'view-warehouse-reports' => ['reports.summary', 'reports.summary.print', 'reports.stock', 'reports.stock.print', 'reports.ledger', 'reports.ledger.print', 'reports.opname', 'reports.opname.print', 'reports.analytics', 'reports.master_product', 'reports.production_hpp', 'reports.production_hpp.print'],
             'view-financial-reports' => ['profit.index', 'profit.margin', 'finance.profit-loss.index', 'reports.product_margins', 'reports.store_sales', 'reports.reseller_receivables', 'reports.inventory_turnover'],
             'manage-finance' => ['finance.incomes.index', 'finance.incomes.create', 'finance.incomes.edit', 'finance.incomes.destroy', 'finance.expenses.index', 'finance.expenses.create', 'finance.expenses.edit', 'finance.expenses.destroy', 'finance.transfers.index', 'finance.transfers.create', 'finance.transfers.edit', 'finance.transfers.destroy', 'finance.reconciliation.index'],
