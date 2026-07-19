@@ -126,11 +126,13 @@
         <div class="text-uppercase text-muted fw-bold mb-1 mt-2 small">Utama</div>
 
         <!-- 1. Dashboard -->
+        @if(auth()->user()->isSuperAdmin() || auth()->user()->role === 'admin' || auth()->user()->can('dashboard.index'))
         <a href="{{ route('dashboard') }}"
             class="nav-link d-flex align-items-center gap-2 {{ request()->routeIs('dashboard') ? 'active text-white' : 'text-dark' }}">
             <i class="bi bi-grid"></i>
             <span>Dashboard</span>
         </a>
+        @endif
 
         <!-- 2. Kelola Toko -->
         @can('manage-stores')

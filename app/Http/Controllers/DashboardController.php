@@ -19,6 +19,22 @@ class DashboardController extends Controller
             return redirect()->route('login')->with('error', 'Perusahaan tidak ditemukan. Silakan hubungi Administrator.');
         }
 
+        $user = Auth::user();
+        if (!$user->isSuperAdmin() && $user->role !== 'admin' && !$user->can('dashboard.index')) {
+            if ($user->can('orders.index')) {
+                return redirect()->route('orders.index');
+            } elseif ($user->can('products.index')) {
+                return redirect()->route('products.index');
+            } elseif ($user->can('inventory.index')) {
+                return redirect()->route('inventory.index');
+            } elseif ($user->can('purchase-orders.index')) {
+                return redirect()->route('purchase_orders.index');
+            } elseif ($user->can('goods-receipts.index')) {
+                return redirect()->route('goods_receipts.index');
+            }
+            abort(403, 'Anda tidak memiliki hak akses untuk melihat dashboard.');
+        }
+
         // Statistik ringkasan
         $totalStores        = Store::where('tenant_id', $tenant->id)->count();
         $totalProducts      = MasterProduct::where('tenant_id', $tenant->id)->count();
@@ -125,7 +141,12 @@ class DashboardController extends Controller
 
     public function getChartData(Request $request)
     {
-        $tenant = Auth::user()->tenant;
+        $user = Auth::user();
+        if (!$user->isSuperAdmin() && $user->role !== 'admin' && !$user->can('dashboard.index')) {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+
+        $tenant = $user->tenant;
         $scope = $request->query('scope', 'monthly');
 
         $chartData = $this->buildChartData($tenant->id, $scope);
