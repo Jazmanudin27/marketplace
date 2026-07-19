@@ -202,6 +202,13 @@
                                             class="font-monospace text-primary">Rp
                                             {{ number_format($product->price, 0, ',', '.') }}</strong>
                                     </div>
+                                    @if($product->reseller_price)
+                                    <div class="mt-1">
+                                        <span class="text-muted">Rsl:</span> <strong
+                                            class="font-monospace text-success">Rp
+                                            {{ number_format($product->reseller_price, 0, ',', '.') }}</strong>
+                                    </div>
+                                    @endif
                                 </div>
                             </td>
                             <td class="text-center">

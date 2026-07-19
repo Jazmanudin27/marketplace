@@ -49,6 +49,7 @@
         request()->routeIs('profit.*') ||
         request()->routeIs('reports.store_sales') ||
         request()->routeIs('reports.reseller_receivables') ||
+        request()->routeIs('reports.product_margins') ||
         request()->routeIs('reports.inventory_turnover');
 
     $isMarketingActive =
@@ -480,6 +481,8 @@
                                 Pesanan</a>
                             <a href="{{ route('profit.margin') }}"
                                 class="nav-link py-1 {{ request()->routeIs('profit.margin') ? 'active text-white' : 'text-secondary' }}">Margin Produk Aktual</a>
+                            <a href="{{ route('reports.product_margins') }}"
+                                class="nav-link py-1 {{ request()->routeIs('reports.product_margins') ? 'active text-white' : 'text-secondary' }}">Margin Master Produk</a>
                             <a href="{{ route('reports.store_sales') }}"
                                 class="nav-link py-1 {{ request()->routeIs('reports.store_sales') ? 'active text-white' : 'text-secondary' }}">Laporan
                                 Toko & Salur</a>

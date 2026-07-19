@@ -85,7 +85,7 @@
                         </div>
 
                         <div class="row">
-                            <div class="col-md-6 mb-3">
+                            <div class="col-md-4 mb-3">
                                 <label for="price" class="form-label form-label-sm fw-semibold">Harga Jual (Rp) <span
                                         class="text-danger">*</span></label>
                                 <div class="input-group input-group-sm">
@@ -103,7 +103,20 @@
                                     <div class="text-danger mt-1 small">{{ $message }}</div>
                                 @enderror
                             </div>
-                            <div class="col-md-6 mb-3">
+                            <div class="col-md-4 mb-3">
+                                <label for="reseller_price" class="form-label form-label-sm fw-semibold">Harga Reseller / Dropship (Rp)</label>
+                                <div class="input-group input-group-sm">
+                                    <span class="input-group-text"><i class="fas fa-hand-holding-usd"></i></span>
+                                    <input type="text" id="reseller_price" name="reseller_price"
+                                        class="form-control form-control-sm formatted-number-input"
+                                        value="{{ old('reseller_price', isset($product->reseller_price) ? (int) $product->reseller_price : '') }}"
+                                        placeholder="0">
+                                </div>
+                                @error('reseller_price')
+                                    <div class="text-danger mt-1 small">{{ $message }}</div>
+                                @enderror
+                            </div>
+                            <div class="col-md-4 mb-3">
                                 <label for="cost_price" class="form-label form-label-sm fw-semibold">HPP PRODUK / Harga
                                     Modal (Rp)</label>
                                 <div class="input-group input-group-sm">

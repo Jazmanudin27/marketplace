@@ -129,6 +129,7 @@ class MasterProductController extends Controller
             'sku_induk'    => 'nullable|string|max:100',
             'name'         => 'required|string|min:30|max:255',
             'price'        => 'required|numeric|min:0',
+            'reseller_price' => 'nullable|numeric|min:0',
             'cost_price'   => 'nullable|numeric|min:0',
             'stock'        => 'required|integer|min:0',
             'min_stock'    => 'nullable|integer|min:0',
@@ -277,15 +278,21 @@ class MasterProductController extends Controller
                 'is_active' => true,
             ]);
             
+            $materialsCost = 0;
             if ($request->has('items')) {
                 foreach ($request->items as $item) {
                     $recipe->items()->create([
                         'inventory_item_id' => $item['inventory_item_id'],
                         'quantity' => $item['quantity'],
                     ]);
+                    $invItem = \App\Models\InventoryItem::where('tenant_id', Auth::user()->tenant_id)->find($item['inventory_item_id']);
+                    if ($invItem) {
+                        $materialsCost += $item['quantity'] * ($invItem->cost_price ?? 0);
+                    }
                 }
             }
             
+            $laborCost = 0;
             if ($request->has('labors')) {
                 foreach ($request->labors as $labor) {
                     $recipe->labors()->create([
@@ -294,8 +301,14 @@ class MasterProductController extends Controller
                         'unit_cost' => $labor['unit_cost'],
                         'default_cost' => $labor['qty'] * $labor['unit_cost'],
                     ]);
+                    $laborCost += $labor['qty'] * $labor['unit_cost'];
                 }
             }
+
+            $batchQty = max(1, $request->batch_qty);
+            $product->update([
+                'cost_price' => ($materialsCost + $laborCost) / $batchQty
+            ]);
         });
 
         return back()->with('success', 'Resep (BOM) & Jasa Ahli berhasil disimpan.');
@@ -314,6 +327,7 @@ class MasterProductController extends Controller
             'sku_induk'    => 'nullable|string|max:100',
             'name'         => 'required|string|min:30|max:255',
             'price'        => 'required|numeric|min:0',
+            'reseller_price' => 'nullable|numeric|min:0',
             'cost_price'   => 'nullable|numeric|min:0',
             'stock'        => 'required|integer|min:0',
             'min_stock'    => 'nullable|integer|min:0',

@@ -568,6 +568,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/reports/store-sales', [ReportController::class, 'storeSalesReport'])->name('reports.store_sales');
         Route::get('/reports/reseller-receivables', [ReportController::class, 'resellerReceivablesReport'])->name('reports.reseller_receivables');
         Route::get('/reports/inventory-turnover', [ReportController::class, 'inventoryTurnoverReport'])->name('reports.inventory_turnover');
+        Route::get('/reports/product-margins', [ReportController::class, 'productMarginsReport'])->name('reports.product_margins');
     });
 
     // Manajemen Transaksi Keuangan

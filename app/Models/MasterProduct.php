@@ -20,6 +20,7 @@ class MasterProduct extends Model
         'height',
         'image_url',
         'price',
+        'reseller_price',
         'cost_price',
         'stock',
         'min_stock',
@@ -37,6 +38,7 @@ class MasterProduct extends Model
 
     protected $casts = [
         'price'     => 'decimal:2',
+        'reseller_price' => 'decimal:2',
         'cost_price'=> 'decimal:2',
         'is_active' => 'boolean',
         'is_preorder' => 'boolean',

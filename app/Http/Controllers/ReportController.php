@@ -899,4 +899,29 @@ class ReportController extends Controller
 
         return response()->stream($callback, 200, $headers);
     }
+
+    public function productMarginsReport(Request $request)
+    {
+        $tenantId = Auth::user()->tenant_id;
+
+        $query = MasterProduct::where('tenant_id', $tenantId)
+            ->with(['category', 'brand']);
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('sku', 'like', "%{$search}%");
+            });
+        }
+
+        if ($request->filled('category_id')) {
+            $query->where('category_id', $request->category_id);
+        }
+
+        $products = $query->orderBy('name')->get();
+        $categories = Category::where('tenant_id', $tenantId)->get();
+
+        return view('reports.product_margins', compact('products', 'categories'));
+    }
 }
