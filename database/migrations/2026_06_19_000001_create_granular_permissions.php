@@ -44,6 +44,36 @@ return new class extends Migration
             'customers.edit',
             'customers.destroy',
 
+            // ─── Master Data: Departemen ──────────────────────────────
+            'departments.index',
+            'departments.create',
+            'departments.edit',
+            'departments.destroy',
+
+            // ─── Master Data: Master Barang ───────────────────────────
+            'inventory-items.index',
+            'inventory-items.create',
+            'inventory-items.edit',
+            'inventory-items.destroy',
+
+            // ─── Master Data: Tukang Jahit ────────────────────────────
+            'tailors.index',
+            'tailors.create',
+            'tailors.edit',
+            'tailors.destroy',
+
+            // ─── Master Data: Jasa Produksi ───────────────────────────
+            'labor-services.index',
+            'labor-services.create',
+            'labor-services.edit',
+            'labor-services.destroy',
+
+            // ─── Master Data: Status Produksi ─────────────────────────
+            'production-statuses.index',
+            'production-statuses.create',
+            'production-statuses.edit',
+            'production-statuses.destroy',
+
             // ─── Produk Master ────────────────────────────────────────
             'products.index',
             'products.show',
@@ -69,6 +99,7 @@ return new class extends Migration
             // ─── Pesanan (Orders) ─────────────────────────────────────
             'orders.index',
             'orders.show',
+            'orders.create',
             'orders.process',
             'orders.ship',
             'orders.print',
@@ -111,6 +142,7 @@ return new class extends Migration
             'inventory.index',
             'inventory.ledger',
             'inventory.adjust',
+            'inventory.stock_sync',
 
             // ─── Barang Masuk (Incoming Goods) ───────────────────────
             'incoming-goods.index',
@@ -119,6 +151,31 @@ return new class extends Migration
             // ─── Stock Opname ─────────────────────────────────────────
             'stock-opnames.index',
             'stock-opnames.create',
+
+            // ─── Pembelian / Purchase Orders ──────────────────────────
+            'purchase-orders.index',
+            'purchase-orders.create',
+            'purchase-orders.edit',
+            'purchase-orders.destroy',
+            'purchase-orders.report',
+
+            // ─── Pembelian / Penerimaan Barang ────────────────────────
+            'goods-receipts.index',
+            'goods-receipts.create',
+            'goods-receipts.edit',
+            'goods-receipts.destroy',
+
+            // ─── Pembelian / Pengeluaran Barang ───────────────────────
+            'goods-issues.index',
+            'goods-issues.create',
+            'goods-issues.edit',
+            'goods-issues.destroy',
+
+            // ─── Pembelian / Retur Pembelian ──────────────────────────
+            'purchase-returns.index',
+            'purchase-returns.create',
+            'purchase-returns.edit',
+            'purchase-returns.destroy',
 
             // ─── HRD: Karyawan ────────────────────────────────────────
             'employees.index',
@@ -211,6 +268,7 @@ return new class extends Migration
             // ─── Keuangan: Laporan Laba Rugi ─────────────────────────
             'finance.profit-loss.index',
             'profit.index',
+            'profit.margin',
 
             // ─── Laporan Gudang & Penjualan ───────────────────────────
             'reports.summary',
@@ -224,13 +282,37 @@ return new class extends Migration
             'reports.analytics',
             'reports.sales',
             'reports.export',
+            'reports.product_margins',
+            'reports.store_sales',
+            'reports.reseller_receivables',
+            'reports.inventory_turnover',
+            'reports.production_hpp',
+            'reports.master_product',
+
+            // ─── Laporan Bahan & Pembelian ────────────────────────────
+            'pembelian.stock_report',
+            'pembelian.report_mutation',
+            'pembelian.report_summary',
+            'pembelian.stock_card',
 
             // ─── Produksi ─────────────────────────────────────────────
-            'production-orders.index',
-            'production-orders.show',
-            'production-orders.create',
-            'production-orders.edit',
-            'production-orders.destroy',
+            'spks.index',
+            'spks.show',
+            'spks.create',
+            'spks.edit',
+            'spks.destroy',
+
+            'product-recipes.index',
+            'product-recipes.create',
+            'product-recipes.edit',
+            'product-recipes.destroy',
+
+            // ─── Gudang Jadi: Pengaduan ───────────────────────────────
+            'complaints.index',
+            'complaints.show',
+            'complaints.create',
+            'complaints.edit',
+            'complaints.destroy',
 
             // ─── Users & Role Management ──────────────────────────────
             'users.index',

@@ -58,7 +58,29 @@ class RolePermissionSeeder extends Seeder
             'suppliers.destroy',
             'customers.index',
             'customers.show',
+            'customers.create',
             'customers.edit',
+            'customers.destroy',
+            'departments.index',
+            'departments.create',
+            'departments.edit',
+            'departments.destroy',
+            'inventory-items.index',
+            'inventory-items.create',
+            'inventory-items.edit',
+            'inventory-items.destroy',
+            'tailors.index',
+            'tailors.create',
+            'tailors.edit',
+            'tailors.destroy',
+            'labor-services.index',
+            'labor-services.create',
+            'labor-services.edit',
+            'labor-services.destroy',
+            'production-statuses.index',
+            'production-statuses.create',
+            'production-statuses.edit',
+            'production-statuses.destroy',
         ];
     }
 
@@ -98,6 +120,7 @@ class RolePermissionSeeder extends Seeder
         return [
             'orders.index',
             'orders.show',
+            'orders.create',
             'orders.process',
             'orders.ship',
             'orders.print',
@@ -129,10 +152,41 @@ class RolePermissionSeeder extends Seeder
             'inventory.index',
             'inventory.ledger',
             'inventory.adjust',
+            'inventory.stock_sync',
             'incoming-goods.index',
             'incoming-goods.create',
             'stock-opnames.index',
             'stock-opnames.create',
+            
+            // Purchase/Pembelian & Bahan
+            'purchase-orders.index',
+            'purchase-orders.create',
+            'purchase-orders.edit',
+            'purchase-orders.destroy',
+            'purchase-orders.report',
+            'goods-receipts.index',
+            'goods-receipts.create',
+            'goods-receipts.edit',
+            'goods-receipts.destroy',
+            'goods-issues.index',
+            'goods-issues.create',
+            'goods-issues.edit',
+            'goods-issues.destroy',
+            'purchase-returns.index',
+            'purchase-returns.create',
+            'purchase-returns.edit',
+            'purchase-returns.destroy',
+            'pembelian.stock_report',
+            'pembelian.report_mutation',
+            'pembelian.report_summary',
+            'pembelian.stock_card',
+            
+            // Pengaduan Barang Gudang
+            'complaints.index',
+            'complaints.show',
+            'complaints.create',
+            'complaints.edit',
+            'complaints.destroy',
         ];
     }
 
@@ -218,6 +272,11 @@ class RolePermissionSeeder extends Seeder
             'finance.reconciliation.index',
             'finance.profit-loss.index',
             'profit.index',
+            'profit.margin',
+            'reports.product_margins',
+            'reports.store_sales',
+            'reports.reseller_receivables',
+            'reports.inventory_turnover',
         ];
     }
 
@@ -234,6 +293,7 @@ class RolePermissionSeeder extends Seeder
             'reports.opname',
             'reports.opname.print',
             'reports.analytics',
+            'reports.master_product',
         ];
     }
 
@@ -250,11 +310,16 @@ class RolePermissionSeeder extends Seeder
     private function productionPermissions(): array
     {
         return [
-            'production-orders.index',
-            'production-orders.show',
-            'production-orders.create',
-            'production-orders.edit',
-            'production-orders.destroy',
+            'spks.index',
+            'spks.show',
+            'spks.create',
+            'spks.edit',
+            'spks.destroy',
+            'product-recipes.index',
+            'product-recipes.create',
+            'product-recipes.edit',
+            'product-recipes.destroy',
+            'reports.production_hpp',
         ];
     }
 
@@ -520,6 +585,34 @@ class RolePermissionSeeder extends Seeder
     {
         // 1. Reset cache
         app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+
+        // 1b. Dynamically ensure all granular permissions are registered in database
+        $allPermissions = array_unique(array_merge(
+            $this->dashboardPermissions(),
+            $this->masterDataPermissions(),
+            $this->productPermissions(),
+            $this->storePermissions(),
+            $this->orderPermissions(),
+            $this->inventoryPermissions(),
+            $this->hrdFullPermissions(),
+            $this->hrdViewOnlyPermissions(),
+            $this->financeFullPermissions(),
+            $this->warehouseReportPermissions(),
+            $this->warehouseReportViewPermissions(),
+            $this->productionPermissions(),
+            $this->userManagementPermissions(),
+            $this->userManagementSafePermissions(),
+            $this->tenantSettingsPermissions(),
+            $this->superAdminOnlyPermissions(),
+            $this->legacyPermissions()
+        ));
+
+        foreach ($allPermissions as $permName) {
+            Permission::firstOrCreate([
+                'name'       => $permName,
+                'guard_name' => 'web',
+            ]);
+        }
 
         // =====================================================================
         // 2. SUPER ADMIN — Tenant Sistem Khusus

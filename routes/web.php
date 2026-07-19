@@ -201,12 +201,10 @@ Route::middleware('auth')->group(function () {
         Route::post('customers/{customer}/topup', [CustomerController::class, 'topup'])->name('customers.topup');
     });
 
-    // Tailors (Tukang Jahit)
-    Route::resource('tailors', \App\Http\Controllers\Inventory\TailorController::class);
-    Route::resource('production-statuses', \App\Http\Controllers\Master\ProductionStatusController::class);
-
-    // Employees
+    // Employees & Production Masters
     Route::middleware('permission:manage-employees')->group(function () {
+        Route::resource('tailors', \App\Http\Controllers\Inventory\TailorController::class);
+        Route::resource('production-statuses', \App\Http\Controllers\Master\ProductionStatusController::class);
         Route::resource('employees', EmployeeController::class)->except(['show']);
         Route::resource('labor_services', LaborServiceController::class);
         Route::put('employees/{employee}/salary', [EmployeeController::class, 'updateSalary'])->name('employees.salary.update');

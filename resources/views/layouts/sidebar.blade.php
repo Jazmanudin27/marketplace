@@ -9,18 +9,16 @@
         request()->routeIs('users.*') ||
         request()->routeIs('roles.*') ||
         request()->routeIs('settings.tenant.*') ||
-        request()->routeIs('products.*') ||
         request()->routeIs('tailors.*') ||
         request()->routeIs('production-statuses.*') ||
-        request()->routeIs('labor_services.*') ||
-        request()->routeIs('marketplace_products.*');
+        request()->routeIs('labor_services.*');
 
     $isPembelianActive =
-        request()->routeIs('purchase_orders.*') ||
+        (request()->routeIs('purchase_orders.*') && !request()->routeIs('purchase_orders.report')) ||
         request()->routeIs('purchase_returns.*') ||
         request()->routeIs('goods_receipts.*') ||
         request()->routeIs('incoming_goods.*') ||
-        request()->routeIs('pembelian.*');
+        request()->routeIs('pembelian.goods_issue.*');
 
     $isProduksiActive =
         request()->routeIs('spks.*') ||
@@ -32,25 +30,13 @@
         request()->routeIs('stock_opnames.*') ||
         request()->routeIs('inventory.stock_sync') ||
         request()->routeIs('fulfillment.*') ||
-        request()->routeIs('complaints.*') ||
-        request()->routeIs('reports.summary') ||
-        request()->routeIs('reports.stock') ||
-        request()->routeIs('reports.ledger') ||
-        request()->routeIs('reports.opname') ||
-        request()->routeIs('reports.analytics') ||
-        request()->routeIs('reports.production_hpp*');
+        request()->routeIs('complaints.*');
 
     $isFinanceActive =
-        request()->routeIs('finance.profit_loss') ||
+        request()->routeIs('finance.reconciliation') ||
         request()->routeIs('finance.incomes.*') ||
         request()->routeIs('finance.expenses.*') ||
-        request()->routeIs('finance.transfers.*') ||
-        request()->routeIs('finance.reconciliation') ||
-        request()->routeIs('profit.*') ||
-        request()->routeIs('reports.store_sales') ||
-        request()->routeIs('reports.reseller_receivables') ||
-        request()->routeIs('reports.product_margins') ||
-        request()->routeIs('reports.inventory_turnover');
+        request()->routeIs('finance.transfers.*');
 
     $isMarketingActive =
         request()->routeIs('marketing.ads.*') ||
@@ -63,6 +49,16 @@
         request()->routeIs('offline_sales.*');
 
     $isHrdActive = request()->routeIs('hr.*') || request()->routeIs('employees.*');
+
+    $isLaporanActive =
+        request()->routeIs('reports.*') ||
+        request()->routeIs('purchase_orders.report') ||
+        request()->routeIs('pembelian.stock_report') ||
+        request()->routeIs('pembelian.report_mutation') ||
+        request()->routeIs('pembelian.report_summary') ||
+        request()->routeIs('pembelian.stock_card') ||
+        request()->routeIs('finance.profit_loss') ||
+        request()->routeIs('profit.*');
 @endphp
 
 <div class="d-flex flex-column p-3 bg-primary text-white w-100" id="sidebar">
@@ -129,21 +125,43 @@
         <!-- UTAMA -->
         <div class="text-uppercase text-muted fw-bold mb-1 mt-2 small">Utama</div>
 
+        <!-- 1. Dashboard -->
         <a href="{{ route('dashboard') }}"
             class="nav-link d-flex align-items-center gap-2 {{ request()->routeIs('dashboard') ? 'active text-white' : 'text-dark' }}">
             <i class="bi bi-grid"></i>
             <span>Dashboard</span>
         </a>
 
+        <!-- 2. Kelola Toko -->
         @can('manage-stores')
             <a href="{{ route('stores.index') }}"
                 class="nav-link d-flex align-items-center gap-2 {{ request()->routeIs('stores.*') ? 'active text-white' : 'text-dark' }}">
                 <i class="bi bi-shop"></i>
-                <span>Kelola Toko (Integrasi)</span>
+                <span>Kelola Toko</span>
             </a>
         @endcan
 
-        <!-- MASTER DATA -->
+        <!-- 3. Master Produk -->
+        @can('manage-products')
+            <a href="{{ route('products.index') }}"
+                class="nav-link d-flex align-items-center gap-2 {{ request()->routeIs('products.*') ? 'active text-white' : 'text-dark' }}">
+                <i class="bi bi-box-seam"></i>
+                <span>Master Produk</span>
+            </a>
+        @endcan
+
+        <!-- 4. Marketplace Produk -->
+        @can('manage-products')
+            <a href="{{ route('marketplace_products.index') }}"
+                class="nav-link d-flex align-items-center gap-2 {{ request()->routeIs('marketplace_products.*') ? 'active text-white' : 'text-dark' }}">
+                <i class="bi bi-cloud-upload"></i>
+                <span>Marketplace Produk</span>
+            </a>
+        @endcan
+
+        <div class="text-uppercase text-muted fw-bold mb-1 mt-3 small">Modul ERP</div>
+
+        <!-- 5. DATA MASTER -->
         @if (auth()->user()->isSuperAdmin() ||
                 auth()->user()->role === 'admin' ||
                 auth()->user()->hasAnyPermission([
@@ -153,7 +171,6 @@
                         'manage-employees',
                         'manage-customers',
                         'manage-users',
-                        'manage-products',
                         'settings.tenant.edit',
                     ]))
             <div>
@@ -162,7 +179,7 @@
                     aria-expanded="{{ $isMasterDataActive ? 'true' : 'false' }}" aria-controls="collapseMasterData">
                     <div class="d-flex align-items-center gap-2">
                         <i class="bi bi-database"></i>
-                        <span>Master Data</span>
+                        <span>Data Master</span>
                     </div>
                     <i class="bi bi-chevron-down small"></i>
                 </a>
@@ -212,23 +229,46 @@
                             <a href="{{ route('settings.tenant.edit') }}"
                                 class="nav-link py-1 {{ request()->routeIs('settings.tenant.*') ? 'active text-white' : 'text-secondary' }}">Perusahaan</a>
                         @endcan
-                        @can('manage-products')
-                            <a href="{{ route('products.index') }}"
-                                class="nav-link py-1 {{ request()->routeIs('products.*') ? 'active text-white' : 'text-secondary' }}">Master
-                                Produk</a>
-                            <a href="{{ route('reports.master_product') }}"
-                                class="nav-link py-1 {{ request()->routeIs('reports.master_product*') ? 'active text-white' : 'text-secondary' }}">Laporan
-                                Master Produk</a>
-                            <a href="{{ route('marketplace_products.index') }}"
-                                class="nav-link py-1 {{ request()->routeIs('marketplace_products.*') ? 'active text-white' : 'text-secondary' }}">Marketplace
-                                Produk</a>
+                    </div>
+                </div>
+            </div>
+        @endif
+
+        <!-- 6. KEUANGAN -->
+        @if (auth()->user()->isSuperAdmin() ||
+                auth()->user()->role === 'admin' ||
+                auth()->user()->hasAnyPermission(['view-financial-reports', 'manage-finance']))
+            <div>
+                <a class="nav-link d-flex align-items-center justify-content-between text-dark {{ $isFinanceActive ? '' : 'collapsed' }}"
+                    data-bs-toggle="collapse" data-bs-target="#collapseFinance" role="button"
+                    aria-expanded="{{ $isFinanceActive ? 'true' : 'false' }}" aria-controls="collapseFinance">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-cash-stack"></i>
+                        <span>Keuangan</span>
+                    </div>
+                    <i class="bi bi-chevron-down small"></i>
+                </a>
+                <div class="collapse {{ $isFinanceActive ? 'show' : '' }}" id="collapseFinance">
+                    <div class="nav flex-column ms-3 mt-1 gap-1 border-start ps-2">
+                        @can('manage-finance')
+                            <a href="{{ route('finance.reconciliation') }}"
+                                class="nav-link py-1 {{ request()->routeIs('finance.reconciliation') ? 'active text-white' : 'text-secondary' }}">Rekonsiliasi</a>
+                            <a href="{{ route('finance.incomes.index') }}"
+                                class="nav-link py-1 {{ request()->routeIs('finance.incomes.*') ? 'active text-white' : 'text-secondary' }}">Pemasukan
+                                Lain</a>
+                            <a href="{{ route('finance.expenses.index') }}"
+                                class="nav-link py-1 {{ request()->routeIs('finance.expenses.*') ? 'active text-white' : 'text-secondary' }}">Pengeluaran
+                                & Biaya</a>
+                            <a href="{{ route('finance.transfers.index') }}"
+                                class="nav-link py-1 {{ request()->routeIs('finance.transfers.*') ? 'active text-white' : 'text-secondary' }}">Transfer
+                                Dana</a>
                         @endcan
                     </div>
                 </div>
             </div>
         @endif
 
-        <!-- PEMBELIAN -->
+        <!-- 7. PEMBELIAN -->
         @if (auth()->user()->isSuperAdmin() ||
                 auth()->user()->role === 'admin' ||
                 auth()->user()->hasAnyPermission(['manage-incoming-goods', 'manage-inventory']))
@@ -248,9 +288,6 @@
                             <a href="{{ route('purchase_orders.index') }}"
                                 class="nav-link py-1 {{ request()->routeIs('purchase_orders.*') && !request()->routeIs('purchase_orders.report') ? 'active text-white' : 'text-secondary' }}">Purchase
                                 Order</a>
-                            <a href="{{ route('purchase_orders.report') }}"
-                                class="nav-link py-1 {{ request()->routeIs('purchase_orders.report') ? 'active text-white' : 'text-secondary' }}">Laporan
-                                Pembelian</a>
                         @endcan
                         @can('manage-inventory')
                             <a href="{{ route('goods_receipts.index') }}"
@@ -262,27 +299,13 @@
                             <a href="{{ route('purchase_returns.index') }}"
                                 class="nav-link py-1 {{ request()->routeIs('purchase_returns.*') ? 'active text-white' : 'text-secondary' }}">Retur
                                 Pembelian</a>
-                            
-                            {{-- Laporan Stok & Mutasi Pembelian --}}
-                            <a href="{{ route('pembelian.stock_report') }}"
-                                class="nav-link py-1 {{ request()->routeIs('pembelian.stock_report') || request()->routeIs('pembelian.print_stock_report') ? 'active text-white' : 'text-secondary' }}">Laporan
-                                Stok</a>
-                            <a href="{{ route('pembelian.report_mutation') }}"
-                                class="nav-link py-1 {{ request()->routeIs('pembelian.report_mutation') || request()->routeIs('pembelian.print_report_mutation') ? 'active text-white' : 'text-secondary' }}">Laporan
-                                Mutasi</a>
-                            <a href="{{ route('pembelian.report_summary') }}"
-                                class="nav-link py-1 {{ request()->routeIs('pembelian.report_summary') || request()->routeIs('pembelian.print_report_summary') ? 'active text-white' : 'text-secondary' }}">Rekap
-                                Persediaan</a>
-                            <a href="{{ route('pembelian.stock_card') }}"
-                                class="nav-link py-1 {{ request()->routeIs('pembelian.stock_card') || request()->routeIs('pembelian.print_stock_card') ? 'active text-white' : 'text-secondary' }}">Kartu
-                                Stok</a>
                         @endcan
                     </div>
                 </div>
             </div>
         @endif
 
-        <!-- PRODUKSI -->
+        <!-- 8. PRODUKSI -->
         @if (auth()->user()->isSuperAdmin() ||
                 auth()->user()->role === 'admin' ||
                 auth()->user()->hasAnyPermission(['manage-inventory', 'manage-products']))
@@ -311,14 +334,13 @@
             </div>
         @endif
 
-        <!-- GUDANG JADI -->
+        <!-- 9. GUDANG JADI -->
         @if (auth()->user()->isSuperAdmin() ||
                 auth()->user()->role === 'admin' ||
                 auth()->user()->hasAnyPermission([
                         'manage-inventory',
                         'manage-fulfillment',
                         'manage-complaints',
-                        'view-warehouse-reports',
                     ]))
             <div>
                 <a class="nav-link d-flex align-items-center justify-content-between text-dark {{ $isGudangJadiActive ? '' : 'collapsed' }}"
@@ -353,44 +375,15 @@
                                 class="nav-link py-1 {{ request()->routeIs('complaints.*') ? 'active text-white' : 'text-secondary' }}">Pengaduan
                                 Barang</a>
                         @endcan
-
-                        @can('view-warehouse-reports')
-                            <div class="text-uppercase text-white text-opacity-50 fw-bold ms-2 mt-2 mb-1"
-                                style="font-size: 0.65rem;">Laporan Gudang Jadi</div>
-                            <a href="{{ route('reports.summary') }}"
-                                class="nav-link py-1 {{ request()->routeIs('reports.summary*') ? 'active text-white' : 'text-secondary' }}">Rekap
-                                Persediaan</a>
-                            <a href="{{ route('reports.stock') }}"
-                                class="nav-link py-1 {{ request()->routeIs('reports.stock*') ? 'active text-white' : 'text-secondary' }}">Stok
-                                Barang</a>
-                            <a href="{{ route('reports.ledger') }}"
-                                class="nav-link py-1 {{ request()->routeIs('reports.ledger*') ? 'active text-white' : 'text-secondary' }}">Kartu
-                                Stok</a>
-                            <a href="{{ route('reports.opname') }}"
-                                class="nav-link py-1 {{ request()->routeIs('reports.opname*') ? 'active text-white' : 'text-secondary' }}">Riwayat
-                                Opname</a>
-                            <a href="{{ route('reports.analytics') }}"
-                                class="nav-link py-1 {{ request()->routeIs('reports.analytics*') ? 'active text-white' : 'text-secondary' }}">Analitik
-                                Inventori</a>
-                            <a href="{{ route('reports.production_hpp') }}"
-                                class="nav-link py-1 {{ request()->routeIs('reports.production_hpp*') ? 'active text-white' : 'text-secondary' }}">HPP
-                                Produksi</a>
-                        @endcan
                     </div>
                 </div>
             </div>
         @endif
 
-
-
-
-
-        <!-- MARKETING -->
+        <!-- 10. MARKETING -->
         @if (auth()->user()->isSuperAdmin() ||
                 auth()->user()->role === 'admin' ||
                 auth()->user()->hasAnyPermission([
-                        'view-financial-reports',
-                        'manage-finance',
                         'manage-chats',
                         'manage-stores',
                         'manage-orders',
@@ -456,62 +449,7 @@
             </div>
         @endif
 
-        <!-- KEUANGAN -->
-        @if (auth()->user()->isSuperAdmin() ||
-                auth()->user()->role === 'admin' ||
-                auth()->user()->hasAnyPermission(['view-financial-reports', 'manage-finance']))
-            <div>
-                <a class="nav-link d-flex align-items-center justify-content-between text-dark {{ $isFinanceActive ? '' : 'collapsed' }}"
-                    data-bs-toggle="collapse" data-bs-target="#collapseFinance" role="button"
-                    aria-expanded="{{ $isFinanceActive ? 'true' : 'false' }}" aria-controls="collapseFinance">
-                    <div class="d-flex align-items-center gap-2">
-                        <i class="bi bi-cash-stack"></i>
-                        <span>Keuangan</span>
-                    </div>
-                    <i class="bi bi-chevron-down small"></i>
-                </a>
-                <div class="collapse {{ $isFinanceActive ? 'show' : '' }}" id="collapseFinance">
-                    <div class="nav flex-column ms-3 mt-1 gap-1 border-start ps-2">
-                        @can('view-financial-reports')
-                            <a href="{{ route('finance.profit_loss') }}"
-                                class="nav-link py-1 {{ request()->routeIs('finance.profit_loss') ? 'active text-white' : 'text-secondary' }}">Laba
-                                Rugi</a>
-                            <a href="{{ route('profit.index') }}"
-                                class="nav-link py-1 {{ request()->routeIs('profit.index') ? 'active text-white' : 'text-secondary' }}">Profit
-                                Pesanan</a>
-                            <a href="{{ route('profit.margin') }}"
-                                class="nav-link py-1 {{ request()->routeIs('profit.margin') ? 'active text-white' : 'text-secondary' }}">Margin Produk Aktual</a>
-                            <a href="{{ route('reports.product_margins') }}"
-                                class="nav-link py-1 {{ request()->routeIs('reports.product_margins') ? 'active text-white' : 'text-secondary' }}">Margin Master Produk</a>
-                            <a href="{{ route('reports.store_sales') }}"
-                                class="nav-link py-1 {{ request()->routeIs('reports.store_sales') ? 'active text-white' : 'text-secondary' }}">Laporan
-                                Toko & Salur</a>
-                            <a href="{{ route('reports.reseller_receivables') }}"
-                                class="nav-link py-1 {{ request()->routeIs('reports.reseller_receivables') ? 'active text-white' : 'text-secondary' }}">Saldo
-                                & Piutang</a>
-                            <a href="{{ route('reports.inventory_turnover') }}"
-                                class="nav-link py-1 {{ request()->routeIs('reports.inventory_turnover') ? 'active text-white' : 'text-secondary' }}">Perputaran
-                                Stok</a>
-                        @endcan
-                        @can('manage-finance')
-                            <a href="{{ route('finance.reconciliation') }}"
-                                class="nav-link py-1 {{ request()->routeIs('finance.reconciliation') ? 'active text-white' : 'text-secondary' }}">Rekonsiliasi</a>
-                            <a href="{{ route('finance.incomes.index') }}"
-                                class="nav-link py-1 {{ request()->routeIs('finance.incomes.*') ? 'active text-white' : 'text-secondary' }}">Pemasukan
-                                Lain</a>
-                            <a href="{{ route('finance.expenses.index') }}"
-                                class="nav-link py-1 {{ request()->routeIs('finance.expenses.*') ? 'active text-white' : 'text-secondary' }}">Pengeluaran
-                                & Biaya</a>
-                            <a href="{{ route('finance.transfers.index') }}"
-                                class="nav-link py-1 {{ request()->routeIs('finance.transfers.*') ? 'active text-white' : 'text-secondary' }}">Transfer
-                                Dana</a>
-                        @endcan
-                    </div>
-                </div>
-            </div>
-        @endif
-
-        <!-- HRD & KEPEGAWAIAN -->
+        <!-- 11. HRD (Kepegawaian) -->
         @if (auth()->user()->isSuperAdmin() ||
                 auth()->user()->role === 'admin' ||
                 auth()->user()->hasPermissionTo('manage-employees'))
@@ -566,6 +504,110 @@
                 </div>
             </div>
         @endif
+
+
+        <!-- ========================================================================= -->
+        <!-- DEDICATED LAPORAN ACCORDION -->
+        <!-- ========================================================================= -->
+        @if (auth()->user()->isSuperAdmin() ||
+                auth()->user()->role === 'admin' ||
+                auth()->user()->hasAnyPermission([
+                        'view-financial-reports',
+                        'view-warehouse-reports',
+                        'manage-incoming-goods',
+                        'manage-inventory',
+                        'manage-products',
+                    ]))
+            <div>
+                <a class="nav-link d-flex align-items-center justify-content-between text-dark {{ $isLaporanActive ? '' : 'collapsed' }}"
+                    data-bs-toggle="collapse" data-bs-target="#collapseLaporan" role="button"
+                    aria-expanded="{{ $isLaporanActive ? 'true' : 'false' }}" aria-controls="collapseLaporan">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-file-earmark-bar-graph"></i>
+                        <span>Laporan / Analitik</span>
+                    </div>
+                    <i class="bi bi-chevron-down small"></i>
+                </a>
+                <div class="collapse {{ $isLaporanActive ? 'show' : '' }}" id="collapseLaporan">
+                    <div class="nav flex-column ms-3 mt-1 gap-1 border-start ps-2">
+                        
+                        <!-- Laporan Keuangan -->
+                        @can('view-financial-reports')
+                            <div class="text-uppercase text-white text-opacity-50 fw-bold ms-2 mt-2 mb-1"
+                                style="font-size: 0.65rem;">Laporan Keuangan</div>
+                            <a href="{{ route('finance.profit_loss') }}"
+                                class="nav-link py-1 {{ request()->routeIs('finance.profit_loss') ? 'active text-white' : 'text-secondary' }}">Laba Rugi</a>
+                            <a href="{{ route('profit.index') }}"
+                                class="nav-link py-1 {{ request()->routeIs('profit.index') ? 'active text-white' : 'text-secondary' }}">Profit Pesanan</a>
+                            <a href="{{ route('profit.margin') }}"
+                                class="nav-link py-1 {{ request()->routeIs('profit.margin') ? 'active text-white' : 'text-secondary' }}">Margin Produk Aktual</a>
+                            <a href="{{ route('reports.product_margins') }}"
+                                class="nav-link py-1 {{ request()->routeIs('reports.product_margins') ? 'active text-white' : 'text-secondary' }}">Margin Master Produk</a>
+                            <a href="{{ route('reports.store_sales') }}"
+                                class="nav-link py-1 {{ request()->routeIs('reports.store_sales') ? 'active text-white' : 'text-secondary' }}">Laporan Toko & Salur</a>
+                            <a href="{{ route('reports.reseller_receivables') }}"
+                                class="nav-link py-1 {{ request()->routeIs('reports.reseller_receivables') ? 'active text-white' : 'text-secondary' }}">Saldo & Piutang</a>
+                            <a href="{{ route('reports.inventory_turnover') }}"
+                                class="nav-link py-1 {{ request()->routeIs('reports.inventory_turnover') ? 'active text-white' : 'text-secondary' }}">Perputaran Stok</a>
+                        @endcan
+
+                        <!-- Laporan Gudang Jadi -->
+                        @can('view-warehouse-reports')
+                            <div class="text-uppercase text-white text-opacity-50 fw-bold ms-2 mt-2 mb-1"
+                                style="font-size: 0.65rem;">Laporan Gudang Jadi</div>
+                            <a href="{{ route('reports.summary') }}"
+                                class="nav-link py-1 {{ request()->routeIs('reports.summary*') ? 'active text-white' : 'text-secondary' }}">Rekap Persediaan</a>
+                            <a href="{{ route('reports.stock') }}"
+                                class="nav-link py-1 {{ request()->routeIs('reports.stock*') ? 'active text-white' : 'text-secondary' }}">Stok Barang Jadi</a>
+                            <a href="{{ route('reports.ledger') }}"
+                                class="nav-link py-1 {{ request()->routeIs('reports.ledger*') ? 'active text-white' : 'text-secondary' }}">Kartu Stok Jadi</a>
+                            <a href="{{ route('reports.opname') }}"
+                                class="nav-link py-1 {{ request()->routeIs('reports.opname*') ? 'active text-white' : 'text-secondary' }}">Riwayat Opname</a>
+                            <a href="{{ route('reports.analytics') }}"
+                                class="nav-link py-1 {{ request()->routeIs('reports.analytics*') ? 'active text-white' : 'text-secondary' }}">Analitik Inventori</a>
+                        @endcan
+
+                        <!-- Laporan Produksi -->
+                        @can('view-warehouse-reports')
+                            <div class="text-uppercase text-white text-opacity-50 fw-bold ms-2 mt-2 mb-1"
+                                style="font-size: 0.65rem;">Laporan Produksi</div>
+                            <a href="{{ route('reports.production_hpp') }}"
+                                class="nav-link py-1 {{ request()->routeIs('reports.production_hpp*') ? 'active text-white' : 'text-secondary' }}">HPP Produksi</a>
+                        @endcan
+
+                        <!-- Laporan Pembelian & Stok Bahan -->
+                        @if(auth()->user()->isSuperAdmin() || auth()->user()->role === 'admin' || auth()->user()->hasAnyPermission(['manage-incoming-goods', 'manage-inventory']))
+                            <div class="text-uppercase text-white text-opacity-50 fw-bold ms-2 mt-2 mb-1"
+                                style="font-size: 0.65rem;">Laporan Bahan & Pembelian</div>
+                            @can('manage-incoming-goods')
+                                <a href="{{ route('purchase_orders.report') }}"
+                                    class="nav-link py-1 {{ request()->routeIs('purchase_orders.report') ? 'active text-white' : 'text-secondary' }}">Laporan Pembelian</a>
+                            @endcan
+                            @can('manage-inventory')
+                                <a href="{{ route('pembelian.stock_report') }}"
+                                    class="nav-link py-1 {{ request()->routeIs('pembelian.stock_report') || request()->routeIs('pembelian.print_stock_report') ? 'active text-white' : 'text-secondary' }}">Laporan Stok Bahan</a>
+                                <a href="{{ route('pembelian.report_mutation') }}"
+                                    class="nav-link py-1 {{ request()->routeIs('pembelian.report_mutation') || request()->routeIs('pembelian.print_report_mutation') ? 'active text-white' : 'text-secondary' }}">Laporan Mutasi Bahan</a>
+                                <a href="{{ route('pembelian.report_summary') }}"
+                                    class="nav-link py-1 {{ request()->routeIs('pembelian.report_summary') || request()->routeIs('pembelian.print_report_summary') ? 'active text-white' : 'text-secondary' }}">Rekap Persediaan Bahan</a>
+                                <a href="{{ route('pembelian.stock_card') }}"
+                                    class="nav-link py-1 {{ request()->routeIs('pembelian.stock_card') || request()->routeIs('pembelian.print_stock_card') ? 'active text-white' : 'text-secondary' }}">Kartu Stok Bahan</a>
+                            @endcan
+                        @endif
+
+                        <!-- Laporan Master Produk -->
+                        @can('manage-products')
+                            <div class="text-uppercase text-white text-opacity-50 fw-bold ms-2 mt-2 mb-1"
+                                style="font-size: 0.65rem;">Laporan Produk</div>
+                            <a href="{{ route('reports.master_product') }}"
+                                class="nav-link py-1 {{ request()->routeIs('reports.master_product*') ? 'active text-white' : 'text-secondary' }}">Laporan Master Produk</a>
+                        @endcan
+
+                    </div>
+                </div>
+            </div>
+        @endif
+
 
         <!-- BANTUAN -->
         <div class="text-uppercase text-muted fw-bold mb-1 mt-3 small">Bantuan</div>
