@@ -142,7 +142,7 @@
         @endcan
 
         <!-- 3. Master Produk -->
-        @can('manage-products')
+        @can('products.index')
             <a href="{{ route('products.index') }}"
                 class="nav-link d-flex align-items-center gap-2 {{ request()->routeIs('products.*') ? 'active text-white' : 'text-dark' }}">
                 <i class="bi bi-box-seam"></i>
@@ -151,7 +151,7 @@
         @endcan
 
         <!-- 4. Marketplace Produk -->
-        @can('manage-products')
+        @can('marketplace-products.index')
             <a href="{{ route('marketplace_products.index') }}"
                 class="nav-link d-flex align-items-center gap-2 {{ request()->routeIs('marketplace_products.*') ? 'active text-white' : 'text-dark' }}">
                 <i class="bi bi-cloud-upload"></i>
@@ -192,33 +192,33 @@
                                 class="nav-link py-1 {{ request()->routeIs('inventory_items.*') && !request()->has('type') ? 'active text-white' : 'text-secondary' }}">Master
                                 Barang</a>
                         @endif
-                        @can('manage-categories')
+                        @can('categories.index')
                             <a href="{{ route('categories.index') }}"
                                 class="nav-link py-1 {{ request()->routeIs('categories.*') ? 'active text-white' : 'text-secondary' }}">Kategori</a>
                         @endcan
-                        @can('manage-brands')
+                        @can('brands.index')
                             <a href="{{ route('brands.index') }}"
                                 class="nav-link py-1 {{ request()->routeIs('brands.*') ? 'active text-white' : 'text-secondary' }}">Merk</a>
                         @endcan
-                        @can('manage-suppliers')
+                        @can('suppliers.index')
                             <a href="{{ route('suppliers.index') }}"
                                 class="nav-link py-1 {{ request()->routeIs('suppliers.*') ? 'active text-white' : 'text-secondary' }}">Supplier</a>
                         @endcan
-                        @can('manage-customers')
+                        @can('customers.index')
                             <a href="{{ route('customers.index') }}"
                                 class="nav-link py-1 {{ request()->routeIs('customers.*') ? 'active text-white' : 'text-secondary' }}">Pelanggan</a>
                         @endcan
-                        @can('manage-employees')
+                        @can('employees.index')
                             <a href="{{ route('employees.index') }}"
                                 class="nav-link py-1 {{ request()->routeIs('employees.*') ? 'active text-white' : 'text-secondary' }}">Karyawan</a>
                             <a href="{{ route('tailors.index') }}"
                                 class="nav-link py-1 {{ request()->routeIs('tailors.*') ? 'active text-white' : 'text-secondary' }}">Tukang Jahit</a>
-                            <a href="{{ route('labor_services.index') }}"
+                            <a href="{{ route('labor-services.index') }}"
                                 class="nav-link py-1 {{ request()->routeIs('labor_services.*') ? 'active text-white' : 'text-secondary' }}">Jasa Produksi</a>
                             <a href="{{ route('production-statuses.index') }}"
                                 class="nav-link py-1 {{ request()->routeIs('production-statuses.*') ? 'active text-white' : 'text-secondary' }}">Status Produksi</a>
                         @endcan
-                        @can('manage-users')
+                        @can('users.index')
                             <a href="{{ route('users.index') }}"
                                 class="nav-link py-1 {{ request()->routeIs('users.*') ? 'active text-white' : 'text-secondary' }}">Pengguna</a>
                             <a href="{{ route('roles.index') }}"
@@ -250,15 +250,21 @@
                 </a>
                 <div class="collapse {{ $isFinanceActive ? 'show' : '' }}" id="collapseFinance">
                     <div class="nav flex-column ms-3 mt-1 gap-1 border-start ps-2">
-                        @can('manage-finance')
+                        @can('finance.reconciliation.index')
                             <a href="{{ route('finance.reconciliation') }}"
                                 class="nav-link py-1 {{ request()->routeIs('finance.reconciliation') ? 'active text-white' : 'text-secondary' }}">Rekonsiliasi</a>
+                        @endcan
+                        @can('finance.incomes.index')
                             <a href="{{ route('finance.incomes.index') }}"
                                 class="nav-link py-1 {{ request()->routeIs('finance.incomes.*') ? 'active text-white' : 'text-secondary' }}">Pemasukan
                                 Lain</a>
+                        @endcan
+                        @can('finance.expenses.index')
                             <a href="{{ route('finance.expenses.index') }}"
                                 class="nav-link py-1 {{ request()->routeIs('finance.expenses.*') ? 'active text-white' : 'text-secondary' }}">Pengeluaran
                                 & Biaya</a>
+                        @endcan
+                        @can('finance.transfers.index')
                             <a href="{{ route('finance.transfers.index') }}"
                                 class="nav-link py-1 {{ request()->routeIs('finance.transfers.*') ? 'active text-white' : 'text-secondary' }}">Transfer
                                 Dana</a>
@@ -284,18 +290,22 @@
                 </a>
                 <div class="collapse {{ $isPembelianActive ? 'show' : '' }}" id="collapsePembelian">
                     <div class="nav flex-column ms-3 mt-1 gap-1 border-start ps-2">
-                        @can('manage-incoming-goods')
+                        @can('purchase-orders.index')
                             <a href="{{ route('purchase_orders.index') }}"
                                 class="nav-link py-1 {{ request()->routeIs('purchase_orders.*') && !request()->routeIs('purchase_orders.report') ? 'active text-white' : 'text-secondary' }}">Purchase
                                 Order</a>
                         @endcan
-                        @can('manage-inventory')
+                        @can('goods-receipts.index')
                             <a href="{{ route('goods_receipts.index') }}"
                                 class="nav-link py-1 {{ request()->routeIs('goods_receipts.*') ? 'active text-white' : 'text-secondary' }}">Penerimaan
                                 Barang</a>
+                        @endcan
+                        @can('goods-issues.index')
                             <a href="{{ route('pembelian.goods_issue.index') }}"
                                 class="nav-link py-1 {{ request()->routeIs('pembelian.goods_issue.*') ? 'active text-white' : 'text-secondary' }}">Pengeluaran
                                 Barang</a>
+                        @endcan
+                        @can('purchase-returns.index')
                             <a href="{{ route('purchase_returns.index') }}"
                                 class="nav-link py-1 {{ request()->routeIs('purchase_returns.*') ? 'active text-white' : 'text-secondary' }}">Retur
                                 Pembelian</a>
@@ -354,23 +364,27 @@
                 </a>
                 <div class="collapse {{ $isGudangJadiActive ? 'show' : '' }}" id="collapseGudangJadi">
                     <div class="nav flex-column ms-3 mt-1 gap-1 border-start ps-2">
-                        @can('manage-inventory')
+                        @can('inventory.index')
                             <a href="{{ route('inventory.index') }}"
                                 class="nav-link py-1 {{ request()->routeIs('inventory.index') || request()->routeIs('inventory.ledger') ? 'active text-white' : 'text-secondary' }}">Stok
                                 Gudang Jadi</a>
+                        @endcan
+                        @can('stock-opnames.index')
                             <a href="{{ route('stock_opnames.index') }}"
                                 class="nav-link py-1 {{ request()->routeIs('stock_opnames.*') ? 'active text-white' : 'text-secondary' }}">Opname
                                 Stok Jadi</a>
+                        @endcan
+                        @can('inventory.stock_sync')
                             <a href="{{ route('inventory.stock_sync') }}"
                                 class="nav-link py-1 {{ request()->routeIs('inventory.stock_sync') ? 'active text-white' : 'text-secondary' }}">Sinkronisasi
                                 Stok</a>
                         @endcan
-                        @can('manage-fulfillment')
+                        @can('fulfillment.index')
                             <a href="{{ route('fulfillment.index') }}"
                                 class="nav-link py-1 {{ request()->routeIs('fulfillment.*') ? 'active text-white' : 'text-secondary' }}">Kemas
                                 Pesanan (Scan)</a>
                         @endcan
-                        @can('manage-complaints')
+                        @can('complaints.index')
                             <a href="{{ route('complaints.index') }}"
                                 class="nav-link py-1 {{ request()->routeIs('complaints.*') ? 'active text-white' : 'text-secondary' }}">Pengaduan
                                 Barang</a>
@@ -402,7 +416,7 @@
                 </a>
                 <div class="collapse {{ $isMarketingActive ? 'show' : '' }}" id="collapseMarketing">
                     <div class="nav flex-column ms-3 mt-1 gap-1 border-start ps-2">
-                        @can('manage-orders')
+                        @can('orders.index')
                             <a href="{{ route('orders.index') }}"
                                 class="nav-link py-1 d-flex align-items-center justify-content-between pe-3 {{ (request()->routeIs('orders.*') && !request()->routeIs('orders.create')) ? 'active text-white' : 'text-secondary' }}">
                                 <span>Pesanan Masuk</span>
@@ -410,22 +424,24 @@
                                     <span class="badge bg-danger rounded-pill small">{{ $pendingOrdersCount }}</span>
                                 @endif
                             </a>
+                        @endcan
+                        @can('orders.create')
                             <a href="{{ route('orders.create') }}"
                                 class="nav-link py-1 {{ request()->routeIs('orders.create') ? 'active text-white' : 'text-secondary' }}">
                                 <span>Input Pesanan Manual</span>
                             </a>
                         @endcan
-                        @can('manage-offline-sales')
+                        @can('offline-sales.index')
                             <a href="{{ route('offline_sales.index') }}"
                                 class="nav-link py-1 {{ request()->routeIs('offline_sales.*') ? 'active text-white' : 'text-secondary' }}">Penjualan
                                 Offline</a>
                         @endcan
-                        @can('manage-returns')
+                        @can('returns.index')
                             <a href="{{ route('returns.index') }}"
                                 class="nav-link py-1 {{ request()->routeIs('returns.*') ? 'active text-white' : 'text-secondary' }}">Pesanan
                                 Retur</a>
                         @endcan
-                        @can('manage-chats')
+                        @can('chats.index')
                             <a href="{{ route('chats.index') }}"
                                 class="nav-link py-1 {{ request()->routeIs('chats.*') ? 'active text-white' : 'text-secondary' }}">Inbox
                                 Chat</a>
