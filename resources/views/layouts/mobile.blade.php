@@ -420,6 +420,13 @@
     @yield('styles')
 </head>
 <body>
+    @php
+        $role = Auth::user()->role;
+        $isOwnerActive = request()->routeIs('mobile.owner*');
+        $isGudangActive = request()->routeIs('mobile.gudang') || request()->routeIs('mobile.gudang.adjust_stock') || request()->routeIs('mobile.gudang.request_production');
+        $isScanActive = request()->routeIs('mobile.gudang.scan*');
+        $isProduksiActive = request()->routeIs('mobile.produksi*');
+    @endphp
 
     <!-- Drawer Sidebar and overlay removed for mobile -->
 
