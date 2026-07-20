@@ -277,7 +277,7 @@
                                             <span class="input-group-text" style="font-size:11px">Rp</span>
                                             <input type="number" name="items[{{ $itemIndex }}][unit_price]"
                                                 class="form-control form-control-sm text-end price-input"
-                                                value="{{ (int)$item->unit_price }}" min="0" step="100" required>
+                                                value="{{ (int)$item->unit_price }}" min="0" step="any" required>
                                         </div>
                                     </td>
                                     <td class="text-end font-monospace fw-bold text-dark subtotal-display" style="font-size:13px">
@@ -466,7 +466,7 @@ $(document).ready(function () {
                     <span class="input-group-text" style="font-size:11px">Rp</span>
                     <input type="number" name="items[${itemIndex}][unit_price]"
                         class="form-control form-control-sm text-end price-input"
-                        value="${price}" min="0" step="100" required>
+                        value="${price}" min="0" step="any" required>
                 </div>
             </td>
             <td class="text-end font-monospace fw-bold text-dark subtotal-display" style="font-size:13px">
@@ -480,6 +480,9 @@ $(document).ready(function () {
         `;
         tbody.appendChild(tr);
         itemIndex++;
+
+        // Inisialisasi format rupiah untuk row baru
+        if (window.initRupiahInputs) window.initRupiahInputs(tr);
 
         // Reset picker
         picker.val('').trigger('change');
@@ -496,6 +499,11 @@ $(document).ready(function () {
         updateSummary();
     });
 
+    // Helper: baca nilai input yang sudah diformat (strip titik ribuan)
+    function rawVal(input) {
+        return parseFloat(String(input.value).replace(/\./g, '') || 0);
+    }
+
     // Bind original rows
     document.querySelectorAll('.item-row').forEach(row => {
         row.querySelector('.qty-input').addEventListener('input', recalc);
@@ -511,7 +519,7 @@ $(document).ready(function () {
     function recalc() {
         const tr    = this.closest('tr');
         const qty   = parseInt(tr.querySelector('.qty-input').value || 0);
-        const price = parseFloat(tr.querySelector('.price-input').value || 0);
+        const price = rawVal(tr.querySelector('.price-input'));
         tr.querySelector('.subtotal-display').textContent = 'Rp ' + (qty * price).toLocaleString('id-ID');
         updateSummary();
     }
@@ -520,7 +528,7 @@ $(document).ready(function () {
         let total = 0, count = 0;
         document.querySelectorAll('.item-row').forEach(row => {
             const qty   = parseInt(row.querySelector('.qty-input').value || 0);
-            const price = parseFloat(row.querySelector('.price-input').value || 0);
+            const price = rawVal(row.querySelector('.price-input'));
             total += qty * price;
             count++;
         });

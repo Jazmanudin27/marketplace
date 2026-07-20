@@ -385,7 +385,7 @@
                 const productId = $('#input_product_id').val();
                 const productName = $('#input_product_id option:selected').text().trim();
                 const qty = parseInt($('#input_qty').val() || 0);
-                const price = parseFloat($('#input_price').val() || 0);
+                const price = window.parseRupiah ? window.parseRupiah($('#input_price').val()) : parseFloat($('#input_price').val() || 0);
 
                 if (!productId) {
                     showWarn('Silakan pilih produk terlebih dahulu.');
@@ -454,7 +454,7 @@
             // Edit price in cart
             $(document).on('change', '.cart-price-edit', function() {
                 const index = $(this).data('index');
-                const newPrice = parseFloat($(this).val() || 0);
+                const newPrice = window.parseRupiah ? window.parseRupiah($(this).val()) : parseFloat($(this).val() || 0);
                 if (newPrice < 0) {
                     $(this).val(0);
                     cartItems[index].price = 0;

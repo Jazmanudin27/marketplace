@@ -320,7 +320,144 @@
         </div>
     </div>
 
+    {{-- ============================================================ --}}
+    {{-- GLOBAL RUPIAH FORMATTER                                      --}}
+    {{-- Otomatis format semua input angka dengan prefix "Rp"        --}}
+    {{-- dan semua input dengan data-rupiah attribute                 --}}
+    {{-- ============================================================ --}}
+    <script>
+    (function () {
+        'use strict';
+
+        /* ---- helpers ---- */
+        function toRaw(str) {
+            // Hapus semua titik ribuan, kembalikan angka bersih
+            return String(str).replace(/\./g, '').replace(/[^\d]/g, '');
+        }
+
+        function formatRupiah(str) {
+            var raw = toRaw(str);
+            if (raw === '') return '';
+            return raw.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+        }
+
+        /* ---- format satu input ---- */
+        function applyFormat(input) {
+            if (input.dataset.rupiahInit) return; // sudah di-init
+            input.dataset.rupiahInit = '1';
+
+            // Ubah type ke text agar bisa tampilkan titik
+            var originalType = input.type;
+            if (originalType === 'number') {
+                input.type = 'text';
+                input.setAttribute('inputmode', 'numeric');
+            }
+
+            // Format nilai awal
+            if (input.value !== '') {
+                input.value = formatRupiah(input.value);
+            }
+
+            // Format saat mengetik
+            input.addEventListener('input', function () {
+                var pos   = this.selectionStart;
+                var oldLen = this.value.length;
+                this.value = formatRupiah(this.value);
+                // Adjust cursor position after formatting
+                var diff = this.value.length - oldLen;
+                try { this.setSelectionRange(pos + diff, pos + diff); } catch(e){}
+            });
+
+            // Saat focus: tidak perlu ubah (sudah terbaca dengan titik)
+            // Saat blur: pastikan format sudah benar
+            input.addEventListener('blur', function () {
+                this.value = formatRupiah(this.value);
+            });
+        }
+
+        /* ---- strip sebelum submit ---- */
+        function stripForm(form) {
+            var inputs = form.querySelectorAll('[data-rupiah-init]');
+            inputs.forEach(function (inp) {
+                inp.value = toRaw(inp.value);
+            });
+        }
+
+        /* ---- deteksi input yang harus diformat ---- */
+        function detectAndInit(root) {
+            root = root || document;
+
+            // 1. Input yang punya sibling/parent input-group-text = "Rp"
+            var groups = root.querySelectorAll('.input-group');
+            groups.forEach(function (group) {
+                var prefixEl = group.querySelector('.input-group-text');
+                if (prefixEl && prefixEl.textContent.trim() === 'Rp') {
+                    var inp = group.querySelector('input[type="number"], input[type="text"][inputmode="numeric"], input.rupiah-input');
+                    // Juga cari input number/text dalam group
+                    var inputs = group.querySelectorAll('input');
+                    inputs.forEach(function (i) {
+                        var name = (i.name || '').toLowerCase();
+                        // Skip quantity / step / dimensi / persen
+                        if (name.match(/qty|quantity|step|radius|day|percent|persen|weight|length|width|height|min_stock|stock|preorder/)) return;
+                        applyFormat(i);
+                    });
+                }
+            });
+
+            // 2. Input dengan class rupiah-input atau data-rupiah
+            root.querySelectorAll('.rupiah-input, [data-rupiah]').forEach(function (inp) {
+                applyFormat(inp);
+            });
+
+            // 3. Input amount di modal hutang supplier
+            root.querySelectorAll('input[name="amount"], input[name="unit_price"], input[name="unit_cost"], input[name="harga_jual"], input[name="harga_beli"], input[name="min_purchase"], input[name="max_discount"], input[name="value"][type="number"]').forEach(function(inp) {
+                // Hanya jika bukan qty / dimensi
+                applyFormat(inp);
+            });
+        }
+
+        /* ---- Main init ---- */
+        document.addEventListener('DOMContentLoaded', function () {
+            detectAndInit(document);
+
+            // Strip rupiah sebelum submit semua form
+            document.querySelectorAll('form').forEach(function (form) {
+                form.addEventListener('submit', function () {
+                    stripForm(this);
+                });
+            });
+
+            // Observe DOM changes (untuk row yang ditambah dinamis / JS)
+            if (window.MutationObserver) {
+                var observer = new MutationObserver(function (mutations) {
+                    mutations.forEach(function (m) {
+                        m.addedNodes.forEach(function (node) {
+                            if (node.nodeType === 1) {
+                                detectAndInit(node);
+                                // Pastikan form baru juga di-strip saat submit
+                                if (node.tagName === 'FORM') {
+                                    node.addEventListener('submit', function () { stripForm(this); });
+                                }
+                                node.querySelectorAll && node.querySelectorAll('form').forEach(function (f) {
+                                    f.addEventListener('submit', function () { stripForm(this); });
+                                });
+                            }
+                        });
+                    });
+                });
+                observer.observe(document.body, { childList: true, subtree: true });
+            }
+        });
+
+        // Expose globally agar bisa dipanggil manual setelah render dinamis
+        window.initRupiahInputs = detectAndInit;
+        window.parseRupiah = function (val) { return parseFloat(toRaw(val)) || 0; };
+        window.formatRupiah = formatRupiah;
+    })();
+    </script>
+
     @stack('scripts')
+
 
 </body>
 
