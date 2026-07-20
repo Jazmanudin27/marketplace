@@ -740,6 +740,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/mobile/owner/stok-produk/{id}', [\App\Http\Controllers\MobileController::class, 'ownerStokProdukDetail'])->name('mobile.owner.stok_produk.detail');
         Route::get('/mobile/owner/stok-barang', [\App\Http\Controllers\MobileController::class, 'ownerStokBarang'])->name('mobile.owner.stok_barang');
         Route::get('/mobile/owner/stok-barang/{id}', [\App\Http\Controllers\MobileController::class, 'ownerStokBarangDetail'])->name('mobile.owner.stok_barang.detail');
+        Route::get('/mobile/owner/spk', [\App\Http\Controllers\MobileController::class, 'ownerSpk'])->name('mobile.owner.spk');
+        Route::get('/mobile/owner/laba-rugi', [\App\Http\Controllers\MobileController::class, 'ownerProfitLoss'])->name('mobile.owner.profit_loss');
     });
 
     // Gudang Mobile Dashboard (Scan Kemasan Produk & Request Produksi)

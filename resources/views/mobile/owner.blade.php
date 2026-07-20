@@ -112,6 +112,36 @@
 @endsection
 
 @section('content')
+    <!-- Shortcuts / Pintasan Cepat -->
+    <div class="row g-2 mb-3">
+        <div class="col-6">
+            <a href="{{ route('mobile.owner.profit_loss') }}" class="text-decoration-none">
+                <div class="p-3 bg-white border rounded-4 d-flex align-items-center gap-2.5 shadow-sm" style="transition: all 0.2s;">
+                    <div class="rounded-3 bg-primary-subtle text-primary d-flex align-items-center justify-content-center" style="width: 40px; height: 40px; flex-shrink: 0;">
+                        <i class="fas fa-file-invoice-dollar fs-5"></i>
+                    </div>
+                    <div>
+                        <h6 class="fw-bold text-dark mb-0.5" style="font-size: 0.8rem; line-height: 1.2;">Laba Rugi</h6>
+                        <span class="text-muted d-block" style="font-size: 0.65rem;">Keuangan</span>
+                    </div>
+                </div>
+            </a>
+        </div>
+        <div class="col-6">
+            <a href="{{ route('mobile.owner.spk') }}" class="text-decoration-none">
+                <div class="p-3 bg-white border rounded-4 d-flex align-items-center gap-2.5 shadow-sm" style="transition: all 0.2s;">
+                    <div class="rounded-3 bg-indigo-subtle text-indigo d-flex align-items-center justify-content-center" style="width: 40px; height: 40px; flex-shrink: 0;">
+                        <i class="fas fa-tasks fs-5"></i>
+                    </div>
+                    <div>
+                        <h6 class="fw-bold text-dark mb-0.5" style="font-size: 0.8rem; line-height: 1.2;">Tracking SPK</h6>
+                        <span class="text-muted d-block" style="font-size: 0.65rem;">Produksi</span>
+                    </div>
+                </div>
+            </a>
+        </div>
+    </div>
+
     <!-- Stats Grid -->
     <div class="row g-3 mb-4">
         <!-- Today Revenue -->

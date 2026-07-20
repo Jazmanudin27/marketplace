@@ -130,13 +130,35 @@
         </div>
     </div>
 
-    <!-- Search Form -->
+    <!-- Search & Filters Form -->
     <div class="mb-3">
-        <form action="{{ route('mobile.owner.sales') }}" method="GET" class="m-0">
-            <div class="search-container">
+        <form action="{{ route('mobile.owner.sales') }}" method="GET" class="m-0" id="filterForm">
+            <div class="search-container mb-2">
                 <i class="fas fa-search search-icon"></i>
                 <input type="text" name="search" class="form-control search-input w-100" 
-                       value="{{ $search }}" placeholder="Cari pembeli, toko, atau no. invoice...">
+                       value="{{ $search }}" placeholder="Cari nama pembeli, toko, invoice...">
+            </div>
+            <div class="row g-2">
+                <div class="col-6">
+                    <select name="channel_id" class="form-select border rounded-3" 
+                            style="font-size: 0.82rem; padding: 8px 12px; color: #475569;" 
+                            onchange="this.form.submit()">
+                        <option value="">Semua Channel</option>
+                        @foreach($channels as $c)
+                            <option value="{{ $c->id }}" @selected($channelId == $c->id)>{{ ucfirst($c->name) }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="col-6">
+                    <select name="store_id" class="form-select border rounded-3" 
+                            style="font-size: 0.82rem; padding: 8px 12px; color: #475569;" 
+                            onchange="this.form.submit()">
+                        <option value="">Semua Toko</option>
+                        @foreach($stores as $s)
+                            <option value="{{ $s->id }}" @selected($storeId == $s->id)>{{ $s->store_name }}</option>
+                        @endforeach
+                    </select>
+                </div>
             </div>
         </form>
     </div>

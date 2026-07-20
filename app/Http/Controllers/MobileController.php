@@ -294,9 +294,11 @@ class MobileController extends Controller
     {
         $tenantId = Auth::user()->tenant_id;
         $search = $request->input('search');
+        $storeId = $request->input('store_id');
+        $channelId = $request->input('channel_id');
 
         $query = Order::where('tenant_id', $tenantId)
-            ->with('store')
+            ->with('store.channel')
             ->orderByDesc('order_date');
 
         if ($search) {
@@ -309,22 +311,51 @@ class MobileController extends Controller
             });
         }
 
+        if ($storeId) {
+            $query->where('store_id', $storeId);
+        }
+
+        if ($channelId) {
+            $query->whereHas('store', function ($q) use ($channelId) {
+                $q->where('channel_id', $channelId);
+            });
+        }
+
         $orders = $query->paginate(15)->withQueryString();
 
         $today = Carbon::today();
         $startOfMonth = Carbon::now()->startOfMonth();
 
-        $todayRevenue = Order::where('tenant_id', $tenantId)
+        $revenueQueryToday = Order::where('tenant_id', $tenantId)
             ->whereIn('order_status', ['COMPLETED', 'DELIVERED', 'SHIPPED', 'READY_TO_SHIP'])
-            ->whereDate('order_date', $today)
-            ->sum('net_amount');
+            ->whereDate('order_date', $today);
 
-        $monthRevenue = Order::where('tenant_id', $tenantId)
+        $revenueQueryMonth = Order::where('tenant_id', $tenantId)
             ->whereIn('order_status', ['COMPLETED', 'DELIVERED', 'SHIPPED', 'READY_TO_SHIP'])
-            ->where('order_date', '>=', $startOfMonth)
-            ->sum('net_amount');
+            ->where('order_date', '>=', $startOfMonth);
 
-        return view('mobile.owner_sales', compact('orders', 'todayRevenue', 'monthRevenue', 'search'));
+        if ($storeId) {
+            $revenueQueryToday->where('store_id', $storeId);
+            $revenueQueryMonth->where('store_id', $storeId);
+        }
+        if ($channelId) {
+            $revenueQueryToday->whereHas('store', function ($q) use ($channelId) {
+                $q->where('channel_id', $channelId);
+            });
+            $revenueQueryMonth->whereHas('store', function ($q) use ($channelId) {
+                $q->where('channel_id', $channelId);
+            });
+        }
+
+        $todayRevenue = $revenueQueryToday->sum('net_amount');
+        $monthRevenue = $revenueQueryMonth->sum('net_amount');
+
+        $stores = \App\Models\Store::where('tenant_id', $tenantId)->get();
+        $channels = \App\Models\Channel::whereHas('stores', function ($q) use ($tenantId) {
+            $q->where('tenant_id', $tenantId);
+        })->get();
+
+        return view('mobile.owner_sales', compact('orders', 'todayRevenue', 'monthRevenue', 'search', 'stores', 'channels', 'storeId', 'channelId'));
     }
 
     public function ownerStokProduk(Request $request)
@@ -451,5 +482,97 @@ class MobileController extends Controller
             ],
             'movements' => $movements,
         ]);
+    }
+
+    public function ownerSpk(Request $request)
+    {
+        $tenantId = Auth::user()->tenant_id;
+        $search = $request->input('search');
+
+        $query = \App\Models\Spk::with(['items.masterProduct'])
+            ->where('tenant_id', $tenantId)
+            ->orderByDesc('tanggal');
+
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('no_spk', 'like', "%{$search}%")
+                  ->orWhere('no_produksi', 'like', "%{$search}%")
+                  ->orWhere('pemesan', 'like', "%{$search}%")
+                  ->orWhere('instansi', 'like', "%{$search}%")
+                  ->orWhereHas('items', function ($i) use ($search) {
+                      $i->where('nama_produk', 'like', "%{$search}%")
+                        ->orWhere('sku', 'like', "%{$search}%");
+                  });
+            });
+        }
+
+        $spks = $query->paginate(10)->withQueryString();
+
+        return view('mobile.owner_spk', compact('spks', 'search'));
+    }
+
+    public function ownerProfitLoss(Request $request)
+    {
+        $tenantId = Auth::user()->tenant_id;
+
+        $dateFrom = $request->get('date_from', Carbon::now()->startOfMonth()->toDateString());
+        $dateTo = $request->get('date_to', Carbon::now()->toDateString());
+
+        $onlineOrders = Order::where('tenant_id', $tenantId)
+            ->whereNotIn('order_status', ['CANCELLED'])
+            ->whereBetween('order_date', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59'])
+            ->get();
+
+        $onlineRevenue = (float) $onlineOrders->sum('net_amount');
+        $onlineHpp = 0.0;
+        foreach ($onlineOrders as $order) {
+            $onlineHpp += $order->hpp_total;
+        }
+
+        $offlineSales = \App\Models\OfflineSale::where('tenant_id', $tenantId)
+            ->where('status', \App\Models\OfflineSale::STATUS_COMPLETED)
+            ->whereBetween('sold_at', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59'])
+            ->get();
+
+        $offlineRevenue = (float) $offlineSales->sum('grand_total');
+        $offlineHpp = 0.0;
+        foreach ($offlineSales as $sale) {
+            $offlineHpp += $sale->hpp_total;
+        }
+
+        $otherIncomes = \App\Models\Income::where('tenant_id', $tenantId)
+            ->whereBetween('income_date', [$dateFrom, $dateTo])
+            ->get();
+        $totalOtherIncome = (float) $otherIncomes->sum('amount');
+
+        $totalSalesRevenue = $onlineRevenue + $offlineRevenue;
+        $totalHpp = $onlineHpp + $offlineHpp;
+        $grossProfit = $totalSalesRevenue - $totalHpp;
+
+        $expenses = \App\Models\Expense::where('tenant_id', $tenantId)
+            ->whereBetween('expense_date', [$dateFrom, $dateTo])
+            ->get();
+
+        $expensesByCategory = [
+            'salary' => (float) $expenses->where('category', 'salary')->sum('amount'),
+            'rent' => (float) $expenses->where('category', 'rent')->sum('amount'),
+            'utilities' => (float) $expenses->where('category', 'utilities')->sum('amount'),
+            'pembelian_supplier' => (float) $expenses->where('category', 'pembelian_supplier')->sum('amount'),
+            'other' => (float) $expenses->where('category', 'other')->sum('amount'),
+        ];
+        $totalExpenses = (float) $expenses->sum('amount');
+
+        $netProfit = $grossProfit + $totalOtherIncome - $totalExpenses;
+        $netRevenueWithOther = $totalSalesRevenue + $totalOtherIncome;
+        $profitMargin = $netRevenueWithOther > 0 ? round(($netProfit / $netRevenueWithOther) * 100, 2) : 0;
+
+        return view('mobile.owner_profit_loss', compact(
+            'dateFrom', 'dateTo',
+            'onlineRevenue', 'onlineHpp',
+            'offlineRevenue', 'offlineHpp',
+            'totalOtherIncome', 'totalSalesRevenue', 'totalHpp',
+            'grossProfit', 'expensesByCategory', 'totalExpenses',
+            'netProfit', 'profitMargin'
+        ));
     }
 }
