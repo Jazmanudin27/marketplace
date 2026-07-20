@@ -289,4 +289,92 @@ class MobileController extends Controller
 
         return back()->with('success', 'Permintaan produksi #' . $order->id . ' telah dibatalkan.');
     }
+
+    public function ownerSales(Request $request)
+    {
+        $tenantId = Auth::user()->tenant_id;
+        $search = $request->input('search');
+
+        $query = Order::where('tenant_id', $tenantId)
+            ->with('store')
+            ->orderByDesc('order_date');
+
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('buyer_name', 'like', "%{$search}%")
+                  ->orWhere('invoice_number', 'like', "%{$search}%")
+                  ->orWhereHas('store', function($s) use ($search) {
+                      $s->where('store_name', 'like', "%{$search}%");
+                  });
+            });
+        }
+
+        $orders = $query->paginate(15)->withQueryString();
+
+        $today = Carbon::today();
+        $startOfMonth = Carbon::now()->startOfMonth();
+
+        $todayRevenue = Order::where('tenant_id', $tenantId)
+            ->whereIn('order_status', ['COMPLETED', 'DELIVERED', 'SHIPPED', 'READY_TO_SHIP'])
+            ->whereDate('order_date', $today)
+            ->sum('net_amount');
+
+        $monthRevenue = Order::where('tenant_id', $tenantId)
+            ->whereIn('order_status', ['COMPLETED', 'DELIVERED', 'SHIPPED', 'READY_TO_SHIP'])
+            ->where('order_date', '>=', $startOfMonth)
+            ->sum('net_amount');
+
+        return view('mobile.owner_sales', compact('orders', 'todayRevenue', 'monthRevenue', 'search'));
+    }
+
+    public function ownerStokProduk(Request $request)
+    {
+        $tenantId = Auth::user()->tenant_id;
+        $search = $request->input('search');
+
+        $query = MasterProduct::where('tenant_id', $tenantId);
+
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('sku', 'like', "%{$search}%");
+            });
+        }
+
+        $products = $query->orderBy('name')->paginate(15)->withQueryString();
+
+        $totalStockValue = MasterProduct::where('tenant_id', $tenantId)->get()->sum(function ($p) {
+            return $p->stock * (float)$p->cost_price;
+        });
+
+        $lowStockCount = MasterProduct::where('tenant_id', $tenantId)
+            ->whereColumn('stock', '<=', 'min_stock')
+            ->count();
+
+        return view('mobile.owner_stok_produk', compact('products', 'totalStockValue', 'lowStockCount', 'search'));
+    }
+
+    public function ownerStokBarang(Request $request)
+    {
+        $tenantId = Auth::user()->tenant_id;
+        $search = $request->input('search');
+
+        $query = \App\Models\InventoryItem::where('tenant_id', $tenantId);
+
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('sku', 'like', "%{$search}%");
+            });
+        }
+
+        $items = $query->orderBy('name')->paginate(15)->withQueryString();
+
+        $totalItemsCount = \App\Models\InventoryItem::where('tenant_id', $tenantId)->count();
+        $lowStockCount = \App\Models\InventoryItem::where('tenant_id', $tenantId)
+            ->whereColumn('stock', '<=', 'min_stock')
+            ->count();
+
+        return view('mobile.owner_stok_barang', compact('items', 'totalItemsCount', 'lowStockCount', 'search'));
+    }
 }

@@ -422,7 +422,11 @@
 <body>
     @php
         $role = Auth::user()->role;
-        $isOwnerActive = request()->routeIs('mobile.owner*');
+        $isOwnerActive = request()->routeIs('mobile.owner') && !request()->routeIs('mobile.owner.sales') && !request()->routeIs('mobile.owner.stok_produk') && !request()->routeIs('mobile.owner.stok_barang');
+        $isSalesActive = request()->routeIs('mobile.owner.sales');
+        $isStokProdukActive = request()->routeIs('mobile.owner.stok_produk');
+        $isStokBarangActive = request()->routeIs('mobile.owner.stok_barang');
+        
         $isGudangActive = request()->routeIs('mobile.gudang') || request()->routeIs('mobile.gudang.adjust_stock') || request()->routeIs('mobile.gudang.request_production');
         $isScanActive = request()->routeIs('mobile.gudang.scan*');
         $isProduksiActive = request()->routeIs('mobile.produksi*');
@@ -471,13 +475,25 @@
         <!-- Tab Owner -->
         @if(in_array($role, ['admin', 'owner', 'finance']))
             <a href="{{ route('mobile.owner') }}" class="nav-item-custom {{ $isOwnerActive ? 'active' : '' }}">
-                <i class="fas fa-chart-line"></i>
-                <span>Owner</span>
+                <i class="fas fa-home"></i>
+                <span>Home</span>
+            </a>
+            <a href="{{ route('mobile.owner.sales') }}" class="nav-item-custom {{ $isSalesActive ? 'active' : '' }}">
+                <i class="fas fa-shopping-cart"></i>
+                <span>Penjualan</span>
+            </a>
+            <a href="{{ route('mobile.owner.stok_produk') }}" class="nav-item-custom {{ $isStokProdukActive ? 'active' : '' }}">
+                <i class="fas fa-box-open"></i>
+                <span>Stok Produk</span>
+            </a>
+            <a href="{{ route('mobile.owner.stok_barang') }}" class="nav-item-custom {{ $isStokBarangActive ? 'active' : '' }}">
+                <i class="fas fa-scroll"></i>
+                <span>Stok Barang</span>
             </a>
         @endif
 
-        <!-- Tab Gudang -->
-        @if(in_array($role, ['admin', 'warehouse', 'gudang']))
+        <!-- Tab Gudang (For non-owner roles) -->
+        @if(!in_array($role, ['owner']) && in_array($role, ['admin', 'warehouse', 'gudang']))
             <a href="{{ route('mobile.gudang') }}" class="nav-item-custom {{ $isGudangActive ? 'active' : '' }}">
                 <i class="fas fa-warehouse"></i>
                 <span>Gudang</span>
@@ -488,8 +504,8 @@
             </a>
         @endif
 
-        <!-- Tab Produksi -->
-        @if(in_array($role, ['admin', 'production', 'produksi']))
+        <!-- Tab Produksi (For non-owner roles) -->
+        @if(!in_array($role, ['owner']) && in_array($role, ['admin', 'production', 'produksi']))
             <a href="{{ route('mobile.produksi') }}" class="nav-item-custom {{ $isProduksiActive ? 'active' : '' }}">
                 <i class="fas fa-tools"></i>
                 <span>Produksi</span>
