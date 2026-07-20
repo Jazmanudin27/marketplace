@@ -24,13 +24,16 @@
                             <i class="fas fa-print me-1"></i> Cetak Laporan
                         </a>
 
+                        @can('product-recipes.edit')
                         <form action="{{ route('product_recipes.sync_hpp_bulk') }}" method="POST" class="d-inline m-0">
                             @csrf
                             <button type="submit" class="btn btn-outline-primary btn-sm px-3 rounded-3 fw-semibold" title="Perbarui HPP semua produk berdasarkan rumus formula aktif">
                                 <i class="fas fa-sync me-1"></i> Sinkronisasi HPP Massal
                             </button>
                         </form>
+                        @endcan
 
+                        @can('product-recipes.create')
                         <a href="{{ route('product_recipes.bulk', request()->query()) }}"
                             class="btn btn-warning btn-sm px-3 rounded-3 fw-semibold">
                             <i class="fas fa-edit me-1"></i> Input Massal
@@ -39,6 +42,7 @@
                             class="btn btn-primary btn-sm px-3 rounded-3">
                             <i class="fas fa-plus me-1"></i> Tambah Formula
                         </a>
+                        @endcan
                     </div>
                 </div>
 
@@ -240,11 +244,14 @@
                                                         title="Detail Formula">
                                                         <i class="fas fa-eye"></i>
                                                     </button>
+                                                    @can('product-recipes.edit')
                                                     <a href="{{ route('product_recipes.edit', array_merge([$p->id], request()->query())) }}"
                                                         class="btn btn-sm btn-warning text-white rounded-3"
                                                         title="Edit Formula">
                                                         <i class="fas fa-pencil-alt"></i>
                                                     </a>
+                                                    @endcan
+                                                    @can('product-recipes.destroy')
                                                     <form
                                                         action="{{ route('product_recipes.destroy', array_merge([$p->id], request()->query())) }}"
                                                         method="POST" class="confirm-delete d-inline"
@@ -256,14 +263,19 @@
                                                             <i class="fas fa-trash-alt"></i>
                                                         </button>
                                                     </form>
+                                                    @endcan
                                                 </div>
                                             @else
                                                 <div class="d-flex justify-content-center">
+                                                    @can('product-recipes.create')
                                                     <a href="{{ route('product_recipes.edit', array_merge([$p->id], request()->query())) }}"
                                                         class="btn btn-sm btn-primary rounded-3"
                                                         title="Buat Formula">
                                                         <i class="fas fa-plus"></i>
                                                     </a>
+                                                    @else
+                                                    <span class="text-muted small">Belum ada formula</span>
+                                                    @endcan
                                                 </div>
                                             @endif
                                         </td>

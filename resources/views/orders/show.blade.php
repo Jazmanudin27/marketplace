@@ -329,6 +329,7 @@
                     </div>
                 </div>
 
+                @if (auth()->user()->isSuperAdmin() || auth()->user()->role === 'admin' || auth()->user()->hasAnyPermission(['spks.index', 'spks.show', 'spks.create']))
                 <!-- SPK Produksi Card -->
                 <div class="card border shadow-sm mb-3">
                     <div class="card-header bg-primary bg-opacity-10 p-3 border-bottom">
@@ -340,9 +341,13 @@
                                 @foreach ($order->spks as $spk)
                                     <div class="list-group-item px-0 py-2 border-0 border-bottom">
                                         <div class="d-flex justify-content-between align-items-center mb-1">
+                                            @can('spks.show')
                                             <a href="{{ route('spks.show', $spk->id) }}" class="fw-bold text-primary text-decoration-none">
                                                 {{ $spk->no_spk }}
                                             </a>
+                                            @else
+                                            <span class="fw-bold text-dark">{{ $spk->no_spk }}</span>
+                                            @endcan
                                             <span class="badge bg-secondary-subtle text-secondary small border">
                                                 {{ $spk->tanggal->format('d M Y') }}
                                             </span>
@@ -365,13 +370,16 @@
                                     </div>
                                 @endforeach
                             </div>
+                            @can('spks.create')
                             <div class="mt-2 text-center">
                                 <a href="{{ route('spks.create', ['order_id' => $order->id]) }}" class="btn btn-outline-primary btn-sm w-100 py-1 rounded-3">
                                     <i class="fas fa-plus me-1"></i> Buat SPK Tambahan
                                 </a>
                             </div>
+                            @endcan
                         @else
                             <p class="text-muted small mb-3">Pesanan ini belum memiliki Surat Perintah Kerja (SPK) produksi.</p>
+                            @can('spks.create')
                             @if ($order->hasPreorderItems() || str_starts_with($order->order_marketplace_id, 'MANUAL-'))
                                 <a href="{{ route('spks.create', ['order_id' => $order->id]) }}" class="btn btn-sm btn-primary w-100 fw-bold py-1.5 rounded-3 text-white">
                                     <i class="fas fa-tools me-1"></i> Buat SPK Produksi
@@ -384,9 +392,11 @@
                                     </a>
                                 </div>
                             @endif
+                            @endcan
                         @endif
                     </div>
                 </div>
+                @endif
 
                 <!-- Profit Analysis Card -->
                 @php

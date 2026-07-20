@@ -17,11 +17,13 @@
                 <h5 class="fw-bold mb-1"><i class="fas fa-file-signature text-primary me-2"></i>Surat Perintah Kerja (SPK)</h5>
                 <p class="text-muted small mb-0">Kelola dokumen perintah kerja produksi, pembagian tugas penjahit, dan visual desain baju.</p>
             </div>
+            @can('spks.create')
             <div>
                 <a href="{{ route('spks.create') }}" class="btn btn-primary btn-sm px-3 fw-bold rounded-2">
                     <i class="fas fa-plus me-1"></i> Buat SPK Baru
                 </a>
             </div>
+            @endcan
         </div>
 
         <hr class="my-4 opacity-10">
@@ -90,13 +92,16 @@
                             </td>
                             <td class="small text-muted">{{ $row->penginput->name ?? 'SYSTEM' }}</td>
                             <td class="text-center">
-                                <div class="d-flex justify-content-center gap-1">
+                                 <div class="d-flex justify-content-center gap-1">
+                                    @can('spks.show')
                                     <a href="{{ route('spks.show', $row) }}" class="btn btn-sm btn-outline-primary" title="Detail">
                                         <i class="fas fa-eye"></i>
                                     </a>
                                     <a href="{{ route('spks.print', $row) }}" target="_blank" class="btn btn-sm btn-outline-secondary" title="Cetak SPK">
                                         <i class="fas fa-print"></i>
                                     </a>
+                                    @endcan
+                                    @can('spks.destroy')
                                     <form action="{{ route('spks.destroy', $row) }}" method="POST" class="m-0"
                                         onsubmit="return confirm('Apakah Anda yakin ingin menghapus data SPK ini? Tindakan ini tidak bisa dibatalkan.')">
                                         @csrf
@@ -105,6 +110,7 @@
                                             <i class="fas fa-trash"></i>
                                         </button>
                                     </form>
+                                    @endcan
                                 </div>
                             </td>
                         </tr>
