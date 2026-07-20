@@ -19,7 +19,11 @@ class UserController extends Controller
             'dashboard.marketing',
             'dashboard.finance',
             'dashboard.production_purchase',
-            'dashboard.warehouse'
+            'dashboard.warehouse',
+            'inventory-items.index',
+            'inventory-items.create',
+            'inventory-items.edit',
+            'inventory-items.destroy'
         ];
         foreach ($newDashPermissions as $pName) {
             try {
@@ -36,6 +40,12 @@ class UserController extends Controller
                 'dashboard.finance' => 'Melihat Dashboard Keuangan',
                 'dashboard.production_purchase' => 'Melihat Dashboard Pembelian & Produksi',
                 'dashboard.warehouse' => 'Melihat Dashboard Gudang Jadi',
+            ],
+            'Master Barang (Bahan & Operasional)' => [
+                'inventory-items.index' => 'Lihat Master Barang',
+                'inventory-items.create' => 'Tambah Master Barang',
+                'inventory-items.edit' => 'Edit Master Barang',
+                'inventory-items.destroy' => 'Hapus Master Barang',
             ],
             'Master Kategori & Merk' => [
                 'categories.index' => 'Lihat Kategori',

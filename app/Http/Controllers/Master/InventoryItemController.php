@@ -9,17 +9,17 @@ use Illuminate\Support\Facades\Auth;
 
 class InventoryItemController extends Controller
 {
-    private function checkAccess()
+    private function checkAccess($permission = 'inventory-items.index')
     {
         $user = Auth::user();
-        if (!$user->isSuperAdmin() && $user->role !== 'admin') {
+        if (!$user->isSuperAdmin() && $user->role !== 'admin' && !$user->can($permission)) {
             abort(403, 'Anda tidak memiliki hak akses untuk mengelola Master Barang.');
         }
     }
 
     public function index(Request $request)
     {
-        $this->checkAccess();
+        $this->checkAccess('inventory-items.index');
 
         $query = InventoryItem::where('tenant_id', Auth::user()->tenant_id);
 
@@ -53,7 +53,7 @@ class InventoryItemController extends Controller
 
     public function store(Request $request)
     {
-        $this->checkAccess();
+        $this->checkAccess('inventory-items.create');
 
         $data = $request->validate([
             'sku' => 'nullable|string|max:50',
@@ -94,7 +94,7 @@ class InventoryItemController extends Controller
 
     public function update(Request $request, InventoryItem $inventoryItem)
     {
-        $this->checkAccess();
+        $this->checkAccess('inventory-items.edit');
 
         abort_unless($inventoryItem->tenant_id === Auth::user()->tenant_id, 403);
 
@@ -123,7 +123,7 @@ class InventoryItemController extends Controller
 
     public function destroy(InventoryItem $inventoryItem)
     {
-        $this->checkAccess();
+        $this->checkAccess('inventory-items.destroy');
 
         abort_unless($inventoryItem->tenant_id === Auth::user()->tenant_id, 403);
 

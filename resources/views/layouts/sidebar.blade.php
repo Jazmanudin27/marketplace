@@ -191,6 +191,8 @@
                         @if (auth()->user()->isSuperAdmin() || auth()->user()->role === 'admin')
                             <a href="{{ route('departments.index') }}"
                                 class="nav-link py-1 {{ request()->routeIs('departments.*') ? 'active text-white' : 'text-secondary' }}">Departemen</a>
+                        @endif
+                        @if (auth()->user()->isSuperAdmin() || auth()->user()->role === 'admin' || auth()->user()->can('inventory-items.index'))
                             <a href="{{ route('inventory_items.index') }}"
                                 class="nav-link py-1 {{ request()->routeIs('inventory_items.*') && !request()->has('type') ? 'active text-white' : 'text-secondary' }}">Master
                                 Barang</a>
