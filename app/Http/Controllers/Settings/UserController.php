@@ -23,7 +23,17 @@ class UserController extends Controller
             'inventory-items.index',
             'inventory-items.create',
             'inventory-items.edit',
-            'inventory-items.destroy'
+            'inventory-items.destroy',
+            'spks.index',
+            'spks.show',
+            'spks.create',
+            'spks.edit',
+            'spks.destroy',
+            'product-recipes.index',
+            'product-recipes.create',
+            'product-recipes.edit',
+            'product-recipes.destroy',
+            'reports.production_hpp'
         ];
         foreach ($newDashPermissions as $pName) {
             try {
@@ -228,6 +238,16 @@ class UserController extends Controller
                 'production-orders.create' => 'Buat Perintah Produksi',
                 'production-orders.edit' => 'Edit Perintah Produksi',
                 'production-orders.destroy' => 'Hapus Perintah Produksi',
+                'spks.index' => 'Lihat SPK (Surat Perintah Kerja)',
+                'spks.show' => 'Detail SPK (Surat Perintah Kerja)',
+                'spks.create' => 'Tambah SPK (Surat Perintah Kerja)',
+                'spks.edit' => 'Edit SPK (Surat Perintah Kerja)',
+                'spks.destroy' => 'Hapus SPK (Surat Perintah Kerja)',
+                'product-recipes.index' => 'Lihat Formula Produk (BOM)',
+                'product-recipes.create' => 'Tambah Formula Produk (BOM)',
+                'product-recipes.edit' => 'Edit Formula Produk (BOM)',
+                'product-recipes.destroy' => 'Hapus Formula Produk (BOM)',
+                'reports.production_hpp' => 'Lihat Laporan HPP Produksi (SPK Selesai)',
             ],
             'Pengaturan Akun & Level' => [
                 'users.index' => 'Kelola Pengguna Sistem',
