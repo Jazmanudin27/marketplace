@@ -52,8 +52,13 @@
                         <th>Nama Barang</th>
                         <th>Kategori</th>
                         <th class="text-center">Stok Awal</th>
-                        <th class="text-center text-success">Masuk (+)</th>
-                        <th class="text-center text-danger">Keluar (-)</th>
+                        <th class="text-center text-success" style="background-color: #f0fdf4">Pembelian</th>
+                        <th class="text-center text-success" style="background-color: #f0fdf4">Retur Jual</th>
+                        <th class="text-center text-success" style="background-color: #f0fdf4">Penyesuaian (+)</th>
+                        <th class="text-center text-danger" style="background-color: #fef2f2">Produksi</th>
+                        <th class="text-center text-danger" style="background-color: #fef2f2">Percetakan</th>
+                        <th class="text-center text-danger" style="background-color: #fef2f2">Retur Beli</th>
+                        <th class="text-center text-danger" style="background-color: #fef2f2">Penyesuaian (-)</th>
                         <th class="text-center fw-bold">Stok Akhir</th>
                         <th>Satuan</th>
                         <th class="text-end">Nilai Barang</th>
@@ -77,15 +82,20 @@
                                 <span class="badge text-uppercase" style="{{ $cs }};font-size:9px">{{ $row['type'] }}</span>
                             </td>
                             <td class="text-center small">{{ number_format($row['stok_awal']) }}</td>
-                            <td class="text-center text-success small fw-semibold">+{{ number_format($row['qty_masuk']) }}</td>
-                            <td class="text-center text-danger small fw-semibold">-{{ number_format($row['qty_keluar']) }}</td>
+                            <td class="text-center text-success small fw-semibold" style="background-color: #f9fdfa">+{{ number_format($row['pembelian']) }}</td>
+                            <td class="text-center text-success small fw-semibold" style="background-color: #f9fdfa">+{{ number_format($row['retur_penjualan']) }}</td>
+                            <td class="text-center text-success small fw-semibold" style="background-color: #f9fdfa">+{{ number_format($row['penyesuaian_masuk']) }}</td>
+                            <td class="text-center text-danger small fw-semibold" style="background-color: #fffdfd">-{{ number_format($row['produksi']) }}</td>
+                            <td class="text-center text-danger small fw-semibold" style="background-color: #fffdfd">-{{ number_format($row['percetakan']) }}</td>
+                            <td class="text-center text-danger small fw-semibold" style="background-color: #fffdfd">-{{ number_format($row['retur_pembelian']) }}</td>
+                            <td class="text-center text-danger small fw-semibold" style="background-color: #fffdfd">-{{ number_format($row['penyesuaian_keluar']) }}</td>
                             <td class="text-center fw-bold small">{{ number_format($row['stok_akhir']) }}</td>
                             <td class="text-muted small">{{ $row['unit'] }}</td>
                             <td class="text-end font-monospace small">Rp {{ number_format($row['total_value'], 0, ',', '.') }}</td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="9" class="text-center py-5 text-muted">
+                            <td colspan="15" class="text-center py-5 text-muted">
                                 <i class="fas fa-boxes fa-2x mb-3 opacity-25 d-block"></i>
                                 Tidak ada data rekap persediaan.
                             </td>

@@ -104,19 +104,74 @@ class WarehouseMutationController extends Controller
         if ($itemType !== 'all') $query->where('type', $itemType);
         $rekap = [];
         foreach ($query->get() as $item) {
-            $inQty  = StockMovement::where('inventory_item_id', $item->id)
+            $afterQty = StockMovement::where('inventory_item_id', $item->id)
+                ->where('created_at', '>', $dateTo . ' 23:59:59')
+                ->sum('quantity');
+            $stokAkhir = $item->stock - $afterQty;
+
+            $movements = StockMovement::where('inventory_item_id', $item->id)
                 ->whereBetween('created_at', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59'])
-                ->where('quantity', '>', 0)->sum('quantity');
-            $outQty = abs(StockMovement::where('inventory_item_id', $item->id)
-                ->whereBetween('created_at', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59'])
-                ->where('quantity', '<', 0)->sum('quantity'));
-            $stokAkhir = $item->stock;
-            $stokAwal  = max(0, $stokAkhir - $inQty + $outQty);
-            $rekap[] = ['sku' => $item->sku, 'name' => $item->name, 'unit' => $item->unit,
-                'type' => $item->type, 'stok_awal' => $stokAwal,
-                'qty_masuk' => $inQty, 'qty_keluar' => $outQty, 'stok_akhir' => $stokAkhir,
+                ->with('warehouseMutation.toDepartment')
+                ->get();
+
+            $pembelian = 0;
+            $returPenjualan = 0;
+            $penyesuaianMasuk = 0;
+            
+            $produksi = 0;
+            $percetakan = 0;
+            $returPembelian = 0;
+            $penyesuaianKeluar = 0;
+
+            foreach ($movements as $m) {
+                $qty = $m->quantity;
+                $ref = $m->reference;
+                
+                if ($qty > 0) {
+                    if (str_contains($ref, 'Terima') || str_contains($ref, 'Penerimaan')) {
+                        $pembelian += $qty;
+                    } elseif (str_contains($ref, 'Retur Penjualan') || str_contains($ref, 'Retur dari Pelanggan')) {
+                        $returPenjualan += $qty;
+                    } elseif (str_contains($ref, 'Pengembalian Bahan Baku SPK')) {
+                        $produksi -= $qty; // net from production consumption
+                    } else {
+                        $penyesuaianMasuk += $qty;
+                    }
+                } else {
+                    $absQty = abs($qty);
+                    if (str_contains($ref, 'Retur ke Supplier') || str_contains($ref, 'Purchase Return') || str_contains($ref, 'Retur Pembelian')) {
+                        $returPembelian += $absQty;
+                    } elseif (str_contains($ref, 'SPK') || str_contains($ref, 'Konsumsi Bahan Baku SPK') || (str_contains(strtolower($ref), 'pengeluaran') && $m->warehouseMutation && $m->warehouseMutation->toDepartment && str_contains(strtolower($m->warehouseMutation->toDepartment->name), 'produksi'))) {
+                        $produksi += $absQty;
+                    } elseif (str_contains(strtolower($ref), 'percetakan') || ($m->warehouseMutation && $m->warehouseMutation->toDepartment && str_contains(strtolower($m->warehouseMutation->toDepartment->name), 'percetakan'))) {
+                        $percetakan += $absQty;
+                    } else {
+                        $penyesuaianKeluar += $absQty;
+                    }
+                }
+            }
+
+            $totalMasuk = $pembelian + $returPenjualan + $penyesuaianMasuk;
+            $totalKeluar = $produksi + $percetakan + $returPembelian + $penyesuaianKeluar;
+            $stokAwal = $stokAkhir - ($totalMasuk - $totalKeluar);
+
+            $rekap[] = [
+                'sku' => $item->sku,
+                'name' => $item->name,
+                'unit' => $item->unit,
+                'type' => $item->type,
+                'stok_awal' => $stokAwal,
+                'pembelian' => $pembelian,
+                'retur_penjualan' => $returPenjualan,
+                'penyesuaian_masuk' => $penyesuaianMasuk,
+                'produksi' => $produksi,
+                'percetakan' => $percetakan,
+                'retur_pembelian' => $returPembelian,
+                'penyesuaian_keluar' => $penyesuaianKeluar,
+                'stok_akhir' => $stokAkhir,
                 'cost_price' => $item->cost_price ?? 0,
-                'total_value' => $stokAkhir * ($item->cost_price ?? 0)];
+                'total_value' => $stokAkhir * ($item->cost_price ?? 0)
+            ];
         }
         return view('inventory.pembelian.report_summary', compact('rekap', 'itemType', 'dateFrom', 'dateTo'));
     }
@@ -133,19 +188,74 @@ class WarehouseMutationController extends Controller
         if ($itemType !== 'all') $query->where('type', $itemType);
         $rekap = [];
         foreach ($query->get() as $item) {
-            $inQty  = StockMovement::where('inventory_item_id', $item->id)
+            $afterQty = StockMovement::where('inventory_item_id', $item->id)
+                ->where('created_at', '>', $dateTo . ' 23:59:59')
+                ->sum('quantity');
+            $stokAkhir = $item->stock - $afterQty;
+
+            $movements = StockMovement::where('inventory_item_id', $item->id)
                 ->whereBetween('created_at', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59'])
-                ->where('quantity', '>', 0)->sum('quantity');
-            $outQty = abs(StockMovement::where('inventory_item_id', $item->id)
-                ->whereBetween('created_at', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59'])
-                ->where('quantity', '<', 0)->sum('quantity'));
-            $stokAkhir = $item->stock;
-            $stokAwal  = max(0, $stokAkhir - $inQty + $outQty);
-            $rekap[] = ['sku' => $item->sku, 'name' => $item->name, 'unit' => $item->unit,
-                'type' => $item->type, 'stok_awal' => $stokAwal,
-                'qty_masuk' => $inQty, 'qty_keluar' => $outQty, 'stok_akhir' => $stokAkhir,
+                ->with('warehouseMutation.toDepartment')
+                ->get();
+
+            $pembelian = 0;
+            $returPenjualan = 0;
+            $penyesuaianMasuk = 0;
+            
+            $produksi = 0;
+            $percetakan = 0;
+            $returPembelian = 0;
+            $penyesuaianKeluar = 0;
+
+            foreach ($movements as $m) {
+                $qty = $m->quantity;
+                $ref = $m->reference;
+                
+                if ($qty > 0) {
+                    if (str_contains($ref, 'Terima') || str_contains($ref, 'Penerimaan')) {
+                        $pembelian += $qty;
+                    } elseif (str_contains($ref, 'Retur Penjualan') || str_contains($ref, 'Retur dari Pelanggan')) {
+                        $returPenjualan += $qty;
+                    } elseif (str_contains($ref, 'Pengembalian Bahan Baku SPK')) {
+                        $produksi -= $qty;
+                    } else {
+                        $penyesuaianMasuk += $qty;
+                    }
+                } else {
+                    $absQty = abs($qty);
+                    if (str_contains($ref, 'Retur ke Supplier') || str_contains($ref, 'Purchase Return') || str_contains($ref, 'Retur Pembelian')) {
+                        $returPembelian += $absQty;
+                    } elseif (str_contains($ref, 'SPK') || str_contains($ref, 'Konsumsi Bahan Baku SPK') || (str_contains(strtolower($ref), 'pengeluaran') && $m->warehouseMutation && $m->warehouseMutation->toDepartment && str_contains(strtolower($m->warehouseMutation->toDepartment->name), 'produksi'))) {
+                        $produksi += $absQty;
+                    } elseif (str_contains(strtolower($ref), 'percetakan') || ($m->warehouseMutation && $m->warehouseMutation->toDepartment && str_contains(strtolower($m->warehouseMutation->toDepartment->name), 'percetakan'))) {
+                        $percetakan += $absQty;
+                    } else {
+                        $penyesuaianKeluar += $absQty;
+                    }
+                }
+            }
+
+            $totalMasuk = $pembelian + $returPenjualan + $penyesuaianMasuk;
+            $totalKeluar = $produksi + $percetakan + $returPembelian + $penyesuaianKeluar;
+            $stokAwal = $stokAkhir - ($totalMasuk - $totalKeluar);
+
+            $rekap[] = [
+                'sku' => $item->sku,
+                'name' => $item->name,
+                'unit' => $item->unit,
+                'type' => $item->type,
+                'stok_awal' => $stokAwal,
+                'pembelian' => $pembelian,
+                'retur_penjualan' => $returPenjualan,
+                'penyesuaian_masuk' => $penyesuaianMasuk,
+                'produksi' => $produksi,
+                'percetakan' => $percetakan,
+                'retur_pembelian' => $returPembelian,
+                'penyesuaian_keluar' => $penyesuaianKeluar,
+                'stok_akhir' => $stokAkhir,
                 'cost_price' => $item->cost_price ?? 0,
-                'total_value' => $stokAkhir * ($item->cost_price ?? 0)];
+                'total_value' => $stokAkhir * ($item->cost_price ?? 0)
+            ];
         }
         return view('inventory.pembelian.print_report_summary', compact('rekap', 'itemType', 'dateFrom', 'dateTo'));
     }

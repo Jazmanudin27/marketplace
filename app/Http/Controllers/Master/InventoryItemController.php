@@ -139,4 +139,24 @@ class InventoryItemController extends Controller
 
         return redirect()->route('inventory_items.index')->with('success', 'Barang berhasil dihapus.');
     }
+
+    public function adjust(Request $request, InventoryItem $inventoryItem)
+    {
+        $this->checkAccess('inventory-items.edit');
+        abort_unless($inventoryItem->tenant_id === Auth::user()->tenant_id, 403);
+
+        $request->validate([
+            'quantity' => 'required|numeric|not_in:0',
+            'reference' => 'required|string|max:255',
+        ]);
+
+        $inventoryItem->recordStockMovement(
+            $request->quantity,
+            'adjustment',
+            $request->reference,
+            Auth::id()
+        );
+
+        return back()->with('success', 'Stok barang berhasil disesuaikan.');
+    }
 }

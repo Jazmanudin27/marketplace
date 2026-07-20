@@ -14,6 +14,7 @@ class StockMovement extends Model
         'department_id',
         'user_id',
         'purchase_order_id',
+        'warehouse_mutation_id',
         'type',
         'quantity',
         'reference',
@@ -38,5 +39,10 @@ class StockMovement extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function warehouseMutation(): BelongsTo
+    {
+        return $this->belongsTo(WarehouseMutation::class);
     }
 }

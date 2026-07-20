@@ -153,6 +153,14 @@
                                         </td>
                                         <td class="text-center">
                                             <div class="d-flex gap-1 justify-content-center">
+                                                <button type="button" class="btn btn-success btn-sm adjust-stock-btn"
+                                                    title="Opname / Sesuaikan Stok" data-bs-toggle="modal"
+                                                    data-bs-target="#adjustStockModal" data-id="{{ $item->id }}"
+                                                    data-name="{{ $item->name }}" data-unit="{{ $item->unit }}"
+                                                    data-stock="{{ $item->stock }}"
+                                                    data-action="{{ route('inventory_items.adjust', $item) }}">
+                                                    <i class="fas fa-clipboard-check"></i>
+                                                </button>
                                                 <button type="button" class="btn btn-warning btn-sm edit-item-btn"
                                                     title="Edit" data-bs-toggle="modal"
                                                     data-bs-target="#editItemModal" data-id="{{ $item->id }}"
@@ -340,6 +348,62 @@
         </div>
     </div>
 
+    {{-- Modal Adjust Stock --}}
+    <div class="modal fade" id="adjustStockModal" tabindex="-1" aria-labelledby="adjustStockModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content overflow-hidden">
+                <div class="d-flex align-items-center gap-3 p-3 border-bottom bg-success bg-opacity-10">
+                    <div class="bg-success text-white rounded-3 d-flex align-items-center justify-content-center flex-shrink-0 fs-5 p-2"
+                        style="width: 38px; height: 38px;">
+                        <i class="fas fa-clipboard-check text-success"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                        <h5 class="modal-title fw-bold fs-6 mb-0 text-dark" id="adjustStockModalLabel">Opname / Sesuaikan Stok</h5>
+                        <p class="mb-0 text-muted small" id="adjust-item-name">Barang: -</p>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="adjust-form" method="POST">
+                    @csrf
+                    <div class="modal-body p-4">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold small text-dark">Stok Saat Ini (Sistem)</label>
+                                <div class="input-group input-group-sm">
+                                    <input type="text" id="adjust-current-stock" class="form-control form-control-sm bg-light" readonly>
+                                    <span class="input-group-text bg-light adjust-unit">PCS</span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="adjust-quantity" class="form-label fw-bold small text-dark">Jumlah Penyesuaian <span class="text-danger">*</span></label>
+                                <div class="input-group input-group-sm">
+                                    <input type="number" step="any" id="adjust-quantity" name="quantity" class="form-control form-control-sm text-center"
+                                        placeholder="Contoh: 10 atau -5" required>
+                                    <span class="input-group-text bg-light adjust-unit">PCS</span>
+                                </div>
+                                <div class="form-text text-muted small mt-1">
+                                    Gunakan angka positif (misal: <code>10</code>) untuk menambah stok, atau angka negatif (misal: <code>-5</code>) untuk mengurangi stok.
+                                </div>
+                            </div>
+                            <div class="col-md-12">
+                                <label for="adjust-reference" class="form-label fw-bold small text-dark">Alasan Penyesuaian / Keterangan <span class="text-danger">*</span></label>
+                                <input type="text" id="adjust-reference" name="reference" class="form-control form-control-sm"
+                                    placeholder="Contoh: Selisih Opname Fisik / Barang Rusak" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer bg-success bg-opacity-10 px-4 py-3 border-top d-flex justify-content-between">
+                        <button type="button" class="btn btn-secondary btn-sm px-3" data-bs-dismiss="modal">Batal</button>
+                        <button type="submit" class="btn btn-success btn-sm px-4 rounded-3">
+                            <i class="fas fa-save"></i> Simpan Penyesuaian
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     @push('scripts')
         <script>
             $(document).ready(function() {
@@ -378,6 +442,20 @@
                     $('#edit-unit').val(unit);
                     $('#edit-min-stock').val(minStock);
                     $('#edit-cost-price').val(costPriceRaw > 0 ? formatNumber(costPriceRaw) : '');
+                });
+
+                $('.adjust-stock-btn').on('click', function() {
+                    const action = $(this).data('action');
+                    const name = $(this).data('name');
+                    const unit = $(this).data('unit');
+                    const stock = $(this).data('stock');
+
+                    $('#adjust-form').attr('action', action);
+                    $('#adjust-item-name').text('Barang: ' + name);
+                    $('#adjust-current-stock').val(parseFloat(stock));
+                    $('.adjust-unit').text(unit);
+                    $('#adjust-quantity').val('');
+                    $('#adjust-reference').val('');
                 });
             });
         </script>

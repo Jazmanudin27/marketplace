@@ -165,6 +165,7 @@ Route::middleware('auth')->group(function () {
         'update' => 'inventory_items.update',
         'destroy' => 'inventory_items.destroy',
     ]);
+    Route::post('inventory-items/{inventory_item}/adjust', [InventoryItemController::class, 'adjust'])->name('inventory_items.adjust');
 
     // Categories
     Route::middleware('permission:manage-categories')->group(function () {
