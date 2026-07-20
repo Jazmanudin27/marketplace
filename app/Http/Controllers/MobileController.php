@@ -377,4 +377,79 @@ class MobileController extends Controller
 
         return view('mobile.owner_stok_barang', compact('items', 'totalItemsCount', 'lowStockCount', 'search'));
     }
+
+    public function ownerStokProdukDetail($id)
+    {
+        $tenantId = Auth::user()->tenant_id;
+        $product = MasterProduct::where('tenant_id', $tenantId)->findOrFail($id);
+
+        $movements = \App\Models\StockMovement::where('tenant_id', $tenantId)
+            ->where('master_product_id', $product->id)
+            ->with('user')
+            ->orderByDesc('created_at')
+            ->limit(10)
+            ->get()
+            ->map(function ($m) {
+                return [
+                    'date' => $m->created_at->format('d M Y H:i'),
+                    'type' => strtoupper($m->type),
+                    'quantity' => $m->quantity,
+                    'reference' => $m->reference ?: '-',
+                    'balance_after' => $m->balance_after,
+                    'operator' => $m->user->name ?? 'System',
+                ];
+            });
+
+        return response()->json([
+            'success' => true,
+            'product' => [
+                'name' => $product->name,
+                'sku' => $product->sku,
+                'stock' => $product->stock,
+                'min_stock' => $product->min_stock,
+                'cost_price' => number_format($product->cost_price, 0, ',', '.'),
+                'price' => number_format($product->price, 0, ',', '.'),
+                'description' => $product->description ?: 'Tidak ada deskripsi.',
+                'image_url' => $product->image_url ?: '/images/placeholder.png',
+            ],
+            'movements' => $movements,
+        ]);
+    }
+
+    public function ownerStokBarangDetail($id)
+    {
+        $tenantId = Auth::user()->tenant_id;
+        $item = \App\Models\InventoryItem::where('tenant_id', $tenantId)->findOrFail($id);
+
+        $movements = \App\Models\StockMovement::where('tenant_id', $tenantId)
+            ->where('inventory_item_id', $item->id)
+            ->with('user')
+            ->orderByDesc('created_at')
+            ->limit(10)
+            ->get()
+            ->map(function ($m) {
+                return [
+                    'date' => $m->created_at->format('d M Y H:i'),
+                    'type' => strtoupper($m->type),
+                    'quantity' => $m->quantity,
+                    'reference' => $m->reference ?: '-',
+                    'balance_after' => $m->balance_after,
+                    'operator' => $m->user->name ?? 'System',
+                ];
+            });
+
+        return response()->json([
+            'success' => true,
+            'item' => [
+                'name' => $item->name,
+                'sku' => $item->sku,
+                'stock' => $item->stock,
+                'min_stock' => $item->min_stock,
+                'unit' => $item->unit ?: 'pcs',
+                'category' => ucfirst($item->category ?? 'Umum'),
+                'description' => $item->description ?: 'Tidak ada deskripsi.',
+            ],
+            'movements' => $movements,
+        ]);
+    }
 }

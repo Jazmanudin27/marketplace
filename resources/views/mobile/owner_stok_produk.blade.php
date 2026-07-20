@@ -136,13 +136,13 @@
     </div>
 
     <!-- Products List -->
-    <h6 class="fw-bold mb-2 text-dark px-1">Daftar Produk Ready</h6>
+    <h6 class="fw-bold mb-2 text-dark px-1">Daftar Produk Ready (Klik untuk Detail)</h6>
     <div class="d-flex flex-column mb-3">
         @forelse($products as $product)
             @php
                 $isLow = $product->stock <= $product->min_stock;
             @endphp
-            <div class="product-item">
+            <div class="product-item" style="cursor: pointer; transition: transform 0.2s;" onclick="showProductDetail({{ $product->id }})">
                 <div style="flex: 1; min-width: 0; padding-right: 10px;">
                     <div class="fw-bold text-dark text-truncate" style="font-size: 0.88rem;">{{ $product->name }}</div>
                     <small class="text-muted d-block mt-0.5" style="font-size: 0.7rem;">
@@ -174,4 +174,132 @@
     <div class="d-flex justify-content-center mt-3 mb-4">
         {{ $products->links('pagination::bootstrap-5') }}
     </div>
+
+    <!-- Product Detail Modal -->
+    <div class="modal fade" id="productDetailModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content border-0 rounded-4">
+                <div class="modal-header py-3 border-bottom-0">
+                    <h6 class="modal-title fw-bold text-dark d-flex align-items-center gap-2">
+                        <i class="fas fa-info-circle text-primary"></i> Detail Produk Ready
+                    </h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4 pt-0">
+                    <!-- Image & Name -->
+                    <div class="text-center mb-3">
+                        <img id="detailImg" src="" alt="Produk" class="img-fluid rounded-3 border bg-light mb-3" style="max-height: 140px; object-fit: contain; width: 100%;">
+                        <h5 id="detailName" class="fw-bold text-dark mb-1"></h5>
+                        <code id="detailSku" class="font-monospace text-primary bg-light px-2 py-1 rounded small"></code>
+                    </div>
+
+                    <!-- Specs -->
+                    <div class="row g-2 mb-4">
+                        <div class="col-6">
+                            <div class="p-3 bg-light rounded-3 text-center">
+                                <span class="text-muted d-block small mb-1" style="font-size: 0.68rem;">Stok Saat Ini</span>
+                                <h5 id="detailStock" class="fw-bold text-dark mb-0"></h5>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="p-3 bg-light rounded-3 text-center">
+                                <span class="text-muted d-block small mb-1" style="font-size: 0.68rem;">Min. Stok</span>
+                                <h5 id="detailMinStock" class="fw-bold text-dark mb-0"></h5>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="p-3 bg-light rounded-3 text-center">
+                                <span class="text-muted d-block small mb-1" style="font-size: 0.68rem;">Harga HPP</span>
+                                <h5 id="detailCostPrice" class="fw-bold text-dark mb-0 text-success"></h5>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="p-3 bg-light rounded-3 text-center">
+                                <span class="text-muted d-block small mb-1" style="font-size: 0.68rem;">Harga Jual</span>
+                                <h5 id="detailPrice" class="fw-bold text-dark mb-0 text-primary"></h5>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Description -->
+                    <div class="mb-4">
+                        <h6 class="fw-bold text-dark mb-2" style="font-size: 0.85rem;">Deskripsi Produk:</h6>
+                        <p id="detailDescription" class="text-muted small mb-0 lh-base"></p>
+                    </div>
+
+                    <!-- Stock Movements (Kartu Stok) -->
+                    <div>
+                        <h6 class="fw-bold text-dark mb-2" style="font-size: 0.85rem;">Log Riwayat Stok (Terbaru):</h6>
+                        <div class="d-flex flex-column gap-2" id="detailMovements">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+@endsection
+
+@section('scripts')
+<script>
+    function showProductDetail(productId) {
+        // Fetch via AJAX
+        fetch(`/mobile/owner/stok-produk/${productId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const p = data.product;
+                    
+                    document.getElementById('detailImg').src = p.image_url;
+                    document.getElementById('detailName').innerText = p.name;
+                    document.getElementById('detailSku').innerText = p.sku;
+                    document.getElementById('detailStock').innerText = p.stock + ' pcs';
+                    document.getElementById('detailMinStock').innerText = p.min_stock + ' pcs';
+                    document.getElementById('detailCostPrice').innerText = 'Rp ' + p.cost_price;
+                    document.getElementById('detailPrice').innerText = 'Rp ' + p.price;
+                    document.getElementById('detailDescription').innerText = p.description;
+
+                    const movementsContainer = document.getElementById('detailMovements');
+                    movementsContainer.innerHTML = '';
+
+                    if (data.movements.length === 0) {
+                        movementsContainer.innerHTML = '<div class="text-center py-3 text-muted small">Tidak ada riwayat mutasi stok.</div>';
+                    } else {
+                        data.movements.forEach(m => {
+                            const isAdd = m.type === 'IN';
+                            const badgeBg = isAdd ? 'bg-success-subtle text-success' : 'bg-danger-subtle text-danger';
+                            const typeLabel = isAdd ? 'Masuk' : (m.type === 'OUT' ? 'Keluar' : 'Penyesuaian');
+                            const sign = isAdd ? '+' : (m.type === 'OUT' ? '-' : '');
+
+                            const html = `
+                                <div class="p-2 border rounded-3 bg-white" style="font-size: 0.75rem;">
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <span class="badge ${badgeBg}">${typeLabel}</span>
+                                        <span class="text-muted" style="font-size: 0.68rem;">${m.date}</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <span class="fw-semibold text-dark text-truncate" style="max-width: 180px;">${m.reference}</span>
+                                        <span class="fw-bold ${isAdd ? 'text-success' : 'text-danger'}">${sign}${m.quantity} pcs</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center mt-1 text-muted" style="font-size: 0.68rem;">
+                                        <span>Saldo: ${m.balance_after} pcs</span>
+                                        <span>Operator: ${m.operator}</span>
+                                    </div>
+                                </div>
+                            `;
+                            movementsContainer.innerHTML += html;
+                        });
+                    }
+
+                    // Open Modal
+                    const modal = new bootstrap.Modal(document.getElementById('productDetailModal'));
+                    modal.show();
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                alert('Gagal mengambil detail produk.');
+            });
+    }
+</script>
 @endsection
