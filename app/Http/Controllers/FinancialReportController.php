@@ -73,6 +73,7 @@ class FinancialReportController extends Controller
             'salary' => (float) $expenses->where('category', 'salary')->sum('amount'),
             'rent' => (float) $expenses->where('category', 'rent')->sum('amount'),
             'utilities' => (float) $expenses->where('category', 'utilities')->sum('amount'),
+            'pembelian_supplier' => (float) $expenses->where('category', 'pembelian_supplier')->sum('amount'),
             'other' => (float) $expenses->where('category', 'other')->sum('amount'),
         ];
 

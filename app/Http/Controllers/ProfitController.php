@@ -140,6 +140,7 @@ class ProfitController extends Controller
             'expense_salary' => $expensesByCategory['salary'] ?? 0.0,
             'expense_rent' => $expensesByCategory['rent'] ?? 0.0,
             'expense_utilities' => $expensesByCategory['utilities'] ?? 0.0,
+            'expense_supplier' => $expensesByCategory['pembelian_supplier'] ?? 0.0,
             'expense_other' => $expensesByCategory['other'] ?? 0.0,
         ];
 

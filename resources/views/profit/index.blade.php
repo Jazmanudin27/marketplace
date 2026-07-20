@@ -617,6 +617,10 @@
                                     <td class="text-end font-monospace pe-3 text-dark">Rp {{ number_format($expensesBreakdown['expense_utilities'], 0, ',', '.') }}</td>
                                 </tr>
                                 <tr>
+                                    <td class="ps-3 text-dark">Bayar Hutang Supplier (Expense)</td>
+                                    <td class="text-end font-monospace pe-3 text-dark">Rp {{ number_format($expensesBreakdown['expense_supplier'], 0, ',', '.') }}</td>
+                                </tr>
+                                <tr>
                                     <td class="ps-3 text-dark">Biaya Lain-lain (Expense)</td>
                                     <td class="text-end font-monospace pe-3 text-dark">Rp {{ number_format($expensesBreakdown['expense_other'], 0, ',', '.') }}</td>
                                 </tr>
@@ -660,19 +664,21 @@
             const dataPayroll = {{ $totalPayroll + $expensesBreakdown['expense_salary'] }};
             const dataRent = {{ $expensesBreakdown['expense_rent'] }};
             const dataUtilities = {{ $expensesBreakdown['expense_utilities'] }};
+            const dataSupplier = {{ $expensesBreakdown['expense_supplier'] }};
             const dataOther = {{ $expensesBreakdown['expense_other'] }};
             const dataAd = {{ $totalAdSpend }};
             
             new Chart(ctx, {
                 type: 'doughnut',
                 data: {
-                    labels: ['Gaji Karyawan', 'Sewa Tempat', 'Utilitas', 'Lain-lain', 'Iklan/Ads'],
+                    labels: ['Gaji Karyawan', 'Sewa Tempat', 'Utilitas', 'Bayar Hutang Supplier', 'Lain-lain', 'Iklan/Ads'],
                     datasets: [{
-                        data: [dataPayroll, dataRent, dataUtilities, dataOther, dataAd],
+                        data: [dataPayroll, dataRent, dataUtilities, dataSupplier, dataOther, dataAd],
                         backgroundColor: [
                             '#4f46e5', // indigo
                             '#f59e0b', // amber
                             '#10b981', // emerald
+                            '#f43f5e', // rose
                             '#6b7280', // gray
                             '#ef4444'  // red
                         ],

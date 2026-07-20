@@ -61,7 +61,6 @@
                         <th class="text-center text-danger" style="background-color: #fef2f2">Penyesuaian (-)</th>
                         <th class="text-center fw-bold">Stok Akhir</th>
                         <th>Satuan</th>
-                        <th class="text-end">Nilai Barang</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -91,11 +90,10 @@
                             <td class="text-center text-danger small fw-semibold" style="background-color: #fffdfd">-{{ number_format($row['penyesuaian_keluar']) }}</td>
                             <td class="text-center fw-bold small">{{ number_format($row['stok_akhir']) }}</td>
                             <td class="text-muted small">{{ $row['unit'] }}</td>
-                            <td class="text-end font-monospace small">Rp {{ number_format($row['total_value'], 0, ',', '.') }}</td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="15" class="text-center py-5 text-muted">
+                            <td colspan="14" class="text-center py-5 text-muted">
                                 <i class="fas fa-boxes fa-2x mb-3 opacity-25 d-block"></i>
                                 Tidak ada data rekap persediaan.
                             </td>

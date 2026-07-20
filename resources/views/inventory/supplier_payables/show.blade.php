@@ -448,7 +448,7 @@
                 <div class="modal-header py-3 px-4">
                     <h6 class="modal-title fw-bold d-flex align-items-center gap-2" id="bayarModalLabel">
                         <i class="bi bi-cash-coin text-success fs-5"></i>
-                        Ajukan Pembayaran ke {{ $supplierPayable->supplier->name ?? '—' }}
+                        Catat Pembayaran ke {{ $supplierPayable->supplier->name ?? '—' }}
                     </h6>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
@@ -464,7 +464,7 @@
                         <h5 class="fw-bold text-danger mb-2">Rp {{ number_format($supplierPayable->remaining_amount, 0, ',', '.') }}</h5>
                         <div class="text-muted small mt-1">
                             <i class="bi bi-info-circle me-1"></i>
-                            Setelah dikirim, pembayaran menunggu persetujuan Admin/Finance. Detail bank/kas akan diisi saat approval.
+                            Setelah disimpan, pembayaran akan langsung memotong kas/bank dan memperbarui status hutang.
                         </div>
                     </div>
 
@@ -513,8 +513,43 @@
                                 </label>
                             </div>
                         </div>
-                        <div class="form-text text-muted mt-2">
-                            <i class="bi bi-info-circle me-1"></i>Detail bank / kas akan diisi oleh Finance saat approval.
+                    </div>
+
+                    {{-- DYNAMIC FIELD: TUNAI (KAS) --}}
+                    <div class="mb-3 d-none" id="cashGroup">
+                        <label class="form-label small fw-semibold">Sumber Kas <span class="text-danger">*</span></label>
+                        <select name="payment_source" id="payment_source" class="form-select rounded-2">
+                            <option value="">-- Pilih --</option>
+                            <option value="kas_besar" @selected(old('payment_source') === 'kas_besar')>Kas Besar (Main Cash)</option>
+                            <option value="kas_kecil" @selected(old('payment_source') === 'kas_kecil')>Kas Kecil (Petty Cash)</option>
+                        </select>
+                    </div>
+
+                    {{-- DYNAMIC FIELD: BANK (TRANSFER / GIRO) --}}
+                    <div class="d-none" id="bankGroup">
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold">Nama Bank / Penerbit Giro <span class="text-danger">*</span></label>
+                            <select name="bank_name" id="bank_name" class="form-select rounded-2" onchange="toggleOtherBank(this, 'otherBankCreate')">
+                                <option value="">-- Pilih Bank --</option>
+                                @foreach(['BCA','BNI','BRI','Mandiri','BSI','CIMB Niaga','Danamon','Permata','BTN','Mega','Panin','Maybank'] as $bank)
+                                <option value="{{ $bank }}" @selected(old('bank_name') === $bank)>{{ $bank }}</option>
+                                @endforeach
+                                <option value="__other__" @selected(old('bank_name') && !in_array(old('bank_name'), ['BCA','BNI','BRI','Mandiri','BSI','CIMB Niaga','Danamon','Permata','BTN','Mega','Panin','Maybank']))>Lainnya...</option>
+                            </select>
+                        </div>
+                        <div class="mb-3 d-none" id="otherBankCreate">
+                            <label class="form-label small fw-semibold">Nama Bank Lainnya</label>
+                            <input type="text" name="bank_name_other" class="form-control rounded-2" value="{{ old('bank_name_other') }}" placeholder="Ketik nama bank...">
+                        </div>
+                        <div class="row g-3 mb-3">
+                            <div class="col-6">
+                                <label class="form-label small fw-semibold">No. Rekening</label>
+                                <input type="text" name="account_number" class="form-control font-monospace rounded-2" value="{{ old('account_number') }}" placeholder="Nomor rekening">
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label small fw-semibold">Atas Nama</label>
+                                <input type="text" name="account_name" class="form-control rounded-2" value="{{ old('account_name') }}" placeholder="Nama pemilik rek.">
+                            </div>
                         </div>
                     </div>
 
@@ -535,7 +570,7 @@
                 <div class="modal-footer py-2 px-4 border-top-0">
                     <button type="button" class="btn btn-outline-secondary rounded-2" data-bs-dismiss="modal">Batal</button>
                     <button type="submit" class="btn btn-success px-4 rounded-2">
-                        <i class="bi bi-send me-1"></i> Kirim Pengajuan
+                        <i class="bi bi-check-lg me-1"></i> Simpan Pembayaran
                     </button>
                 </div>
             </form>
@@ -561,6 +596,38 @@ function toggleOtherBank(select, otherBankId) {
     const otherInput = otherGroup.querySelector('input');
     if (otherInput) otherInput.required = isOther;
 }
+
+document.addEventListener('DOMContentLoaded', function () {
+    const methodTransfer = document.getElementById('methodTransfer');
+    const methodCash = document.getElementById('methodCash');
+    const methodGiro = document.getElementById('methodGiro');
+    
+    const cashGroup = document.getElementById('cashGroup');
+    const bankGroup = document.getElementById('bankGroup');
+    
+    const paymentSourceSelect = document.getElementById('payment_source');
+    const bankNameSelect = document.getElementById('bank_name');
+
+    function updatePaymentFields() {
+        if (methodCash && methodCash.checked) {
+            if (cashGroup) cashGroup.classList.remove('d-none');
+            if (bankGroup) bankGroup.classList.add('d-none');
+            if (paymentSourceSelect) paymentSourceSelect.required = true;
+            if (bankNameSelect) bankNameSelect.required = false;
+        } else {
+            if (cashGroup) cashGroup.classList.add('d-none');
+            if (bankGroup) bankGroup.classList.remove('d-none');
+            if (paymentSourceSelect) paymentSourceSelect.required = false;
+            if (bankNameSelect) bankNameSelect.required = true;
+        }
+    }
+
+    if (methodTransfer) methodTransfer.addEventListener('change', updatePaymentFields);
+    if (methodCash) methodCash.addEventListener('change', updatePaymentFields);
+    if (methodGiro) methodGiro.addEventListener('change', updatePaymentFields);
+
+    updatePaymentFields();
+});
 
 // Re-open approve modal if validation failed for that specific payment
 @if($errors->any() && session('approval_payment_id'))

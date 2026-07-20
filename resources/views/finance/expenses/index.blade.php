@@ -63,6 +63,7 @@
                             <option value="salary" {{ $category === 'salary' ? 'selected' : '' }}>Gaji Karyawan</option>
                             <option value="rent" {{ $category === 'rent' ? 'selected' : '' }}>Sewa Tempat</option>
                             <option value="utilities" {{ $category === 'utilities' ? 'selected' : '' }}>Utilitas</option>
+                            <option value="pembelian_supplier" {{ $category === 'pembelian_supplier' ? 'selected' : '' }}>Bayar Hutang Supplier</option>
                             <option value="other" {{ $category === 'other' ? 'selected' : '' }}>Lain-lain</option>
                         </select>
                     </div>
@@ -189,6 +190,7 @@
                                 <option value="utilities">Utilitas & Operasional</option>
                                 <option value="salary">Gaji Karyawan</option>
                                 <option value="rent">Sewa Tempat</option>
+                                <option value="pembelian_supplier">Bayar Hutang Supplier</option>
                                 <option value="other">Lain-lain</option>
                             </select>
                         </div>
@@ -256,6 +258,7 @@
                                 <option value="utilities">Utilitas & Operasional</option>
                                 <option value="salary">Gaji Karyawan</option>
                                 <option value="rent">Sewa Tempat</option>
+                                <option value="pembelian_supplier">Bayar Hutang Supplier</option>
                                 <option value="other">Lain-lain</option>
                             </select>
                         </div>

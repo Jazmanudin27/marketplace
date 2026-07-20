@@ -13,6 +13,24 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     
     <style>
+        @if(request()->routeIs('mobile.owner*'))
+        :root {
+            --bg-primary: #f8fafc;
+            --bg-secondary: #ffffff;
+            --bg-card: #ffffff;
+            --border-card: rgba(0, 0, 0, 0.08);
+            
+            --primary: #4f46e5;
+            --primary-glow: rgba(79, 70, 229, 0.15);
+            --accent-green: #059669;
+            --accent-yellow: #d97706;
+            --accent-red: #dc2626;
+            --accent-blue: #0284c7;
+            
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+        }
+        @else
         :root {
             --bg-primary: #0a0f1d;
             --bg-secondary: #121829;
@@ -29,6 +47,7 @@
             --text-main: #f3f4f6;
             --text-muted: #9ca3af;
         }
+        @endif
 
         body {
             font-family: 'Outfit', sans-serif;
@@ -60,7 +79,7 @@
             position: sticky;
             top: 0;
             z-index: 100;
-            background: rgba(10, 15, 29, 0.85);
+            background: @if(request()->routeIs('mobile.owner*')) rgba(255, 255, 255, 0.85) @else rgba(10, 15, 29, 0.85) @endif;
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
             border-bottom: 1px solid var(--border-card);
@@ -74,7 +93,7 @@
             font-size: 1.2rem;
             font-weight: 700;
             margin: 0;
-            background: linear-gradient(135deg, #a5b4fc, #818cf8);
+            background: @if(request()->routeIs('mobile.owner*')) linear-gradient(135deg, #4f46e5, #3b82f6) @else linear-gradient(135deg, #a5b4fc, #818cf8) @endif;
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
@@ -234,7 +253,7 @@
             left: 20px;
             right: 20px;
             height: 68px;
-            background: rgba(18, 24, 41, 0.85);
+            background: @if(request()->routeIs('mobile.owner*')) rgba(255, 255, 255, 0.9) @else rgba(18, 24, 41, 0.85) @endif;
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
             border: 1px solid var(--border-card);
@@ -243,7 +262,7 @@
             justify-content: space-around;
             align-items: center;
             z-index: 1000;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            box-shadow: @if(request()->routeIs('mobile.owner*')) 0 10px 30px rgba(0, 0, 0, 0.08) @else 0 10px 30px rgba(0, 0, 0, 0.5) @endif;
             padding: 0 10px;
         }
 
@@ -270,13 +289,15 @@
         }
 
         .nav-item-custom.active {
-            color: #818cf8;
+            color: @if(request()->routeIs('mobile.owner*')) #4f46e5 @else #818cf8 @endif;
         }
 
         .nav-item-custom.active i {
             transform: translateY(-4px);
-            color: #818cf8;
+            color: @if(request()->routeIs('mobile.owner*')) #4f46e5 @else #818cf8 @endif;
+            @if(!request()->routeIs('mobile.owner*'))
             text-shadow: 0 0 12px rgba(129, 140, 248, 0.8);
+            @endif
         }
 
         /* Floating active bar/indicator dot */
@@ -287,8 +308,10 @@
             width: 4px;
             height: 4px;
             border-radius: 50%;
-            background-color: #818cf8;
+            background-color: @if(request()->routeIs('mobile.owner*')) #4f46e5 @else #818cf8 @endif;
+            @if(!request()->routeIs('mobile.owner*'))
             box-shadow: 0 0 8px #818cf8;
+            @endif
         }
 
         /* Custom badge */
@@ -398,91 +421,22 @@
 </head>
 <body>
 
-    <!-- Drawer Overlay -->
-    <div class="mobile-sidebar-overlay" id="mobileSidebarOverlay"></div>
-
-    <!-- Drawer Sidebar -->
-    <div class="mobile-sidebar" id="mobileSidebar">
-        <div class="mobile-sidebar-header">
-            <h4>ASPARTECH ERP</h4>
-            <button type="button" class="btn-close btn-close-white" id="closeMobileSidebar" aria-label="Close"></button>
-        </div>
-
-        <!-- Tenant info inside Mobile Sidebar -->
-        <div class="mobile-tenant-badge">
-            <div class="mobile-tenant-avatar">
-                {{ strtoupper(substr(Auth::user()->tenant->name, 0, 1)) }}
-            </div>
-            <div class="mobile-tenant-info">
-                <div class="mobile-tenant-name">{{ Auth::user()->tenant->name }}</div>
-                <div class="mobile-tenant-role">{{ Auth::user()->roles->first() ? ucfirst(Auth::user()->roles->first()->name) : ucfirst(Auth::user()->role) }}</div>
-            </div>
-        </div>
-
-        <!-- Mobile Drawer Menus -->
-        @php
-            $role = Auth::user()->role;
-            $isOwnerActive = request()->routeIs('mobile.owner*');
-            $isGudangActive = request()->routeIs('mobile.gudang') || request()->routeIs('mobile.gudang.adjust_stock') || request()->routeIs('mobile.gudang.request_production');
-            $isScanActive = request()->routeIs('mobile.gudang.scan*');
-            $isProduksiActive = request()->routeIs('mobile.produksi*');
-        @endphp
-
-        <div class="mobile-sidebar-menu">
-            <a href="{{ route('dashboard') }}">
-                <i class="fas fa-home"></i>
-                <span>Kembali ke Desktop</span>
-            </a>
-
-            @if(in_array($role, ['admin', 'owner', 'finance']))
-                <a href="{{ route('mobile.owner') }}" class="{{ $isOwnerActive ? 'active' : '' }}">
-                    <i class="fas fa-chart-line"></i>
-                    <span>Dashboard Owner</span>
-                </a>
-            @endif
-
-            @if(in_array($role, ['admin', 'warehouse', 'gudang']))
-                <a href="{{ route('mobile.gudang') }}" class="{{ $isGudangActive ? 'active' : '' }}">
-                    <i class="fas fa-warehouse"></i>
-                    <span>Dashboard Gudang</span>
-                </a>
-                <a href="{{ route('mobile.gudang.scan') }}" class="{{ $isScanActive ? 'active' : '' }}">
-                    <i class="fas fa-barcode"></i>
-                    <span>Scan & Cari SKU</span>
-                </a>
-            @endif
-
-            @if(in_array($role, ['admin', 'production', 'produksi']))
-                <a href="{{ route('mobile.produksi') }}" class="{{ $isProduksiActive ? 'active' : '' }}">
-                    <i class="fas fa-tools"></i>
-                    <span>Dashboard Produksi</span>
-                </a>
-            @endif
-        </div>
-
-        <!-- Mobile Drawer Footer -->
-        <div class="mobile-sidebar-footer">
-            <form action="{{ route('logout') }}" method="POST" class="m-0">
-                @csrf
-                <button type="submit" class="btn btn-outline-danger w-100 d-flex align-items-center justify-content-center gap-2 py-2 btn-sm" style="border-radius: 10px;">
-                    <i class="fas fa-sign-out-alt"></i>
-                    <span>Keluar</span>
-                </button>
-            </form>
-        </div>
-    </div>
+    <!-- Drawer Sidebar and overlay removed for mobile -->
 
     <!-- Header Bar -->
     <header class="mobile-header">
         <div class="d-flex align-items-center">
-            <button class="btn text-white p-0 me-3 d-flex align-items-center" id="btnToggleMobileSidebar" style="border: none; background: none;">
-                <i class="fas fa-bars" style="font-size: 1.3rem;"></i>
-            </button>
-            <i class="fas fa-cubes me-2" style="color:#818cf8; font-size:1.25rem;"></i>
-            <h1>@yield('header-title', 'ERP Mobile')</h1>
+            <i class="fas fa-cubes me-2" style="color: @if(request()->routeIs('mobile.owner*')) #4f46e5 @else #818cf8 @endif; font-size:1.25rem;"></i>
+            <h1 style="@if(request()->routeIs('mobile.owner*')) color: #0f172a; @endif">@yield('header-title', 'ERP Mobile')</h1>
         </div>
         <div class="d-flex align-items-center gap-2">
-            <span class="user-tag">{{ Auth::user()->role }}</span>
+            <span class="user-tag" style="@if(request()->routeIs('mobile.owner*')) background: rgba(79, 70, 229, 0.08); border: 1px solid rgba(79, 70, 229, 0.2); color: #4f46e5; @endif">{{ Auth::user()->role }}</span>
+            <form action="{{ route('logout') }}" method="POST" class="m-0" id="logout-form">
+                @csrf
+                <button type="submit" class="btn p-0 text-danger border-0 bg-transparent ms-2" title="Logout" style="outline: none; box-shadow: none;">
+                    <i class="fas fa-sign-out-alt" style="font-size: 1.2rem;"></i>
+                </button>
+            </form>
         </div>
     </header>
 
@@ -539,33 +493,7 @@
     <!-- Bootstrap 5 Bundle JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     
-    <!-- Drawer Toggle Script (Vanilla JS) -->
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const toggleBtn = document.getElementById('btnToggleMobileSidebar');
-            const sidebar = document.getElementById('mobileSidebar');
-            const overlay = document.getElementById('mobileSidebarOverlay');
-            const closeBtn = document.getElementById('closeMobileSidebar');
-
-            if (toggleBtn && sidebar && overlay) {
-                const openSidebar = function() {
-                    sidebar.classList.add('show');
-                    overlay.classList.add('show');
-                };
-
-                const closeSidebar = function() {
-                    sidebar.classList.remove('show');
-                    overlay.classList.remove('show');
-                };
-
-                toggleBtn.addEventListener('click', openSidebar);
-                overlay.addEventListener('click', closeSidebar);
-                if (closeBtn) {
-                    closeBtn.addEventListener('click', closeSidebar);
-                }
-            }
-        });
-    </script>
+    <!-- Drawer Toggle Script removed -->
     @yield('scripts')
 </body>
 </html>

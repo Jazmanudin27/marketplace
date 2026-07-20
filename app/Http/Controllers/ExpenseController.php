@@ -56,7 +56,7 @@ class ExpenseController extends Controller
 
         $validated = $request->validate([
             'title' => 'required|string|max:255',
-            'category' => 'required|string|in:salary,rent,utilities,other',
+            'category' => 'required|string|in:salary,rent,utilities,pembelian_supplier,other',
             'payment_source' => 'required|string|in:kas_besar,kas_kecil',
             'amount' => 'required|numeric|min:0',
             'expense_date' => 'required|date',
@@ -86,7 +86,7 @@ class ExpenseController extends Controller
 
         $validated = $request->validate([
             'title' => 'required|string|max:255',
-            'category' => 'required|string|in:salary,rent,utilities,other',
+            'category' => 'required|string|in:salary,rent,utilities,pembelian_supplier,other',
             'payment_source' => 'required|string|in:kas_besar,kas_kecil',
             'amount' => 'required|numeric|min:0',
             'expense_date' => 'required|date',
