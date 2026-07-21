@@ -560,6 +560,11 @@
                         'manage-incoming-goods',
                         'manage-inventory',
                         'manage-products',
+                        'purchase-orders.report',
+                        'pembelian.stock_report',
+                        'pembelian.report_mutation',
+                        'pembelian.report_summary',
+                        'pembelian.stock_card',
                     ]))
             <div>
                 <a class="nav-link d-flex align-items-center justify-content-between text-dark {{ $isLaporanActive ? '' : 'collapsed' }}"
@@ -619,20 +624,26 @@
                         @endcan
 
                         <!-- Laporan Pembelian & Stok Bahan -->
-                        @if(auth()->user()->isSuperAdmin() || auth()->user()->role === 'admin' || auth()->user()->hasAnyPermission(['manage-incoming-goods', 'manage-inventory']))
+                        @if(auth()->user()->isSuperAdmin() || auth()->user()->role === 'admin' || auth()->user()->hasAnyPermission(['purchase-orders.report', 'pembelian.stock_report', 'pembelian.report_mutation', 'pembelian.report_summary', 'pembelian.stock_card']))
                             <div class="text-uppercase text-white text-opacity-50 fw-bold ms-2 mt-2 mb-1"
                                 style="font-size: 0.65rem;">Laporan Bahan & Pembelian</div>
-                            @can('manage-incoming-goods')
+                            @can('purchase-orders.report')
                                 <a href="{{ route('purchase_orders.report') }}"
                                     class="nav-link py-1 {{ request()->routeIs('purchase_orders.report') ? 'active text-white' : 'text-secondary' }}">Laporan Pembelian</a>
                             @endcan
-                            @can('manage-inventory')
+                            @can('pembelian.stock_report')
                                 <a href="{{ route('pembelian.stock_report') }}"
                                     class="nav-link py-1 {{ request()->routeIs('pembelian.stock_report') || request()->routeIs('pembelian.print_stock_report') ? 'active text-white' : 'text-secondary' }}">Laporan Stok Bahan</a>
+                            @endcan
+                            @can('pembelian.report_mutation')
                                 <a href="{{ route('pembelian.report_mutation') }}"
                                     class="nav-link py-1 {{ request()->routeIs('pembelian.report_mutation') || request()->routeIs('pembelian.print_report_mutation') ? 'active text-white' : 'text-secondary' }}">Laporan Mutasi Bahan</a>
+                            @endcan
+                            @can('pembelian.report_summary')
                                 <a href="{{ route('pembelian.report_summary') }}"
                                     class="nav-link py-1 {{ request()->routeIs('pembelian.report_summary') || request()->routeIs('pembelian.print_report_summary') ? 'active text-white' : 'text-secondary' }}">Rekap Persediaan Bahan</a>
+                            @endcan
+                            @can('pembelian.stock_card')
                                 <a href="{{ route('pembelian.stock_card') }}"
                                     class="nav-link py-1 {{ request()->routeIs('pembelian.stock_card') || request()->routeIs('pembelian.print_stock_card') ? 'active text-white' : 'text-secondary' }}">Kartu Stok Bahan</a>
                             @endcan

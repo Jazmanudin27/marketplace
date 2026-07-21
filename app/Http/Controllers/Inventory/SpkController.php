@@ -194,13 +194,21 @@ class SpkController extends Controller
         $spk->load(['penginput', 'items.extras']);
         $grouped = $this->getGroupedItems($spk);
 
+        $sizesHeader = ['S', 'M', 'L', 'XL', 'XXL', '3XL'];
+        foreach ($spk->items as $item) {
+            $sz = strtoupper(trim($item->ukuran));
+            if ($sz && !in_array($sz, ['S', 'M', 'L', 'XL', 'XXL', '3XL', 'XXXL']) && !in_array($sz, $sizesHeader)) {
+                $sizesHeader[] = $sz;
+            }
+        }
+
         // Fetch dynamic production statuses (with seed fallback)
         \App\Models\ProductionStatus::seedDefaultsForTenant($spk->tenant_id);
         $productionStatuses = \App\Models\ProductionStatus::where('tenant_id', $spk->tenant_id)
             ->orderBy('sort_order')
             ->get();
 
-        return view('inventory.spks.show', compact('spk', 'grouped', 'productionStatuses'));
+        return view('inventory.spks.show', compact('spk', 'grouped', 'productionStatuses', 'sizesHeader'));
     }
 
     public function print(Spk $spk)

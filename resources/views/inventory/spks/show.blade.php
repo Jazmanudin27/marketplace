@@ -4,271 +4,323 @@
 
 @section('content')
 <div class="container-fluid p-0">
-    <div class="mb-3 d-flex justify-content-between align-items-center">
+    <!-- Top Action Bar -->
+    <div class="mb-4 d-flex justify-content-between align-items-center">
         <a href="{{ route('spks.index') }}" class="btn btn-secondary btn-sm rounded-3">
             <i class="fas fa-arrow-left me-1"></i> Kembali ke Daftar
         </a>
         <div class="d-flex gap-2">
-            <a href="{{ route('spks.print', $spk) }}" target="_blank" class="btn btn-primary btn-sm rounded-3 fw-bold">
+            <a href="{{ route('spks.print', $spk) }}" target="_blank" class="btn btn-primary btn-sm rounded-3 fw-bold shadow-sm">
                 <i class="fas fa-print me-1"></i> Cetak Lembar SPK
             </a>
             <form action="{{ route('spks.destroy', $spk) }}" method="POST" class="m-0"
                 onsubmit="return confirm('Apakah Anda yakin ingin menghapus data SPK ini?')">
                 @csrf
                 @method('DELETE')
-                <button type="submit" class="btn btn-danger btn-sm rounded-3 fw-bold">
-                    <i class="fas fa-trash-alt me-1"></i> Hapus
+                <button type="submit" class="btn btn-danger btn-sm rounded-3 fw-bold shadow-sm">
+                    <i class="fas fa-trash-alt me-1"></i> Hapus SPK
                 </button>
             </form>
         </div>
     </div>
 
-    <div class="row g-3">
-        {{-- Kiri: Detail Informasi --}}
-        <div class="col-lg-4">
-            <div class="card border-0 shadow-sm rounded-3 bg-white mb-3">
-                <div class="card-header bg-light border-0 py-3 px-4">
-                    <h6 class="fw-bold mb-0 text-dark">
-                        <i class="fas fa-info-circle me-2 text-primary"></i>Informasi SPK
-                    </h6>
+    <!-- SPK Document Wrapper (Structured like Print layout) -->
+    <div class="card border shadow rounded-3 bg-white mx-auto overflow-hidden" style="max-width: 1000px;">
+        <div class="card-body p-5">
+            
+            <!-- Document Header -->
+            <div class="row align-items-center pb-4 mb-4 border-bottom">
+                <div class="col-md-4">
+                    <div class="mb-1 text-muted small text-uppercase fw-bold">No. Produksi</div>
+                    <div class="font-monospace fw-bold fs-6 text-dark">{{ $spk->no_produksi ?: '—' }}</div>
+                    
+                    <div class="mt-2 mb-1 text-muted small text-uppercase fw-bold">No. Pesanan</div>
+                    <div class="font-monospace fw-bold fs-6 text-primary">{{ $spk->no_spk }}</div>
                 </div>
-                <div class="card-body p-4">
-                    <div class="border rounded-2 overflow-hidden mb-3">
-                        <div class="d-flex justify-content-between px-3 py-2 border-bottom" style="background:#f8fafc">
-                            <span class="text-muted small">No. SPK</span>
-                            <span class="font-monospace fw-bold text-dark small">{{ $spk->no_spk }}</span>
-                        </div>
-                        <div class="d-flex justify-content-between px-3 py-2 border-bottom">
-                            <span class="text-muted small">No. Produksi</span>
-                            <span class="font-monospace fw-bold text-dark small">{{ $spk->no_produksi ?: '—' }}</span>
-                        </div>
-                        <div class="d-flex justify-content-between px-3 py-2 border-bottom">
-                            <span class="text-muted small">Tanggal Order</span>
-                            <span class="small fw-semibold text-dark">{{ $spk->tanggal ? $spk->tanggal->format('d F Y') : '—' }}</span>
-                        </div>
-                        <div class="d-flex justify-content-between px-3 py-2 border-bottom" style="background:#fef2f2">
-                            <span class="text-muted small text-danger fw-bold">Jatuh Tempo (Deadline)</span>
-                            <span class="small text-danger fw-bold">{{ $spk->deadline ? $spk->deadline->format('d F Y') : '—' }}</span>
-                        </div>
-                        <div class="d-flex justify-content-between px-3 py-2 border-bottom">
-                            <span class="text-muted small">Nama Pemesan</span>
-                            <span class="small fw-bold text-dark">{{ $spk->pemesan ?: '—' }}</span>
-                        </div>
-                        <div class="d-flex justify-content-between px-3 py-2 border-bottom">
-                            <span class="text-muted small">No. HP Pemesan</span>
-                            <span class="small text-muted font-monospace">{{ $spk->no_hp_pemesan ?: '—' }}</span>
-                        </div>
-                        <div class="d-flex justify-content-between px-3 py-2 border-bottom">
-                            <span class="text-muted small">Instansi</span>
-                            <span class="small text-dark">{{ $spk->instansi ?: '—' }}</span>
-                        </div>
-                        <div class="d-flex justify-content-between px-3 py-2">
-                            <span class="text-muted small">Penginput</span>
-                            <span class="small text-muted fw-semibold">{{ $spk->penginput->name ?? 'SYSTEM' }}</span>
-                        </div>
-                    </div>
-
-                    @if($spk->tambahan)
-                        <div class="mb-0">
-                            <label class="small text-muted fw-semibold d-block">Catatan Tambahan &amp; Aksesoris</label>
-                            <div class="p-2 rounded bg-light small text-muted text-wrap font-monospace" style="white-space: pre-wrap;">{{ $spk->tambahan }}</div>
-                        </div>
-                    @endif
+                <div class="col-md-4 text-center">
+                    <h2 class="fw-bold mb-0 text-dark" style="letter-spacing: 3px; font-family: 'Outfit', sans-serif;">S P K</h2>
+                    <div class="text-uppercase fw-semibold text-muted small" style="letter-spacing: 2px;">Surat Perintah Kerja</div>
+                </div>
+                <div class="col-md-3 text-end">
+                    <div class="mb-1 text-muted small text-uppercase fw-bold">Tanggal</div>
+                    <div class="fw-bold text-dark">{{ $spk->tanggal ? $spk->tanggal->format('d F Y') : '—' }}</div>
+                    
+                    <div class="mt-2 mb-1 text-danger small text-uppercase fw-bold">Jatuh Tempo</div>
+                    <div class="fw-bold text-danger">{{ $spk->deadline ? $spk->deadline->format('d F Y') : '—' }}</div>
+                </div>
+                <div class="col-md-1 text-end ps-0 d-none d-md-block">
+                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=65x65&data={{ $spk->no_spk }}" alt="QR Code" class="img-fluid rounded border p-1 bg-white">
                 </div>
             </div>
 
-            {{-- Desain Visual --}}
-            <div class="card border-0 shadow-sm rounded-3 bg-white">
-                <div class="card-header bg-light border-0 py-3 px-4">
-                    <h6 class="fw-bold mb-0 text-dark">
-                        <i class="fas fa-image me-2 text-primary"></i>Visual Desain
-                    </h6>
+            <!-- Visual Design Box -->
+            <div class="border rounded-3 p-4 text-center bg-light mb-4 shadow-sm position-relative">
+                <div class="position-absolute top-0 start-50 translate-middle bg-white px-3 text-uppercase fw-bold small text-muted border rounded-pill">
+                    Desain Model / Bordir Logo
                 </div>
-                <div class="card-body p-4 text-center">
+                <div class="mt-2">
                     @if($spk->image_url)
-                        <img src="{{ $spk->image_url }}" alt="Desain Pakaian" class="img-fluid rounded border p-2 bg-light shadow-sm" style="max-height: 250px;">
+                        <img src="{{ $spk->image_url }}" alt="Desain Pakaian" class="img-fluid rounded border p-2 bg-white shadow-sm" style="max-height: 220px; object-fit: contain;">
                     @else
-                        <div class="py-4 text-muted border border-dashed rounded bg-light small">
-                            <i class="fas fa-image fa-2x opacity-25 d-block mb-1"></i>
-                            Tidak ada gambar desain diupload.
+                        <div class="py-4 text-muted small">
+                            <i class="fas fa-image fa-3x opacity-25 d-block mb-2 text-secondary"></i>
+                            <span class="fw-semibold">TEMPEL GAMBAR DESAIN DI SINI</span>
                         </div>
                     @endif
                 </div>
             </div>
-        </div>
 
-        {{-- Kanan: Detail Grid Item & Penjahit --}}
-        <div class="col-lg-8">
-            <div class="card border-0 shadow-sm rounded-3 bg-white mb-3">
-                <div class="card-header bg-primary text-white border-0 py-3 px-4">
-                    <h6 class="fw-bold mb-0">
-                        <i class="fas fa-boxes me-2"></i>Rincian Produk &amp; Tugas Produksi (Tukang Jahit)
-                    </h6>
+            <!-- Client / Order Bar -->
+            <div class="row g-2 p-3 bg-dark text-white rounded-3 mb-4 text-uppercase small fw-bold">
+                <div class="col-md-3">
+                    <span class="text-white-50">Pemesan:</span><br>
+                    <span class="text-truncate d-block">{{ $spk->pemesan ?: 'INTERNAL STOCK' }}</span>
                 </div>
-                <div class="card-body p-4">
-                    {{-- Grid Breakdown --}}
-                    <h6 class="fw-bold text-dark mb-2"><i class="fas fa-table me-2 text-primary"></i>Matriks Ukuran &amp; Penjahit (SPK Grid)</h6>
-                    <div class="table-responsive">
-                        <table class="table table-sm table-bordered align-middle text-center mb-0">
-                            <thead class="table-light small text-muted">
-                                <tr>
-                                    <th rowspan="2" class="align-middle text-start ps-3" style="width: 25%;">Model Varian</th>
-                                    <th colspan="6">Size</th>
-                                    <th rowspan="2" class="align-middle" style="width: 12%;">Total Qty</th>
-                                    <th rowspan="2" class="align-middle text-start ps-3" style="width: 25%;">Tukang Jahit</th>
-                                </tr>
-                                <tr>
-                                    <th>S</th>
-                                    <th>M</th>
-                                    <th>L</th>
-                                    <th>XL</th>
-                                    <th>XXL</th>
-                                    <th>3XL</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @forelse($grouped as $model)
-                                    <tr>
-                                        <td class="text-start ps-3 fw-bold text-dark">{{ $model['model'] }}</td>
-                                        <td>{{ $model['sizes']['S'] > 0 ? $model['sizes']['S'] : '—' }}</td>
-                                        <td>{{ $model['sizes']['M'] > 0 ? $model['sizes']['M'] : '—' }}</td>
-                                        <td>{{ $model['sizes']['L'] > 0 ? $model['sizes']['L'] : '—' }}</td>
-                                        <td>{{ $model['sizes']['XL'] > 0 ? $model['sizes']['XL'] : '—' }}</td>
-                                        <td>{{ $model['sizes']['XXL'] > 0 ? $model['sizes']['XXL'] : '—' }}</td>
-                                        <td>{{ $model['sizes']['3XL'] > 0 ? $model['sizes']['3XL'] : '—' }}</td>
-                                        <td class="fw-bold text-primary">{{ $model['total'] }} pcs</td>
-                                        <td class="text-start ps-3 small font-monospace text-muted">{{ $model['tailors_list'] }}</td>
-                                    </tr>
-                                @empty
-                                    <tr>
-                                        <td colspan="9" class="text-center text-muted py-3 small">Tidak ada data item.</td>
-                                    </tr>
-                                @endforelse
-                            </tbody>
-                        </table>
-                    </div>
-
-                    {{-- Rincian HPP Per Item --}}
-                    <h6 class="fw-bold text-dark mt-4 mb-2">
-                        <i class="fas fa-calculator me-2 text-primary"></i>Rincian HPP Per Item Produksi
-                    </h6>
-                    @php $grandTotalCost = 0; @endphp
-                    @foreach($spk->items as $item)
-                        @php
-                            $subtotal = $item->hpp * $item->quantity;
-                            $grandTotalCost += $subtotal;
-                        @endphp
-                        @php
-                            $activeStatus = $productionStatuses->firstWhere('name', $item->status) ?? $productionStatuses->first();
-                            $badgeColors = [
-                                'secondary' => 'bg-secondary text-white',
-                                'dark' => 'bg-dark text-white',
-                                'warning' => 'bg-warning text-dark',
-                                'info' => 'bg-info text-dark',
-                                'primary' => 'bg-primary text-white',
-                                'success' => 'bg-success text-white',
-                                'danger' => 'bg-danger text-white'
-                            ];
-                            $currentStatusColor = $badgeColors[$activeStatus->color ?? 'secondary'] ?? 'bg-secondary text-white';
-                            $currentStatusName = $activeStatus->name ?? 'Belum Mulai';
-                        @endphp
-                        <div class="card border mb-2">
-                            <div class="card-header bg-light py-2 px-3 d-flex justify-content-between align-items-center">
-                                <div>
-                                    <span class="fw-bold text-dark">{{ $item->nama_produk }}</span>
-                                    <span class="badge bg-light text-dark border ms-2">{{ $item->ukuran ?: 'All Size' }}</span>
-                                    <span class="badge {{ $currentStatusColor }} ms-2" style="font-size: 10px;">
-                                        @if($currentStatusName === 'Selesai')
-                                            <i class="fas fa-check-circle me-1"></i>
-                                        @else
-                                            <i class="fas fa-spinner fa-spin me-1"></i>
-                                        @endif
-                                        {{ $currentStatusName }}
-                                    </span>
-                                </div>
-                                <div class="text-end d-flex align-items-center gap-2">
-                                    {{-- Status Selector Form --}}
-                                    <form action="{{ route('spks.items.update_status', $item->id) }}" method="POST" class="d-inline-block m-0">
-                                        @csrf
-                                        <div class="input-group input-group-sm">
-                                            <select name="status" class="form-select form-select-sm py-0 border-primary-subtle text-primary fw-semibold" style="font-size: 10px; height: 22px;" onchange="this.form.submit()">
-                                                @foreach($productionStatuses as $pStat)
-                                                    <option value="{{ $pStat->name }}" {{ ($item->status ?? 'Belum Mulai') == $pStat->name ? 'selected' : '' }}>{{ $pStat->name }}</option>
-                                                @endforeach
-                                            </select>
-                                        </div>
-                                    </form>
-                                    <span class="text-muted small ms-2">Penjahit: <strong>{{ $item->penjahit ?: '—' }}</strong></span>
-                                    <span class="text-muted small ms-2">Qty: <strong>{{ $item->quantity }} pcs</strong></span>
-                                    <span class="fw-bold text-success ms-2">HPP: Rp {{ number_format($item->hpp, 0, ',', '.') }}/pcs</span>
-                                    <span class="fw-bold text-primary ms-3">Subtotal: Rp {{ number_format($subtotal, 0, ',', '.') }}</span>
-                                </div>
-                            </div>
-                            <div class="card-body p-2">
-                                @php
-                                    $materials = [];
-                                    $services = [];
-                                    foreach($item->extras as $extra) {
-                                        $desc = strtolower($extra->keterangan);
-                                        if (str_starts_with($desc, 'bahan:') || str_contains($desc, 'bahan')) {
-                                            $materials[] = $extra;
-                                        } else {
-                                            $services[] = $extra;
-                                        }
-                                    }
-                                @endphp
-                                <div class="row g-3" style="font-size:11px;">
-                                    <div class="col-md-6">
-                                        <p class="fw-semibold text-success mb-1 border-bottom pb-1">
-                                            <i class="fas fa-boxes me-1"></i> Bahan Baku &amp; Kemasan
-                                        </p>
-                                        <table class="table table-sm mb-0 table-borderless">
-                                            @forelse($materials as $ex)
-                                                <tr>
-                                                    <td class="text-muted">{{ $ex->keterangan }}</td>
-                                                    <td class="text-end font-monospace fw-semibold">Rp {{ number_format($ex->nominal, 0, ',', '.') }}</td>
-                                                </tr>
-                                            @empty
-                                                <tr>
-                                                    <td colspan="2" class="text-muted text-center py-2">Tidak ada komponen bahan baku</td>
-                                                </tr>
-                                            @endforelse
-                                        </table>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <p class="fw-semibold text-primary mb-1 border-bottom pb-1">
-                                            <i class="fas fa-cut me-1"></i> Biaya Jasa &amp; Operasional
-                                        </p>
-                                        <table class="table table-sm mb-0 table-borderless">
-                                            @forelse($services as $ex)
-                                                <tr>
-                                                    <td class="text-muted">{{ $ex->keterangan }}</td>
-                                                    <td class="text-end font-monospace fw-semibold">Rp {{ number_format($ex->nominal, 0, ',', '.') }}</td>
-                                                </tr>
-                                            @empty
-                                                <tr>
-                                                    <td colspan="2" class="text-muted text-center py-2">Tidak ada komponen jasa/operasional</td>
-                                                </tr>
-                                            @endforelse
-                                        </table>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    @endforeach
-
-                    <div class="d-flex justify-content-end gap-4 mt-2 p-3 bg-light rounded border">
-                        <div class="text-end">
-                            <div class="text-muted small">Total Quantity</div>
-                            <div class="fw-bold text-dark fs-6">{{ $spk->items->sum('quantity') }} pcs</div>
-                        </div>
-                        <div class="text-end">
-                            <div class="text-muted small">Total HPP Produksi SPK</div>
-                            <div class="fw-bold text-primary fs-5">Rp {{ number_format($grandTotalCost, 0, ',', '.') }}</div>
-                        </div>
-                    </div>
+                <div class="col-md-3 border-start border-secondary ps-3">
+                    <span class="text-white-50">No HP Pemesan:</span><br>
+                    <span>{{ $spk->no_hp_pemesan ?: '—' }}</span>
+                </div>
+                <div class="col-md-3 border-start border-secondary ps-3">
+                    <span class="text-white-50">Instansi:</span><br>
+                    <span class="text-truncate d-block">{{ $spk->instansi ?: '—' }}</span>
+                </div>
+                <div class="col-md-3 border-start border-secondary ps-3">
+                    <span class="text-white-50">Penginput:</span><br>
+                    <span class="text-truncate d-block">{{ $spk->penginput->name ?? 'SYSTEM' }}</span>
                 </div>
             </div>
+
+            <!-- Rincian Produk & Pembagian Kerja (Matriks Ukuran) -->
+            <h5 class="fw-bold text-dark mb-3">
+                <i class="fas fa-table text-primary me-2"></i>Rincian Produk &amp; Pembagian Kerja
+            </h5>
+            <div class="table-responsive mb-4">
+                <table class="table table-bordered table-sm align-middle text-center mb-0">
+                    <thead class="table-light text-muted small">
+                        <tr>
+                            <th rowspan="2" class="align-middle text-start ps-3" style="width: 25%;">Model Varian</th>
+                            <th colspan="{{ count($sizesHeader) }}">Size</th>
+                            <th rowspan="2" class="align-middle" style="width: 10%;">Total QTY</th>
+                            <th rowspan="2" class="align-middle text-start ps-3" style="width: 20%;">Tukang Jahit</th>
+                            <th rowspan="2" class="align-middle" style="width: 20%;">Status Matriks</th>
+                        </tr>
+                        <tr>
+                            @foreach($sizesHeader as $sz)
+                                <th>{{ $sz }}</th>
+                            @endforeach
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @php $grandTotalQty = 0; @endphp
+                        @forelse($grouped as $model)
+                            <tr>
+                                <td class="text-start ps-3 fw-bold text-dark">{{ $model['model'] }}</td>
+                                @foreach($sizesHeader as $sz)
+                                    @php
+                                        $szKey = $sz === 'XXXL' ? '3XL' : $sz;
+                                    @endphp
+                                    <td>
+                                        @if(isset($model['sizes'][$szKey]) && $model['sizes'][$szKey] > 0)
+                                            <span class="fw-semibold text-dark">{{ $model['sizes'][$szKey] }}</span>
+                                        @else
+                                            <span class="text-muted opacity-50">—</span>
+                                        @endif
+                                    </td>
+                                @endforeach
+                                <td class="bg-danger-subtle fw-bold text-danger">{{ $model['total'] }}</td>
+                                <td class="text-start ps-3 font-monospace small">{{ $model['tailors_list'] }}</td>
+                                <td class="text-muted small">Ready to Office</td>
+                            </tr>
+                            @php $grandTotalQty += $model['total']; @endphp
+                        @empty
+                            <tr>
+                                <td colspan="{{ count($sizesHeader) + 4 }}" class="text-center py-3 text-muted">Tidak ada data produk.</td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Rincian HPP Produksi (Internal Office Only) -->
+            <h5 class="fw-bold text-dark mb-3 mt-4">
+                <i class="fas fa-calculator text-primary me-2"></i>Rincian HPP Produksi <span class="badge bg-danger-subtle text-danger" style="font-size: 11px;">Internal Office Only</span>
+            </h5>
+            <div class="table-responsive mb-4">
+                <table class="table table-bordered table-sm align-middle text-center mb-0">
+                    <thead class="table-light text-muted small">
+                        <tr>
+                            <th></th>
+                            <th class="text-start ps-3" style="width: 25%;">Nama Produk &amp; Size</th>
+                            <th style="width: 12%;">Alur Kerja</th>
+                            <th style="width: 15%;">Tukang Jahit</th>
+                            <th style="width: 10%;">Bahan / pcs</th>
+                            <th style="width: 10%;">Jasa / pcs</th>
+                            <th style="width: 10%;">HPP / Pcs</th>
+                            <th style="width: 5%;">Qty</th>
+                            <th style="width: 12%;">Subtotal HPP</th>
+                            <th style="width: 12%;">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @php $grandTotalHpp = 0; @endphp
+                        @foreach($spk->items as $item)
+                            @php
+                                $subtotal = $item->hpp * $item->quantity;
+                                $grandTotalHpp += $subtotal;
+
+                                $totalBahan = 0;
+                                $totalJasa = 0;
+                                $materials = [];
+                                $services = [];
+                                foreach($item->extras as $ex) {
+                                    $desc = strtolower($ex->keterangan);
+                                    if (str_starts_with($desc, 'bahan:') || str_contains($desc, 'bahan')) {
+                                        $totalBahan += (float)$ex->nominal;
+                                        $materials[] = $ex;
+                                    } else {
+                                        $totalJasa += (float)$ex->nominal;
+                                        $services[] = $ex;
+                                    }
+                                }
+
+                                $activeStatus = $productionStatuses->firstWhere('name', $item->status) ?? $productionStatuses->first();
+                                $badgeColors = [
+                                    'secondary' => 'bg-secondary text-white',
+                                    'dark' => 'bg-dark text-white',
+                                    'warning' => 'bg-warning text-dark',
+                                    'info' => 'bg-info text-dark',
+                                    'primary' => 'bg-primary text-white',
+                                    'success' => 'bg-success text-white',
+                                    'danger' => 'bg-danger text-white'
+                                ];
+                                $currentStatusColor = $badgeColors[$activeStatus->color ?? 'secondary'] ?? 'bg-secondary text-white';
+                                $currentStatusName = $activeStatus->name ?? 'Belum Mulai';
+                            @endphp
+                            
+                            <!-- Main Row -->
+                            <tr>
+                                <td>
+                                    <button class="btn btn-link btn-sm p-0 m-0 text-decoration-none" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-details-{{ $item->id }}" aria-expanded="false">
+                                        <i class="fas fa-chevron-down text-secondary" style="font-size: 11px;"></i>
+                                    </button>
+                                </td>
+                                <td class="text-start ps-3 fw-bold text-dark">
+                                    {{ $item->nama_produk }}
+                                    <span class="badge bg-light text-dark border ms-1 small">{{ $item->ukuran ?: 'All Size' }}</span>
+                                </td>
+                                <td>{{ $item->alur_proses ?: 'Langsung Jahit' }}</td>
+                                <td>{{ $item->penjahit ?: '—' }}</td>
+                                <td>Rp {{ number_format($totalBahan, 0, ',', '.') }}</td>
+                                <td>Rp {{ number_format($totalJasa, 0, ',', '.') }}</td>
+                                <td class="bg-danger-subtle fw-bold text-danger">Rp {{ number_format($item->hpp, 0, ',', '.') }}</td>
+                                <td>{{ $item->quantity }}</td>
+                                <td class="fw-bold">Rp {{ number_format($subtotal, 0, ',', '.') }}</td>
+                                <td>
+                                    {{-- Status Selector Form --}}
+                                    <form action="{{ route('spks.items.update_status', $item->id) }}" method="POST" class="m-0">
+                                        @csrf
+                                        <select name="status" class="form-select form-select-sm py-0 border-primary-subtle text-primary fw-semibold" style="font-size: 10px; height: 22px; width: 100px; margin: 0 auto;" onchange="this.form.submit()">
+                                            @foreach($productionStatuses as $pStat)
+                                                <option value="{{ $pStat->name }}" {{ ($item->status ?? 'Belum Mulai') == $pStat->name ? 'selected' : '' }}>{{ $pStat->name }}</option>
+                                            @endforeach
+                                        </select>
+                                    </form>
+                                </td>
+                            </tr>
+
+                            <!-- Collapsible Row for Details -->
+                            <tr id="collapse-details-{{ $item->id }}" class="collapse bg-light-subtle">
+                                <td colspan="10" class="p-3 border-top-0">
+                                    <div class="row text-start" style="font-size: 11px;">
+                                        <div class="col-md-6 border-end">
+                                            <p class="fw-bold text-success border-bottom pb-1 mb-2">
+                                                <i class="fas fa-boxes me-1"></i> Rincian Bahan Baku &amp; Kemasan
+                                            </p>
+                                            <table class="table table-sm table-borderless mb-0">
+                                                @forelse($materials as $ex)
+                                                    <tr>
+                                                        <td class="text-muted p-0 py-1">{{ $ex->keterangan }}</td>
+                                                        <td class="text-end font-monospace fw-semibold p-0 py-1">Rp {{ number_format($ex->nominal, 0, ',', '.') }}</td>
+                                                    </tr>
+                                                @empty
+                                                    <tr>
+                                                        <td colspan="2" class="text-muted text-center py-1">Tidak ada rincian bahan baku</td>
+                                                    </tr>
+                                                @endforelse
+                                            </table>
+                                        </div>
+                                        <div class="col-md-6 ps-md-4">
+                                            <p class="fw-bold text-primary border-bottom pb-1 mb-2">
+                                                <i class="fas fa-cut me-1"></i> Rincian Biaya Jasa &amp; Operasional
+                                            </p>
+                                            <table class="table table-sm table-borderless mb-0">
+                                                @forelse($services as $ex)
+                                                    <tr>
+                                                        <td class="text-muted p-0 py-1">{{ $ex->keterangan }}</td>
+                                                        <td class="text-end font-monospace fw-semibold p-0 py-1">Rp {{ number_format($ex->nominal, 0, ',', '.') }}</td>
+                                                    </tr>
+                                                @empty
+                                                    <tr>
+                                                        <td colspan="2" class="text-muted text-center py-1">Tidak ada rincian biaya jasa</td>
+                                                    </tr>
+                                                @endforelse
+                                            </table>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        @endforeach
+
+                        <!-- HPP Grand Total -->
+                        <tr class="table-light fw-bold">
+                            <td colspan="7" class="text-end pe-3 align-middle fs-6">Total Nilai HPP Produksi SPK:</td>
+                            <td class="align-middle fs-6">{{ $spk->items->sum('quantity') }} pcs</td>
+                            <td class="align-middle text-primary fs-6">Rp {{ number_format($grandTotalHpp, 0, ',', '.') }}</td>
+                            <td></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Additional Accessories Block -->
+            <div class="border rounded-3 p-3 bg-light mb-4">
+                <div class="text-uppercase fw-bold text-danger mb-2" style="font-size: 11px; letter-spacing: 0.5px;">Atribut &amp; Aksesoris Tambahan:</div>
+                <div class="font-monospace text-wrap" style="white-space: pre-wrap; font-size: 12px; color: #333;">
+                    @if($spk->tambahan)
+                        {{ $spk->tambahan }}
+                    @else
+                        Tidak ada aksesoris tambahan.
+                    @endif
+                </div>
+            </div>
+
+            <!-- Documentation Checklist -->
+            <div class="row g-2 border rounded-3 p-3 mb-4 bg-light align-items-center">
+                <div class="col-md-4 text-uppercase fw-bold text-dark small" style="letter-spacing: 0.5px;">
+                    Bukti Dokumentasi Klien :
+                </div>
+                <div class="col-md-4 d-flex align-items-center">
+                    <div class="border border-dark bg-white me-2 rounded-1" style="width: 16px; height: 16px;"></div>
+                    <span class="fw-bold small text-muted">SUDAH FOTO</span>
+                </div>
+                <div class="col-md-4 d-flex align-items-center">
+                    <div class="border border-dark bg-white me-2 rounded-1" style="width: 16px; height: 16px;"></div>
+                    <span class="fw-bold small text-muted">SUDAH VIDEO</span>
+                </div>
+            </div>
+
+            <!-- Signatures Grid -->
+            <div class="row g-3 border rounded-3 overflow-hidden text-center mt-4">
+                <div class="col-6 border-end p-3" style="min-height: 110px; display: flex; flex-direction: column; justify-content: space-between;">
+                    <div class="text-uppercase fw-bold text-muted border-bottom pb-2 mb-3" style="font-size: 10px;">Paraf QC / Gudang</div>
+                    <div class="text-muted small">( .................................... )</div>
+                </div>
+                <div class="col-6 p-3" style="min-height: 110px; display: flex; flex-direction: column; justify-content: space-between;">
+                    <div class="text-uppercase fw-bold text-muted border-bottom pb-2 mb-3" style="font-size: 10px;">Project Selesai</div>
+                    <div class="text-muted small fw-bold">( Paraf / Cap Tim Marketing )</div>
+                </div>
+            </div>
+
         </div>
     </div>
 </div>
