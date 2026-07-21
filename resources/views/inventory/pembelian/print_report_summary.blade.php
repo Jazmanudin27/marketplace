@@ -67,6 +67,23 @@
                 </tr>
             @endforelse
         </tbody>
+        @if(count($rekap) > 0)
+            <tfoot>
+                <tr style="font-weight:bold;background:#ecfdf5;border-top:2px solid #059669">
+                    <td colspan="4" style="text-align:right;padding:8px">TOTAL:</td>
+                    <td style="text-align:center;padding:8px">{{ number_format(collect($rekap)->sum('stok_awal')) }}</td>
+                    <td style="text-align:center;padding:8px" class="text-success">+{{ number_format(collect($rekap)->sum('pembelian')) }}</td>
+                    <td style="text-align:center;padding:8px" class="text-success">+{{ number_format(collect($rekap)->sum('retur_penjualan')) }}</td>
+                    <td style="text-align:center;padding:8px" class="text-success">+{{ number_format(collect($rekap)->sum('penyesuaian_masuk')) }}</td>
+                    <td style="text-align:center;padding:8px" class="text-danger">-{{ number_format(collect($rekap)->sum('produksi')) }}</td>
+                    <td style="text-align:center;padding:8px" class="text-danger">-{{ number_format(collect($rekap)->sum('percetakan')) }}</td>
+                    <td style="text-align:center;padding:8px" class="text-danger">-{{ number_format(collect($rekap)->sum('retur_pembelian')) }}</td>
+                    <td style="text-align:center;padding:8px" class="text-danger">-{{ number_format(collect($rekap)->sum('penyesuaian_keluar')) }}</td>
+                    <td style="text-align:center;padding:8px;font-weight:bold;font-size:12px">{{ number_format(collect($rekap)->sum('stok_akhir')) }}</td>
+                    <td></td>
+                </tr>
+            </tfoot>
+        @endif
     </table>
 </body>
 </html>

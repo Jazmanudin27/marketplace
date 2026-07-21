@@ -182,6 +182,24 @@
                 </tr>
             @endforelse
         </tbody>
+        @if(count($reportData) > 0)
+            <tfoot>
+                <tr style="font-weight:bold; background-color:#e2e8f0; border-top:2px solid #000;">
+                    <td colspan="6" class="text-right"><strong>TOTAL:</strong></td>
+                    <td class="text-right"><strong>{{ number_format(collect($reportData)->sum('stok_awal')) }}</strong></td>
+                    <td class="text-right">{{ number_format(collect($reportData)->sum('in_pembelian')) }}</td>
+                    <td class="text-right">{{ number_format(collect($reportData)->sum('in_penyesuaian')) }}</td>
+                    <td class="text-right">{{ number_format(collect($reportData)->sum('in_lainnya')) }}</td>
+                    <td class="text-right">{{ number_format(collect($reportData)->sum('out_shopee')) }}</td>
+                    <td class="text-right">{{ number_format(collect($reportData)->sum('out_tiktok')) }}</td>
+                    <td class="text-right">{{ number_format(collect($reportData)->sum('out_tokopedia')) }}</td>
+                    <td class="text-right">{{ number_format(collect($reportData)->sum('out_lazada')) }}</td>
+                    <td class="text-right">{{ number_format(collect($reportData)->sum('out_penyesuaian')) }}</td>
+                    <td class="text-right">{{ number_format(collect($reportData)->sum('out_lain')) }}</td>
+                    <td class="text-right"><strong>{{ number_format(collect($reportData)->sum('stok_akhir')) }}</strong></td>
+                </tr>
+            </tfoot>
+        @endif
     </table>
 
 

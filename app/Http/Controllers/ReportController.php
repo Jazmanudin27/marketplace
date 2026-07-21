@@ -112,9 +112,26 @@ class ReportController extends Controller
 
         $movements = $query->get();
         
-        $saldoAwal = $movements->count() > 0 
-            ? $movements->first()->balance_after - $movements->first()->quantity 
-            : $product->stock;
+        if ($request->filled('start_date')) {
+            $prevMovement = \App\Models\StockMovement::where('master_product_id', $product->id)
+                ->where('tenant_id', $tenantId)
+                ->whereDate('created_at', '<', $request->start_date)
+                ->orderBy('created_at', 'desc')
+                ->orderBy('id', 'desc')
+                ->first();
+            
+            if ($prevMovement) {
+                $saldoAwal = $prevMovement->balance_after;
+            } elseif ($movements->count() > 0) {
+                $saldoAwal = $movements->first()->balance_after - $movements->first()->quantity;
+            } else {
+                $saldoAwal = 0;
+            }
+        } else {
+            $saldoAwal = $movements->count() > 0 
+                ? $movements->first()->balance_after - $movements->first()->quantity 
+                : $product->stock;
+        }
 
         return view('reports.print_ledger', compact('product', 'movements', 'saldoAwal'));
     }

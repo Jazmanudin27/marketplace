@@ -4,7 +4,7 @@
 
 @section('content')
     <div class="row justify-content-start">
-        <div class="col-md-5">
+        <div class="col-md-6">
             <div class="card border-0 shadow-sm">
                 <div class="card-header bg-info bg-opacity-10 py-2 px-3">
                     <h6 class="fw-bold mb-0 text-dark"><i class="fas fa-history text-info me-2"></i>Filter Kartu Stok</h6>
@@ -13,10 +13,12 @@
                     <form action="{{ route('reports.ledger.print') }}" method="GET" target="_blank">
                         <div class="mb-3">
                             <label class="form-label form-label-sm fw-semibold">Pilih Produk <span class="text-danger">*</span></label>
-                            <select name="product_id" class="form-select form-select-sm" required>
-                                <option value="">-- Pilih Produk --</option>
+                            <select name="product_id" id="product_id" class="form-select form-select-sm select2" required>
+                                <option value="">-- Cari & Pilih Produk --</option>
                                 @foreach ($products as $product)
-                                    <option value="{{ $product->id }}">[{{ $product->sku }}] {{ $product->name }}</option>
+                                    <option value="{{ $product->id }}" {{ request('product_id') == $product->id ? 'selected' : '' }}>
+                                        [{{ $product->sku }}] {{ $product->name }}
+                                    </option>
                                 @endforeach
                             </select>
                             <div class="form-text small">Kartu stok hanya bisa dicetak per satu produk.</div>
@@ -24,11 +26,13 @@
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label class="form-label form-label-sm fw-semibold">Dari Tanggal</label>
-                                <input type="date" name="start_date" class="form-control form-control-sm">
+                                <input type="date" name="start_date" class="form-control form-control-sm"
+                                    value="{{ request('start_date', date('Y-m-01')) }}">
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label class="form-label form-label-sm fw-semibold">Sampai Tanggal</label>
-                                <input type="date" name="end_date" class="form-control form-control-sm">
+                                <input type="date" name="end_date" class="form-control form-control-sm"
+                                    value="{{ request('end_date', date('Y-m-d')) }}">
                             </div>
                         </div>
                         <div class="d-flex justify-content-end">
@@ -42,3 +46,16 @@
         </div>
     </div>
 @endsection
+
+@push('scripts')
+<script>
+    $(document).ready(function() {
+        $('#product_id').select2({
+            theme: 'bootstrap-5',
+            placeholder: '-- Cari & Pilih Produk --',
+            allowClear: true,
+            width: '100%'
+        });
+    });
+</script>
+@endpush
