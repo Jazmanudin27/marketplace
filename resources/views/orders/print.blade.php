@@ -324,7 +324,8 @@
                 @if ($order->tracking_number)
                     <svg id="barcode"></svg>
                 @else
-                    <div style="font-size: 8px; font-weight: bold; border: 1px dashed #000; padding: 4px 0;">BELUM ADA RESI</div>
+                    <div style="font-size: 8px; font-weight: bold; border: 1px dashed #000; padding: 4px 0;">BELUM ADA
+                        RESI</div>
                 @endif
             </div>
             <div class="header-courier">
@@ -415,7 +416,8 @@
 
         <div class="product-header">
             <div class="fw-bold">DAFTAR PRODUK</div>
-            <div style="font-weight: normal; color: #666;">NO.PESANAN: <span class="fw-bold" style="color: #000;">{{ $order->order_marketplace_id }}</span></div>
+            <div style="font-weight: normal; color: #666;">NO.PESANAN: <span class="fw-bold"
+                    style="color: #000;">{{ $order->order_marketplace_id }}</span></div>
         </div>
 
         <table class="product-table">
@@ -441,7 +443,7 @@
             </tbody>
         </table>
 
-        <div class="note">KOMENTAR PEMBELI: -</div>
+        <div class="note">Catatan : -</div>
     </div>
 
     <script>
@@ -469,9 +471,6 @@
                 }
             @endif
 
-            setTimeout(function() {
-                window.print();
-            }, 800);
         }
     </script>
 </body>

@@ -619,7 +619,7 @@
                     </tbody>
                 </table>
 
-                <div class="note">KOMENTAR PEMBELI: -</div>
+                <div class="note">Catatan: -</div>
             </div>
         </div>
     @endforeach
