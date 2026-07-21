@@ -131,6 +131,11 @@ Route::get('/privacy-policy', function () {
     return view('privacy-policy');
 })->name('privacy-policy');
 
+// Ketentuan Layanan (Tanpa Login)
+Route::get('/terms-of-service', function () {
+    return view('terms-of-service');
+})->name('terms-of-service');
+
 // DEBUG — Verifikasi sign (hapus sebelum production!)
 Route::get('/shopee/debug-sign', function () {
     $shopee = app(\App\Services\ShopeeService::class);

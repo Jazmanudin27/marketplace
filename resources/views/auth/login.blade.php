@@ -694,7 +694,7 @@
 
                 <!-- Terms Notice -->
                 <p class="auth-terms">
-                    Dengan melanjutkan, saya menyetujui <a href="#">Ketentuan Layanan</a>, <a
+                    Dengan melanjutkan, saya menyetujui <a href="{{ route('terms-of-service') }}" target="_blank">Ketentuan Layanan</a>, <a
                         href="{{ route('privacy-policy') }}" target="_blank">Kebijakan Perlindungan Data</a>, dan <a href="#">Aturan Kemitraan
                         Mitra</a> ERP Marketplace.
                 </p>
