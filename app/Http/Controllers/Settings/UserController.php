@@ -125,7 +125,7 @@ class UserController extends Controller
             'Pesanan & Transaksi' => [
                 'orders.index' => 'Lihat Pesanan Masuk',
                 'orders.show' => 'Detail Pesanan',
-                'orders.create' => 'Input Permintaan Produksi',
+                'orders.create' => 'Input Pesanan Manual',
                 'orders.process' => 'Proses Pesanan',
                 'orders.ship' => 'Kirim Pesanan',
                 'orders.print' => 'Cetak Label Pengiriman / Invoice',
