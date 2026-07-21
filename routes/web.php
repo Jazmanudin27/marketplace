@@ -136,6 +136,11 @@ Route::get('/terms-of-service', function () {
     return view('terms-of-service');
 })->name('terms-of-service');
 
+// Petunjuk Penghapusan Data (Tanpa Login)
+Route::get('/data-deletion', function () {
+    return view('data-deletion');
+})->name('data-deletion');
+
 // DEBUG — Verifikasi sign (hapus sebelum production!)
 Route::get('/shopee/debug-sign', function () {
     $shopee = app(\App\Services\ShopeeService::class);
