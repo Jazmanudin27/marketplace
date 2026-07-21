@@ -246,6 +246,9 @@
             flex: 1;
             border-left: 2px solid #ddd;
             padding-left: 8px;
+            word-break: break-all;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
         }
 
         .sort-code {
