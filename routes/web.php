@@ -126,6 +126,11 @@ Route::get('/m/complaint/{tenant_id}', [ComplaintController::class, 'mobileCreat
 Route::post('/m/complaint/{tenant_id}', [ComplaintController::class, 'mobileStore'])->name('complaints.mobile.store');
 Route::get('/m/complaint/{tenant_id}/success', [ComplaintController::class, 'mobileSuccess'])->name('complaints.mobile.success');
 
+// Kebijakan Privasi (Tanpa Login)
+Route::get('/privacy-policy', function () {
+    return view('privacy-policy');
+})->name('privacy-policy');
+
 // DEBUG — Verifikasi sign (hapus sebelum production!)
 Route::get('/shopee/debug-sign', function () {
     $shopee = app(\App\Services\ShopeeService::class);
