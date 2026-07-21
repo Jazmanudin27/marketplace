@@ -33,7 +33,8 @@ class UserController extends Controller
             'product-recipes.create',
             'product-recipes.edit',
             'product-recipes.destroy',
-            'reports.production_hpp'
+            'reports.production_hpp',
+            'orders.create'
         ];
         foreach ($newDashPermissions as $pName) {
             try {
@@ -124,6 +125,7 @@ class UserController extends Controller
             'Pesanan & Transaksi' => [
                 'orders.index' => 'Lihat Pesanan Masuk',
                 'orders.show' => 'Detail Pesanan',
+                'orders.create' => 'Input Permintaan Produksi',
                 'orders.process' => 'Proses Pesanan',
                 'orders.ship' => 'Kirim Pesanan',
                 'orders.print' => 'Cetak Label Pengiriman / Invoice',
