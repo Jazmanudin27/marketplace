@@ -394,7 +394,7 @@ class OrderController extends Controller
     public function print(Order $order, \App\Services\ShopeeService $shopeeService, \App\Services\TiktokService $tiktokService)
     {
         abort_unless($order->tenant_id === Auth::user()->tenant_id, 403);
-        $order->load('items', 'store.channel');
+        $order->load('items.masterProduct', 'store.channel');
         
         $store = $order->store;
 

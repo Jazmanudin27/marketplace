@@ -432,11 +432,26 @@
             </thead>
             <tbody>
                 @foreach ($order->items as $itemIndex => $item)
+                    @php
+                        $variantParts = [];
+                        if ($item->masterProduct) {
+                            if (!empty($item->masterProduct->warna)) {
+                                $variantParts[] = $item->masterProduct->warna;
+                            }
+                            if (!empty($item->masterProduct->ukuran)) {
+                                $variantParts[] = $item->masterProduct->ukuran;
+                            }
+                        }
+                        if (empty($variantParts) && preg_match('/\(([^)]+)\)/', $item->product_name, $m)) {
+                            $variantParts[] = $m[1];
+                        }
+                        $variantDisplay = !empty($variantParts) ? implode(' / ', $variantParts) : '-';
+                    @endphp
                     <tr>
                         <td>{{ $itemIndex + 1 }}</td>
                         <td>{{ $item->product_name }}</td>
                         <td class="font-monospace">{{ $item->sku ?? '-' }}</td>
-                        <td>-</td>
+                        <td class="fw-semibold">{{ $variantDisplay }}</td>
                         <td class="text-center fw-bold">{{ $item->quantity }}</td>
                     </tr>
                 @endforeach

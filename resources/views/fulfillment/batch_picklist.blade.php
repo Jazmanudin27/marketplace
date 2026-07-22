@@ -307,6 +307,20 @@
                                 <tr>
                                     <td style="color: #334155;">
                                         {{ $it->product_name }}
+                                        @php
+                                            $vParts = [];
+                                            if ($it->masterProduct) {
+                                                if (!empty($it->masterProduct->warna)) $vParts[] = $it->masterProduct->warna;
+                                                if (!empty($it->masterProduct->ukuran)) $vParts[] = $it->masterProduct->ukuran;
+                                            }
+                                            if (empty($vParts) && preg_match('/\(([^)]+)\)/', $it->product_name, $m)) {
+                                                $vParts[] = $m[1];
+                                            }
+                                            $vDisplay = !empty($vParts) ? implode(' / ', $vParts) : '';
+                                        @endphp
+                                        @if($vDisplay)
+                                            <span style="font-weight: bold; background: #e0f2fe; color: #0369a1; padding: 1px 4px; border-radius: 3px; font-size: 8.5px; margin-left: 2px;">{{ $vDisplay }}</span>
+                                        @endif
                                         @if($it->sku)
                                             <span style="font-family: monospace; font-size: 8.5px; color: #64748b;">({{ $it->sku }})</span>
                                         @endif
