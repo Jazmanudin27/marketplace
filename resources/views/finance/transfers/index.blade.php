@@ -154,17 +154,29 @@
                 <div class="modal-body p-4">
                     <div class="row g-3 mb-3">
                         <div class="col-md-6">
-                            <label class="form-label fw-semibold small">Kas Sumber (Asal)</label>
+                            <label class="form-label fw-semibold small">Kas / Bank Asal</label>
                             <select name="source" class="form-select form-select-sm" required>
-                                <option value="kas_besar">Kas Besar (Utama)</option>
-                                <option value="kas_kecil">Kas Kecil (Operasional)</option>
+                                @if(isset($bankAccounts) && $bankAccounts->isNotEmpty())
+                                    @foreach($bankAccounts as $bank)
+                                        <option value="{{ $bank->bank_name }}">{{ $bank->bank_name }} {{ $bank->account_number ? '('.$bank->account_number.')' : '' }}</option>
+                                    @endforeach
+                                @else
+                                    <option value="kas_besar">Kas Besar (Utama)</option>
+                                    <option value="kas_kecil">Kas Kecil (Operasional)</option>
+                                @endif
                             </select>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label fw-semibold small">Kas Tujuan</label>
+                            <label class="form-label fw-semibold small">Kas / Bank Tujuan</label>
                             <select name="destination" class="form-select form-select-sm" required>
-                                <option value="kas_kecil">Kas Kecil (Operasional)</option>
-                                <option value="kas_besar">Kas Besar (Utama)</option>
+                                @if(isset($bankAccounts) && $bankAccounts->isNotEmpty())
+                                    @foreach($bankAccounts as $bank)
+                                        <option value="{{ $bank->bank_name }}">{{ $bank->bank_name }} {{ $bank->account_number ? '('.$bank->account_number.')' : '' }}</option>
+                                    @endforeach
+                                @else
+                                    <option value="kas_kecil">Kas Kecil (Operasional)</option>
+                                    <option value="kas_besar">Kas Besar (Utama)</option>
+                                @endif
                             </select>
                         </div>
                     </div>

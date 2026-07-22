@@ -43,11 +43,10 @@ class ExpenseController extends Controller
         }
 
         $expenses = $query->orderByDesc('expense_date')->paginate(15)->withQueryString();
-
-        // Get employees for dropdown
         $employees = Employee::where('tenant_id', $tenantId)->where('is_active', true)->get();
+        $bankAccounts = \App\Models\BankAccount::where('tenant_id', $tenantId)->where('is_active', true)->orderBy('bank_name')->get();
 
-        return view('finance.expenses.index', compact('expenses', 'employees', 'search', 'category', 'paymentSource', 'dateFrom', 'dateTo'));
+        return view('finance.expenses.index', compact('expenses', 'employees', 'bankAccounts', 'search', 'category', 'paymentSource', 'dateFrom', 'dateTo'));
     }
 
     public function store(Request $request)
@@ -55,13 +54,13 @@ class ExpenseController extends Controller
         $tenantId = Auth::user()->tenant_id;
 
         $validated = $request->validate([
-            'title' => 'required|string|max:255',
-            'category' => 'required|string|in:salary,rent,utilities,pembelian_supplier,other',
-            'payment_source' => 'required|string|in:kas_besar,kas_kecil',
-            'amount' => 'required|numeric|min:0',
-            'expense_date' => 'required|date',
-            'employee_id' => 'nullable|exists:employees,id',
-            'description' => 'nullable|string',
+            'title'          => 'required|string|max:255',
+            'category'       => 'required|string|in:salary,rent,utilities,pembelian_supplier,other',
+            'payment_source' => 'required|string|max:100',
+            'amount'         => 'required|numeric|min:0',
+            'expense_date'   => 'required|date',
+            'employee_id'    => 'nullable|exists:employees,id',
+            'description'    => 'nullable|string',
         ]);
 
         if ($request->filled('employee_id')) {
@@ -73,7 +72,18 @@ class ExpenseController extends Controller
 
         $validated['tenant_id'] = $tenantId;
 
-        Expense::create($validated);
+        $expense = Expense::create($validated);
+
+        // Update balance on matching bank account if exists
+        $bank = \App\Models\BankAccount::where('tenant_id', $tenantId)
+            ->where(function($q) use ($request) {
+                $q->where('bank_name', $request->payment_source)
+                  ->orWhere('id', $request->payment_source);
+            })->first();
+
+        if ($bank) {
+            $bank->decrement('current_balance', $expense->amount);
+        }
 
         return redirect()->route('finance.expenses.index')->with('success', 'Pengeluaran berhasil dicatat.');
     }
@@ -85,13 +95,13 @@ class ExpenseController extends Controller
         }
 
         $validated = $request->validate([
-            'title' => 'required|string|max:255',
-            'category' => 'required|string|in:salary,rent,utilities,pembelian_supplier,other',
-            'payment_source' => 'required|string|in:kas_besar,kas_kecil',
-            'amount' => 'required|numeric|min:0',
-            'expense_date' => 'required|date',
-            'employee_id' => 'nullable|exists:employees,id',
-            'description' => 'nullable|string',
+            'title'          => 'required|string|max:255',
+            'category'       => 'required|string|in:salary,rent,utilities,pembelian_supplier,other',
+            'payment_source' => 'required|string|max:100',
+            'amount'         => 'required|numeric|min:0',
+            'expense_date'   => 'required|date',
+            'employee_id'    => 'nullable|exists:employees,id',
+            'description'    => 'nullable|string',
         ]);
 
         if ($request->filled('employee_id')) {

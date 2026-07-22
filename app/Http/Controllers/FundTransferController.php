@@ -27,8 +27,9 @@ class FundTransferController extends Controller
         }
 
         $transfers = $query->orderByDesc('transfer_date')->paginate(15)->withQueryString();
+        $bankAccounts = \App\Models\BankAccount::where('tenant_id', $tenantId)->where('is_active', true)->orderBy('bank_name')->get();
 
-        return view('finance.transfers.index', compact('transfers', 'dateFrom', 'dateTo'));
+        return view('finance.transfers.index', compact('transfers', 'bankAccounts', 'dateFrom', 'dateTo'));
     }
 
     public function store(Request $request)
@@ -36,18 +37,38 @@ class FundTransferController extends Controller
         $tenantId = Auth::user()->tenant_id;
 
         $validated = $request->validate([
-            'source' => 'required|string|in:kas_besar,kas_kecil',
-            'destination' => 'required|string|in:kas_besar,kas_kecil|different:source',
-            'amount' => 'required|numeric|min:0.01',
+            'source'        => 'required|string|max:100',
+            'destination'   => 'required|string|max:100|different:source',
+            'amount'        => 'required|numeric|min:0.01',
             'transfer_date' => 'required|date',
-            'description' => 'nullable|string',
+            'description'   => 'nullable|string',
         ], [
-            'destination.different' => 'Kas tujuan harus berbeda dengan kas asal.',
+            'destination.different' => 'Kas / Bank tujuan harus berbeda dengan kas asal.',
         ]);
 
         $validated['tenant_id'] = $tenantId;
 
-        FundTransfer::create($validated);
+        $transfer = FundTransfer::create($validated);
+
+        // Deduct from source bank
+        $sourceBank = \App\Models\BankAccount::where('tenant_id', $tenantId)
+            ->where(function($q) use ($request) {
+                $q->where('bank_name', $request->source)
+                  ->orWhere('id', $request->source);
+            })->first();
+        if ($sourceBank) {
+            $sourceBank->decrement('current_balance', $transfer->amount);
+        }
+
+        // Add to destination bank
+        $destBank = \App\Models\BankAccount::where('tenant_id', $tenantId)
+            ->where(function($q) use ($request) {
+                $q->where('bank_name', $request->destination)
+                  ->orWhere('id', $request->destination);
+            })->first();
+        if ($destBank) {
+            $destBank->increment('current_balance', $transfer->amount);
+        }
 
         return redirect()->route('finance.transfers.index')->with('success', 'Transfer dana berhasil dicatat.');
     }
@@ -59,13 +80,13 @@ class FundTransferController extends Controller
         }
 
         $validated = $request->validate([
-            'source' => 'required|string|in:kas_besar,kas_kecil',
-            'destination' => 'required|string|in:kas_besar,kas_kecil|different:source',
-            'amount' => 'required|numeric|min:0.01',
+            'source'        => 'required|string|max:100',
+            'destination'   => 'required|string|max:100|different:source',
+            'amount'        => 'required|numeric|min:0.01',
             'transfer_date' => 'required|date',
-            'description' => 'nullable|string',
+            'description'   => 'nullable|string',
         ], [
-            'destination.different' => 'Kas tujuan harus berbeda dengan kas asal.',
+            'destination.different' => 'Kas / Bank tujuan harus berbeda dengan kas asal.',
         ]);
 
         $transfer->update($validated);

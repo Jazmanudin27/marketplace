@@ -84,7 +84,12 @@ class SupplierPayableController extends Controller
             || Auth::user()->role === 'admin'
             || Auth::user()->can('supplier-payables.approve');
 
-        return view('inventory.supplier_payables.show', compact('supplierPayable', 'isAdmin'));
+        $bankAccounts = \App\Models\BankAccount::where('tenant_id', Auth::user()->tenant_id)
+            ->where('is_active', true)
+            ->orderBy('bank_name')
+            ->get();
+
+        return view('inventory.supplier_payables.show', compact('supplierPayable', 'isAdmin', 'bankAccounts'));
     }
 
     /* ------------------------------------------------------------------ */

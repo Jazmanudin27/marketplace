@@ -1,6 +1,7 @@
 @php
     $isMasterDataActive =
         (request()->routeIs('inventory_items.*') && !request()->has('type')) ||
+        request()->routeIs('bank-accounts.*') ||
         request()->routeIs('departments.*') ||
         request()->routeIs('categories.*') ||
         request()->routeIs('brands.*') ||
@@ -214,6 +215,10 @@
                             <a href="{{ route('customers.index') }}"
                                 class="nav-link py-1 {{ request()->routeIs('customers.*') ? 'active text-white' : 'text-secondary' }}">Pelanggan</a>
                         @endcan
+                        @if(auth()->user()->isSuperAdmin() || auth()->user()->role === 'admin' || auth()->user()->can('suppliers.index'))
+                            <a href="{{ route('bank-accounts.index') }}"
+                                class="nav-link py-1 {{ request()->routeIs('bank-accounts.*') ? 'active text-white' : 'text-secondary' }}">Master Bank / Kas</a>
+                        @endif
                         @can('employees.index')
                             <a href="{{ route('employees.index') }}"
                                 class="nav-link py-1 {{ request()->routeIs('employees.*') ? 'active text-white' : 'text-secondary' }}">Karyawan</a>

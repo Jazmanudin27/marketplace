@@ -218,6 +218,10 @@ Route::middleware('auth')->group(function () {
         Route::post('customers/{customer}/topup', [CustomerController::class, 'topup'])->name('customers.topup');
     });
 
+    // Master Bank Accounts & Kas
+    Route::resource('bank-accounts', \App\Http\Controllers\Master\BankAccountController::class)->except(['create', 'show', 'edit']);
+    Route::post('bank-accounts/{bankAccount}/toggle', [\App\Http\Controllers\Master\BankAccountController::class, 'toggleStatus'])->name('bank-accounts.toggle');
+
     // Employees & Production Masters
     Route::middleware('permission:manage-employees')->group(function () {
         Route::resource('tailors', \App\Http\Controllers\Inventory\TailorController::class);

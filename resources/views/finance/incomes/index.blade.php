@@ -70,11 +70,17 @@
                         </select>
                     </div>
                     <div class="col-6 col-md-2">
-                        <label class="form-label form-label-sm fw-semibold mb-1 text-muted">Kas Tujuan</label>
+                        <label class="form-label form-label-sm fw-semibold mb-1 text-muted">Kas / Rekening</label>
                         <select name="payment_destination" class="form-select form-select-sm">
-                            <option value="">Semua Kas</option>
-                            <option value="kas_besar" {{ $paymentDestination === 'kas_besar' ? 'selected' : '' }}>Kas Besar</option>
-                            <option value="kas_kecil" {{ $paymentDestination === 'kas_kecil' ? 'selected' : '' }}>Kas Kecil</option>
+                            <option value="">Semua Kas/Bank</option>
+                            @if(isset($bankAccounts) && $bankAccounts->isNotEmpty())
+                                @foreach($bankAccounts as $bank)
+                                    <option value="{{ $bank->bank_name }}" {{ $paymentDestination === $bank->bank_name ? 'selected' : '' }}>{{ $bank->bank_name }}</option>
+                                @endforeach
+                            @else
+                                <option value="kas_besar" {{ $paymentDestination === 'kas_besar' ? 'selected' : '' }}>Kas Besar</option>
+                                <option value="kas_kecil" {{ $paymentDestination === 'kas_kecil' ? 'selected' : '' }}>Kas Kecil</option>
+                            @endif
                         </select>
                     </div>
                     <div class="col-6 col-md-2">
@@ -207,10 +213,16 @@
                             </select>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label fw-semibold small">Kas Tujuan</label>
+                            <label class="form-label fw-semibold small">Kas / Bank Tujuan</label>
                             <select name="payment_destination" class="form-select form-select-sm" required>
-                                <option value="kas_besar">Kas Besar (Utama)</option>
-                                <option value="kas_kecil">Kas Kecil (Operasional)</option>
+                                @if(isset($bankAccounts) && $bankAccounts->isNotEmpty())
+                                    @foreach($bankAccounts as $bank)
+                                        <option value="{{ $bank->bank_name }}">{{ $bank->bank_name }} {{ $bank->account_number ? '('.$bank->account_number.')' : '' }}</option>
+                                    @endforeach
+                                @else
+                                    <option value="kas_besar">Kas Besar (Utama)</option>
+                                    <option value="kas_kecil">Kas Kecil (Operasional)</option>
+                                @endif
                             </select>
                         </div>
                     </div>

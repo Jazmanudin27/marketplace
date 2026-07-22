@@ -42,8 +42,9 @@ class IncomeController extends Controller
         }
 
         $incomes = $query->orderByDesc('income_date')->paginate(15)->withQueryString();
+        $bankAccounts = \App\Models\BankAccount::where('tenant_id', $tenantId)->where('is_active', true)->orderBy('bank_name')->get();
 
-        return view('finance.incomes.index', compact('incomes', 'search', 'category', 'paymentDestination', 'dateFrom', 'dateTo'));
+        return view('finance.incomes.index', compact('incomes', 'bankAccounts', 'search', 'category', 'paymentDestination', 'dateFrom', 'dateTo'));
     }
 
     public function store(Request $request)
@@ -51,17 +52,28 @@ class IncomeController extends Controller
         $tenantId = Auth::user()->tenant_id;
 
         $validated = $request->validate([
-            'title' => 'required|string|max:255',
-            'category' => 'required|string|in:investment,refund,services,other',
-            'payment_destination' => 'required|string|in:kas_besar,kas_kecil',
-            'amount' => 'required|numeric|min:0',
-            'income_date' => 'required|date',
-            'description' => 'nullable|string',
+            'title'               => 'required|string|max:255',
+            'category'            => 'required|string|in:investment,refund,services,other',
+            'payment_destination' => 'required|string|max:100',
+            'amount'              => 'required|numeric|min:0',
+            'income_date'         => 'required|date',
+            'description'         => 'nullable|string',
         ]);
 
         $validated['tenant_id'] = $tenantId;
 
-        Income::create($validated);
+        $income = Income::create($validated);
+
+        // Update balance on matching bank account if exists
+        $bank = \App\Models\BankAccount::where('tenant_id', $tenantId)
+            ->where(function($q) use ($request) {
+                $q->where('bank_name', $request->payment_destination)
+                  ->orWhere('id', $request->payment_destination);
+            })->first();
+
+        if ($bank) {
+            $bank->increment('current_balance', $income->amount);
+        }
 
         return redirect()->route('finance.incomes.index')->with('success', 'Pemasukan berhasil dicatat.');
     }
@@ -73,12 +85,12 @@ class IncomeController extends Controller
         }
 
         $validated = $request->validate([
-            'title' => 'required|string|max:255',
-            'category' => 'required|string|in:investment,refund,services,other',
-            'payment_destination' => 'required|string|in:kas_besar,kas_kecil',
-            'amount' => 'required|numeric|min:0',
-            'income_date' => 'required|date',
-            'description' => 'nullable|string',
+            'title'               => 'required|string|max:255',
+            'category'            => 'required|string|in:investment,refund,services,other',
+            'payment_destination' => 'required|string|max:100',
+            'amount'              => 'required|numeric|min:0',
+            'income_date'         => 'required|date',
+            'description'         => 'nullable|string',
         ]);
 
         $income->update($validated);

@@ -519,9 +519,15 @@
                     <div class="mb-3 d-none" id="cashGroup">
                         <label class="form-label small fw-semibold">Sumber Kas <span class="text-danger">*</span></label>
                         <select name="payment_source" id="payment_source" class="form-select rounded-2">
-                            <option value="">-- Pilih --</option>
-                            <option value="kas_besar" @selected(old('payment_source') === 'kas_besar')>Kas Besar (Main Cash)</option>
-                            <option value="kas_kecil" @selected(old('payment_source') === 'kas_kecil')>Kas Kecil (Petty Cash)</option>
+                            <option value="">-- Pilih Kas --</option>
+                            @if(isset($bankAccounts) && $bankAccounts->isNotEmpty())
+                                @foreach($bankAccounts as $bank)
+                                    <option value="{{ $bank->bank_name }}" @selected(old('payment_source') === $bank->bank_name)>{{ $bank->bank_name }}</option>
+                                @endforeach
+                            @else
+                                <option value="kas_besar" @selected(old('payment_source') === 'kas_besar')>Kas Besar (Main Cash)</option>
+                                <option value="kas_kecil" @selected(old('payment_source') === 'kas_kecil')>Kas Kecil (Petty Cash)</option>
+                            @endif
                         </select>
                     </div>
 
@@ -531,9 +537,15 @@
                             <label class="form-label small fw-semibold">Nama Bank / Penerbit Giro <span class="text-danger">*</span></label>
                             <select name="bank_name" id="bank_name" class="form-select rounded-2" onchange="toggleOtherBank(this, 'otherBankCreate')">
                                 <option value="">-- Pilih Bank --</option>
-                                @foreach(['BCA','BNI','BRI','Mandiri','BSI','CIMB Niaga','Danamon','Permata','BTN','Mega','Panin','Maybank'] as $bank)
-                                <option value="{{ $bank }}" @selected(old('bank_name') === $bank)>{{ $bank }}</option>
-                                @endforeach
+                                @if(isset($bankAccounts) && $bankAccounts->isNotEmpty())
+                                    @foreach($bankAccounts as $bank)
+                                        <option value="{{ $bank->bank_name }}" @selected(old('bank_name') === $bank->bank_name)>{{ $bank->bank_name }} ({{ $bank->account_number ?: 'Tanpa No Rek' }})</option>
+                                    @endforeach
+                                @else
+                                    @foreach(['BCA','BNI','BRI','Mandiri','BSI','CIMB Niaga','Danamon','Permata','BTN','Mega','Panin','Maybank'] as $bank)
+                                        <option value="{{ $bank }}" @selected(old('bank_name') === $bank)>{{ $bank }}</option>
+                                    @endforeach
+                                @endif
                                 <option value="__other__" @selected(old('bank_name') && !in_array(old('bank_name'), ['BCA','BNI','BRI','Mandiri','BSI','CIMB Niaga','Danamon','Permata','BTN','Mega','Panin','Maybank']))>Lainnya...</option>
                             </select>
                         </div>
