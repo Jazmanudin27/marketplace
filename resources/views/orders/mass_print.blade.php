@@ -374,51 +374,6 @@
 
 <body onload="initPrint()">
 
-    <!-- PICK LIST (Halaman Pertama) -->
-    <div class="pick-list page-break">
-        <div class="pick-list-header">
-            <div class="pick-list-title">DAFTAR PENGAMBILAN BARANG (PICK LIST)</div>
-            <div class="pick-list-meta">
-                <div class="meta-item"><strong>Total Pesanan:</strong> <span>{{ $orders->count() }} Pesanan</span></div>
-                <div class="meta-item"><strong>Tanggal Cetak:</strong> <span>{{ now()->format('d/m/Y H:i') }}</span></div>
-            </div>
-        </div>
-
-        <table class="pick-list-table">
-            <thead>
-                <tr>
-                    <th style="width: 5%; text-align: center;">#</th>
-                    <th style="width: 25%;">SKU</th>
-                    <th style="width: 45%;">Nama Produk</th>
-                    <th style="width: 10%; text-align: center;">Qty</th>
-                    <th style="width: 15%; text-align: center;">Checklist</th>
-                </tr>
-            </thead>
-            <tbody>
-                @php $no = 1; @endphp
-                @foreach($pickList as $sku => $item)
-                    <tr>
-                        <td style="text-align: center;">{{ $no++ }}</td>
-                        <td class="sku-cell">{{ $sku }}</td>
-                        <td class="product-name-cell">{{ $item['name'] }}</td>
-                        <td class="qty-cell">{{ $item['qty'] }}</td>
-                        <td style="text-align: center;">
-                            <span class="checkbox-box"></span>
-                        </td>
-                    </tr>
-                @endforeach
-            </tbody>
-        </table>
-
-        <div class="pick-list-footer">
-            <div class="signature-box">
-                <div class="signature-title">Petugas Gudang</div>
-                <div class="signature-line"></div>
-                <div class="signature-name">(Nama Terang)</div>
-            </div>
-        </div>
-    </div>
-
     <!-- INDIVIDUAL WAYBILLS -->
     @foreach ($orders as $index => $order)
         @php
@@ -502,7 +457,8 @@
                         @if ($order->tracking_number)
                             <svg id="barcode-{{ $order->id }}"></svg>
                         @else
-                            <div style="font-size: 8px; font-weight: bold; border: 1px dashed #000; padding: 4px 0;">BELUM ADA RESI</div>
+                            <div style="font-size: 8px; font-weight: bold; border: 1px dashed #000; padding: 4px 0;">
+                                BELUM ADA RESI</div>
                         @endif
                     </div>
                     <div class="header-courier">
@@ -518,7 +474,8 @@
 
                 <div class="main-content">
                     <div class="info-grid">
-                        <div class="order-no">No. Pesanan: <span class="fw-bold">{{ $order->order_marketplace_id }}</span></div>
+                        <div class="order-no">No. Pesanan: <span
+                                class="fw-bold">{{ $order->order_marketplace_id }}</span></div>
 
                         <div class="info-row">
                             <div class="info-label">Asal</div>
@@ -548,7 +505,8 @@
                         <div class="info-row">
                             <div class="info-label">Penerima</div>
                             <div class="info-value">
-                                <span class="fw-bold">{{ $order->buyer_name }}</span>, {{ $order->buyer_phone ?? '-' }}<br>
+                                <span class="fw-bold">{{ $order->buyer_name }}</span>,
+                                {{ $order->buyer_phone ?? '-' }}<br>
                                 {{ $order->shipping_address }}
                             </div>
                         </div>
@@ -593,7 +551,8 @@
 
                 <div class="product-header">
                     <div class="fw-bold">DAFTAR PRODUK</div>
-                    <div style="font-weight: normal; color: #666;">NO.PESANAN: <span class="fw-bold" style="color: #000;">{{ $order->order_marketplace_id }}</span></div>
+                    <div style="font-weight: normal; color: #666;">NO.PESANAN: <span class="fw-bold"
+                            style="color: #000;">{{ $order->order_marketplace_id }}</span></div>
                 </div>
 
                 <table class="product-table">
@@ -656,9 +615,6 @@
                 @endif
             @endforeach
 
-            setTimeout(function() {
-                window.print();
-            }, 1000);
         }
     </script>
 </body>
