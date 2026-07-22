@@ -12,7 +12,7 @@ class OrderPrintController extends Controller
 {
     public function massPrint(Request $request, ShopeeService $shopeeService, TiktokService $tiktokService)
     {
-        $orderIds = $request->input('order_ids', []);
+        $orderIds = $request->input('order_ids', $request->input('ids', []));
         
         if (empty($orderIds)) {
             return back()->with('error', 'Pilih setidaknya satu pesanan untuk dicetak.');

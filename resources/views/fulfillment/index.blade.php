@@ -9,48 +9,152 @@
         {{-- Stats Cards --}}
         <div class="row g-3 mb-4">
             <div class="col-6 col-md-3">
-                <div class="card h-100 border rounded shadow-sm bg-white border-start border-primary border-4">
-                    <div class="card-body d-flex align-items-center gap-3">
-                        <div class="fs-2 text-primary opacity-75"><i class="fas fa-box"></i></div>
-                        <div>
-                            <h4 class="fw-bold text-dark mb-0">{{ $stats['total'] }}</h4>
-                            <p class="text-muted mb-0 small">Total Siap Kirim</p>
+                <a href="{{ route('fulfillment.index') }}" class="text-decoration-none">
+                    <div class="card h-100 border rounded shadow-sm bg-white border-start border-primary border-4 {{ !request('packing_status') ? 'shadow' : '' }}">
+                        <div class="card-body d-flex align-items-center gap-3">
+                            <div class="fs-2 text-primary opacity-75"><i class="fas fa-box"></i></div>
+                            <div>
+                                <h4 class="fw-bold text-dark mb-0">{{ $stats['total'] }}</h4>
+                                <p class="text-muted mb-0 small">Total Siap Kirim</p>
+                            </div>
                         </div>
                     </div>
-                </div>
+                </a>
             </div>
             <div class="col-6 col-md-3">
-                <div class="card h-100 border rounded shadow-sm bg-white border-start border-warning border-4">
-                    <div class="card-body d-flex align-items-center gap-3">
-                        <div class="fs-2 text-warning opacity-75"><i class="fas fa-clock"></i></div>
-                        <div>
-                            <h4 class="fw-bold text-dark mb-0">{{ $stats['pending'] }}</h4>
-                            <p class="text-muted mb-0 small">Belum Diproses</p>
+                <a href="{{ route('fulfillment.index', array_merge(request()->query(), ['packing_status' => 'pending'])) }}" class="text-decoration-none">
+                    <div class="card h-100 border rounded shadow-sm bg-white border-start border-warning border-4 {{ request('packing_status') === 'pending' ? 'shadow' : '' }}">
+                        <div class="card-body d-flex align-items-center gap-3">
+                            <div class="fs-2 text-warning opacity-75"><i class="fas fa-clock"></i></div>
+                            <div>
+                                <h4 class="fw-bold text-dark mb-0">{{ $stats['pending'] }}</h4>
+                                <p class="text-muted mb-0 small">Belum Diproses</p>
+                            </div>
                         </div>
                     </div>
-                </div>
+                </a>
             </div>
             <div class="col-6 col-md-3">
-                <div class="card h-100 border rounded shadow-sm bg-white border-start border-info border-4">
-                    <div class="card-body d-flex align-items-center gap-3">
-                        <div class="fs-2 text-info opacity-75"><i class="fas fa-pallet"></i></div>
-                        <div>
-                            <h4 class="fw-bold text-dark mb-0">{{ $stats['packing'] }}</h4>
-                            <p class="text-muted mb-0 small">Sedang Dikemas</p>
+                <a href="{{ route('fulfillment.index', array_merge(request()->query(), ['packing_status' => 'packing'])) }}" class="text-decoration-none">
+                    <div class="card h-100 border rounded shadow-sm bg-white border-start border-info border-4 {{ request('packing_status') === 'packing' ? 'shadow' : '' }}">
+                        <div class="card-body d-flex align-items-center gap-3">
+                            <div class="fs-2 text-info opacity-75"><i class="fas fa-pallet"></i></div>
+                            <div>
+                                <h4 class="fw-bold text-dark mb-0">{{ $stats['packing'] }}</h4>
+                                <p class="text-muted mb-0 small">Sedang Dikemas</p>
+                            </div>
                         </div>
                     </div>
-                </div>
+                </a>
             </div>
             <div class="col-6 col-md-3">
-                <div class="card h-100 border rounded shadow-sm bg-white border-start border-success border-4">
-                    <div class="card-body d-flex align-items-center gap-3">
-                        <div class="fs-2 text-success opacity-75"><i class="fas fa-check-circle"></i></div>
-                        <div>
-                            <h4 class="fw-bold text-dark mb-0">{{ $stats['verified'] }}</h4>
-                            <p class="text-muted mb-0 small">Selesai Scan (Verified)</p>
+                <a href="{{ route('fulfillment.index', array_merge(request()->query(), ['packing_status' => 'verified'])) }}" class="text-decoration-none">
+                    <div class="card h-100 border rounded shadow-sm bg-white border-start border-success border-4 {{ request('packing_status') === 'verified' ? 'shadow' : '' }}">
+                        <div class="card-body d-flex align-items-center gap-3">
+                            <div class="fs-2 text-success opacity-75"><i class="fas fa-check-circle"></i></div>
+                            <div>
+                                <h4 class="fw-bold text-dark mb-0">{{ $stats['verified'] }}</h4>
+                                <p class="text-muted mb-0 small">Selesai Scan (Verified)</p>
+                            </div>
                         </div>
                     </div>
-                </div>
+                </a>
+            </div>
+        </div>
+
+        {{-- Filter Panel --}}
+        <div class="card border rounded shadow-sm bg-white mb-4">
+            <div class="card-body p-3">
+                <form method="GET" action="{{ route('fulfillment.index') }}">
+                    <div class="row g-2 align-items-end">
+                        <div class="col-12 col-md-3">
+                            <label class="form-label fw-bold small text-dark mb-1">
+                                <i class="fas fa-search me-1 text-secondary"></i>Pencarian
+                            </label>
+                            <input type="text" name="search" class="form-control form-control-sm"
+                                placeholder="Cari Invoice, ID, Pembeli, SKU..." value="{{ request('search') }}">
+                        </div>
+                        <div class="col-6 col-md-2">
+                            <label class="form-label fw-bold small text-dark mb-1">
+                                <i class="fas fa-shopping-bag me-1 text-secondary"></i>Channel
+                            </label>
+                            <select name="channel_id" class="form-select form-select-sm">
+                                <option value="">Semua Channel</option>
+                                @foreach ($channels as $channel)
+                                    <option value="{{ $channel->id }}" {{ request('channel_id') == $channel->id ? 'selected' : '' }}>
+                                        {{ $channel->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-6 col-md-2">
+                            <label class="form-label fw-bold small text-dark mb-1">
+                                <i class="fas fa-store me-1 text-secondary"></i>Toko
+                            </label>
+                            <select name="store_id" class="form-select form-select-sm">
+                                <option value="">Semua Toko</option>
+                                @foreach ($stores as $store)
+                                    <option value="{{ $store->id }}" {{ request('store_id') == $store->id ? 'selected' : '' }}>
+                                        {{ $store->store_name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-6 col-md-2">
+                            <label class="form-label fw-bold small text-dark mb-1">
+                                <i class="fas fa-truck me-1 text-secondary"></i>Kurir
+                            </label>
+                            <select name="courier" class="form-select form-select-sm">
+                                <option value="">Semua Kurir</option>
+                                @foreach ($couriers as $cr)
+                                    <option value="{{ $cr }}" {{ request('courier') == $cr ? 'selected' : '' }}>
+                                        {{ $cr }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <label class="form-label fw-bold small text-dark mb-1">
+                                <i class="fas fa-box-open me-1 text-secondary"></i>Status Kemas
+                            </label>
+                            <select name="packing_status" class="form-select form-select-sm">
+                                <option value="">Semua Status Kemas</option>
+                                <option value="pending" {{ request('packing_status') === 'pending' ? 'selected' : '' }}>Menunggu (Pending)</option>
+                                <option value="packing" {{ request('packing_status') === 'packing' ? 'selected' : '' }}>Sedang Dikemas (Packing)</option>
+                                <option value="verified" {{ request('packing_status') === 'verified' ? 'selected' : '' }}>Selesai Scan (Verified)</option>
+                            </select>
+                        </div>
+                        <div class="col-6 col-md-2">
+                            <label class="form-label fw-bold small text-dark mb-1">
+                                <i class="fas fa-box me-1 text-secondary"></i>Tipe Produk
+                            </label>
+                            <select name="is_po" class="form-select form-select-sm">
+                                <option value="">Semua Tipe</option>
+                                <option value="po" {{ request('is_po') === 'po' ? 'selected' : '' }}>Pre-Order (PO)</option>
+                                <option value="ready" {{ request('is_po') === 'ready' ? 'selected' : '' }}>Ready Stock</option>
+                            </select>
+                        </div>
+                        <div class="col-12 col-md-3">
+                            <label class="form-label fw-bold small text-dark mb-1">
+                                <i class="fas fa-calendar-alt me-1 text-secondary"></i>Rentang Tanggal
+                            </label>
+                            <div class="d-flex gap-1">
+                                <input type="date" name="start_date" class="form-control form-control-sm" value="{{ request('start_date') }}">
+                                <input type="date" name="end_date" class="form-control form-control-sm" value="{{ request('end_date') }}">
+                            </div>
+                        </div>
+                        <div class="col-12 col-md-auto d-flex gap-2">
+                            <button type="submit" class="btn btn-primary btn-sm px-3 rounded-3">
+                                <i class="fas fa-search me-1"></i> Cari
+                            </button>
+                            @if (request()->anyFilled(['search', 'channel_id', 'store_id', 'courier', 'packing_status', 'is_po', 'start_date', 'end_date']))
+                                <a href="{{ route('fulfillment.index') }}" class="btn btn-secondary btn-sm px-3 rounded-3">
+                                    <i class="fas fa-times me-1"></i> Reset
+                                </a>
+                            @endif
+                        </div>
+                    </div>
+                </form>
             </div>
         </div>
 
@@ -193,17 +297,20 @@
 </div>
 
 {{-- Floating Sticky Batch Action Toolbar --}}
-<div id="batch-action-toolbar" class="position-fixed bottom-0 start-50 translate-middle-x bg-dark text-white p-3 rounded-top shadow-lg d-flex align-items-center gap-3 border border-secondary border-bottom-0" style="z-index: 1050; display: none; min-width: 550px; transition: all 0.3s ease; box-shadow: 0 -4px 20px rgba(0,0,0,0.5);">
+<div id="batch-action-toolbar" class="position-fixed bottom-0 start-50 translate-middle-x bg-dark text-white p-3 rounded-top shadow-lg d-flex align-items-center gap-3 border border-secondary border-bottom-0" style="z-index: 1050; display: none; min-width: 720px; transition: all 0.3s ease; box-shadow: 0 -4px 20px rgba(0,0,0,0.5);">
     <div class="d-flex align-items-center gap-2">
         <span class="badge bg-primary fs-6" id="selected-count">0</span>
         <span class="small text-muted fw-semibold">Pesanan Terpilih</span>
     </div>
     <div class="ms-auto d-flex gap-2">
-        <button type="button" id="btn-batch-pick" class="btn btn-sm btn-outline-light fw-semibold">
-            <i class="fas fa-print me-1"></i> Pick List
+        <button type="button" id="btn-batch-pick" class="btn btn-sm btn-info text-white fw-semibold" title="Printer A4 / Standar">
+            <i class="fas fa-list-alt me-1"></i> Cetak Pick List (A4)
+        </button>
+        <button type="button" id="btn-batch-label" class="btn btn-sm btn-primary fw-semibold" title="Printer Stiker Thermal">
+            <i class="fas fa-print me-1"></i> Cetak Resi Massal (Thermal)
         </button>
         <button type="button" id="btn-batch-verify" class="btn btn-sm btn-warning text-dark fw-semibold">
-            <i class="fas fa-check me-1"></i> Packing Selesai
+            <i class="fas fa-check-double me-1"></i> Packing Selesai
         </button>
         <button type="button" id="btn-batch-ship" class="btn btn-sm btn-success fw-semibold">
             <i class="fas fa-paper-plane me-1"></i> Kirim Resi (Ship)
@@ -242,6 +349,7 @@
             updateToolbar();
         });
 
+        // 1. Cetak Pick List (Daftar Pengambilan Barang) -> Kertas A4 / Standar
         $('#btn-batch-pick').on('click', function() {
             batchForm.attr('action', "{{ route('fulfillment.batch_picklist') }}");
             batchForm.attr('method', "GET");
@@ -249,6 +357,15 @@
             batchForm.submit();
         });
 
+        // 2. Cetak Resi / Label Massal -> Kertas Stiker Thermal
+        $('#btn-batch-label').on('click', function() {
+            batchForm.attr('action', "{{ route('orders.mass_print') }}");
+            batchForm.attr('method', "POST");
+            batchForm.attr('target', "_blank");
+            batchForm.submit();
+        });
+
+        // 3. Konfirmasi Packing Selesai
         $('#btn-batch-verify').on('click', function() {
             if (confirm('Konfirmasi verifikasi packing massal untuk pesanan terpilih?')) {
                 batchForm.attr('action', "{{ route('fulfillment.batch_verify') }}");
@@ -258,6 +375,7 @@
             }
         });
 
+        // 4. Kirim Resi ke API Marketplace
         $('#btn-batch-ship').on('click', function() {
             if (confirm('Kirim resi massal ke marketplace untuk pesanan terpilih?')) {
                 batchForm.attr('action', "{{ route('fulfillment.batch_ship') }}");

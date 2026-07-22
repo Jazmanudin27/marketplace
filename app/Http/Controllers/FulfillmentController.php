@@ -16,15 +16,69 @@ class FulfillmentController extends Controller
     {
         $tenantId = Auth::user()->tenant_id;
         
-        $query = Order::with(['store.channel', 'items'])
+        $query = Order::with(['store.channel', 'items.masterProduct'])
             ->where('tenant_id', $tenantId)
             ->where('order_status', Order::STATUS_READY_TO_SHIP);
 
-        if ($request->has('packing_status') && in_array($request->packing_status, ['pending', 'packing', 'verified'])) {
+        // Search Keyword
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('invoice_number', 'like', "%{$search}%")
+                  ->orWhere('order_marketplace_id', 'like', "%{$search}%")
+                  ->orWhere('buyer_name', 'like', "%{$search}%")
+                  ->orWhere('tracking_number', 'like', "%{$search}%")
+                  ->orWhereHas('items', function ($iq) use ($search) {
+                      $iq->where('product_name', 'like', "%{$search}%")
+                         ->orWhere('sku', 'like', "%{$search}%");
+                  });
+            });
+        }
+
+        // Filter Channel
+        if ($request->filled('channel_id')) {
+            $query->whereHas('store', function ($q) use ($request) {
+                $q->where('channel_id', $request->channel_id);
+            });
+        }
+
+        // Filter Toko
+        if ($request->filled('store_id')) {
+            $query->where('store_id', $request->store_id);
+        }
+
+        // Filter Kurir
+        if ($request->filled('courier')) {
+            $query->where('courier', 'like', '%' . $request->courier . '%');
+        }
+
+        // Filter Status Kemas
+        if ($request->filled('packing_status') && in_array($request->packing_status, ['pending', 'packing', 'verified'])) {
             $query->where('packing_status', $request->packing_status);
         }
 
-        $orders = $query->orderByDesc('order_date')->paginate(20);
+        // Filter Tipe Produk (PO vs Ready)
+        if ($request->filled('is_po')) {
+            if ($request->is_po === 'po') {
+                $query->whereHas('items.masterProduct', function ($q) {
+                    $q->where('is_preorder', true);
+                });
+            } elseif ($request->is_po === 'ready') {
+                $query->whereDoesntHave('items.masterProduct', function ($q) {
+                    $q->where('is_preorder', true);
+                });
+            }
+        }
+
+        // Filter Tanggal Order
+        if ($request->filled('start_date')) {
+            $query->whereDate('order_date', '>=', $request->start_date);
+        }
+        if ($request->filled('end_date')) {
+            $query->whereDate('order_date', '<=', $request->end_date);
+        }
+
+        $orders = $query->orderByDesc('order_date')->paginate(20)->withQueryString();
 
         // Hitung ringkasan statistik
         $stats = [
@@ -34,7 +88,16 @@ class FulfillmentController extends Controller
             'verified' => Order::where('tenant_id', $tenantId)->where('order_status', Order::STATUS_READY_TO_SHIP)->where('packing_status', 'verified')->count(),
         ];
 
-        return view('fulfillment.index', compact('orders', 'stats'));
+        $channels = \App\Models\Channel::all();
+        $stores = \App\Models\Store::where('tenant_id', $tenantId)->get();
+        $couriers = Order::where('tenant_id', $tenantId)
+            ->where('order_status', Order::STATUS_READY_TO_SHIP)
+            ->whereNotNull('courier')
+            ->where('courier', '!=', '')
+            ->distinct()
+            ->pluck('courier');
+
+        return view('fulfillment.index', compact('orders', 'stats', 'channels', 'stores', 'couriers'));
     }
 
     /**
