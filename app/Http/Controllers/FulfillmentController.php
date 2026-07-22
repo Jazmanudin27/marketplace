@@ -275,42 +275,122 @@ class FulfillmentController extends Controller
     }
 
     /**
-     * Cetak Pick List Gabungan Massal
+     * Cetak Pick List Gabungan Massal (Mendukung Ceklis & Sesuai Filter)
      */
     public function batchPickList(Request $request)
     {
         $tenantId = Auth::user()->tenant_id;
         $ids = $request->input('ids', []);
 
-        if (empty($ids)) {
-            return back()->with('error', 'Pilih minimal satu pesanan untuk dicetak.');
+        $query = Order::with(['items.masterProduct', 'spks', 'store.channel'])
+            ->where('tenant_id', $tenantId)
+            ->where('order_status', Order::STATUS_READY_TO_SHIP);
+
+        if (!empty($ids)) {
+            $query->whereIn('id', $ids);
+        } else {
+            // Apply current filters from request
+            if ($request->filled('search')) {
+                $search = $request->search;
+                $query->where(function ($q) use ($search) {
+                    $q->where('invoice_number', 'like', "%{$search}%")
+                      ->orWhere('order_marketplace_id', 'like', "%{$search}%")
+                      ->orWhere('buyer_name', 'like', "%{$search}%")
+                      ->orWhere('tracking_number', 'like', "%{$search}%")
+                      ->orWhereHas('items', function ($iq) use ($search) {
+                          $iq->where('product_name', 'like', "%{$search}%")
+                             ->orWhere('sku', 'like', "%{$search}%");
+                      });
+                });
+            }
+
+            if ($request->filled('channel_id')) {
+                $query->whereHas('store', function ($q) use ($request) {
+                    $q->where('channel_id', $request->channel_id);
+                });
+            }
+
+            if ($request->filled('store_id')) {
+                $query->where('store_id', $request->store_id);
+            }
+
+            if ($request->filled('courier')) {
+                $query->where('courier', 'like', '%' . $request->courier . '%');
+            }
+
+            if ($request->filled('packing_status') && in_array($request->packing_status, ['pending', 'packing', 'verified'])) {
+                $query->where('packing_status', $request->packing_status);
+            }
+
+            if ($request->filled('is_po')) {
+                if ($request->is_po === 'po') {
+                    $query->whereHas('items.masterProduct', function ($q) {
+                        $q->where('is_preorder', true);
+                    });
+                } elseif ($request->is_po === 'ready') {
+                    $query->whereDoesntHave('items.masterProduct', function ($q) {
+                        $q->where('is_preorder', true);
+                    });
+                }
+            }
+
+            if ($request->filled('start_date')) {
+                $query->whereDate('order_date', '>=', $request->start_date);
+            }
+            if ($request->filled('end_date')) {
+                $query->whereDate('order_date', '<=', $request->end_date);
+            }
         }
 
-        $orders = Order::with(['items.masterProduct', 'store.channel'])
-            ->where('tenant_id', $tenantId)
-            ->whereIn('id', $ids)
-            ->get();
+        $orders = $query->orderByDesc('order_date')->get();
+
+        if ($orders->isEmpty()) {
+            return back()->with('error', 'Tidak ada pesanan Siap Kirim yang sesuai filter/pilihan.');
+        }
 
         $aggregated = [];
+        $poItemCount = 0;
+        $readyItemCount = 0;
+
         foreach ($orders as $order) {
             foreach ($order->items as $item) {
                 $sku = $item->sku ?? ($item->masterProduct->sku ?? 'No SKU');
                 $name = $item->product_name ?? ($item->masterProduct->name ?? 'Produk Tanpa Nama');
-                
+                $isPreorder = ($item->masterProduct && $item->masterProduct->is_preorder) || $order->spks->isNotEmpty();
+                $spkNo = $order->spks->isNotEmpty() ? $order->spks->first()->no_spk : null;
+
                 if (!isset($aggregated[$sku])) {
                     $aggregated[$sku] = [
-                        'sku' => $sku,
-                        'name' => $name,
-                        'qty' => 0,
-                        'orders' => []
+                        'sku'      => $sku,
+                        'name'     => $name,
+                        'qty'      => 0,
+                        'is_po'    => $isPreorder,
+                        'spk_no'   => $spkNo,
+                        'orders'   => []
                     ];
+                } else {
+                    if ($isPreorder) {
+                        $aggregated[$sku]['is_po'] = true;
+                    }
+                    if ($spkNo && !$aggregated[$sku]['spk_no']) {
+                        $aggregated[$sku]['spk_no'] = $spkNo;
+                    }
                 }
+
                 $aggregated[$sku]['qty'] += $item->quantity;
                 $aggregated[$sku]['orders'][] = $order->invoice_number ?? $order->order_marketplace_id;
             }
         }
 
-        return view('fulfillment.batch_picklist', compact('aggregated', 'orders'));
+        foreach ($aggregated as $sku => $data) {
+            if ($data['is_po']) {
+                $poItemCount++;
+            } else {
+                $readyItemCount++;
+            }
+        }
+
+        return view('fulfillment.batch_picklist', compact('aggregated', 'orders', 'poItemCount', 'readyItemCount'));
     }
 
     /**

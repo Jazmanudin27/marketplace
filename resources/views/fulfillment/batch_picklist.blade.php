@@ -98,7 +98,10 @@
     </div>
 
     <div class="meta-info">
-        <strong>Total Order Diproses:</strong> {{ count($orders) }} pesanan terpilih.<br>
+        <strong>Total Order Diproses:</strong> {{ count($orders) }} pesanan. 
+        <span style="margin-left: 15px; background: #dcfce7; color: #166534; padding: 2px 6px; border-radius: 3px; font-weight: bold;">Ready Stock: {{ $readyItemCount ?? 0 }} SKU</span>
+        <span style="margin-left: 8px; background: #f3e8ff; color: #6b21a8; padding: 2px 6px; border-radius: 3px; font-weight: bold;">PO / SPK: {{ $poItemCount ?? 0 }} SKU</span>
+        <br>
         <strong>Daftar Invoice:</strong> 
         @foreach($orders as $index => $order)
             {{ $order->invoice_number ?? $order->order_marketplace_id }}{{ $index < count($orders) - 1 ? ', ' : '' }}
@@ -108,10 +111,11 @@
     <table class="items-table">
         <thead>
             <tr>
-                <th style="width: 40px;" class="text-center">No</th>
-                <th style="width: 150px;">SKU / KODE BARANG</th>
+                <th style="width: 35px;" class="text-center">No</th>
+                <th style="width: 140px;">SKU / KODE BARANG</th>
                 <th>NAMA PRODUK</th>
-                <th style="width: 100px;" class="text-center">QTY DIAMBIL</th>
+                <th style="width: 120px;" class="text-center">TIPE BARANG</th>
+                <th style="width: 90px;" class="text-center">QTY DIAMBIL</th>
                 <th style="width: 50px;" class="text-center">CHECK</th>
             </tr>
         </thead>
@@ -126,6 +130,20 @@
                         <div class="orders-list">
                             Digunakan untuk order: {{ implode(', ', array_unique($item['orders'])) }}
                         </div>
+                    </td>
+                    <td class="text-center">
+                        @if($item['is_po'])
+                            <span style="background: #f3e8ff; color: #6b21a8; border: 1px solid #d8b4fe; padding: 3px 6px; border-radius: 4px; font-weight: bold; font-size: 10px; display: inline-block;">
+                                ⏱️ PO / SPK
+                            </span>
+                            @if(!empty($item['spk_no']))
+                                <div style="font-size: 9px; color: #7e22ce; margin-top: 2px; font-family: monospace;">#{{ $item['spk_no'] }}</div>
+                            @endif
+                        @else
+                            <span style="background: #dcfce7; color: #166534; border: 1px solid #86efac; padding: 3px 6px; border-radius: 4px; font-weight: bold; font-size: 10px; display: inline-block;">
+                                 READY STOCK
+                            </span>
+                        @endif
                     </td>
                     <td class="text-center qty-badge">{{ $item['qty'] }}</td>
                     <td class="text-center" style="font-size: 18px; color: #cbd5e1;">[ &nbsp; ]</td>
