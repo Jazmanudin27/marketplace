@@ -103,9 +103,14 @@
         <span style="margin-left: 8px; background: #f3e8ff; color: #6b21a8; padding: 2px 6px; border-radius: 3px; font-weight: bold;">PO / SPK: {{ $poItemCount ?? 0 }} SKU</span>
         <br>
         <strong>Daftar Invoice:</strong> 
-        @foreach($orders as $index => $order)
-            {{ $order->invoice_number ?? $order->order_marketplace_id }}{{ $index < count($orders) - 1 ? ', ' : '' }}
-        @endforeach
+        @php
+            $firstInvoices = $orders->take(10)->map(fn($o) => $o->invoice_number ?? $o->order_marketplace_id)->implode(', ');
+            $remainingCount = max(0, count($orders) - 10);
+        @endphp
+        {{ $firstInvoices }}
+        @if($remainingCount > 0)
+            <em style="color: #64748b; font-weight: bold;"> ... (+{{ $remainingCount }} order lainnya)</em>
+        @endif
     </div>
 
     <table class="items-table">
@@ -127,8 +132,16 @@
                     <td class="font-mono" style="font-size: 12px; font-weight: bold;">{{ $item['sku'] }}</td>
                     <td>
                         <strong style="font-size: 13px;">{{ $item['name'] }}</strong>
+                        @php
+                            $uniqueOrders = array_values(array_unique($item['orders']));
+                            $displayOrders = array_slice($uniqueOrders, 0, 5);
+                            $extraOrdersCount = count($uniqueOrders) - count($displayOrders);
+                        @endphp
                         <div class="orders-list">
-                            Digunakan untuk order: {{ implode(', ', array_unique($item['orders'])) }}
+                            Digunakan untuk order: {{ implode(', ', $displayOrders) }}
+                            @if($extraOrdersCount > 0)
+                                <em style="font-weight: bold; color: #475569;"> (+{{ $extraOrdersCount }} order lainnya)</em>
+                            @endif
                         </div>
                     </td>
                     <td class="text-center">
