@@ -248,7 +248,10 @@
     </style>
 </head>
 <body>
-    <div class="no-print" style="margin-bottom: 15px; text-align: right;">
+    <div class="no-print" style="margin-bottom: 15px; text-align: right; display: flex; justify-content: flex-end; gap: 10px;">
+        <a href="{{ route('fulfillment.interactive_picklist', request()->query()) }}" style="padding: 8px 18px; background: #16a34a; color: white; border: none; border-radius: 5px; text-decoration: none; font-weight: bold; font-size: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.15); display: inline-flex; align-items: center; gap: 5px;">
+            📱 Buka Mode Scan / Klik Interaktif
+        </a>
         <button onclick="window.print()" style="padding: 8px 18px; background: #2563eb; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.15);">
             🖨️ Cetak Lembar Pick List
         </button>

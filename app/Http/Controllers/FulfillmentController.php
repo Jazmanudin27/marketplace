@@ -394,6 +394,182 @@ class FulfillmentController extends Controller
     }
 
     /**
+     * Layar Interaktif Rekap Ambil Barang (Scan Barcode / Touch Picking Mode)
+     */
+    public function interactivePickList(Request $request)
+    {
+        $tenantId = Auth::user()->tenant_id;
+        $ids = $request->input('ids', []);
+
+        $query = Order::with(['items.masterProduct', 'spks', 'store.channel'])
+            ->where('tenant_id', $tenantId)
+            ->where('order_status', Order::STATUS_READY_TO_SHIP);
+
+        if (!empty($ids)) {
+            $query->whereIn('id', $ids);
+        } else {
+            if ($request->filled('search')) {
+                $search = $request->search;
+                $query->where(function ($q) use ($search) {
+                    $q->where('invoice_number', 'like', "%{$search}%")
+                      ->orWhere('order_marketplace_id', 'like', "%{$search}%")
+                      ->orWhere('buyer_name', 'like', "%{$search}%")
+                      ->orWhere('tracking_number', 'like', "%{$search}%")
+                      ->orWhereHas('items', function ($iq) use ($search) {
+                          $iq->where('product_name', 'like', "%{$search}%")
+                             ->orWhere('sku', 'like', "%{$search}%");
+                      });
+                });
+            }
+
+            if ($request->filled('channel_id')) {
+                $query->whereHas('store', function ($q) use ($request) {
+                    $q->where('channel_id', $request->channel_id);
+                });
+            }
+
+            if ($request->filled('store_id')) {
+                $query->where('store_id', $request->store_id);
+            }
+
+            if ($request->filled('courier')) {
+                $query->where('courier', 'like', '%' . $request->courier . '%');
+            }
+
+            if ($request->filled('packing_status') && in_array($request->packing_status, ['pending', 'packing', 'verified'])) {
+                $query->where('packing_status', $request->packing_status);
+            }
+
+            if ($request->filled('is_po')) {
+                if ($request->is_po === 'po') {
+                    $query->whereHas('items.masterProduct', function ($q) {
+                        $q->where('is_preorder', true);
+                    });
+                } elseif ($request->is_po === 'ready') {
+                    $query->whereDoesntHave('items.masterProduct', function ($q) {
+                        $q->where('is_preorder', true);
+                    });
+                }
+            }
+
+            if ($request->filled('start_date')) {
+                $query->whereDate('order_date', '>=', $request->start_date);
+            }
+            if ($request->filled('end_date')) {
+                $query->whereDate('order_date', '<=', $request->end_date);
+            }
+        }
+
+        $orders = $query->orderByDesc('order_date')->get();
+
+        if ($orders->isEmpty()) {
+            return back()->with('error', 'Tidak ada pesanan Siap Kirim yang sesuai filter/pilihan.');
+        }
+
+        $aggregated = [];
+        $totalPcs = 0;
+        foreach ($orders as $order) {
+            foreach ($order->items as $item) {
+                $sku = $item->sku ?? ($item->masterProduct->sku ?? 'NO-SKU');
+                $name = $item->product_name ?? ($item->masterProduct->name ?? 'Produk Tanpa Nama');
+                $image = $item->product_image ?? ($item->masterProduct->image_url ?? '');
+                $isPreorder = ($item->masterProduct && $item->masterProduct->is_preorder) || $order->spks->isNotEmpty();
+                $spkNo = $order->spks->isNotEmpty() ? $order->spks->first()->no_spk : null;
+
+                if (!isset($aggregated[$sku])) {
+                    $aggregated[$sku] = [
+                        'sku'      => $sku,
+                        'name'     => $name,
+                        'image'    => $image,
+                        'target'   => 0,
+                        'picked'   => 0,
+                        'is_po'    => $isPreorder,
+                        'spk_no'   => $spkNo,
+                        'orders'   => []
+                    ];
+                }
+
+                $aggregated[$sku]['target'] += $item->quantity;
+                $aggregated[$sku]['orders'][] = $order->invoice_number ?? $order->order_marketplace_id;
+                $totalPcs += $item->quantity;
+            }
+        }
+
+        $orderIds = $orders->pluck('id')->toArray();
+
+        return view('fulfillment.interactive_picklist', compact('aggregated', 'orders', 'orderIds', 'totalPcs'));
+    }
+
+    /**
+     * AJAX: Potong stok real-time saat SKU di-scan / di-ambil di Layar Ambil Barang
+     */
+    public function scanDeductStock(Request $request)
+    {
+        $tenantId = Auth::user()->tenant_id;
+        $sku = $request->input('sku');
+        $qty = (int) $request->input('qty', 1);
+
+        if (!$sku || $qty <= 0) {
+            return response()->json(['success' => false, 'message' => 'SKU atau Qty tidak valid']);
+        }
+
+        $product = MasterProduct::where('tenant_id', $tenantId)
+            ->where(function($q) use ($sku) {
+                $q->where('sku', $sku)
+                  ->orWhere('sku_induk', $sku);
+            })->first();
+
+        if (!$product) {
+            return response()->json(['success' => false, 'message' => "SKU {$sku} tidak ditemukan di Master Produk"]);
+        }
+
+        // Potong stok real-time di Master Product & Catat Kartu Stok (StockMovement)
+        $reference = 'Pengambilan Barang (Fulfillment SKU: ' . $product->sku . ')';
+        $product->recordStockMovement($qty, 'out', $reference, Auth::id());
+
+        return response()->json([
+            'success'   => true,
+            'sku'       => $product->sku,
+            'name'      => $product->name,
+            'new_stock' => $product->fresh()->stock,
+            'message'   => "Stok SKU {$product->sku} berkurang {$qty} Pcs. (Sisa Stok: {$product->fresh()->stock})"
+        ]);
+    }
+
+    /**
+     * Konfirmasi Selesai Ambil Barang (Batch Picked) & Potong Stok Pesanan
+     */
+    public function confirmPicking(Request $request)
+    {
+        $tenantId = Auth::user()->tenant_id;
+        $orderIds = $request->input('order_ids', []);
+
+        if (empty($orderIds)) {
+            return redirect()->route('fulfillment.index')->with('error', 'Tidak ada pesanan yang dikonfirmasi.');
+        }
+
+        $orders = Order::where('tenant_id', $tenantId)
+            ->whereIn('id', $orderIds)
+            ->where('order_status', Order::STATUS_READY_TO_SHIP)
+            ->get();
+
+        $count = 0;
+        foreach ($orders as $order) {
+            // Potong stok produk pesanan yang belum terpotong
+            $order->syncStockDeduction();
+
+            // Ubah status kemas menjadi 'packing' (Sedang Dikemas)
+            if ($order->packing_status === 'pending') {
+                $order->update(['packing_status' => 'packing']);
+            }
+            $count++;
+        }
+
+        return redirect()->route('fulfillment.index')
+            ->with('success', "Proses Ambil Barang Selesai! Stok untuk {$orders->count()} pesanan berhasil dipotong & status berubah menjadi Sedang Dikemas.");
+    }
+
+    /**
      * Verifikasi Packing Massal
      */
     public function batchVerify(Request $request)

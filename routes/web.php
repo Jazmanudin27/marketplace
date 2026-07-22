@@ -430,6 +430,9 @@ Route::middleware('auth')->group(function () {
     Route::middleware('permission:manage-fulfillment')->group(function () {
         Route::get('/fulfillment', [FulfillmentController::class, 'index'])->name('fulfillment.index');
         Route::get('/fulfillment/scan', [FulfillmentController::class, 'scanPage'])->name('fulfillment.scan_page');
+        Route::get('/fulfillment/interactive-picklist', [FulfillmentController::class, 'interactivePickList'])->name('fulfillment.interactive_picklist');
+        Route::post('/fulfillment/confirm-picking', [FulfillmentController::class, 'confirmPicking'])->name('fulfillment.confirm_picking');
+        Route::post('/fulfillment/scan-sku-deduct', [FulfillmentController::class, 'scanDeductStock'])->name('fulfillment.scan_sku_deduct');
         Route::get('/fulfillment/order/{identifier}', [FulfillmentController::class, 'getOrderDetails'])->name('fulfillment.order_details');
         Route::post('/fulfillment/order/{order}/complete', [FulfillmentController::class, 'completePack'])->name('fulfillment.complete_pack');
         Route::get('/fulfillment/batch-picklist', [FulfillmentController::class, 'batchPickList'])->name('fulfillment.batch_picklist');

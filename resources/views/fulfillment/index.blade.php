@@ -188,20 +188,47 @@
                 </div>
             </div>
 
+            {{-- Workflow Steps Banner --}}
+            <div class="card border-0 bg-primary-subtle shadow-sm rounded-3 mb-4">
+                <div class="card-body p-3">
+                    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="badge bg-primary fs-6 p-2 rounded-circle"><i class="fas fa-route"></i></span>
+                            <div>
+                                <h6 class="fw-bold text-dark mb-0">Alur Kerja Gudang Baru (Fulfillment Workflow)</h6>
+                                <small class="text-muted">Ikuti 3 langkah pemenuhan pesanan dari cetak resi hingga penyerahan kurir:</small>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-center gap-2 small fw-bold">
+                            <span class="badge bg-primary text-white py-2 px-3 shadow-sm"><i class="fas fa-print me-1"></i> 1. Cetak Resi Dulu</span>
+                            <i class="fas fa-chevron-right text-muted"></i>
+                            <span class="badge bg-success text-white py-2 px-3 shadow-sm"><i class="fas fa-barcode me-1"></i> 2. Ambil Barang & Scan SKU (Stok Berkurang Real-time)</span>
+                            <i class="fas fa-chevron-right text-muted"></i>
+                            <span class="badge bg-dark text-white py-2 px-3 shadow-sm"><i class="fas fa-box me-1"></i> 3. Scan Kemas & Kirim</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             {{-- Table Card --}}
             <div class="card border rounded shadow-sm bg-white">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h5 class="fw-bold text-dark mb-0"><i class="fas fa-barcode"></i> Antrean Kemas Pesanan</h5>
                         <div class="d-flex gap-2">
+                            <a href="{{ route('fulfillment.interactive_picklist', request()->query()) }}"
+                                class="btn btn-success btn-sm d-inline-flex align-items-center gap-1 fw-bold shadow-sm"
+                                title="Buka Layar Rekap Ambil Barang Interaktif (Scan Barcode & Klik Manual)">
+                                <i class="fas fa-hand-pointer"></i> Layar Ambil Barang (Scan/Klik)
+                            </a>
                             <a href="{{ route('fulfillment.batch_picklist', request()->query()) }}" target="_blank"
                                 class="btn btn-outline-primary btn-sm d-inline-flex align-items-center gap-1 fw-semibold"
                                 title="Cetak Pick List untuk seluruh pesanan yang tampil sesuai filter di atas">
-                                <i class="fas fa-list-alt"></i> Cetak Pick List (Sesuai Filter)
+                                <i class="fas fa-list-alt"></i> Cetak Pick List (A4)
                             </a>
                             <a href="{{ route('fulfillment.scan_page') }}"
                                 class="btn btn-primary btn-sm d-inline-flex align-items-center gap-2 fw-semibold">
-                                <i class="fas fa-expand"></i> Buka Layar Scanner (Scan Massal)
+                                <i class="fas fa-expand"></i> Scan Kemas (Fulfillment)
                             </a>
                         </div>
                     </div>
@@ -342,12 +369,16 @@
     {{-- Floating Sticky Batch Action Toolbar --}}
     <div id="batch-action-toolbar"
         class="position-fixed bottom-0 start-50 translate-middle-x bg-dark text-white p-3 rounded-top shadow-lg d-flex align-items-center gap-3 border border-secondary border-bottom-0"
-        style="z-index: 1050; display: none; min-width: 720px; transition: all 0.3s ease; box-shadow: 0 -4px 20px rgba(0,0,0,0.5);">
+        style="z-index: 1050; display: none; min-width: 780px; transition: all 0.3s ease; box-shadow: 0 -4px 20px rgba(0,0,0,0.5);">
         <div class="d-flex align-items-center gap-2">
             <span class="badge bg-primary fs-6" id="selected-count">0</span>
             <span class="small text-muted fw-semibold">Pesanan Terpilih</span>
         </div>
         <div class="ms-auto d-flex gap-2">
+            <button type="button" id="btn-batch-interactive" class="btn btn-sm btn-success text-white fw-bold"
+                title="Buka Layar Ambil Barang Interaktif">
+                <i class="fas fa-hand-pointer me-1"></i> Layar Ambil Barang
+            </button>
             <button type="button" id="btn-batch-pick" class="btn btn-sm btn-info text-white fw-semibold"
                 title="Printer A4 / Standar">
                 <i class="fas fa-list-alt me-1"></i> Cetak Pick List (A4)
@@ -355,6 +386,12 @@
             <button type="button" id="btn-batch-label" class="btn btn-sm btn-primary fw-semibold"
                 title="Printer Stiker Thermal">
                 <i class="fas fa-print me-1"></i> Cetak Resi Massal (Thermal)
+            </button>
+            <button type="button" id="btn-batch-verify" class="btn btn-sm btn-warning text-dark fw-semibold">
+                <i class="fas fa-check-double me-1"></i> Packing Selesai
+            </button>
+            <button type="button" id="btn-batch-ship" class="btn btn-sm btn-success fw-semibold">
+                <i class="fas fa-paper-plane me-1"></i> Kirim Resi (Ship)
             </button>
         </div>
     </div>
@@ -388,6 +425,14 @@
             checkboxes.on('change', function() {
                 checkAll.prop('checked', checkboxes.length === $('.order-checkbox:checked').length);
                 updateToolbar();
+            });
+
+            // 0. Layar Interaktif Ambil Barang
+            $('#btn-batch-interactive').on('click', function() {
+                batchForm.attr('action', "{{ route('fulfillment.interactive_picklist') }}");
+                batchForm.attr('method', "GET");
+                batchForm.removeAttr('target');
+                batchForm.submit();
             });
 
             // 1. Cetak Pick List (Daftar Pengambilan Barang) -> Kertas A4 / Standar
