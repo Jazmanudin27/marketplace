@@ -159,6 +159,26 @@
                                             Non-Dropship</option>
                                     </select>
                                 </div>
+                                <div class="col-12 col-sm-6 col-md-2">
+                                    <label class="form-label fw-bold small text-dark mb-1">
+                                        <i class="fas fa-box me-1 text-secondary"></i>Tipe Produk
+                                    </label>
+                                    <select name="is_po" class="form-select form-select-sm">
+                                        <option value="">Semua Tipe</option>
+                                        <option value="po" {{ request('is_po') === 'po' ? 'selected' : '' }}>Pre-Order (PO)</option>
+                                        <option value="ready" {{ request('is_po') === 'ready' ? 'selected' : '' }}>Ready Stock</option>
+                                    </select>
+                                </div>
+                                <div class="col-12 col-sm-6 col-md-2">
+                                    <label class="form-label fw-bold small text-dark mb-1">
+                                        <i class="fas fa-tools me-1 text-secondary"></i>Status SPK
+                                    </label>
+                                    <select name="spk_status" class="form-select form-select-sm">
+                                        <option value="">Semua Status SPK</option>
+                                        <option value="has_spk" {{ request('spk_status') === 'has_spk' ? 'selected' : '' }}>Sudah Ada SPK</option>
+                                        <option value="no_spk" {{ request('spk_status') === 'no_spk' ? 'selected' : '' }}>Belum Buat SPK</option>
+                                    </select>
+                                </div>
                                 <div class="col-12 col-sm-6 col-md-3">
                                     <label class="form-label fw-bold small text-dark mb-1">
                                         <i class="fas fa-calendar-alt me-1 text-secondary"></i>Rentang Tanggal
@@ -177,7 +197,7 @@
                                     <input type="text" name="cancel_reason" class="form-control form-control-sm"
                                         placeholder="Cari alasan pembatalan..." value="{{ request('cancel_reason') }}">
                                 </div>
-                                <div class="col-12 col-sm-6 col-md-auto d-flex gap-2">
+                                <div class="col-12 col-sm-6 col-md-auto d-flex gap-2 align-items-end">
                                     <button type="submit" class="btn btn-primary btn-sm px-3 rounded-3">
                                         <i class="fas fa-search me-1"></i> Cari
                                     </button>
@@ -190,6 +210,8 @@
                                             'end_date',
                                             'deadline_status',
                                             'is_dropship',
+                                            'is_po',
+                                            'spk_status',
                                             'cancel_reason',
                                         ]))
                                         <a href="{{ route('orders.index') }}"
@@ -239,6 +261,35 @@
                                                 @endif
                                                 <div class="text-muted small mt-1" style="font-size:0.68rem;">ID:
                                                     {{ $order->order_marketplace_id }}</div>
+
+                                                <div class="mt-1 d-flex flex-wrap gap-1 align-items-center">
+                                                    {{-- Badge PO vs Ready --}}
+                                                    @if ($order->hasPreorderItems())
+                                                        <span class="badge text-white px-2 py-0-5 fw-bold"
+                                                            style="font-size: 0.65rem; background-color: #8b5cf6;" title="Pesanan Pre-Order">
+                                                            <i class="fas fa-clock me-1"></i>PO
+                                                        </span>
+                                                    @else
+                                                        <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-0-5"
+                                                            style="font-size: 0.65rem;" title="Pesanan Ready Stock">
+                                                            <i class="fas fa-check-circle me-1"></i>Ready
+                                                        </span>
+                                                    @endif
+
+                                                    {{-- Badge Status SPK --}}
+                                                    @if ($order->spks && $order->spks->isNotEmpty())
+                                                        <a href="{{ route('spks.show', $order->spks->first()->id) }}"
+                                                            class="badge bg-primary-subtle text-primary border border-primary-subtle text-decoration-none px-2 py-0-5"
+                                                            style="font-size: 0.65rem;" title="Lihat SPK #{{ $order->spks->first()->no_spk }}">
+                                                            <i class="fas fa-tools me-1"></i>{{ $order->spks->first()->no_spk }}
+                                                        </a>
+                                                    @else
+                                                        <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-2 py-0-5"
+                                                            style="font-size: 0.65rem;" title="Belum Dibuatkan SPK">
+                                                            <i class="fas fa-minus-circle me-1"></i>Belum SPK
+                                                        </span>
+                                                    @endif
+                                                </div>
                                             </td>
                                             <td>
                                                 <strong class="text-dark small">{{ $order->buyer_name ?? '-' }}</strong>

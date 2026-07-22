@@ -142,6 +142,7 @@
             </div>
 
             <!-- Rincian HPP Produksi (Internal Office Only) -->
+            @if(auth()->user()->isSuperAdmin() || auth()->user()->role === 'admin' || auth()->user()->hasRole('admin'))
             <h5 class="fw-bold text-dark mb-3 mt-4">
                 <i class="fas fa-calculator text-primary me-2"></i>Rincian HPP Produksi <span class="badge bg-danger-subtle text-danger" style="font-size: 11px;">Internal Office Only</span>
             </h5>
@@ -281,6 +282,7 @@
                     </tbody>
                 </table>
             </div>
+            @endif
 
             <!-- Additional Accessories Block -->
             <div class="border rounded-3 p-3 bg-light mb-4">

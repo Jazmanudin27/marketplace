@@ -13,7 +13,7 @@ class OrderController extends Controller
     {
         $tenantId = Auth::user()->tenant_id;
 
-        $query = Order::with('store.channel')
+        $query = Order::with(['store.channel', 'items.masterProduct', 'spks'])
             ->where('tenant_id', $tenantId);
 
         // Filter Channel
@@ -36,6 +36,28 @@ class OrderController extends Controller
         // Filter Status
         if ($request->filled('status')) {
             $query->where('order_status', $request->status);
+        }
+
+        // Filter PO vs Ready Stock
+        if ($request->filled('is_po')) {
+            if ($request->is_po === 'po') {
+                $query->whereHas('items.masterProduct', function ($q) {
+                    $q->where('is_preorder', true);
+                });
+            } elseif ($request->is_po === 'ready') {
+                $query->whereDoesntHave('items.masterProduct', function ($q) {
+                    $q->where('is_preorder', true);
+                });
+            }
+        }
+
+        // Filter Status SPK
+        if ($request->filled('spk_status')) {
+            if ($request->spk_status === 'has_spk') {
+                $query->has('spks');
+            } elseif ($request->spk_status === 'no_spk') {
+                $query->doesntHave('spks');
+            }
         }
 
         // Filter Batas Kirim (Deadline Status)

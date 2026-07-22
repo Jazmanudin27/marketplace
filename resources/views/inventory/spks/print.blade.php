@@ -149,6 +149,7 @@
     </table>
 
     <!-- HPP Production Details (Office Only) -->
+    @if(auth()->user()->isSuperAdmin() || auth()->user()->role === 'admin' || auth()->user()->hasRole('admin'))
     <div style="font-weight: bold; font-size: 10px; margin-top: 15px; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.5px;">
         Rincian HPP Produksi (Internal Office Only):
     </div>
@@ -201,6 +202,7 @@
             </tr>
         </tbody>
     </table>
+    @endif
 
     <!-- Additional Attributes -->
     <div class="attrib-box">

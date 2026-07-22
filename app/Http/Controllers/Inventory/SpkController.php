@@ -138,7 +138,17 @@ class SpkController extends Controller
                 $prodId = null;
                 if (!empty($row['sku'])) {
                     $prod = MasterProduct::where('tenant_id', $tenantId)
-                        ->where('sku', $row['sku'])->first();
+                        ->where('sku', trim($row['sku']))->first();
+                    if ($prod) $prodId = $prod->id;
+                }
+                if (!$prodId && !empty($row['sku_induk'])) {
+                    $prod = MasterProduct::where('tenant_id', $tenantId)
+                        ->where('sku_induk', trim($row['sku_induk']))->first();
+                    if ($prod) $prodId = $prod->id;
+                }
+                if (!$prodId && !empty($row['name'])) {
+                    $prod = MasterProduct::where('tenant_id', $tenantId)
+                        ->where('name', trim($row['name']))->first();
                     if ($prod) $prodId = $prod->id;
                 }
 
@@ -256,52 +266,70 @@ class SpkController extends Controller
 
             // Transition: To 'Selesai' (Production Completed)
             if ($newStatus === 'Selesai' && $oldStatus !== 'Selesai') {
+                $product = null;
                 if ($item->master_product_id) {
                     $product = MasterProduct::find($item->master_product_id);
-                    if ($product) {
-                        // 1. Add finished goods stock & record movement
-                        $product->recordStockMovement(
-                            $item->quantity,
-                            'in',
-                            'Penerimaan SPK Selesai #' . $spk->no_spk . ' (Item: ' . $item->nama_produk . ')',
-                            Auth::id()
-                        );
+                }
+                if (!$product && !empty($item->sku)) {
+                    $product = MasterProduct::where('tenant_id', $spk->tenant_id)
+                        ->where('sku', trim($item->sku))->first();
+                }
+                if (!$product && !empty($item->sku_induk)) {
+                    $product = MasterProduct::where('tenant_id', $spk->tenant_id)
+                        ->where('sku_induk', trim($item->sku_induk))->first();
+                }
+                if (!$product && !empty($item->nama_produk)) {
+                    $product = MasterProduct::where('tenant_id', $spk->tenant_id)
+                        ->where('name', trim($item->nama_produk))->first();
+                }
 
-                        // 2. Update catalog HPP (cost_price)
-                        $product->update([
-                            'cost_price' => $item->hpp
-                        ]);
+                if ($product) {
+                    if ($item->master_product_id !== $product->id) {
+                        $item->update(['master_product_id' => $product->id]);
+                    }
 
-                        // 3. Deduct raw materials based on active recipe
-                        $recipe = \App\Models\ProductRecipe::where('master_product_id', $product->id)
-                            ->where('tenant_id', $spk->tenant_id)
-                            ->where('is_active', true)
-                            ->with('items.inventoryItem')
-                            ->first();
+                    // 1. Add finished goods stock & record movement
+                    $product->recordStockMovement(
+                        $item->quantity,
+                        'in',
+                        'Penerimaan SPK Selesai #' . $spk->no_spk . ' (Item: ' . $item->nama_produk . ')',
+                        Auth::id()
+                    );
 
-                        if ($recipe) {
-                            foreach ($recipe->items as $recipeItem) {
-                                $invItem = $recipeItem->inventoryItem;
-                                if ($invItem) {
-                                    $batchQty = max(1, $recipe->batch_qty);
-                                    $qtyNeeded = ($recipeItem->quantity / $batchQty) * $item->quantity;
-                                    
-                                    $invItem->recordStockMovement(
-                                        (int)ceil($qtyNeeded),
-                                        'out',
-                                        'Konsumsi Bahan Baku SPK #' . $spk->no_spk . ' (Item: ' . $item->nama_produk . ')',
-                                        Auth::id()
-                                    );
-                                }
+                    // 2. Update catalog HPP (cost_price)
+                    $product->update([
+                        'cost_price' => $item->hpp
+                    ]);
+
+                    // 3. Deduct raw materials based on active recipe
+                    $recipe = \App\Models\ProductRecipe::where('master_product_id', $product->id)
+                        ->where('tenant_id', $spk->tenant_id)
+                        ->where('is_active', true)
+                        ->with('items.inventoryItem')
+                        ->first();
+
+                    if ($recipe) {
+                        foreach ($recipe->items as $recipeItem) {
+                            $invItem = $recipeItem->inventoryItem;
+                            if ($invItem) {
+                                $batchQty = max(1, $recipe->batch_qty);
+                                $qtyNeeded = ($recipeItem->quantity / $batchQty) * $item->quantity;
+                                
+                                $invItem->recordStockMovement(
+                                    (int)ceil($qtyNeeded),
+                                    'out',
+                                    'Konsumsi Bahan Baku SPK #' . $spk->no_spk . ' (Item: ' . $item->nama_produk . ')',
+                                    Auth::id()
+                                );
                             }
                         }
+                    }
 
-                        // 4. If SPK is linked to an order, process stock deduction for the order
-                        if ($spk->order_id) {
-                            $order = \App\Models\Order::find($spk->order_id);
-                            if ($order) {
-                                $order->processStockDeduction();
-                            }
+                    // 4. If SPK is linked to an order, process stock deduction for the order
+                    if ($spk->order_id) {
+                        $order = \App\Models\Order::find($spk->order_id);
+                        if ($order) {
+                            $order->processStockDeduction();
                         }
                     }
                 }
@@ -309,38 +337,46 @@ class SpkController extends Controller
 
             // Transition: From 'Selesai' back to something else (Cancellation/Rollback)
             if ($oldStatus === 'Selesai' && $newStatus !== 'Selesai') {
+                $product = null;
                 if ($item->master_product_id) {
                     $product = MasterProduct::find($item->master_product_id);
-                    if ($product) {
-                        // 1. Deduct finished goods stock
-                        $product->recordStockMovement(
-                            $item->quantity,
-                            'out',
-                            'Pembatalan SPK Selesai #' . $spk->no_spk . ' (Item: ' . $item->nama_produk . ')',
-                            Auth::id()
-                        );
+                } elseif (!empty($item->sku)) {
+                    $product = MasterProduct::where('tenant_id', $spk->tenant_id)
+                        ->where('sku', trim($item->sku))->first();
+                } elseif (!empty($item->nama_produk)) {
+                    $product = MasterProduct::where('tenant_id', $spk->tenant_id)
+                        ->where('name', trim($item->nama_produk))->first();
+                }
 
-                        // 2. Restore raw materials based on active recipe
-                        $recipe = \App\Models\ProductRecipe::where('master_product_id', $product->id)
-                            ->where('tenant_id', $spk->tenant_id)
-                            ->where('is_active', true)
-                            ->with('items.inventoryItem')
-                            ->first();
+                if ($product) {
+                    // 1. Deduct finished goods stock
+                    $product->recordStockMovement(
+                        $item->quantity,
+                        'out',
+                        'Pembatalan SPK Selesai #' . $spk->no_spk . ' (Item: ' . $item->nama_produk . ')',
+                        Auth::id()
+                    );
 
-                        if ($recipe) {
-                            foreach ($recipe->items as $recipeItem) {
-                                $invItem = $recipeItem->inventoryItem;
-                                if ($invItem) {
-                                    $batchQty = max(1, $recipe->batch_qty);
-                                    $qtyNeeded = ($recipeItem->quantity / $batchQty) * $item->quantity;
+                    // 2. Restore raw materials based on active recipe
+                    $recipe = \App\Models\ProductRecipe::where('master_product_id', $product->id)
+                        ->where('tenant_id', $spk->tenant_id)
+                        ->where('is_active', true)
+                        ->with('items.inventoryItem')
+                        ->first();
 
-                                    $invItem->recordStockMovement(
-                                        (int)ceil($qtyNeeded),
-                                        'in',
-                                        'Pengembalian Bahan Baku SPK #' . $spk->no_spk . ' (Item: ' . $item->nama_produk . ')',
-                                        Auth::id()
-                                    );
-                                }
+                    if ($recipe) {
+                        foreach ($recipe->items as $recipeItem) {
+                            $invItem = $recipeItem->inventoryItem;
+                            if ($invItem) {
+                                $batchQty = max(1, $recipe->batch_qty);
+                                $qtyNeeded = ($recipeItem->quantity / $batchQty) * $item->quantity;
+
+                                $invItem->recordStockMovement(
+                                    (int)ceil($qtyNeeded),
+                                    'in',
+                                    'Pengembalian Bahan Baku SPK #' . $spk->no_spk . ' (Item: ' . $item->nama_produk . ')',
+                                    Auth::id()
+                                );
                             }
                         }
                     }
