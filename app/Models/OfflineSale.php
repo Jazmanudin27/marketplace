@@ -15,6 +15,7 @@ class OfflineSale extends Model
         'paid_amount', 'change_amount', 'notes', 'sold_at',
         'is_dropship', 'dropshipper_name', 'dropshipper_phone',
         'approved_by', 'approved_at',
+        'cancellation_reason', 'cancelled_by',
     ];
 
     protected $casts = [

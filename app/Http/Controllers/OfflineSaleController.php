@@ -274,7 +274,7 @@ class OfflineSaleController extends Controller
         return back()->with('success', 'Transaksi ditandai selesai.');
     }
 
-    public function cancel(OfflineSale $offlineSale)
+    public function cancel(Request $request, OfflineSale $offlineSale)
     {
         abort_unless($offlineSale->tenant_id === Auth::user()->tenant_id, 403);
 
@@ -282,9 +282,20 @@ class OfflineSaleController extends Controller
             return back()->with('error', 'Transaksi ini sudah dibatalkan sebelumnya.');
         }
 
-        DB::transaction(function () use ($offlineSale) {
+        $request->validate([
+            'cancellation_reason' => 'required|string|min:5|max:500',
+        ], [
+            'cancellation_reason.required' => 'Alasan pembatalan wajib diisi.',
+            'cancellation_reason.min'      => 'Alasan pembatalan minimal 5 karakter.',
+        ]);
+
+        // Simpan status lama SEBELUM update untuk kebutuhan pesan & logika stok
+        $statusBefore = $offlineSale->status;
+
+        DB::transaction(function () use ($offlineSale, $request, $statusBefore) {
             // Kembalikan stok HANYA jika sudah approved/completed (stok sudah dikurangi)
-            if ($offlineSale->status === OfflineSale::STATUS_COMPLETED) {
+            if ($statusBefore === OfflineSale::STATUS_COMPLETED) {
+                $offlineSale->load('items');
                 foreach ($offlineSale->items as $item) {
                     if ($item->master_product_id) {
                         $product = MasterProduct::find($item->master_product_id);
@@ -300,10 +311,19 @@ class OfflineSaleController extends Controller
                 }
             }
             // Jika status masih pending_approval, stok belum dikurangi → tidak perlu dikembalikan
-            $offlineSale->update(['status' => OfflineSale::STATUS_CANCELLED]);
+            $offlineSale->update([
+                'status'              => OfflineSale::STATUS_CANCELLED,
+                'cancellation_reason' => $request->cancellation_reason,
+                'cancelled_by'        => Auth::id(),
+            ]);
         });
 
-        return back()->with('success', 'Transaksi dibatalkan.' . ($offlineSale->status === OfflineSale::STATUS_COMPLETED ? ' Stok telah dikembalikan.' : ''));
+        $msg = 'Transaksi berhasil dibatalkan.';
+        if ($statusBefore === OfflineSale::STATUS_COMPLETED) {
+            $msg .= ' Stok produk telah dikembalikan.';
+        }
+
+        return back()->with('success', $msg);
     }
 
     public function printReceipt(OfflineSale $offlineSale)

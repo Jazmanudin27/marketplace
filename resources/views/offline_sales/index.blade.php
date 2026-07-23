@@ -277,20 +277,30 @@
                 </h6>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <div class="modal-body">
-                <p class="mb-1 text-dark">Yakin ingin membatalkan transaksi:</p>
-                <p class="fw-bold font-monospace text-danger mb-3" id="modal-sale-number"></p>
-                <div class="alert alert-warning py-2 mb-0 small" id="modal-cancel-note"></div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Tutup</button>
-                <form id="form-cancel" method="POST" class="m-0">
-                    @csrf
+            <form id="form-cancel" method="POST" class="m-0">
+                @csrf
+                <div class="modal-body">
+                    <p class="mb-1 text-dark">Yakin ingin membatalkan transaksi:</p>
+                    <p class="fw-bold font-monospace text-danger mb-3" id="modal-sale-number"></p>
+                    <div class="alert alert-warning py-2 mb-3 small" id="modal-cancel-note"></div>
+                    <div class="mb-0">
+                        <label for="cancellation_reason" class="form-label fw-semibold small text-dark mb-1">
+                            Alasan Pembatalan <span class="text-danger">*</span>
+                        </label>
+                        <textarea name="cancellation_reason" id="cancellation_reason" rows="3"
+                            class="form-control form-control-sm"
+                            placeholder="Contoh: Pelanggan membatalkan pesanan, stok habis, dll..."
+                            required minlength="5" maxlength="500"></textarea>
+                        <div class="form-text text-muted">Wajib diisi, minimal 5 karakter.</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Tutup</button>
                     <button type="submit" class="btn btn-danger btn-sm px-4">
                         <i class="fas fa-times-circle me-1"></i> Ya, Batalkan
                     </button>
-                </form>
-            </div>
+                </div>
+            </form>
         </div>
     </div>
 </div>

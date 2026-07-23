@@ -37,13 +37,11 @@
                         </form>
                     @endif
                     @if (in_array($offlineSale->status, [\App\Models\OfflineSale::STATUS_COMPLETED, \App\Models\OfflineSale::STATUS_PENDING_APPROVAL]))
-                        <form action="{{ route('offline_sales.cancel', $offlineSale->id) }}" method="POST" class="m-0"
-                            onsubmit="return confirm('Batalkan transaksi ini?' + ('{{ $offlineSale->status }}' === 'completed' ? ' Stok produk akan dikembalikan.' : ' Stok tidak akan berubah.'))">
-                            @csrf
-                            <button type="submit" class="btn btn-danger btn-sm px-3">
-                                <i class="fas fa-times-circle me-1"></i> Batalkan
-                            </button>
-                        </form>
+                        <button type="button" class="btn btn-danger btn-sm px-3"
+                            data-bs-toggle="modal" data-bs-target="#modalCancelShow"
+                            data-status="{{ $offlineSale->status }}">
+                            <i class="fas fa-times-circle me-1"></i> Batalkan
+                        </button>
                     @endif
                 </div>
             </div>
@@ -155,6 +153,17 @@
                                         </div>
                                     </div>
                                 @endif
+                                @if ($offlineSale->status === \App\Models\OfflineSale::STATUS_CANCELLED && $offlineSale->cancellation_reason)
+                                    <div class="col-md-12">
+                                        <div class="p-3 border border-danger rounded h-100 bg-danger bg-opacity-10">
+                                            <small class="text-danger d-block text-uppercase fw-bold mb-1"
+                                                style="font-size: 0.65rem;">
+                                                <i class="fas fa-times-circle me-1"></i> Alasan Pembatalan
+                                            </small>
+                                            <span class="text-dark small">{{ $offlineSale->cancellation_reason }}</span>
+                                        </div>
+                                    </div>
+                                @endif
                                 @if ($offlineSale->notes)
                                     <div class="col-md-12">
                                         <div class="p-3 border rounded h-100 bg-light">
@@ -252,3 +261,65 @@
         </div>
     </div>
 @endsection
+
+{{-- Modal Konfirmasi Pembatalan --}}
+@push('modals')
+<div class="modal fade" id="modalCancelShow" tabindex="-1" aria-labelledby="modalCancelShowLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-danger bg-opacity-10 border-bottom">
+                <h6 class="modal-title fw-bold text-danger" id="modalCancelShowLabel">
+                    <i class="fas fa-exclamation-triangle me-2"></i>Konfirmasi Pembatalan Transaksi
+                </h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="{{ route('offline_sales.cancel', $offlineSale->id) }}" method="POST">
+                @csrf
+                <div class="modal-body">
+                    <p class="mb-1 text-dark">Yakin ingin membatalkan transaksi:</p>
+                    <p class="fw-bold font-monospace text-danger mb-3">{{ $offlineSale->sale_number }}</p>
+                    <div class="alert py-2 mb-3 small" id="show-cancel-note"></div>
+                    <div>
+                        <label for="cancellation_reason_show" class="form-label fw-semibold small text-dark mb-1">
+                            Alasan Pembatalan <span class="text-danger">*</span>
+                        </label>
+                        <textarea name="cancellation_reason" id="cancellation_reason_show" rows="3"
+                            class="form-control form-control-sm"
+                            placeholder="Contoh: Pelanggan membatalkan pesanan, stok habis, dll..."
+                            required minlength="5" maxlength="500"></textarea>
+                        <div class="form-text text-muted">Wajib diisi, minimal 5 karakter.</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Tutup</button>
+                    <button type="submit" class="btn btn-danger btn-sm px-4">
+                        <i class="fas fa-times-circle me-1"></i> Ya, Batalkan
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+@endpush
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const modalCancelShow = document.getElementById('modalCancelShow');
+    if (modalCancelShow) {
+        modalCancelShow.addEventListener('show.bs.modal', function (event) {
+            const btn = event.relatedTarget;
+            const status = btn ? btn.getAttribute('data-status') : '';
+            const noteEl = document.getElementById('show-cancel-note');
+            if (status === 'pending_approval') {
+                noteEl.innerHTML = '<i class="fas fa-info-circle me-1"></i> Transaksi belum diapprove. Stok <strong>tidak akan</strong> berubah.';
+                noteEl.className = 'alert alert-info py-2 mb-3 small';
+            } else {
+                noteEl.innerHTML = '<i class="fas fa-undo me-1"></i> Stok semua produk akan <strong>dikembalikan</strong> secara otomatis.';
+                noteEl.className = 'alert alert-warning py-2 mb-3 small';
+            }
+        });
+    }
+});
+</script>
+@endpush

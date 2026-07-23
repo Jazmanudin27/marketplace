@@ -229,7 +229,7 @@ class User extends Authenticatable
             'manage-orders' => ['orders.index', 'orders.show', 'orders.create', 'orders.process', 'orders.ship', 'orders.print', 'orders.export', 'orders.sync'],
             'manage-fulfillment' => ['fulfillment.index', 'fulfillment.scan', 'fulfillment.complete'],
             'manage-returns' => ['returns.index', 'returns.sync', 'returns.restock'],
-            'manage-offline-sales' => ['offline-sales.index', 'offline-sales.show', 'offline-sales.create', 'offline-sales.complete', 'offline-sales.cancel', 'offline-sales.print'],
+            'manage-offline-sales' => ['offline-sales.index', 'offline-sales.show', 'offline-sales.create', 'offline-sales.approve', 'offline-sales.complete', 'offline-sales.cancel', 'offline-sales.print'],
             'manage-chats' => ['chats.index', 'chats.show', 'chats.reply', 'chats.sync'],
             'manage-inventory' => [
                 'inventory.index', 'inventory.ledger', 'inventory.adjust', 'inventory.stock_sync', 'stock-opnames.index', 'stock-opnames.create',

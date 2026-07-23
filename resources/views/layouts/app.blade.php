@@ -456,6 +456,7 @@
     })();
     </script>
 
+    @stack('modals')
     @stack('scripts')
 
 
