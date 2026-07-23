@@ -394,8 +394,13 @@ class OrderController extends Controller
     public function print(Order $order, \App\Services\ShopeeService $shopeeService, \App\Services\TiktokService $tiktokService)
     {
         abort_unless($order->tenant_id === Auth::user()->tenant_id, 403);
-        $order->load('items.masterProduct', 'store.channel');
         
+        $order->update([
+            'is_printed' => true,
+            'printed_at' => now(),
+        ]);
+        
+        $order->load('items.masterProduct', 'store.channel');
         $store = $order->store;
 
         // Coba untuk fetch dokumen pengiriman dari marketplace API

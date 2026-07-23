@@ -17,6 +17,14 @@
                                 <div>
                                     <h4 class="fw-bold text-dark mb-0">{{ $stats['total'] }}</h4>
                                     <p class="text-muted mb-0 small">Total Siap Kirim</p>
+                                    <div class="mt-1" style="font-size:0.68rem;">
+                                        <a href="{{ route('fulfillment.index', array_merge(request()->query(), ['print_status' => 'unprinted'])) }}" class="badge bg-secondary opacity-75 text-decoration-none me-1" title="Filter Belum Print">
+                                            {{ $stats['unprinted'] }} Belum Print
+                                        </a>
+                                        <a href="{{ route('fulfillment.index', array_merge(request()->query(), ['print_status' => 'printed'])) }}" class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 text-decoration-none" title="Filter Sudah Print">
+                                            {{ $stats['printed'] }} Sudah Print
+                                        </a>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -142,6 +150,16 @@
                             </div>
                             <div class="col-6 col-md-2">
                                 <label class="form-label fw-bold small text-dark mb-1">
+                                    <i class="fas fa-print me-1 text-secondary"></i>Status Print
+                                </label>
+                                <select name="print_status" class="form-select form-select-sm">
+                                    <option value="">Semua Status Print</option>
+                                    <option value="unprinted" {{ request('print_status') === 'unprinted' ? 'selected' : '' }}>Belum Diprint</option>
+                                    <option value="printed" {{ request('print_status') === 'printed' ? 'selected' : '' }}>Sudah Diprint</option>
+                                </select>
+                            </div>
+                            <div class="col-6 col-md-2">
+                                <label class="form-label fw-bold small text-dark mb-1">
                                     <i class="fas fa-box me-1 text-secondary"></i>Tipe Produk
                                 </label>
                                 <select name="is_po" class="form-select form-select-sm">
@@ -173,6 +191,7 @@
                                         'store_id',
                                         'courier',
                                         'packing_status',
+                                        'print_status',
                                         'is_po',
                                         'start_date',
                                         'end_date',
@@ -275,6 +294,7 @@
                                         <th>PEMBELI</th>
                                         <th>DETAIL BARANG</th>
                                         <th>KURIR</th>
+                                        <th>STATUS PRINT</th>
                                         <th>STATUS KEMAS</th>
                                         <th>AKSI</th>
                                     </tr>
@@ -329,6 +349,22 @@
                                                 @endif
                                             </td>
                                             <td>
+                                                @if ($order->is_printed)
+                                                    <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 py-1 px-2 fw-semibold">
+                                                        <i class="fas fa-check-circle me-1"></i>Sudah Print
+                                                    </span>
+                                                    @if ($order->printed_at)
+                                                        <div class="small font-monospace text-muted mt-1" style="font-size:0.68rem;">
+                                                            {{ $order->printed_at->format('d/m H:i') }}
+                                                        </div>
+                                                    @endif
+                                                @else
+                                                    <span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-25 py-1 px-2">
+                                                        <i class="fas fa-clock me-1"></i>Belum Print
+                                                    </span>
+                                                @endif
+                                            </td>
+                                            <td>
                                                 @if ($order->packing_status === 'verified')
                                                     <span class="badge bg-success py-2 px-3">
                                                         <i class="fas fa-check-circle"></i> Selesai Scan
@@ -374,7 +410,7 @@
                                         </tr>
                                     @empty
                                         <tr>
-                                            <td colspan="8" class="text-center text-muted p-5">
+                                            <td colspan="9" class="text-center text-muted p-5">
                                                 <i class="fas fa-box-open fs-1 text-muted opacity-25 mb-3 d-block"></i>
                                                 Tidak ada pesanan Siap Kirim saat ini.
                                             </td>

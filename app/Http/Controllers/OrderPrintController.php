@@ -27,6 +27,12 @@ class OrderPrintController extends Controller
             return back()->with('error', 'Pesanan tidak ditemukan atau Anda tidak memiliki akses.');
         }
 
+        // Tandai pesanan sebagai SUDAH DIPRINT
+        Order::whereIn('id', $orders->pluck('id'))->update([
+            'is_printed' => true,
+            'printed_at' => now(),
+        ]);
+
         // Jika hanya 1 order TikTok yang dipilih, coba ambil dokumen PDF resmi dari API TikTok
         if ($orders->count() === 1) {
             $order = $orders->first();

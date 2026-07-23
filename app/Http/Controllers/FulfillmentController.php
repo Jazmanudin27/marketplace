@@ -57,6 +57,15 @@ class FulfillmentController extends Controller
             $query->where('packing_status', $request->packing_status);
         }
 
+        // Filter Status Print (Sudah / Belum Print)
+        if ($request->filled('print_status')) {
+            if ($request->print_status === 'printed') {
+                $query->where('is_printed', true);
+            } elseif ($request->print_status === 'unprinted') {
+                $query->where('is_printed', false);
+            }
+        }
+
         // Filter Tipe Produk (PO vs Ready)
         if ($request->filled('is_po')) {
             if ($request->is_po === 'po') {
@@ -82,10 +91,12 @@ class FulfillmentController extends Controller
 
         // Hitung ringkasan statistik
         $stats = [
-            'total' => Order::where('tenant_id', $tenantId)->where('order_status', Order::STATUS_READY_TO_SHIP)->count(),
-            'pending' => Order::where('tenant_id', $tenantId)->where('order_status', Order::STATUS_READY_TO_SHIP)->where('packing_status', 'pending')->count(),
-            'packing' => Order::where('tenant_id', $tenantId)->where('order_status', Order::STATUS_READY_TO_SHIP)->where('packing_status', 'packing')->count(),
-            'verified' => Order::where('tenant_id', $tenantId)->where('order_status', Order::STATUS_READY_TO_SHIP)->where('packing_status', 'verified')->count(),
+            'total'     => Order::where('tenant_id', $tenantId)->where('order_status', Order::STATUS_READY_TO_SHIP)->count(),
+            'pending'   => Order::where('tenant_id', $tenantId)->where('order_status', Order::STATUS_READY_TO_SHIP)->where('packing_status', 'pending')->count(),
+            'packing'   => Order::where('tenant_id', $tenantId)->where('order_status', Order::STATUS_READY_TO_SHIP)->where('packing_status', 'packing')->count(),
+            'verified'  => Order::where('tenant_id', $tenantId)->where('order_status', Order::STATUS_READY_TO_SHIP)->where('packing_status', 'verified')->count(),
+            'printed'   => Order::where('tenant_id', $tenantId)->where('order_status', Order::STATUS_READY_TO_SHIP)->where('is_printed', true)->count(),
+            'unprinted' => Order::where('tenant_id', $tenantId)->where('order_status', Order::STATUS_READY_TO_SHIP)->where('is_printed', false)->count(),
         ];
 
         $channels = \App\Models\Channel::all();
@@ -347,6 +358,11 @@ class FulfillmentController extends Controller
         if ($orders->isEmpty()) {
             return back()->with('error', 'Tidak ada pesanan Siap Kirim yang sesuai filter/pilihan.');
         }
+
+        Order::whereIn('id', $orders->pluck('id'))->update([
+            'is_printed' => true,
+            'printed_at' => now(),
+        ]);
 
         $aggregated = [];
         $poItemCount = 0;
