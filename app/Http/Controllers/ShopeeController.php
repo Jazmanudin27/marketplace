@@ -182,6 +182,10 @@ class ShopeeController extends Controller
                         $imageUrl = $item['image']['image_url_list'][0];
                     }
 
+                    // Ambil setting Pre-Order & Estimasi Pengiriman (days_to_ship) dari Shopee
+                    $isShopeePo = !empty($item['pre_order']['is_pre_order']);
+                    $shopeeDaysToShip = $item['pre_order']['days_to_ship'] ?? null;
+
                     // Ambil deskripsi produk
                     $description = null;
                     if (isset($item['description'])) {
@@ -227,7 +231,7 @@ class ShopeeController extends Controller
                                         }
                                     }
 
-                                    \App\Models\MarketplaceProduct::updateOrCreate(
+                                    $mp = \App\Models\MarketplaceProduct::updateOrCreate(
                                         [
                                             'store_id' => $store->id,
                                             'marketplace_product_id' => (string) $item['item_id'],
@@ -243,6 +247,18 @@ class ShopeeController extends Controller
                                             'last_synced_at' => now(),
                                         ]
                                     );
+
+                                    // Otomatis sinkronkan status & hari PO ke Master Product jika produk Shopee adalah Pre-Order
+                                    if ($isShopeePo && $shopeeDaysToShip) {
+                                        $masterProduct = $mp->masterProduct ?? \App\Models\MasterProduct::where('tenant_id', $store->tenant_id)->where('sku', trim($model['model_sku'] ?? ''))->first();
+                                        if ($masterProduct) {
+                                            $masterProduct->update([
+                                                'is_preorder' => true,
+                                                'preorder_days' => (int) $shopeeDaysToShip,
+                                            ]);
+                                        }
+                                    }
+
                                     $totalSynced++;
                                 }
                             }
@@ -254,7 +270,7 @@ class ShopeeController extends Controller
                         $price = $item['price_info'][0]['original_price'] ?? 0;
                         $stock = $item['stock_info_v2']['summary_info']['total_available_stock'] ?? 0;
 
-                        \App\Models\MarketplaceProduct::updateOrCreate(
+                        $mp = \App\Models\MarketplaceProduct::updateOrCreate(
                             [
                                 'store_id' => $store->id,
                                 'marketplace_product_id' => (string) $item['item_id'],
@@ -270,6 +286,18 @@ class ShopeeController extends Controller
                                 'last_synced_at' => now(),
                             ]
                         );
+
+                        // Otomatis sinkronkan status & hari PO ke Master Product jika produk Shopee adalah Pre-Order
+                        if ($isShopeePo && $shopeeDaysToShip) {
+                            $masterProduct = $mp->masterProduct ?? \App\Models\MasterProduct::where('tenant_id', $store->tenant_id)->where('sku', trim($item['item_sku'] ?? ''))->first();
+                            if ($masterProduct) {
+                                $masterProduct->update([
+                                    'is_preorder' => true,
+                                    'preorder_days' => (int) $shopeeDaysToShip,
+                                ]);
+                            }
+                        }
+
                         $totalSynced++;
                     }
                 }

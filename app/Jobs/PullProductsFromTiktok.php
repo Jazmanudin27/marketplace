@@ -84,9 +84,13 @@ class PullProductsFromTiktok implements ShouldQueue
                     // Use SKUs from detail data if available, otherwise fallback to search data
                     $skus = $detailData['skus'] ?? $product['skus'] ?? [];
 
+                    // Cek setting Pre-Order & Lead Time dari TikTok Shop
+                    $isTiktokPo = !empty($detailData['is_pre_order']) || !empty($detailData['pre_order']);
+                    $tiktokPreorderDays = $detailData['pre_order']['days'] ?? $detailData['pre_order']['lead_days'] ?? $detailData['days_to_ship'] ?? $detailData['lead_days'] ?? null;
+
+                    // Jika tidak ada varian/SKU, kita simpan parent saja
                     if (empty($skus)) {
-                        // Jika tidak ada varian/SKU, kita simpan parent saja
-                        MarketplaceProduct::updateOrCreate(
+                        $mp = MarketplaceProduct::updateOrCreate(
                             [
                                 'store_id' => $this->store->id,
                                 'marketplace_product_id' => $productId,
@@ -102,6 +106,16 @@ class PullProductsFromTiktok implements ShouldQueue
                                 'last_synced_at' => now(),
                             ]
                         );
+
+                        if ($isTiktokPo && $tiktokPreorderDays) {
+                            if ($mp->masterProduct) {
+                                $mp->masterProduct->update([
+                                    'is_preorder' => true,
+                                    'preorder_days' => (int) $tiktokPreorderDays,
+                                ]);
+                            }
+                        }
+
                         $totalSynced++;
                         continue;
                     }
@@ -120,7 +134,9 @@ class PullProductsFromTiktok implements ShouldQueue
                             $skuName .= ' - ' . implode(', ', array_filter($attrNames));
                         }
 
-                        MarketplaceProduct::updateOrCreate(
+                        $sellerSku = !empty($sku['seller_sku']) ? trim($sku['seller_sku']) : null;
+
+                        $mp = MarketplaceProduct::updateOrCreate(
                             [
                                 'store_id' => $this->store->id,
                                 'marketplace_product_id' => $productId,
@@ -129,13 +145,25 @@ class PullProductsFromTiktok implements ShouldQueue
                             [
                                 'name' => $skuName,
                                 'description' => $description,
-                                'marketplace_sku' => $sku['seller_sku'] ?: null, // seller_sku might be ""
+                                'marketplace_sku' => $sellerSku,
                                 'price' => $price,
                                 'stock' => $stock,
                                 'image_url' => $mainImage,
                                 'last_synced_at' => now(),
                             ]
                         );
+
+                        // Otomatis sinkronkan status & hari PO ke Master Product jika produk TikTok adalah Pre-Order
+                        if ($isTiktokPo && $tiktokPreorderDays) {
+                            $masterProduct = $mp->masterProduct ?? ($sellerSku ? \App\Models\MasterProduct::where('tenant_id', $this->store->tenant_id)->where('sku', $sellerSku)->first() : null);
+                            if ($masterProduct) {
+                                $masterProduct->update([
+                                    'is_preorder' => true,
+                                    'preorder_days' => (int) $tiktokPreorderDays,
+                                ]);
+                            }
+                        }
+
                         $totalSynced++;
                     }
                 }

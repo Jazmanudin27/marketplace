@@ -82,9 +82,10 @@
                                         <thead class="table-light">
                                             <tr>
                                                 <th class="ps-3">PRODUK</th>
-                                                <th style="width:140px" class="text-center">QTY</th>
-                                                <th style="width:140px" class="text-end">HARGA SATUAN</th>
-                                                <th style="width:140px" class="text-end">SUBTOTAL</th>
+                                                <th style="width:75px" class="text-center">PROMO</th>
+                                                <th style="width:110px" class="text-center">QTY</th>
+                                                <th style="width:130px" class="text-end">HARGA SATUAN</th>
+                                                <th style="width:130px" class="text-end">SUBTOTAL</th>
                                                 <th style="width:50px" class="text-center">AKSI</th>
                                             </tr>
                                         </thead>
@@ -126,28 +127,16 @@
 
                                 {{-- Pembayaran --}}
                                 <div class="mb-3">
-                                    <label class="form-label form-label-sm text-muted">Metode Pembayaran <span
+                                    <label class="form-label form-label-sm text-muted fw-semibold">Metode Pembayaran <span
                                             class="text-danger">*</span></label>
-                                    <div class="d-grid gap-2" id="payment-buttons">
+                                    <select name="payment_method" id="payment-method-select"
+                                        class="form-select form-select-sm fw-semibold text-dark" required>
                                         @foreach (\App\Models\OfflineSale::PAYMENT_METHODS as $key => $label)
-                                            <input type="radio" name="payment_method" id="pm-{{ $key }}"
-                                                value="{{ $key }}" class="d-none"
-                                                {{ $key === 'tunai' ? 'checked' : '' }}>
-                                            <label for="pm-{{ $key }}"
-                                                class="btn btn-sm btn-outline-secondary py-2 text-start payment-btn {{ $key === 'tunai' ? 'active btn-selected' : '' }}">
-                                                @if ($key === 'tunai')
-                                                    <i class="fas fa-money-bill-wave me-2 text-success"></i>
-                                                @elseif($key === 'transfer')
-                                                    <i class="fas fa-university me-2 text-primary"></i>
-                                                @elseif($key === 'qris')
-                                                    <i class="fas fa-qrcode me-2 text-warning"></i>
-                                                @else
-                                                    <i class="fas fa-credit-card me-2 text-info"></i>
-                                                @endif
+                                            <option value="{{ $key }}" {{ $key === 'tunai' ? 'selected' : '' }}>
                                                 {{ $label }}
-                                            </label>
+                                            </option>
                                         @endforeach
-                                    </div>
+                                    </select>
                                 </div>
 
                                 <div class="mb-3" id="paid-amount-section">
@@ -182,8 +171,12 @@
                                 </div>
 
                                 <div class="mb-3" id="customer-select-wrapper">
-                                    <label class="form-label form-label-sm text-muted">Pelanggan / Pembeli
-                                        (Opsional)</label>
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <label class="form-label form-label-sm text-muted mb-0">Pelanggan / Pembeli (Master Data)</label>
+                                        <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none fw-bold small text-primary" data-bs-toggle="modal" data-bs-target="#modalCreateCustomer">
+                                            <i class="fas fa-plus-circle me-1"></i>+ Pelanggan Baru
+                                        </button>
+                                    </div>
                                     <select name="customer_id" id="customer-select"
                                         class="form-select form-select-sm select2" style="width: 100%;">
                                         <option value="">-- Pelanggan Umum --</option>
@@ -192,7 +185,7 @@
                                                 data-phone="{{ $cust->phone }}" data-address="{{ $cust->address }}"
                                                 data-tags="{{ $cust->tags }}"
                                                 data-balance="{{ $cust->balance ?? 0 }}">
-                                                {{ $cust->name }} {{ $cust->phone ? '(' . $cust->phone . ')' : '' }}
+                                                {{ $cust->name }} {{ $cust->phone ? '(' . $cust->phone . ')' : '' }} {{ $cust->tags ? '[' . $cust->tags . ']' : '' }}
                                             </option>
                                         @endforeach
                                     </select>
@@ -277,6 +270,48 @@
 
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- MODAL TAMBAH PELANGGAN BARU (MASTER DATA) -->
+    <div class="modal fade" id="modalCreateCustomer" tabindex="-1" aria-labelledby="modalCreateCustomerLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header py-2 bg-light">
+                    <h6 class="modal-title fw-bold text-dark" id="modalCreateCustomerLabel"><i class="fas fa-user-plus me-2 text-primary"></i>Tambah Master Pelanggan Baru</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="form-quick-customer">
+                    @csrf
+                    <div class="modal-body p-3">
+                        <div class="mb-3">
+                            <label class="form-label form-label-sm text-muted fw-semibold">Nama Pelanggan <span class="text-danger">*</span></label>
+                            <input type="text" name="name" class="form-control form-control-sm" placeholder="Contoh: Budi Santoso" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label form-label-sm text-muted fw-semibold">No. Handphone / WhatsApp</label>
+                            <input type="text" name="phone" class="form-control form-control-sm" placeholder="Contoh: 08123456789">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label form-label-sm text-muted fw-semibold">Kategori / Tag</label>
+                            <select name="tags" class="form-select form-select-sm">
+                                <option value="Umum">Umum / Retail</option>
+                                <option value="Reseller">Reseller</option>
+                                <option value="Dropship">Dropship</option>
+                                <option value="VIP">VIP</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label form-label-sm text-muted fw-semibold">Alamat Lengkap</label>
+                            <textarea name="address" class="form-control form-control-sm" rows="2" placeholder="Alamat pelanggan..."></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer py-2 bg-light">
+                        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Batal</button>
+                        <button type="submit" class="btn btn-primary btn-sm" id="btn-save-customer">Simpan & Pilih Pelanggan</button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
 @endsection
@@ -452,6 +487,50 @@
                 });
             });
 
+            // AJAX quick customer creation
+            $('#form-quick-customer').on('submit', function(e) {
+                e.preventDefault();
+                const btn = $('#btn-save-customer');
+                btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i> Menyimpan...');
+
+                $.ajax({
+                    url: '{{ route("customers.store") }}',
+                    method: 'POST',
+                    data: $(this).serialize(),
+                    dataType: 'json',
+                    headers: {
+                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                    },
+                    success: function(res) {
+                        btn.prop('disabled', false).html('Simpan & Pilih Pelanggan');
+                        if (res.success && res.customer) {
+                            const c = res.customer;
+                            const labelText = `${c.name} ${c.phone ? '(' + c.phone + ')' : ''} ${c.tags ? '[' + c.tags + ']' : ''}`;
+                            const newOption = new Option(labelText, c.id, true, true);
+
+                            $(newOption).attr('data-name', c.name);
+                            $(newOption).attr('data-phone', c.phone || '');
+                            $(newOption).attr('data-address', c.address || '');
+                            $(newOption).attr('data-tags', c.tags || '');
+                            $(newOption).attr('data-balance', c.balance || 0);
+
+                            $('#customer-select').append(newOption).trigger('change');
+                            $('#modalCreateCustomer').modal('hide');
+                            $('#form-quick-customer')[0].reset();
+                            alert('Pelanggan berhasil ditambahkan ke Data Master!');
+                        }
+                    },
+                    error: function(xhr) {
+                        btn.prop('disabled', false).html('Simpan & Pilih Pelanggan');
+                        let errMsg = 'Gagal menyimpan pelanggan.';
+                        if (xhr.responseJSON && xhr.responseJSON.message) {
+                            errMsg = xhr.responseJSON.message;
+                        }
+                        alert(errMsg);
+                    }
+                });
+            });
+
             // Tambah produk ke keranjang
             $(document).on('click', '.product-row', function() {
                 const id = $(this).data('id');
@@ -473,10 +552,20 @@
                         sku,
                         price,
                         stock,
-                        qty: 1
+                        qty: 1,
+                        is_promo: false
                     };
                 }
                 renderCart();
+            });
+
+            // Checkbox Promo (Beli 1 Gratis 1 / Rp 0)
+            $(document).on('change', '.promo-checkbox', function() {
+                const id = $(this).data('id');
+                if (cartItems[id]) {
+                    cartItems[id].is_promo = $(this).is(':checked');
+                    renderCart();
+                }
             });
 
             // Kurangi qty
@@ -520,14 +609,9 @@
                 recalculate();
             });
 
-            // Pilih metode pembayaran
-            $(document).on('click', '.payment-btn', function() {
-                const key = $(this).attr('for').replace('pm-', '');
-                $(`#pm-${key}`).prop('checked', true);
-
-                $('.payment-btn').removeClass('active btn-selected').addClass(
-                    'btn-outline-secondary');
-                $(this).addClass('active btn-selected').removeClass('btn-outline-secondary');
+            // Pilih metode pembayaran via Select Option
+            $('#payment-method-select').on('change', function() {
+                const key = $(this).val();
 
                 if (key === 'reseller_balance') {
                     $('#paid-input').val(grandTotal.toLocaleString('id-ID')).prop('readonly', true);
@@ -587,11 +671,11 @@
             }
 
             function recalculate() {
-                const subtotal = Object.values(cartItems).reduce((s, i) => s + i.qty * i.price, 0);
+                const subtotal = Object.values(cartItems).reduce((s, i) => s + i.qty * (i.is_promo ? 0 : i.price), 0);
                 const discount = unformatNumber($('#discount-input').val());
                 grandTotal = Math.max(0, subtotal - discount);
 
-                const method = $('input[name="payment_method"]:checked').val();
+                const method = $('#payment-method-select').val();
 
                 if (method && method !== 'tunai' && method !== 'piutang') {
                     $('#paid-input').val(grandTotal.toLocaleString('id-ID'));
@@ -659,15 +743,27 @@
                 tbody.empty();
                 let idx = 0;
                 Object.values(cartItems).forEach(item => {
-                    const subtotal = item.qty * item.price;
+                    const effectivePrice = item.is_promo ? 0 : item.price;
+                    const subtotal = item.qty * effectivePrice;
                     const tr = $('<tr></tr>');
+
+                    const priceDisplay = item.is_promo
+                        ? `<div class="text-end small font-monospace"><span class="badge bg-danger text-white">PROMO (Rp 0)</span></div>
+                           <div class="text-end text-muted text-decoration-line-through" style="font-size:.7rem;">Rp ${item.price.toLocaleString('id-ID')}</div>`
+                        : `<div class="text-end small text-nowrap text-muted font-monospace">Rp ${item.price.toLocaleString('id-ID')}</div>`;
+
                     tr.html(`
                         <td class="ps-3">
                             <div class="fw-semibold text-dark small">${item.name}</div>
                             <div class="text-muted" style="font-size:.72rem;">${item.sku || ''}</div>
                             <input type="hidden" name="items[${idx}][master_product_id]" value="${item.id}">
-                            <input type="hidden" name="items[${idx}][unit_price]" value="${item.price}">
+                            <input type="hidden" name="items[${idx}][unit_price]" value="${effectivePrice}">
                             <input type="hidden" name="items[${idx}][quantity]" id="qty-hidden-${item.id}" value="${item.qty}">
+                        </td>
+                        <td class="text-center align-middle">
+                            <div class="form-check form-switch d-flex justify-content-center m-0">
+                                <input class="form-check-input promo-checkbox" type="checkbox" data-id="${item.id}" ${item.is_promo ? 'checked' : ''} style="cursor:pointer;" title="Jadikan Gratis (Buy 1 Get 1 / Promo)">
+                            </div>
                         </td>
                         <td class="text-center">
                             <div class="input-group input-group-sm" style="max-width:95px;margin:auto;">
@@ -676,8 +772,8 @@
                                 <button type="button" class="btn btn-sm btn-outline-secondary btn-plus" data-id="${item.id}">+</button>
                             </div>
                         </td>
-                        <td class="text-end small text-nowrap text-muted font-monospace">Rp ${item.price.toLocaleString('id-ID')}</td>
-                        <td class="text-end fw-bold text-nowrap text-success font-monospace">Rp ${subtotal.toLocaleString('id-ID')}</td>
+                        <td class="text-end text-nowrap">${priceDisplay}</td>
+                        <td class="text-end fw-bold text-nowrap ${item.is_promo ? 'text-danger' : 'text-success'} font-monospace">Rp ${subtotal.toLocaleString('id-ID')}</td>
                         <td class="text-center">
                             <button type="button" class="btn btn-sm btn-outline-danger btn-remove" data-id="${item.id}" style="padding: 2px 8px; font-size: 0.75rem;">
                                 <i class="fas fa-trash"></i>
@@ -696,11 +792,10 @@
                 const selectedOption = $('#customer-select').find('option:selected');
                 const tags = String(selectedOption.data('tags') || '');
                 const balance = parseFloat(selectedOption.data('balance') || 0);
-                const isReseller = tags.toLowerCase().includes('reseller') || tags.toLowerCase().includes(
-                    'dropship');
+                const isReseller = tags.toLowerCase().includes('reseller') || tags.toLowerCase().includes('dropship');
 
                 if (isReseller) {
-                    const subtotal = Object.values(cartItems).reduce((s, i) => s + i.qty * i.price, 0);
+                    const subtotal = Object.values(cartItems).reduce((s, i) => s + i.qty * (i.is_promo ? 0 : i.price), 0);
                     const discount = Math.round(subtotal * 0.1);
                     $('#discount-input').val(discount.toLocaleString('id-ID'));
 

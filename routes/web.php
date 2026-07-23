@@ -207,7 +207,7 @@ Route::middleware('auth')->group(function () {
 
     // Customers
     Route::middleware('permission:manage-customers')->group(function () {
-        Route::resource('customers', CustomerController::class)->only(['index', 'show', 'update']);
+        Route::resource('customers', CustomerController::class)->except(['destroy', 'create', 'edit']);
         Route::post('customers/{customer}/topup', [CustomerController::class, 'topup'])->name('customers.topup');
     });
 

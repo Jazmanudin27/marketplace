@@ -118,6 +118,35 @@ class CustomerController extends Controller
         ));
     }
 
+    public function store(Request $request)
+    {
+        $user = Auth::user();
+        $request->validate([
+            'name'    => 'required|string|max:255',
+            'phone'   => 'nullable|string|max:50',
+            'address' => 'nullable|string',
+            'tags'    => 'nullable|string|max:255',
+        ]);
+
+        $customer = Customer::create([
+            'tenant_id' => $user->tenant_id,
+            'name'      => $request->name,
+            'phone'     => $request->phone,
+            'address'   => $request->address,
+            'tags'      => $request->tags ?? 'Umum',
+        ]);
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'success'  => true,
+                'message'  => 'Pelanggan berhasil ditambahkan ke Data Master.',
+                'customer' => $customer,
+            ]);
+        }
+
+        return back()->with('success', 'Pelanggan baru berhasil ditambahkan.');
+    }
+
     public function show(Customer $customer)
     {
         $user = Auth::user();
