@@ -405,7 +405,7 @@ class OrderController extends Controller
 
         // Coba untuk fetch dokumen pengiriman dari marketplace API
         try {
-            if (in_array($store->channel->code, ['tiktok', 'tokopedia'])) {
+            if (in_array($store->channel->code, ['tiktok', 'tokopedia']) && !empty($store->access_token)) {
                 $response = $tiktokService->getShippingDocument(
                     $store->access_token,
                     $store->marketplace_store_id,
@@ -416,7 +416,7 @@ class OrderController extends Controller
                 }
             }
         } catch (\Exception $e) {
-            // Jika error, gunakan invoice standar lokal
+            // Jika error, gunakan invoice/resi standar lokal
         }
 
         return view('orders.print', compact('order'));

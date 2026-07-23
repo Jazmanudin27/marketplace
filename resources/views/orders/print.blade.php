@@ -275,11 +275,18 @@
         }
 
         .tiktok-full-address {
-            font-size: 12px;
-            font-weight: 900;
-            line-height: 1.35;
+            font-size: 10px;
+            font-weight: bold;
+            line-height: 1.25;
             margin-top: 4px;
-            text-transform: lowercase;
+            word-break: break-word;
+            word-wrap: break-word;
+            overflow-wrap: anywhere;
+            max-height: 38px;
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
         }
 
         .tiktok-weight-row {
@@ -462,9 +469,14 @@
             $isCod = stripos($order->financial_breakdown['payment_method'], 'cod') !== false;
         }
 
+        // Sanitize shipping address from long trailing asterisks
+        $rawAddress = $order->shipping_address ?? '';
+        $cleanAddress = preg_replace('/\*{4,}/', '***', $rawAddress);
+        $cleanAddress = rtrim(trim($cleanAddress), ', ');
+
         // City & Postal parse
         $tujuanKota = 'KOTA TASIKMALAYA';
-        if (preg_match('/(?:KOTA|KABUPATEN|KAB\.)\s+([^,]+)/i', $order->shipping_address ?? '', $mCity)) {
+        if (preg_match('/(?:KOTA|KABUPATEN|KAB\.)\s+([^,]+)/i', $cleanAddress, $mCity)) {
             $tujuanKota = strtoupper($mCity[0]);
         }
 
@@ -548,8 +560,8 @@
                             <span style="text-transform:uppercase;">{{ $order->store->city ?? 'KOTA TASIKMALAYA' }}</span>
                         </div>
                     </div>
-                    <div style="margin-top: 4px; font-weight: 500;">
-                        {{ $order->shipping_address }}
+                    <div style="margin-top: 4px; font-weight: 500; font-size: 10px; line-height: 1.25; word-break: break-word; overflow: hidden; max-height: 38px;">
+                        {{ $cleanAddress }}
                     </div>
 
                     <div class="shopee-district-boxes">
@@ -652,7 +664,7 @@
                     </div>
 
                     <div class="tiktok-full-address">
-                        {{ $order->shipping_address }}
+                        {{ $cleanAddress }}
                     </div>
                 </div>
 

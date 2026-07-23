@@ -298,11 +298,18 @@
         }
 
         .tiktok-full-address {
-            font-size: 12px;
-            font-weight: 900;
-            line-height: 1.35;
+            font-size: 10px;
+            font-weight: bold;
+            line-height: 1.25;
             margin-top: 4px;
-            text-transform: lowercase;
+            word-break: break-word;
+            word-wrap: break-word;
+            overflow-wrap: anywhere;
+            max-height: 38px;
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
         }
 
         .tiktok-weight-row {
@@ -453,54 +460,6 @@
 
 <body onload="initPrint()">
 
-    <!-- PICK LIST SUMMARY FIRST PAGE -->
-    @if (isset($pickList) && count($pickList) > 0)
-        <div class="pick-list page-break">
-            <div class="pick-list-header">
-                <div>
-                    <div class="pick-list-title"><i class="fas fa-clipboard-list me-2"></i>REKAP AMBIL BARANG (PICK LIST)</div>
-                    <small>Dokumen Pengambilan Barang Gudang Batch Cetak Resi</small>
-                </div>
-                <div style="text-align:right;">
-                    <strong>Total Pesanan: {{ count($orders) }}</strong><br>
-                    <small>{{ date('d/m/Y H:i') }}</small>
-                </div>
-            </div>
-
-            <table class="pick-list-table">
-                <thead>
-                    <tr>
-                        <th style="width: 5%;">#</th>
-                        <th style="width: 25%;">SKU Varian</th>
-                        <th style="width: 50%;">Nama Produk</th>
-                        <th style="width: 10%; text-align:center;">Qty Ambil</th>
-                        <th style="width: 10%; text-align:center;">Cek</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @php $no = 1; $totalQtyPick = 0; @endphp
-                    @foreach ($pickList as $sku => $item)
-                        <tr>
-                            <td>{{ $no++ }}</td>
-                            <td style="font-family:monospace;font-weight:bold;">{{ $sku }}</td>
-                            <td>{{ $item['name'] }}</td>
-                            <td style="text-align:center;font-weight:bold;font-size:14px;">{{ $item['qty'] }}</td>
-                            <td style="text-align:center;"><input type="checkbox" style="width:16px;height:16px;"></td>
-                        </tr>
-                        @php $totalQtyPick += $item['qty']; @endphp
-                    @endforeach
-                </tbody>
-                <tfoot>
-                    <tr>
-                        <th colspan="3" style="text-align:right;">TOTAL ITEM YANG HARUS DIAMBIL:</th>
-                        <th style="text-align:center;font-size:16px;font-weight:bold;">{{ $totalQtyPick }}</th>
-                        <th></th>
-                    </tr>
-                </tfoot>
-            </table>
-        </div>
-    @endif
-
     <!-- INDIVIDUAL THERMAL WAYBILLS -->
     @foreach ($orders as $index => $order)
         @php
@@ -529,9 +488,14 @@
                 $isCod = stripos($order->financial_breakdown['payment_method'], 'cod') !== false;
             }
 
+            // Sanitize shipping address from long trailing asterisks
+            $rawAddress = $order->shipping_address ?? '';
+            $cleanAddress = preg_replace('/\*{4,}/', '***', $rawAddress);
+            $cleanAddress = rtrim(trim($cleanAddress), ', ');
+
             // City & Postal parse
             $tujuanKota = 'KOTA TASIKMALAYA';
-            if (preg_match('/(?:KOTA|KABUPATEN|KAB\.)\s+([^,]+)/i', $order->shipping_address ?? '', $mCity)) {
+            if (preg_match('/(?:KOTA|KABUPATEN|KAB\.)\s+([^,]+)/i', $cleanAddress, $mCity)) {
                 $tujuanKota = strtoupper($mCity[0]);
             }
 
@@ -614,8 +578,8 @@
                                     <span style="text-transform:uppercase;">{{ $order->store->city ?? 'KOTA TASIKMALAYA' }}</span>
                                 </div>
                             </div>
-                            <div style="margin-top: 4px; font-weight: 500;">
-                                {{ $order->shipping_address }}
+                            <div style="margin-top: 4px; font-weight: 500; font-size: 10px; line-height: 1.25; word-break: break-word; overflow: hidden; max-height: 38px;">
+                                {{ $cleanAddress }}
                             </div>
 
                             <div class="shopee-district-boxes">
@@ -716,7 +680,7 @@
                             </div>
 
                             <div class="tiktok-full-address">
-                                {{ $order->shipping_address }}
+                                {{ $cleanAddress }}
                             </div>
                         </div>
 

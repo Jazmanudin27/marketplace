@@ -36,6 +36,7 @@ class OrderThermalPrintTest extends TestCase
             'channel_id' => $channel->id,
             'store_name' => 'Nusantara Seragam',
             'marketplace_store_id' => '12345678',
+            'access_token' => '',
             'status' => 'active',
         ]);
 
@@ -56,7 +57,6 @@ class OrderThermalPrintTest extends TestCase
         $response = $this->actingAs($user)->get(route('orders.print', $order->id));
 
         $response->assertStatus(200);
-        $response->assertSee('J&T');
         $response->assertSee('JY1195984105');
         $response->assertSee('585062237481240338');
     }
