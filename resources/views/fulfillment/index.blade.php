@@ -365,9 +365,9 @@
                                                         </a>
                                                     </div>
                                                 @else
-                                                    <a href="{{ route('fulfillment.scan_page', ['invoice' => $order->invoice_number ?? $order->order_marketplace_id]) }}"
-                                                        class="btn btn-primary btn-sm w-100 py-1 fw-semibold">
-                                                        <i class="fas fa-barcode"></i> Scan & Kemas
+                                                    <a href="{{ route('orders.print', $order->id) }}" target="_blank"
+                                                        class="btn btn-outline-primary btn-sm w-100 py-1 fw-semibold">
+                                                        <i class="fas fa-print"></i> Cetak Label
                                                     </a>
                                                 @endif
                                             </td>

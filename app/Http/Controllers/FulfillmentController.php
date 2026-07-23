@@ -18,8 +18,7 @@ class FulfillmentController extends Controller
         
         $query = Order::with(['store.channel', 'items.masterProduct'])
             ->where('tenant_id', $tenantId)
-            ->where('order_status', Order::STATUS_READY_TO_SHIP)
-            ->where('is_printed', true);
+            ->where('order_status', Order::STATUS_READY_TO_SHIP);
 
         // Search Keyword
         if ($request->filled('search')) {
