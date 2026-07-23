@@ -59,7 +59,7 @@ class OfflineSaleController extends Controller
             ->where('stock', '>', 0)
             ->where('is_active', true)
             ->orderBy('name')
-            ->get(['id', 'name', 'sku', 'price', 'stock', 'unit']);
+            ->get(['id', 'name', 'sku', 'price', 'reseller_price', 'stock', 'unit']);
 
         $customers = \App\Models\Customer::where('tenant_id', $tenantId)
             ->where(function ($q) {

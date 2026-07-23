@@ -50,10 +50,13 @@
                                 <div id="product-list" class="border rounded mb-3"
                                     style="max-height:300px;overflow-y:auto;">
                                     @foreach ($products as $product)
+                                        @php
+                                            $resellerPrice = $product->reseller_price && $product->reseller_price > 0 ? $product->reseller_price : $product->price;
+                                        @endphp
                                         <div class="product-row d-flex align-items-center justify-content-between px-3 py-2 border-bottom"
                                             style="cursor:pointer;transition:.15s;" data-id="{{ $product->id }}"
                                             data-name="{{ $product->name }}" data-sku="{{ $product->sku }}"
-                                            data-price="{{ $product->price }}" data-stock="{{ $product->stock }}">
+                                            data-price="{{ $product->price }}" data-reseller-price="{{ $resellerPrice }}" data-stock="{{ $product->stock }}">
                                             <div>
                                                 <div class="fw-semibold text-dark">{{ $product->name }}</div>
                                                 <div class="text-muted small font-monospace">{{ $product->sku }} &bull;
@@ -61,8 +64,11 @@
                                                         {{ $product->unit }}</span></div>
                                             </div>
                                             <div class="text-end">
-                                                <div class="fw-bold text-success text-nowrap font-monospace">Rp
+                                                <div class="price-normal-display fw-bold text-success text-nowrap font-monospace">Rp
                                                     {{ number_format($product->price, 0, ',', '.') }}</div>
+                                                <div class="price-dropship-display fw-bold text-warning text-nowrap font-monospace" style="display:none;">
+                                                    <span class="badge bg-warning text-dark me-1" style="font-size:0.65rem;">DROPSHIP</span>
+                                                    Rp {{ number_format($resellerPrice, 0, ',', '.') }}</div>
                                             </div>
                                         </div>
                                     @endforeach
@@ -153,22 +159,6 @@
                                 </div>
 
                                 <hr class="my-3">
-
-                                <div class="mb-3">
-                                    <label class="form-label form-label-sm text-muted d-block">Tipe Pelanggan</label>
-                                    <div class="form-check form-check-inline">
-                                        <input class="form-check-input" type="radio" name="customer_type"
-                                            id="customer_type_registered" value="registered" checked>
-                                        <label class="form-check-label text-dark small"
-                                            for="customer_type_registered">Terdaftar</label>
-                                    </div>
-                                    <div class="form-check form-check-inline">
-                                        <input class="form-check-input" type="radio" name="customer_type"
-                                            id="customer_type_manual" value="manual">
-                                        <label class="form-check-label text-dark small"
-                                            for="customer_type_manual">Pelanggan Baru</label>
-                                    </div>
-                                </div>
 
                                 <div class="mb-3" id="customer-select-wrapper">
                                     <div class="d-flex justify-content-between align-items-center mb-1">
@@ -322,51 +312,32 @@
             let cartItems = {};
             let grandTotal = 0;
 
-            // Toggle Dropship Inputs
+            // Toggle Dropship Inputs & Prices
             $('#is-dropship-toggle').on('change', function() {
-                if ($(this).is(':checked')) {
+                const isDropship = $(this).is(':checked');
+                if (isDropship) {
                     $('#dropship-inputs').slideDown(200);
                     $('#dropshipper-name-input').prop('required', true);
                     $('#dropshipper-phone-input').prop('required', true);
+
+                    $('.price-normal-display').hide();
+                    $('.price-dropship-display').show();
                 } else {
                     $('#dropship-inputs').slideUp(200);
                     $('#dropshipper-name-input').val('').prop('required', false);
                     $('#dropshipper-phone-input').val('').prop('required', false);
+
+                    $('.price-dropship-display').hide();
+                    $('.price-normal-display').show();
                 }
+
+                // Update prices for all items in cart
+                Object.keys(cartItems).forEach(id => {
+                    cartItems[id].price = isDropship ? cartItems[id].dropship_price : cartItems[id].normal_price;
+                });
+
+                renderCart();
             });
-
-            function toggleCustomerType(type) {
-                if (type === 'registered') {
-                    $('#customer-select-wrapper').show();
-                    $('#buyer-name-input').prop('readonly', true);
-                    $('#buyer-phone-input').prop('readonly', true);
-                    $('#buyer-address-input').prop('readonly', true);
-
-                    // Remove required markers
-                    $('#buyer-name-label').html('Nama Pembeli');
-                    $('#buyer-phone-label').html('No. HP Pembeli');
-                    $('#buyer-name-input').prop('required', false);
-                    $('#buyer-phone-input').prop('required', false);
-
-                    triggerCustomerSelectChange();
-                } else {
-                    $('#customer-select-wrapper').hide();
-
-                    // Reset customer select
-                    $('#customer-select').val('').trigger('change.select2');
-
-                    $('#buyer-name-input').val('').prop('readonly', false);
-                    $('#buyer-phone-input').val('').prop('readonly', false);
-                    $('#buyer-address-input').val('').prop('readonly', false);
-
-                    // Add required markers
-                    $('#buyer-name-label').html('Nama Pembeli <span class="text-danger">*</span>');
-                    $('#buyer-phone-label').html('No. HP Pembeli <span class="text-danger">*</span>');
-                    $('#buyer-name-input').prop('required', true);
-                    $('#buyer-phone-input').prop('required', true);
-                }
-                recalculate();
-            }
 
             function triggerCustomerSelectChange() {
                 const selectedOption = $('#customer-select').find('option:selected');
@@ -425,9 +396,9 @@
                     $('#dropshipper-name-input').val('');
                     $('#dropshipper-phone-input').val('');
 
-                    $('#buyer-name-input').val('').prop('readonly', true);
-                    $('#buyer-phone-input').val('').prop('readonly', true);
-                    $('#buyer-address-input').val('').prop('readonly', true);
+                    $('#buyer-name-input').val('').prop('readonly', false);
+                    $('#buyer-phone-input').val('').prop('readonly', false);
+                    $('#buyer-address-input').val('').prop('readonly', false);
 
                     $('#buyer-name-label').html('Nama Pembeli');
                     $('#buyer-phone-label').html('No. HP Pembeli');
@@ -440,14 +411,8 @@
                 recalculate();
             }
 
-            $('input[name="customer_type"]').on('change', function() {
-                toggleCustomerType($(this).val());
-            });
-
             $('#customer-select').on('change', function() {
-                if ($('input[name="customer_type"]:checked').val() === 'registered') {
-                    triggerCustomerSelectChange();
-                }
+                triggerCustomerSelectChange();
             });
 
             $('#buyer-name-input, #buyer-phone-input').on('input', function() {
@@ -536,8 +501,12 @@
                 const id = $(this).data('id');
                 const name = $(this).data('name');
                 const sku = $(this).data('sku');
-                const price = parseFloat($(this).data('price'));
+                const normalPrice = parseFloat($(this).data('price'));
+                const resellerPrice = parseFloat($(this).data('reseller-price'));
                 const stock = parseInt($(this).data('stock'));
+
+                const isDropship = $('#is-dropship-toggle').is(':checked');
+                const activePrice = isDropship ? resellerPrice : normalPrice;
 
                 if (cartItems[id]) {
                     if (cartItems[id].qty >= stock) {
@@ -550,7 +519,9 @@
                         id,
                         name,
                         sku,
-                        price,
+                        price: activePrice,
+                        normal_price: normalPrice,
+                        dropship_price: resellerPrice,
                         stock,
                         qty: 1,
                         is_promo: false
@@ -710,14 +681,11 @@
 
                 // Custom validation for piutang
                 if (method === 'piutang') {
-                    const custType = $('input[name="customer_type"]:checked').val();
                     const custVal = $('#customer-select').val();
                     const nameVal = $.trim($('#buyer-name-input').val());
                     const phoneVal = $.trim($('#buyer-phone-input').val());
 
-                    if (custType === 'registered' && !custVal) {
-                        isValid = false;
-                    } else if (custType === 'manual' && (!nameVal || !phoneVal)) {
+                    if (!custVal && (!nameVal || !phoneVal)) {
                         isValid = false;
                     }
                 }
@@ -809,12 +777,7 @@
             }
 
             // Initialize on load
-            // Set payment button to active tunai
-            $('.payment-btn[for="pm-tunai"]').addClass('active btn-selected').removeClass('btn-outline-secondary');
-
-            // Set initial customer type toggle
-            toggleCustomerType('registered');
-
+            triggerCustomerSelectChange();
             recalculate();
 
             // Limit product list to 5 initially
