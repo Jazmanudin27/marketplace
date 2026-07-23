@@ -205,4 +205,20 @@ class CustomerController extends Controller
 
         return back()->with('success', 'Saldo pelanggan ' . $customer->name . ' berhasil disesuaikan.');
     }
+
+    public function destroy(Customer $customer)
+    {
+        $user = Auth::user();
+        if (!$user->isSuperAdmin()) {
+            abort_unless($customer->tenant_id === $user->tenant_id, 403);
+        }
+
+        if ($customer->orders()->count() > 0) {
+            return back()->with('error', 'Pelanggan "' . $customer->name . '" tidak dapat dihapus karena sudah memiliki riwayat pesanan.');
+        }
+
+        $customer->delete();
+
+        return back()->with('success', 'Pelanggan berhasil dihapus.');
+    }
 }

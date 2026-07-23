@@ -101,6 +101,9 @@
                             Kelola profil dan riwayat transaksi pelanggan CRM
                         </small>
                     </div>
+                    <button type="button" class="btn btn-primary btn-sm px-3 fw-semibold" data-bs-toggle="modal" data-bs-target="#modalAddCustomer">
+                        <i class="fas fa-plus-circle me-1"></i> Tambah Pelanggan
+                    </button>
                 </div>
 
                 <div class="card-body p-3">
@@ -108,6 +111,12 @@
                     @if (session('success'))
                         <div class="alert alert-success alert-dismissible fade show mt-3" role="alert">
                             <i class="fas fa-check-circle me-2"></i>{{ session('success') }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    @endif
+                    @if (session('error'))
+                        <div class="alert alert-danger alert-dismissible fade show mt-3" role="alert">
+                            <i class="fas fa-exclamation-triangle me-2"></i>{{ session('error') }}
                             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                         </div>
                     @endif
@@ -125,7 +134,7 @@
                                     <th>USERNAME &amp; NO. HP</th>
                                     <th>SALURAN &amp; TOKO</th>
                                     <th class="text-end">PESANAN &amp; LTV</th>
-                                    <th class="text-center">AKSI</th>
+                                    <th class="text-center" style="width: 140px;">AKSI</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -247,11 +256,62 @@
 
                                         {{-- Aksi --}}
                                         <td class="text-center">
-                                            <a href="{{ route('customers.show', $c->id) }}"
-                                                class="btn btn-info btn-sm text-white" title="Detail Profil"
-                                                data-bs-toggle="tooltip">
-                                                <i class="fas fa-eye"></i>
-                                            </a>
+                                            <div class="btn-group btn-group-sm">
+                                                <a href="{{ route('customers.show', $c->id) }}"
+                                                    class="btn btn-info text-white" title="Detail Profil"
+                                                    data-bs-toggle="tooltip">
+                                                    <i class="fas fa-eye"></i>
+                                                </a>
+                                                <button type="button" class="btn btn-warning text-white" data-bs-toggle="modal" data-bs-target="#modalEditCustomer{{ $c->id }}" title="Edit Profil">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                                <form action="{{ route('customers.destroy', $c->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Apakah Anda yakin ingin menghapus pelanggan {{ $c->name }}?')">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit" class="btn btn-danger" title="Hapus Pelanggan">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </form>
+                                            </div>
+
+                                            <!-- MODAL EDIT PELANGGAN -->
+                                            <div class="modal fade text-start" id="modalEditCustomer{{ $c->id }}" tabindex="-1" aria-hidden="true">
+                                                <div class="modal-dialog">
+                                                    <div class="modal-content">
+                                                        <div class="modal-header py-2 bg-light">
+                                                            <h6 class="modal-title fw-bold text-dark"><i class="fas fa-user-edit me-2 text-warning"></i>Edit Pelanggan — {{ $c->name }}</h6>
+                                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                        </div>
+                                                        <form action="{{ route('customers.update', $c->id) }}" method="POST">
+                                                            @csrf
+                                                            @method('PUT')
+                                                            <div class="modal-body p-3">
+                                                                <div class="mb-3">
+                                                                    <label class="form-label form-label-sm text-muted fw-semibold">Nama Pelanggan <span class="text-danger">*</span></label>
+                                                                    <input type="text" name="name" class="form-control form-control-sm" value="{{ $c->name }}" required>
+                                                                </div>
+                                                                <div class="mb-3">
+                                                                    <label class="form-label form-label-sm text-muted fw-semibold">No. Handphone / WhatsApp</label>
+                                                                    <input type="text" name="phone" class="form-control form-control-sm" value="{{ $c->phone }}">
+                                                                </div>
+                                                                <div class="mb-3">
+                                                                    <label class="form-label form-label-sm text-muted fw-semibold">Kategori / Tag</label>
+                                                                    <input type="text" name="tags" class="form-control form-control-sm" value="{{ $c->tags }}" placeholder="Contoh: Reseller, Dropship, VIP">
+                                                                    <small class="text-muted" style="font-size:0.7rem;">Pisahkan dengan koma jika lebih dari satu tag.</small>
+                                                                </div>
+                                                                <div class="mb-3">
+                                                                    <label class="form-label form-label-sm text-muted fw-semibold">Alamat Lengkap</label>
+                                                                    <textarea name="address" class="form-control form-control-sm" rows="2">{{ $c->address }}</textarea>
+                                                                </div>
+                                                            </div>
+                                                            <div class="modal-footer py-2 bg-light">
+                                                                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Batal</button>
+                                                                <button type="submit" class="btn btn-warning btn-sm text-white">Simpan Perubahan</button>
+                                                            </div>
+                                                        </form>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </td>
                                     </tr>
                                 @empty
@@ -260,7 +320,7 @@
                                             <i class="fas fa-users fa-2x mb-3 d-block text-secondary opacity-25"></i>
                                             <p class="text-muted mb-0 small">Belum ada data pelanggan.</p>
                                             <p class="text-muted mb-0 small opacity-75">Pelanggan akan otomatis ditambahkan
-                                                saat Anda menarik pesanan dari Marketplace.</p>
+                                                saat Anda menarik pesanan dari Marketplace atau ditambahkan secara manual.</p>
                                         </td>
                                     </tr>
                                 @endforelse
@@ -279,6 +339,48 @@
                         </div>
                     @endif
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL TAMBAH PELANGGAN BARU -->
+    <div class="modal fade" id="modalAddCustomer" tabindex="-1" aria-labelledby="modalAddCustomerLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header py-2 bg-light">
+                    <h6 class="modal-title fw-bold text-dark" id="modalAddCustomerLabel"><i class="fas fa-user-plus me-2 text-primary"></i>Tambah Pelanggan Baru</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form action="{{ route('customers.store') }}" method="POST">
+                    @csrf
+                    <div class="modal-body p-3">
+                        <div class="mb-3">
+                            <label class="form-label form-label-sm text-muted fw-semibold">Nama Pelanggan <span class="text-danger">*</span></label>
+                            <input type="text" name="name" class="form-control form-control-sm" placeholder="Nama pelanggan..." required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label form-label-sm text-muted fw-semibold">No. Handphone / WhatsApp</label>
+                            <input type="text" name="phone" class="form-control form-control-sm" placeholder="08123456789">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label form-label-sm text-muted fw-semibold">Kategori / Tag</label>
+                            <select name="tags" class="form-select form-select-sm">
+                                <option value="Umum">Umum / Retail</option>
+                                <option value="Reseller">Reseller</option>
+                                <option value="Dropship">Dropship</option>
+                                <option value="VIP">VIP</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label form-label-sm text-muted fw-semibold">Alamat Lengkap</label>
+                            <textarea name="address" class="form-control form-control-sm" rows="2" placeholder="Alamat lengkap..."></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer py-2 bg-light">
+                        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Batal</button>
+                        <button type="submit" class="btn btn-primary btn-sm">Simpan Pelanggan</button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
