@@ -515,6 +515,15 @@
 
     <!-- Bootstrap 5 Bundle JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        setTimeout(function() {
+            const alerts = document.querySelectorAll('.alert-dismissible');
+            alerts.forEach(function(alert) {
+                alert.classList.remove('show');
+                setTimeout(() => alert.remove(), 300);
+            });
+        }, 5000);
+    </script>
     
     <!-- Drawer Toggle Script removed -->
     @yield('scripts')

@@ -97,48 +97,6 @@
                 <!-- Page content wrapper -->
                 <div class="container-fluid p-4">
 
-                    <!-- System Session Alerts -->
-                    @if (session('success'))
-                        <div class="alert alert-success alert-dismissible fade show border-start border-4 border-success d-flex align-items-center gap-2 p-3 mb-4"
-                            role="alert">
-                            <i class="bi bi-check-circle-fill fs-5 text-success"></i>
-                            <div>
-                                {{ session('success') }}
-                            </div>
-                            <button type="button" class="btn-close" data-bs-dismiss="alert"
-                                aria-label="Close"></button>
-                        </div>
-                    @endif
-
-                    @if (session('error'))
-                        <div class="alert alert-danger alert-dismissible fade show border-start border-4 border-danger d-flex align-items-center gap-2 p-3 mb-4"
-                            role="alert">
-                            <i class="bi bi-exclamation-triangle-fill fs-5 text-danger"></i>
-                            <div>
-                                {{ session('error') }}
-                            </div>
-                            <button type="button" class="btn-close" data-bs-dismiss="alert"
-                                aria-label="Close"></button>
-                        </div>
-                    @endif
-
-                    @if ($errors->any())
-                        <div class="alert alert-danger alert-dismissible fade show border-start border-4 border-danger p-3 mb-4"
-                            role="alert">
-                            <div class="d-flex align-items-center gap-2 mb-2">
-                                <i class="bi bi-exclamation-triangle-fill fs-5 text-danger"></i>
-                                <strong class="text-danger">Terjadi kesalahan!</strong>
-                            </div>
-                            <ul class="mb-0 ps-4">
-                                @foreach ($errors->all() as $error)
-                                    <li>{{ $error }}</li>
-                                @endforeach
-                            </ul>
-                            <button type="button" class="btn-close" data-bs-dismiss="alert"
-                                aria-label="Close"></button>
-                        </div>
-                    @endif
-
                     <!-- Main Content Slot -->
                     @yield('content')
 
@@ -173,30 +131,46 @@
                 }, 50);
             }
 
-            // SweetAlert2 Session Messages
+            // Toast Notification (Popup 5 Detik & Tidak Mendorong Layout Card)
+            const Toast = Swal.mixin({
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 5000,
+                timerProgressBar: true,
+                didOpen: (toast) => {
+                    toast.addEventListener('mouseenter', Swal.stopTimer);
+                    toast.addEventListener('mouseleave', Swal.resumeTimer);
+                }
+            });
+
             @if (session('success'))
-                Swal.fire({
+                Toast.fire({
                     icon: 'success',
-                    title: 'Berhasil',
-                    text: "{{ session('success') }}",
-                    timer: 3000,
-                    showConfirmButton: false,
-                    customClass: {
-                        popup: 'border border-light-subtle shadow-sm'
-                    }
+                    title: "{{ session('success') }}"
                 });
             @endif
 
             @if (session('error'))
-                Swal.fire({
+                Toast.fire({
                     icon: 'error',
-                    title: 'Gagal',
-                    text: "{{ session('error') }}",
-                    customClass: {
-                        popup: 'border border-light-subtle shadow-sm'
-                    }
+                    title: "{{ session('error') }}"
                 });
             @endif
+
+            @if ($errors->any())
+                Toast.fire({
+                    icon: 'error',
+                    title: "{{ $errors->first() }}"
+                });
+            @endif
+
+            // Auto dismiss static alert banners after 5 seconds
+            setTimeout(function() {
+                $('.alert-dismissible').fadeOut('slow', function() {
+                    $(this).remove();
+                });
+            }, 5000);
 
             // Automatically convert all inline confirm forms to SweetAlert2
             $('form[onsubmit*="confirm("]').each(function() {
