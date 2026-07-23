@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\MasterProduct;
+use App\Models\Category;
+use App\Models\Brand;
 use App\Models\CategoryMapping;
 use App\Models\BrandMapping;
 use App\Models\PublicationLog;
