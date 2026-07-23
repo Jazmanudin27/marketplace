@@ -239,10 +239,16 @@
                                 </div>
 
                                 <div class="mb-3" id="paid-amount-section">
-                                    <label class="form-label form-label-sm text-muted">Uang Diterima (Rp)</label>
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <label class="form-label form-label-sm text-muted fw-semibold mb-0">Uang Diterima / DP (Rp)</label>
+                                        <span id="payment-status-badge" class="badge bg-secondary" style="font-size: 0.7rem;">Belum Diisi</span>
+                                    </div>
                                     <input type="text" name="paid_amount" id="paid-input"
                                         class="form-control form-control-sm fw-bold font-monospace text-dark"
-                                        value="0" required>
+                                        value="0" placeholder="0 (Bisa isi DP/Partial)" required>
+                                    <div id="payment-summary-hint" class="small text-muted mt-1" style="font-size: 0.72rem;">
+                                        Bisa diisi lunas atau DP (Transfer, QRIS, Tunai).
+                                    </div>
                                 </div>
                                 <div class="mb-3 p-3 text-center rounded bg-primary bg-opacity-10 border border-primary border-opacity-10"
                                     id="change-section">
@@ -636,15 +642,9 @@
                 recalculate();
             });
 
-            // Input Uang Diterima dengan format pemisah ribuan
+            // Input Uang Diterima / DP dengan format pemisah ribuan
             $('#paid-input').on('input', function() {
                 let formatted = formatNumberInput($(this).val());
-                let paid = unformatNumber(formatted);
-                // Jika melebihi total, reset ke total
-                if (grandTotal > 0 && paid > grandTotal) {
-                    paid = grandTotal;
-                    formatted = grandTotal.toLocaleString('id-ID');
-                }
                 $(this).val(formatted);
                 recalculate();
             });
@@ -653,15 +653,14 @@
             $('#payment-method-select').on('change', function() {
                 const key = $(this).val();
 
-                if (key === 'piutang') {
-                    $('#paid-input').val('0').prop('readonly', false);
-                    $('#change-section').css('opacity', '1');
-                } else if (key !== 'tunai') {
-                    $('#paid-input').val(grandTotal.toLocaleString('id-ID')).prop('readonly', true);
-                    $('#change-section').css('opacity', '.4');
-                } else {
-                    $('#paid-input').val('0').prop('readonly', false);
-                    $('#change-section').css('opacity', '1');
+                // Selalu izinkan input diisi (tidak readonly) agar user bisa input DP
+                $('#paid-input').prop('readonly', false);
+
+                if (key === 'transfer' || key === 'qris') {
+                    const currentPaid = unformatNumber($('#paid-input').val());
+                    if (currentPaid === 0 && grandTotal > 0) {
+                        $('#paid-input').val(grandTotal.toLocaleString('id-ID'));
+                    }
                 }
                 recalculate();
             });
@@ -746,27 +745,37 @@
 
                 grandTotal = Math.max(0, subtotal - discountAmount);
 
-                const method = $('#payment-method-select').val();
-
-                if (method && method !== 'tunai' && method !== 'piutang') {
-                    $('#paid-input').val(grandTotal.toLocaleString('id-ID'));
-                }
-
                 const paid = unformatNumber($('#paid-input').val());
                 const change = Math.max(0, paid - grandTotal);
+                const sisa = Math.max(0, grandTotal - paid);
 
                 $('#display-subtotal').text('Rp ' + Math.round(subtotal).toLocaleString('id-ID'));
                 $('#display-grand-total').text('Rp ' + Math.round(grandTotal).toLocaleString('id-ID'));
                 $('#display-change').text('Rp ' + Math.round(change).toLocaleString('id-ID'));
 
-                // Validasi submit button
-                let isValid = Object.keys(cartItems).length > 0;
-                if (method === 'tunai' && paid < grandTotal) {
-                    isValid = false;
+                // Update status badge & hint Uang Diterima / DP
+                if (grandTotal > 0) {
+                    if (paid >= grandTotal) {
+                        $('#payment-status-badge').removeClass('bg-warning bg-secondary text-dark').addClass('bg-success text-white').text('LUNAS');
+                        $('#payment-summary-hint').text(change > 0 ? 'Pembayaran LUNAS (Kembalian: Rp ' + Math.round(change).toLocaleString('id-ID') + ')' : 'Pembayaran LUNAS.');
+                    } else if (paid > 0) {
+                        $('#payment-status-badge').removeClass('bg-success bg-secondary text-white').addClass('bg-warning text-dark').text('DP / TERBAYAR SEBAGIAN');
+                        $('#payment-summary-hint').html('DP Terbayar: <strong>Rp ' + Math.round(paid).toLocaleString('id-ID') + '</strong> | Sisa Kurang: <strong class="text-danger">Rp ' + Math.round(sisa).toLocaleString('id-ID') + '</strong>');
+                    } else {
+                        $('#payment-status-badge').removeClass('bg-success bg-warning text-dark text-white').addClass('bg-secondary').text('BELUM BAYAR (Rp 0)');
+                        $('#payment-summary-hint').text('Total sisa tagihan: Rp ' + Math.round(grandTotal).toLocaleString('id-ID'));
+                    }
+                } else {
+                    $('#payment-status-badge').removeClass('bg-success bg-warning text-dark text-white').addClass('bg-secondary').text('Belum Diisi');
+                    $('#payment-summary-hint').text('Bisa diisi lunas atau DP (Transfer, QRIS, Tunai).');
                 }
 
-                // Custom validation for piutang
-                if (method === 'piutang') {
+                // Validasi submit button
+                let isValid = Object.keys(cartItems).length > 0;
+                const isPo = $('#is-po-switch').is(':checked');
+
+                // Jika belum lunas (DP / Piutang) dan BUKAN pesanan PO, wajib pilih/isi nama pembeli
+                if ((method === 'piutang' || paid < grandTotal) && !isPo) {
                     const custVal = $('#customer-select').val();
                     const nameVal = $.trim($('#buyer-name-input').val());
                     const phoneVal = $.trim($('#buyer-phone-input').val());
