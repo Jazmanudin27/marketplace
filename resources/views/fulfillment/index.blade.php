@@ -207,32 +207,7 @@
                 </div>
             </div>
 
-            {{-- Workflow Steps Banner --}}
-            <div class="card border-0 bg-primary-subtle shadow-sm rounded-3 mb-4">
-                <div class="card-body p-3">
-                    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
-                        <div class="d-flex align-items-center gap-2">
-                            <span class="badge bg-primary fs-6 p-2 rounded-circle"><i class="fas fa-route"></i></span>
-                            <div>
-                                <h6 class="fw-bold text-dark mb-0">Alur Kerja Gudang Baru (Fulfillment Workflow)</h6>
-                                <small class="text-muted">Ikuti 3 langkah pemenuhan pesanan dari cetak resi hingga
-                                    penyerahan kurir:</small>
-                            </div>
-                        </div>
-                        <div class="d-flex align-items-center gap-2 small fw-bold">
-                            <span class="badge bg-primary text-white py-2 px-3 shadow-sm"><i
-                                    class="fas fa-print me-1"></i> 1. Cetak Resi Dulu</span>
-                            <i class="fas fa-chevron-right text-muted"></i>
-                            <span class="badge bg-success text-white py-2 px-3 shadow-sm"><i
-                                    class="fas fa-barcode me-1"></i> 2. Ambil Barang & Scan SKU (Stok Berkurang
-                                Real-time)</span>
-                            <i class="fas fa-chevron-right text-muted"></i>
-                            <span class="badge bg-dark text-white py-2 px-3 shadow-sm"><i class="fas fa-box me-1"></i> 3.
-                                Scan Kemas & Kirim</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
+
 
             {{-- Table Card --}}
             <div class="card border rounded shadow-sm bg-white">
