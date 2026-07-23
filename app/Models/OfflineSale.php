@@ -11,7 +11,7 @@ class OfflineSale extends Model
     protected $fillable = [
         'tenant_id', 'user_id', 'customer_id', 'sale_number', 'status',
         'buyer_name', 'buyer_phone', 'buyer_address', 'payment_method', 'payment_destination',
-        'total_amount', 'discount_amount', 'grand_total',
+        'total_amount', 'discount_amount', 'discount_type', 'discount_value', 'grand_total',
         'paid_amount', 'change_amount', 'notes', 'sold_at',
         'is_dropship', 'dropshipper_name', 'dropshipper_phone',
         'approved_by', 'approved_at',
@@ -21,6 +21,7 @@ class OfflineSale extends Model
     protected $casts = [
         'total_amount'    => 'decimal:2',
         'discount_amount' => 'decimal:2',
+        'discount_value'  => 'decimal:2',
         'grand_total'     => 'decimal:2',
         'paid_amount'     => 'decimal:2',
         'change_amount'   => 'decimal:2',
@@ -65,6 +66,21 @@ class OfflineSale extends Model
         return $this->belongsTo(User::class, 'approved_by');
     }
 
+    public function returns(): HasMany
+    {
+        return $this->hasMany(OfflineSaleReturn::class);
+    }
+
+    public function getTotalReturnedAmountAttribute(): float
+    {
+        return (float) $this->returns()->sum('total_return_amount');
+    }
+
+    public function getIsReturnedAttribute(): bool
+    {
+        return $this->returns()->exists();
+    }
+
     public function getStatusBadgeAttribute(): string
     {
         return match ($this->status) {
@@ -88,6 +104,33 @@ class OfflineSale extends Model
     public function getPaymentMethodLabelAttribute(): string
     {
         return self::PAYMENT_METHODS[$this->payment_method] ?? ucfirst($this->payment_method);
+    }
+
+    /**
+     * Cek apakah pembayaran sudah Lunas.
+     */
+    public function getIsPaidAttribute(): bool
+    {
+        if ($this->payment_method === 'piutang') {
+            return (float) $this->paid_amount >= (float) $this->grand_total && (float) $this->grand_total > 0;
+        }
+        return (float) $this->paid_amount >= (float) $this->grand_total;
+    }
+
+    public function getPaymentStatusLabelAttribute(): string
+    {
+        if ($this->status === self::STATUS_CANCELLED) {
+            return 'Dibatalkan';
+        }
+        return $this->is_paid ? 'Lunas' : 'Belum Lunas';
+    }
+
+    public function getPaymentStatusBadgeAttribute(): string
+    {
+        if ($this->status === self::STATUS_CANCELLED) {
+            return 'secondary';
+        }
+        return $this->is_paid ? 'success' : 'danger';
     }
 
     /**

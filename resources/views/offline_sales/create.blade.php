@@ -100,7 +100,8 @@
                                                 <th class="ps-3">PRODUK</th>
                                                 <th style="width:75px" class="text-center">PROMO</th>
                                                 <th style="width:110px" class="text-center">QTY</th>
-                                                <th style="width:130px" class="text-end">HARGA SATUAN</th>
+                                                <th style="width:120px" class="text-end">HARGA SATUAN</th>
+                                                <th style="width:130px" class="text-center">DISKON ITEM</th>
                                                 <th style="width:130px" class="text-end">SUBTOTAL</th>
                                                 <th style="width:50px" class="text-center">AKSI</th>
                                             </tr>
@@ -179,9 +180,16 @@
                                     <span class="fw-semibold font-monospace" id="display-subtotal">Rp 0</span>
                                 </div>
                                 <div class="mb-3">
-                                    <label class="form-label form-label-sm text-muted">Diskon (Rp)</label>
-                                    <input type="text" name="discount_amount" id="discount-input"
-                                        class="form-control form-control-sm" value="0">
+                                    <label class="form-label form-label-sm text-muted fw-semibold mb-1">Diskon Transaksi / Nota Total</label>
+                                    <div class="input-group input-group-sm">
+                                        <button type="button" class="btn btn-outline-primary fw-bold" id="btn-global-disc-toggle" style="width:50px;">
+                                            Rp
+                                        </button>
+                                        <input type="text" id="discount-input" class="form-control form-control-sm font-monospace" value="0">
+                                        <input type="hidden" name="discount_type" id="global-discount-type" value="fixed">
+                                        <input type="hidden" name="discount_value" id="global-discount-value" value="0">
+                                        <input type="hidden" name="discount_amount" id="global-discount-amount" value="0">
+                                    </div>
                                     <span id="reseller-info-badge" class="badge bg-success text-white mt-1 w-100 py-1"
                                         style="display: none; font-size: 0.7rem; white-space: normal;"></span>
                                 </div>
@@ -505,6 +513,8 @@
                         dropship_price: resellerPrice,
                         stock,
                         qty: 1,
+                        discount_type: 'fixed',
+                        discount_value: 0,
                         is_promo: false
                     };
                 }
@@ -547,10 +557,62 @@
                 removeItem(id);
             });
 
-            // Input diskon dengan format pemisah ribuan
+            // Toggle tipe diskon item (Rp / %)
+            $(document).on('click', '.btn-item-disc-toggle', function(e) {
+                e.stopPropagation();
+                const id = $(this).data('id');
+                if (cartItems[id]) {
+                    cartItems[id].discount_type = cartItems[id].discount_type === 'percentage' ? 'fixed' : 'percentage';
+                    renderCart();
+                }
+            });
+
+            // Input diskon item
+            $(document).on('input', '.item-disc-input', function(e) {
+                const id = $(this).data('id');
+                if (!cartItems[id]) return;
+                
+                let valStr = $(this).val();
+                if (cartItems[id].discount_type === 'percentage') {
+                    let num = parseFloat(valStr) || 0;
+                    if (num > 100) num = 100;
+                    if (num < 0) num = 0;
+                    cartItems[id].discount_value = num;
+                } else {
+                    let num = unformatNumber(valStr);
+                    cartItems[id].discount_value = num;
+                    $(this).val(num > 0 ? num.toLocaleString('id-ID') : '0');
+                }
+                recalculate();
+            });
+
+            // Toggle tipe diskon global (Rp / %)
+            $('#btn-global-disc-toggle').on('click', function() {
+                const curType = $('#global-discount-type').val();
+                const newType = curType === 'percentage' ? 'fixed' : 'percentage';
+                $('#global-discount-type').val(newType);
+                $(this).text(newType === 'percentage' ? '%' : 'Rp');
+                if (newType === 'percentage') {
+                    $(this).removeClass('btn-outline-primary').addClass('btn-primary');
+                } else {
+                    $(this).removeClass('btn-primary').addClass('btn-outline-primary');
+                }
+                $('#discount-input').val('0');
+                recalculate();
+            });
+
+            // Input diskon dengan format pemisah ribuan / %
             $('#discount-input').on('input', function() {
-                let formatted = formatNumberInput($(this).val());
-                $(this).val(formatted);
+                const discType = $('#global-discount-type').val();
+                if (discType === 'percentage') {
+                    let num = parseFloat($(this).val()) || 0;
+                    if (num > 100) num = 100;
+                    if (num < 0) num = 0;
+                    $(this).val(num);
+                } else {
+                    let formatted = formatNumberInput($(this).val());
+                    $(this).val(formatted);
+                }
                 recalculate();
             });
 
@@ -586,7 +648,14 @@
 
             // Clean number formatting before submitting form so Laravel validation passes
             $('#offline-form').on('submit', function() {
-                $('#discount-input').val(unformatNumber($('#discount-input').val()));
+                const discType = $('#global-discount-type').val();
+                let discVal = 0;
+                if (discType === 'percentage') {
+                    discVal = parseFloat($('#discount-input').val()) || 0;
+                } else {
+                    discVal = unformatNumber($('#discount-input').val());
+                }
+                $('#global-discount-value').val(discVal);
                 $('#paid-input').val(unformatNumber($('#paid-input').val()));
             });
 
@@ -626,10 +695,36 @@
             }
 
             function recalculate() {
-                const subtotal = Object.values(cartItems).reduce((s, i) => s + i.qty * (i.is_promo ? 0 : i.price),
-                    0);
-                const discount = unformatNumber($('#discount-input').val());
-                grandTotal = Math.max(0, subtotal - discount);
+                let subtotal = 0;
+                Object.values(cartItems).forEach(i => {
+                    const price = i.is_promo ? 0 : i.price;
+                    let discPerUnit = 0;
+                    if (!i.is_promo && i.discount_value > 0) {
+                        if (i.discount_type === 'percentage') {
+                            discPerUnit = (price * Math.min(100, i.discount_value)) / 100;
+                        } else {
+                            discPerUnit = Math.min(price, i.discount_value);
+                        }
+                    }
+                    const effectivePrice = Math.max(0, price - discPerUnit);
+                    subtotal += i.qty * effectivePrice;
+                });
+
+                const discType = $('#global-discount-type').val();
+                let discountAmount = 0;
+                let discInputVal = 0;
+                if (discType === 'percentage') {
+                    discInputVal = parseFloat($('#discount-input').val()) || 0;
+                    discountAmount = (subtotal * Math.min(100, discInputVal)) / 100;
+                } else {
+                    discInputVal = unformatNumber($('#discount-input').val());
+                    discountAmount = Math.min(subtotal, discInputVal);
+                }
+
+                $('#global-discount-value').val(discInputVal);
+                $('#global-discount-amount').val(discountAmount);
+
+                grandTotal = Math.max(0, subtotal - discountAmount);
 
                 const method = $('#payment-method-select').val();
 
@@ -640,9 +735,9 @@
                 const paid = unformatNumber($('#paid-input').val());
                 const change = Math.max(0, paid - grandTotal);
 
-                $('#display-subtotal').text('Rp ' + subtotal.toLocaleString('id-ID'));
-                $('#display-grand-total').text('Rp ' + grandTotal.toLocaleString('id-ID'));
-                $('#display-change').text('Rp ' + change.toLocaleString('id-ID'));
+                $('#display-subtotal').text('Rp ' + Math.round(subtotal).toLocaleString('id-ID'));
+                $('#display-grand-total').text('Rp ' + Math.round(grandTotal).toLocaleString('id-ID'));
+                $('#display-change').text('Rp ' + Math.round(change).toLocaleString('id-ID'));
 
                 // Validasi submit button
                 let isValid = Object.keys(cartItems).length > 0;
@@ -682,22 +777,35 @@
                 tbody.empty();
                 let idx = 0;
                 Object.values(cartItems).forEach(item => {
-                    const effectivePrice = item.is_promo ? 0 : item.price;
+                    const price = item.is_promo ? 0 : item.price;
+                    let discPerUnit = 0;
+                    if (!item.is_promo && item.discount_value > 0) {
+                        if (item.discount_type === 'percentage') {
+                            discPerUnit = (price * Math.min(100, item.discount_value)) / 100;
+                        } else {
+                            discPerUnit = Math.min(price, item.discount_value);
+                        }
+                    }
+                    const effectivePrice = Math.max(0, price - discPerUnit);
                     const subtotal = item.qty * effectivePrice;
                     const tr = $('<tr></tr>');
 
                     const priceDisplay = item.is_promo ?
                         `<div class="text-end small font-monospace"><span class="badge bg-danger text-white">PROMO (Rp 0)</span></div>
                            <div class="text-end text-muted text-decoration-line-through" style="font-size:.7rem;">Rp ${item.price.toLocaleString('id-ID')}</div>` :
-                        `<div class="text-end small text-nowrap text-muted font-monospace">Rp ${item.price.toLocaleString('id-ID')}</div>`;
+                        `<div class="text-end small text-nowrap text-dark font-monospace">Rp ${item.price.toLocaleString('id-ID')}</div>`;
+
+                    const itemDiscValDisplay = item.discount_type === 'percentage' ? item.discount_value : (item.discount_value > 0 ? item.discount_value.toLocaleString('id-ID') : '0');
 
                     tr.html(`
                         <td class="ps-3">
                             <div class="fw-semibold text-dark small">${item.name}</div>
                             <div class="text-muted" style="font-size:.72rem;">${item.sku || ''}</div>
                             <input type="hidden" name="items[${idx}][master_product_id]" value="${item.id}">
-                            <input type="hidden" name="items[${idx}][unit_price]" value="${effectivePrice}">
+                            <input type="hidden" name="items[${idx}][unit_price]" value="${item.price}">
                             <input type="hidden" name="items[${idx}][quantity]" id="qty-hidden-${item.id}" value="${item.qty}">
+                            <input type="hidden" name="items[${idx}][discount_type]" value="${item.discount_type}">
+                            <input type="hidden" name="items[${idx}][discount_value]" value="${item.discount_value}">
                         </td>
                         <td class="text-center align-middle">
                             <div class="form-check form-switch d-flex justify-content-center m-0">
@@ -712,7 +820,15 @@
                             </div>
                         </td>
                         <td class="text-end text-nowrap">${priceDisplay}</td>
-                        <td class="text-end fw-bold text-nowrap ${item.is_promo ? 'text-danger' : 'text-success'} font-monospace">Rp ${subtotal.toLocaleString('id-ID')}</td>
+                        <td class="text-center align-middle">
+                            <div class="input-group input-group-sm" style="max-width:120px;margin:auto;">
+                                <button type="button" class="btn btn-outline-secondary px-1 py-0 btn-item-disc-toggle fw-bold" data-id="${item.id}" style="font-size:0.7rem;width:32px;">
+                                    ${item.discount_type === 'percentage' ? '%' : 'Rp'}
+                                </button>
+                                <input type="text" class="form-control form-control-sm p-1 text-end item-disc-input font-monospace" data-id="${item.id}" value="${itemDiscValDisplay}" style="font-size:0.75rem;">
+                            </div>
+                        </td>
+                        <td class="text-end fw-bold text-nowrap ${item.is_promo ? 'text-danger' : 'text-success'} font-monospace">Rp ${Math.round(subtotal).toLocaleString('id-ID')}</td>
                         <td class="text-center">
                             <button type="button" class="btn btn-sm btn-outline-danger btn-remove" data-id="${item.id}" style="padding: 2px 8px; font-size: 0.75rem;">
                                 <i class="fas fa-trash"></i>

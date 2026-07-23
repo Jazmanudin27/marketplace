@@ -209,6 +209,7 @@ Route::middleware('auth')->group(function () {
     Route::middleware('permission:manage-customers')->group(function () {
         Route::resource('customers', CustomerController::class);
         Route::post('customers/{customer}/topup', [CustomerController::class, 'topup'])->name('customers.topup');
+        Route::post('customers/{customer}/pay-receivable', [CustomerController::class, 'payReceivable'])->name('customers.pay_receivable');
     });
 
     // Master Bank Accounts & Kas
@@ -549,8 +550,10 @@ Route::middleware('auth')->group(function () {
         Route::post('/offline-sales', [OfflineSaleController::class, 'store'])->name('offline_sales.store');
         Route::get('/offline-sales/{offlineSale}', [OfflineSaleController::class, 'show'])->name('offline_sales.show');
         Route::post('/offline-sales/{offlineSale}/approve', [OfflineSaleController::class, 'approve'])->name('offline_sales.approve');
+        Route::post('/offline-sales/{offlineSale}/mark-paid', [OfflineSaleController::class, 'markPaid'])->name('offline_sales.mark_paid');
         Route::post('/offline-sales/{offlineSale}/complete', [OfflineSaleController::class, 'complete'])->name('offline_sales.complete');
         Route::post('/offline-sales/{offlineSale}/cancel', [OfflineSaleController::class, 'cancel'])->name('offline_sales.cancel');
+        Route::post('/offline-sales/{offlineSale}/return', [OfflineSaleController::class, 'processReturn'])->name('offline_sales.return');
         Route::get('/offline-sales/{offlineSale}/print', [OfflineSaleController::class, 'printReceipt'])->name('offline_sales.print');
     });
 

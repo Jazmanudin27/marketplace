@@ -4,8 +4,12 @@ namespace App\Http\Controllers\Master;
 
 use App\Http\Controllers\Controller;
 use App\Models\Customer;
+use App\Models\OfflineSale;
+use App\Models\BankAccount;
+use App\Models\Income;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class CustomerController extends Controller
 {
@@ -161,7 +165,25 @@ class CustomerController extends Controller
         $totalSpent = $customer->orders->sum('net_amount');
         $averageOrderValue = $customer->orders->count() > 0 ? $totalSpent / $customer->orders->count() : 0;
 
-        return view('master.customers.show', compact('customer', 'totalSpent', 'averageOrderValue'));
+        $tenantId = $customer->tenant_id;
+        $receivableSales = OfflineSale::where('tenant_id', $tenantId)
+            ->where('customer_id', $customer->id)
+            ->where('status', '!=', OfflineSale::STATUS_CANCELLED)
+            ->where(function ($q) {
+                $q->where('payment_method', 'piutang')
+                  ->orWhereRaw('grand_total > paid_amount');
+            })
+            ->orderByDesc('sold_at')
+            ->get();
+
+        $totalReceivable = (float) $receivableSales->sum(fn($s) => max(0, $s->grand_total - $s->paid_amount));
+
+        $bankAccounts = BankAccount::where('tenant_id', $tenantId)
+            ->where('is_active', true)
+            ->orderBy('bank_name')
+            ->get();
+
+        return view('master.customers.show', compact('customer', 'totalSpent', 'averageOrderValue', 'receivableSales', 'totalReceivable', 'bankAccounts'));
     }
 
     public function update(Request $request, Customer $customer)
@@ -204,6 +226,95 @@ class CustomerController extends Controller
         );
 
         return back()->with('success', 'Saldo pelanggan ' . $customer->name . ' berhasil disesuaikan.');
+    }
+
+    public function payReceivable(Request $request, Customer $customer)
+    {
+        $user = Auth::user();
+        if (!$user->isSuperAdmin()) {
+            abort_unless($customer->tenant_id === $user->tenant_id, 403);
+        }
+
+        $request->validate([
+            'amount'              => 'required|numeric|min:1',
+            'payment_destination' => 'required|string|max:100',
+        ], [
+            'amount.required'              => 'Nominal pelunasan wajib diisi.',
+            'amount.min'                   => 'Nominal pelunasan minimal Rp 1.',
+            'payment_destination.required' => 'Kas / Bank tujuan wajib dipilih.',
+        ]);
+
+        $tenantId    = $customer->tenant_id;
+        $payAmount   = (float) $request->amount;
+        $paymentDest = $request->payment_destination;
+
+        // Ambil transaksi yang spesifik atau seluruh piutang pelanggan (FIFO)
+        $query = OfflineSale::where('tenant_id', $tenantId)
+            ->where('customer_id', $customer->id)
+            ->where('status', '!=', OfflineSale::STATUS_CANCELLED)
+            ->where(function ($q) {
+                $q->where('payment_method', 'piutang')
+                  ->orWhereRaw('grand_total > paid_amount');
+            });
+
+        if ($request->filled('offline_sale_id')) {
+            $query->where('id', $request->offline_sale_id);
+        }
+
+        $unpaidSales = $query->orderBy('sold_at', 'asc')->get();
+        $totalUnpaid = (float) $unpaidSales->sum(fn($s) => max(0, $s->grand_total - $s->paid_amount));
+
+        if ($unpaidSales->isEmpty() || $totalUnpaid <= 0) {
+            return back()->with('error', 'Pelanggan ini tidak memiliki tunggakan piutang untuk dilunasi.');
+        }
+
+        $remainingToPay = min($payAmount, $totalUnpaid);
+        $totalPaidAllocated = 0;
+
+        DB::transaction(function () use ($unpaidSales, $remainingToPay, $paymentDest, $tenantId, $customer, &$totalPaidAllocated) {
+            $leftover = $remainingToPay;
+
+            foreach ($unpaidSales as $sale) {
+                if ($leftover <= 0) break;
+
+                $saleUnpaid = max(0, $sale->grand_total - $sale->paid_amount);
+                $allocated  = min($leftover, $saleUnpaid);
+
+                $newPaidAmount = $sale->paid_amount + $allocated;
+                $sale->update([
+                    'paid_amount'         => $newPaidAmount,
+                    'payment_destination' => $paymentDest,
+                ]);
+
+                $leftover -= $allocated;
+                $totalPaidAllocated += $allocated;
+
+                // Jika status transaksi sudah COMPLETED, catat pemasukan & update saldo bank
+                if ($sale->status === OfflineSale::STATUS_COMPLETED && $allocated > 0) {
+                    $bank = BankAccount::where('tenant_id', $tenantId)
+                        ->where(function($q) use ($paymentDest) {
+                            $q->where('bank_name', $paymentDest)
+                              ->orWhere('id', $paymentDest);
+                        })->first();
+
+                    if ($bank) {
+                        $bank->increment('current_balance', $allocated);
+                    }
+
+                    Income::create([
+                        'tenant_id'           => $tenantId,
+                        'title'               => "Pelunasan Piutang #{$sale->sale_number} ({$customer->name})",
+                        'category'            => 'services',
+                        'payment_destination' => $paymentDest,
+                        'amount'              => $allocated,
+                        'income_date'         => now(),
+                        'description'         => "Pelunasan piutang pelanggan {$customer->name} untuk transaksi POS #{$sale->sale_number}",
+                    ]);
+                }
+            }
+        });
+
+        return back()->with('success', '✅ Pelunasan piutang ' . $customer->name . ' sebesar Rp ' . number_format($totalPaidAllocated, 0, ',', '.') . ' berhasil dicatat!');
     }
 
     public function destroy(Customer $customer)

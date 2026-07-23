@@ -35,6 +35,22 @@ class OfflineSaleController extends Controller
             $query->where('payment_method', $request->payment_method);
         }
 
+        if ($request->filled('payment_status')) {
+            if ($request->payment_status === 'lunas') {
+                $query->where('status', '!=', OfflineSale::STATUS_CANCELLED)
+                      ->where(function($q) {
+                          $q->where('payment_method', '!=', 'piutang')
+                            ->whereRaw('paid_amount >= grand_total');
+                      });
+            } elseif ($request->payment_status === 'belum_lunas') {
+                $query->where('status', '!=', OfflineSale::STATUS_CANCELLED)
+                      ->where(function($q) {
+                          $q->where('payment_method', 'piutang')
+                            ->orWhereRaw('paid_amount < grand_total');
+                      });
+            }
+        }
+
         if ($request->filled('date_from')) {
             $query->whereDate('sold_at', '>=', $request->date_from);
         }
@@ -121,16 +137,29 @@ class OfflineSaleController extends Controller
 
         DB::transaction(function () use ($request, $tenantId) {
             $totalAmount    = 0;
-            $discountAmount = (float) ($request->discount_amount ?? 0);
+            $globalDiscType = $request->discount_type ?? 'fixed';
+            $globalDiscVal  = (float) ($request->discount_value ?? $request->discount_amount ?? 0);
             $itemsData      = [];
 
             foreach ($request->items as $item) {
                 $product = MasterProduct::where('tenant_id', $tenantId)
                     ->findOrFail($item['master_product_id']);
 
-                $qty      = (int) $item['quantity'];
-                $price    = (float) $item['unit_price'];
-                $subtotal = $qty * $price;
+                $qty       = (int) $item['quantity'];
+                $unitPrice = (float) $item['unit_price'];
+
+                $itemDiscType = $item['discount_type'] ?? 'fixed';
+                $itemDiscVal  = (float) ($item['discount_value'] ?? 0);
+
+                if ($itemDiscType === 'percentage') {
+                    $itemDiscPerUnit = ($unitPrice * min(100, max(0, $itemDiscVal))) / 100;
+                } else {
+                    $itemDiscPerUnit = min($unitPrice, max(0, $itemDiscVal));
+                }
+
+                $itemDiscTotal  = $itemDiscPerUnit * $qty;
+                $effectivePrice = max(0, $unitPrice - $itemDiscPerUnit);
+                $subtotal       = $qty * $effectivePrice;
 
                 // Pastikan stok cukup
                 if ($product->stock < $qty) {
@@ -144,9 +173,18 @@ class OfflineSaleController extends Controller
                     'product_name'      => $product->name,
                     'sku'               => $product->sku,
                     'quantity'          => $qty,
-                    'unit_price'        => $price,
+                    'unit_price'        => $unitPrice,
+                    'discount_type'     => $itemDiscType,
+                    'discount_value'    => $itemDiscVal,
+                    'discount_amount'   => $itemDiscTotal,
                     'subtotal'          => $subtotal,
                 ];
+            }
+
+            if ($globalDiscType === 'percentage') {
+                $discountAmount = ($totalAmount * min(100, max(0, $globalDiscVal))) / 100;
+            } else {
+                $discountAmount = min($totalAmount, max(0, $globalDiscVal));
             }
 
             $grandTotal   = max(0, $totalAmount - $discountAmount);
@@ -199,6 +237,8 @@ class OfflineSaleController extends Controller
                 'payment_method'  => $request->payment_method,
                 'total_amount'    => $totalAmount,
                 'discount_amount' => $discountAmount,
+                'discount_type'   => $globalDiscType,
+                'discount_value'  => $globalDiscVal,
                 'grand_total'     => $grandTotal,
                 'paid_amount'     => $paidAmount,
                 'change_amount'   => $changeAmount,
@@ -308,6 +348,184 @@ class OfflineSaleController extends Controller
         });
 
         return back()->with('success', '✅ Transaksi disetujui! Stok telah dikurangi & uang dimasukkan ke Kas/Bank.');
+    }
+
+    public function processReturn(Request $request, OfflineSale $offlineSale)
+    {
+        abort_unless($offlineSale->tenant_id === Auth::user()->tenant_id, 403);
+
+        if ($offlineSale->status !== OfflineSale::STATUS_COMPLETED) {
+            return back()->with('error', 'Retur hanya dapat dilakukan untuk transaksi yang sudah selesai (approved).');
+        }
+
+        $request->validate([
+            'returns'             => 'required|array',
+            'returns.*'           => 'required|integer|min:0',
+            'reason'              => 'required|string|min:3|max:500',
+            'refund_method'       => 'required|in:cash,bank,customer_balance,no_refund',
+            'payment_destination' => 'nullable|string|max:100',
+        ], [
+            'returns.required' => 'Pilih setidaknya satu produk yang akan diretur.',
+            'reason.required'  => 'Alasan retur wajib diisi.',
+            'reason.min'       => 'Alasan retur minimal 3 karakter.',
+        ]);
+
+        $tenantId    = Auth::user()->tenant_id;
+        $returnItems = [];
+        $totalReturnAmount = 0;
+
+        foreach ($offlineSale->items as $saleItem) {
+            $returnQty = (int) ($request->returns[$saleItem->id] ?? 0);
+            if ($returnQty <= 0) continue;
+
+            $maxReturnable = $saleItem->remaining_quantity;
+            if ($returnQty > $maxReturnable) {
+                return back()->with('error', "Jumlah retur untuk {$saleItem->product_name} melebihi batas maksimal ({$maxReturnable}).");
+            }
+
+            $effectivePrice = $saleItem->quantity > 0 ? ($saleItem->subtotal / $saleItem->quantity) : 0;
+            $subtotalReturn = $returnQty * $effectivePrice;
+
+            $totalReturnAmount += $subtotalReturn;
+
+            $returnItems[] = [
+                'sale_item'      => $saleItem,
+                'quantity'       => $returnQty,
+                'unit_price'     => $effectivePrice,
+                'subtotal'       => $subtotalReturn,
+            ];
+        }
+
+        if (empty($returnItems)) {
+            return back()->with('error', 'Jumlah produk yang diretur harus lebih dari 0.');
+        }
+
+        DB::transaction(function () use ($offlineSale, $request, $tenantId, $returnItems, $totalReturnAmount) {
+            // 1. Buat record OfflineSaleReturn
+            $saleReturn = \App\Models\OfflineSaleReturn::create([
+                'tenant_id'           => $tenantId,
+                'offline_sale_id'     => $offlineSale->id,
+                'return_number'       => \App\Models\OfflineSaleReturn::generateReturnNumber(),
+                'user_id'             => Auth::id(),
+                'total_return_amount' => $totalReturnAmount,
+                'refund_method'       => $request->refund_method,
+                'payment_destination' => $request->payment_destination,
+                'reason'              => $request->reason,
+                'returned_at'         => now(),
+            ]);
+
+            // 2. Buat detail return item & kembalikan stok
+            foreach ($returnItems as $itemData) {
+                $saleItem = $itemData['sale_item'];
+
+                \App\Models\OfflineSaleReturnItem::create([
+                    'offline_sale_return_id' => $saleReturn->id,
+                    'offline_sale_item_id'   => $saleItem->id,
+                    'master_product_id'      => $saleItem->master_product_id,
+                    'quantity'               => $itemData['quantity'],
+                    'unit_price'             => $itemData['unit_price'],
+                    'subtotal'               => $itemData['subtotal'],
+                ]);
+
+                // Kembalikan stok fisik ke gudang
+                if ($saleItem->masterProduct) {
+                    $saleItem->masterProduct->recordStockMovement(
+                        'in',
+                        $itemData['quantity'],
+                        "Retur Penjualan POS #{$offlineSale->sale_number} (Nota Retur: {$saleReturn->return_number})",
+                        'POS Return',
+                        Auth::id()
+                    );
+                }
+            }
+
+            // 3. Proses Pengembalian Dana (Refund)
+            if ($totalReturnAmount > 0) {
+                if (in_array($request->refund_method, ['cash', 'bank'])) {
+                    $paymentDest = $request->payment_destination ?: ($offlineSale->payment_destination ?: 'kas_besar');
+
+                    $bank = \App\Models\BankAccount::where('tenant_id', $tenantId)
+                        ->where(function($q) use ($paymentDest) {
+                            $q->where('bank_name', $paymentDest)
+                              ->orWhere('id', $paymentDest);
+                        })->first();
+
+                    if ($bank) {
+                        $bank->decrement('current_balance', $totalReturnAmount);
+                    }
+
+                    \App\Models\Expense::create([
+                        'tenant_id'           => $tenantId,
+                        'title'               => "Refund Retur Penjualan POS #{$offlineSale->sale_number}",
+                        'category'            => 'other',
+                        'payment_destination' => $paymentDest,
+                        'amount'              => $totalReturnAmount,
+                        'expense_date'        => now(),
+                        'description'         => "Pengembalian dana retur produk (Nota Retur: {$saleReturn->return_number}) untuk pembeli " . ($offlineSale->buyer_name ?: 'Umum'),
+                    ]);
+                } elseif ($request->refund_method === 'customer_balance' && $offlineSale->customer) {
+                    $offlineSale->customer->adjustBalance(
+                        $totalReturnAmount,
+                        'in',
+                        "Refund retur barang POS #{$offlineSale->sale_number} (Retur: {$saleReturn->return_number})",
+                        Auth::id()
+                    );
+                }
+            }
+        });
+
+        return back()->with('success', '✅ Retur sebagian barang berhasil diproses. Stok produk telah dikembalikan!');
+    }
+
+    public function markPaid(Request $request, OfflineSale $offlineSale)
+    {
+        abort_unless($offlineSale->tenant_id === Auth::user()->tenant_id, 403);
+
+        if ($offlineSale->status === OfflineSale::STATUS_CANCELLED) {
+            return back()->with('error', 'Transaksi yang dibatalkan tidak dapat dilunasi.');
+        }
+
+        if ($offlineSale->is_paid) {
+            return back()->with('error', 'Transaksi ini sudah berstatus Lunas.');
+        }
+
+        $tenantId = Auth::user()->tenant_id;
+        $unpaidAmount = max(0, $offlineSale->grand_total - $offlineSale->paid_amount);
+
+        DB::transaction(function () use ($offlineSale, $request, $tenantId, $unpaidAmount) {
+            $paymentDest = $request->payment_destination ?: ($offlineSale->payment_destination ?: 'kas_besar');
+
+            // Jika status sudah COMPLETED, catat pemasukan pelunasan & update saldo bank
+            if ($offlineSale->status === OfflineSale::STATUS_COMPLETED && $unpaidAmount > 0) {
+                $bank = \App\Models\BankAccount::where('tenant_id', $tenantId)
+                    ->where(function($q) use ($paymentDest) {
+                        $q->where('bank_name', $paymentDest)
+                          ->orWhere('id', $paymentDest);
+                    })->first();
+
+                if ($bank) {
+                    $bank->increment('current_balance', $unpaidAmount);
+                }
+
+                \App\Models\Income::create([
+                    'tenant_id'           => $tenantId,
+                    'title'               => "Pelunasan Penjualan Offline POS #{$offlineSale->sale_number}",
+                    'category'            => 'services',
+                    'payment_destination' => $paymentDest,
+                    'amount'              => $unpaidAmount,
+                    'income_date'         => now(),
+                    'description'         => "Pelunasan piutang transaksi #{$offlineSale->sale_number} (Pembeli: " . ($offlineSale->buyer_name ?: 'Umum') . ")",
+                ]);
+            }
+
+            $offlineSale->update([
+                'paid_amount'         => $offlineSale->grand_total,
+                'change_amount'       => 0,
+                'payment_destination' => $paymentDest,
+            ]);
+        });
+
+        return back()->with('success', '✅ Pembayaran berhasil dilunasi!');
     }
 
     public function complete(OfflineSale $offlineSale)

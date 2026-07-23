@@ -32,7 +32,7 @@ class WhatsAppService
             // Hapus parameter null agar request lebih bersih
             $payload = array_filter($payload, fn($value) => !is_null($value));
 
-            $response = Http::withHeaders([
+            $response = Http::timeout(3)->withHeaders([
                 'x-api-key' => $apiKey,
                 'Content-Type' => 'application/json',
             ])->post($gatewayUrl, $payload);

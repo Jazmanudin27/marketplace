@@ -82,6 +82,20 @@
                 <small class="text-muted d-block text-start" style="font-size:0.68rem;">Digunakan untuk transaksi checkout POS Offline potong saldo.</small>
             </div>
 
+            {{-- Card Sisa Piutang Pelanggan --}}
+            <div class="card border shadow-sm p-3 mb-3 border-start border-4 border-danger bg-danger bg-opacity-5">
+                <div class="d-flex justify-content-between align-items-center mb-2 text-start">
+                    <span class="text-secondary small fw-bold"><i class="fas fa-file-invoice-dollar me-1 text-danger"></i> Sisa Piutang Belum Lunas</span>
+                    @if($totalReceivable > 0)
+                        <button type="button" class="btn btn-xs btn-outline-danger py-0 px-2" style="font-size: 0.72rem;" data-bs-toggle="modal" data-bs-target="#payReceivableModal">
+                            <i class="fas fa-money-bill-wave me-1"></i> Pelunasan
+                        </button>
+                    @endif
+                </div>
+                <div class="fw-extrabold fs-4 text-danger font-monospace mb-1 text-start">Rp {{ number_format($totalReceivable, 0, ',', '.') }}</div>
+                <small class="text-muted d-block text-start" style="font-size:0.68rem;">Tunggakan dari transaksi kasir POS yang belum dilunasi.</small>
+            </div>
+
             <div class="card border shadow-sm p-3">
                 <h6 class="fw-bold mb-3 text-dark"><i class="fas fa-chart-pie me-2 text-info"></i>Ringkasan Nilai</h6>
                 
@@ -115,6 +129,13 @@
                         data-bs-target="#balance-pane" type="button" role="tab">
                         <i class="fas fa-wallet me-1 text-success"></i>Mutasi Saldo Deposit
                         <span class="badge bg-success ms-1">{{ $customer->balanceTransactions->count() }}</span>
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link small fw-semibold" id="receivable-tab" data-bs-toggle="tab"
+                        data-bs-target="#receivable-pane" type="button" role="tab">
+                        <i class="fas fa-file-invoice-dollar me-1 text-danger"></i>Tagihan Piutang
+                        <span class="badge bg-danger ms-1">{{ $receivableSales->count() }}</span>
                     </button>
                 </li>
             </ul>
@@ -218,6 +239,60 @@
                         </div>
                     </div>
                 </div>
+
+                {{-- TAB 3: TAGIHAN PIUTANG --}}
+                <div class="tab-pane fade" id="receivable-pane" role="tabpanel">
+                    <div class="card border border-top-0 rounded-top-0 shadow-sm">
+                        <div class="card-body p-3">
+                            <div class="table-responsive rounded border">
+                                <table class="table table-sm table-striped table-bordered align-middle mb-0" style="font-size:0.8rem;">
+                                    <thead class="table-light">
+                                        <tr class="small text-uppercase">
+                                            <th>TANGGAL POS</th>
+                                            <th>NO. TRANSAKSI</th>
+                                            <th class="text-end">GRAND TOTAL</th>
+                                            <th class="text-end">SUDAH DIBAYAR</th>
+                                            <th class="text-end">SISA PIUTANG</th>
+                                            <th class="text-center">AKSI</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @forelse($receivableSales as $sale)
+                                            @php $saleUnpaid = max(0, $sale->grand_total - $sale->paid_amount); @endphp
+                                            <tr>
+                                                <td class="text-secondary small">{{ $sale->sold_at ? $sale->sold_at->format('d M Y, H:i') : '-' }}</td>
+                                                <td>
+                                                    <a href="{{ route('offline_sales.show', $sale->id) }}" class="fw-bold text-primary font-monospace text-decoration-none">
+                                                        {{ $sale->sale_number }}
+                                                    </a>
+                                                </td>
+                                                <td class="font-monospace text-end">Rp {{ number_format($sale->grand_total, 0, ',', '.') }}</td>
+                                                <td class="font-monospace text-end text-success">Rp {{ number_format($sale->paid_amount, 0, ',', '.') }}</td>
+                                                <td class="font-monospace text-end text-danger fw-bold">Rp {{ number_format($saleUnpaid, 0, ',', '.') }}</td>
+                                                <td class="text-center">
+                                                    <button type="button" class="btn btn-xs btn-success py-0 px-2 btn-pay-single-sale" style="font-size:0.75rem;"
+                                                        data-bs-toggle="modal" data-bs-target="#payReceivableModal"
+                                                        data-sale-id="{{ $sale->id }}"
+                                                        data-sale-number="{{ $sale->sale_number }}"
+                                                        data-unpaid="{{ $saleUnpaid }}">
+                                                        <i class="fas fa-money-bill-wave me-1"></i>Pelunasan
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        @empty
+                                            <tr>
+                                                <td colspan="6" class="text-center py-5">
+                                                    <i class="fas fa-check-circle fa-2x mb-3 d-block text-success opacity-50"></i>
+                                                    <p class="text-muted mb-0 small">Pelanggan ini tidak memiliki tunggakan piutang.</p>
+                                                </td>
+                                            </tr>
+                                        @endforelse
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -256,4 +331,98 @@
             </form>
         </div>
     </div>
+    {{-- Modal Pelunasan Piutang Pelanggan --}}
+    <div class="modal fade" id="payReceivableModal" tabindex="-1" aria-labelledby="payReceivableModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <form action="{{ route('customers.pay_receivable', $customer->id) }}" method="POST">
+                @csrf
+                <input type="hidden" name="offline_sale_id" id="modal_pay_offline_sale_id" value="">
+                <div class="modal-content text-start border-0 shadow">
+                    <div class="modal-header bg-success bg-opacity-10 border-bottom">
+                        <h5 class="modal-title fw-bold text-success" id="payReceivableModalLabel">
+                            <i class="fas fa-money-bill-wave me-2"></i>Pelunasan Piutang Pelanggan
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body p-3">
+                        <div class="p-3 bg-light rounded border mb-3">
+                            <div class="small text-muted mb-1">Pelanggan: <strong class="text-dark">{{ $customer->name }}</strong></div>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="small fw-semibold text-danger">Total Tunggakan Piutang:</span>
+                                <strong class="fs-5 font-monospace text-danger" id="modal_pay_total_unpaid">Rp {{ number_format($totalReceivable, 0, ',', '.') }}</strong>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold text-dark">Nominal Pembayaran Pelunasan (Rp) <span class="text-danger">*</span></label>
+                            <input type="number" name="amount" id="modal_pay_amount" step="any" min="1" max="{{ $totalReceivable }}" class="form-control form-control-sm" value="{{ $totalReceivable }}" required>
+                            <div class="form-text text-muted">Nominal yang diterima dari pelanggan untuk melunasi piutang.</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold text-dark">Kas / Bank Tujuan Pemasukan <span class="text-danger">*</span></label>
+                            <select name="payment_destination" class="form-select form-select-sm" required>
+                                @if(isset($bankAccounts) && $bankAccounts->isNotEmpty())
+                                    @foreach($bankAccounts as $bank)
+                                        <option value="{{ $bank->bank_name }}">
+                                            {{ $bank->bank_name }} {{ $bank->account_number ? '('.$bank->account_number.')' : '' }} — Saldo: Rp {{ number_format($bank->current_balance, 0, ',', '.') }}
+                                        </option>
+                                    @endforeach
+                                @else
+                                    <option value="kas_besar">Kas Besar (Utama)</option>
+                                    <option value="kas_kecil">Kas Kecil (Operasional)</option>
+                                @endif
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Tutup</button>
+                        <button type="submit" class="btn btn-success btn-sm px-4">
+                            <i class="fas fa-check-circle me-1"></i> Simpan Pelunasan
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
 @endsection
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const payModal = document.getElementById('payReceivableModal');
+    if (payModal) {
+        payModal.addEventListener('show.bs.modal', function (event) {
+            const btn = event.relatedTarget;
+            const saleId = btn ? btn.getAttribute('data-sale-id') : null;
+            const unpaid = btn ? btn.getAttribute('data-unpaid') : null;
+            
+            const saleIdInput = document.getElementById('modal_pay_offline_sale_id');
+            const amountInput = document.getElementById('modal_pay_amount');
+            const totalUnpaidEl = document.getElementById('modal_pay_total_unpaid');
+
+            if (saleId && unpaid) {
+                saleIdInput.value = saleId;
+                amountInput.value = unpaid;
+                totalUnpaidEl.textContent = 'Rp ' + new Intl.NumberFormat('id-ID').format(unpaid);
+            } else {
+                saleIdInput.value = '';
+                amountInput.value = '{{ $totalReceivable }}';
+                totalUnpaidEl.textContent = 'Rp {{ number_format($totalReceivable, 0, ",", ".") }}';
+            }
+        });
+    }
+
+    // Submit loading state
+    document.querySelectorAll('#payReceivableModal form, #topupModal form').forEach(function (form) {
+        form.addEventListener('submit', function () {
+            const btn = form.querySelector('button[type="submit"]');
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Memproses...';
+            }
+        });
+    });
+});
+</script>
+@endpush

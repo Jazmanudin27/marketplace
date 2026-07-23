@@ -80,7 +80,8 @@
                                     <th class="text-end">31-60 Hari</th>
                                     <th class="text-end">61-90 Hari</th>
                                     <th class="text-end">90+ Hari</th>
-                                    <th class="text-end pe-3">Total Piutang</th>
+                                    <th class="text-end">Total Piutang</th>
+                                    <th class="text-center pe-3">AKSI</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -94,11 +95,22 @@
                                         <td class="text-end font-monospace text-warning">Rp {{ number_format($aging['31_60'], 0, ',', '.') }}</td>
                                         <td class="text-end font-monospace text-warning-emphasis">Rp {{ number_format($aging['61_90'], 0, ',', '.') }}</td>
                                         <td class="text-end font-monospace text-danger fw-bold">Rp {{ number_format($aging['90_plus'], 0, ',', '.') }}</td>
-                                        <td class="text-end font-monospace fw-bold text-dark pe-3">Rp {{ number_format($aging['total'], 0, ',', '.') }}</td>
+                                        <td class="text-end font-monospace fw-bold text-dark">Rp {{ number_format($aging['total'], 0, ',', '.') }}</td>
+                                        <td class="text-center pe-3">
+                                            @if($cId)
+                                                <a href="{{ route('customers.show', $cId) }}#receivable-pane" class="btn btn-xs btn-outline-danger py-0 px-2" style="font-size:0.75rem;">
+                                                    <i class="fas fa-money-bill-wave me-1"></i>Pelunasan
+                                                </a>
+                                            @else
+                                                <a href="{{ route('offline_sales.index', ['payment_status' => 'belum_lunas']) }}" class="btn btn-xs btn-outline-danger py-0 px-2" style="font-size:0.75rem;">
+                                                    <i class="fas fa-eye me-1"></i>Lihat POS
+                                                </a>
+                                            @endif
+                                        </td>
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="6" class="text-center text-muted py-5">
+                                        <td colspan="7" class="text-center text-muted py-5">
                                             <i class="fas fa-check-circle fa-2x mb-3 text-success opacity-25"></i>
                                             <p class="mb-0">Tidak ada piutang luar biasa yang belum terbayar.</p>
                                         </td>

@@ -89,6 +89,16 @@
                         </div>
                         <div class="col-12 col-sm-6 col-md-2">
                             <label class="form-label form-label-sm fw-semibold mb-1">
+                                <i class="fas fa-money-bill-wave me-1"></i>Status Bayar
+                            </label>
+                            <select name="payment_status" class="form-select form-select-sm">
+                                <option value="">Semua Status Bayar</option>
+                                <option value="lunas" {{ request('payment_status') === 'lunas' ? 'selected' : '' }}>Lunas</option>
+                                <option value="belum_lunas" {{ request('payment_status') === 'belum_lunas' ? 'selected' : '' }}>Belum Lunas</option>
+                            </select>
+                        </div>
+                        <div class="col-12 col-sm-6 col-md-2">
+                            <label class="form-label form-label-sm fw-semibold mb-1">
                                 <i class="fas fa-calendar-alt me-1"></i>Dari Tanggal
                             </label>
                             <input type="date" name="date_from" class="form-control form-control-sm"
@@ -105,7 +115,7 @@
                             <button type="submit" class="btn btn-primary btn-sm px-3">
                                 <i class="fas fa-search me-1"></i> Cari
                             </button>
-                            @if (request()->hasAny(['search', 'status', 'payment_method', 'date_from', 'date_to']))
+                            @if (request()->hasAny(['search', 'status', 'payment_method', 'payment_status', 'date_from', 'date_to']))
                                 <a href="{{ route('offline_sales.index') }}" class="btn btn-outline-secondary btn-sm px-2">
                                     <i class="fas fa-times"></i>
                                 </a>
@@ -147,7 +157,19 @@
                                 </td>
                                 <td class="small text-muted">{{ $sale->user->name ?? '-' }}</td>
                                 <td>
-                                    <span class="badge bg-secondary small">{{ $sale->payment_method_label }}</span>
+                                    <div class="d-flex flex-column gap-1">
+                                        <div>
+                                            <span class="badge bg-secondary small">{{ $sale->payment_method_label }}</span>
+                                        </div>
+                                        @if ($sale->status !== \App\Models\OfflineSale::STATUS_CANCELLED)
+                                            <div>
+                                                <span class="badge bg-{{ $sale->payment_status_badge }} small">
+                                                    <i class="fas fa-{{ $sale->is_paid ? 'check-circle' : 'exclamation-circle' }} me-1"></i>
+                                                    {{ $sale->payment_status_label }}
+                                                </span>
+                                            </div>
+                                        @endif
+                                    </div>
                                 </td>
                                 <td class="text-end fw-bold text-success font-monospace small">
                                     Rp {{ number_format($sale->grand_total, 0, ',', '.') }}
@@ -185,6 +207,20 @@
                                                 data-id="{{ $sale->id }}"
                                                 data-sale-number="{{ $sale->sale_number }}">
                                                 <i class="fas fa-check"></i>
+                                            </button>
+                                        @endif
+                                        @if ($sale->status !== \App\Models\OfflineSale::STATUS_CANCELLED && !$sale->is_paid)
+                                            <button type="button"
+                                                class="btn btn-sm btn-outline-success py-0 px-2"
+                                                title="Pelunasan (Tandai Lunas)"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#modalMarkPaid"
+                                                data-id="{{ $sale->id }}"
+                                                data-sale-number="{{ $sale->sale_number }}"
+                                                data-grand-total="Rp {{ number_format($sale->grand_total, 0, ',', '.') }}"
+                                                data-paid-amount="Rp {{ number_format($sale->paid_amount, 0, ',', '.') }}"
+                                                data-unpaid-amount="Rp {{ number_format(max(0, $sale->grand_total - $sale->paid_amount), 0, ',', '.') }}">
+                                                <i class="fas fa-money-bill-wave"></i>
                                             </button>
                                         @endif
                                         @if ($sale->status !== \App\Models\OfflineSale::STATUS_CANCELLED)
@@ -324,6 +360,71 @@
         </div>
     </div>
 </div>
+
+{{-- Modal Konfirmasi Pelunasan --}}
+<div class="modal fade" id="modalMarkPaid" tabindex="-1" aria-labelledby="modalMarkPaidLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-success bg-opacity-10 border-bottom">
+                <h6 class="modal-title fw-bold text-success" id="modalMarkPaidLabel">
+                    <i class="fas fa-money-bill-wave me-2"></i>Pelunasan Pembayaran
+                </h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="form-mark-paid" method="POST" class="m-0">
+                @csrf
+                <div class="modal-body">
+                    <p class="mb-1 text-dark">Tandai lunas untuk transaksi:</p>
+                    <p class="fw-bold font-monospace text-primary mb-3" id="modal-paid-sale-number"></p>
+
+                    <div class="p-3 bg-light rounded border mb-3">
+                        <div class="d-flex justify-content-between mb-1 small">
+                            <span class="text-muted">Total Transaksi:</span>
+                            <strong class="font-monospace text-dark" id="modal-paid-grand-total">Rp 0</strong>
+                        </div>
+                        <div class="d-flex justify-content-between mb-1 small">
+                            <span class="text-muted">Sudah Dibayar:</span>
+                            <span class="font-monospace text-secondary" id="modal-paid-amount">Rp 0</span>
+                        </div>
+                        <hr class="my-2">
+                        <div class="d-flex justify-content-between small">
+                            <span class="fw-bold text-danger">Sisa Kekurangan:</span>
+                            <strong class="font-monospace text-danger fs-6" id="modal-paid-unpaid-amount">Rp 0</strong>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="paid_payment_destination" class="form-label fw-semibold small text-dark mb-1">
+                            <i class="fas fa-university me-1 text-primary"></i> Kas / Bank Tujuan Pelunasan <span class="text-danger">*</span>
+                        </label>
+                        <select name="payment_destination" id="paid_payment_destination" class="form-select form-select-sm" required>
+                            @if(isset($bankAccounts) && $bankAccounts->isNotEmpty())
+                                @foreach($bankAccounts as $bank)
+                                    <option value="{{ $bank->bank_name }}">
+                                        {{ $bank->bank_name }} {{ $bank->account_number ? '('.$bank->account_number.')' : '' }} — Saldo: Rp {{ number_format($bank->current_balance, 0, ',', '.') }}
+                                    </option>
+                                @endforeach
+                            @else
+                                <option value="kas_besar">Kas Besar (Utama)</option>
+                                <option value="kas_kecil">Kas Kecil (Operasional)</option>
+                            @endif
+                        </select>
+                    </div>
+
+                    <div class="alert alert-info py-2 mb-0 small">
+                        <i class="fas fa-check-circle me-1"></i> Sisa kekurangan akan dicatat sebagai <strong>Lunas</strong> dan dimasukkan ke Kas/Bank pilihan Anda.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Tutup</button>
+                    <button type="submit" class="btn btn-success btn-sm px-4">
+                        <i class="fas fa-check-circle me-1"></i> Konfirmasi Pelunasan
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 @endpush
 
 @push('scripts')
@@ -356,6 +457,34 @@
             } else {
                 noteEl.innerHTML = '<i class="fas fa-undo me-1"></i> Stok semua produk dalam transaksi ini akan <strong>dikembalikan</strong> secara otomatis.';
                 noteEl.className = 'alert alert-warning py-2 mb-0 small';
+            }
+        });
+
+        // Modal Pelunasan
+        const modalMarkPaid = document.getElementById('modalMarkPaid');
+        if (modalMarkPaid) {
+            modalMarkPaid.addEventListener('show.bs.modal', function (event) {
+                const btn = event.relatedTarget;
+                const id = btn.getAttribute('data-id');
+                document.getElementById('modal-paid-sale-number').textContent = btn.getAttribute('data-sale-number');
+                document.getElementById('modal-paid-grand-total').textContent = btn.getAttribute('data-grand-total');
+                document.getElementById('modal-paid-amount').textContent = btn.getAttribute('data-paid-amount');
+                document.getElementById('modal-paid-unpaid-amount').textContent = btn.getAttribute('data-unpaid-amount');
+                document.getElementById('form-mark-paid').action = '/offline-sales/' + id + '/mark-paid';
+            });
+        }
+
+        // Loading state saat submit
+        ['form-approve', 'form-cancel', 'form-mark-paid'].forEach(function (formId) {
+            const form = document.getElementById(formId);
+            if (form) {
+                form.addEventListener('submit', function () {
+                    const btn = form.querySelector('button[type="submit"]');
+                    if (btn) {
+                        btn.disabled = true;
+                        btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Memproses...';
+                    }
+                });
             }
         });
     });
