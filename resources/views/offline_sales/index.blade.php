@@ -150,6 +150,9 @@
                                     @if ($sale->is_dropship)
                                         <span class="badge bg-warning text-dark font-monospace ms-1" style="font-size: 0.6rem; padding: 0.15em 0.3em;">Dropship</span>
                                     @endif
+                                    @if ($sale->is_po)
+                                        <span class="badge text-white font-monospace ms-1" style="background-color: #8b5cf6; font-size: 0.6rem; padding: 0.15em 0.3em;">PO Produksi</span>
+                                    @endif
                                 </td>
                                 <td class="small">
                                     <div class="fw-semibold">{{ $sale->buyer_name ?: '(Umum)' }}</div>

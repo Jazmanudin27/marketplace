@@ -462,12 +462,7 @@
                 <div class="collapse {{ $isMarketingActive ? 'show' : '' }}" id="collapseMarketing">
                     <div class="nav flex-column ms-3 mt-1 gap-1 border-start ps-2">
 
-                        @can('orders.create')
-                            <a href="{{ route('orders.create') }}"
-                                class="nav-link py-1 {{ request()->routeIs('orders.create') ? 'active text-white' : 'text-secondary' }}">
-                                <span>Input Pesanan Manual</span>
-                            </a>
-                        @endcan
+
                         @can('offline-sales.index')
                             <a href="{{ route('offline_sales.index') }}"
                                 class="nav-link py-1 {{ request()->routeIs('offline_sales.*') ? 'active text-white' : 'text-secondary' }}">Penjualan

@@ -52,6 +52,17 @@
                 </div>
             </div>
 
+            {{-- Banner Pesanan PO Produksi --}}
+            @if ($offlineSale->is_po && $offlineSale->status === \App\Models\OfflineSale::STATUS_PENDING_APPROVAL)
+                <div class="alert alert-info d-flex align-items-center gap-3 mb-3 py-3" style="background-color: #f3e8ff; border-color: #c084fc; color: #581c87;">
+                    <i class="fas fa-hammer fa-lg"></i>
+                    <div>
+                        <strong>Pesanan Pre-Order / PO Produksi (Dalam SPK)</strong><br>
+                        <small>Pesanan ini telah diterbitkan otomatis ke <strong>SPK Produksi</strong>. Gudang dapat melakukan Approval Pengeluaran Barang setelah Tim Produksi menyelesaikan setoran SPK ke stok gudang.</small>
+                    </div>
+                </div>
+            @endif
+
             {{-- Banner Menunggu Approval --}}
             @if ($offlineSale->status === \App\Models\OfflineSale::STATUS_PENDING_APPROVAL)
                 <div class="alert alert-warning d-flex align-items-center gap-3 mb-4 py-3">

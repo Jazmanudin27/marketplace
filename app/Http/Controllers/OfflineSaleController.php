@@ -77,7 +77,6 @@ class OfflineSaleController extends Controller
     {
         $tenantId = Auth::user()->tenant_id;
         $products = MasterProduct::where('tenant_id', $tenantId)
-            ->where('stock', '>', 0)
             ->where('is_active', true)
             ->orderBy('name')
             ->get(['id', 'name', 'sku', 'price', 'reseller_price', 'stock', 'unit']);
@@ -161,8 +160,10 @@ class OfflineSaleController extends Controller
                 $effectivePrice = max(0, $unitPrice - $itemDiscPerUnit);
                 $subtotal       = $qty * $effectivePrice;
 
-                // Pastikan stok cukup
-                if ($product->stock < $qty) {
+                $isPo = $request->boolean('is_po');
+
+                // Pastikan stok cukup jika bukan pesanan Pre-Order / PO Produksi
+                if (!$isPo && $product->stock < $qty) {
                     abort(422, "Stok {$product->name} tidak mencukupi. Stok tersedia: {$product->stock}");
                 }
 
@@ -244,6 +245,7 @@ class OfflineSaleController extends Controller
                 'change_amount'   => $changeAmount,
                 'notes'           => $request->notes,
                 'sold_at'         => now(),
+                'is_po'            => $request->boolean('is_po'),
                 'is_dropship'      => (bool) $request->is_dropship,
                 'dropshipper_name'  => $request->is_dropship ? $request->dropshipper_name : null,
                 'dropshipper_phone' => $request->is_dropship ? $request->dropshipper_phone : null,
@@ -251,7 +253,37 @@ class OfflineSaleController extends Controller
 
             foreach ($itemsData as $itemData) {
                 $sale->items()->create($itemData);
-                // Stok belum dikurangi — akan dikurangi saat approve
+            }
+
+            // Jika pesanan Pre-Order (PO Produksi), buatkan SPK otomatis untuk Tim Produksi
+            if ($request->boolean('is_po')) {
+                $today = date('Ymd');
+                $countToday = \App\Models\Spk::where('tenant_id', $tenantId)
+                    ->whereDate('tanggal', date('Y-m-d'))
+                    ->count();
+                $noSpk = 'SPK-PO-' . $today . '-' . sprintf('%03d', $countToday + 1);
+
+                $spk = \App\Models\Spk::create([
+                    'tenant_id'     => $tenantId,
+                    'no_spk'        => $noSpk,
+                    'tanggal'       => now(),
+                    'pemesan'       => $request->buyer_name ?: 'Pelanggan PO',
+                    'no_hp_pemesan' => $request->buyer_phone ?: '',
+                    'instansi'      => 'Penjualan PO #' . $sale->sale_number,
+                    'penginput_id'  => Auth::id(),
+                ]);
+
+                foreach ($itemsData as $itemData) {
+                    \App\Models\SpkItem::create([
+                        'spk_id'            => $spk->id,
+                        'master_product_id' => $itemData['master_product_id'],
+                        'nama_produk'       => $itemData['product_name'],
+                        'sku'               => $itemData['sku'],
+                        'quantity'          => $itemData['quantity'],
+                        'hpp'               => $itemData['unit_price'],
+                        'status'            => 'Pending',
+                    ]);
+                }
             }
         });
 
@@ -292,6 +324,9 @@ class OfflineSaleController extends Controller
             if ($item->master_product_id) {
                 $product = MasterProduct::find($item->master_product_id);
                 if ($product && $product->stock < $item->quantity) {
+                    if ($offlineSale->is_po) {
+                        return back()->with('error', "Pesanan PO ini masih dalam proses produksi (SPK). Stok {$product->name} di gudang belum mencukupi (tersedia: {$product->stock}, dibutuhkan: {$item->quantity}). Silakan selesaikan SPK produksi terlebih dahulu.");
+                    }
                     return back()->with('error', "Stok {$product->name} tidak mencukupi (tersedia: {$product->stock}, dibutuhkan: {$item->quantity}). Tidak bisa diapprove.");
                 }
             }

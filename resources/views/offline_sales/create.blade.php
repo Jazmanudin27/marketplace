@@ -121,6 +121,19 @@
                                     Pembayaran</h6>
                             </div>
                             <div class="card-body p-3">
+                                {{-- Switch PO Produksi --}}
+                                <div class="card border border-primary border-opacity-25 bg-primary bg-opacity-10 mb-3 p-2 rounded">
+                                    <div class="form-check form-switch mb-0">
+                                        <input class="form-check-input" type="checkbox" name="is_po" id="is-po-switch" value="1">
+                                        <label class="form-check-label fw-bold text-dark small" for="is-po-switch">
+                                            <i class="fas fa-hammer text-primary me-1"></i> Pesanan Pre-Order / PO Produksi
+                                        </label>
+                                    </div>
+                                    <div class="small text-muted mt-1" style="font-size: 0.72rem;">
+                                        Centang jika pesanan ini butuh dibuatkan SPK Produksi otomatis.
+                                    </div>
+                                </div>
+
                                 {{-- 1. Pelanggan / Pembeli (Master Data) --}}
                                 <div class="mb-3" id="customer-select-wrapper">
                                     <div class="d-flex justify-content-between align-items-center mb-1">
