@@ -238,11 +238,7 @@
                                     <i class="fas fa-print"></i> Cetak Resi Massal (Thermal)
                                 </button>
 
-                                <button type="button" id="btn-top-verify"
-                                    class="btn btn-warning text-dark btn-sm d-inline-flex align-items-center gap-1 fw-bold shadow-sm"
-                                    title="Verifikasi Packing Selesai">
-                                    <i class="fas fa-check-double"></i> Packing Selesai
-                                </button>
+
 
                                 <button type="button" id="btn-top-ship"
                                     class="btn btn-outline-success btn-sm d-inline-flex align-items-center gap-1 fw-bold shadow-sm"
@@ -445,22 +441,7 @@
                 batchForm.submit();
             });
 
-            // 3. Konfirmasi Packing Selesai
-            $('#btn-top-verify').on('click', function() {
-                const checked = $('.order-checkbox:checked');
-                if (checked.length === 0) {
-                    alert(
-                        'Pilih minimal satu pesanan dengan mencentang kotak untuk memverifikasi packing.'
-                    );
-                    return;
-                }
-                if (confirm('Konfirmasi verifikasi packing massal untuk pesanan terpilih?')) {
-                    batchForm.attr('action', "{{ route('fulfillment.batch_verify') }}");
-                    batchForm.attr('method', "POST");
-                    batchForm.removeAttr('target');
-                    batchForm.submit();
-                }
-            });
+
 
             // 4. Kirim Resi ke API Marketplace
             $('#btn-top-ship').on('click', function() {
