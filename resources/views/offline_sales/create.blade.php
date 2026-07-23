@@ -182,8 +182,10 @@
 
                                 <!-- Hidden fields for dropship (auto-filled if customer is dropship type) -->
                                 <input type="hidden" name="is_dropship" id="is-dropship-toggle" value="0">
-                                <input type="hidden" name="dropshipper_name" id="dropshipper-name-input" value="">
-                                <input type="hidden" name="dropshipper_phone" id="dropshipper-phone-input" value="">
+                                <input type="hidden" name="dropshipper_name" id="dropshipper-name-input"
+                                    value="">
+                                <input type="hidden" name="dropshipper_phone" id="dropshipper-phone-input"
+                                    value="">
 
                                 <hr class="my-3">
 
@@ -328,7 +330,8 @@
 
                 // Update harga semua item di keranjang
                 Object.keys(cartItems).forEach(id => {
-                    cartItems[id].price = active ? cartItems[id].dropship_price : cartItems[id].normal_price;
+                    cartItems[id].price = active ? cartItems[id].dropship_price : cartItems[id]
+                        .normal_price;
                 });
 
                 renderCart();
