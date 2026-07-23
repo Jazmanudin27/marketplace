@@ -200,14 +200,14 @@
     <table>
         <thead>
             <tr>
-                <th width="4%" class="text-center">NO</th>
-                <th width="26%">NAMA PRODUK MARKETPLACE</th>
-                <th width="14%">SKU MARKETPLACE</th>
-                <th width="15%">CHANNEL & TOKO</th>
-                <th width="10%" class="text-right">HARGA</th>
-                <th width="7%" class="text-center">STOK</th>
+                <th width="3%" class="text-center">NO</th>
+                <th width="25%">NAMA PRODUK MARKETPLACE</th>
+                <th width="10%">CHANNEL</th>
+                <th width="14%">TOKO</th>
+                <th width="15%">SKU MARKETPLACE</th>
+                <th width="11%" class="text-right">HARGA</th>
+                <th width="6%" class="text-center">STOK</th>
                 <th width="16%">MASTER PRODUCT TERTAUT</th>
-                <th width="8%" class="text-center">SINKRONISASI</th>
             </tr>
         </thead>
         <tbody>
@@ -217,12 +217,14 @@
                     <td>
                         <strong>{{ $p->name }}</strong>
                     </td>
-                    <td class="font-mono">
-                        {{ $p->marketplace_sku ?: '-' }}
+                    <td>
+                        <strong>{{ $p->store->channel->name ?? '-' }}</strong>
                     </td>
                     <td>
                         <strong>{{ $p->store->store_name ?? '-' }}</strong>
-                        <br><span style="color: #555; font-size: 9px;">Channel: {{ $p->store->channel->name ?? '-' }}</span>
+                    </td>
+                    <td class="font-mono">
+                        {{ $p->marketplace_sku ?: '-' }}
                     </td>
                     <td class="text-right font-mono">Rp {{ number_format($p->price, 0, ',', '.') }}</td>
                     <td class="text-center font-mono"><strong>{{ number_format($p->stock) }}</strong></td>
@@ -234,12 +236,6 @@
                         @else
                             <span class="badge-unmapped">BELUM DITAUTKAN</span>
                         @endif
-                    </td>
-                    <td class="text-center">
-                        <span style="font-size: 8px;">
-                            Stok: {!! $p->sync_stock ? '<span class="badge-active">Ya</span>' : '<span class="badge-inactive">Tidak</span>' !!}
-                            <br>Harga: {!! $p->sync_price ? '<span class="badge-active">Ya</span>' : '<span class="badge-inactive">Tidak</span>' !!}
-                        </span>
                     </td>
                 </tr>
             @empty
