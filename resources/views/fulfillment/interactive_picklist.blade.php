@@ -1,11 +1,11 @@
 @extends('layouts.app')
-@section('title', 'Layar Interaktif Ambil Barang (Pick List Scanner)')
-@section('page-title', 'Ambil Barang Gudang (Pick List Mode)')
+@section('title', 'Ambil Barang Gudang (Pick List Mode)')
+@section('page-title', 'Ambil Barang Gudang')
 
 @section('content')
 <div class="container-fluid p-0">
 
-    {{-- Top Action & Progress Bar Header --}}
+    {{-- Header Action & Progress --}}
     <div class="card border-0 shadow-sm rounded-3 mb-4 bg-white">
         <div class="card-body p-4">
             <div class="row align-items-center g-3">
@@ -14,13 +14,16 @@
                         <a href="{{ route('fulfillment.index') }}" class="btn btn-sm btn-light border rounded-circle p-2 d-inline-flex align-items-center justify-content-center" style="width: 32px; height: 32px;" title="Kembali ke Pemenuhan Pesanan">
                             <i class="fas fa-arrow-left"></i>
                         </a>
-                        <h4 class="fw-bold text-dark mb-0"><i class="fas fa-barcode text-primary me-2"></i>Layar Rekap Ambil Barang</h4>
+                        <h4 class="fw-bold text-dark mb-0"><i class="fas fa-boxes text-primary me-2"></i>Rekap Pengambilan Barang Gudang</h4>
                     </div>
                     <small class="text-muted d-block ms-4">
-                        Memproses <strong>{{ count($orders) }} Pesanan</strong> | Total <strong>{{ $totalPcs }} Pcs</strong> barang yang harus diambil di rak gudang.
+                        Memproses <strong>{{ count($orders) }} Pesanan</strong> | Total <strong>{{ $totalPcs }} Pcs</strong> barang yang harus diambil.
                     </small>
                 </div>
-                <div class="col-md-6 text-md-end">
+                <div class="col-md-6 text-md-end d-flex justify-content-md-end gap-2 align-items-center">
+                    <button type="button" class="btn btn-outline-success btn-lg fw-bold px-3 rounded-3 shadow-sm" id="btnPickAll">
+                        <i class="fas fa-check-double me-1"></i> Ambil Semua (Full All)
+                    </button>
                     <form action="{{ route('fulfillment.confirm_picking') }}" method="POST" id="confirmPickingForm" class="d-inline">
                         @csrf
                         @foreach($orderIds as $oId)
@@ -36,7 +39,7 @@
             {{-- Overall Progress Bar --}}
             <div class="mt-4 pt-3 border-top">
                 <div class="d-flex justify-content-between align-items-center mb-2">
-                    <span class="fw-bold small text-dark"><i class="fas fa-tasks me-1 text-primary"></i> Progress Pengambilan Barang (Overall Pick Progress):</span>
+                    <span class="fw-bold small text-dark"><i class="fas fa-tasks me-1 text-primary"></i> Progress Pengambilan Barang:</span>
                     <span class="fw-bold text-primary fs-6"><span id="totalPickedCount">0</span> / {{ $totalPcs }} Pcs (<span id="totalProgressPercent">0</span>%)</span>
                 </div>
                 <div class="progress rounded-pill shadow-sm" style="height: 14px; background-color: #e2e8f0;">
@@ -46,36 +49,22 @@
         </div>
     </div>
 
-    {{-- Barcode Scanner Input Card --}}
-    <div class="card border-primary border-2 shadow-sm rounded-3 mb-4 bg-primary-subtle">
-        <div class="card-body p-3">
-            <div class="row align-items-center g-2">
-                <div class="col-md-7 col-lg-8">
-                    <div class="input-group input-group-lg">
-                        <span class="input-group-text bg-primary text-white border-primary"><i class="fas fa-barcode fs-4"></i></span>
-                        <input type="text" id="barcodeInput" class="form-control form-control-lg border-primary fw-bold text-dark font-monospace" placeholder="Scan Barcode SKU / Ketik SKU di sini..." autocomplete="off" autofocus>
-                        <button type="button" class="btn btn-primary px-4 fw-bold" id="btnSubmitScan"><i class="fas fa-arrow-right me-1"></i> Scan</button>
-                    </div>
-                </div>
-                <div class="col-md-5 col-lg-4">
-                    <div class="input-group input-group-lg">
-                        <span class="input-group-text bg-white border-secondary-subtle text-muted"><i class="fas fa-search"></i></span>
-                        <input type="text" id="searchTableInput" class="form-control form-control-lg border-secondary-subtle small" placeholder="Filter/Cari nama barang..." autocomplete="off">
-                    </div>
-                </div>
+    {{-- Filter Search Bar --}}
+    <div class="card border rounded shadow-sm bg-white mb-3 p-3">
+        <div class="row g-2 align-items-center">
+            <div class="col-md-6">
+                <span class="fw-bold text-dark small"><i class="fas fa-list me-1 text-secondary"></i> Input Jumlah Pengambilan Per Barang</span>
             </div>
-            <div class="mt-2 d-flex justify-content-between align-items-center px-1">
-                <small class="text-primary fw-semibold" style="font-size: 11px;">
-                    <i class="fas fa-info-circle me-1"></i> Mode Scan Aktif: Arahkan barcode scanner fisik ke SKU barang. Sistem otomatis menambah Qty +1 per scan.
-                </small>
-                <div id="scanFeedback" class="badge bg-success text-white px-3 py-1-5 fs-7 d-none shadow-sm">
-                    <i class="fas fa-check me-1"></i> SKU Ditemukan!
+            <div class="col-md-6 col-lg-4 ms-auto">
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text bg-light"><i class="fas fa-search text-muted"></i></span>
+                    <input type="text" id="searchTableInput" class="form-control" placeholder="Cari SKU / nama barang..." autocomplete="off">
                 </div>
             </div>
         </div>
     </div>
 
-    {{-- Items Picking List Grid / Table --}}
+    {{-- Items Picking List Table --}}
     <div class="card border-0 shadow-sm rounded-3 bg-white">
         <div class="card-body p-0">
             <div class="table-responsive">
@@ -83,11 +72,12 @@
                     <thead class="table-dark">
                         <tr class="small">
                             <th class="text-center" style="width: 50px;">NO</th>
-                            <th style="width: 180px;">SKU / KODE BARANG</th>
-                            <th>NAMA PRODUK</th>
-                            <th class="text-center" style="width: 140px;">TIPE BARANG</th>
-                            <th class="text-center" style="width: 160px;">TARGET / AMBIL</th>
-                            <th class="text-center" style="width: 220px;">AKSI MANUAL</th>
+                            <th style="width: 170px;">SKU / KODE</th>
+                            <th>NAMA PRODUK & INVOICE</th>
+                            <th class="text-center" style="width: 130px;">TIPE</th>
+                            <th class="text-center" style="width: 130px;">TARGET</th>
+                            <th class="text-center" style="width: 250px;">JUMLAH DIAMBIL</th>
+                            <th class="text-center" style="width: 150px;">STATUS</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -112,48 +102,51 @@
                                 </td>
                                 <td class="text-center">
                                     @if($item['is_po'])
-                                        <span class="badge bg-purple text-white px-2 py-1-5 fw-bold" style="background-color: #8b5cf6;" title="Barang Pre-Order / Produksi SPK">
+                                        <span class="badge bg-purple text-white px-2 py-1 fw-bold" style="background-color: #8b5cf6;" title="Barang Pre-Order / Produksi SPK">
                                             <i class="fas fa-clock me-1"></i> PO / SPK
                                         </span>
                                         @if(!empty($item['spk_no']))
                                             <div class="small font-monospace text-primary fw-semibold mt-1" style="font-size: 10px;">#{{ $item['spk_no'] }}</div>
                                         @endif
                                     @else
-                                        <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1-5 fw-bold" title="Barang Ready Stock">
-                                            <i class="fas fa-check-circle me-1"></i> READY STOCK
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1 fw-bold">
+                                            <i class="fas fa-check-circle me-1"></i> READY
                                         </span>
                                     @endif
                                 </td>
                                 <td class="text-center">
-                                    <div class="fs-5 fw-bold text-dark">
-                                        <span class="picked-qty text-danger">0</span> / <span class="target-qty">{{ $item['target'] }}</span> Pcs
-                                    </div>
-                                    <div class="item-status-badge mt-1">
-                                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1 small">
-                                            Belum Diambil
-                                        </span>
+                                    <div class="fs-5 fw-bold text-dark font-monospace">
+                                        <span class="target-qty">{{ $item['target'] }}</span> Pcs
                                     </div>
                                 </td>
                                 <td class="text-center">
-                                    <div class="btn-group btn-group-sm gap-1" role="group">
-                                        <button type="button" class="btn btn-outline-danger btn-minus btn-sm rounded-2 px-2" title="Kurangi 1">
+                                    <div class="d-flex align-items-center justify-content-center gap-1">
+                                        <button type="button" class="btn btn-outline-danger btn-sm btn-minus px-2" title="Kurangi 1">
                                             <i class="fas fa-minus"></i>
                                         </button>
-                                        <button type="button" class="btn btn-primary btn-plus btn-sm rounded-2 px-3 fw-bold" title="Tambah 1">
-                                            <i class="fas fa-plus me-1"></i> +1
+                                        <input type="number" class="form-control form-control-sm text-center font-monospace fw-bold input-picked-qty" style="width: 75px;" min="0" max="{{ $item['target'] }}" value="0">
+                                        <button type="button" class="btn btn-outline-primary btn-sm btn-plus px-2" title="Tambah 1">
+                                            <i class="fas fa-plus"></i>
                                         </button>
-                                        <button type="button" class="btn btn-outline-success btn-complete-item btn-sm rounded-2 px-2 fw-bold" title="Set Selesai">
-                                            <i class="fas fa-check me-1"></i> Full
+                                        <button type="button" class="btn btn-sm btn-success btn-complete-item px-2 fw-bold" title="Set Ambil Semua">
+                                            <i class="fas fa-check"></i> Full
                                         </button>
+                                    </div>
+                                </td>
+                                <td class="text-center">
+                                    <div class="item-status-badge">
+                                        <span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-25 px-2 py-1 small">
+                                            Belum Diambil
+                                        </span>
                                     </div>
                                 </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="6" class="text-center p-5 text-muted">
+                                <td colspan="7" class="text-center p-5 text-muted">
                                     <i class="fas fa-box-open fs-1 text-muted opacity-25 mb-3 d-block"></i>
                                     <h6 class="fw-bold text-dark mb-1">Belum Ada Pesanan yang Siap Diambil</h6>
-                                    <p class="small text-muted mb-0">Silakan cetak resi thermal terlebih dahulu di menu <strong>Pemenuhan Pesanan</strong>, atau centang (chelist) pesanan spesifik yang ingin Anda ambil barangnya.</p>
+                                    <p class="small text-muted mb-0">Silakan cetak resi thermal terlebih dahulu di menu <strong>Pemenuhan Pesanan</strong>, atau centang pesanan spesifik yang ingin Anda ambil barangnya.</p>
                                 </td>
                             </tr>
                         @endforelse
@@ -165,61 +158,11 @@
 
 </div>
 
-{{-- Audio Beep Sound Effects via Web Audio API --}}
-<script>
-    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    
-    function playBeepSound(type = 'success') {
-        try {
-            if (audioCtx.state === 'suspended') {
-                audioCtx.resume();
-            }
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-            
-            if (type === 'success') {
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(880, audioCtx.currentTime); // A5 note
-                gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
-                osc.start();
-                osc.stop(audioCtx.currentTime + 0.12);
-            } else if (type === 'complete') {
-                osc.type = 'triangle';
-                osc.frequency.setValueAtTime(523.25, audioCtx.currentTime);
-                osc.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.08);
-                osc.frequency.setValueAtTime(783.99, audioCtx.currentTime + 0.16);
-                gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
-                osc.start();
-                osc.stop(audioCtx.currentTime + 0.3);
-            } else {
-                osc.type = 'sawtooth';
-                osc.frequency.setValueAtTime(220, audioCtx.currentTime);
-                gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
-                osc.start();
-                osc.stop(audioCtx.currentTime + 0.25);
-            }
-        } catch (e) {
-            console.log('Audio error:', e);
-        }
-    }
-</script>
-
 @push('scripts')
 <script>
     $(document).ready(function() {
-        const barcodeInput = $('#barcodeInput');
         const totalPcs = {{ $totalPcs }};
         
-        // Auto-focus barcode input
-        barcodeInput.focus();
-        $(document).on('click', function(e) {
-            if (!$(e.target).closest('input, button, select, a, table').length) {
-                barcodeInput.focus();
-            }
-        });
-
         // Recalculate totals & progress bar
         function updateProgress() {
             let totalPicked = 0;
@@ -242,23 +185,22 @@
         function updateRowUI($row) {
             const target = parseInt($row.attr('data-target')) || 0;
             const picked = parseInt($row.attr('data-picked')) || 0;
-            const $pickedLabel = $row.find('.picked-qty');
+            const $input = $row.find('.input-picked-qty');
             const $statusContainer = $row.find('.item-status-badge');
 
-            $pickedLabel.text(picked);
+            if ($input.val() != picked) {
+                $input.val(picked);
+            }
 
             if (picked >= target) {
                 $row.removeClass('table-warning').addClass('table-success');
-                $pickedLabel.removeClass('text-danger text-warning').addClass('text-success fw-bold');
                 $statusContainer.html('<span class="badge bg-success text-white px-2 py-1 small fw-bold"><i class="fas fa-check-circle me-1"></i> Selesai Ambil</span>');
             } else if (picked > 0) {
                 $row.removeClass('table-success').addClass('table-warning');
-                $pickedLabel.removeClass('text-danger text-success').addClass('text-warning-emphasis fw-bold');
                 $statusContainer.html('<span class="badge bg-warning text-dark px-2 py-1 small fw-bold"><i class="fas fa-spinner fa-spin me-1"></i> Sedang Diambil</span>');
             } else {
                 $row.removeClass('table-success table-warning');
-                $pickedLabel.removeClass('text-success text-warning').addClass('text-danger');
-                $statusContainer.html('<span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1 small"><i class="fas fa-clock me-1"></i> Belum Diambil</span>');
+                $statusContainer.html('<span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-25 px-2 py-1 small"><i class="fas fa-clock me-1"></i> Belum Diambil</span>');
             }
 
             updateProgress();
@@ -266,6 +208,7 @@
 
         // AJAX real-time stock deduction in database
         function deductStockAjax(sku, qty) {
+            if (qty <= 0) return;
             $.ajax({
                 url: "{{ route('fulfillment.scan_sku_deduct') }}",
                 type: "POST",
@@ -273,89 +216,47 @@
                     _token: "{{ csrf_token() }}",
                     sku: sku,
                     qty: qty
-                },
-                success: function(res) {
-                    if (res.success) {
-                        $('#scanFeedback').removeClass('d-none bg-danger').addClass('bg-success')
-                            .html('<i class="fas fa-check-circle me-1"></i> ' + res.message)
-                            .fadeIn(100).delay(2500).fadeOut(200);
-                    }
                 }
             });
         }
 
-        // Process Scan / Increment Item
-        function incrementSku(querySku) {
-            const cleanQuery = querySku.trim().toLowerCase();
-            if (!cleanQuery) return;
+        // Direct input change
+        $(document).on('change keyup', '.input-picked-qty', function() {
+            const $row = $(this).closest('.picking-row');
+            const rawSku = $row.find('.sku-label').text();
+            const target = parseInt($row.attr('data-target')) || 0;
+            let newVal = parseInt($(this).val()) || 0;
 
-            let found = false;
-            $('.picking-row').each(function() {
-                const rowSku = $(this).attr('data-sku');
-                const rawSku = $(this).find('.sku-label').text();
-                const rowName = $(this).attr('data-name');
+            if (newVal < 0) newVal = 0;
+            if (newVal > target) newVal = target;
 
-                if (rowSku === cleanQuery || rowSku.includes(cleanQuery) || rowName.includes(cleanQuery)) {
-                    let currentPicked = parseInt($(this).attr('data-picked')) || 0;
-                    const target = parseInt($(this).attr('data-target')) || 0;
+            const oldVal = parseInt($row.attr('data-picked')) || 0;
+            const diff = newVal - oldVal;
 
-                    currentPicked += 1;
-                    $(this).attr('data-picked', currentPicked);
-                    updateRowUI($(this));
+            $row.attr('data-picked', newVal);
+            updateRowUI($row);
 
-                    // Deduct stock in DB real-time
-                    deductStockAjax(rawSku, 1);
-
-                    // Highlight row effect
-                    $(this).addClass('bg-success-subtle');
-                    setTimeout(() => {
-                        $(this).removeClass('bg-success-subtle');
-                    }, 800);
-
-                    found = true;
-
-                    if (currentPicked >= target) {
-                        playBeepSound('complete');
-                    } else {
-                        playBeepSound('success');
-                    }
-                    return false; // Break loop on first match
-                }
-            });
-
-            if (!found) {
-                playBeepSound('error');
-                $('#scanFeedback').removeClass('d-none bg-success').addClass('bg-danger').html('<i class="fas fa-times me-1"></i> SKU "' + querySku + '" Tidak Ditemukan!').fadeIn(100).delay(1500).fadeOut(200);
-            }
-
-            barcodeInput.val('').focus();
-        }
-
-        // Handle Scan Form Submission
-        $('#btnSubmitScan').on('click', function() {
-            incrementSku(barcodeInput.val());
-        });
-
-        barcodeInput.on('keypress', function(e) {
-            if (e.which === 13) { // Enter key from barcode scanner
-                e.preventDefault();
-                incrementSku($(this).val());
+            if (diff > 0) {
+                deductStockAjax(rawSku, diff);
             }
         });
 
-        // Manual Buttons: Plus 1
+        // Manual Button: Plus 1
         $(document).on('click', '.btn-plus', function() {
             const $row = $(this).closest('.picking-row');
             const rawSku = $row.find('.sku-label').text();
+            const target = parseInt($row.attr('data-target')) || 0;
             let picked = parseInt($row.attr('data-picked')) || 0;
-            picked += 1;
-            $row.attr('data-picked', picked);
-            updateRowUI($row);
-            deductStockAjax(rawSku, 1);
-            playBeepSound('success');
+
+            if (picked < target) {
+                picked += 1;
+                $row.attr('data-picked', picked);
+                updateRowUI($row);
+                deductStockAjax(rawSku, 1);
+            }
         });
 
-        // Manual Buttons: Minus 1
+        // Manual Button: Minus 1
         $(document).on('click', '.btn-minus', function() {
             const $row = $(this).closest('.picking-row');
             let picked = parseInt($row.attr('data-picked')) || 0;
@@ -366,7 +267,7 @@
             }
         });
 
-        // Manual Buttons: Complete Full
+        // Manual Button: Complete Full Item
         $(document).on('click', '.btn-complete-item', function() {
             const $row = $(this).closest('.picking-row');
             const rawSku = $row.find('.sku-label').text();
@@ -378,8 +279,24 @@
                 $row.attr('data-picked', target);
                 updateRowUI($row);
                 deductStockAjax(rawSku, needed);
-                playBeepSound('complete');
             }
+        });
+
+        // Header Button: Pick All Items (Full All)
+        $('#btnPickAll').on('click', function() {
+            $('.picking-row').each(function() {
+                const $row = $(this);
+                const rawSku = $row.find('.sku-label').text();
+                const target = parseInt($row.attr('data-target')) || 0;
+                const currentPicked = parseInt($row.attr('data-picked')) || 0;
+                const needed = target - currentPicked;
+
+                if (needed > 0) {
+                    $row.attr('data-picked', target);
+                    updateRowUI($row);
+                    deductStockAjax(rawSku, needed);
+                }
+            });
         });
 
         // Live Search Filter Table
