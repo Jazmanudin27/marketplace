@@ -200,14 +200,13 @@
     <table>
         <thead>
             <tr>
-                <th width="3%" class="text-center">NO</th>
-                <th width="25%">NAMA PRODUK MARKETPLACE</th>
-                <th width="10%">CHANNEL</th>
-                <th width="14%">TOKO</th>
-                <th width="15%">SKU MARKETPLACE</th>
+                <th width="4%" class="text-center">NO</th>
+                <th width="34%">NAMA PRODUK MARKETPLACE</th>
+                <th width="12%">CHANNEL</th>
+                <th width="16%">TOKO</th>
+                <th width="16%">SKU MARKETPLACE</th>
                 <th width="11%" class="text-right">HARGA</th>
-                <th width="6%" class="text-center">STOK</th>
-                <th width="16%">MASTER PRODUCT TERTAUT</th>
+                <th width="7%" class="text-center">STOK</th>
             </tr>
         </thead>
         <tbody>
@@ -228,19 +227,10 @@
                     </td>
                     <td class="text-right font-mono">Rp {{ number_format($p->price, 0, ',', '.') }}</td>
                     <td class="text-center font-mono"><strong>{{ number_format($p->stock) }}</strong></td>
-                    <td>
-                        @if($p->masterProduct)
-                            <span class="badge-mapped">TERTAUT</span>
-                            <br><strong>{{ $p->masterProduct->name }}</strong>
-                            <br><span class="font-mono" style="font-size: 9px; color: #555;">SKU: {{ $p->masterProduct->sku }}</span>
-                        @else
-                            <span class="badge-unmapped">BELUM DITAUTKAN</span>
-                        @endif
-                    </td>
                 </tr>
             @empty
                 <tr>
-                    <td colspan="8" class="text-center" style="padding: 15px;">Tidak ada data produk marketplace yang ditemukan.</td>
+                    <td colspan="7" class="text-center" style="padding: 15px;">Tidak ada data produk marketplace yang ditemukan.</td>
                 </tr>
             @endforelse
         </tbody>
