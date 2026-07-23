@@ -220,11 +220,11 @@
 
                             {{-- Action Buttons Bar (Top of Table) --}}
                             <div class="d-flex flex-wrap gap-2">
-                                <a href="{{ route('fulfillment.interactive_picklist', request()->query()) }}"
+                                <button type="button" id="btn-top-interactive"
                                     class="btn btn-success btn-sm d-inline-flex align-items-center gap-1 fw-bold shadow-sm"
                                     title="Buka Layar Rekap Ambil Barang Interaktif (Scan Barcode SKU)">
                                     <i class="fas fa-hand-pointer"></i> Layar Ambil Barang
-                                </a>
+                                </button>
 
                                 <button type="button" id="btn-top-pick"
                                     class="btn btn-info text-white btn-sm d-inline-flex align-items-center gap-1 fw-semibold shadow-sm"
@@ -415,6 +415,14 @@
 
             checkboxes.on('change', function() {
                 checkAll.prop('checked', checkboxes.length === $('.order-checkbox:checked').length);
+            });
+
+            // 0. Layar Ambil Barang (Interaktif)
+            $('#btn-top-interactive').on('click', function() {
+                batchForm.attr('action', "{{ route('fulfillment.interactive_picklist') }}");
+                batchForm.attr('method', "GET");
+                batchForm.removeAttr('target');
+                batchForm.submit();
             });
 
             // 1. Cetak Pick List (Daftar Pengambilan Barang) -> Kertas A4 / Standar

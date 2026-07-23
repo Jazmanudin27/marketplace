@@ -92,7 +92,7 @@
                     </thead>
                     <tbody>
                         @php $no = 1; @endphp
-                        @foreach($aggregated as $sku => $item)
+                        @forelse($aggregated as $sku => $item)
                             <tr class="picking-row" id="row-{{ Str::slug($sku) }}" data-sku="{{ strtolower($sku) }}" data-name="{{ strtolower($item['name']) }}" data-target="{{ $item['target'] }}" data-picked="0">
                                 <td class="text-center fw-bold text-muted">{{ $no++ }}</td>
                                 <td>
@@ -148,7 +148,15 @@
                                     </div>
                                 </td>
                             </tr>
-                        @endforeach
+                        @empty
+                            <tr>
+                                <td colspan="6" class="text-center p-5 text-muted">
+                                    <i class="fas fa-box-open fs-1 text-muted opacity-25 mb-3 d-block"></i>
+                                    <h6 class="fw-bold text-dark mb-1">Belum Ada Pesanan yang Siap Diambil</h6>
+                                    <p class="small text-muted mb-0">Silakan cetak resi thermal terlebih dahulu di menu <strong>Pemenuhan Pesanan</strong>, atau centang (chelist) pesanan spesifik yang ingin Anda ambil barangnya.</p>
+                                </td>
+                            </tr>
+                        @endforelse
                     </tbody>
                 </table>
             </div>

@@ -419,12 +419,15 @@ class FulfillmentController extends Controller
 
         $query = Order::with(['items.masterProduct', 'spks', 'store.channel'])
             ->where('tenant_id', $tenantId)
-            ->where('order_status', Order::STATUS_READY_TO_SHIP)
-            ->where('is_printed', true);
+            ->where('order_status', Order::STATUS_READY_TO_SHIP);
 
         if (!empty($ids)) {
+            // Jika user mencentang pesanan tertentu, ambil pesanan terpilih
             $query->whereIn('id', $ids);
         } else {
+            // Jika tidak mencentang pesanan spesifik, ambil pesanan yang SUDAH DIPRINT
+            $query->where('is_printed', true);
+
             if ($request->filled('search')) {
                 $search = $request->search;
                 $query->where(function ($q) use ($search) {
@@ -478,10 +481,6 @@ class FulfillmentController extends Controller
         }
 
         $orders = $query->orderByDesc('order_date')->get();
-
-        if ($orders->isEmpty()) {
-            return back()->with('error', 'Tidak ada pesanan Siap Kirim yang SUDAH DICETAK RESINYA. Silakan cetak resi terlebih dahulu di menu Pemenuhan Pesanan.');
-        }
 
         $aggregated = [];
         $totalPcs = 0;
