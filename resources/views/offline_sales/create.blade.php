@@ -123,7 +123,8 @@
                                 {{-- 1. Pelanggan / Pembeli (Master Data) --}}
                                 <div class="mb-3" id="customer-select-wrapper">
                                     <div class="d-flex justify-content-between align-items-center mb-1">
-                                        <label class="form-label form-label-sm text-muted fw-semibold mb-0">Pelanggan / Pembeli (Master Data)</label>
+                                        <label class="form-label form-label-sm text-muted fw-semibold mb-0">Pelanggan /
+                                            Pembeli (Master Data)</label>
                                         <button type="button"
                                             class="btn btn-link btn-sm p-0 text-decoration-none fw-bold small text-primary"
                                             data-bs-toggle="modal" data-bs-target="#modalCreateCustomer">
@@ -136,8 +137,7 @@
                                         @foreach ($customers as $cust)
                                             <option value="{{ $cust->id }}" data-name="{{ $cust->name }}"
                                                 data-phone="{{ $cust->phone }}" data-address="{{ $cust->address }}"
-                                                data-tags="{{ $cust->tags }}"
-                                                data-balance="{{ $cust->balance ?? 0 }}">
+                                                data-tags="{{ $cust->tags }}" data-balance="{{ $cust->balance ?? 0 }}">
                                                 {{ $cust->name }} {{ $cust->phone ? '(' . $cust->phone . ')' : '' }}
                                                 {{ $cust->tags ? '[' . $cust->tags . ']' : '' }}
                                             </option>
@@ -225,7 +225,8 @@
                                 <div
                                     class="d-flex justify-content-between mb-3 p-3 bg-success bg-opacity-10 border border-success border-opacity-10 rounded">
                                     <span class="fw-bold text-dark small align-self-center">GRAND TOTAL</span>
-                                    <span class="fw-extrabold text-success fs-5 font-monospace" id="display-grand-total">Rp
+                                    <span class="fw-extrabold text-success fs-5 font-monospace"
+                                        id="display-grand-total">Rp
                                         0</span>
                                 </div>
 
@@ -251,6 +252,10 @@
                                     <input type="text" name="paid_amount" id="paid-input"
                                         class="form-control form-control-sm fw-bold font-monospace text-dark"
                                         value="0" required>
+                                    <div id="paid-exceed-warning" class="text-danger small mt-1" style="display:none;">
+                                        <i class="fas fa-exclamation-circle me-1"></i>Uang diterima tidak boleh melebihi
+                                        total jual.
+                                    </div>
                                 </div>
                                 <div class="mb-3 p-3 text-center rounded bg-primary bg-opacity-10 border border-primary border-opacity-10"
                                     id="change-section">
@@ -602,6 +607,15 @@
             $('#paid-input').on('input', function() {
                 let formatted = formatNumberInput($(this).val());
                 $(this).val(formatted);
+                // Validasi tidak melebihi total jual
+                const paid = unformatNumber(formatted);
+                if (paid > grandTotal && grandTotal > 0) {
+                    $(this).addClass('is-invalid');
+                    $('#paid-exceed-warning').show();
+                } else {
+                    $(this).removeClass('is-invalid');
+                    $('#paid-exceed-warning').hide();
+                }
                 recalculate();
             });
 
@@ -689,6 +703,15 @@
                 let isValid = Object.keys(cartItems).length > 0;
                 if (method === 'tunai' && paid < grandTotal) {
                     isValid = false;
+                }
+                // Uang diterima tidak boleh melebihi total jual
+                if (method === 'tunai' && paid > grandTotal && grandTotal > 0) {
+                    isValid = false;
+                    $('#paid-input').addClass('is-invalid');
+                    $('#paid-exceed-warning').show();
+                } else if (method === 'tunai') {
+                    $('#paid-input').removeClass('is-invalid');
+                    $('#paid-exceed-warning').hide();
                 }
 
                 // Validate reseller balance
