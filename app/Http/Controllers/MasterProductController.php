@@ -1190,4 +1190,97 @@ class MasterProductController extends Controller
             'preorder_days' => $product->preorder_days,
         ]);
     }
+
+    /**
+     * Halaman Kalkulator & Setting Harga Masal
+     */
+    public function bulkPriceCalculator(Request $request)
+    {
+        $tenantId = Auth::user()->tenant_id;
+
+        $categories = Category::where('tenant_id', $tenantId)->get();
+        $brands = Brand::where('tenant_id', $tenantId)->get();
+
+        $query = MasterProduct::where('tenant_id', $tenantId)
+            ->where('is_active', true)
+            ->with(['category', 'brand', 'marketplaceProducts.store.channel']);
+
+        if ($request->filled('category_id')) {
+            $query->where('category_id', $request->category_id);
+        }
+
+        if ($request->filled('brand_id')) {
+            $query->where('brand_id', $request->brand_id);
+        }
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('name', 'like', '%' . $search . '%')
+                  ->orWhere('sku', 'like', '%' . $search . '%');
+            });
+        }
+
+        if ($request->filled('min_cost_price')) {
+            $query->where('cost_price', '>=', (float) $request->min_cost_price);
+        }
+
+        if ($request->filled('max_cost_price')) {
+            $query->where('cost_price', '<=', (float) $request->max_cost_price);
+        }
+
+        if ($request->filled('min_price')) {
+            $query->where('price', '>=', (float) $request->min_price);
+        }
+
+        if ($request->filled('max_price')) {
+            $query->where('price', '<=', (float) $request->max_price);
+        }
+
+        $products = $query->orderBy('name')->get();
+
+        return view('products.bulk_price_calculator', compact('products', 'categories', 'brands'));
+    }
+
+    /**
+     * Eksekusi Simpan Pembaruan Harga Masal & Trigger Push ke Marketplace
+     */
+    public function updateBulkPrice(Request $request)
+    {
+        $tenantId = Auth::user()->tenant_id;
+
+        $request->validate([
+            'products' => 'required|array',
+            'products.*.id' => 'required|exists:master_products,id',
+            'products.*.new_price' => 'required|numeric|min:0',
+            'sync_to_marketplace' => 'nullable|boolean',
+        ]);
+
+        $syncMarketplace = $request->boolean('sync_to_marketplace');
+        $updatedCount = 0;
+
+        foreach ($request->products as $itemData) {
+            $product = MasterProduct::where('tenant_id', $tenantId)->find($itemData['id']);
+            if (!$product) continue;
+
+            $newPrice = (float) $itemData['new_price'];
+            $oldPrice = (float) $product->price;
+
+            if (abs($newPrice - $oldPrice) > 0.01) {
+                $product->update(['price' => $newPrice]);
+                $updatedCount++;
+
+                if ($syncMarketplace) {
+                    \App\Jobs\PushPriceToMarketplaces::dispatch($product->id, $newPrice);
+                }
+            }
+        }
+
+        $msg = "Berhasil memperbarui harga untuk {$updatedCount} produk.";
+        if ($syncMarketplace && $updatedCount > 0) {
+            $msg .= " Sinkronisasi ke toko marketplace yang terhubung sedang berjalan di latar belakang.";
+        }
+
+        return redirect()->route('products.bulk_price_calculator')->with('success', $msg);
+    }
 }

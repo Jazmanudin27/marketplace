@@ -148,9 +148,14 @@
         <!-- 3. Master Produk -->
         @can('products.index')
             <a href="{{ route('products.index') }}"
-                class="nav-link d-flex align-items-center gap-2 {{ request()->routeIs('products.*') ? 'active text-white' : 'text-dark' }}">
+                class="nav-link d-flex align-items-center gap-2 {{ request()->routeIs('products.index') ? 'active text-white' : 'text-dark' }}">
                 <i class="bi bi-box-seam"></i>
                 <span>Master Produk</span>
+            </a>
+            <a href="{{ route('products.bulk_price_calculator') }}"
+                class="nav-link d-flex align-items-center gap-2 {{ request()->routeIs('products.bulk_price_calculator') ? 'active text-white' : 'text-dark' }}">
+                <i class="bi bi-calculator"></i>
+                <span>Kalkulator Harga Masal</span>
             </a>
         @endcan
 
