@@ -398,6 +398,7 @@ Route::middleware('auth')->group(function () {
         Route::delete('/products/mappings/category/{mapping}', [MasterProductController::class, 'destroyCategoryMapping'])->name('products.mappings.category.destroy');
         Route::delete('/products/mappings/brand/{mapping}', [MasterProductController::class, 'destroyBrandMapping'])->name('products.mappings.brand.destroy');
 
+        Route::get('/marketplace-products/print-report', [MarketplaceProductController::class, 'printReport'])->name('marketplace_products.print_report');
         Route::get('/marketplace-products', [MarketplaceProductController::class, 'index'])->name('marketplace_products.index');
         Route::post('/marketplace-products/{product}/promote', [MarketplaceProductController::class, 'promote'])->name('marketplace_products.promote');
         Route::post('/marketplace-products/{product}/link', [MarketplaceProductController::class, 'link'])->name('marketplace_products.link');

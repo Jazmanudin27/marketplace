@@ -63,10 +63,14 @@
                                 @endforeach
                             </select>
                         </div>
-                        <div class="col-md-2 d-flex gap-2">
+                        <div class="col-md-2 d-flex gap-1">
                             <button type="submit" class="btn btn-primary btn-sm flex-grow-1">
                                 <i class="fas fa-filter me-1"></i>Filter
                             </button>
+                            <a href="{{ route('marketplace_products.print_report', request()->all()) }}" target="_blank"
+                                class="btn btn-outline-dark btn-sm" title="Cetak Laporan">
+                                <i class="fas fa-print"></i>
+                            </a>
                             @if (request()->anyFilled(['name', 'sku', 'channel_id', 'store_id']))
                                 <a href="{{ route('marketplace_products.index', request()->only('status')) }}"
                                     class="btn btn-outline-secondary btn-sm" title="Reset Filter">

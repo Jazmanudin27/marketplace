@@ -54,6 +54,7 @@
 
     $isLaporanActive =
         request()->routeIs('reports.*') ||
+        request()->routeIs('marketplace_products.print_report') ||
         request()->routeIs('purchase_orders.report') ||
         request()->routeIs('pembelian.stock_report') ||
         request()->routeIs('pembelian.report_mutation') ||
@@ -695,13 +696,17 @@
                             @endcan
                         @endif
 
-                        <!-- Laporan Master Produk -->
-                        @if(auth()->user()->isSuperAdmin() || auth()->user()->can('reports.master_product'))
+                        <!-- Laporan Master Produk & Marketplace -->
+                        @if(auth()->user()->isSuperAdmin() || auth()->user()->can('reports.master_product') || auth()->user()->can('marketplace-products.index'))
                             <div class="text-uppercase text-white text-opacity-50 fw-bold ms-2 mt-2 mb-1"
                                 style="font-size: 0.65rem;">Laporan Produk</div>
                             @can('reports.master_product')
                                 <a href="{{ route('reports.master_product') }}"
                                     class="nav-link py-1 {{ request()->routeIs('reports.master_product*') ? 'active text-white' : 'text-secondary' }}">Laporan Master Produk</a>
+                            @endcan
+                            @can('marketplace-products.index')
+                                <a href="{{ route('marketplace_products.print_report') }}" target="_blank"
+                                    class="nav-link py-1 {{ request()->routeIs('marketplace_products.print_report*') ? 'active text-white' : 'text-secondary' }}">Laporan Produk Marketplace</a>
                             @endcan
                         @endif
 

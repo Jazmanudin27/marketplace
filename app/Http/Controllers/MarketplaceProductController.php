@@ -417,4 +417,71 @@ class MarketplaceProductController extends Controller
 
         return $attributes;
     }
+
+    public function printReport(Request $request)
+    {
+        $tenantId = Auth::user()->tenant_id;
+
+        $query = MarketplaceProduct::with(['store.channel', 'masterProduct'])
+            ->whereHas('store', function ($q) use ($tenantId) {
+                $q->where('tenant_id', $tenantId);
+            });
+
+        if ($request->filled('status')) {
+            if ($request->status === 'unmapped') {
+                $query->whereDoesntHave('masterProduct');
+            } elseif ($request->status === 'mapped') {
+                $query->whereHas('masterProduct');
+            }
+        }
+
+        if ($request->filled('name')) {
+            $query->where('name', 'like', '%' . $request->name . '%');
+        }
+
+        if ($request->filled('sku')) {
+            $query->where('marketplace_sku', 'like', '%' . $request->sku . '%');
+        }
+
+        if ($request->filled('channel_id')) {
+            $query->whereHas('store', function ($q) use ($request) {
+                $q->where('channel_id', $request->channel_id);
+            });
+        }
+
+        if ($request->filled('store_id')) {
+            $query->where('store_id', $request->store_id);
+        }
+
+        $products = $query->latest('updated_at')->get();
+
+        $totalCount = $products->count();
+        $mappedCount = $products->whereNotNull('master_product_id')->count();
+        $unmappedCount = $totalCount - $mappedCount;
+        $totalStock = $products->sum('stock');
+        $totalValue = $products->sum(function ($p) {
+            return ($p->price ?? 0) * ($p->stock ?? 0);
+        });
+
+        $selectedChannel = null;
+        if ($request->filled('channel_id')) {
+            $selectedChannel = Channel::find($request->channel_id);
+        }
+
+        $selectedStore = null;
+        if ($request->filled('store_id')) {
+            $selectedStore = Store::find($request->store_id);
+        }
+
+        return view('marketplace_products.print_report', compact(
+            'products',
+            'totalCount',
+            'mappedCount',
+            'unmappedCount',
+            'totalStock',
+            'totalValue',
+            'selectedChannel',
+            'selectedStore'
+        ));
+    }
 }

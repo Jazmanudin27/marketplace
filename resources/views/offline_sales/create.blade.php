@@ -773,6 +773,7 @@
                 // Validasi submit button
                 let isValid = Object.keys(cartItems).length > 0;
                 const isPo = $('#is-po-switch').is(':checked');
+                const method = $('#payment-method-select').val();
 
                 // Jika belum lunas (DP / Piutang) dan BUKAN pesanan PO, wajib pilih/isi nama pembeli
                 if ((method === 'piutang' || paid < grandTotal) && !isPo) {

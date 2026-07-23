@@ -3,6 +3,10 @@
 @section('page-title', 'Produk Marketplace')
 @section('topbar-actions')
     <div class="d-flex gap-2">
+        <a href="{{ route('marketplace_products.print_report', request()->all()) }}" target="_blank"
+            class="btn btn-outline-dark btn-sm fw-bold">
+            <i class="fas fa-print me-1"></i> Cetak Laporan
+        </a>
         <form action="{{ route('marketplace_products.auto_link') }}" method="POST" class="d-inline"
             onsubmit="return confirm('Tautkan semua produk marketplace secara otomatis berdasarkan kesamaan SKU?');">
             @csrf

@@ -79,7 +79,7 @@ class OfflineSaleController extends Controller
         $products = MasterProduct::where('tenant_id', $tenantId)
             ->where('is_active', true)
             ->orderBy('name')
-            ->get(['id', 'name', 'sku', 'price', 'reseller_price', 'stock', 'unit']);
+            ->get();
 
         $customers = \App\Models\Customer::where('tenant_id', $tenantId)
             ->where(function ($q) {
@@ -87,7 +87,7 @@ class OfflineSaleController extends Controller
                   ->orWhere('marketplace_username', '');
             })
             ->orderBy('name')
-            ->get(['id', 'name', 'phone', 'address']);
+            ->get();
 
         return view('offline_sales.create', compact('products', 'customers'));
     }
