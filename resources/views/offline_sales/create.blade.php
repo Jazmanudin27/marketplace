@@ -120,61 +120,10 @@
                                     Pembayaran</h6>
                             </div>
                             <div class="card-body p-3">
-                                {{-- Subtotal & diskon --}}
-                                <div class="d-flex justify-content-between mb-2 align-items-center text-dark">
-                                    <span class="text-muted small">Subtotal</span>
-                                    <span class="fw-semibold font-monospace" id="display-subtotal">Rp 0</span>
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label form-label-sm text-muted">Diskon (Rp)</label>
-                                    <input type="text" name="discount_amount" id="discount-input"
-                                        class="form-control form-control-sm" value="0">
-                                    <span id="reseller-info-badge" class="badge bg-success text-white mt-1 w-100 py-1"
-                                        style="display: none; font-size: 0.7rem; white-space: normal;"></span>
-                                </div>
-                                <div
-                                    class="d-flex justify-content-between mb-3 p-3 bg-success bg-opacity-10 border border-success border-opacity-10 rounded">
-                                    <span class="fw-bold text-dark small align-self-center">GRAND TOTAL</span>
-                                    <span class="fw-extrabold text-success fs-5 font-monospace" id="display-grand-total">Rp
-                                        0</span>
-                                </div>
-
-                                <hr class="my-3">
-
-                                {{-- Pembayaran --}}
-                                <div class="mb-3">
-                                    <label class="form-label form-label-sm text-muted fw-semibold">Metode Pembayaran <span
-                                            class="text-danger">*</span></label>
-                                    <select name="payment_method" id="payment-method-select"
-                                        class="form-select form-select-sm select2 fw-semibold text-dark"
-                                        style="width: 100%;" required>
-                                        @foreach (\App\Models\OfflineSale::PAYMENT_METHODS as $key => $label)
-                                            <option value="{{ $key }}" {{ $key === 'tunai' ? 'selected' : '' }}>
-                                                {{ $label }}
-                                            </option>
-                                        @endforeach
-                                    </select>
-                                </div>
-
-                                <div class="mb-3" id="paid-amount-section">
-                                    <label class="form-label form-label-sm text-muted">Uang Diterima (Rp)</label>
-                                    <input type="text" name="paid_amount" id="paid-input"
-                                        class="form-control form-control-sm fw-bold font-monospace text-dark"
-                                        value="0" required>
-                                </div>
-                                <div class="mb-3 p-3 text-center rounded bg-primary bg-opacity-10 border border-primary border-opacity-10"
-                                    id="change-section">
-                                    <div class="text-muted small">Kembalian</div>
-                                    <div class="fw-extrabold fs-4 text-primary font-monospace" id="display-change">Rp 0
-                                    </div>
-                                </div>
-
-                                <hr class="my-3">
-
+                                {{-- 1. Pelanggan / Pembeli (Master Data) --}}
                                 <div class="mb-3" id="customer-select-wrapper">
                                     <div class="d-flex justify-content-between align-items-center mb-1">
-                                        <label class="form-label form-label-sm text-muted mb-0">Pelanggan / Pembeli (Master
-                                            Data)</label>
+                                        <label class="form-label form-label-sm text-muted fw-semibold mb-0">Pelanggan / Pembeli (Master Data)</label>
                                         <button type="button"
                                             class="btn btn-link btn-sm p-0 text-decoration-none fw-bold small text-primary"
                                             data-bs-toggle="modal" data-bs-target="#modalCreateCustomer">
@@ -212,6 +161,7 @@
                                         ini!
                                     </div>
                                 </div>
+
                                 <div class="mb-3">
                                     <label class="form-label form-label-sm text-muted" id="buyer-name-label">Nama
                                         Pembeli</label>
@@ -229,6 +179,7 @@
                                     <textarea name="buyer_address" id="buyer-address-input" class="form-control form-control-sm" rows="2"
                                         placeholder="Alamat lengkap pelanggan..."></textarea>
                                 </div>
+
                                 <!-- Dropship Toggle & Inputs -->
                                 <div class="mb-3 mt-3">
                                     <div class="form-check form-switch">
@@ -254,6 +205,57 @@
                                             <span class="text-danger">*</span></label>
                                         <input type="text" name="dropshipper_phone" id="dropshipper-phone-input"
                                             class="form-control form-control-sm" placeholder="No. HP Dropshipper">
+                                    </div>
+                                </div>
+
+                                <hr class="my-3">
+
+                                {{-- 2. Subtotal & diskon --}}
+                                <div class="d-flex justify-content-between mb-2 align-items-center text-dark">
+                                    <span class="text-muted small">Subtotal</span>
+                                    <span class="fw-semibold font-monospace" id="display-subtotal">Rp 0</span>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label form-label-sm text-muted">Diskon (Rp)</label>
+                                    <input type="text" name="discount_amount" id="discount-input"
+                                        class="form-control form-control-sm" value="0">
+                                    <span id="reseller-info-badge" class="badge bg-success text-white mt-1 w-100 py-1"
+                                        style="display: none; font-size: 0.7rem; white-space: normal;"></span>
+                                </div>
+                                <div
+                                    class="d-flex justify-content-between mb-3 p-3 bg-success bg-opacity-10 border border-success border-opacity-10 rounded">
+                                    <span class="fw-bold text-dark small align-self-center">GRAND TOTAL</span>
+                                    <span class="fw-extrabold text-success fs-5 font-monospace" id="display-grand-total">Rp
+                                        0</span>
+                                </div>
+
+                                <hr class="my-3">
+
+                                {{-- 3. Pembayaran --}}
+                                <div class="mb-3">
+                                    <label class="form-label form-label-sm text-muted fw-semibold">Metode Pembayaran <span
+                                            class="text-danger">*</span></label>
+                                    <select name="payment_method" id="payment-method-select"
+                                        class="form-select form-select-sm select2 fw-semibold text-dark"
+                                        style="width: 100%;" required>
+                                        @foreach (\App\Models\OfflineSale::PAYMENT_METHODS as $key => $label)
+                                            <option value="{{ $key }}" {{ $key === 'tunai' ? 'selected' : '' }}>
+                                                {{ $label }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                </div>
+
+                                <div class="mb-3" id="paid-amount-section">
+                                    <label class="form-label form-label-sm text-muted">Uang Diterima (Rp)</label>
+                                    <input type="text" name="paid_amount" id="paid-input"
+                                        class="form-control form-control-sm fw-bold font-monospace text-dark"
+                                        value="0" required>
+                                </div>
+                                <div class="mb-3 p-3 text-center rounded bg-primary bg-opacity-10 border border-primary border-opacity-10"
+                                    id="change-section">
+                                    <div class="text-muted small">Kembalian</div>
+                                    <div class="fw-extrabold fs-4 text-primary font-monospace" id="display-change">Rp 0
                                     </div>
                                 </div>
 
