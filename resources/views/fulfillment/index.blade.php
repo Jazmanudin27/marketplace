@@ -242,10 +242,7 @@
                                     <i class="fas fa-paper-plane"></i> Kirim Resi (Ship)
                                 </button>
 
-                                <a href="{{ route('fulfillment.scan_page') }}"
-                                    class="btn btn-dark btn-sm d-inline-flex align-items-center gap-1 fw-semibold shadow-sm">
-                                    <i class="fas fa-expand"></i> Scan Kemas
-                                </a>
+
                             </div>
                         </div>
 

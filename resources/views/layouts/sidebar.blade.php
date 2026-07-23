@@ -414,8 +414,11 @@
                                 class="nav-link py-1 {{ request()->routeIs('fulfillment.interactive_picklist') ? 'active text-white' : 'text-secondary' }}">Ambil
                                 Barang Gudang</a>
                             <a href="{{ route('fulfillment.index') }}"
-                                class="nav-link py-1 {{ request()->routeIs('fulfillment.index') || request()->routeIs('fulfillment.scan_page') ? 'active text-white' : 'text-secondary' }}">Kemas
-                                Pesanan (Scan)</a>
+                                class="nav-link py-1 {{ request()->routeIs('fulfillment.index') ? 'active text-white' : 'text-secondary' }}">Antrean
+                                Kemas Pesanan</a>
+                            <a href="{{ route('fulfillment.scan_page') }}"
+                                class="nav-link py-1 {{ request()->routeIs('fulfillment.scan_page') ? 'active text-white' : 'text-secondary' }}">Scan
+                                & Kemas Barcode</a>
                         @endcan
                     </div>
                 </div>

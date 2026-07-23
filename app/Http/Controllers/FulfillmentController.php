@@ -18,7 +18,8 @@ class FulfillmentController extends Controller
         
         $query = Order::with(['store.channel', 'items.masterProduct'])
             ->where('tenant_id', $tenantId)
-            ->where('order_status', Order::STATUS_READY_TO_SHIP);
+            ->where('order_status', Order::STATUS_READY_TO_SHIP)
+            ->where('is_printed', true);
 
         // Search Keyword
         if ($request->filled('search')) {
@@ -143,6 +144,13 @@ class FulfillmentController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => "Pesanan ini tidak dalam status SIAP KIRIM (Status saat ini: {$order->order_status})."
+            ], 400);
+        }
+
+        if (!$order->is_printed) {
+            return response()->json([
+                'success' => false,
+                'message' => "Pesanan '{$identifier}' BELUM DICETAK RESINYA! Silakan cetak resi terlebih dahulu sebelum dikemas."
             ], 400);
         }
 
