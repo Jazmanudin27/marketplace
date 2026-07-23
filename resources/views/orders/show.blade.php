@@ -211,17 +211,29 @@
                     </div>
                     <div class="card-body p-3">
                         @if ($order->financial_breakdown)
-                            @php $fb = $order->financial_breakdown; @endphp
+                            @php 
+                                $fb = $order->financial_breakdown; 
+                                $buyerTotal = $fb['buyer_total_amount'] ?? $fb['buyer_paid_amount'] ?? $order->total_amount ?? 0;
+                                $originalPrice = $fb['original_price'] ?? $fb['total_product_price'] ?? $order->total_amount ?? 0;
+                                $buyerShipping = $fb['buyer_paid_shipping_fee'] ?? $order->shipping_fee ?? 0;
+                                $actualShipping = $fb['actual_shipping_fee'] ?? $order->shipping_fee ?? 0;
+                                $sellerVoucher = $fb['voucher_from_seller'] ?? $fb['seller_discount'] ?? $order->discount_amount ?? 0;
+                                $shopeeVoucher = $fb['voucher_from_shopee'] ?? $fb['shopee_discount'] ?? $fb['platform_discount'] ?? $fb['voucher_from_lazada'] ?? 0;
+                                $serviceFee = $fb['service_fee'] ?? 0;
+                                $commissionFee = $fb['commission_fee'] ?? $fb['affiliate_commission'] ?? $order->affiliate_commission ?? 0;
+                                $transactionFee = $fb['seller_transaction_fee'] ?? 0;
+                                $adjustmentAmount = $fb['adjustment_amount'] ?? 0;
+                            @endphp
 
                             <div class="d-flex justify-content-between mb-2 align-items-center">
                                 <span class="text-muted small">Total Pembayaran Pembeli</span>
                                 <span class="font-monospace fw-bold small text-dark">Rp
-                                    {{ number_format($fb['buyer_total_amount'] ?? 0, 0, ',', '.') }}</span>
+                                    {{ number_format($buyerTotal, 0, ',', '.') }}</span>
                             </div>
                             <div class="d-flex justify-content-between mb-3 align-items-center">
                                 <span class="text-muted small">(Harga Asli Produk)</span>
                                 <span class="font-monospace small text-muted">Rp
-                                    {{ number_format($fb['original_price'] ?? 0, 0, ',', '.') }}</span>
+                                    {{ number_format($originalPrice, 0, ',', '.') }}</span>
                             </div>
 
                             <hr class="my-2 border-dashed opacity-50">
@@ -229,12 +241,12 @@
                             <div class="d-flex justify-content-between mb-2 align-items-center">
                                 <span class="text-muted small">Ongkir Dibayar Pembeli</span>
                                 <span class="font-monospace small text-dark">Rp
-                                    {{ number_format($fb['buyer_paid_shipping_fee'] ?? 0, 0, ',', '.') }}</span>
+                                    {{ number_format($buyerShipping, 0, ',', '.') }}</span>
                             </div>
                             <div class="d-flex justify-content-between mb-3 align-items-center">
                                 <span class="text-muted small">Ongkir Aktual (Ekspedisi)</span>
                                 <span class="font-monospace text-danger small">- Rp
-                                    {{ number_format($fb['actual_shipping_fee'] ?? 0, 0, ',', '.') }}</span>
+                                    {{ number_format($actualShipping, 0, ',', '.') }}</span>
                             </div>
 
                             <hr class="my-2 border-dashed opacity-50">
@@ -242,12 +254,12 @@
                             <div class="d-flex justify-content-between mb-2 align-items-center">
                                 <span class="text-muted small">Voucher Toko (Seller)</span>
                                 <span class="font-monospace text-danger small">- Rp
-                                    {{ number_format($fb['voucher_from_seller'] ?? 0, 0, ',', '.') }}</span>
+                                    {{ number_format($sellerVoucher, 0, ',', '.') }}</span>
                             </div>
                             <div class="d-flex justify-content-between mb-3 align-items-center">
-                                <span class="text-muted small">Voucher Shopee (Ditanggung Shopee)</span>
+                                <span class="text-muted small">Voucher Platform (Marketplace)</span>
                                 <span class="font-monospace small text-muted">Rp
-                                    {{ number_format($fb['voucher_from_shopee'] ?? 0, 0, ',', '.') }}</span>
+                                    {{ number_format($shopeeVoucher, 0, ',', '.') }}</span>
                             </div>
 
                             <hr class="my-2 border-dashed opacity-50">
@@ -255,24 +267,26 @@
                             <div class="d-flex justify-content-between mb-2 align-items-center">
                                 <span class="text-muted small">Biaya Layanan (Service Fee)</span>
                                 <span class="font-monospace text-danger small">- Rp
-                                    {{ number_format($fb['service_fee'] ?? 0, 0, ',', '.') }}</span>
+                                    {{ number_format($serviceFee, 0, ',', '.') }}</span>
                             </div>
                             <div class="d-flex justify-content-between mb-2 align-items-center">
                                 <span class="text-muted small">Biaya Komisi / Affiliate</span>
                                 <span class="font-monospace text-danger small">- Rp
-                                    {{ number_format($fb['commission_fee'] ?? 0, 0, ',', '.') }}</span>
+                                    {{ number_format($commissionFee, 0, ',', '.') }}</span>
                             </div>
                             <div class="d-flex justify-content-between mb-2 align-items-center">
                                 <span class="text-muted small">Biaya Transaksi</span>
                                 <span class="font-monospace text-danger small">- Rp
-                                    {{ number_format($fb['seller_transaction_fee'] ?? 0, 0, ',', '.') }}</span>
+                                    {{ number_format($transactionFee, 0, ',', '.') }}</span>
                             </div>
+                            @if ($adjustmentAmount != 0)
                             <div class="d-flex justify-content-between mb-2 align-items-center">
                                 <span class="text-muted small">Biaya Penyesuaian (Adjustment)</span>
-                                <span class="font-monospace small {{ ($fb['adjustment_amount'] ?? 0) < 0 ? 'text-danger' : 'text-success' }}">
-                                    {{ ($fb['adjustment_amount'] ?? 0) < 0 ? '-' : '+' }} Rp {{ number_format(abs($fb['adjustment_amount'] ?? 0), 0, ',', '.') }}
+                                <span class="font-monospace small {{ $adjustmentAmount < 0 ? 'text-danger' : 'text-success' }}">
+                                    {{ $adjustmentAmount < 0 ? '-' : '+' }} Rp {{ number_format(abs($adjustmentAmount), 0, ',', '.') }}
                                 </span>
                             </div>
+                            @endif
                         @else
                             <div class="d-flex justify-content-between mb-2 align-items-center">
                                 <span class="text-muted small">Total Produk</span>

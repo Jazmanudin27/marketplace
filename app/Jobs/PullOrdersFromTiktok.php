@@ -179,16 +179,21 @@ class PullOrdersFromTiktok implements ShouldQueue
 
         $paymentInfo = $tiktokOrder['payment_info'] ?? $tiktokOrder['payment'] ?? [];
         
-        $totalAmount = $paymentInfo['total_amount'] ?? $paymentInfo['total'] ?? 0;
-        $shippingFee = $paymentInfo['shipping_fee'] ?? $paymentInfo['shipping_amount'] ?? 0;
-        $discountAmount = $paymentInfo['seller_discount'] ?? $paymentInfo['discount_amount'] ?? 0;
-        $netAmount = $paymentInfo['sub_total'] ?? $paymentInfo['original_amount'] ?? 0;
+        $totalAmount = (float) ($paymentInfo['total_amount'] ?? $paymentInfo['total'] ?? 0);
+        $shippingFee = (float) ($paymentInfo['shipping_fee'] ?? $paymentInfo['shipping_amount'] ?? 0);
+        $discountAmount = (float) ($paymentInfo['seller_discount'] ?? $paymentInfo['discount_amount'] ?? 0);
+        $escrowAmount = (float) ($paymentInfo['escrow_amount'] ?? $paymentInfo['net_amount'] ?? 0);
         
-        // Hitung biaya admin (marketplace fee) dari selisih total amount, ongkir, dan pencairan bersih
-        $marketplaceFee = max(0, $totalAmount - $shippingFee - $netAmount);
+        if ($escrowAmount > 0) {
+            $netAmount = $escrowAmount;
+            $marketplaceFee = max(0.0, $totalAmount - $shippingFee - $netAmount);
+        } else {
+            $marketplaceFee = round($totalAmount * 0.05);
+            $netAmount = max(0.0, $totalAmount - $discountAmount - $marketplaceFee);
+        }
 
         $financialBreakdown = [
-            'original_price' => $totalAmount - $shippingFee,
+            'original_price' => max(0.0, $totalAmount - $shippingFee),
             'actual_shipping_fee' => $shippingFee,
             'service_fee' => $marketplaceFee,
             'commission_fee' => 0,

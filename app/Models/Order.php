@@ -258,6 +258,32 @@ class Order extends Model
     }
 
     /**
+     * Pendapatan Bersih (Escrow).
+     * Jika net_amount tersimpan > 0, gunakan nilainya.
+     * Jika 0 tapi ada financial_breakdown['escrow_amount'] > 0, gunakan escrow_amount.
+     * Fallback (pesanan belum cair / berjalan): hitung estimasi (total_amount - discount_amount - marketplace_fee).
+     */
+    public function getNetAmountAttribute($value): float
+    {
+        $val = (float) $value;
+        if ($val > 0) {
+            return $val;
+        }
+
+        $fb = $this->financial_breakdown;
+        if (!empty($fb['escrow_amount']) && (float) $fb['escrow_amount'] > 0) {
+            return (float) $fb['escrow_amount'];
+        }
+
+        $total = (float) $this->total_amount;
+        $disc = (float) $this->discount_amount;
+        $fee = (float) $this->marketplace_fee;
+
+        $estimated = $total - $disc - $fee;
+        return max(0.0, $estimated);
+    }
+
+    /**
      * Net Profit = Pendapatan Bersih (Escrow) - HPP
      */
     public function getNetProfitAttribute(): float

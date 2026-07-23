@@ -205,6 +205,19 @@ class PullOrdersFromShopee implements ShouldQueue
         $cancelReason = $shopeeOrder['cancel_reason'] ?? $shopeeOrder['buyer_cancel_reason'] ?? null;
         $cancelledBy = $shopeeOrder['cancel_by'] ?? null;
 
+        $escrowAmount = (float) ($shopeeOrder['escrow_amount'] ?? 0);
+        $totalAmount = (float) ($shopeeOrder['total_amount'] ?? 0);
+        $shippingFee = (float) ($shopeeOrder['actual_shipping_fee'] ?? $shopeeOrder['estimated_shipping_fee'] ?? 0);
+        $sellerDiscount = (float) ($shopeeOrder['seller_discount_amount'] ?? 0);
+
+        if ($escrowAmount > 0) {
+            $netAmount = $escrowAmount;
+            $marketplaceFee = max(0.0, $totalAmount - $shippingFee - $escrowAmount);
+        } else {
+            $marketplaceFee = round($totalAmount * 0.05);
+            $netAmount = max(0.0, $totalAmount - $sellerDiscount - $marketplaceFee);
+        }
+
         $order = Order::updateOrCreate(
             [
                 'tenant_id' => $this->store->tenant_id,
@@ -217,11 +230,11 @@ class PullOrdersFromShopee implements ShouldQueue
                 'buyer_name' => $shopeeOrder['buyer_username'] ?? 'Buyer',
                 'buyer_phone' => $shopeeOrder['recipient_address']['phone'] ?? null,
                 'shipping_address' => $shopeeOrder['recipient_address']['full_address'] ?? null,
-                'total_amount' => $shopeeOrder['total_amount'] ?? 0,
-                'shipping_fee' => $shopeeOrder['actual_shipping_fee'] ?? $shopeeOrder['estimated_shipping_fee'] ?? 0,
-                'discount_amount' => $shopeeOrder['seller_discount_amount'] ?? 0,
-                'net_amount' => $shopeeOrder['escrow_amount'] ?? 0,
-                'marketplace_fee' => ($shopeeOrder['total_amount'] ?? 0) - ($shopeeOrder['escrow_amount'] ?? 0) - ($shopeeOrder['actual_shipping_fee'] ?? $shopeeOrder['estimated_shipping_fee'] ?? 0),
+                'total_amount' => $totalAmount,
+                'shipping_fee' => $shippingFee,
+                'discount_amount' => $sellerDiscount,
+                'net_amount' => $netAmount,
+                'marketplace_fee' => $marketplaceFee,
                 'courier' => $shopeeOrder['shipping_carrier'] ?? null,
                 'tracking_number' => current($shopeeOrder['package_list'] ?? [])['tracking_number'] ?? current($shopeeOrder['package_list'] ?? [])['package_number'] ?? null,
                 'order_date' => date('Y-m-d H:i:s', $shopeeOrder['create_time'] ?? time()),
