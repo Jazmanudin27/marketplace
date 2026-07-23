@@ -216,9 +216,6 @@
                     <td class="text-center">{{ $index + 1 }}</td>
                     <td>
                         <strong>{{ $p->name }}</strong>
-                        @if($p->marketplace_product_id)
-                            <br><span style="color: #777; font-size: 8px;">ID MP: {{ $p->marketplace_product_id }}</span>
-                        @endif
                     </td>
                     <td class="font-mono">
                         {{ $p->marketplace_sku ?: '-' }}
