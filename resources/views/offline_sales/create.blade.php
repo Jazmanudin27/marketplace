@@ -180,33 +180,10 @@
                                         placeholder="Alamat lengkap pelanggan..."></textarea>
                                 </div>
 
-                                <!-- Dropship Toggle & Inputs -->
-                                <div class="mb-3 mt-3">
-                                    <div class="form-check form-switch">
-                                        <input class="form-check-input" type="checkbox" name="is_dropship"
-                                            id="is-dropship-toggle" value="1">
-                                        <label class="form-check-label text-warning fw-bold small"
-                                            for="is-dropship-toggle">
-                                            <i class="fas fa-shipping-fast me-1"></i> Kirim Sebagai Dropshipper
-                                        </label>
-                                    </div>
-                                </div>
-
-                                <div id="dropship-inputs"
-                                    style="display: none; background: rgba(245, 158, 11, 0.05); padding: 10px; border-radius: 8px; border: 1px solid rgba(245, 158, 11, 0.15); margin-bottom: 1rem;">
-                                    <div class="mb-2">
-                                        <label class="form-label form-label-sm text-muted">Nama Pengirim (Dropshipper)
-                                            <span class="text-danger">*</span></label>
-                                        <input type="text" name="dropshipper_name" id="dropshipper-name-input"
-                                            class="form-control form-control-sm" placeholder="Nama Dropshipper">
-                                    </div>
-                                    <div>
-                                        <label class="form-label form-label-sm text-muted">No. HP Pengirim (Dropshipper)
-                                            <span class="text-danger">*</span></label>
-                                        <input type="text" name="dropshipper_phone" id="dropshipper-phone-input"
-                                            class="form-control form-control-sm" placeholder="No. HP Dropshipper">
-                                    </div>
-                                </div>
+                                <!-- Hidden fields for dropship (auto-filled if customer is dropship type) -->
+                                <input type="hidden" name="is_dropship" id="is-dropship-toggle" value="0">
+                                <input type="hidden" name="dropshipper_name" id="dropshipper-name-input" value="">
+                                <input type="hidden" name="dropshipper_phone" id="dropshipper-phone-input" value="">
 
                                 <hr class="my-3">
 
@@ -252,10 +229,6 @@
                                     <input type="text" name="paid_amount" id="paid-input"
                                         class="form-control form-control-sm fw-bold font-monospace text-dark"
                                         value="0" required>
-                                    <div id="paid-exceed-warning" class="text-danger small mt-1" style="display:none;">
-                                        <i class="fas fa-exclamation-circle me-1"></i>Uang diterima tidak boleh melebihi
-                                        total jual.
-                                    </div>
                                 </div>
                                 <div class="mb-3 p-3 text-center rounded bg-primary bg-opacity-10 border border-primary border-opacity-10"
                                     id="change-section">
@@ -339,34 +312,27 @@
         $(document).ready(function() {
             let cartItems = {};
             let grandTotal = 0;
+            let isDropshipCustomer = false; // Otomatis true jika pelanggan bertag dropship/reseller
 
-            // Toggle Dropship Inputs & Prices
-            $('#is-dropship-toggle').on('change', function() {
-                const isDropship = $(this).is(':checked');
-                if (isDropship) {
-                    $('#dropship-inputs').slideDown(200);
-                    $('#dropshipper-name-input').prop('required', true);
-                    $('#dropshipper-phone-input').prop('required', true);
+            function setDropshipMode(active) {
+                isDropshipCustomer = active;
+                $('#is-dropship-toggle').val(active ? '1' : '0');
 
+                if (active) {
                     $('.price-normal-display').hide();
                     $('.price-dropship-display').show();
                 } else {
-                    $('#dropship-inputs').slideUp(200);
-                    $('#dropshipper-name-input').val('').prop('required', false);
-                    $('#dropshipper-phone-input').val('').prop('required', false);
-
                     $('.price-dropship-display').hide();
                     $('.price-normal-display').show();
                 }
 
-                // Update prices for all items in cart
+                // Update harga semua item di keranjang
                 Object.keys(cartItems).forEach(id => {
-                    cartItems[id].price = isDropship ? cartItems[id].dropship_price : cartItems[id]
-                        .normal_price;
+                    cartItems[id].price = active ? cartItems[id].dropship_price : cartItems[id].normal_price;
                 });
 
                 renderCart();
-            });
+            }
 
             function triggerCustomerSelectChange() {
                 const selectedOption = $('#customer-select').find('option:selected');
@@ -378,32 +344,31 @@
                     const address = selectedOption.data('address');
                     const tags = String(selectedOption.data('tags') || '');
 
-                    // Check if Reseller / Dropshipper
+                    // Check if Reseller / Dropshipper berdasarkan tag
                     if (tags.toLowerCase().includes('reseller') || tags.toLowerCase().includes('dropship')) {
-                        // Mark as dropship automatically
-                        $('#is-dropship-toggle').prop('checked', true).trigger('change');
+                        // Aktifkan mode dropship otomatis
+                        setDropshipMode(true);
                         $('#dropshipper-name-input').val(name);
                         $('#dropshipper-phone-input').val(phone || '');
 
-                        // Buyer fields are for the dropshipper's customer, so make them writable and empty
+                        // Buyer fields kosong untuk diisi (pelanggan akhir dari dropshipper)
                         $('#buyer-name-input').val('').prop('readonly', false);
                         $('#buyer-phone-input').val('').prop('readonly', false);
                         $('#buyer-address-input').val('').prop('readonly', false);
 
-                        // Mark fields as required
                         $('#buyer-name-label').html('Nama Pembeli <span class="text-danger">*</span>');
                         $('#buyer-phone-label').html('No. HP Pembeli <span class="text-danger">*</span>');
                         $('#buyer-name-input').prop('required', true);
                         $('#buyer-phone-input').prop('required', true);
 
-                        // Show info badge and update discount
+                        // Terapkan diskon reseller
                         updateResellerDiscount();
                         $('#reseller-info-badge').html(
                                 '<i class="fas fa-percent me-1"></i> Diskon Reseller 10% diterapkan otomatis')
                             .show();
                     } else {
-                        // Regular registered customer
-                        $('#is-dropship-toggle').prop('checked', false).trigger('change');
+                        // Pelanggan biasa — harga normal
+                        setDropshipMode(false);
                         $('#dropshipper-name-input').val('');
                         $('#dropshipper-phone-input').val('');
 
@@ -420,8 +385,8 @@
                         $('#reseller-info-badge').hide();
                     }
                 } else {
-                    // Pelanggan Umum
-                    $('#is-dropship-toggle').prop('checked', false).trigger('change');
+                    // Pelanggan Umum — reset ke harga normal
+                    setDropshipMode(false);
                     $('#dropshipper-name-input').val('');
                     $('#dropshipper-phone-input').val('');
 
@@ -535,8 +500,7 @@
                 const resellerPrice = parseFloat($(this).data('reseller-price'));
                 const stock = parseInt($(this).data('stock'));
 
-                const isDropship = $('#is-dropship-toggle').is(':checked');
-                const activePrice = isDropship ? resellerPrice : normalPrice;
+                const activePrice = isDropshipCustomer ? resellerPrice : normalPrice;
 
                 if (cartItems[id]) {
                     if (cartItems[id].qty >= stock) {
@@ -606,16 +570,13 @@
             // Input Uang Diterima dengan format pemisah ribuan
             $('#paid-input').on('input', function() {
                 let formatted = formatNumberInput($(this).val());
-                $(this).val(formatted);
-                // Validasi tidak melebihi total jual
-                const paid = unformatNumber(formatted);
-                if (paid > grandTotal && grandTotal > 0) {
-                    $(this).addClass('is-invalid');
-                    $('#paid-exceed-warning').show();
-                } else {
-                    $(this).removeClass('is-invalid');
-                    $('#paid-exceed-warning').hide();
+                let paid = unformatNumber(formatted);
+                // Jika melebihi total, reset ke total
+                if (grandTotal > 0 && paid > grandTotal) {
+                    paid = grandTotal;
+                    formatted = grandTotal.toLocaleString('id-ID');
                 }
+                $(this).val(formatted);
                 recalculate();
             });
 
@@ -703,15 +664,6 @@
                 let isValid = Object.keys(cartItems).length > 0;
                 if (method === 'tunai' && paid < grandTotal) {
                     isValid = false;
-                }
-                // Uang diterima tidak boleh melebihi total jual
-                if (method === 'tunai' && paid > grandTotal && grandTotal > 0) {
-                    isValid = false;
-                    $('#paid-input').addClass('is-invalid');
-                    $('#paid-exceed-warning').show();
-                } else if (method === 'tunai') {
-                    $('#paid-input').removeClass('is-invalid');
-                    $('#paid-exceed-warning').hide();
                 }
 
                 // Validate reseller balance
