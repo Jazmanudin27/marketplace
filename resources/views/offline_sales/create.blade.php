@@ -122,7 +122,7 @@
                             </div>
                             <div class="card-body p-3">
                                 {{-- Switch PO Produksi --}}
-                                <div class="card border border-primary border-opacity-25 bg-primary bg-opacity-10 mb-3 p-2 rounded">
+                                <div class="card border border-primary border-opacity-25 bg-primary bg-opacity-10 mb-3 p-3 rounded">
                                     <div class="form-check form-switch mb-0">
                                         <input class="form-check-input" type="checkbox" name="is_po" id="is-po-switch" value="1">
                                         <label class="form-check-label fw-bold text-dark small" for="is-po-switch">
@@ -131,6 +131,13 @@
                                     </div>
                                     <div class="small text-muted mt-1" style="font-size: 0.72rem;">
                                         Centang jika pesanan ini butuh dibuatkan SPK Produksi otomatis.
+                                    </div>
+                                    <div id="po-deadline-container" class="mt-2 pt-2 border-top border-primary border-opacity-25" style="display: none;">
+                                        <label class="form-label form-label-sm fw-bold text-dark mb-1">
+                                            <i class="fas fa-calendar-alt text-primary me-1"></i> Tenggat Selesai (Deadline SPK)
+                                        </label>
+                                        <input type="date" name="deadline" id="po-deadline-input" class="form-control form-control-sm" value="{{ now()->addDays(7)->format('Y-m-d') }}">
+                                        <div class="text-muted" style="font-size: 0.7rem;">Tanggal target produksi harus diselesaikan.</div>
                                     </div>
                                 </div>
 
@@ -873,6 +880,15 @@
             // Initialize Select2 with search
             $('.select2').select2({
                 width: '100%'
+            });
+
+            // Toggle Deadline PO Input
+            $('#is-po-switch').on('change', function() {
+                if ($(this).is(':checked')) {
+                    $('#po-deadline-container').slideDown(200);
+                } else {
+                    $('#po-deadline-container').slideUp(200);
+                }
             });
 
             // Initialize on load

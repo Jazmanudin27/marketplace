@@ -267,6 +267,7 @@ class OfflineSaleController extends Controller
                     'tenant_id'     => $tenantId,
                     'no_spk'        => $noSpk,
                     'tanggal'       => now(),
+                    'deadline'      => $request->filled('deadline') ? $request->deadline : now()->addDays(7),
                     'pemesan'       => $request->buyer_name ?: 'Pelanggan PO',
                     'no_hp_pemesan' => $request->buyer_phone ?: '',
                     'instansi'      => 'Penjualan PO #' . $sale->sale_number,
