@@ -27,6 +27,26 @@ class OrderPrintController extends Controller
             return back()->with('error', 'Pesanan tidak ditemukan atau Anda tidak memiliki akses.');
         }
 
+        // Jika hanya 1 order TikTok yang dipilih, coba ambil dokumen PDF resmi dari API TikTok
+        if ($orders->count() === 1) {
+            $order = $orders->first();
+            $store = $order->store;
+            if ($store && in_array($store->channel->code ?? '', ['tiktok', 'tokopedia']) && !empty($store->access_token)) {
+                try {
+                    $docData = $tiktokService->getShippingDocument(
+                        $store->access_token,
+                        $store->marketplace_store_id ?? '',
+                        $order->order_marketplace_id
+                    );
+                    if (!empty($docData['doc_url'])) {
+                        return redirect($docData['doc_url']);
+                    }
+                } catch (\Exception $e) {
+                    // Fallback ke template resi thermal lokal
+                }
+            }
+        }
+
         // Generate Pick List data (Summary of all items to pick)
         $pickList = [];
         foreach ($orders as $order) {
@@ -42,10 +62,6 @@ class OrderPrintController extends Controller
             }
         }
 
-        // Untuk mencetak massal, kita akan render view HTML yang berisi Pick List 
-        // di halaman pertama, diikuti oleh rincian/AWB pesanan di halaman berikutnya
-        // dengan CSS page-break.
-        
         return view('orders.mass_print', compact('orders', 'pickList'));
     }
 }

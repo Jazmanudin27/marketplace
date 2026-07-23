@@ -89,11 +89,21 @@
                                 </option>
                             </select>
                         </div>
+                        <div class="col-md-2">
+                            <label class="form-label form-label-sm fw-semibold mb-1">
+                                <i class="fas fa-clock text-muted me-1"></i>Tipe PO
+                            </label>
+                            <select name="is_preorder" class="form-select form-select-sm">
+                                <option value="">-- Semua Tipe --</option>
+                                <option value="1" {{ request('is_preorder') === '1' ? 'selected' : '' }}>PO (Pre-Order)</option>
+                                <option value="0" {{ request('is_preorder') === '0' ? 'selected' : '' }}>Ready Stock</option>
+                            </select>
+                        </div>
                         <div class="col-md-auto">
                             <button type="submit" class="btn btn-primary btn-sm px-3">
                                 <i class="fas fa-search me-1"></i>Terapkan
                             </button>
-                            @if (request()->anyFilled(['channel_id', 'store_id', 'link_status', 'name', 'sku']))
+                            @if (request()->anyFilled(['channel_id', 'store_id', 'link_status', 'name', 'sku', 'is_preorder']))
                                 <a href="{{ route('products.index') }}" class="btn btn-secondary btn-sm px-3 ms-1">
                                     <i class="fas fa-times me-1"></i>Reset
                                 </a>
@@ -226,11 +236,40 @@
                                 @endif
                             </td>
                             <td class="text-center">
-                                @if ($product->is_active)
-                                    <span class="badge bg-success">Aktif</span>
-                                @else
-                                    <span class="badge bg-secondary">Nonaktif</span>
-                                @endif
+                                <div class="d-flex flex-column align-items-center gap-1">
+                                    @if ($product->is_active)
+                                        <span class="badge bg-success">Aktif</span>
+                                    @else
+                                        <span class="badge bg-secondary">Nonaktif</span>
+                                    @endif
+
+                                    {{-- Badge Status PO (Pre-Order) --}}
+                                    <div id="po-badge-container-{{ $product->id }}">
+                                        @if ($product->is_preorder)
+                                            <button type="button" class="btn btn-xs p-0 border-0 btn-quick-po"
+                                                data-product-id="{{ $product->id }}"
+                                                data-product-name="{{ $product->name }}"
+                                                data-is-preorder="1"
+                                                data-preorder-days="{{ $product->preorder_days ?? 7 }}"
+                                                title="Klik untuk ubah status PO">
+                                                <span class="badge text-white px-2 py-1" style="background-color: #8b5cf6; font-size: 0.68rem;">
+                                                    <i class="fas fa-clock me-1"></i>PO ({{ $product->preorder_days ?? 7 }} Hari) <i class="fas fa-edit ms-1 opacity-75"></i>
+                                                </span>
+                                            </button>
+                                        @else
+                                            <button type="button" class="btn btn-xs p-0 border-0 btn-quick-po"
+                                                data-product-id="{{ $product->id }}"
+                                                data-product-name="{{ $product->name }}"
+                                                data-is-preorder="0"
+                                                data-preorder-days="{{ $product->preorder_days ?? 7 }}"
+                                                title="Klik untuk ubah status PO">
+                                                <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1" style="font-size: 0.68rem;">
+                                                    <i class="fas fa-check-circle me-1"></i>Ready <i class="fas fa-edit ms-1 opacity-50"></i>
+                                                </span>
+                                            </button>
+                                        @endif
+                                    </div>
+                                </div>
                             </td>
                             <td>
                                 @if ($product->marketplaceProducts->isEmpty())
@@ -317,6 +356,48 @@
     </div>
 </div>
 
+<!-- Modal Quick Edit PO -->
+<div class="modal fade" id="modalQuickPo" tabindex="-1" aria-labelledby="modalQuickPoLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content rounded-3 shadow">
+            <div class="modal-header bg-light py-2 px-3">
+                <h6 class="modal-title fw-bold text-dark" id="modalQuickPoLabel">
+                    <i class="fas fa-clock me-1" style="color: #8b5cf6;"></i> Pengaturan Status PO
+                </h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="formQuickPo">
+                @csrf
+                <input type="hidden" id="quickPoProductId" name="product_id">
+                <div class="modal-body p-3">
+                    <div class="mb-2">
+                        <small class="text-muted d-block fw-semibold" id="quickPoProductName"></small>
+                    </div>
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" id="quickIsPreorder" name="is_preorder" value="1">
+                        <label class="form-check-label fw-bold text-dark small" for="quickIsPreorder">
+                            Jadikan Pre-Order (PO)
+                        </label>
+                    </div>
+                    <div id="quickPreorderDaysWrapper" style="display: none;">
+                        <label for="quickPreorderDays" class="form-label form-label-sm fw-semibold text-dark">
+                            Estimasi Waktu PO (Hari) <span class="text-danger">*</span>
+                        </label>
+                        <input type="number" class="form-control form-control-sm" id="quickPreorderDays" name="preorder_days" min="1" value="7" placeholder="Contoh: 7">
+                        <small class="text-muted d-block mt-1" style="font-size: 0.72rem;">Estimasi waktu ini otomatis digunakan saat pemrosesan pesanan.</small>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light py-2 px-3 d-flex justify-content-between">
+                    <button type="button" class="btn btn-secondary btn-sm px-3 rounded-3" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-primary btn-sm px-3 rounded-3" id="btnSaveQuickPo">
+                        <i class="fas fa-save me-1"></i>Simpan
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <script>
     document.addEventListener('DOMContentLoaded', function () {
         const selectAll = document.getElementById('selectAllProducts');
@@ -364,7 +445,6 @@
                 checkedBoxes.forEach((cb, index) => {
                     url += `ids[]=${cb.value}&`;
                 });
-                // Remove trailing &
                 if (url.endsWith('&')) {
                     url = url.slice(0, -1);
                 }
@@ -387,5 +467,110 @@
                 }
             });
         }
+
+        // Quick PO Edit Modal Handlers
+        $(document).on('click', '.btn-quick-po', function() {
+            const productId = $(this).data('product-id');
+            const productName = $(this).data('product-name');
+            const isPreorder = $(this).data('is-preorder') == 1;
+            const preorderDays = $(this).data('preorder-days') || 7;
+
+            $('#quickPoProductId').val(productId);
+            $('#quickPoProductName').text(productName);
+            $('#quickIsPreorder').prop('checked', isPreorder);
+            $('#quickPreorderDays').val(preorderDays);
+
+            if (isPreorder) {
+                $('#quickPreorderDaysWrapper').show();
+            } else {
+                $('#quickPreorderDaysWrapper').hide();
+            }
+
+            const modal = new bootstrap.Modal(document.getElementById('modalQuickPo'));
+            modal.show();
+        });
+
+        $('#quickIsPreorder').on('change', function() {
+            if (this.checked) {
+                $('#quickPreorderDaysWrapper').slideDown(150);
+            } else {
+                $('#quickPreorderDaysWrapper').slideUp(150);
+            }
+        });
+
+        $('#formQuickPo').on('submit', function(e) {
+            e.preventDefault();
+            const productId = $('#quickPoProductId').val();
+            const isPreorder = $('#quickIsPreorder').is(':checked') ? 1 : 0;
+            const preorderDays = $('#quickPreorderDays').val();
+            const btn = $('#btnSaveQuickPo');
+
+            btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i> Menyimpan...');
+
+            $.ajax({
+                url: `/products/${productId}/quick-po`,
+                method: 'POST',
+                data: {
+                    _token: '{{ csrf_token() }}',
+                    is_preorder: isPreorder,
+                    preorder_days: preorderDays
+                },
+                success: function(res) {
+                    btn.prop('disabled', false).html('<i class="fas fa-save me-1"></i>Simpan');
+                    if (res.success) {
+                        const modalEl = document.getElementById('modalQuickPo');
+                        const modalInstance = bootstrap.Modal.getInstance(modalEl);
+                        if (modalInstance) modalInstance.hide();
+                        
+                        // Update badge in UI instantly
+                        const container = $(`#po-badge-container-${productId}`);
+                        const productName = $('#quickPoProductName').text();
+                        if (res.is_preorder) {
+                            const days = res.preorder_days || 7;
+                            container.html(`
+                                <button type="button" class="btn btn-xs p-0 border-0 btn-quick-po"
+                                    data-product-id="${productId}"
+                                    data-product-name="${productName}"
+                                    data-is-preorder="1"
+                                    data-preorder-days="${days}"
+                                    title="Klik untuk ubah status PO">
+                                    <span class="badge text-white px-2 py-1" style="background-color: #8b5cf6; font-size: 0.68rem;">
+                                        <i class="fas fa-clock me-1"></i>PO (${days} Hari) <i class="fas fa-edit ms-1 opacity-75"></i>
+                                    </span>
+                                </button>
+                            `);
+                        } else {
+                            container.html(`
+                                <button type="button" class="btn btn-xs p-0 border-0 btn-quick-po"
+                                    data-product-id="${productId}"
+                                    data-product-name="${productName}"
+                                    data-is-preorder="0"
+                                    data-preorder-days="${res.preorder_days || 7}"
+                                    title="Klik untuk ubah status PO">
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1" style="font-size: 0.68rem;">
+                                        <i class="fas fa-check-circle me-1"></i>Ready <i class="fas fa-edit ms-1 opacity-50"></i>
+                                    </span>
+                                </button>
+                            `);
+                        }
+
+                        if (typeof Swal !== 'undefined') {
+                            Swal.fire({
+                                toast: true,
+                                position: 'top-end',
+                                icon: 'success',
+                                title: res.message,
+                                showConfirmButton: false,
+                                timer: 2000
+                            });
+                        }
+                    }
+                },
+                error: function(xhr) {
+                    btn.prop('disabled', false).html('<i class="fas fa-save me-1"></i>Simpan');
+                    alert(xhr.responseJSON?.message || 'Gagal memperbarui status PO');
+                }
+            });
+        });
     });
 </script>

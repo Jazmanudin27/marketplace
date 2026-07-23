@@ -180,13 +180,6 @@ class RolePermissionSeeder extends Seeder
             'pembelian.report_mutation',
             'pembelian.report_summary',
             'pembelian.stock_card',
-            
-            // Pengaduan Barang Gudang
-            'complaints.index',
-            'complaints.show',
-            'complaints.create',
-            'complaints.edit',
-            'complaints.destroy',
         ];
     }
 

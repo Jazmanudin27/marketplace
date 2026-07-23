@@ -69,6 +69,14 @@ class MasterProductController extends Controller
             });
         }
 
+        if ($request->filled('is_preorder')) {
+            if ($request->is_preorder === '1') {
+                $query->where('is_preorder', true);
+            } elseif ($request->is_preorder === '0') {
+                $query->where('is_preorder', false);
+            }
+        }
+
         $products = $query->orderBy('name')->paginate(25)->withQueryString();
 
         $publicationLogs = PublicationLog::with(['masterProduct', 'store.channel'])
@@ -1150,5 +1158,36 @@ class MasterProductController extends Controller
         }
 
         return redirect()->back()->with('success', "Berhasil memproses $bundleCount produk Set/Bundling dengan total $componentCount komponen terpasang secara otomatis!");
+    }
+
+    /**
+     * Update status PO (Pre-Order) dan estimasi hari secara cepat via AJAX dari index
+     */
+    public function quickUpdatePo(Request $request, MasterProduct $product)
+    {
+        $tenantId = Auth::user()->tenant_id;
+        if ($product->tenant_id !== $tenantId) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized access.'], 403);
+        }
+
+        $request->validate([
+            'is_preorder' => 'required|boolean',
+            'preorder_days' => 'nullable|integer|min:1',
+        ]);
+
+        $isPreorder = filter_var($request->is_preorder, FILTER_VALIDATE_BOOLEAN);
+        $preorderDays = $isPreorder ? ($request->preorder_days ?? 7) : null;
+
+        $product->update([
+            'is_preorder' => $isPreorder,
+            'preorder_days' => $preorderDays,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Status PO produk berhasil diperbarui.',
+            'is_preorder' => $product->is_preorder,
+            'preorder_days' => $product->preorder_days,
+        ]);
     }
 }

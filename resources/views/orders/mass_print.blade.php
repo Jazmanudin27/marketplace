@@ -402,12 +402,79 @@
                 }
             }
 
-            // 2. Parse Sort Code / Postal Code
-            $postalCode = '';
-            if ($order->shipping_address && preg_match('/\b\d{5}\b/', $order->shipping_address, $matches)) {
-                $postalCode = $matches[0];
+            // 2. Parse Dynamic Sort Code / Hub Code & Postal Code
+            $hubPrefix = 'CGK';
+            $addressUpper = strtoupper($order->shipping_address ?? '');
+
+            if (
+                strpos($addressUpper, 'JAKARTA') !== false ||
+                strpos($addressUpper, 'TANGERANG') !== false ||
+                strpos($addressUpper, 'BEKASI') !== false ||
+                strpos($addressUpper, 'DEPOK') !== false ||
+                strpos($addressUpper, 'BOGOR') !== false
+            ) {
+                $hubPrefix = 'JKT';
+            } elseif (strpos($addressUpper, 'BANDUNG') !== false || strpos($addressUpper, 'CIMAHI') !== false) {
+                $hubPrefix = 'BDO';
+            } elseif (strpos($addressUpper, 'SEMARANG') !== false) {
+                $hubPrefix = 'SRG';
+            } elseif (strpos($addressUpper, 'SOLO') !== false || strpos($addressUpper, 'SURAKARTA') !== false) {
+                $hubPrefix = 'SOC';
+            } elseif (
+                strpos($addressUpper, 'YOGYAKARTA') !== false ||
+                strpos($addressUpper, 'JOGJA') !== false ||
+                strpos($addressUpper, 'SLEMAN') !== false ||
+                strpos($addressUpper, 'BANTUL') !== false
+            ) {
+                $hubPrefix = 'JOG';
+            } elseif (
+                strpos($addressUpper, 'SURABAYA') !== false ||
+                strpos($addressUpper, 'SIDOARJO') !== false ||
+                strpos($addressUpper, 'GRESIK') !== false
+            ) {
+                $hubPrefix = 'SUB';
+            } elseif (strpos($addressUpper, 'MALANG') !== false) {
+                $hubPrefix = 'MLG';
+            } elseif (
+                strpos($addressUpper, 'BALI') !== false ||
+                strpos($addressUpper, 'DENPASAR') !== false ||
+                strpos($addressUpper, 'BADUNG') !== false
+            ) {
+                $hubPrefix = 'DPS';
+            } elseif (strpos($addressUpper, 'MEDAN') !== false) {
+                $hubPrefix = 'KNO';
+            } elseif (strpos($addressUpper, 'PALEMBANG') !== false) {
+                $hubPrefix = 'PLM';
+            } elseif (strpos($addressUpper, 'LAMPUNG') !== false) {
+                $hubPrefix = 'TKG';
+            } elseif (strpos($addressUpper, 'MAKASSAR') !== false) {
+                $hubPrefix = 'UPG';
+            } elseif (strpos($addressUpper, 'BALIKPAPAN') !== false) {
+                $hubPrefix = 'BPN';
+            } elseif (strpos($addressUpper, 'BANJARMASIN') !== false) {
+                $hubPrefix = 'BDJ';
+            } else {
+                if (!empty($tujuan) && $tujuan !== 'KOTA TUJUAN') {
+                    $cleanCity = preg_replace('/^(KOTA|KABUPATEN|KAB\.)\s+/', '', $tujuan);
+                    $hubPrefix = strtoupper(substr($cleanCity, 0, 3));
+                }
             }
-            $sortCode = $postalCode ? 'SUB' . $postalCode : 'SUB10028';
+
+            $postalCode = '';
+            if (preg_match('/\b\d{5}\b/', $order->shipping_address ?? '', $mZip)) {
+                $postalCode = $mZip[0];
+            }
+
+            if (!$postalCode) {
+                $postalCode = str_pad(
+                    substr(abs(crc32($order->id . ($order->order_marketplace_id ?? ''))), 0, 5),
+                    5,
+                    '0',
+                    STR_PAD_LEFT,
+                );
+            }
+
+            $sortCode = $hubPrefix . '-' . $postalCode;
 
             // 3. Service Type (REG, HEM, CAR)
             $serviceType = 'REG';
@@ -493,11 +560,11 @@
 
                         <div class="info-row">
                             <div class="info-label">Total COD</div>
-                            <div class="info-value fw-bold">
+                            <div class="info-value fw-bold" style="{{ $isCod ? 'color: #dc2626;' : '' }}">
                                 @if ($isCod)
                                     Rp {{ number_format($order->total_amount, 0, ',', '.') }}
                                 @else
-                                    Rp0
+                                    Rp0 (NON-COD)
                                 @endif
                             </div>
                         </div>
@@ -534,9 +601,11 @@
                     <div class="qr-section">
                         <div class="sort-code">{{ $sortCode }}</div>
                         <div class="qr-container" id="qrcode-{{ $order->id }}"></div>
-                        <div class="box-text">
+                        <div class="box-text"
+                            style="{{ $isCod ? 'background: #000; color: #fff;' : 'background: #fff; color: #000;' }}">
                             @if ($isCod)
-                                COD
+                                COD<br><span style="font-size: 10.5px; font-weight: 900;">Rp
+                                    {{ number_format($order->total_amount, 0, ',', '.') }}</span>
                             @else
                                 NON-COD
                             @endif

@@ -32,8 +32,7 @@
         request()->routeIs('inventory.ledger') ||
         request()->routeIs('stock_opnames.*') ||
         request()->routeIs('inventory.stock_sync') ||
-        request()->routeIs('fulfillment.*') ||
-        request()->routeIs('complaints.*');
+        request()->routeIs('fulfillment.*');
 
     $isFinanceActive =
         request()->routeIs('finance.reconciliation') ||
@@ -382,7 +381,6 @@
                         'stock-opnames.index',
                         'inventory.stock_sync',
                         'fulfillment.index',
-                        'complaints.index',
                     ]))
             <div>
                 <a class="nav-link d-flex align-items-center justify-content-between text-dark {{ $isGudangJadiActive ? '' : 'collapsed' }}"
@@ -415,11 +413,6 @@
                             <a href="{{ route('fulfillment.index') }}"
                                 class="nav-link py-1 {{ request()->routeIs('fulfillment.*') ? 'active text-white' : 'text-secondary' }}">Kemas
                                 Pesanan (Scan)</a>
-                        @endcan
-                        @can('complaints.index')
-                            <a href="{{ route('complaints.index') }}"
-                                class="nav-link py-1 {{ request()->routeIs('complaints.*') ? 'active text-white' : 'text-secondary' }}">Pengaduan
-                                Barang</a>
                         @endcan
                     </div>
                 </div>

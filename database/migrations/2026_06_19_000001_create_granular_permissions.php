@@ -307,13 +307,6 @@ return new class extends Migration
             'product-recipes.edit',
             'product-recipes.destroy',
 
-            // ─── Gudang Jadi: Pengaduan ───────────────────────────────
-            'complaints.index',
-            'complaints.show',
-            'complaints.create',
-            'complaints.edit',
-            'complaints.destroy',
-
             // ─── Users & Role Management ──────────────────────────────
             'users.index',
             'users.create',

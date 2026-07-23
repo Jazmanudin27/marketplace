@@ -6,7 +6,6 @@ use App\Http\Controllers\MasterProductController;
 use App\Http\Controllers\MarketplaceProductController;
 use App\Http\Controllers\ChatController;
 use App\Http\Controllers\ReturnOrderController;
-use App\Http\Controllers\ComplaintController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\ReconciliationController;
 use App\Http\Controllers\FulfillmentController;
@@ -119,12 +118,6 @@ Route::get('/callback/tiktok', [TiktokController::class, 'callback']);
 Route::get('/lazada/callback', [LazadaController::class, 'callback'])->name('lazada.callback');
 
 
-// =========================================================================
-// Mobile Complaint Form (Publik — tanpa login, identifikasi via tenant_id)
-// =========================================================================
-Route::get('/m/complaint/{tenant_id}', [ComplaintController::class, 'mobileCreate'])->name('complaints.mobile.create');
-Route::post('/m/complaint/{tenant_id}', [ComplaintController::class, 'mobileStore'])->name('complaints.mobile.store');
-Route::get('/m/complaint/{tenant_id}/success', [ComplaintController::class, 'mobileSuccess'])->name('complaints.mobile.success');
 
 // Kebijakan Privasi (Tanpa Login)
 Route::get('/privacy-policy', function () {
@@ -375,6 +368,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/products/bulk-publish', [MasterProductController::class, 'storeBulkPublish'])->name('products.bulk_publish.store');
         Route::post('/products/auto-bundle', [MasterProductController::class, 'autoBundle'])->name('products.auto_bundle');
         Route::post('/products/{product}/recipe', [MasterProductController::class, 'saveRecipe'])->name('products.save_recipe');
+        Route::post('/products/{product}/quick-po', [MasterProductController::class, 'quickUpdatePo'])->name('products.quick_po');
         Route::get('/product_recipes/bulk', [\App\Http\Controllers\Production\ProductRecipeController::class, 'bulkEdit'])
             ->name('product_recipes.bulk');
         Route::post('/api/product-recipes/bulk-save', [\App\Http\Controllers\Production\ProductRecipeController::class, 'bulkSaveAjax'])
@@ -547,10 +541,6 @@ Route::middleware('auth')->group(function () {
         Route::post('/returns/{returnOrder}/replacement', [ReturnOrderController::class, 'createReplacementOrder'])->name('returns.replacement');
     });
 
-    // Pengaduan Barang Rusak
-    Route::middleware('permission:manage-complaints')->group(function () {
-        Route::resource('complaints', ComplaintController::class);
-    });
 
     // Penjualan Offline (Manual Order)
     Route::middleware('permission:manage-offline-sales')->group(function () {

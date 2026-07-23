@@ -1,0 +1,41 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+use Spatie\Permission\Models\Permission;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        Schema::dropIfExists('complaints');
+
+        $permissions = [
+            'manage-complaints',
+            'complaints.index',
+            'complaints.show',
+            'complaints.create',
+            'complaints.edit',
+            'complaints.destroy',
+        ];
+
+        foreach ($permissions as $permissionName) {
+            $perm = Permission::where('name', $permissionName)->first();
+            if ($perm) {
+                $perm->delete();
+            }
+        }
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        //
+    }
+};
