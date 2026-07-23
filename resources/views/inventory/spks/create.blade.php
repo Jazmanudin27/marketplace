@@ -99,6 +99,85 @@
                         </div>
                     </div>
 
+                    {{-- ── Panel Rincian Biaya SPK (Tambahan Jasa & Tambahan Bahan / Material) ── --}}
+                    <div class="border-top pt-4 mt-4">
+                        <div class="card border shadow-sm rounded-3 bg-light-subtle">
+                            <div class="card-header bg-white py-3 px-3 border-bottom d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="fw-bold mb-0 text-dark"><i class="fas fa-calculator text-primary me-2"></i>Setting Biaya SPK di Akhir (Tambahan Jasa &amp; Bahan / Material)</h6>
+                                    <small class="text-muted">Tentukan total biaya Jasa &amp; Bahan untuk 1 dokumen SPK ini. Sistem akan otomatis membagi total biaya dengan Total Qty SPK untuk menetapkan HPP per unit.</small>
+                                </div>
+                                <span class="badge bg-primary-subtle text-primary border border-primary border-opacity-25 font-monospace fw-bold fs-7">
+                                    Kalkulasi HPP SPK
+                                </span>
+                            </div>
+                            <div class="card-body p-3">
+                                <div class="row g-4">
+                                    {{-- Seksi Tambahan Jasa --}}
+                                    <div class="col-md-6">
+                                        <div class="card border-0 shadow-sm h-100 bg-white">
+                                            <div class="card-header bg-primary bg-opacity-10 py-2 px-3 border-bottom d-flex justify-content-between align-items-center">
+                                                <span class="fw-bold small text-primary"><i class="fas fa-user-tie me-1"></i>1. Tambahan Jasa (Jahit, QC, Finishing, Bordir, dll)</span>
+                                                <button type="button" class="btn btn-outline-primary btn-xs py-0 px-2 fw-semibold" id="btnAddGlobalJasa">
+                                                    <i class="fas fa-plus me-1"></i> Tambah Jasa
+                                                </button>
+                                            </div>
+                                            <div class="card-body p-3">
+                                                <div id="globalJasaContainer">
+                                                    {{-- Dynamic rows for global Jasa --}}
+                                                </div>
+                                                <div class="d-flex justify-content-between align-items-center pt-2 border-top mt-2">
+                                                    <span class="small fw-semibold text-secondary">Subtotal Jasa SPK:</span>
+                                                    <span class="fw-bold font-monospace text-primary" id="subtotalJasaLabel">Rp 0</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {{-- Seksi Tambahan Bahan --}}
+                                    <div class="col-md-6">
+                                        <div class="card border-0 shadow-sm h-100 bg-white">
+                                            <div class="card-header bg-info bg-opacity-10 py-2 px-3 border-bottom d-flex justify-content-between align-items-center">
+                                                <span class="fw-bold small text-info"><i class="fas fa-layer-group me-1"></i>2. Tambahan Bahan / Material (Benang, Kancing, Packing)</span>
+                                                <button type="button" class="btn btn-outline-info btn-xs py-0 px-2 fw-semibold" id="btnAddGlobalBahan">
+                                                    <i class="fas fa-plus me-1"></i> Tambah Bahan
+                                                </button>
+                                            </div>
+                                            <div class="card-body p-3">
+                                                <div id="globalBahanContainer">
+                                                    {{-- Dynamic rows for global Bahan --}}
+                                                </div>
+                                                <div class="d-flex justify-content-between align-items-center pt-2 border-top mt-2">
+                                                    <span class="small fw-semibold text-secondary">Subtotal Bahan SPK:</span>
+                                                    <span class="fw-bold font-monospace text-info" id="subtotalBahanLabel">Rp 0</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {{-- Ringkasan Kalkulasi HPP Global --}}
+                                <div class="alert alert-primary bg-white border-primary border-opacity-25 shadow-sm mt-3 mb-0 p-3">
+                                    <div class="row align-items-center text-center text-md-start">
+                                        <div class="col-md-3 border-end">
+                                            <div class="text-muted small">Total Qty Produk SPK</div>
+                                            <div class="fw-bold fs-5 text-dark font-monospace" id="summaryTotalQty">0 Pcs</div>
+                                        </div>
+                                        <div class="col-md-3 border-end">
+                                            <div class="text-muted small">Grand Total Biaya SPK</div>
+                                            <div class="fw-bold fs-5 text-primary font-monospace" id="summaryGrandTotalCost">Rp 0</div>
+                                        </div>
+                                        <div class="col-md-6 pt-2 pt-md-0">
+                                            <div class="text-muted small">Alokasi HPP per Unit Item:</div>
+                                            <div class="fw-bold fs-4 text-success font-monospace" id="summaryAllocatedHpp">Rp 0 / Unit</div>
+                                            <small class="text-muted" style="font-size: 11px;">(Grand Total Biaya ÷ Total Qty SPK secara otomatis)</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
                 <div class="card-footer bg-light py-3 px-4 d-flex justify-content-end gap-2 border-0">
                     <a href="{{ route('spks.index') }}" class="btn btn-sm btn-outline-secondary px-3">Batal</a>
@@ -154,16 +233,118 @@
             return o;
         }
 
+        // ——— Hitung Global SPK Costs (Jasa & Bahan) ———
+        let globalJasaIndex = 0;
+        let globalBahanIndex = 0;
+
+        function getAllocatedHppPerUnit() {
+            let totalQty = 0;
+            $('.item-qty').each(function() {
+                totalQty += parseInt($(this).val()) || 0;
+            });
+
+            let totalJasa = 0;
+            $('#globalJasaContainer .global-jasa-nominal').each(function() {
+                totalJasa += getCleanNumber($(this).val());
+            });
+
+            let totalBahan = 0;
+            $('#globalBahanContainer .global-bahan-nominal').each(function() {
+                totalBahan += getCleanNumber($(this).val());
+            });
+
+            const grandTotal = totalJasa + totalBahan;
+            return totalQty > 0 ? (grandTotal / totalQty) : 0;
+        }
+
+        function recalcGlobalSpkCosts() {
+            let totalQty = 0;
+            $('.item-qty').each(function() {
+                totalQty += parseInt($(this).val()) || 0;
+            });
+
+            let totalJasa = 0;
+            $('#globalJasaContainer .global-jasa-nominal').each(function() {
+                totalJasa += getCleanNumber($(this).val());
+            });
+
+            let totalBahan = 0;
+            $('#globalBahanContainer .global-bahan-nominal').each(function() {
+                totalBahan += getCleanNumber($(this).val());
+            });
+
+            const grandTotal = totalJasa + totalBahan;
+            const allocatedPerUnit = totalQty > 0 ? Math.round(grandTotal / totalQty) : 0;
+
+            $('#subtotalJasaLabel').text('Rp ' + formatRupiah(totalJasa));
+            $('#subtotalBahanLabel').text('Rp ' + formatRupiah(totalBahan));
+            $('#summaryTotalQty').text(totalQty + ' Pcs');
+            $('#summaryGrandTotalCost').text('Rp ' + formatRupiah(grandTotal));
+            $('#summaryAllocatedHpp').text('Rp ' + formatRupiah(allocatedPerUnit) + ' / Unit');
+
+            // Recalculate HPP for each item card
+            $('.item-card').each(function() {
+                recalcHpp(this);
+            });
+        }
+
+        function addGlobalJasaRow(ket = '', nom = 0) {
+            const idx = globalJasaIndex++;
+            const html = `
+    <div class="row g-1 mb-2 global-jasa-row align-items-center">
+        <div class="col">
+            <input type="text" name="global_jasa[${idx}][keterangan]" class="form-control form-control-sm global-jasa-ket" 
+                placeholder="Nama Jasa (misal: Jahit, QC, Bordir)" value="${escapeHtml(ket)}">
+        </div>
+        <div class="col-auto" style="width:140px;">
+            <input type="text" name="global_jasa[${idx}][nominal]" class="form-control form-control-sm global-jasa-nominal rupiah-mask text-end" 
+                placeholder="0" value="${nom > 0 ? formatRupiah(nom) : '0'}">
+        </div>
+        <div class="col-auto">
+            <button type="button" class="btn btn-sm btn-outline-danger btn-remove-global-jasa py-0 px-2 fs-7">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    </div>`;
+            $('#globalJasaContainer').append(html);
+            recalcGlobalSpkCosts();
+        }
+
+        function addGlobalBahanRow(ket = '', nom = 0) {
+            const idx = globalBahanIndex++;
+            const html = `
+    <div class="row g-1 mb-2 global-bahan-row align-items-center">
+        <div class="col">
+            <input type="text" name="global_bahan[${idx}][keterangan]" class="form-control form-control-sm global-bahan-ket" 
+                placeholder="Nama Bahan (misal: Benang, Kancing, Packaging)" value="${escapeHtml(ket)}">
+        </div>
+        <div class="col-auto" style="width:140px;">
+            <input type="text" name="global_bahan[${idx}][nominal]" class="form-control form-control-sm global-bahan-nominal rupiah-mask text-end" 
+                placeholder="0" value="${nom > 0 ? formatRupiah(nom) : '0'}">
+        </div>
+        <div class="col-auto">
+            <button type="button" class="btn btn-sm btn-outline-danger btn-remove-global-bahan py-0 px-2 fs-7">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    </div>`;
+            $('#globalBahanContainer').append(html);
+            recalcGlobalSpkCosts();
+        }
+
         // ——— Hitung HPP per baris ———
         function recalcHpp(card) {
-            let total = 0;
-            // tambah extras
+            let itemExtras = 0;
             $(card).find('.extra-nominal').each(function() {
-                total += getCleanNumber($(this).val());
+                itemExtras += getCleanNumber($(this).val());
             });
+
+            const allocatedGlobal = getAllocatedHppPerUnit();
             const qty = parseInt($(card).find('.item-qty').val()) || 1;
-            $(card).find('.hpp-per-pcs').text('Rp ' + total.toLocaleString('id-ID'));
-            $(card).find('.hpp-subtotal').text('Rp ' + (total * qty).toLocaleString('id-ID'));
+            const hppPerUnit = Math.round(allocatedGlobal + itemExtras);
+
+            $(card).find('.hpp-per-pcs').text('Rp ' + formatRupiah(hppPerUnit));
+            $(card).find('.hpp-subtotal').text('Rp ' + formatRupiah(hppPerUnit * qty));
         }
 
         // ——— Buat Card Item Baru ———
@@ -391,6 +572,7 @@
             // Tambah item baru
             $('#btnAddRow').on('click', function() {
                 addRow();
+                recalcGlobalSpkCosts();
             });
 
             // Hapus item
@@ -401,7 +583,36 @@
                 }
                 $(this).closest('.item-card').remove();
                 renumberItems();
+                recalcGlobalSpkCosts();
             });
+
+            // Event handlers for Global Jasa & Bahan
+            $('#btnAddGlobalJasa').on('click', function() {
+                addGlobalJasaRow();
+            });
+
+            $('#btnAddGlobalBahan').on('click', function() {
+                addGlobalBahanRow();
+            });
+
+            $(document).on('click', '.btn-remove-global-jasa, .btn-remove-global-bahan', function() {
+                $(this).closest('.row').remove();
+                recalcGlobalSpkCosts();
+            });
+
+            $(document).on('keyup input change', '.global-jasa-nominal, .global-bahan-nominal, .global-jasa-ket, .global-bahan-ket, .item-qty', function() {
+                recalcGlobalSpkCosts();
+            });
+
+            // Initialize default global Jasa & Bahan rows if empty
+            if ($('#globalJasaContainer .global-jasa-row').length === 0) {
+                addGlobalJasaRow('Jasa Jahit', 0);
+                addGlobalJasaRow('Jasa QC & Finishing', 0);
+            }
+            if ($('#globalBahanContainer .global-bahan-row').length === 0) {
+                addGlobalBahanRow('Benang & Aksesoris', 0);
+                addGlobalBahanRow('Packaging & Label', 0);
+            }
 
             // Tambah extra
             $(document).on('click', '.btn-add-extra', function() {

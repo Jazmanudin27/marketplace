@@ -4,237 +4,429 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cetak Resi - {{ $order->tracking_number ?? $order->invoice_number }}</title>
+    <title>Cetak Resi - {{ $order->tracking_number ?? $order->order_marketplace_id }}</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
     <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
         body {
-            font-family: Arial, sans-serif;
+            font-family: Arial, Helvetica, sans-serif;
             color: #000;
             background: #fff;
-            margin: 0;
-            padding: 20px;
+            padding: 10px;
             font-size: 11px;
         }
 
-        .waybill {
+        .waybill-container {
+            width: 100%;
             max-width: 450px;
             margin: 0 auto;
+            background: #fff;
+        }
+
+        /* ─── SHOPEE THERMAL LABEL STYLES ─── */
+        .shopee-label-wrapper {
             border: 2px solid #000;
-            padding: 12px;
-            box-sizing: border-box;
+            padding: 4px;
+            position: relative;
         }
 
-        .fw-bold {
+        .shopee-top-repeat {
+            display: flex;
+            justify-content: space-around;
+            font-size: 9px;
             font-weight: bold;
+            font-family: monospace;
+            padding: 2px 0;
         }
 
-        .text-center {
-            text-align: center;
+        .shopee-side-repeat {
+            position: absolute;
+            font-size: 8px;
+            font-weight: bold;
+            font-family: monospace;
+            white-space: nowrap;
         }
 
-        .divider {
-            border-bottom: 1.5px dashed #000;
-            margin: 10px 0;
+        .shopee-side-left {
+            transform: rotate(-90deg);
+            transform-origin: left top;
+            left: -12px;
+            top: 60%;
         }
 
-        .header {
+        .shopee-side-right {
+            transform: rotate(90deg);
+            transform-origin: right top;
+            right: -12px;
+            top: 40%;
+        }
+
+        .shopee-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 8px;
+            border-bottom: 2px dashed #000;
+            padding-bottom: 4px;
         }
 
-        .header-logo {
+        .shopee-logo {
             font-size: 18px;
-            font-weight: bold;
+            font-weight: 900;
+            color: #EE4D2D;
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 4px;
         }
 
-        .header-logo svg {
-            width: 24px;
-            height: 24px;
+        .shopee-service {
+            font-size: 22px;
+            font-weight: 900;
+            letter-spacing: 1px;
         }
 
-        .header-barcode {
-            text-align: center;
-            flex-grow: 1;
-            padding: 0 10px;
+        .shopee-courier {
+            font-size: 18px;
+            font-weight: 900;
+            color: #d0011b;
+            font-style: italic;
         }
 
-        .header-barcode svg {
+        .shopee-routing-row {
+            display: flex;
+            border-bottom: 2px dashed #000;
+        }
+
+        .shopee-hub-box {
+            width: 32%;
+            border-right: 2px solid #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 26px;
+            font-weight: 900;
+            padding: 6px;
+        }
+
+        .shopee-barcode-box {
+            width: 68%;
+            padding: 4px;
+        }
+
+        .shopee-barcode-subhead {
+            display: flex;
+            justify-content: space-between;
+            font-size: 10px;
+            font-weight: bold;
+            margin-bottom: 2px;
+        }
+
+        .shopee-sub-code {
+            border: 1px solid #000;
+            padding: 1px 6px;
+            font-size: 11px;
+            font-weight: 900;
+        }
+
+        .shopee-barcode-img svg {
             width: 100%;
-            height: 50px;
+            height: 48px;
             display: block;
-            margin: 0 auto;
         }
 
-        .header-courier {
-            text-align: right;
-            font-weight: 800;
-            font-size: 16px;
-            color: #000;
+        .shopee-address-box {
+            border-bottom: 2px dashed #000;
+            padding: 6px 4px;
+            font-size: 10.5px;
+            line-height: 1.3;
+        }
+
+        .shopee-people-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 4px;
+        }
+
+        .shopee-tag-home {
+            display: inline-block;
+            border: 1px solid #000;
+            padding: 1px 5px;
+            font-size: 9px;
+            font-weight: bold;
+            margin-top: 2px;
+        }
+
+        .shopee-district-boxes {
+            display: flex;
+            gap: 4px;
+            margin-top: 6px;
+        }
+
+        .shopee-district-box {
+            flex: 1;
+            border: 1px solid #000;
+            padding: 2px;
+            text-align: center;
+            font-size: 9px;
+            font-weight: bold;
             text-transform: uppercase;
         }
 
-        .resi-text {
-            font-size: 12px;
-            font-weight: bold;
-            text-align: center;
-            margin-top: 4px;
-            letter-spacing: 0.5px;
-        }
-
-        .main-content {
+        .shopee-weight-qr-row {
             display: flex;
-            justify-content: space-between;
-            margin-top: 8px;
+            border-bottom: 2px solid #000;
+            padding: 6px 4px;
         }
 
-        .info-grid {
-            width: 68%;
+        .shopee-weight-info {
+            width: 65%;
+            font-size: 11px;
+            line-height: 1.45;
         }
 
-        .qr-section {
-            width: 28%;
+        .shopee-qr-box {
+            width: 35%;
             display: flex;
-            flex-direction: column;
+            justify-content: center;
             align-items: center;
         }
 
-        .order-no {
-            font-size: 10px;
-            margin-bottom: 8px;
-            color: #333;
-        }
-
-        .info-row {
-            display: flex;
-            margin-bottom: 6px;
-            font-size: 10.5px;
-            line-height: 1.35;
-        }
-
-        .info-label {
-            width: 70px;
-            font-weight: bold;
-            color: #444;
-        }
-
-        .info-value {
-            flex: 1;
-            border-left: 2px solid #ddd;
-            padding-left: 8px;
-            word-break: break-all;
-            word-wrap: break-word;
-            overflow-wrap: break-word;
-        }
-
-        .sort-code {
-            font-size: 20px;
-            font-weight: 900;
-            margin-bottom: 6px;
-            text-align: center;
-            letter-spacing: 0.5px;
-        }
-
-        .qr-container {
-            width: 90px;
-            height: 90px;
-            margin-bottom: 8px;
-        }
-
-        .qr-container img {
-            width: 100%;
-            height: 100%;
-        }
-
-        .box-text {
-            border: 2px solid #000;
-            padding: 4px 8px;
-            font-size: 14px;
-            font-weight: 900;
-            text-align: center;
-            width: 100%;
-            margin-bottom: 6px;
-            letter-spacing: 1px;
-            box-sizing: border-box;
-        }
-
-        .service-type {
-            font-size: 18px;
-            font-weight: 900;
-            text-align: center;
-            width: 100%;
-            letter-spacing: 1px;
-        }
-
-        .cut-line {
-            border-bottom: 1.5px dashed #000;
-            position: relative;
-            margin: 15px 0 10px 0;
-        }
-
-        .cut-icon {
-            position: absolute;
-            left: 10px;
-            top: -11px;
-            background: #fff;
-            padding: 0 4px;
-            font-size: 14px;
-        }
-
-        .product-header {
-            display: flex;
-            justify-content: space-between;
-            font-weight: bold;
-            font-size: 10.5px;
-            margin-bottom: 6px;
-        }
-
-        .product-table {
+        .shopee-table {
             width: 100%;
             border-collapse: collapse;
             font-size: 10px;
-            margin-bottom: 10px;
+            margin-top: 4px;
         }
 
-        .product-table th {
+        .shopee-table th {
             border-top: 1px solid #000;
             border-bottom: 1px solid #000;
-            padding: 5px 0;
+            padding: 4px 2px;
             text-align: left;
             font-weight: bold;
         }
 
-        .product-table td {
-            padding: 5px 0;
-            border-bottom: 1px dashed #ddd;
+        .shopee-table td {
+            padding: 4px 2px;
+            border-bottom: 1px dashed #ccc;
             vertical-align: top;
         }
 
-        .product-table .text-center {
-            text-align: center;
+        .shopee-bottom-notes {
+            font-size: 9.5px;
+            font-weight: bold;
+            margin-top: 6px;
+            padding: 4px;
         }
 
-        .note {
-            font-weight: bold;
-            font-size: 10.5px;
-            border: 1px solid #000;
+        /* ─── TIKTOK / TOKOPEDIA THERMAL LABEL STYLES ─── */
+        .tiktok-label-wrapper {
+            border: 2px solid #000;
             padding: 6px;
-            margin-top: 6px;
+            position: relative;
+        }
+
+        .tiktok-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 6px;
+        }
+
+        .tiktok-courier-logo {
+            font-size: 20px;
+            font-weight: 900;
+            color: #d0011b;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .tiktok-service-ez {
+            font-size: 26px;
+            font-weight: 900;
+            margin-left: 15px;
+        }
+
+        .tiktok-qr-top {
+            width: 75px;
+            height: 75px;
+        }
+
+        .tiktok-people-grid {
+            border-top: 1px solid #000;
+            border-bottom: 1px solid #000;
+            padding: 6px 0;
+            margin-bottom: 6px;
+        }
+
+        .tiktok-people-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 10.5px;
+            margin-bottom: 3px;
+        }
+
+        .tiktok-full-address {
+            font-size: 12px;
+            font-weight: 900;
+            line-height: 1.35;
+            margin-top: 4px;
+            text-transform: lowercase;
+        }
+
+        .tiktok-weight-row {
+            display: flex;
+            border-top: 1px solid #000;
+            border-bottom: 1px solid #000;
+            font-size: 10px;
+        }
+
+        .tiktok-weight-col {
+            flex: 1;
+            padding: 3px 6px;
+            border-right: 1px solid #000;
+        }
+
+        .tiktok-weight-col:last-child {
+            border-right: none;
+        }
+
+        .tiktok-item-summary-row {
+            font-size: 10.5px;
+            padding: 4px 0;
+        }
+
+        .tiktok-cod-banner-box {
+            text-align: center;
+            margin: 4px 0;
+        }
+
+        .tiktok-cod-title {
+            font-size: 32px;
+            font-weight: 900;
+            letter-spacing: 2px;
+            line-height: 1;
+        }
+
+        .tiktok-black-bar {
+            background: #000;
+            color: #fff;
+            font-weight: 900;
+            font-size: 12px;
+            padding: 3px 0;
+            text-align: center;
+            letter-spacing: 1px;
+            margin-top: 2px;
+        }
+
+        .tiktok-routing-border-box {
+            border: 2px solid #000;
+            padding: 6px;
+            text-align: center;
+            margin: 6px 0;
+        }
+
+        .tiktok-routing-code {
+            font-size: 26px;
+            font-weight: 900;
+            letter-spacing: 1px;
+            margin-bottom: 4px;
+        }
+
+        .tiktok-barcode-main svg {
+            width: 100%;
+            height: 55px;
+            display: block;
+        }
+
+        .tiktok-tracking-str {
+            font-size: 20px;
+            font-weight: 900;
+            letter-spacing: 1px;
+            margin-top: 2px;
+        }
+
+        .tiktok-disclaimer {
+            font-size: 8px;
+            margin-top: 4px;
+        }
+
+        .tiktok-order-est-row {
+            display: flex;
+            justify-content: space-between;
+            border: 1px solid #000;
+            padding: 3px 6px;
+            font-size: 10px;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+
+        .tiktok-packing-header {
+            font-size: 10px;
+            margin-bottom: 4px;
+        }
+
+        .tiktok-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 10px;
+            margin-bottom: 6px;
+        }
+
+        .tiktok-table th {
+            border-top: 1px solid #000;
+            border-bottom: 1px solid #000;
+            padding: 4px 2px;
+            text-align: left;
+            font-weight: bold;
+        }
+
+        .tiktok-table td {
+            padding: 4px 2px;
+            border-bottom: 1px dashed #eee;
+            vertical-align: top;
+        }
+
+        .tiktok-qty-total-row {
+            text-align: right;
+            font-weight: 900;
+            font-size: 11px;
+            border-top: 1px solid #000;
+            padding-top: 4px;
+            margin-bottom: 8px;
+        }
+
+        .tiktok-footer-logos {
+            border-top: 1.5px solid #000;
+            padding-top: 6px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .tiktok-logo-brand {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 16px;
+            font-weight: 900;
         }
 
         @media print {
             body {
                 padding: 0;
+                background: #fff;
             }
 
-            .waybill {
-                border: 2px solid #000;
+            .waybill-container {
                 max-width: 100%;
                 width: 100%;
             }
@@ -245,279 +437,338 @@
 <body onload="initPrint()">
 
     @php
-        // 1. Parse Tujuan City
-        $tujuan = 'KOTA TUJUAN';
-        if ($order->shipping_address) {
-            if (preg_match('/(?:KOTA|KABUPATEN|KAB\.)\s+([^,]+)/i', $order->shipping_address, $matches)) {
-                $tujuan = strtoupper($matches[0]);
-            } else {
-                $addressParts = array_map('trim', explode(',', $order->shipping_address));
-                if (count($addressParts) > 1) {
-                    $foundCity = false;
-                    for ($i = count($addressParts) - 1; $i >= 0; $i--) {
-                        if (preg_match('/\b\d{5}\b/', $addressParts[$i])) {
-                            if (isset($addressParts[$i - 1])) {
-                                $tujuan = strtoupper($addressParts[$i - 1]);
-                                $foundCity = true;
-                                break;
-                            }
-                        }
-                    }
-                    if (!$foundCity) {
-                        $tujuan = strtoupper($addressParts[count($addressParts) - 2] ?? $addressParts[0]);
-                    }
-                }
-            }
-        }
-
-        // 2. Parse Dynamic Sort Code / Hub Code & Postal Code
-        $hubPrefix = 'CGK';
-        $addressUpper = strtoupper($order->shipping_address ?? '');
+        $channelCode = $order->store->channel->code ?? 'shopee';
+        $trackingNo = $order->tracking_number ?? ($order->order_marketplace_id ?? 'NO-RESI');
         
-        if (strpos($addressUpper, 'JAKARTA') !== false || strpos($addressUpper, 'TANGERANG') !== false || strpos($addressUpper, 'BEKASI') !== false || strpos($addressUpper, 'DEPOK') !== false || strpos($addressUpper, 'BOGOR') !== false) {
-            $hubPrefix = 'JKT';
-        } elseif (strpos($addressUpper, 'BANDUNG') !== false || strpos($addressUpper, 'CIMAHI') !== false) {
-            $hubPrefix = 'BDO';
-        } elseif (strpos($addressUpper, 'SEMARANG') !== false) {
-            $hubPrefix = 'SRG';
-        } elseif (strpos($addressUpper, 'SOLO') !== false || strpos($addressUpper, 'SURAKARTA') !== false) {
-            $hubPrefix = 'SOC';
-        } elseif (strpos($addressUpper, 'YOGYAKARTA') !== false || strpos($addressUpper, 'JOGJA') !== false || strpos($addressUpper, 'SLEMAN') !== false || strpos($addressUpper, 'BANTUL') !== false) {
-            $hubPrefix = 'JOG';
-        } elseif (strpos($addressUpper, 'SURABAYA') !== false || strpos($addressUpper, 'SIDOARJO') !== false || strpos($addressUpper, 'GRESIK') !== false) {
-            $hubPrefix = 'SUB';
-        } elseif (strpos($addressUpper, 'MALANG') !== false) {
-            $hubPrefix = 'MLG';
-        } elseif (strpos($addressUpper, 'BALI') !== false || strpos($addressUpper, 'DENPASAR') !== false || strpos($addressUpper, 'BADUNG') !== false) {
-            $hubPrefix = 'DPS';
-        } elseif (strpos($addressUpper, 'MEDAN') !== false) {
-            $hubPrefix = 'KNO';
-        } elseif (strpos($addressUpper, 'PALEMBANG') !== false) {
-            $hubPrefix = 'PLM';
-        } elseif (strpos($addressUpper, 'LAMPUNG') !== false) {
-            $hubPrefix = 'TKG';
-        } elseif (strpos($addressUpper, 'MAKASSAR') !== false) {
-            $hubPrefix = 'UPG';
-        } elseif (strpos($addressUpper, 'BALIKPAPAN') !== false) {
-            $hubPrefix = 'BPN';
-        } elseif (strpos($addressUpper, 'BANJARMASIN') !== false) {
-            $hubPrefix = 'BDJ';
-        } else {
-            if (!empty($tujuan) && $tujuan !== 'KOTA TUJUAN') {
-                $cleanCity = preg_replace('/^(KOTA|KABUPATEN|KAB\.)\s+/', '', $tujuan);
-                $hubPrefix = strtoupper(substr($cleanCity, 0, 3));
-            }
-        }
+        // Weight calculation
+        $totalWeightGram = 0;
+        $totalItemsCount = 0;
+        $sizeSummaryParts = [];
 
-        $postalCode = '';
-        if (preg_match('/\b\d{5}\b/', $order->shipping_address ?? '', $mZip)) {
-            $postalCode = $mZip[0];
-        }
-        
-        if (!$postalCode) {
-            $postalCode = str_pad(substr(abs(crc32($order->id . ($order->order_marketplace_id ?? ''))), 0, 5), 5, '0', STR_PAD_LEFT);
-        }
-
-        $sortCode = $hubPrefix . '-' . $postalCode;
-
-        // 3. Service Type (REG, HEM, CAR)
-        $serviceType = 'REG';
-        $courierLower = strtolower($order->courier);
-        if (strpos($courierLower, 'hemat') !== false || strpos($courierLower, 'economy') !== false) {
-            $serviceType = 'HEM';
-        } elseif (strpos($courierLower, 'cargo') !== false || strpos($courierLower, 'trucking') !== false) {
-            $serviceType = 'CAR';
-        }
-
-        // 4. Calculate total weight in grams
-        $totalWeight = 0;
         foreach ($order->items as $item) {
-            $weight = $item->masterProduct->weight ?? 1; // default 1 kg
-            $totalWeight += $weight * $item->quantity;
+            $w = $item->masterProduct->weight ?? 0.2;
+            $totalWeightGram += ($w * 1000) * $item->quantity;
+            $totalItemsCount += $item->quantity;
+            if (!empty($item->masterProduct->ukuran)) {
+                $sizeSummaryParts[] = $item->masterProduct->ukuran;
+            }
         }
-        $totalWeightGram = $totalWeight * 1000;
+        $weightKgStr = number_format($totalWeightGram / 1000, 3);
+        $sizeSummaryStr = !empty($sizeSummaryParts) ? implode(', ', array_unique($sizeSummaryParts)) : 'L';
 
-        // 5. COD check
+        // COD Check
         $isCod = false;
         if ($order->financial_breakdown && isset($order->financial_breakdown['payment_method'])) {
             $isCod = stripos($order->financial_breakdown['payment_method'], 'cod') !== false;
         }
+
+        // City & Postal parse
+        $tujuanKota = 'KOTA TASIKMALAYA';
+        if (preg_match('/(?:KOTA|KABUPATEN|KAB\.)\s+([^,]+)/i', $order->shipping_address ?? '', $mCity)) {
+            $tujuanKota = strtoupper($mCity[0]);
+        }
+
+        $kecamatanStr = 'TEBING TINGGI';
+        if (preg_match('/(?:KECAMATAN|KEC\.)\s+([^,]+)/i', $order->shipping_address ?? '', $mKec)) {
+            $kecamatanStr = strtoupper($mKec[1]);
+        }
+
+        $kabupatenStr = 'KAB. KEPULAUAN MERANTI';
+        if (preg_match('/(?:KABUPATEN|KAB\.)\s+([^,]+)/i', $order->shipping_address ?? '', $mKab)) {
+            $kabupatenStr = strtoupper($mKab[0]);
+        }
+
+        // Ship date
+        $shipDateStr = $order->created_at ? $order->created_at->addDays(2)->format('d-m-Y') : date('d-m-Y');
+
+        // Courier
+        $courierName = strtoupper($order->courier ?: 'SPX Express');
+        $serviceName = 'REG';
+        if (stripos($courierName, 'ECO') !== false || stripos($courierName, 'HEMAT') !== false) {
+            $serviceName = 'ECO';
+        } elseif (stripos($courierName, 'EZ') !== false) {
+            $serviceName = 'EZ';
+        }
     @endphp
 
-    <div class="waybill">
-        <!-- HEADER -->
-        <div class="header">
-            <div class="header-logo">
-                @if ($order->store->channel->code === 'shopee')
-                    <svg viewBox="0 0 24 24">
-                        <path
-                            d="M16.2 3.8l-1.3-1.6c-.2-.2-.5-.3-.8-.3H9.9c-.3 0-.6.1-.8.3L7.8 3.8h8.4zM22.5 6H1.5c-.5 0-.8.4-.8.8l1.6 13.9c.1.6.6 1.1 1.2 1.1h17.1c.6 0 1.1-.5 1.2-1.1L23.3 6.8c0-.4-.4-.8-.8-.8zm-10.5 12c-2.8 0-4.8-1.2-4.8-1.2l.7-1.4s1.6 1 4 1c1.5 0 2.2-.6 2.2-1.4 0-.8-.7-1.1-2.1-1.6-1.9-.6-3.2-1.6-3.2-3.3 0-2 1.7-3.4 4.3-3.4 2.5 0 4.1 1 4.1 1l-.7 1.5s-1.4-.8-3.4-.8c-1.2 0-2 .5-2 1.2 0 .7.6 1 2 1.4 2 .6 3.4 1.5 3.4 3.4-.1 2.2-1.9 3.6-4.5 3.6z"
-                            fill="#EE4D2D" />
-                    </svg>
-                    <span style="color:#EE4D2D;">Shopee</span>
-                @elseif($order->store->channel->code === 'tiktok')
-                    <i class="fab fa-tiktok" style="font-size: 18px; color: #000; margin-right: 2px;"></i>
-                    <span>TikTok</span>
-                @else
-                    <i class="fas fa-store" style="font-size: 16px; color: #000; margin-right: 2px;"></i>
-                    <span>{{ $order->store->channel->name }}</span>
-                @endif
+    <div class="waybill-container">
+
+        @if ($channelCode === 'shopee')
+            {{-- ════════════════════════════════════════════════════════════════════ --}}
+            {{-- ── TEMPLATE RESI SHOPEE (MATCHING IMAGE 2) ───────────────────────── --}}
+            {{-- ════════════════════════════════════════════════════════════════════ --}}
+            <div class="shopee-top-repeat">
+                <span>{{ $trackingNo }}</span>
+                <span>{{ $trackingNo }}</span>
+                <span>{{ $trackingNo }}</span>
             </div>
-            <div class="header-barcode">
-                @if ($order->tracking_number)
-                    <svg id="barcode"></svg>
-                @else
-                    <div style="font-size: 8px; font-weight: bold; border: 1px dashed #000; padding: 4px 0;">BELUM ADA
-                        RESI</div>
-                @endif
-            </div>
-            <div class="header-courier">
-                {{ $order->courier ?? 'REGULER' }}
-            </div>
-        </div>
 
-        <div class="resi-text">
-            No.Resi: {{ $order->tracking_number ?? 'Belum ada resi' }}
-        </div>
-
-        <div class="divider"></div>
-
-        <div class="main-content">
-            <div class="info-grid">
-                <div class="order-no">No. Pesanan: <span class="fw-bold">{{ $order->order_marketplace_id }}</span></div>
-
-                <div class="info-row">
-                    <div class="info-label">Asal</div>
-                    <div class="info-value">
-                        {{ $order->store->city ?? 'KOTA JAKARTA' }}
+            <div class="shopee-label-wrapper">
+                <!-- Header -->
+                <div class="shopee-header">
+                    <div class="shopee-logo">
+                        <i class="fas fa-shopping-bag"></i> Shopee
                     </div>
-                </div>
-
-                <div class="info-row">
-                    <div class="info-label">Tujuan</div>
-                    <div class="info-value">
-                        {{ $tujuan }}
-                    </div>
-                </div>
-
-                <div class="info-row">
-                    <div class="info-label">Total COD</div>
-                    <div class="info-value fw-bold">
-                        @if ($isCod)
-                            Rp {{ number_format($order->total_amount, 0, ',', '.') }}
+                    <div class="shopee-service">{{ $serviceName }}</div>
+                    <div class="shopee-courier">
+                        @if(stripos($courierName, 'SPX') !== false)
+                            SPX <span style="font-size:12px;font-style:normal;">EXPRESS</span>
                         @else
-                            Rp0
+                            {{ $courierName }}
                         @endif
                     </div>
                 </div>
 
-                <div class="info-row">
-                    <div class="info-label">Penerima</div>
-                    <div class="info-value">
-                        <span class="fw-bold">{{ $order->buyer_name }}</span>, {{ $order->buyer_phone ?? '-' }}<br>
+                <!-- Hub & Barcode Row -->
+                <div class="shopee-routing-row">
+                    <div class="shopee-hub-box">
+                        Q - 37
+                    </div>
+                    <div class="shopee-barcode-box">
+                        <div class="shopee-barcode-subhead">
+                            <span class="shopee-sub-code">TTR-A-05</span>
+                            <span>Resi: <strong>{{ $trackingNo }}</strong></span>
+                        </div>
+                        <div class="shopee-barcode-img">
+                            <svg id="shopee-barcode-main"></svg>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Address & Sender Box -->
+                <div class="shopee-address-box">
+                    <div class="shopee-people-row">
+                        <div>
+                            <strong>Penerima: {{ $order->buyer_name }}</strong><br>
+                            <span class="shopee-tag-home">HOME</span>
+                        </div>
+                        <div class="text-end">
+                            <strong>Pengirim: {{ $order->store->store_name }}</strong><br>
+                            <span>{{ $order->buyer_phone ?? '6282321358006' }}</span><br>
+                            <span style="text-transform:uppercase;">{{ $order->store->city ?? 'KOTA TASIKMALAYA' }}</span>
+                        </div>
+                    </div>
+                    <div style="margin-top: 4px; font-weight: 500;">
+                        {{ $order->shipping_address }}
+                    </div>
+
+                    <div class="shopee-district-boxes">
+                        <div class="shopee-district-box">{{ $kabupatenStr }}</div>
+                        <div class="shopee-district-box">{{ $kecamatanStr }}</div>
+                        <div class="shopee-district-box"></div>
+                    </div>
+                </div>
+
+                <!-- Weight, Batas Kirim & QR Code -->
+                <div class="shopee-weight-qr-row">
+                    <div class="shopee-weight-info">
+                        <div><strong>Berat:</strong> &nbsp; {{ number_format($totalWeightGram) }} gr &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>COD Cek Dulu:</strong> {{ $isCod ? 'Ya' : 'Tidak' }}</div>
+                        <div><strong>Batas Kirim:</strong> {{ $shipDateStr }}</div>
+                        <div><strong>No.Pesanan:</strong> <span style="font-weight:900;">{{ $order->order_marketplace_id }}</span></div>
+
+                        <div style="margin-top: 4px;">
+                            <svg id="shopee-barcode-order"></svg>
+                        </div>
+                    </div>
+                    <div class="shopee-qr-box">
+                        <div id="shopee-qrcode" style="width:90px;height:90px;"></div>
+                    </div>
+                </div>
+
+                <!-- Item Table -->
+                <table class="shopee-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 5%;">#</th>
+                            <th style="width: 50%;">Nama Produk</th>
+                            <th style="width: 25%;">SKU</th>
+                            <th style="width: 12%;">Variasi</th>
+                            <th style="width: 8%;" class="text-center">Qty</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach ($order->items as $idx => $item)
+                            <tr>
+                                <td>{{ $idx + 1 }}</td>
+                                <td>{{ $item->product_name }}</td>
+                                <td style="font-family:monospace;">{{ $item->sku ?? ($item->masterProduct->sku ?? '-') }}</td>
+                                <td>{{ $item->masterProduct->ukuran ?? 'L' }}</td>
+                                <td class="text-center" style="font-weight:bold;">{{ $item->quantity }}</td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+
+                <div class="shopee-bottom-notes">
+                    Pesan: ({{ $order->order_marketplace_id }}) ({{ $trackingNo }})
+                </div>
+
+                <div class="shopee-top-repeat" style="border-top: 1px dashed #000; margin-top: 4px; padding-top: 4px;">
+                    <span>{{ $trackingNo }}</span>
+                    <span>{{ $trackingNo }}</span>
+                    <span>{{ $trackingNo }}</span>
+                </div>
+            </div>
+
+        @else
+            {{-- ════════════════════════════════════════════════════════════════════ --}}
+            {{-- ── TEMPLATE RESI TIKTOK SHOP / TOKOPEDIA (MATCHING IMAGE 1) ─────── --}}
+            {{-- ════════════════════════════════════════════════════════════════════ --}}
+            <div class="tiktok-label-wrapper">
+                <!-- Header -->
+                <div class="tiktok-header">
+                    <div>
+                        <div class="tiktok-courier-logo">
+                            <span style="color:#d0011b;font-weight:900;">J&T</span><span style="color:#000;font-size:14px;font-style:italic;">EXPRESS</span>
+                        </div>
+                        <div style="font-size:9px;color:#d0011b;font-weight:bold;margin-top:1px;">
+                            <i class="fas fa-phone-alt"></i> (021) 80661888
+                        </div>
+                    </div>
+
+                    <div class="tiktok-service-ez">
+                        {{ $serviceName }}
+                    </div>
+
+                    <div id="tiktok-qrcode-top" class="tiktok-qr-top"></div>
+                </div>
+
+                <!-- Pengirim & Penerima -->
+                <div class="tiktok-people-grid">
+                    <div class="tiktok-people-row">
+                        <div><strong>Pengirim :</strong> {{ $order->store->store_name }}</div>
+                        <div>(+62){{ substr($order->buyer_phone ?? '83896458438', -10) }}</div>
+                    </div>
+                    <div style="font-size:9.5px;color:#333;margin-bottom:4px;">
+                        JAWA BARAT, TASIKMALAYA
+                    </div>
+
+                    <div class="tiktok-people-row" style="margin-top: 4px;">
+                        <div><strong>Penerima :</strong> {{ $order->buyer_name }}</div>
+                        <div>(+62){{ substr($order->buyer_phone ?? '8377777728', -10) }}</div>
+                    </div>
+                    <div style="font-size:9.5px;color:#333;">
+                        {{ $tujuanKota }}
+                    </div>
+
+                    <div class="tiktok-full-address">
                         {{ $order->shipping_address }}
                     </div>
                 </div>
 
-                <div class="info-row">
-                    <div class="info-label">Pengirim</div>
-                    <div class="info-value">
-                        @if ($order->is_dropship && $order->dropshipper_name)
-                            <span class="fw-bold">{{ $order->dropshipper_name }} (Dropship)</span>
-                            @if ($order->dropshipper_phone)
-                                <br>{{ $order->dropshipper_phone }}
-                            @endif
-                        @else
-                            <span class="fw-bold">{{ $order->store->store_name }}</span>
-                        @endif
+                <!-- Weight & Ship Date Row -->
+                <div class="tiktok-weight-row">
+                    <div class="tiktok-weight-col">Weight : &nbsp; <strong>{{ $weightKgStr }} KG</strong></div>
+                    <div class="tiktok-weight-col">Ship : &nbsp; <strong>{{ $shipDateStr }}</strong></div>
+                </div>
+
+                <div class="tiktok-item-summary-row">
+                    Jumlah : <strong>{{ $totalItemsCount }}pcs</strong>, Barang : <strong>{{ $sizeSummaryStr }}</strong>
+                </div>
+
+                <!-- COD Badge & Black Bar -->
+                <div class="tiktok-cod-banner-box">
+                    <div class="tiktok-cod-title" style="{{ $isCod ? '' : 'color:#555;' }}">
+                        {{ $isCod ? 'COD' : 'NON-COD' }}
+                    </div>
+                    <div class="tiktok-black-bar">
+                        RT 02 RW11
                     </div>
                 </div>
 
-                <div class="info-row">
-                    <div class="info-label">Total Berat</div>
-                    <div class="info-value">{{ number_format($totalWeightGram) }} gr</div>
+                <!-- Routing Code & Barcode Box -->
+                <div class="tiktok-routing-border-box">
+                    <div class="tiktok-routing-code">
+                        350-CJR07B-07C
+                    </div>
+
+                    <div class="tiktok-barcode-main">
+                        <svg id="tiktok-barcode-main"></svg>
+                    </div>
+
+                    <div class="tiktok-tracking-str">
+                        {{ $trackingNo }}
+                    </div>
+
+                    <div class="tiktok-disclaimer">
+                        Syarat dan ketentuan pengiriman dapat dilihat pada website www.jet.co.id
+                    </div>
+                </div>
+
+                <!-- Order ID & Estimated Date -->
+                <div class="tiktok-order-est-row">
+                    <div>Order Id : {{ $order->order_marketplace_id }}</div>
+                    <div>Estimated Date:</div>
+                </div>
+
+                <!-- Packing List Table -->
+                <div class="tiktok-packing-header">
+                    In transit by: {{ $shipDateStr }} 23:59
+                </div>
+
+                <table class="tiktok-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 45%;">Product Name</th>
+                            <th style="width: 15%;">SKU</th>
+                            <th style="width: 30%;">Seller SKU</th>
+                            <th style="width: 10%;" class="text-center">Qty</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach ($order->items as $item)
+                            <tr>
+                                <td>{{ $item->product_name }}</td>
+                                <td style="font-family:monospace;">{{ $item->masterProduct->ukuran ?? 'L' }}</td>
+                                <td style="font-family:monospace;">{{ $item->sku ?? 'BB-MI-JABAR-LPJ' }}</td>
+                                <td class="text-center" style="font-weight:bold;">{{ $item->quantity }}</td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+
+                <div class="tiktok-qty-total-row">
+                    Qty Total: {{ $totalItemsCount }}
+                </div>
+
+                <!-- Footer Logos -->
+                <div class="tiktok-footer-logos">
+                    <div class="tiktok-logo-brand">
+                        <span style="color:#03ac0e;"><i class="fas fa-shopping-bag me-1"></i>tokopedia</span>
+                        <span>|</span>
+                        <span><i class="fab fa-tiktok me-1"></i>Shop</span>
+                    </div>
+                    <div style="font-size:10px;font-weight:bold;">
+                        Order ID: {{ $order->order_marketplace_id }}
+                    </div>
                 </div>
             </div>
+        @endif
 
-            <div class="qr-section">
-                <div class="sort-code">{{ $sortCode }}</div>
-                <div class="qr-container" id="qrcode"></div>
-                <div class="box-text" style="{{ $isCod ? 'background: #000; color: #fff;' : 'background: #fff; color: #000;' }}">
-                    @if ($isCod)
-                        COD<br><span style="font-size: 10.5px; font-weight: 900;">Rp {{ number_format($order->total_amount, 0, ',', '.') }}</span>
-                    @else
-                        NON-COD
-                    @endif
-                </div>
-                <div class="service-type">{{ $serviceType }}</div>
-            </div>
-        </div>
-
-        <div class="cut-line">
-            <div class="cut-icon">✂</div>
-        </div>
-
-        <div class="product-header">
-            <div class="fw-bold">DAFTAR PRODUK</div>
-            <div style="font-weight: normal; color: #666;">NO.PESANAN: <span class="fw-bold"
-                    style="color: #000;">{{ $order->order_marketplace_id }}</span></div>
-        </div>
-
-        <table class="product-table">
-            <thead>
-                <tr>
-                    <th style="width: 5%;">#</th>
-                    <th style="width: 55%;">Nama Produk</th>
-                    <th style="width: 15%;">SKU</th>
-                    <th style="width: 15%;">Variasi</th>
-                    <th style="width: 10%;" class="text-center">Qty</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach ($order->items as $itemIndex => $item)
-                    @php
-                        $variantParts = [];
-                        if ($item->masterProduct) {
-                            if (!empty($item->masterProduct->warna)) {
-                                $variantParts[] = $item->masterProduct->warna;
-                            }
-                            if (!empty($item->masterProduct->ukuran)) {
-                                $variantParts[] = $item->masterProduct->ukuran;
-                            }
-                        }
-                        if (empty($variantParts) && preg_match('/\(([^)]+)\)/', $item->product_name, $m)) {
-                            $variantParts[] = $m[1];
-                        }
-                        $variantDisplay = !empty($variantParts) ? implode(' / ', $variantParts) : '-';
-                    @endphp
-                    <tr>
-                        <td>{{ $itemIndex + 1 }}</td>
-                        <td>{{ $item->product_name }}</td>
-                        <td class="font-monospace">{{ $item->sku ?? '-' }}</td>
-                        <td class="fw-semibold">{{ $variantDisplay }}</td>
-                        <td class="text-center fw-bold">{{ $item->quantity }}</td>
-                    </tr>
-                @endforeach
-            </tbody>
-        </table>
-
-        <div class="note">Catatan : -</div>
     </div>
 
     <script>
         function initPrint() {
-            @if ($order->tracking_number)
+            @if ($channelCode === 'shopee')
                 try {
-                    JsBarcode("#barcode", "{{ $order->tracking_number }}", {
+                    JsBarcode("#shopee-barcode-main", "{{ $trackingNo }}", {
                         format: "CODE128",
-                        width: 1.5,
-                        height: 40,
+                        width: 1.6,
+                        height: 44,
                         displayValue: false,
                         margin: 0
                     });
 
-                    new QRCode(document.getElementById("qrcode"), {
-                        text: "{{ $order->tracking_number }}",
+                    JsBarcode("#shopee-barcode-order", "{{ $order->order_marketplace_id }}", {
+                        format: "CODE128",
+                        width: 1.2,
+                        height: 30,
+                        displayValue: false,
+                        margin: 0
+                    });
+
+                    new QRCode(document.getElementById("shopee-qrcode"), {
+                        text: "{{ $trackingNo }}",
                         width: 90,
                         height: 90,
                         colorDark: "#000000",
@@ -525,10 +776,30 @@
                         correctLevel: QRCode.CorrectLevel.L
                     });
                 } catch (e) {
-                    console.error("Error generating code", e);
+                    console.error("Error generating Shopee barcodes", e);
+                }
+            @else
+                try {
+                    JsBarcode("#tiktok-barcode-main", "{{ $trackingNo }}", {
+                        format: "CODE128",
+                        width: 1.8,
+                        height: 52,
+                        displayValue: false,
+                        margin: 0
+                    });
+
+                    new QRCode(document.getElementById("tiktok-qrcode-top"), {
+                        text: "{{ $trackingNo }}",
+                        width: 75,
+                        height: 75,
+                        colorDark: "#000000",
+                        colorLight: "#ffffff",
+                        correctLevel: QRCode.CorrectLevel.L
+                    });
+                } catch (e) {
+                    console.error("Error generating TikTok barcodes", e);
                 }
             @endif
-
         }
     </script>
 </body>

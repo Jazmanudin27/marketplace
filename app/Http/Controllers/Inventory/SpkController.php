@@ -134,6 +134,45 @@ class SpkController extends Controller
                 'penginput_id'  => Auth::id(),
             ]);
 
+            // Calculate total SPK Qty across items
+            $totalSpkQty = 0;
+            foreach ($request->items as $row) {
+                $totalSpkQty += max(1, (int) ($row['qty'] ?? 1));
+            }
+
+            // Process global Jasa & Bahan from form
+            $globalJasa = $request->input('global_jasa', []);
+            $globalBahan = $request->input('global_bahan', []);
+
+            $globalJasaItems = [];
+            $totalJasaNominal = 0;
+            if (is_array($globalJasa)) {
+                foreach ($globalJasa as $gj) {
+                    $ket = trim($gj['keterangan'] ?? '');
+                    $nom = floatval($gj['nominal'] ?? 0);
+                    if ($ket !== '' && $nom > 0) {
+                        $totalJasaNominal += $nom;
+                        $globalJasaItems[] = ['keterangan' => $ket, 'nominal' => $nom];
+                    }
+                }
+            }
+
+            $globalBahanItems = [];
+            $totalBahanNominal = 0;
+            if (is_array($globalBahan)) {
+                foreach ($globalBahan as $gb) {
+                    $ket = trim($gb['keterangan'] ?? '');
+                    $nom = floatval($gb['nominal'] ?? 0);
+                    if ($ket !== '' && $nom > 0) {
+                        $totalBahanNominal += $nom;
+                        $globalBahanItems[] = ['keterangan' => 'Bahan: ' . $ket, 'nominal' => $nom];
+                    }
+                }
+            }
+
+            $grandTotalGlobal = $totalJasaNominal + $totalBahanNominal;
+            $allocatedPerUnit = $totalSpkQty > 0 ? ($grandTotalGlobal / $totalSpkQty) : 0;
+
             foreach ($request->items as $row) {
                 $prodId = null;
                 if (!empty($row['sku'])) {
@@ -152,17 +191,23 @@ class SpkController extends Controller
                     if ($prod) $prodId = $prod->id;
                 }
 
-                // Sum extra costs
-                $extrasTotal = 0;
+                // Sum item-specific extras
+                $itemExtrasTotal = 0;
+                $itemExtrasList = [];
                 if (!empty($row['extras']) && is_array($row['extras'])) {
                     foreach ($row['extras'] as $extra) {
                         if (!empty($extra['keterangan'])) {
-                            $extrasTotal += floatval($extra['nominal'] ?? 0);
+                            $nom = floatval($extra['nominal'] ?? 0);
+                            $itemExtrasTotal += $nom;
+                            $itemExtrasList[] = [
+                                'keterangan' => $extra['keterangan'],
+                                'nominal' => $nom
+                            ];
                         }
                     }
                 }
 
-                $hpp = $extrasTotal;
+                $hpp = round($allocatedPerUnit + $itemExtrasTotal, 2);
 
                 $item = SpkItem::create([
                     'spk_id'            => $spk->id,
@@ -177,17 +222,33 @@ class SpkController extends Controller
                     'hpp'               => $hpp,
                 ]);
 
-                // Save dynamic extras
-                if (!empty($row['extras']) && is_array($row['extras'])) {
-                    foreach ($row['extras'] as $extra) {
-                        if (!empty($extra['keterangan'])) {
-                            SpkItemExtra::create([
-                                'spk_item_id' => $item->id,
-                                'keterangan'  => $extra['keterangan'],
-                                'nominal'     => floatval($extra['nominal'] ?? 0),
-                            ]);
-                        }
-                    }
+                // Save allocated global Jasa entries into spk_item_extras
+                foreach ($globalJasaItems as $gj) {
+                    $allocatedNominal = $totalSpkQty > 0 ? round($gj['nominal'] / $totalSpkQty, 2) : 0;
+                    SpkItemExtra::create([
+                        'spk_item_id' => $item->id,
+                        'keterangan'  => $gj['keterangan'],
+                        'nominal'     => $allocatedNominal,
+                    ]);
+                }
+
+                // Save allocated global Bahan entries into spk_item_extras
+                foreach ($globalBahanItems as $gb) {
+                    $allocatedNominal = $totalSpkQty > 0 ? round($gb['nominal'] / $totalSpkQty, 2) : 0;
+                    SpkItemExtra::create([
+                        'spk_item_id' => $item->id,
+                        'keterangan'  => $gb['keterangan'],
+                        'nominal'     => $allocatedNominal,
+                    ]);
+                }
+
+                // Save item specific extras
+                foreach ($itemExtrasList as $ex) {
+                    SpkItemExtra::create([
+                        'spk_item_id' => $item->id,
+                        'keterangan'  => $ex['keterangan'],
+                        'nominal'     => $ex['nominal'],
+                    ]);
                 }
             }
 
