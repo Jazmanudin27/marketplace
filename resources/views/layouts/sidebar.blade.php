@@ -163,6 +163,20 @@
             </a>
         @endcan
 
+        <!-- 5. Pesanan Masuk -->
+        @can('orders.index')
+            <a href="{{ route('orders.index') }}"
+                class="nav-link d-flex align-items-center justify-content-between pe-3 {{ (request()->routeIs('orders.*') && !request()->routeIs('orders.create')) ? 'active text-white' : 'text-dark' }}">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="bi bi-cart-check"></i>
+                    <span>Pesanan Masuk</span>
+                </div>
+                @if (isset($pendingOrdersCount) && $pendingOrdersCount > 0)
+                    <span class="badge bg-danger rounded-pill small">{{ $pendingOrdersCount }}</span>
+                @endif
+            </a>
+        @endcan
+
         <div class="text-uppercase text-muted fw-bold mb-1 mt-3 small">Modul ERP</div>
 
         <!-- 5. DATA MASTER -->
@@ -447,15 +461,7 @@
                 </a>
                 <div class="collapse {{ $isMarketingActive ? 'show' : '' }}" id="collapseMarketing">
                     <div class="nav flex-column ms-3 mt-1 gap-1 border-start ps-2">
-                        @can('orders.index')
-                            <a href="{{ route('orders.index') }}"
-                                class="nav-link py-1 d-flex align-items-center justify-content-between pe-3 {{ (request()->routeIs('orders.*') && !request()->routeIs('orders.create')) ? 'active text-white' : 'text-secondary' }}">
-                                <span>Pesanan Masuk</span>
-                                @if (isset($pendingOrdersCount) && $pendingOrdersCount > 0)
-                                    <span class="badge bg-danger rounded-pill small">{{ $pendingOrdersCount }}</span>
-                                @endif
-                            </a>
-                        @endcan
+
                         @can('orders.create')
                             <a href="{{ route('orders.create') }}"
                                 class="nav-link py-1 {{ request()->routeIs('orders.create') ? 'active text-white' : 'text-secondary' }}">

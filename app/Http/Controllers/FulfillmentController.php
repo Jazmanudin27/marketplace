@@ -16,7 +16,7 @@ class FulfillmentController extends Controller
     {
         $tenantId = Auth::user()->tenant_id;
         
-        $query = Order::with(['store.channel', 'items.masterProduct'])
+        $query = Order::with(['store.channel', 'items.masterProduct', 'spks'])
             ->where('tenant_id', $tenantId)
             ->where('order_status', Order::STATUS_READY_TO_SHIP);
 
@@ -79,6 +79,22 @@ class FulfillmentController extends Controller
             }
         }
 
+        // Filter Batas Kirim (Deadline Status)
+        if ($request->filled('deadline_status')) {
+            $deadlineStatus = $request->deadline_status;
+            if ($deadlineStatus === 'overdue') {
+                $query->whereNotNull('ship_before_date')
+                    ->where('ship_before_date', '<', now());
+            } elseif ($deadlineStatus === 'urgent') {
+                $query->whereNotNull('ship_before_date')
+                    ->where('ship_before_date', '>', now())
+                    ->where('ship_before_date', '<=', now()->addHours(24));
+            } elseif ($deadlineStatus === 'safe') {
+                $query->whereNotNull('ship_before_date')
+                    ->where('ship_before_date', '>', now()->addHours(24));
+            }
+        }
+
         // Filter Tanggal Order
         if ($request->filled('start_date')) {
             $query->whereDate('order_date', '>=', $request->start_date);
@@ -89,14 +105,26 @@ class FulfillmentController extends Controller
 
         $orders = $query->orderByDesc('order_date')->paginate(20)->withQueryString();
 
-        // Hitung ringkasan statistik
+        // Hitung ringkasan statistik (Optimasi 1 Single Query)
+        $statsRaw = Order::where('tenant_id', $tenantId)
+            ->where('order_status', Order::STATUS_READY_TO_SHIP)
+            ->selectRaw("
+                COUNT(*) as total,
+                SUM(CASE WHEN packing_status = 'pending' THEN 1 ELSE 0 END) as pending_count,
+                SUM(CASE WHEN packing_status = 'packing' THEN 1 ELSE 0 END) as packing_count,
+                SUM(CASE WHEN packing_status = 'verified' THEN 1 ELSE 0 END) as verified_count,
+                SUM(CASE WHEN is_printed = 1 THEN 1 ELSE 0 END) as printed_count,
+                SUM(CASE WHEN is_printed = 0 OR is_printed IS NULL THEN 1 ELSE 0 END) as unprinted_count
+            ")
+            ->first();
+
         $stats = [
-            'total'     => Order::where('tenant_id', $tenantId)->where('order_status', Order::STATUS_READY_TO_SHIP)->count(),
-            'pending'   => Order::where('tenant_id', $tenantId)->where('order_status', Order::STATUS_READY_TO_SHIP)->where('packing_status', 'pending')->count(),
-            'packing'   => Order::where('tenant_id', $tenantId)->where('order_status', Order::STATUS_READY_TO_SHIP)->where('packing_status', 'packing')->count(),
-            'verified'  => Order::where('tenant_id', $tenantId)->where('order_status', Order::STATUS_READY_TO_SHIP)->where('packing_status', 'verified')->count(),
-            'printed'   => Order::where('tenant_id', $tenantId)->where('order_status', Order::STATUS_READY_TO_SHIP)->where('is_printed', true)->count(),
-            'unprinted' => Order::where('tenant_id', $tenantId)->where('order_status', Order::STATUS_READY_TO_SHIP)->where('is_printed', false)->count(),
+            'total'     => (int) ($statsRaw->total ?? 0),
+            'pending'   => (int) ($statsRaw->pending_count ?? 0),
+            'packing'   => (int) ($statsRaw->packing_count ?? 0),
+            'verified'  => (int) ($statsRaw->verified_count ?? 0),
+            'printed'   => (int) ($statsRaw->printed_count ?? 0),
+            'unprinted' => (int) ($statsRaw->unprinted_count ?? 0),
         ];
 
         $channels = \App\Models\Channel::all();

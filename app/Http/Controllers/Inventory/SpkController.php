@@ -296,10 +296,23 @@ class SpkController extends Controller
                         Auth::id()
                     );
 
-                    // 2. Update catalog HPP (cost_price)
-                    $product->update([
-                        'cost_price' => $item->hpp
-                    ]);
+                    // 2. Update catalog HPP (cost_price) menggunakan Metode Rata-Rata Bergerak (Weighted Average)
+                    $totalStockAfter = (int) $product->stock;
+                    $newBatchQty = (int) $item->quantity;
+                    $newBatchHpp = (float) ($item->hpp ?? 0);
+                    $previousStock = max(0, $totalStockAfter - $newBatchQty);
+                    $previousHpp = (float) ($product->cost_price ?? 0);
+
+                    if ($previousStock > 0 && $previousHpp > 0 && $newBatchHpp > 0) {
+                        $weightedAvgHpp = (($previousStock * $previousHpp) + ($newBatchQty * $newBatchHpp)) / $totalStockAfter;
+                        $product->update([
+                            'cost_price' => round($weightedAvgHpp, 2)
+                        ]);
+                    } elseif ($newBatchHpp > 0) {
+                        $product->update([
+                            'cost_price' => $newBatchHpp
+                        ]);
+                    }
 
                     // 3. Deduct raw materials based on active recipe
                     $recipe = \App\Models\ProductRecipe::where('master_product_id', $product->id)

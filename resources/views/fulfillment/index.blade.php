@@ -160,14 +160,23 @@
                             </div>
                             <div class="col-6 col-md-2">
                                 <label class="form-label fw-bold small text-dark mb-1">
-                                    <i class="fas fa-box me-1 text-secondary"></i>Tipe Produk
+                                    <i class="fas fa-tag me-1 text-secondary"></i>Tipe Produk
                                 </label>
                                 <select name="is_po" class="form-select form-select-sm">
-                                    <option value="">Semua Tipe</option>
-                                    <option value="po" {{ request('is_po') === 'po' ? 'selected' : '' }}>Pre-Order (PO)
-                                    </option>
-                                    <option value="ready" {{ request('is_po') === 'ready' ? 'selected' : '' }}>Ready Stock
-                                    </option>
+                                    <option value="">Semua Tipe (PO & Ready)</option>
+                                    <option value="po" {{ request('is_po') === 'po' ? 'selected' : '' }}>Pre-Order (PO / SPK)</option>
+                                    <option value="ready" {{ request('is_po') === 'ready' ? 'selected' : '' }}>Ready Stock</option>
+                                </select>
+                            </div>
+                            <div class="col-6 col-md-2">
+                                <label class="form-label fw-bold small text-dark mb-1">
+                                    <i class="fas fa-clock me-1 text-secondary"></i>Batas Kirim
+                                </label>
+                                <select name="deadline_status" class="form-select form-select-sm">
+                                    <option value="">Semua Batas Kirim</option>
+                                    <option value="overdue" {{ request('deadline_status') === 'overdue' ? 'selected' : '' }}>Terlewat (Overdue)</option>
+                                    <option value="urgent" {{ request('deadline_status') === 'urgent' ? 'selected' : '' }}>Mendesak (<= 24 Jam)</option>
+                                    <option value="safe" {{ request('deadline_status') === 'safe' ? 'selected' : '' }}>Aman (> 24 Jam)</option>
                                 </select>
                             </div>
                             <div class="col-12 col-md-3">
@@ -193,6 +202,7 @@
                                         'packing_status',
                                         'print_status',
                                         'is_po',
+                                        'deadline_status',
                                         'start_date',
                                         'end_date',
                                     ]))
@@ -255,12 +265,14 @@
                                         </th>
                                         <th>INVOICE / ID</th>
                                         <th>TOKO / CHANNEL</th>
+                                        <th class="text-center">TIPE</th>
                                         <th>PEMBELI</th>
                                         <th>DETAIL BARANG</th>
                                         <th>KURIR</th>
-                                        <th>STATUS PRINT</th>
-                                        <th>STATUS KEMAS</th>
-                                        <th>AKSI</th>
+                                        <th class="text-center">BATAS KIRIM</th>
+                                        <th class="text-center">STATUS PRINT</th>
+                                        <th class="text-center">STATUS KEMAS</th>
+                                        <th class="text-center">AKSI</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -283,6 +295,20 @@
                                                         {{ $order->store->channel->name }}
                                                     </span>
                                                 </div>
+                                            </td>
+                                            <td class="text-center">
+                                                @if ($order->hasPreorderItems() || $order->spks->isNotEmpty())
+                                                    <span class="badge text-white px-2 py-1 small fw-bold" style="background-color: #8b5cf6;" title="Barang Pre-Order / Produksi SPK">
+                                                        <i class="fas fa-clock me-1"></i> PO / SPK
+                                                    </span>
+                                                    @if ($order->spks->isNotEmpty())
+                                                        <div class="small font-monospace text-primary fw-semibold mt-1" style="font-size: 0.68rem;">#{{ $order->spks->first()->no_spk }}</div>
+                                                    @endif
+                                                @else
+                                                    <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1 small fw-bold" title="Barang Ready Stock">
+                                                        <i class="fas fa-check-circle me-1"></i> READY
+                                                    </span>
+                                                @endif
                                             </td>
                                             <td>
                                                 <div class="fw-semibold text-dark">{{ $order->buyer_name ?? '-' }}</div>
@@ -310,6 +336,28 @@
                                                         <i class="fas fa-receipt text-secondary"></i>
                                                         {{ $order->tracking_number }}
                                                     </div>
+                                                @endif
+                                            </td>
+                                            <td class="small text-center">
+                                                @if ($order->ship_before_date)
+                                                    <div class="fw-bold text-dark mb-1 font-monospace" style="font-size: 0.72rem;">
+                                                        {{ $order->ship_before_date->format('d/m/Y H:i') }}
+                                                    </div>
+                                                    @if ($order->is_ship_overdue)
+                                                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-0-5" style="font-size: 0.65rem;">
+                                                            <i class="fas fa-exclamation-circle me-1"></i>Terlewat
+                                                        </span>
+                                                    @elseif ($order->is_ship_urgent)
+                                                        <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-2 py-0-5" style="font-size: 0.65rem;">
+                                                            <i class="fas fa-clock me-1"></i>{{ $order->ship_before_date->diffForHumans() }}
+                                                        </span>
+                                                    @else
+                                                        <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-0-5" style="font-size: 0.65rem;">
+                                                            <i class="fas fa-check-circle me-1"></i>{{ $order->ship_before_date->diffForHumans() }}
+                                                        </span>
+                                                    @endif
+                                                @else
+                                                    <span class="text-muted">—</span>
                                                 @endif
                                             </td>
                                             <td>
@@ -374,7 +422,7 @@
                                         </tr>
                                     @empty
                                         <tr>
-                                            <td colspan="9" class="text-center text-muted p-5">
+                                            <td colspan="11" class="text-center text-muted p-5">
                                                 <i class="fas fa-box-open fs-1 text-muted opacity-25 mb-3 d-block"></i>
                                                 Tidak ada pesanan Siap Kirim saat ini.
                                             </td>
