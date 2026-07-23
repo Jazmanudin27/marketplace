@@ -224,7 +224,7 @@ class OfflineSaleController extends Controller
     public function approve(OfflineSale $offlineSale)
     {
         abort_unless($offlineSale->tenant_id === Auth::user()->tenant_id, 403);
-        abort_unless(Auth::user()->canDo('offline-sales.approve'), 403);
+        abort_unless(Auth::user()->canDo('offline-sales.approve') || Auth::user()->isAdmin() || Auth::user()->isOwner() || in_array(Auth::user()->role, ['admin', 'owner', 'warehouse', 'gudang']), 403);
 
         if ($offlineSale->status !== OfflineSale::STATUS_PENDING_APPROVAL) {
             return back()->with('error', 'Transaksi ini tidak dalam status menunggu approval.');

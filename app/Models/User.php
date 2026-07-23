@@ -144,7 +144,7 @@ class User extends Authenticatable
      */
     public function canDo(string|array $permission): bool
     {
-        if ($this->isSuperAdmin()) {
+        if ($this->isSuperAdmin() || $this->isAdmin() || $this->isOwner() || in_array($this->role, ['admin', 'owner'])) {
             return true;
         }
 
@@ -170,7 +170,7 @@ class User extends Authenticatable
      */
     public function canDoAll(array $permissions): bool
     {
-        if ($this->isSuperAdmin()) {
+        if ($this->isSuperAdmin() || $this->isAdmin() || $this->isOwner() || in_array($this->role, ['admin', 'owner'])) {
             return true;
         }
 

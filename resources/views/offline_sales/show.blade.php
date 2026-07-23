@@ -27,7 +27,7 @@
                         class="btn btn-primary btn-sm px-3 text-white">
                         <i class="fas fa-print me-1"></i> Cetak Struk
                     </a>
-                    @if ($offlineSale->status === \App\Models\OfflineSale::STATUS_PENDING_APPROVAL && auth()->user()->canDo('offline-sales.approve'))
+                    @if ($offlineSale->status === \App\Models\OfflineSale::STATUS_PENDING_APPROVAL && (auth()->user()->canDo('offline-sales.approve') || auth()->user()->isAdmin() || auth()->user()->isOwner() || in_array(auth()->user()->role, ['admin', 'owner', 'warehouse', 'gudang'])))
                         <form action="{{ route('offline_sales.approve', $offlineSale->id) }}" method="POST" class="m-0"
                             onsubmit="return confirm('Setujui transaksi ini? Stok akan dikurangi setelah approval.')">
                             @csrf

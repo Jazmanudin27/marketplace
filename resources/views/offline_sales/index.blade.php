@@ -176,7 +176,7 @@
                                             class="btn btn-sm btn-outline-secondary py-0 px-2" title="Cetak Struk">
                                             <i class="fas fa-print"></i>
                                         </a>
-                                        @if ($sale->status === \App\Models\OfflineSale::STATUS_PENDING_APPROVAL && auth()->user()->canDo('offline-sales.approve'))
+                                        @if ($sale->status === \App\Models\OfflineSale::STATUS_PENDING_APPROVAL && (auth()->user()->canDo('offline-sales.approve') || auth()->user()->isAdmin() || auth()->user()->isOwner() || in_array(auth()->user()->role, ['admin', 'owner', 'warehouse', 'gudang'])))
                                             <button type="button"
                                                 class="btn btn-sm btn-success py-0 px-2"
                                                 title="Approve Transaksi"
@@ -236,7 +236,7 @@
 
 {{-- Modal Konfirmasi Approve --}}
 @push('modals')
-@if(auth()->user()->canDo('offline-sales.approve'))
+@if(auth()->user()->canDo('offline-sales.approve') || auth()->user()->isAdmin() || auth()->user()->isOwner() || in_array(auth()->user()->role, ['admin', 'owner', 'warehouse', 'gudang']))
 <div class="modal fade" id="modalApprove" tabindex="-1" aria-labelledby="modalApproveLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 shadow">
