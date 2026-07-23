@@ -27,9 +27,18 @@
                         class="btn btn-primary btn-sm px-3 text-white">
                         <i class="fas fa-print me-1"></i> Cetak Struk
                     </a>
-                    @if ($offlineSale->status === \App\Models\OfflineSale::STATUS_COMPLETED)
+                    @if ($offlineSale->status === \App\Models\OfflineSale::STATUS_PENDING_APPROVAL && auth()->user()->canDo('offline-sales.approve'))
+                        <form action="{{ route('offline_sales.approve', $offlineSale->id) }}" method="POST" class="m-0"
+                            onsubmit="return confirm('Setujui transaksi ini? Stok akan dikurangi setelah approval.')">
+                            @csrf
+                            <button type="submit" class="btn btn-success btn-sm px-3">
+                                <i class="fas fa-check-circle me-1"></i> Setujui (Approve)
+                            </button>
+                        </form>
+                    @endif
+                    @if (in_array($offlineSale->status, [\App\Models\OfflineSale::STATUS_COMPLETED, \App\Models\OfflineSale::STATUS_PENDING_APPROVAL]))
                         <form action="{{ route('offline_sales.cancel', $offlineSale->id) }}" method="POST" class="m-0"
-                            onsubmit="return confirm('Yakin ingin membatalkan transaksi ini? Stok produk akan dikembalikan.')">
+                            onsubmit="return confirm('Batalkan transaksi ini?' + ('{{ $offlineSale->status }}' === 'completed' ? ' Stok produk akan dikembalikan.' : ' Stok tidak akan berubah.'))">
                             @csrf
                             <button type="submit" class="btn btn-danger btn-sm px-3">
                                 <i class="fas fa-times-circle me-1"></i> Batalkan
@@ -39,6 +48,16 @@
                 </div>
             </div>
 
+            {{-- Banner Menunggu Approval --}}
+            @if ($offlineSale->status === \App\Models\OfflineSale::STATUS_PENDING_APPROVAL)
+                <div class="alert alert-warning d-flex align-items-center gap-3 mb-4 py-3">
+                    <i class="fas fa-hourglass-half fa-lg text-warning"></i>
+                    <div>
+                        <strong>Menunggu Persetujuan Gudang</strong><br>
+                        <small class="text-muted">Transaksi ini belum disetujui. Stok belum dikurangi. Hubungi bagian Gudang untuk melakukan approval.</small>
+                    </div>
+                </div>
+            @endif
             <div class="row g-3">
                 {{-- LEFT: Item detail --}}
                 <div class="col-lg-8">

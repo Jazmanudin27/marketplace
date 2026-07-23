@@ -145,22 +145,6 @@
                                     </select>
                                 </div>
 
-                                {{-- Reseller Balance Indicator --}}
-                                <div id="reseller-balance-card"
-                                    class="p-2 mb-2 rounded bg-success bg-opacity-10 border border-success border-opacity-10"
-                                    style="display:none;">
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <span class="small text-muted"><i class="fas fa-wallet me-1 text-success"></i>
-                                            Saldo Reseller</span>
-                                        <span class="fw-bold font-monospace text-success small"
-                                            id="display-reseller-balance">Rp 0</span>
-                                    </div>
-                                    <div id="reseller-balance-warning" class="text-danger mt-1"
-                                        style="display:none; font-size:0.7rem;">
-                                        <i class="fas fa-exclamation-circle me-1"></i> Saldo tidak cukup untuk grand total
-                                        ini!
-                                    </div>
-                                </div>
 
                                 <div class="mb-3">
                                     <label class="form-label form-label-sm text-muted" id="buyer-name-label">Nama
@@ -587,10 +571,7 @@
             $('#payment-method-select').on('change', function() {
                 const key = $(this).val();
 
-                if (key === 'reseller_balance') {
-                    $('#paid-input').val(grandTotal.toLocaleString('id-ID')).prop('readonly', true);
-                    $('#change-section').css('opacity', '.4');
-                } else if (key === 'piutang') {
+                if (key === 'piutang') {
                     $('#paid-input').val('0').prop('readonly', false);
                     $('#change-section').css('opacity', '1');
                 } else if (key !== 'tunai') {
@@ -667,20 +648,6 @@
                 let isValid = Object.keys(cartItems).length > 0;
                 if (method === 'tunai' && paid < grandTotal) {
                     isValid = false;
-                }
-
-                // Validate reseller balance
-                if (method === 'reseller_balance') {
-                    const selectedOpt = $('#customer-select').find('option:selected');
-                    const resellerBalance = parseFloat(selectedOpt.data('balance') || 0);
-                    if (resellerBalance < grandTotal || !$('#customer-select').val()) {
-                        isValid = false;
-                        $('#reseller-balance-warning').show();
-                    } else {
-                        $('#reseller-balance-warning').hide();
-                    }
-                } else {
-                    $('#reseller-balance-warning').hide();
                 }
 
                 // Custom validation for piutang
@@ -763,7 +730,6 @@
             function updateResellerDiscount() {
                 const selectedOption = $('#customer-select').find('option:selected');
                 const tags = String(selectedOption.data('tags') || '');
-                const balance = parseFloat(selectedOption.data('balance') || 0);
                 const isReseller = tags.toLowerCase().includes('reseller') || tags.toLowerCase().includes(
                     'dropship');
 
@@ -772,13 +738,6 @@
                         .price), 0);
                     const discount = Math.round(subtotal * 0.1);
                     $('#discount-input').val(discount.toLocaleString('id-ID'));
-
-                    // Show balance card
-                    $('#display-reseller-balance').text('Rp ' + balance.toLocaleString('id-ID'));
-                    $('#reseller-balance-card').show();
-                } else {
-                    $('#reseller-balance-card').hide();
-                    $('#reseller-balance-warning').hide();
                 }
             }
 

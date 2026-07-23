@@ -32,7 +32,8 @@ class RoleController extends Controller
             'product-recipes.edit',
             'product-recipes.destroy',
             'reports.production_hpp',
-            'orders.create'
+            'orders.create',
+            'offline-sales.approve',
         ];
         foreach ($newDashPermissions as $pName) {
             try {
@@ -137,18 +138,19 @@ class RoleController extends Controller
                 'returns.restock' => 'Restock Barang Retur',
             ],
             'Penjualan Offline (POS)' => [
-                'offline-sales.index' => 'Lihat Penjualan Offline',
-                'offline-sales.show' => 'Detail Penjualan Offline',
-                'offline-sales.create' => 'Buat Penjualan POS Baru',
-                'offline-sales.edit' => 'Edit Penjualan POS',
+                'offline-sales.index'   => 'Lihat Penjualan Offline',
+                'offline-sales.show'    => 'Detail Penjualan Offline',
+                'offline-sales.create'  => 'Buat Penjualan POS Baru',
+                'offline-sales.edit'    => 'Edit Penjualan POS',
                 'offline-sales.destroy' => 'Hapus Penjualan POS',
-                'offline-sales.complete' => 'Selesaikan Transaksi POS',
-                'offline-sales.cancel' => 'Batalkan Transaksi POS',
-                'offline-sales.print' => 'Cetak Struk/Nota POS',
-                'vouchers.index' => 'Lihat Voucher POS',
-                'vouchers.create' => 'Buat Voucher POS',
-                'vouchers.edit' => 'Edit Voucher POS',
-                'vouchers.destroy' => 'Hapus Voucher POS',
+                'offline-sales.approve' => 'Approve / Setujui Transaksi POS',
+                'offline-sales.complete'=> 'Selesaikan Transaksi POS',
+                'offline-sales.cancel'  => 'Batalkan Transaksi POS',
+                'offline-sales.print'   => 'Cetak Struk/Nota POS',
+                'vouchers.index'        => 'Lihat Voucher POS',
+                'vouchers.create'       => 'Buat Voucher POS',
+                'vouchers.edit'         => 'Edit Voucher POS',
+                'vouchers.destroy'      => 'Hapus Voucher POS',
             ],
             'Chat Inbox' => [
                 'chats.index' => 'Lihat Inbox Chat',

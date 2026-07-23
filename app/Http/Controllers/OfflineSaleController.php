@@ -80,7 +80,7 @@ class OfflineSaleController extends Controller
             'items.*.master_product_id' => 'required|exists:master_products,id',
             'items.*.quantity'          => 'required|integer|min:1',
             'items.*.unit_price'        => 'required|numeric|min:0',
-            'payment_method'            => 'required|in:tunai,transfer,qris,kartu,reseller_balance,piutang',
+            'payment_method'            => 'required|in:tunai,transfer,qris,piutang',
             'paid_amount'               => 'required|numeric|min:0',
             'discount_amount'           => 'nullable|numeric|min:0',
             'buyer_name'                => 'nullable|string|max:100',
@@ -188,7 +188,7 @@ class OfflineSaleController extends Controller
                 'user_id'         => Auth::id(),
                 'customer_id'     => $customerId,
                 'sale_number'     => OfflineSale::generateSaleNumber(),
-                'status'          => OfflineSale::STATUS_COMPLETED,
+                'status'          => OfflineSale::STATUS_PENDING_APPROVAL,
                 'buyer_name'      => $request->buyer_name,
                 'buyer_phone'     => $request->buyer_phone,
                 'payment_method'  => $request->payment_method,
@@ -204,31 +204,14 @@ class OfflineSaleController extends Controller
                 'dropshipper_phone' => $request->is_dropship ? $request->dropshipper_phone : null,
             ]);
 
-            // Potong saldo jika menggunakan metode pembayaran 'reseller_balance'
-            if ($request->payment_method === 'reseller_balance') {
-                $customerObj = \App\Models\Customer::where('tenant_id', $tenantId)->find($customerId);
-                if (!$customerObj || $customerObj->balance < $grandTotal) {
-                    abort(422, 'Saldo reseller tidak mencukupi.');
-                }
-                $customerObj->adjustBalance($grandTotal, 'out', "Pembayaran transaksi kasir #{$sale->sale_number}", Auth::id());
-            }
-
             foreach ($itemsData as $itemData) {
                 $sale->items()->create($itemData);
-
-                // Kurangi stok
-                $product = MasterProduct::find($itemData['master_product_id']);
-                $product->recordStockMovement(
-                    $itemData['quantity'],
-                    'out',
-                    'Penjualan Offline: ' . $sale->sale_number,
-                    Auth::id()
-                );
+                // Stok belum dikurangi — akan dikurangi saat approve
             }
         });
 
         return redirect()->route('offline_sales.index')
-            ->with('success', '✅ Transaksi penjualan offline berhasil dicatat!');
+            ->with('success', '✅ Transaksi berhasil dibuat dan menunggu approval Gudang.');
     }
 
     public function show(OfflineSale $offlineSale)
@@ -236,6 +219,52 @@ class OfflineSaleController extends Controller
         abort_unless($offlineSale->tenant_id === Auth::user()->tenant_id, 403);
         $offlineSale->load('items.masterProduct', 'user', 'customer');
         return view('offline_sales.show', compact('offlineSale'));
+    }
+
+    public function approve(OfflineSale $offlineSale)
+    {
+        abort_unless($offlineSale->tenant_id === Auth::user()->tenant_id, 403);
+        abort_unless(Auth::user()->canDo('offline-sales.approve'), 403);
+
+        if ($offlineSale->status !== OfflineSale::STATUS_PENDING_APPROVAL) {
+            return back()->with('error', 'Transaksi ini tidak dalam status menunggu approval.');
+        }
+
+        // Cek ulang stok sebelum approve
+        $offlineSale->load('items');
+        foreach ($offlineSale->items as $item) {
+            if ($item->master_product_id) {
+                $product = MasterProduct::find($item->master_product_id);
+                if ($product && $product->stock < $item->quantity) {
+                    return back()->with('error', "Stok {$product->name} tidak mencukupi (tersedia: {$product->stock}, dibutuhkan: {$item->quantity}). Tidak bisa diapprove.");
+                }
+            }
+        }
+
+        DB::transaction(function () use ($offlineSale) {
+            // Kurangi stok
+            foreach ($offlineSale->items as $item) {
+                if ($item->master_product_id) {
+                    $product = MasterProduct::find($item->master_product_id);
+                    if ($product) {
+                        $product->recordStockMovement(
+                            $item->quantity,
+                            'out',
+                            'Penjualan Offline (Approved): ' . $offlineSale->sale_number,
+                            Auth::id()
+                        );
+                    }
+                }
+            }
+
+            $offlineSale->update([
+                'status'      => OfflineSale::STATUS_COMPLETED,
+                'approved_by' => Auth::id(),
+                'approved_at' => now(),
+            ]);
+        });
+
+        return back()->with('success', '✅ Transaksi disetujui. Stok telah dikurangi.');
     }
 
     public function complete(OfflineSale $offlineSale)
@@ -254,24 +283,27 @@ class OfflineSaleController extends Controller
         }
 
         DB::transaction(function () use ($offlineSale) {
-            // Kembalikan stok
-            foreach ($offlineSale->items as $item) {
-                if ($item->master_product_id) {
-                    $product = MasterProduct::find($item->master_product_id);
-                    if ($product) {
-                        $product->recordStockMovement(
-                            $item->quantity,
-                            'in',
-                            'Pembatalan Penjualan Offline: ' . $offlineSale->sale_number,
-                            Auth::id()
-                        );
+            // Kembalikan stok HANYA jika sudah approved/completed (stok sudah dikurangi)
+            if ($offlineSale->status === OfflineSale::STATUS_COMPLETED) {
+                foreach ($offlineSale->items as $item) {
+                    if ($item->master_product_id) {
+                        $product = MasterProduct::find($item->master_product_id);
+                        if ($product) {
+                            $product->recordStockMovement(
+                                $item->quantity,
+                                'in',
+                                'Pembatalan Penjualan Offline: ' . $offlineSale->sale_number,
+                                Auth::id()
+                            );
+                        }
                     }
                 }
             }
+            // Jika status masih pending_approval, stok belum dikurangi → tidak perlu dikembalikan
             $offlineSale->update(['status' => OfflineSale::STATUS_CANCELLED]);
         });
 
-        return back()->with('success', 'Transaksi dibatalkan dan stok telah dikembalikan.');
+        return back()->with('success', 'Transaksi dibatalkan.' . ($offlineSale->status === OfflineSale::STATUS_COMPLETED ? ' Stok telah dikembalikan.' : ''));
     }
 
     public function printReceipt(OfflineSale $offlineSale)

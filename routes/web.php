@@ -548,6 +548,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/offline-sales/create', [OfflineSaleController::class, 'create'])->name('offline_sales.create');
         Route::post('/offline-sales', [OfflineSaleController::class, 'store'])->name('offline_sales.store');
         Route::get('/offline-sales/{offlineSale}', [OfflineSaleController::class, 'show'])->name('offline_sales.show');
+        Route::post('/offline-sales/{offlineSale}/approve', [OfflineSaleController::class, 'approve'])->name('offline_sales.approve');
         Route::post('/offline-sales/{offlineSale}/complete', [OfflineSaleController::class, 'complete'])->name('offline_sales.complete');
         Route::post('/offline-sales/{offlineSale}/cancel', [OfflineSaleController::class, 'cancel'])->name('offline_sales.cancel');
         Route::get('/offline-sales/{offlineSale}/print', [OfflineSaleController::class, 'printReceipt'])->name('offline_sales.print');

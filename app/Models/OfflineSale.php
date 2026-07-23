@@ -10,10 +10,11 @@ class OfflineSale extends Model
 {
     protected $fillable = [
         'tenant_id', 'user_id', 'customer_id', 'sale_number', 'status',
-        'buyer_name', 'buyer_phone', 'payment_method',
+        'buyer_name', 'buyer_phone', 'buyer_address', 'payment_method',
         'total_amount', 'discount_amount', 'grand_total',
         'paid_amount', 'change_amount', 'notes', 'sold_at',
         'is_dropship', 'dropshipper_name', 'dropshipper_phone',
+        'approved_by', 'approved_at',
     ];
 
     protected $casts = [
@@ -26,17 +27,16 @@ class OfflineSale extends Model
         'is_dropship'     => 'boolean',
     ];
 
-    const STATUS_COMPLETED = 'completed';
-    const STATUS_CANCELLED = 'cancelled';
-    const STATUS_PENDING   = 'pending';
+    const STATUS_COMPLETED        = 'completed';
+    const STATUS_CANCELLED        = 'cancelled';
+    const STATUS_PENDING          = 'pending';
+    const STATUS_PENDING_APPROVAL = 'pending_approval';
 
     const PAYMENT_METHODS = [
-        'tunai'            => 'Tunai',
-        'transfer'         => 'Transfer Bank',
-        'qris'             => 'QRIS',
-        'kartu'            => 'Kartu Debit/Kredit',
-        'reseller_balance' => 'Saldo Reseller',
-        'piutang'          => 'Piutang / Bayar Nanti',
+        'tunai'    => 'Tunai',
+        'transfer' => 'Transfer Bank',
+        'qris'     => 'QRIS',
+        'piutang'  => 'Piutang / Bayar Nanti',
     ];
 
     public function tenant(): BelongsTo
@@ -59,14 +59,29 @@ class OfflineSale extends Model
         return $this->hasMany(OfflineSaleItem::class);
     }
 
+    public function approvedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'approved_by');
+    }
+
     public function getStatusBadgeAttribute(): string
     {
-        return $this->status === self::STATUS_COMPLETED ? 'success' : 'danger';
+        return match ($this->status) {
+            self::STATUS_COMPLETED        => 'success',
+            self::STATUS_CANCELLED        => 'danger',
+            self::STATUS_PENDING_APPROVAL => 'warning',
+            default                       => 'secondary',
+        };
     }
 
     public function getStatusLabelAttribute(): string
     {
-        return $this->status === self::STATUS_COMPLETED ? 'Selesai' : 'Dibatalkan';
+        return match ($this->status) {
+            self::STATUS_COMPLETED        => 'Selesai',
+            self::STATUS_CANCELLED        => 'Dibatalkan',
+            self::STATUS_PENDING_APPROVAL => 'Menunggu Approval',
+            default                       => ucfirst($this->status),
+        };
     }
 
     public function getPaymentMethodLabelAttribute(): string

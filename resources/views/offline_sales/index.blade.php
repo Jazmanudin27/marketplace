@@ -156,9 +156,9 @@
                                     @php
                                         $badgeClass = match ($sale->status_badge) {
                                             'success' => 'bg-success',
-                                            'danger' => 'bg-danger',
+                                            'danger'  => 'bg-danger',
                                             'warning' => 'bg-warning text-dark',
-                                            default => 'bg-secondary',
+                                            default   => 'bg-secondary',
                                         };
                                     @endphp
                                     <span class="badge {{ $badgeClass }} small">{{ $sale->status_label }}</span>
@@ -176,6 +176,29 @@
                                             class="btn btn-sm btn-outline-secondary py-0 px-2" title="Cetak Struk">
                                             <i class="fas fa-print"></i>
                                         </a>
+                                        @if ($sale->status === \App\Models\OfflineSale::STATUS_PENDING_APPROVAL && auth()->user()->canDo('offline-sales.approve'))
+                                            <button type="button"
+                                                class="btn btn-sm btn-success py-0 px-2"
+                                                title="Approve Transaksi"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#modalApprove"
+                                                data-id="{{ $sale->id }}"
+                                                data-sale-number="{{ $sale->sale_number }}">
+                                                <i class="fas fa-check"></i>
+                                            </button>
+                                        @endif
+                                        @if ($sale->status !== \App\Models\OfflineSale::STATUS_CANCELLED)
+                                            <button type="button"
+                                                class="btn btn-sm btn-outline-danger py-0 px-2"
+                                                title="Batalkan Transaksi"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#modalCancel"
+                                                data-id="{{ $sale->id }}"
+                                                data-sale-number="{{ $sale->sale_number }}"
+                                                data-status="{{ $sale->status }}">
+                                                <i class="fas fa-times-circle"></i>
+                                            </button>
+                                        @endif
                                     </div>
                                 </td>
                             </tr>
@@ -210,3 +233,101 @@
     </div>
 
 @endsection
+
+{{-- Modal Konfirmasi Approve --}}
+@push('modals')
+@if(auth()->user()->canDo('offline-sales.approve'))
+<div class="modal fade" id="modalApprove" tabindex="-1" aria-labelledby="modalApproveLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-success bg-opacity-10 border-bottom">
+                <h6 class="modal-title fw-bold text-success" id="modalApproveLabel">
+                    <i class="fas fa-check-circle me-2"></i>Konfirmasi Persetujuan Transaksi
+                </h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-1 text-dark">Yakin ingin menyetujui (approve) transaksi:</p>
+                <p class="fw-bold font-monospace text-success mb-3" id="modal-approve-sale-number"></p>
+                <div class="alert alert-success py-2 mb-0 small">
+                    <i class="fas fa-boxes me-1"></i> Stok semua produk dalam transaksi ini akan <strong>dikurangi</strong> secara otomatis setelah disetujui.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Tutup</button>
+                <form id="form-approve" method="POST" class="m-0">
+                    @csrf
+                    <button type="submit" class="btn btn-success btn-sm px-4">
+                        <i class="fas fa-check me-1"></i> Ya, Setujui
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+@endif
+
+{{-- Modal Konfirmasi Pembatalan --}}
+<div class="modal fade" id="modalCancel" tabindex="-1" aria-labelledby="modalCancelLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-danger bg-opacity-10 border-bottom">
+                <h6 class="modal-title fw-bold text-danger" id="modalCancelLabel">
+                    <i class="fas fa-exclamation-triangle me-2"></i>Konfirmasi Pembatalan Transaksi
+                </h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-1 text-dark">Yakin ingin membatalkan transaksi:</p>
+                <p class="fw-bold font-monospace text-danger mb-3" id="modal-sale-number"></p>
+                <div class="alert alert-warning py-2 mb-0 small" id="modal-cancel-note"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Tutup</button>
+                <form id="form-cancel" method="POST" class="m-0">
+                    @csrf
+                    <button type="submit" class="btn btn-danger btn-sm px-4">
+                        <i class="fas fa-times-circle me-1"></i> Ya, Batalkan
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+@endpush
+
+@push('scripts')
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // Modal Approve
+        const modalApproveEl = document.getElementById('modalApprove');
+        if (modalApproveEl) {
+            modalApproveEl.addEventListener('show.bs.modal', function (event) {
+                const btn = event.relatedTarget;
+                document.getElementById('modal-approve-sale-number').textContent = btn.getAttribute('data-sale-number');
+                document.getElementById('form-approve').action = '/offline-sales/' + btn.getAttribute('data-id') + '/approve';
+            });
+        }
+
+        // Modal Batal
+        const modalCancel = document.getElementById('modalCancel');
+        modalCancel.addEventListener('show.bs.modal', function (event) {
+            const btn = event.relatedTarget;
+            const id = btn.getAttribute('data-id');
+            const saleNumber = btn.getAttribute('data-sale-number');
+            const status = btn.getAttribute('data-status');
+            document.getElementById('modal-sale-number').textContent = saleNumber;
+            document.getElementById('form-cancel').action = '/offline-sales/' + id + '/cancel';
+            // Pesan berbeda tergantung status
+            const noteEl = document.getElementById('modal-cancel-note');
+            if (status === 'pending_approval') {
+                noteEl.innerHTML = '<i class="fas fa-info-circle me-1"></i> Transaksi ini belum diapprove, stok <strong>tidak akan</strong> berubah.';
+                noteEl.className = 'alert alert-info py-2 mb-0 small';
+            } else {
+                noteEl.innerHTML = '<i class="fas fa-undo me-1"></i> Stok semua produk dalam transaksi ini akan <strong>dikembalikan</strong> secara otomatis.';
+                noteEl.className = 'alert alert-warning py-2 mb-0 small';
+            }
+        });
+    });
+</script>
+@endpush
