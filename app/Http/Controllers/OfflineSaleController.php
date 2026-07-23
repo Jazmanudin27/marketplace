@@ -49,7 +49,12 @@ class OfflineSaleController extends Controller
             ->selectRaw('COUNT(*) as total_count, SUM(grand_total) as total_revenue')
             ->first();
 
-        return view('offline_sales.index', compact('sales', 'summary'));
+        $bankAccounts = \App\Models\BankAccount::where('tenant_id', $tenantId)
+            ->where('is_active', true)
+            ->orderBy('bank_name')
+            ->get();
+
+        return view('offline_sales.index', compact('sales', 'summary', 'bankAccounts'));
     }
 
     public function create()
@@ -218,10 +223,15 @@ class OfflineSaleController extends Controller
     {
         abort_unless($offlineSale->tenant_id === Auth::user()->tenant_id, 403);
         $offlineSale->load('items.masterProduct', 'user', 'customer');
-        return view('offline_sales.show', compact('offlineSale'));
+        $bankAccounts = \App\Models\BankAccount::where('tenant_id', Auth::user()->tenant_id)
+            ->where('is_active', true)
+            ->orderBy('bank_name')
+            ->get();
+
+        return view('offline_sales.show', compact('offlineSale', 'bankAccounts'));
     }
 
-    public function approve(OfflineSale $offlineSale)
+    public function approve(Request $request, OfflineSale $offlineSale)
     {
         abort_unless($offlineSale->tenant_id === Auth::user()->tenant_id, 403);
         abort_unless(Auth::user()->canDo('offline-sales.approve') || Auth::user()->isAdmin() || Auth::user()->isOwner() || in_array(Auth::user()->role, ['admin', 'owner', 'warehouse', 'gudang']), 403);
@@ -229,6 +239,12 @@ class OfflineSaleController extends Controller
         if ($offlineSale->status !== OfflineSale::STATUS_PENDING_APPROVAL) {
             return back()->with('error', 'Transaksi ini tidak dalam status menunggu approval.');
         }
+
+        $request->validate([
+            'payment_destination' => 'required|string|max:100',
+        ], [
+            'payment_destination.required' => 'Silakan pilih Kas / Bank Tujuan terlebih dahulu.',
+        ]);
 
         // Cek ulang stok sebelum approve
         $offlineSale->load('items');
@@ -241,8 +257,10 @@ class OfflineSaleController extends Controller
             }
         }
 
-        DB::transaction(function () use ($offlineSale) {
-            // Kurangi stok
+        $tenantId = Auth::user()->tenant_id;
+
+        DB::transaction(function () use ($offlineSale, $request, $tenantId) {
+            // 1. Kurangi stok
             foreach ($offlineSale->items as $item) {
                 if ($item->master_product_id) {
                     $product = MasterProduct::find($item->master_product_id);
@@ -257,14 +275,39 @@ class OfflineSaleController extends Controller
                 }
             }
 
+            // 2. Tambahkan saldo ke Bank Account jika ada yang cocok
+            $paymentDest = $request->payment_destination;
+            $bank = \App\Models\BankAccount::where('tenant_id', $tenantId)
+                ->where(function($q) use ($paymentDest) {
+                    $q->where('bank_name', $paymentDest)
+                      ->orWhere('id', $paymentDest);
+                })->first();
+
+            if ($bank) {
+                $bank->increment('current_balance', $offlineSale->grand_total);
+            }
+
+            // 3. Catat Pemasukan (Income) di Keuangan
+            \App\Models\Income::create([
+                'tenant_id'           => $tenantId,
+                'title'               => "Penjualan Offline POS #{$offlineSale->sale_number}",
+                'category'            => 'services',
+                'payment_destination' => $paymentDest,
+                'amount'              => $offlineSale->grand_total,
+                'income_date'         => now(),
+                'description'         => "Pemasukan otomatis dari Penjualan Offline POS #{$offlineSale->sale_number} (Pembeli: " . ($offlineSale->buyer_name ?: 'Umum') . ")",
+            ]);
+
+            // 4. Update status penjualan & kas tujuan
             $offlineSale->update([
-                'status'      => OfflineSale::STATUS_COMPLETED,
-                'approved_by' => Auth::id(),
-                'approved_at' => now(),
+                'status'              => OfflineSale::STATUS_COMPLETED,
+                'payment_destination' => $paymentDest,
+                'approved_by'         => Auth::id(),
+                'approved_at'         => now(),
             ]);
         });
 
-        return back()->with('success', '✅ Transaksi disetujui. Stok telah dikurangi.');
+        return back()->with('success', '✅ Transaksi disetujui! Stok telah dikurangi & uang dimasukkan ke Kas/Bank.');
     }
 
     public function complete(OfflineSale $offlineSale)
@@ -307,6 +350,23 @@ class OfflineSaleController extends Controller
                                 Auth::id()
                             );
                         }
+                    }
+                }
+
+                // Reversi Pemasukan Keuangan & saldo bank jika ada
+                \App\Models\Income::where('tenant_id', $offlineSale->tenant_id)
+                    ->where('title', 'like', "%#{$offlineSale->sale_number}%")
+                    ->delete();
+
+                if ($offlineSale->payment_destination) {
+                    $bank = \App\Models\BankAccount::where('tenant_id', $offlineSale->tenant_id)
+                        ->where(function($q) use ($offlineSale) {
+                            $q->where('bank_name', $offlineSale->payment_destination)
+                              ->orWhere('id', $offlineSale->payment_destination);
+                        })->first();
+
+                    if ($bank && $bank->current_balance >= $offlineSale->grand_total) {
+                        $bank->decrement('current_balance', $offlineSale->grand_total);
                     }
                 }
             }

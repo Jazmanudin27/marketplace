@@ -246,22 +246,42 @@
                 </h6>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <div class="modal-body">
-                <p class="mb-1 text-dark">Yakin ingin menyetujui (approve) transaksi:</p>
-                <p class="fw-bold font-monospace text-success mb-3" id="modal-approve-sale-number"></p>
-                <div class="alert alert-success py-2 mb-0 small">
-                    <i class="fas fa-boxes me-1"></i> Stok semua produk dalam transaksi ini akan <strong>dikurangi</strong> secara otomatis setelah disetujui.
+            <form id="form-approve" method="POST" class="m-0">
+                @csrf
+                <div class="modal-body">
+                    <p class="mb-1 text-dark">Yakin ingin menyetujui (approve) transaksi:</p>
+                    <p class="fw-bold font-monospace text-success mb-3" id="modal-approve-sale-number"></p>
+
+                    <div class="mb-3">
+                        <label for="approve_payment_destination" class="form-label fw-semibold small text-dark mb-1">
+                            <i class="fas fa-university me-1 text-primary"></i> Kas / Bank Tujuan Pemasukan <span class="text-danger">*</span>
+                        </label>
+                        <select name="payment_destination" id="approve_payment_destination" class="form-select form-select-sm" required>
+                            @if(isset($bankAccounts) && $bankAccounts->isNotEmpty())
+                                @foreach($bankAccounts as $bank)
+                                    <option value="{{ $bank->bank_name }}">
+                                        {{ $bank->bank_name }} {{ $bank->account_number ? '('.$bank->account_number.')' : '' }} — Saldo: Rp {{ number_format($bank->current_balance, 0, ',', '.') }}
+                                    </option>
+                                @endforeach
+                            @else
+                                <option value="kas_besar">Kas Besar (Utama)</option>
+                                <option value="kas_kecil">Kas Kecil (Operasional)</option>
+                            @endif
+                        </select>
+                        <div class="form-text text-muted">Uang pembayaran akan masuk ke akun kas/bank yang dipilih.</div>
+                    </div>
+
+                    <div class="alert alert-success py-2 mb-0 small">
+                        <i class="fas fa-boxes me-1"></i> Stok produk akan <strong>dikurangi</strong> & pemasukan dicatat ke Kas/Bank.
+                    </div>
                 </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Tutup</button>
-                <form id="form-approve" method="POST" class="m-0">
-                    @csrf
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Tutup</button>
                     <button type="submit" class="btn btn-success btn-sm px-4">
-                        <i class="fas fa-check me-1"></i> Ya, Setujui
+                        <i class="fas fa-check me-1"></i> Ya, Setujui & Catat Pemasukan
                     </button>
-                </form>
-            </div>
+                </div>
+            </form>
         </div>
     </div>
 </div>

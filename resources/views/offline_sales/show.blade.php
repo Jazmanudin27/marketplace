@@ -28,13 +28,9 @@
                         <i class="fas fa-print me-1"></i> Cetak Struk
                     </a>
                     @if ($offlineSale->status === \App\Models\OfflineSale::STATUS_PENDING_APPROVAL && (auth()->user()->canDo('offline-sales.approve') || auth()->user()->isAdmin() || auth()->user()->isOwner() || in_array(auth()->user()->role, ['admin', 'owner', 'warehouse', 'gudang'])))
-                        <form action="{{ route('offline_sales.approve', $offlineSale->id) }}" method="POST" class="m-0"
-                            onsubmit="return confirm('Setujui transaksi ini? Stok akan dikurangi setelah approval.')">
-                            @csrf
-                            <button type="submit" class="btn btn-success btn-sm px-3">
-                                <i class="fas fa-check-circle me-1"></i> Setujui (Approve)
-                            </button>
-                        </form>
+                        <button type="button" class="btn btn-success btn-sm px-3" data-bs-toggle="modal" data-bs-target="#modalApproveShow">
+                            <i class="fas fa-check-circle me-1"></i> Setujui (Approve)
+                        </button>
                     @endif
                     @if (in_array($offlineSale->status, [\App\Models\OfflineSale::STATUS_COMPLETED, \App\Models\OfflineSale::STATUS_PENDING_APPROVAL]))
                         <button type="button" class="btn btn-danger btn-sm px-3"
@@ -115,6 +111,18 @@
                                         </span>
                                     </div>
                                 </div>
+                                @if ($offlineSale->payment_destination)
+                                    <div class="col-md-4">
+                                        <div class="p-3 border rounded h-100 bg-light">
+                                            <small class="text-muted d-block text-uppercase fw-semibold mb-1 small"
+                                                style="font-size: 0.65rem;">Kas / Bank Tujuan</small>
+                                            <span
+                                                class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-10 small fw-medium mt-1">
+                                                {{ $offlineSale->payment_destination === 'kas_kecil' ? 'Kas Kecil (Operasional)' : ($offlineSale->payment_destination === 'kas_besar' ? 'Kas Besar (Utama)' : $offlineSale->payment_destination) }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                @endif
                                 <div class="col-md-4">
                                     <div class="p-3 border rounded h-100 bg-light">
                                         <small class="text-muted d-block text-uppercase fw-semibold mb-1 small"
@@ -261,6 +269,59 @@
         </div>
     </div>
 @endsection
+
+{{-- Modal Konfirmasi Approve --}}
+@push('modals')
+@if($offlineSale->status === \App\Models\OfflineSale::STATUS_PENDING_APPROVAL && (auth()->user()->canDo('offline-sales.approve') || auth()->user()->isAdmin() || auth()->user()->isOwner() || in_array(auth()->user()->role, ['admin', 'owner', 'warehouse', 'gudang'])))
+<div class="modal fade" id="modalApproveShow" tabindex="-1" aria-labelledby="modalApproveShowLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-success bg-opacity-10 border-bottom">
+                <h6 class="modal-title fw-bold text-success" id="modalApproveShowLabel">
+                    <i class="fas fa-check-circle me-2"></i>Konfirmasi Persetujuan Transaksi
+                </h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="{{ route('offline_sales.approve', $offlineSale->id) }}" method="POST">
+                @csrf
+                <div class="modal-body">
+                    <p class="mb-1 text-dark">Yakin ingin menyetujui (approve) transaksi:</p>
+                    <p class="fw-bold font-monospace text-success mb-3">{{ $offlineSale->sale_number }}</p>
+
+                    <div class="mb-3">
+                        <label for="approve_payment_destination_show" class="form-label fw-semibold small text-dark mb-1">
+                            <i class="fas fa-university me-1 text-primary"></i> Kas / Bank Tujuan Pemasukan <span class="text-danger">*</span>
+                        </label>
+                        <select name="payment_destination" id="approve_payment_destination_show" class="form-select form-select-sm" required>
+                            @if(isset($bankAccounts) && $bankAccounts->isNotEmpty())
+                                @foreach($bankAccounts as $bank)
+                                    <option value="{{ $bank->bank_name }}">
+                                        {{ $bank->bank_name }} {{ $bank->account_number ? '('.$bank->account_number.')' : '' }} — Saldo: Rp {{ number_format($bank->current_balance, 0, ',', '.') }}
+                                    </option>
+                                @endforeach
+                            @else
+                                <option value="kas_besar">Kas Besar (Utama)</option>
+                                <option value="kas_kecil">Kas Kecil (Operasional)</option>
+                            @endif
+                        </select>
+                        <div class="form-text text-muted">Uang pembayaran akan masuk ke akun kas/bank yang dipilih.</div>
+                    </div>
+
+                    <div class="alert alert-success py-2 mb-0 small">
+                        <i class="fas fa-boxes me-1"></i> Stok produk akan <strong>dikurangi</strong> & pemasukan dicatat ke Kas/Bank.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Tutup</button>
+                    <button type="submit" class="btn btn-success btn-sm px-4">
+                        <i class="fas fa-check me-1"></i> Ya, Setujui & Catat Pemasukan
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+@endif
 
 {{-- Modal Konfirmasi Pembatalan --}}
 @push('modals')

@@ -10,7 +10,7 @@ class OfflineSale extends Model
 {
     protected $fillable = [
         'tenant_id', 'user_id', 'customer_id', 'sale_number', 'status',
-        'buyer_name', 'buyer_phone', 'buyer_address', 'payment_method',
+        'buyer_name', 'buyer_phone', 'buyer_address', 'payment_method', 'payment_destination',
         'total_amount', 'discount_amount', 'grand_total',
         'paid_amount', 'change_amount', 'notes', 'sold_at',
         'is_dropship', 'dropshipper_name', 'dropshipper_phone',
