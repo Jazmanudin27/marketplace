@@ -410,8 +410,11 @@
                                 Stok</a>
                         @endcan
                         @can('fulfillment.index')
+                            <a href="{{ route('fulfillment.interactive_picklist') }}"
+                                class="nav-link py-1 {{ request()->routeIs('fulfillment.interactive_picklist') ? 'active text-white' : 'text-secondary' }}">Ambil
+                                Barang Gudang</a>
                             <a href="{{ route('fulfillment.index') }}"
-                                class="nav-link py-1 {{ request()->routeIs('fulfillment.*') ? 'active text-white' : 'text-secondary' }}">Kemas
+                                class="nav-link py-1 {{ request()->routeIs('fulfillment.index') || request()->routeIs('fulfillment.scan_page') ? 'active text-white' : 'text-secondary' }}">Kemas
                                 Pesanan (Scan)</a>
                         @endcan
                     </div>
