@@ -51,24 +51,34 @@
                                     style="max-height:300px;overflow-y:auto;">
                                     @foreach ($products as $product)
                                         @php
-                                            $resellerPrice = $product->reseller_price && $product->reseller_price > 0 ? $product->reseller_price : $product->price;
+                                            $resellerPrice =
+                                                $product->reseller_price && $product->reseller_price > 0
+                                                    ? $product->reseller_price
+                                                    : $product->price;
                                         @endphp
                                         <div class="product-row d-flex align-items-center justify-content-between px-3 py-2 border-bottom"
                                             style="cursor:pointer;transition:.15s;" data-id="{{ $product->id }}"
                                             data-name="{{ $product->name }}" data-sku="{{ $product->sku }}"
-                                            data-price="{{ $product->price }}" data-reseller-price="{{ $resellerPrice }}" data-stock="{{ $product->stock }}">
+                                            data-price="{{ $product->price }}" data-reseller-price="{{ $resellerPrice }}"
+                                            data-stock="{{ $product->stock }}">
                                             <div>
                                                 <div class="fw-semibold text-dark">{{ $product->name }}</div>
                                                 <div class="text-muted small font-monospace">{{ $product->sku }} &bull;
                                                     <span class="text-secondary fw-semibold">Stok: {{ $product->stock }}
-                                                        {{ $product->unit }}</span></div>
+                                                        {{ $product->unit }}</span>
+                                                </div>
                                             </div>
                                             <div class="text-end">
-                                                <div class="price-normal-display fw-bold text-success text-nowrap font-monospace">Rp
+                                                <div
+                                                    class="price-normal-display fw-bold text-success text-nowrap font-monospace">
+                                                    Rp
                                                     {{ number_format($product->price, 0, ',', '.') }}</div>
-                                                <div class="price-dropship-display fw-bold text-warning text-nowrap font-monospace" style="display:none;">
-                                                    <span class="badge bg-warning text-dark me-1" style="font-size:0.65rem;">DROPSHIP</span>
-                                                    Rp {{ number_format($resellerPrice, 0, ',', '.') }}</div>
+                                                <div class="price-dropship-display fw-bold text-warning text-nowrap font-monospace"
+                                                    style="display:none;">
+                                                    <span class="badge bg-warning text-dark me-1"
+                                                        style="font-size:0.65rem;">DROPSHIP</span>
+                                                    Rp {{ number_format($resellerPrice, 0, ',', '.') }}
+                                                </div>
                                             </div>
                                         </div>
                                     @endforeach
@@ -136,7 +146,8 @@
                                     <label class="form-label form-label-sm text-muted fw-semibold">Metode Pembayaran <span
                                             class="text-danger">*</span></label>
                                     <select name="payment_method" id="payment-method-select"
-                                        class="form-select form-select-sm fw-semibold text-dark" required>
+                                        class="form-select form-select-sm select2 fw-semibold text-dark"
+                                        style="width: 100%;" required>
                                         @foreach (\App\Models\OfflineSale::PAYMENT_METHODS as $key => $label)
                                             <option value="{{ $key }}" {{ $key === 'tunai' ? 'selected' : '' }}>
                                                 {{ $label }}
@@ -162,8 +173,11 @@
 
                                 <div class="mb-3" id="customer-select-wrapper">
                                     <div class="d-flex justify-content-between align-items-center mb-1">
-                                        <label class="form-label form-label-sm text-muted mb-0">Pelanggan / Pembeli (Master Data)</label>
-                                        <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none fw-bold small text-primary" data-bs-toggle="modal" data-bs-target="#modalCreateCustomer">
+                                        <label class="form-label form-label-sm text-muted mb-0">Pelanggan / Pembeli (Master
+                                            Data)</label>
+                                        <button type="button"
+                                            class="btn btn-link btn-sm p-0 text-decoration-none fw-bold small text-primary"
+                                            data-bs-toggle="modal" data-bs-target="#modalCreateCustomer">
                                             <i class="fas fa-plus-circle me-1"></i>+ Pelanggan Baru
                                         </button>
                                     </div>
@@ -175,7 +189,8 @@
                                                 data-phone="{{ $cust->phone }}" data-address="{{ $cust->address }}"
                                                 data-tags="{{ $cust->tags }}"
                                                 data-balance="{{ $cust->balance ?? 0 }}">
-                                                {{ $cust->name }} {{ $cust->phone ? '(' . $cust->phone . ')' : '' }} {{ $cust->tags ? '[' . $cust->tags . ']' : '' }}
+                                                {{ $cust->name }} {{ $cust->phone ? '(' . $cust->phone . ')' : '' }}
+                                                {{ $cust->tags ? '[' . $cust->tags . ']' : '' }}
                                             </option>
                                         @endforeach
                                     </select>
@@ -264,23 +279,28 @@
     </div>
 
     <!-- MODAL TAMBAH PELANGGAN BARU (MASTER DATA) -->
-    <div class="modal fade" id="modalCreateCustomer" tabindex="-1" aria-labelledby="modalCreateCustomerLabel" aria-hidden="true">
+    <div class="modal fade" id="modalCreateCustomer" tabindex="-1" aria-labelledby="modalCreateCustomerLabel"
+        aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header py-2 bg-light">
-                    <h6 class="modal-title fw-bold text-dark" id="modalCreateCustomerLabel"><i class="fas fa-user-plus me-2 text-primary"></i>Tambah Master Pelanggan Baru</h6>
+                    <h6 class="modal-title fw-bold text-dark" id="modalCreateCustomerLabel"><i
+                            class="fas fa-user-plus me-2 text-primary"></i>Tambah Master Pelanggan Baru</h6>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <form id="form-quick-customer">
                     @csrf
                     <div class="modal-body p-3">
                         <div class="mb-3">
-                            <label class="form-label form-label-sm text-muted fw-semibold">Nama Pelanggan <span class="text-danger">*</span></label>
-                            <input type="text" name="name" class="form-control form-control-sm" placeholder="Contoh: Budi Santoso" required>
+                            <label class="form-label form-label-sm text-muted fw-semibold">Nama Pelanggan <span
+                                    class="text-danger">*</span></label>
+                            <input type="text" name="name" class="form-control form-control-sm"
+                                placeholder="Contoh: Budi Santoso" required>
                         </div>
                         <div class="mb-3">
                             <label class="form-label form-label-sm text-muted fw-semibold">No. Handphone / WhatsApp</label>
-                            <input type="text" name="phone" class="form-control form-control-sm" placeholder="Contoh: 08123456789">
+                            <input type="text" name="phone" class="form-control form-control-sm"
+                                placeholder="Contoh: 08123456789">
                         </div>
                         <div class="mb-3">
                             <label class="form-label form-label-sm text-muted fw-semibold">Kategori / Tag</label>
@@ -298,7 +318,8 @@
                     </div>
                     <div class="modal-footer py-2 bg-light">
                         <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Batal</button>
-                        <button type="submit" class="btn btn-primary btn-sm" id="btn-save-customer">Simpan & Pilih Pelanggan</button>
+                        <button type="submit" class="btn btn-primary btn-sm" id="btn-save-customer">Simpan & Pilih
+                            Pelanggan</button>
                     </div>
                 </form>
             </div>
@@ -333,7 +354,8 @@
 
                 // Update prices for all items in cart
                 Object.keys(cartItems).forEach(id => {
-                    cartItems[id].price = isDropship ? cartItems[id].dropship_price : cartItems[id].normal_price;
+                    cartItems[id].price = isDropship ? cartItems[id].dropship_price : cartItems[id]
+                        .normal_price;
                 });
 
                 renderCart();
@@ -370,8 +392,8 @@
                         // Show info badge and update discount
                         updateResellerDiscount();
                         $('#reseller-info-badge').html(
-                            '<i class="fas fa-percent me-1"></i> Diskon Reseller 10% diterapkan otomatis')
-                        .show();
+                                '<i class="fas fa-percent me-1"></i> Diskon Reseller 10% diterapkan otomatis')
+                            .show();
                     } else {
                         // Regular registered customer
                         $('#is-dropship-toggle').prop('checked', false).trigger('change');
@@ -459,7 +481,7 @@
                 btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i> Menyimpan...');
 
                 $.ajax({
-                    url: '{{ route("customers.store") }}',
+                    url: '{{ route('customers.store') }}',
                     method: 'POST',
                     data: $(this).serialize(),
                     dataType: 'json',
@@ -470,7 +492,8 @@
                         btn.prop('disabled', false).html('Simpan & Pilih Pelanggan');
                         if (res.success && res.customer) {
                             const c = res.customer;
-                            const labelText = `${c.name} ${c.phone ? '(' + c.phone + ')' : ''} ${c.tags ? '[' + c.tags + ']' : ''}`;
+                            const labelText =
+                                `${c.name} ${c.phone ? '(' + c.phone + ')' : ''} ${c.tags ? '[' + c.tags + ']' : ''}`;
                             const newOption = new Option(labelText, c.id, true, true);
 
                             $(newOption).attr('data-name', c.name);
@@ -642,7 +665,8 @@
             }
 
             function recalculate() {
-                const subtotal = Object.values(cartItems).reduce((s, i) => s + i.qty * (i.is_promo ? 0 : i.price), 0);
+                const subtotal = Object.values(cartItems).reduce((s, i) => s + i.qty * (i.is_promo ? 0 : i.price),
+                    0);
                 const discount = unformatNumber($('#discount-input').val());
                 grandTotal = Math.max(0, subtotal - discount);
 
@@ -715,10 +739,10 @@
                     const subtotal = item.qty * effectivePrice;
                     const tr = $('<tr></tr>');
 
-                    const priceDisplay = item.is_promo
-                        ? `<div class="text-end small font-monospace"><span class="badge bg-danger text-white">PROMO (Rp 0)</span></div>
-                           <div class="text-end text-muted text-decoration-line-through" style="font-size:.7rem;">Rp ${item.price.toLocaleString('id-ID')}</div>`
-                        : `<div class="text-end small text-nowrap text-muted font-monospace">Rp ${item.price.toLocaleString('id-ID')}</div>`;
+                    const priceDisplay = item.is_promo ?
+                        `<div class="text-end small font-monospace"><span class="badge bg-danger text-white">PROMO (Rp 0)</span></div>
+                           <div class="text-end text-muted text-decoration-line-through" style="font-size:.7rem;">Rp ${item.price.toLocaleString('id-ID')}</div>` :
+                        `<div class="text-end small text-nowrap text-muted font-monospace">Rp ${item.price.toLocaleString('id-ID')}</div>`;
 
                     tr.html(`
                         <td class="ps-3">
@@ -760,10 +784,12 @@
                 const selectedOption = $('#customer-select').find('option:selected');
                 const tags = String(selectedOption.data('tags') || '');
                 const balance = parseFloat(selectedOption.data('balance') || 0);
-                const isReseller = tags.toLowerCase().includes('reseller') || tags.toLowerCase().includes('dropship');
+                const isReseller = tags.toLowerCase().includes('reseller') || tags.toLowerCase().includes(
+                    'dropship');
 
                 if (isReseller) {
-                    const subtotal = Object.values(cartItems).reduce((s, i) => s + i.qty * (i.is_promo ? 0 : i.price), 0);
+                    const subtotal = Object.values(cartItems).reduce((s, i) => s + i.qty * (i.is_promo ? 0 : i
+                        .price), 0);
                     const discount = Math.round(subtotal * 0.1);
                     $('#discount-input').val(discount.toLocaleString('id-ID'));
 
@@ -775,6 +801,11 @@
                     $('#reseller-balance-warning').hide();
                 }
             }
+
+            // Initialize Select2 with search
+            $('.select2').select2({
+                width: '100%'
+            });
 
             // Initialize on load
             triggerCustomerSelectChange();
