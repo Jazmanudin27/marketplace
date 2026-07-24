@@ -543,6 +543,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/spks/{spk}/print', [\App\Http\Controllers\Inventory\SpkController::class, 'print'])->name('spks.print');
         Route::delete('/spks/{spk}', [\App\Http\Controllers\Inventory\SpkController::class, 'destroy'])->name('spks.destroy');
         Route::post('/spks/items/{item}/status', [\App\Http\Controllers\Inventory\SpkController::class, 'updateItemStatus'])->name('spks.items.update_status');
+        Route::post('/spks/items/{item}/update-details', [\App\Http\Controllers\Inventory\SpkController::class, 'updateItemDetails'])->name('spks.items.update_details');
 
         // Stock Sync
         Route::get('/stock-sync', [StockSyncController::class, 'index'])->name('inventory.stock_sync');

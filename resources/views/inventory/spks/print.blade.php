@@ -185,7 +185,12 @@
                     }
                 @endphp
                 <tr>
-                    <td style="text-align: left; font-weight: bold; padding-left: 8px;">{{ $item->nama_produk }} ({{ $item->ukuran ?: 'All Size' }})</td>
+                    <td style="text-align: left; font-weight: bold; padding-left: 8px;">
+                        {{ $item->nama_produk }} ({{ $item->ukuran ?: 'All Size' }})
+                        @if($item->catatan)
+                            <div style="font-size: 9px; font-weight: normal; color: #2563eb; margin-top: 2px;">Catatan: {{ $item->catatan }}</div>
+                        @endif
+                    </td>
                     <td>{{ $item->alur_proses ?: 'Langsung Jahit' }}</td>
                     <td>{{ $item->penjahit ?: '—' }}</td>
                     <td>Rp {{ number_format($totalBahan, 0, ',', '.') }}</td>

@@ -69,10 +69,13 @@
                                                 value="{{ Auth::user()->name ?? '—' }}">
                                         </div>
                                         <div class="col-12">
-                                            <label class="form-label fw-semibold small mb-1">Upload Foto Desain</label>
-                                            <input type="file" name="image" class="form-control form-control-sm" accept="image/*">
-                                            <small class="text-muted d-block mt-1" style="font-size:10px;">JPEG/PNG/JPG, maks 4MB</small>
-                                        </div>
+                                             <label class="form-label fw-semibold small mb-1">Upload Foto Desain</label>
+                                             <input type="file" name="image" id="input-spk-image" class="form-control form-control-sm" accept="image/*">
+                                             <small class="text-muted d-block mt-1" style="font-size:10px;">JPEG/PNG/JPG, maks 4MB</small>
+                                             <div id="image-preview-box" class="mt-2 text-center d-none">
+                                                 <img id="img-preview-src" src="#" alt="Preview Desain" class="img-fluid rounded border p-1 bg-white shadow-sm" style="max-height: 140px; object-fit: contain;">
+                                             </div>
+                                         </div>
                                     </div>
                                 </div>
                             </div>
@@ -414,15 +417,15 @@
                     <div class="suggestions-box position-absolute bg-white border rounded shadow-sm w-100 d-none"
                         style="z-index:1050;max-height:180px;overflow-y:auto;top:100%;left:0;"></div>
                 </div>
-                <div class="col-md-3 col-6">
+                <div class="col-md-2 col-6">
                     <label class="form-label small fw-semibold mb-1">SKU Induk</label>
                     <input type="text" name="items[${idx}][sku_induk]" class="form-control form-control-sm item-sku-induk" placeholder="Induk">
                 </div>
-                <div class="col-md-3 col-6">
+                <div class="col-md-2 col-6">
                     <label class="form-label small fw-semibold mb-1">SKU Varian</label>
                     <input type="text" name="items[${idx}][sku]" class="form-control form-control-sm item-sku" placeholder="Varian">
                 </div>
-                <div class="col-md-1 col-6">
+                <div class="col-md-2 col-6">
                     <label class="form-label small fw-semibold mb-1">Ukuran</label>
                     <select name="items[${idx}][size]" class="form-select form-select-sm item-size">
                         <option value="S">S</option><option value="M">M</option>
@@ -431,9 +434,13 @@
                         <option value="All Size">All Size</option>
                     </select>
                 </div>
-                <div class="col-md-1 col-6">
+                <div class="col-md-2 col-6">
                     <label class="form-label small fw-semibold mb-1">Qty</label>
                     <input type="number" name="items[${idx}][qty]" class="form-control form-control-sm item-qty text-center" required min="1" value="1">
+                </div>
+                <div class="col-12">
+                    <label class="form-label small fw-semibold mb-1">Catatan Khusus / Variasi (misal: Lengan Panjang/Pendek, Custom Size)</label>
+                    <input type="text" name="items[${idx}][catatan]" class="form-control form-control-sm item-catatan" placeholder="Contoh: Lengan Panjang + Kancing Depan, LD 110cm...">
                 </div>
             </div>
 
@@ -604,6 +611,21 @@
             @else
                 addRow();
             @endif
+
+            // Live preview image before submit
+            $('#input-spk-image').on('change', function() {
+                const file = this.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        $('#img-preview-src').attr('src', e.target.result);
+                        $('#image-preview-box').removeClass('d-none');
+                    };
+                    reader.readAsDataURL(file);
+                } else {
+                    $('#image-preview-box').addClass('d-none');
+                }
+            });
 
             // Tambah item baru
             $(document).on('click', '#btnAddRow', function(e) {

@@ -24,8 +24,8 @@
         </div>
     </div>
 
-    <!-- SPK Document Wrapper (Structured like Print layout) -->
-    <div class="card border shadow rounded-3 bg-white mx-auto overflow-hidden" style="max-width: 1000px;">
+    <!-- SPK Document Wrapper Full Width (col-12) -->
+    <div class="card border shadow-sm rounded-3 bg-white w-100 overflow-hidden">
         <div class="card-body p-5">
             
             <!-- Document Header -->
@@ -151,15 +151,17 @@
                     <thead class="table-light text-muted small">
                         <tr>
                             <th></th>
-                            <th class="text-start ps-3" style="width: 25%;">Nama Produk &amp; Size</th>
-                            <th style="width: 12%;">Alur Kerja</th>
-                            <th style="width: 15%;">Tukang Jahit</th>
-                            <th style="width: 10%;">Bahan / pcs</th>
-                            <th style="width: 10%;">Jasa / pcs</th>
-                            <th style="width: 10%;">HPP / Pcs</th>
-                            <th style="width: 5%;">Qty</th>
-                            <th style="width: 12%;">Subtotal HPP</th>
-                            <th style="width: 12%;">Status</th>
+                            <th class="text-start ps-3" style="width: 22%;">Nama Produk &amp; Size</th>
+                            <th style="width: 10%;">Tukang Potong</th>
+                            <th style="width: 10%;">Tukang Jahit</th>
+                            <th style="width: 18%;">Catatan Khusus</th>
+                            <th style="width: 8%;">Bahan / pcs</th>
+                            <th style="width: 8%;">Jasa / pcs</th>
+                            <th style="width: 8%;">HPP / Pcs</th>
+                            <th style="width: 4%;">Qty</th>
+                            <th style="width: 10%;">Subtotal HPP</th>
+                            <th style="width: 10%;">Status</th>
+                            <th style="width: 5%;">Edit</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -209,8 +211,9 @@
                                     {{ $item->nama_produk }}
                                     <span class="badge bg-light text-dark border ms-1 small">{{ $item->ukuran ?: 'All Size' }}</span>
                                 </td>
-                                <td>{{ $item->alur_proses ?: 'Langsung Jahit' }}</td>
-                                <td>{{ $item->penjahit ?: '—' }}</td>
+                                <td><span class="badge bg-info-subtle text-info border font-monospace">{{ $item->pemotong ?: '—' }}</span></td>
+                                <td><span class="badge bg-primary-subtle text-primary border font-monospace">{{ $item->penjahit ?: '—' }}</span></td>
+                                <td class="text-start small text-muted">{{ $item->catatan ?: '—' }}</td>
                                 <td>Rp {{ number_format($totalBahan, 0, ',', '.') }}</td>
                                 <td>Rp {{ number_format($totalJasa, 0, ',', '.') }}</td>
                                 <td class="bg-danger-subtle fw-bold text-danger">Rp {{ number_format($item->hpp, 0, ',', '.') }}</td>
@@ -226,6 +229,42 @@
                                             @endforeach
                                         </select>
                                     </form>
+                                </td>
+                                <td>
+                                    <button type="button" class="btn btn-xs btn-outline-primary py-0 px-2" data-bs-toggle="modal" data-bs-target="#editItemModal-{{ $item->id }}" title="Edit Potong, Jahit & Catatan">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+
+                                    <!-- Modal Edit Item Details -->
+                                    <div class="modal fade text-start" id="editItemModal-{{ $item->id }}" tabindex="-1" aria-hidden="true">
+                                        <div class="modal-dialog modal-dialog-centered">
+                                            <form action="{{ route('spks.items.update_details', $item->id) }}" method="POST" class="modal-content">
+                                                @csrf
+                                                <div class="modal-header bg-light py-2">
+                                                    <h6 class="modal-title fw-bold text-dark"><i class="fas fa-edit me-1 text-primary"></i> Edit Detail Item: {{ $item->nama_produk }}</h6>
+                                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                </div>
+                                                <div class="modal-body p-3">
+                                                    <div class="mb-3">
+                                                        <label class="form-label small fw-semibold">Tukang Potong</label>
+                                                        <input type="text" name="pemotong" class="form-control form-control-sm" value="{{ $item->pemotong }}" placeholder="Nama tukang potong...">
+                                                    </div>
+                                                    <div class="mb-3">
+                                                        <label class="form-label small fw-semibold">Tukang Jahit</label>
+                                                        <input type="text" name="penjahit" class="form-control form-control-sm" value="{{ $item->penjahit }}" placeholder="Nama tukang jahit...">
+                                                    </div>
+                                                    <div class="mb-3">
+                                                        <label class="form-label small fw-semibold">Catatan Khusus / Variasi (Panjang/Pendek, Custom Size)</label>
+                                                        <textarea name="catatan" class="form-control form-control-sm" rows="3" placeholder="Contoh: Lengan Panjang, Kancing Depan...">{{ $item->catatan }}</textarea>
+                                                    </div>
+                                                </div>
+                                                <div class="modal-footer py-2 bg-light">
+                                                    <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Batal</button>
+                                                    <button type="submit" class="btn btn-sm btn-primary fw-bold"><i class="fas fa-save me-1"></i> Simpan Perubahan</button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
                                 </td>
                             </tr>
 

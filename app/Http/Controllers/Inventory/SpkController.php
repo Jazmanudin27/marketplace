@@ -156,7 +156,7 @@ class SpkController extends Controller
                 'no_hp_pemesan' => $request->no_hp_pemesan,
                 'instansi'      => $request->instansi,
                 'tambahan'      => $request->tambahan,
-                'image_url'     => $imagePath ? asset('storage/' . $imagePath) : null,
+                'image_url'     => $imagePath ? Storage::url($imagePath) : null,
                 'penginput_id'  => Auth::id(),
             ]);
 
@@ -242,6 +242,7 @@ class SpkController extends Controller
                     'sku'               => $row['sku'] ?? null,
                     'sku_induk'         => $row['sku_induk'] ?? null,
                     'ukuran'            => $row['size'] ?? null,
+                    'catatan'           => $row['catatan'] ?? null,
                     'quantity'          => (int) $row['qty'],
                     'penjahit'          => $row['tailor'] ?? null,
                     'alur_proses'       => $row['alur_proses'] ?? 'Langsung Jahit',
@@ -544,5 +545,27 @@ class SpkController extends Controller
         }
 
         return $grouped;
+    }
+
+    public function updateItemDetails(Request $request, SpkItem $item)
+    {
+        $tenantId = Auth::user()->tenant_id;
+        if ($item->spk->tenant_id != $tenantId) {
+            abort(403);
+        }
+
+        $request->validate([
+            'penjahit' => 'nullable|string|max:255',
+            'pemotong' => 'nullable|string|max:255',
+            'catatan'  => 'nullable|string',
+        ]);
+
+        $item->update([
+            'penjahit' => $request->penjahit,
+            'pemotong' => $request->pemotong,
+            'catatan'  => $request->catatan,
+        ]);
+
+        return back()->with('success', 'Detail item (Tukang Jahit, Tukang Potong & Catatan) berhasil diperbarui.');
     }
 }
