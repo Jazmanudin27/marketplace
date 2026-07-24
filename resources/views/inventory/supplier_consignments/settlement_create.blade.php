@@ -95,7 +95,7 @@
                                 <thead class="bg-light text-muted small text-uppercase fw-semibold">
                                     <tr>
                                         <th class="ps-3">Penerimaan & Produk</th>
-                                        <th class="text-center">Terjual</th>
+                                        <th class="text-center">Qty Diterima</th>
                                         <th class="text-center">Sudah Disetor</th>
                                         <th class="text-center">Belum Disetor</th>
                                         <th style="width: 15%;">Qty Disetorkan</th>
@@ -114,7 +114,7 @@
                                                 <div class="fw-bold text-dark">{{ $item['name'] }}</div>
                                                 <div class="small text-muted">SKU: {{ $item['sku'] }} | Ref: {{ $item['ref_number'] }} ({{ $item['consignment_date'] }})</div>
                                             </td>
-                                            <td class="text-center font-monospace">{{ number_format($item['qty_sold']) }}</td>
+                                            <td class="text-center font-monospace">{{ number_format($item['qty_received']) }}</td>
                                             <td class="text-center font-monospace text-success">{{ number_format($item['qty_settled']) }}</td>
                                             <td class="text-center font-monospace text-danger fw-bold">{{ number_format($item['qty_unsettled']) }}</td>
                                             <td>
@@ -123,7 +123,7 @@
                                                        class="form-control form-control-sm qty-settle-input" 
                                                        value="{{ $item['qty_unsettled'] }}" 
                                                        min="0" 
-                                                       max="{{ $item['qty_unsettled'] > 0 ? $item['qty_unsettled'] : $item['qty_sold'] }}"
+                                                       max="{{ $item['qty_unsettled'] }}"
                                                        data-cost="{{ $item['unit_cost_price'] }}"
                                                        oninput="calculateTotalSetoran()">
                                             </td>
@@ -134,7 +134,7 @@
                                         <tr>
                                             <td colspan="7" class="text-center py-5 text-muted">
                                                 <i class="bi bi-info-circle fs-2 d-block mb-2"></i>
-                                                Tidak ada tagihan barang terjual yang belum disetorkan untuk supplier ini.
+                                                Tidak ada tagihan barang penerimaan yang belum disetorkan untuk supplier ini.
                                             </td>
                                         </tr>
                                     @endforelse

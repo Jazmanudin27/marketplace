@@ -565,9 +565,9 @@ class SupplierConsignmentController extends Controller
                 $product = $item->masterProduct;
                 if (!$product) continue;
 
-                $qtyReceived = $item->qty_received;
+                $qtyReceived  = $item->qty_received;
                 $currentStock = $product->stock;
-                $qtySold = max(0, $qtyReceived - $currentStock);
+                $qtySold      = max(0, $qtyReceived - $currentStock);
 
                 $qtySettled = (int) SupplierConsignmentSettlementItem::where('supplier_consignment_item_id', $item->id)
                     ->whereHas('settlement', function ($q) {
@@ -575,9 +575,10 @@ class SupplierConsignmentController extends Controller
                     })
                     ->sum('qty_settled');
 
-                $qtyUnsettled = max(0, $qtySold - $qtySettled);
+                // Qty yang belum disetorkan dihitung dari Total Diterima dikurangi Yang Sudah Disetorkan
+                $qtyUnsettled = max(0, $qtyReceived - $qtySettled);
 
-                if ($qtyUnsettled > 0 || $request->has('show_all')) {
+                if ($qtyUnsettled > 0) {
                     $availableItems[] = [
                         'consignment_item_id' => $item->id,
                         'ref_number'          => $item->consignment ? $item->consignment->reference_number : '-',
