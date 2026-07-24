@@ -448,7 +448,7 @@
         <!-- 10. TITIPAN BARANG -->
         @if (auth()->user()->isSuperAdmin() ||
                 auth()->user()->role === 'admin' ||
-                auth()->user()->hasAnyPermission(['inventory.index', 'supplier-consignments.index']))
+                auth()->user()->hasAnyPermission(['supplier-consignments.index', 'supplier-consignments.stock_card', 'supplier-consignments.settlement']))
             <div>
                 <a class="nav-link d-flex align-items-center justify-content-between text-dark {{ $isTitipanBarangActive ? '' : 'collapsed' }}"
                     data-bs-toggle="collapse" data-bs-target="#collapseTitipanBarang" role="button"
@@ -461,18 +461,24 @@
                 </a>
                 <div class="collapse {{ $isTitipanBarangActive ? 'show' : '' }}" id="collapseTitipanBarang">
                     <div class="nav flex-column ms-3 mt-1 gap-1 border-start ps-2">
-                        <a href="{{ route('supplier_consignments.index') }}"
-                            class="nav-link py-1 {{ request()->routeIs('supplier_consignments.index') || request()->routeIs('supplier_consignments.create') || request()->routeIs('supplier_consignments.show') || request()->routeIs('supplier_consignments.edit') ? 'active text-white' : 'text-secondary' }}">
-                            Penerimaan Barang Titipan
-                        </a>
-                        <a href="{{ route('supplier_consignments.stock_card') }}"
-                            class="nav-link py-1 {{ request()->routeIs('supplier_consignments.stock_card') ? 'active text-white' : 'text-secondary' }}">
-                            Kartu Stok Konsinyasi
-                        </a>
-                        <a href="{{ route('supplier_consignments.settlement.index') }}"
-                            class="nav-link py-1 {{ request()->routeIs('supplier_consignments.settlement.*') ? 'active text-white' : 'text-secondary' }}">
-                            Riwayat Setoran Supplier
-                        </a>
+                        @can('supplier-consignments.index')
+                            <a href="{{ route('supplier_consignments.index') }}"
+                                class="nav-link py-1 {{ request()->routeIs('supplier_consignments.index') || request()->routeIs('supplier_consignments.create') || request()->routeIs('supplier_consignments.show') || request()->routeIs('supplier_consignments.edit') ? 'active text-white' : 'text-secondary' }}">
+                                Penerimaan Barang Titipan
+                            </a>
+                        @endcan
+                        @can('supplier-consignments.stock_card')
+                            <a href="{{ route('supplier_consignments.stock_card') }}"
+                                class="nav-link py-1 {{ request()->routeIs('supplier_consignments.stock_card') ? 'active text-white' : 'text-secondary' }}">
+                                Kartu Stok Konsinyasi
+                            </a>
+                        @endcan
+                        @can('supplier-consignments.settlement')
+                            <a href="{{ route('supplier_consignments.settlement.index') }}"
+                                class="nav-link py-1 {{ request()->routeIs('supplier_consignments.settlement.*') ? 'active text-white' : 'text-secondary' }}">
+                                Riwayat Setoran Supplier
+                            </a>
+                        @endcan
                     </div>
                 </div>
             </div>

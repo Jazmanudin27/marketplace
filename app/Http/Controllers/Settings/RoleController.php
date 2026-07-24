@@ -34,6 +34,12 @@ class RoleController extends Controller
             'reports.production_hpp',
             'orders.create',
             'offline-sales.approve',
+            'supplier-consignments.index',
+            'supplier-consignments.create',
+            'supplier-consignments.edit',
+            'supplier-consignments.destroy',
+            'supplier-consignments.stock_card',
+            'supplier-consignments.settlement',
         ];
         foreach ($newDashPermissions as $pName) {
             try {
@@ -250,6 +256,14 @@ class RoleController extends Controller
                 'product-recipes.edit' => 'Edit Formula Produk (BOM)',
                 'product-recipes.destroy' => 'Hapus Formula Produk (BOM)',
                 'reports.production_hpp' => 'Lihat Laporan HPP Produksi (SPK Selesai)',
+            ],
+            'Titipan Barang Konsinyasi' => [
+                'supplier-consignments.index'      => 'Lihat Penerimaan Barang Titipan',
+                'supplier-consignments.create'     => 'Tambah Penerimaan Barang Titipan',
+                'supplier-consignments.edit'       => 'Edit Penerimaan Barang Titipan',
+                'supplier-consignments.destroy'    => 'Hapus Penerimaan Barang Titipan',
+                'supplier-consignments.stock_card' => 'Lihat Kartu Stok Konsinyasi',
+                'supplier-consignments.settlement' => 'Kelola Setoran & Riwayat Setoran Supplier',
             ],
             'Pengaturan Akun & Level' => [
                 'users.index' => 'Kelola Pengguna Sistem',
