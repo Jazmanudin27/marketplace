@@ -418,9 +418,38 @@
             text-decoration: underline;
         }
 
+        /* Bottom Footer Bar (Card) */
+        .auth-footer {
+            height: 70px;
+            background-color: #ffffff;
+            border-top: 1px solid #e2e8f0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 80px;
+            box-sizing: border-box;
+            width: 100%;
+            z-index: 100;
+        }
+
+        .footer-text {
+            color: #64748b;
+            font-size: 14px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .footer-text strong {
+            color: #0f172a;
+            font-weight: 700;
+        }
+
         /* Responsive Layout */
         @media (max-width: 992px) {
-            .auth-header {
+            .auth-header,
+            .auth-footer {
                 padding: 0 40px;
             }
 
@@ -431,9 +460,10 @@
         }
 
         @media (max-width: 768px) {
-            .auth-header {
+            .auth-header,
+            .auth-footer {
                 padding: 0 20px;
-                height: 70px;
+                height: 60px;
             }
 
             .auth-main {
@@ -694,8 +724,9 @@
 
                 <!-- Terms Notice -->
                 <p class="auth-terms">
-                    Dengan melanjutkan, saya menyetujui <a href="{{ route('terms-of-service') }}" target="_blank">Ketentuan Layanan</a>, <a
-                        href="{{ route('privacy-policy') }}" target="_blank">Kebijakan Perlindungan Data</a>, dan <a href="#">Aturan Kemitraan
+                    Dengan melanjutkan, saya menyetujui <a href="{{ route('terms-of-service') }}"
+                        target="_blank">Ketentuan Layanan</a>, <a href="{{ route('privacy-policy') }}"
+                        target="_blank">Kebijakan Perlindungan Data</a>, dan <a href="#">Aturan Kemitraan
                         Mitra</a> ERP Marketplace.
                 </p>
 
@@ -703,14 +734,19 @@
                 <div class="auth-footer-link">
                     Belum punya akun? <a href="#">Hubungi Admin</a>
                 </div>
-
             </div>
         </div>
-
-        <div class="text-center text-muted mt-3" style="font-size: 0.8rem; color: #6c757d;">
-            Dikelola oleh <strong style="color: #343a40;">Jazmanudin</strong>
-        </div>
     </main>
+
+    <!-- Bottom Footer Bar (Symmetrical to Header) -->
+    <footer class="auth-footer">
+        <div class="footer-text">
+            <span>© {{ date('Y') }} ERP Marketplace. All rights reserved.</span>
+        </div>
+        <div class="footer-text">
+            <i class="fas fa-user-shield text-primary"></i> Dikelola oleh <strong>Jazmanudin</strong>
+        </div>
+    </footer>
 
     <script>
         function togglePassword(fieldId, iconId) {
