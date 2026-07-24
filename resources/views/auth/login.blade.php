@@ -703,6 +703,10 @@
                 <div class="auth-footer-link">
                     Belum punya akun? <a href="#">Hubungi Admin</a>
                 </div>
+
+                <div class="text-center text-muted mt-3" style="font-size: 0.8rem; color: #6c757d;">
+                    Dikelola oleh <strong style="color: #343a40;">Jazmanudin</strong>
+                </div>
             </div>
         </div>
 

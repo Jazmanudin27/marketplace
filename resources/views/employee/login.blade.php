@@ -84,7 +84,8 @@
                 </form>
             </div>
             <div class="card-footer bg-light text-center py-3 border-top">
-                <small class="text-muted" style="font-size: 0.72rem;">Hubungi Admin/HRD perusahaan Anda jika mengalami kendala login</small>
+                <small class="text-muted d-block" style="font-size: 0.72rem;">Hubungi Admin/HRD perusahaan Anda jika mengalami kendala login</small>
+                <small class="text-muted fw-semibold mt-1 d-block" style="font-size: 0.75rem;">Dikelola oleh Jazmanudin</small>
             </div>
         </div>
     </div>
