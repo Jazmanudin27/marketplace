@@ -510,6 +510,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/supplier-consignments/settlement/create', [SupplierConsignmentController::class, 'createSettlement'])->name('supplier_consignments.settlement.create');
         Route::post('/supplier-consignments/settlement', [SupplierConsignmentController::class, 'storeSettlement'])->name('supplier_consignments.settlement.store');
         Route::get('/supplier-consignments/{consignment}', [SupplierConsignmentController::class, 'show'])->name('supplier_consignments.show');
+        Route::get('/supplier-consignments/{consignment}/edit', [SupplierConsignmentController::class, 'edit'])->name('supplier_consignments.edit');
+        Route::put('/supplier-consignments/{consignment}', [SupplierConsignmentController::class, 'update'])->name('supplier_consignments.update');
         Route::post('/supplier-consignments/{consignment}/approve', [SupplierConsignmentController::class, 'approve'])->name('supplier_consignments.approve');
         Route::delete('/supplier-consignments/{consignment}', [SupplierConsignmentController::class, 'destroy'])->name('supplier_consignments.destroy');
 

@@ -37,6 +37,18 @@
                         <i class="bi bi-printer me-1"></i> Cetak Faktur
                     </button>
 
+                    <a href="{{ route('supplier_consignments.edit', $consignment) }}" class="btn btn-warning text-dark btn-sm rounded-pill px-3 fw-bold">
+                        <i class="bi bi-pencil me-1"></i> Edit Faktur
+                    </a>
+
+                    <form action="{{ route('supplier_consignments.destroy', $consignment) }}" method="POST" class="d-inline" onsubmit="return confirm('Apakah Anda yakin ingin menghapus transaksi penerimaan konsinyasi {{ $consignment->reference_number }}? Stok produk master akan dikurangi kembali.')">
+                        @csrf
+                        @method('DELETE')
+                        <button type="submit" class="btn btn-outline-danger btn-sm rounded-pill px-3">
+                            <i class="bi bi-trash me-1"></i> Hapus
+                        </button>
+                    </form>
+
                     <a href="{{ route('supplier_consignments.index') }}" class="btn btn-outline-primary btn-sm rounded-pill px-3">
                         <i class="bi bi-arrow-left me-1"></i> Kembali
                     </a>

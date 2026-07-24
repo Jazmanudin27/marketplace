@@ -265,20 +265,166 @@ class SupplierConsignmentController extends Controller
     }
 
     /**
-     * Batal/Hapus Penerimaan Barang Konsinyasi.
+     * Form Edit Penerimaan Barang Konsinyasi.
+     */
+    public function edit(SupplierConsignment $consignment)
+    {
+        abort_unless($consignment->tenant_id === Auth::user()->tenant_id, 403);
+
+        $tenantId  = Auth::user()->tenant_id;
+        $suppliers = Supplier::where('tenant_id', $tenantId)->where('is_active', true)->orderBy('name')->get();
+        $consignment->load(['supplier', 'items.masterProduct']);
+
+        return view('inventory.supplier_consignments.edit', compact('consignment', 'suppliers'));
+    }
+
+    /**
+     * Update Penerimaan Barang Konsinyasi & Penyesuaian Stok.
+     */
+    public function update(Request $request, SupplierConsignment $consignment)
+    {
+        abort_unless($consignment->tenant_id === Auth::user()->tenant_id, 403);
+
+        $tenantId = Auth::user()->tenant_id;
+        $userId   = Auth::id();
+
+        $request->validate([
+            'supplier_id'      => 'required|exists:suppliers,id',
+            'consignment_date' => 'required|date',
+            'notes'            => 'nullable|string|max:1000',
+            'items'            => 'required|array|min:1',
+            'items.*.master_product_id'  => 'required|exists:master_products,id',
+            'items.*.qty_received'       => 'required|integer|min:1',
+            'items.*.unit_cost_price'    => 'required|numeric|min:0',
+            'items.*.unit_selling_price' => 'required|numeric|min:0',
+        ], [
+            'supplier_id.required' => 'Supplier penyedia barang konsinyasi wajib dipilih.',
+            'items.required'       => 'Minimal satu produk konsinyasi harus diisikan.',
+        ]);
+
+        DB::transaction(function () use ($request, $consignment, $tenantId, $userId) {
+            $consignment->load('items.masterProduct');
+
+            // 1. Revert stok lama dari master product
+            foreach ($consignment->items as $oldItem) {
+                if ($product = $oldItem->masterProduct) {
+                    $product->decrement('stock', $oldItem->qty_received);
+                    $newStock = $product->fresh()->stock;
+
+                    StockMovement::create([
+                        'tenant_id'         => $tenantId,
+                        'master_product_id' => $product->id,
+                        'user_id'           => $userId,
+                        'type'              => 'out',
+                        'quantity'          => $oldItem->qty_received,
+                        'stock_after'       => $newStock,
+                        'reference_type'    => 'supplier_consignment',
+                        'reference_id'      => $consignment->id,
+                        'notes'             => "Revert Stok Edit Konsinyasi: {$consignment->reference_number}",
+                    ]);
+                }
+            }
+
+            // 2. Hapus item lama
+            $consignment->items()->delete();
+
+            // 3. Tambahkan item baru & sesuaikan stok baru
+            $totalQtyReceived = 0;
+            $totalAmountHpp   = 0;
+
+            foreach ($request->items as $row) {
+                $qty          = (int) $row['qty_received'];
+                $costPrice    = (float) $row['unit_cost_price'];
+                $sellingPrice = (float) $row['unit_selling_price'];
+
+                $totalQtyReceived += $qty;
+                $totalAmountHpp   += ($qty * $costPrice);
+
+                $consignment->items()->create([
+                    'master_product_id'  => $row['master_product_id'],
+                    'qty_received'       => $qty,
+                    'unit_cost_price'    => $costPrice,
+                    'unit_selling_price' => $sellingPrice,
+                    'notes'              => $row['notes'] ?? null,
+                ]);
+
+                $product = MasterProduct::find($row['master_product_id']);
+                if ($product) {
+                    $product->increment('stock', $qty);
+                    $product->update([
+                        'cost_price' => $costPrice > 0 ? $costPrice : $product->cost_price,
+                        'price'      => $sellingPrice > 0 ? $sellingPrice : $product->price,
+                    ]);
+
+                    $newStock = $product->fresh()->stock;
+
+                    StockMovement::create([
+                        'tenant_id'         => $tenantId,
+                        'master_product_id' => $product->id,
+                        'user_id'           => $userId,
+                        'type'              => 'in',
+                        'quantity'          => $qty,
+                        'stock_after'       => $newStock,
+                        'reference_type'    => 'supplier_consignment',
+                        'reference_id'      => $consignment->id,
+                        'notes'             => "Update Stok Konsinyasi: {$consignment->reference_number}",
+                    ]);
+                }
+            }
+
+            // 4. Update Header Consignment
+            $consignment->update([
+                'supplier_id'        => $request->supplier_id,
+                'consignment_date'   => $request->consignment_date,
+                'notes'              => $request->notes,
+                'total_qty_received' => $totalQtyReceived,
+                'total_amount_hpp'   => $totalAmountHpp,
+            ]);
+        });
+
+        return redirect()->route('supplier_consignments.show', $consignment)
+            ->with('success', 'Penerimaan barang konsinyasi berhasil diperbarui dan stok master produk telah disesuaikan.');
+    }
+
+    /**
+     * Batal/Hapus Penerimaan Barang Konsinyasi (Kembalikan Stok).
      */
     public function destroy(SupplierConsignment $consignment)
     {
         abort_unless($consignment->tenant_id === Auth::user()->tenant_id, 403);
 
-        if ($consignment->status === 'approved') {
-            return back()->with('error', 'Penerimaan barang konsinyasi yang sudah disetujui tidak dapat dihapus langsung.');
-        }
+        $tenantId = Auth::user()->tenant_id;
+        $userId   = Auth::id();
 
-        $consignment->delete();
+        DB::transaction(function () use ($consignment, $tenantId, $userId) {
+            $consignment->load('items.masterProduct');
+
+            // Kembalikan/kurangi stok master product yang sebelumnya masuk
+            foreach ($consignment->items as $item) {
+                if ($product = $item->masterProduct) {
+                    $product->decrement('stock', $item->qty_received);
+                    $newStock = $product->fresh()->stock;
+
+                    StockMovement::create([
+                        'tenant_id'         => $tenantId,
+                        'master_product_id' => $product->id,
+                        'user_id'           => $userId,
+                        'type'              => 'out',
+                        'quantity'          => $item->qty_received,
+                        'stock_after'       => $newStock,
+                        'reference_type'    => 'supplier_consignment',
+                        'reference_id'      => $consignment->id,
+                        'notes'             => "Hapus Penerimaan Konsinyasi: {$consignment->reference_number}",
+                    ]);
+                }
+            }
+
+            $consignment->items()->delete();
+            $consignment->delete();
+        });
 
         return redirect()->route('supplier_consignments.index')
-            ->with('success', 'Transaksi penerimaan barang konsinyasi berhasil dihapus.');
+            ->with('success', 'Transaksi penerimaan barang konsinyasi berhasil dihapus dan stok master produk telah dikurangi kembali.');
     }
 
     /**

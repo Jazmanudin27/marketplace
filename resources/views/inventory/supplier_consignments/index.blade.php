@@ -130,9 +130,16 @@
                                         <a href="{{ route('supplier_consignments.show', $item) }}" class="btn btn-outline-primary" title="Lihat Detail">
                                             <i class="bi bi-eye"></i>
                                         </a>
-                                        <button type="button" onclick="window.location.href='{{ route('supplier_consignments.show', $item) }}'" class="btn btn-outline-secondary" title="Cetak Faktur">
-                                            <i class="bi bi-printer"></i>
-                                        </button>
+                                        <a href="{{ route('supplier_consignments.edit', $item) }}" class="btn btn-outline-warning text-dark" title="Edit Transaksi">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                        <form action="{{ route('supplier_consignments.destroy', $item) }}" method="POST" class="d-inline" onsubmit="return confirm('Apakah Anda yakin ingin menghapus transaksi {{ $item->reference_number }}? Stok produk master akan dikurangi kembali.')">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="btn btn-outline-danger" title="Hapus Transaksi">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </form>
                                     </div>
                                 </td>
                             </tr>
