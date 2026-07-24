@@ -52,6 +52,7 @@ use App\Http\Controllers\Inventory\PurchaseReturnController;
 use App\Http\Controllers\Inventory\GoodsReceiptController;
 use App\Http\Controllers\Inventory\WarehouseMutationController;
 use App\Http\Controllers\Inventory\SupplierPayableController;
+use App\Http\Controllers\Inventory\SupplierConsignmentController;
 // Marketplace
 use App\Http\Controllers\Marketplace\StoreController;
 // Settings
@@ -503,6 +504,17 @@ Route::middleware('auth')->group(function () {
         Route::post('/supplier-payables/{supplierPayable}/pay', [SupplierPayableController::class, 'storePayment'])->name('supplier_payables.pay');
         Route::post('/supplier-payables/{supplierPayable}/payments/{payment}/approve', [SupplierPayableController::class, 'approvePayment'])->name('supplier_payables.approve');
         Route::post('/supplier-payables/{supplierPayable}/payments/{payment}/reject', [SupplierPayableController::class, 'rejectPayment'])->name('supplier_payables.reject');
+
+        // ── BARANG JADI KONSINYASI SUPPLIER ───────────────────────────────────
+        Route::get('/supplier-consignments', [SupplierConsignmentController::class, 'index'])->name('supplier_consignments.index');
+        Route::get('/supplier-consignments/create', [SupplierConsignmentController::class, 'create'])->name('supplier_consignments.create');
+        Route::post('/supplier-consignments', [SupplierConsignmentController::class, 'store'])->name('supplier_consignments.store');
+        Route::get('/supplier-consignments/stock-card', [SupplierConsignmentController::class, 'stockCard'])->name('supplier_consignments.stock_card');
+        Route::get('/supplier-consignments/settlement/create', [SupplierConsignmentController::class, 'createSettlement'])->name('supplier_consignments.settlement.create');
+        Route::post('/supplier-consignments/settlement', [SupplierConsignmentController::class, 'storeSettlement'])->name('supplier_consignments.settlement.store');
+        Route::get('/supplier-consignments/{consignment}', [SupplierConsignmentController::class, 'show'])->name('supplier_consignments.show');
+        Route::post('/supplier-consignments/{consignment}/approve', [SupplierConsignmentController::class, 'approve'])->name('supplier_consignments.approve');
+        Route::delete('/supplier-consignments/{consignment}', [SupplierConsignmentController::class, 'destroy'])->name('supplier_consignments.destroy');
 
         // ── LAPORAN PEMBELIAN (Stok & Mutasi) ──────────────────────────────────
         Route::get('/pembelian/stok-barang', [WarehouseMutationController::class, 'stockReportPembelian'])->name('pembelian.stock_report');

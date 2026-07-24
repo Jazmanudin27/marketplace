@@ -19,6 +19,7 @@
         request()->routeIs('purchase_returns.*') ||
         request()->routeIs('goods_receipts.*') ||
         request()->routeIs('supplier_payables.*') ||
+        request()->routeIs('supplier_consignments.*') ||
         request()->routeIs('incoming_goods.*') ||
         request()->routeIs('inventory_items.*') ||
         request()->routeIs('pembelian.goods_issue.*');
@@ -358,6 +359,14 @@
                         <a href="{{ route('supplier_payables.index') }}"
                             class="nav-link py-1 {{ request()->routeIs('supplier_payables.*') ? 'active text-white' : 'text-secondary' }}">
                             <i class="bi bi-credit-card-2-back me-1"></i>Hutang Supplier
+                        </a>
+                        <a href="{{ route('supplier_consignments.index') }}"
+                            class="nav-link py-1 {{ request()->routeIs('supplier_consignments.*') && !request()->routeIs('supplier_consignments.stock_card') ? 'active text-white' : 'text-secondary' }}">
+                            <i class="bi bi-box-seam me-1"></i>Titipan / Konsinyasi Supplier
+                        </a>
+                        <a href="{{ route('supplier_consignments.stock_card') }}"
+                            class="nav-link py-1 {{ request()->routeIs('supplier_consignments.stock_card') ? 'active text-white' : 'text-secondary' }}">
+                            <i class="bi bi-card-checklist me-1"></i>Kartu Stok Konsinyasi
                         </a>
                     </div>
                 </div>
