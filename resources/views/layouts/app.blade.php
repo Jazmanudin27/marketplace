@@ -100,11 +100,6 @@
                     <!-- Main Content Slot -->
                     @yield('content')
 
-                    <!-- Global Application Footer -->
-                    <footer class="mt-5 py-3 text-center text-muted border-top border-light-subtle">
-                        <small class="small">ERP Marketplace &copy; {{ date('Y') }} — Dikelola oleh <strong>Jazmanudin</strong></small>
-                    </footer>
-
                 </div>
             </main>
         </div>

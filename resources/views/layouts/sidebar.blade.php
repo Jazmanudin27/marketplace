@@ -769,9 +769,6 @@
                 <span>Keluar</span>
             </button>
         </form>
-        <div class="text-center mt-3 text-white text-opacity-75" style="font-size: 0.72rem;">
-            Dikelola oleh <strong class="text-white">Jazmanudin</strong>
-        </div>
     </div>
 
 </div>
