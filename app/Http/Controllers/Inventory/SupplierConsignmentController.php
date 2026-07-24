@@ -177,10 +177,8 @@ class SupplierConsignmentController extends Controller
                         'user_id'           => $userId,
                         'type'              => 'in',
                         'quantity'          => $qty,
-                        'stock_after'       => $newStock,
-                        'reference_type'    => 'supplier_consignment',
-                        'reference_id'      => $consignment->id,
-                        'notes'             => "Penerimaan Konsinyasi: {$refNumber}",
+                        'balance_after'     => $newStock,
+                        'reference'         => "Penerimaan Konsinyasi: {$refNumber}",
                     ]);
                 }
             }
@@ -317,10 +315,8 @@ class SupplierConsignmentController extends Controller
                         'user_id'           => $userId,
                         'type'              => 'out',
                         'quantity'          => $oldItem->qty_received,
-                        'stock_after'       => $newStock,
-                        'reference_type'    => 'supplier_consignment',
-                        'reference_id'      => $consignment->id,
-                        'notes'             => "Revert Stok Edit Konsinyasi: {$consignment->reference_number}",
+                        'balance_after'     => $newStock,
+                        'reference'         => "Revert Stok Edit Konsinyasi: {$consignment->reference_number}",
                     ]);
                 }
             }
@@ -364,10 +360,8 @@ class SupplierConsignmentController extends Controller
                         'user_id'           => $userId,
                         'type'              => 'in',
                         'quantity'          => $qty,
-                        'stock_after'       => $newStock,
-                        'reference_type'    => 'supplier_consignment',
-                        'reference_id'      => $consignment->id,
-                        'notes'             => "Update Stok Konsinyasi: {$consignment->reference_number}",
+                        'balance_after'     => $newStock,
+                        'reference'         => "Update Stok Konsinyasi: {$consignment->reference_number}",
                     ]);
                 }
             }
@@ -411,10 +405,8 @@ class SupplierConsignmentController extends Controller
                         'user_id'           => $userId,
                         'type'              => 'out',
                         'quantity'          => $item->qty_received,
-                        'stock_after'       => $newStock,
-                        'reference_type'    => 'supplier_consignment',
-                        'reference_id'      => $consignment->id,
-                        'notes'             => "Hapus Penerimaan Konsinyasi: {$consignment->reference_number}",
+                        'balance_after'     => $newStock,
+                        'reference'         => "Hapus Penerimaan Konsinyasi: {$consignment->reference_number}",
                     ]);
                 }
             }
