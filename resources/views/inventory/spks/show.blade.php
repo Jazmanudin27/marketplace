@@ -70,23 +70,23 @@
                 </div>
             </div>
 
-            <!-- Client / Order Bar -->
-            <div class="row g-2 p-3 bg-dark text-white rounded-3 mb-4 text-uppercase small fw-bold">
+            <!-- Client / Order Bar (White Background) -->
+            <div class="row g-2 p-3 bg-white text-dark border shadow-sm rounded-3 mb-4 text-uppercase small fw-bold">
                 <div class="col-md-3">
-                    <span class="text-white-50">Pemesan:</span><br>
-                    <span class="text-truncate d-block">{{ $spk->pemesan ?: 'INTERNAL STOCK' }}</span>
+                    <span class="text-muted">Pemesan:</span><br>
+                    <span class="text-truncate d-block text-dark fw-bold">{{ $spk->pemesan ?: 'INTERNAL STOCK' }}</span>
                 </div>
-                <div class="col-md-3 border-start border-secondary ps-3">
-                    <span class="text-white-50">No HP Pemesan:</span><br>
-                    <span>{{ $spk->no_hp_pemesan ?: '—' }}</span>
+                <div class="col-md-3 border-start ps-3">
+                    <span class="text-muted">No HP Pemesan:</span><br>
+                    <span class="text-dark fw-bold">{{ $spk->no_hp_pemesan ?: '—' }}</span>
                 </div>
-                <div class="col-md-3 border-start border-secondary ps-3">
-                    <span class="text-white-50">Toko / Channel:</span><br>
-                    <span class="text-truncate d-block">{{ $spk->instansi ?: '—' }}</span>
+                <div class="col-md-3 border-start ps-3">
+                    <span class="text-muted">Toko / Channel:</span><br>
+                    <span class="text-truncate d-block text-dark fw-bold">{{ $spk->instansi ?: '—' }}</span>
                 </div>
-                <div class="col-md-3 border-start border-secondary ps-3">
-                    <span class="text-white-50">PIC / Pembuat SPK:</span><br>
-                    <span class="text-truncate d-block text-warning fw-bold">{{ $spk->penginput->name ?? 'SYSTEM' }}</span>
+                <div class="col-md-3 border-start ps-3">
+                    <span class="text-muted">PIC / Pembuat SPK:</span><br>
+                    <span class="text-truncate d-block text-primary fw-bold">{{ $spk->penginput->name ?? 'SYSTEM' }}</span>
                 </div>
             </div>
 
