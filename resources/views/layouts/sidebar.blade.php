@@ -33,6 +33,7 @@
         request()->routeIs('inventory.ledger') ||
         request()->routeIs('stock_opnames.*') ||
         request()->routeIs('inventory.stock_sync') ||
+        request()->routeIs('supplier_consignments.*') ||
         request()->routeIs('fulfillment.*');
 
     $isFinanceActive =
@@ -360,14 +361,6 @@
                             class="nav-link py-1 {{ request()->routeIs('supplier_payables.*') ? 'active text-white' : 'text-secondary' }}">
                             <i class="bi bi-credit-card-2-back me-1"></i>Hutang Supplier
                         </a>
-                        <a href="{{ route('supplier_consignments.index') }}"
-                            class="nav-link py-1 {{ request()->routeIs('supplier_consignments.*') && !request()->routeIs('supplier_consignments.stock_card') ? 'active text-white' : 'text-secondary' }}">
-                            <i class="bi bi-box-seam me-1"></i>Titipan / Konsinyasi Supplier
-                        </a>
-                        <a href="{{ route('supplier_consignments.stock_card') }}"
-                            class="nav-link py-1 {{ request()->routeIs('supplier_consignments.stock_card') ? 'active text-white' : 'text-secondary' }}">
-                            <i class="bi bi-card-checklist me-1"></i>Kartu Stok Konsinyasi
-                        </a>
                     </div>
                 </div>
             </div>
@@ -428,6 +421,14 @@
                                 class="nav-link py-1 {{ request()->routeIs('inventory.index') || request()->routeIs('inventory.ledger') ? 'active text-white' : 'text-secondary' }}">Stok
                                 Gudang Jadi</a>
                         @endcan
+                        <a href="{{ route('supplier_consignments.index') }}"
+                            class="nav-link py-1 {{ request()->routeIs('supplier_consignments.*') && !request()->routeIs('supplier_consignments.stock_card') ? 'active text-white' : 'text-secondary' }}">
+                            Penerimaan Barang
+                        </a>
+                        <a href="{{ route('supplier_consignments.stock_card') }}"
+                            class="nav-link py-1 {{ request()->routeIs('supplier_consignments.stock_card') ? 'active text-white' : 'text-secondary' }}">
+                            Setor Penjualan Supplier
+                        </a>
                         @can('stock-opnames.index')
                             <a href="{{ route('stock_opnames.index') }}"
                                 class="nav-link py-1 {{ request()->routeIs('stock_opnames.*') ? 'active text-white' : 'text-secondary' }}">Opname
