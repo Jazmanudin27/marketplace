@@ -330,7 +330,7 @@
                                     {{-- SLA Countdown Badge --}}
                                     @if(!$ret->is_restocked && $ret->sla_deadline)
                                         @php
-                                            $diffInHours = now()->diffInHours($ret->sla_deadline, false);
+                                            $diffInHours = round(now()->diffInHours($ret->sla_deadline, false));
                                         @endphp
                                         <div class="mt-2">
                                             @if($diffInHours < 0)
@@ -339,7 +339,7 @@
                                                 </span>
                                             @elseif($diffInHours <= 24)
                                                 <span class="badge bg-danger bg-opacity-10 text-danger border border-danger-subtle px-2 py-1" style="font-size: 0.7rem;" title="Deadline Respons Retur">
-                                                    <span class="pulse-danger-dot me-1"></span>Sisa: {{ $diffInHours }} Jam
+                                                    <span class="pulse-danger-dot me-1"></span>Sisa: {{ (int) $diffInHours }} Jam
                                                 </span>
                                             @else
                                                 <span class="badge bg-warning bg-opacity-10 text-warning border border-warning-subtle px-2 py-1" style="font-size: 0.7rem;" title="Deadline Respons Retur">
