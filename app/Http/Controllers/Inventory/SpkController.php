@@ -106,10 +106,15 @@ class SpkController extends Controller
 
         $order = null;
         if ($request->filled('order_id')) {
-            $order = \App\Models\Order::with('items.masterProduct')->where('tenant_id', $tenantId)->find($request->order_id);
+            $order = \App\Models\Order::with(['items.masterProduct', 'store'])->where('tenant_id', $tenantId)->find($request->order_id);
         }
 
-        return view('inventory.spks.create', compact('products', 'tailors', 'laborServices', 'order'));
+        $stores = \App\Models\Store::with('channel')
+            ->where('tenant_id', $tenantId)
+            ->orderBy('store_name')
+            ->get();
+
+        return view('inventory.spks.create', compact('products', 'tailors', 'laborServices', 'order', 'stores'));
     }
 
     public function store(Request $request)

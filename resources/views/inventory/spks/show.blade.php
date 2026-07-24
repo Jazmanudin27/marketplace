@@ -81,7 +81,7 @@
                     <span>{{ $spk->no_hp_pemesan ?: '—' }}</span>
                 </div>
                 <div class="col-md-3 border-start border-secondary ps-3">
-                    <span class="text-white-50">Instansi:</span><br>
+                    <span class="text-white-50">Toko / Channel:</span><br>
                     <span class="text-truncate d-block">{{ $spk->instansi ?: '—' }}</span>
                 </div>
                 <div class="col-md-3 border-start border-secondary ps-3">

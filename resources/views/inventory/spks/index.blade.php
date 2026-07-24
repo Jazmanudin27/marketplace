@@ -68,7 +68,7 @@
                         <th>Tanggal</th>
                         <th>Jatuh Tempo</th>
                         <th>Pemesan</th>
-                        <th>Instansi</th>
+                        <th>Toko / Channel</th>
                         <th>Total Pcs</th>
                         <th>PIC Pembuat</th>
                         <th class="text-center">Aksi</th>

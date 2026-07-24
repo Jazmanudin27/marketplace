@@ -97,9 +97,21 @@
                                                 placeholder="0852-xxxx-xxxx" value="{{ old('no_hp_pemesan', $order->buyer_phone ?? '') }}">
                                         </div>
                                         <div class="col-6">
-                                            <label class="form-label fw-semibold small mb-1">Instansi / Perusahaan</label>
-                                            <input type="text" name="instansi" class="form-control form-control-sm"
-                                                placeholder="Contoh: Seragam SMAN 1" value="{{ old('instansi') }}">
+                                            <label class="form-label fw-semibold small mb-1">Toko / Channel <span class="text-danger">*</span></label>
+                                            <select name="instansi" class="form-select form-select-sm" required>
+                                                <option value="">— Pilih Toko Pemesan —</option>
+                                                @php 
+                                                    $selectedStore = old('instansi', isset($order) && $order->store ? $order->store->store_name : '');
+                                                @endphp
+                                                @foreach($stores as $st)
+                                                    @php $sName = $st->store_name . ($st->channel ? ' (' . $st->channel->name . ')' : ''); @endphp
+                                                    <option value="{{ $st->store_name }}" {{ $selectedStore == $st->store_name ? 'selected' : '' }}>
+                                                        {{ $sName }}
+                                                    </option>
+                                                @endforeach
+                                                <option value="POS / Penjualan Offline" {{ $selectedStore == 'POS / Penjualan Offline' ? 'selected' : '' }}>POS / Penjualan Offline</option>
+                                                <option value="Pesanan Direct / Whatsapp" {{ $selectedStore == 'Pesanan Direct / Whatsapp' ? 'selected' : '' }}>Pesanan Direct / Whatsapp</option>
+                                            </select>
                                         </div>
                                         <div class="col-12">
                                             <label class="form-label fw-semibold small mb-1">Aksesoris / Atribut Tambahan</label>
