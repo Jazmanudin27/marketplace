@@ -586,4 +586,70 @@ class SpkController extends Controller
 
         return back()->with('success', 'Catatan Atribut & Aksesoris Tambahan berhasil diperbarui.');
     }
+
+    public function updateGlobalCosts(Request $request, Spk $spk)
+    {
+        $tenantId = Auth::user()->tenant_id;
+        if ($spk->tenant_id != $tenantId) {
+            abort(403);
+        }
+
+        $request->validate([
+            'global_jasa' => 'nullable|array',
+            'global_jasa.*.keterangan' => 'nullable|string',
+            'global_jasa.*.nominal' => 'nullable',
+            'global_bahan' => 'nullable|array',
+            'global_bahan.*.keterangan' => 'nullable|string',
+            'global_bahan.*.nominal' => 'nullable',
+        ]);
+
+        DB::transaction(function () use ($request, $spk) {
+            $totalSpkQty = $spk->items->sum('quantity') ?: 1;
+
+            $globalJasa = $request->input('global_jasa', []);
+            $globalBahan = $request->input('global_bahan', []);
+
+            $newGlobalItems = [];
+            if (is_array($globalJasa)) {
+                foreach ($globalJasa as $gj) {
+                    $ket = trim($gj['keterangan'] ?? '');
+                    $rawNom = str_replace('.', '', str_replace(',', '.', $gj['nominal'] ?? 0));
+                    $nom = floatval($rawNom);
+                    if ($ket !== '' && $nom > 0) {
+                        $newGlobalItems[] = ['keterangan' => $ket, 'total_nominal' => $nom];
+                    }
+                }
+            }
+            if (is_array($globalBahan)) {
+                foreach ($globalBahan as $gb) {
+                    $ket = trim($gb['keterangan'] ?? '');
+                    $rawNom = str_replace('.', '', str_replace(',', '.', $gb['nominal'] ?? 0));
+                    $nom = floatval($rawNom);
+                    if ($ket !== '' && $nom > 0) {
+                        $ketFull = str_starts_with(strtolower($ket), 'bahan:') ? $ket : 'Bahan: ' . $ket;
+                        $newGlobalItems[] = ['keterangan' => $ketFull, 'total_nominal' => $nom];
+                    }
+                }
+            }
+
+            foreach ($spk->items as $item) {
+                $item->extras()->delete();
+
+                $itemTotalExtras = 0;
+                foreach ($newGlobalItems as $gItem) {
+                    $allocated = round($gItem['total_nominal'] / $totalSpkQty, 2);
+                    SpkItemExtra::create([
+                        'spk_item_id' => $item->id,
+                        'keterangan'  => $gItem['keterangan'],
+                        'nominal'     => $allocated,
+                    ]);
+                    $itemTotalExtras += $allocated;
+                }
+
+                $item->update(['hpp' => $itemTotalExtras]);
+            }
+        });
+
+        return back()->with('success', 'Setting Biaya SPK (Tambahan Jasa & Bahan) berhasil diperbarui dan HPP per unit dihitung ulang.');
+    }
 }

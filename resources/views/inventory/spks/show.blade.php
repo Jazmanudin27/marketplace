@@ -321,6 +321,111 @@
                     </tbody>
                 </table>
             </div>
+            <!-- Setting Biaya SPK di Akhir (Tambahan Jasa & Bahan / Material) -->
+            @if(auth()->user()->isSuperAdmin() || auth()->user()->role === 'admin' || auth()->user()->hasRole('admin'))
+            <div class="card border shadow-sm rounded-3 mb-4">
+                <div class="card-header bg-white py-3 px-3 border-bottom d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="fw-bold mb-0 text-dark"><i class="fas fa-calculator text-primary me-2"></i>Setting Biaya SPK di Akhir (Tambahan Jasa &amp; Bahan / Material)</h6>
+                        <small class="text-muted">Kelola total biaya Jasa &amp; Bahan untuk dokumen SPK ini. Sistem akan otomatis membagi total biaya dengan Total Qty SPK ({{ number_format($spk->items->sum('quantity')) }} pcs) untuk menetapkan HPP per unit.</small>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-primary fw-bold" data-bs-toggle="collapse" data-bs-target="#editGlobalCostsCollapse">
+                        <i class="fas fa-edit me-1"></i> Edit / Kelola Biaya SPK
+                    </button>
+                </div>
+                <div class="collapse card-body p-4 bg-light" id="editGlobalCostsCollapse">
+                    <form action="{{ route('spks.update_global_costs', $spk->id) }}" method="POST">
+                        @csrf
+                        <div class="row g-3">
+                            {{-- Seksi Tambahan Jasa --}}
+                            <div class="col-md-6">
+                                <div class="card border shadow-sm h-100 bg-white">
+                                    <div class="card-header bg-primary bg-opacity-10 py-2 px-3 border-bottom d-flex justify-content-between align-items-center">
+                                        <span class="fw-bold small text-primary"><i class="fas fa-cut me-1"></i>1. Tambahan Jasa (Jahit, QC, Printing, dll)</span>
+                                        <button type="button" class="btn btn-outline-primary btn-xs py-0 px-2 fw-semibold" id="btnAddShowGlobalJasa">
+                                            <i class="fas fa-plus me-1"></i> Tambah Jasa
+                                        </button>
+                                    </div>
+                                    <div class="card-body p-3">
+                                        <div id="showGlobalJasaContainer">
+                                            @php
+                                                $firstItem = $spk->items->first();
+                                                $totalSpkQty = $spk->items->sum('quantity') ?: 1;
+                                                $existingGlobalJasa = [];
+                                                $existingGlobalBahan = [];
+                                                if ($firstItem) {
+                                                    foreach ($firstItem->extras as $ex) {
+                                                        $desc = strtolower($ex->keterangan);
+                                                        $totalNom = (float)$ex->nominal * $totalSpkQty;
+                                                        if (str_starts_with($desc, 'bahan:') || str_contains($desc, 'bahan')) {
+                                                            $cleanKet = str_ireplace('Bahan:', '', $ex->keterangan);
+                                                            $existingGlobalBahan[] = ['keterangan' => trim($cleanKet), 'nominal' => $totalNom];
+                                                        } else {
+                                                            $existingGlobalJasa[] = ['keterangan' => $ex->keterangan, 'nominal' => $totalNom];
+                                                        }
+                                                    }
+                                                }
+                                            @endphp
+                                            @forelse($existingGlobalJasa as $gIdx => $gj)
+                                                <div class="row g-2 mb-2 align-items-center show-global-jasa-row">
+                                                    <div class="col">
+                                                        <input type="text" name="global_jasa[{{ $gIdx }}][keterangan]" class="form-control form-control-sm" placeholder="Misal: Jasa Jahit" value="{{ $gj['keterangan'] }}">
+                                                    </div>
+                                                    <div class="col-4">
+                                                        <input type="text" name="global_jasa[{{ $gIdx }}][nominal]" class="form-control form-control-sm show-global-jasa-nominal rupiah-mask text-end" placeholder="0" value="{{ number_format($gj['nominal'], 0, ',', '.') }}">
+                                                    </div>
+                                                    <div class="col-auto">
+                                                        <button type="button" class="btn btn-sm btn-outline-danger btn-remove-show-global-jasa py-0 px-2 fs-7"><i class="fas fa-times"></i></button>
+                                                    </div>
+                                                </div>
+                                            @empty
+                                                {{-- Empty placeholder --}}
+                                            @endforelse
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {{-- Seksi Tambahan Bahan --}}
+                            <div class="col-md-6">
+                                <div class="card border shadow-sm h-100 bg-white">
+                                    <div class="card-header bg-info bg-opacity-10 py-2 px-3 border-bottom d-flex justify-content-between align-items-center">
+                                        <span class="fw-bold small text-info"><i class="fas fa-layer-group me-1"></i>2. Tambahan Bahan / Material (Benang, Packing)</span>
+                                        <button type="button" class="btn btn-outline-info btn-xs py-0 px-2 fw-semibold" id="btnAddShowGlobalBahan">
+                                            <i class="fas fa-plus me-1"></i> Tambah Bahan
+                                        </button>
+                                    </div>
+                                    <div class="card-body p-3">
+                                        <div id="showGlobalBahanContainer">
+                                            @forelse($existingGlobalBahan as $gIdx => $gb)
+                                                <div class="row g-2 mb-2 align-items-center show-global-bahan-row">
+                                                    <div class="col">
+                                                        <input type="text" name="global_bahan[{{ $gIdx }}][keterangan]" class="form-control form-control-sm" placeholder="Misal: Kain / Aksesoris" value="{{ $gb['keterangan'] }}">
+                                                    </div>
+                                                    <div class="col-4">
+                                                        <input type="text" name="global_bahan[{{ $gIdx }}][nominal]" class="form-control form-control-sm show-global-bahan-nominal rupiah-mask text-end" placeholder="0" value="{{ number_format($gb['nominal'], 0, ',', '.') }}">
+                                                    </div>
+                                                    <div class="col-auto">
+                                                        <button type="button" class="btn btn-sm btn-outline-danger btn-remove-show-global-bahan py-0 px-2 fs-7"><i class="fas fa-times"></i></button>
+                                                    </div>
+                                                </div>
+                                            @empty
+                                                {{-- Empty placeholder --}}
+                                            @endforelse
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-end gap-2 mt-3">
+                            <button type="submit" class="btn btn-primary btn-sm fw-bold px-4 shadow-sm">
+                                <i class="fas fa-save me-1"></i> Simpan &amp; Hitung Ulang HPP SPK
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
             @endif
 
             <!-- Additional Accessories Block -->
@@ -393,4 +498,47 @@
         </div>
     </div>
 </div>
+
+<script>
+    let showJasaIdx = 200;
+    let showBahanIdx = 200;
+
+    $(document).on('click', '#btnAddShowGlobalJasa', function() {
+        const idx = showJasaIdx++;
+        const html = `
+            <div class="row g-2 mb-2 align-items-center show-global-jasa-row">
+                <div class="col">
+                    <input type="text" name="global_jasa[${idx}][keterangan]" class="form-control form-control-sm" placeholder="Misal: Jasa Jahit / QC">
+                </div>
+                <div class="col-4">
+                    <input type="text" name="global_jasa[${idx}][nominal]" class="form-control form-control-sm show-global-jasa-nominal rupiah-mask text-end" placeholder="0">
+                </div>
+                <div class="col-auto">
+                    <button type="button" class="btn btn-sm btn-outline-danger btn-remove-show-global-jasa py-0 px-2 fs-7"><i class="fas fa-times"></i></button>
+                </div>
+            </div>`;
+        $('#showGlobalJasaContainer').append(html);
+    });
+
+    $(document).on('click', '#btnAddShowGlobalBahan', function() {
+        const idx = showBahanIdx++;
+        const html = `
+            <div class="row g-2 mb-2 align-items-center show-global-bahan-row">
+                <div class="col">
+                    <input type="text" name="global_bahan[${idx}][keterangan]" class="form-control form-control-sm" placeholder="Misal: Kain / Benang">
+                </div>
+                <div class="col-4">
+                    <input type="text" name="global_bahan[${idx}][nominal]" class="form-control form-control-sm show-global-bahan-nominal rupiah-mask text-end" placeholder="0">
+                </div>
+                <div class="col-auto">
+                    <button type="button" class="btn btn-sm btn-outline-danger btn-remove-show-global-bahan py-0 px-2 fs-7"><i class="fas fa-times"></i></button>
+                </div>
+            </div>`;
+        $('#showGlobalBahanContainer').append(html);
+    });
+
+    $(document).on('click', '.btn-remove-show-global-jasa, .btn-remove-show-global-bahan', function() {
+        $(this).closest('.row').remove();
+    });
+</script>
 @endsection
