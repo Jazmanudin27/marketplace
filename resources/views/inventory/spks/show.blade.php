@@ -139,25 +139,40 @@
 
             <!-- Rincian HPP Produksi (Internal Office Only) -->
             @if(auth()->user()->isSuperAdmin() || auth()->user()->role === 'admin' || auth()->user()->hasRole('admin'))
-            <h5 class="fw-bold text-dark mb-3 mt-4">
-                <i class="fas fa-calculator text-primary me-2"></i>Rincian HPP Produksi <span class="badge bg-danger-subtle text-danger" style="font-size: 11px;">Internal Office Only</span>
-            </h5>
+            <div class="d-flex justify-content-between align-items-center mb-3 mt-4">
+                <h5 class="fw-bold text-dark mb-0">
+                    <i class="fas fa-calculator text-primary me-2"></i>Rincian HPP Produksi
+                    <span class="badge bg-danger-subtle text-danger" style="font-size: 11px;">Internal Office Only</span>
+                </h5>
+                <button type="button" class="btn btn-sm btn-outline-success fw-bold" data-bs-toggle="modal" data-bs-target="#kelolaTahapanModal">
+                    <i class="fas fa-tasks me-1"></i> Kelola Tahapan Produksi
+                    @if($spk->proses->count() > 0)
+                        <span class="badge bg-success ms-1">{{ $spk->proses->count() }}</span>
+                    @endif
+                </button>
+            </div>
             <div class="table-responsive mb-4">
                 <table class="table table-bordered table-sm align-middle text-center mb-0">
                     <thead class="table-light text-muted small">
                         <tr>
                             <th></th>
-                            <th class="text-start ps-3" style="width: 22%;">SKU Produk &amp; Size</th>
-                            <th style="width: 10%;">Tukang Potong</th>
-                            <th style="width: 10%;">Tukang Jahit</th>
-                            <th style="width: 18%;">Catatan Khusus</th>
-                            <th style="width: 8%;">Bahan / pcs</th>
-                            <th style="width: 8%;">Jasa / pcs</th>
-                            <th style="width: 8%;">HPP / Pcs</th>
+                            <th class="text-start ps-3" style="width: 18%;">SKU Produk &amp; Size</th>
+                            <th style="width: 8%;">Tukang Potong</th>
+                            <th style="width: 8%;">Tukang Jahit</th>
+                            <th style="width: 12%;">Catatan Khusus</th>
+                            <th style="width: 6%;">Bahan / pcs</th>
+                            <th style="width: 6%;">Jasa / pcs</th>
+                            <th style="width: 6%;">HPP / Pcs</th>
                             <th style="width: 4%;">Qty</th>
-                            <th style="width: 10%;">Subtotal HPP</th>
-                            <th style="width: 10%;">Status</th>
-                            <th style="width: 5%;">Edit</th>
+                            {{-- Dynamic progress columns per proses --}}
+                            @foreach($spk->proses as $proses)
+                                <th style="min-width: 80px; font-size: 10px;" class="text-success">
+                                    <i class="fas fa-circle-notch me-1" style="font-size: 9px;"></i>{{ $proses->nama_proses }}
+                                </th>
+                            @endforeach
+                            <th style="width: 8%;">Subtotal HPP</th>
+                            <th style="width: 8%;">Status</th>
+                            <th style="width: 4%;">Edit</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -214,6 +229,29 @@
                                 <td>Rp {{ number_format($totalJasa, 0, ',', '.') }}</td>
                                 <td class="bg-danger-subtle fw-bold text-danger">Rp {{ number_format($item->hpp, 0, ',', '.') }}</td>
                                 <td>{{ $item->quantity }}</td>
+                                {{-- Progress cells per proses --}}
+                                @foreach($spk->proses as $proses)
+                                    @php
+                                        $pg = $progresMap[$item->id][$proses->id] ?? null;
+                                        $qtyDone = $pg ? $pg->qty_done : 0;
+                                        $isFull  = $qtyDone >= $item->quantity;
+                                        $pgId    = $pg ? $pg->id : null;
+                                    @endphp
+                                    <td class="p-1">
+                                        @if($pgId)
+                                            <span
+                                                class="badge {{ $isFull ? 'bg-success' : ($qtyDone > 0 ? 'bg-warning text-dark' : 'bg-secondary') }} progres-badge fw-semibold"
+                                                style="font-size: 11px; cursor: pointer;"
+                                                data-pg-id="{{ $pgId }}"
+                                                data-qty-total="{{ $item->quantity }}"
+                                                data-update-url="{{ route('spks.progres.update', $pgId) }}"
+                                                title="Klik untuk update qty selesai"
+                                            >{{ $qtyDone }}/{{ $item->quantity }}</span>
+                                        @else
+                                            <span class="badge bg-light text-muted border" style="font-size: 10px;">—</span>
+                                        @endif
+                                    </td>
+                                @endforeach
                                 <td class="fw-bold">Rp {{ number_format($subtotal, 0, ',', '.') }}</td>
                                 <td>
                                     {{-- Status Selector Form --}}
@@ -311,6 +349,10 @@
                         <tr class="table-light fw-bold border-top border-2">
                             <td colspan="8" class="text-end pe-3 align-middle fs-6">Total Nilai HPP Produksi SPK:</td>
                             <td class="align-middle text-center fs-6 text-dark font-monospace">{{ number_format($spk->items->sum('quantity')) }} pcs</td>
+                            {{-- Empty cells for proses progress columns --}}
+                            @foreach($spk->proses as $proses)
+                                <td></td>
+                            @endforeach
                             <td class="align-middle text-end pe-3 text-primary fs-6 font-monospace">Rp {{ number_format($grandTotalHpp, 0, ',', '.') }}</td>
                             <td colspan="2"></td>
                         </tr>
@@ -538,5 +580,139 @@
     $(document).on('click', '.btn-remove-show-global-jasa, .btn-remove-show-global-bahan', function() {
         $(this).closest('.row').remove();
     });
+
+    // ── KELOLA TAHAPAN: dynamic rows ──
+    let prosesIdx = 500;
+    $(document).on('click', '#btnAddProsesRow', function() {
+        const idx = prosesIdx++;
+        const html = `
+            <div class="input-group mb-2 proses-row">
+                <span class="input-group-text bg-white text-muted fw-bold" style="width:32px;">#</span>
+                <input type="hidden" name="proses[${idx}][id]" value="">
+                <input type="text" name="proses[${idx}][nama_proses]" class="form-control" placeholder="Nama tahapan, misal: Potong / Printing / QC">
+                <button type="button" class="btn btn-outline-danger btn-remove-proses-row"><i class="fas fa-times"></i></button>
+            </div>`;
+        $('#prosesContainer').append(html);
+        renumberProses();
+    });
+    $(document).on('click', '.btn-remove-proses-row', function() {
+        $(this).closest('.proses-row').remove();
+        renumberProses();
+    });
+    function renumberProses() {
+        $('#prosesContainer .proses-row').each(function(i) {
+            $(this).find('.input-group-text').text('#' + (i + 1));
+        });
+    }
+
+    // ── INLINE PROGRES BADGE CLICK → show qty editor modal ──
+    let activePgUrl = null;
+    let activeBadge = null;
+    $(document).on('click', '.progres-badge', function() {
+        activeBadge = $(this);
+        activePgUrl = $(this).data('update-url');
+        const qtyTotal = $(this).data('qty-total');
+        const currentDone = parseInt($(this).text().split('/')[0]);
+        $('#progresQtyInput').val(currentDone).attr('max', qtyTotal);
+        $('#progresQtyMax').text('/ ' + qtyTotal + ' pcs');
+        $('#progresEditorModal').modal('show');
+    });
+
+    $('#btnSaveProgres').on('click', function() {
+        const qtyDone = parseInt($('#progresQtyInput').val());
+        if (!activePgUrl || isNaN(qtyDone)) return;
+
+        $.ajax({
+            url: activePgUrl,
+            method: 'POST',
+            data: {
+                _token: $('meta[name="csrf-token"]').attr('content'),
+                qty_done: qtyDone,
+            },
+            success: function(res) {
+                if (res.success && activeBadge) {
+                    const total = activeBadge.data('qty-total');
+                    activeBadge.text(res.qty_done + '/' + total);
+                    const done = res.qty_done;
+                    activeBadge.removeClass('bg-success bg-warning bg-secondary text-dark');
+                    if (done >= total) {
+                        activeBadge.addClass('bg-success');
+                    } else if (done > 0) {
+                        activeBadge.addClass('bg-warning text-dark');
+                    } else {
+                        activeBadge.addClass('bg-secondary');
+                    }
+                    $('#progresEditorModal').modal('hide');
+                }
+            },
+            error: function() {
+                alert('Gagal menyimpan progres. Coba lagi.');
+            }
+        });
+    });
 </script>
+
+{{-- Modal: Kelola Tahapan Produksi --}}
+<div class="modal fade text-start" id="kelolaTahapanModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-md">
+        <form action="{{ route('spks.proses.store', $spk->id) }}" method="POST" class="modal-content">
+            @csrf
+            <div class="modal-header bg-light py-2">
+                <h6 class="modal-title fw-bold text-dark">
+                    <i class="fas fa-tasks me-1 text-success"></i> Kelola Tahapan Produksi SPK
+                </h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-3">
+                <p class="text-muted small mb-3">
+                    Tambahkan tahapan produksi sesuai alur SPK ini (Potong, Printing, Jahit, QC, dll). Urutan sesuai posisi baris.
+                </p>
+                <div id="prosesContainer">
+                    @foreach($spk->proses as $idx => $pr)
+                        <div class="input-group mb-2 proses-row">
+                            <span class="input-group-text bg-white text-muted fw-bold" style="width:32px;">#{{ $idx + 1 }}</span>
+                            <input type="hidden" name="proses[{{ $idx }}][id]" value="{{ $pr->id }}">
+                            <input type="text" name="proses[{{ $idx }}][nama_proses]" class="form-control" value="{{ $pr->nama_proses }}" placeholder="Nama tahapan...">
+                            <button type="button" class="btn btn-outline-danger btn-remove-proses-row"><i class="fas fa-times"></i></button>
+                        </div>
+                    @endforeach
+                </div>
+                <button type="button" class="btn btn-outline-success btn-sm w-100 mt-2 fw-semibold" id="btnAddProsesRow">
+                    <i class="fas fa-plus me-1"></i> Tambah Tahapan Baru
+                </button>
+            </div>
+            <div class="modal-footer py-2 bg-light">
+                <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Batal</button>
+                <button type="submit" class="btn btn-sm btn-success fw-bold">
+                    <i class="fas fa-save me-1"></i> Simpan Tahapan
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{{-- Modal: Inline Progres Qty Editor --}}
+<div class="modal fade" id="progresEditorModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content">
+            <div class="modal-header bg-light py-2">
+                <h6 class="modal-title fw-bold text-dark"><i class="fas fa-edit me-1 text-success"></i> Update Qty Selesai</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-3 text-center">
+                <label class="form-label small fw-semibold text-muted">Jumlah yang sudah selesai tahap ini:</label>
+                <div class="d-flex align-items-center justify-content-center gap-2 mt-1">
+                    <input type="number" id="progresQtyInput" class="form-control form-control-sm text-center fw-bold fs-5" min="0" style="width:80px;">
+                    <span class="fw-bold text-muted" id="progresQtyMax"></span>
+                </div>
+            </div>
+            <div class="modal-footer py-2 bg-light justify-content-center">
+                <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Batal</button>
+                <button type="button" id="btnSaveProgres" class="btn btn-sm btn-success fw-bold px-4">
+                    <i class="fas fa-check me-1"></i> Simpan
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 @endsection

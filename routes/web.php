@@ -546,6 +546,8 @@ Route::middleware('auth')->group(function () {
         Route::post('/spks/items/{item}/update-details', [\App\Http\Controllers\Inventory\SpkController::class, 'updateItemDetails'])->name('spks.items.update_details');
         Route::post('/spks/{spk}/update-tambahan', [\App\Http\Controllers\Inventory\SpkController::class, 'updateTambahan'])->name('spks.update_tambahan');
         Route::post('/spks/{spk}/update-global-costs', [\App\Http\Controllers\Inventory\SpkController::class, 'updateGlobalCosts'])->name('spks.update_global_costs');
+        Route::post('/spks/{spk}/proses', [\App\Http\Controllers\Inventory\SpkController::class, 'storeProsesSteps'])->name('spks.proses.store');
+        Route::post('/spks/progres/{progres}/update', [\App\Http\Controllers\Inventory\SpkController::class, 'updateItemProgres'])->name('spks.progres.update');
 
         // Stock Sync
         Route::get('/stock-sync', [StockSyncController::class, 'index'])->name('inventory.stock_sync');

@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Spk;
 use App\Models\SpkItem;
 use App\Models\SpkItemExtra;
+use App\Models\SpkProses;
+use App\Models\SpkItemProgres;
 use App\Models\MasterProduct;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -289,7 +291,7 @@ class SpkController extends Controller
     public function show(Spk $spk)
     {
         abort_unless($spk->tenant_id === Auth::user()->tenant_id, 403);
-        $spk->load(['penginput', 'items.extras']);
+        $spk->load(['penginput', 'items.extras', 'items.progres', 'proses']);
         $grouped = $this->getGroupedItems($spk);
 
         $sizesHeader = ['S', 'M', 'L', 'XL', 'XXL', '3XL'];
@@ -306,7 +308,15 @@ class SpkController extends Controller
             ->orderBy('sort_order')
             ->get();
 
-        return view('inventory.spks.show', compact('spk', 'grouped', 'productionStatuses', 'sizesHeader'));
+        // Build progres map: [item_id][proses_id] => qty_done
+        $progresMap = [];
+        foreach ($spk->items as $item) {
+            foreach ($item->progres as $pg) {
+                $progresMap[$item->id][$pg->spk_proses_id] = $pg;
+            }
+        }
+
+        return view('inventory.spks.show', compact('spk', 'grouped', 'productionStatuses', 'sizesHeader', 'progresMap'));
     }
 
     public function print(Spk $spk)
@@ -651,5 +661,72 @@ class SpkController extends Controller
         });
 
         return back()->with('success', 'Setting Biaya SPK (Tambahan Jasa & Bahan) berhasil diperbarui dan HPP per unit dihitung ulang.');
+    }
+
+    public function storeProsesSteps(Request $request, Spk $spk)
+    {
+        abort_unless($spk->tenant_id === Auth::user()->tenant_id, 403);
+
+        $request->validate([
+            'proses'              => 'nullable|array',
+            'proses.*.nama_proses' => 'required|string|max:100',
+        ]);
+
+        DB::transaction(function () use ($request, $spk) {
+            // Delete proses that are not in the new list
+            $existing  = SpkProses::where('spk_id', $spk->id)->get()->keyBy('id');
+            $submitted = collect($request->input('proses', []));
+
+            // Delete removed proses (and their progres via cascade)
+            $submittedIds = $submitted->pluck('id')->filter()->values();
+            SpkProses::where('spk_id', $spk->id)
+                ->whereNotIn('id', $submittedIds)
+                ->delete();
+
+            foreach ($submitted as $idx => $row) {
+                $nama = trim($row['nama_proses'] ?? '');
+                if (!$nama) continue;
+
+                $prosesId = $row['id'] ?? null;
+                if ($prosesId && $existing->has($prosesId)) {
+                    $existing[$prosesId]->update(['nama_proses' => $nama, 'urutan' => $idx + 1]);
+                    $prosesRecord = $existing[$prosesId];
+                } else {
+                    $prosesRecord = SpkProses::create([
+                        'spk_id'      => $spk->id,
+                        'nama_proses' => $nama,
+                        'urutan'      => $idx + 1,
+                    ]);
+                }
+
+                // Ensure a progres row exists for every item x proses combo
+                foreach ($spk->items as $item) {
+                    SpkItemProgres::firstOrCreate(
+                        ['spk_item_id' => $item->id, 'spk_proses_id' => $prosesRecord->id],
+                        ['qty_done' => 0]
+                    );
+                }
+            }
+        });
+
+        return back()->with('success', 'Tahapan produksi berhasil diperbarui.');
+    }
+
+    public function updateItemProgres(Request $request, SpkItemProgres $progres)
+    {
+        // Verify ownership via item -> spk -> tenant
+        $spk = $progres->item->spk;
+        abort_unless($spk->tenant_id === Auth::user()->tenant_id, 403);
+
+        $request->validate([
+            'qty_done' => 'required|integer|min:0',
+        ]);
+
+        $progres->update(['qty_done' => (int) $request->qty_done]);
+
+        return response()->json([
+            'success'  => true,
+            'qty_done' => $progres->qty_done,
+        ]);
     }
 }

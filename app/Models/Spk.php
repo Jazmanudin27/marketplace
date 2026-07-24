@@ -48,6 +48,11 @@ class Spk extends Model
         return $this->hasMany(SpkItem::class);
     }
 
+    public function proses(): HasMany
+    {
+        return $this->hasMany(SpkProses::class)->orderBy('urutan');
+    }
+
     public static function generateNoSpk()
     {
         $today = date('Ymd');

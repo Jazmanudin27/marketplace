@@ -40,4 +40,9 @@ class SpkItem extends Model
     {
         return $this->hasMany(SpkItemExtra::class);
     }
+
+    public function progres(): HasMany
+    {
+        return $this->hasMany(SpkItemProgres::class);
+    }
 }
