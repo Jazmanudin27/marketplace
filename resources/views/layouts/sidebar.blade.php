@@ -33,8 +33,9 @@
         request()->routeIs('inventory.ledger') ||
         request()->routeIs('stock_opnames.*') ||
         request()->routeIs('inventory.stock_sync') ||
-        request()->routeIs('supplier_consignments.*') ||
         request()->routeIs('fulfillment.*');
+
+    $isTitipanBarangActive = request()->routeIs('supplier_consignments.*');
 
     $isFinanceActive =
         request()->routeIs('finance.reconciliation') ||
@@ -421,18 +422,6 @@
                                 class="nav-link py-1 {{ request()->routeIs('inventory.index') || request()->routeIs('inventory.ledger') ? 'active text-white' : 'text-secondary' }}">Stok
                                 Gudang Jadi</a>
                         @endcan
-                        <a href="{{ route('supplier_consignments.index') }}"
-                            class="nav-link py-1 {{ request()->routeIs('supplier_consignments.index') || request()->routeIs('supplier_consignments.create') || request()->routeIs('supplier_consignments.show') || request()->routeIs('supplier_consignments.edit') ? 'active text-white' : 'text-secondary' }}">
-                            Penerimaan Barang Titipan
-                        </a>
-                        <a href="{{ route('supplier_consignments.stock_card') }}"
-                            class="nav-link py-1 {{ request()->routeIs('supplier_consignments.stock_card') ? 'active text-white' : 'text-secondary' }}">
-                            Kartu Stok Konsinyasi
-                        </a>
-                        <a href="{{ route('supplier_consignments.settlement.index') }}"
-                            class="nav-link py-1 {{ request()->routeIs('supplier_consignments.settlement.*') ? 'active text-white' : 'text-secondary' }}">
-                            Riwayat Setoran Supplier
-                        </a>
                         @can('stock-opnames.index')
                             <a href="{{ route('stock_opnames.index') }}"
                                 class="nav-link py-1 {{ request()->routeIs('stock_opnames.*') ? 'active text-white' : 'text-secondary' }}">Opname
@@ -451,6 +440,39 @@
                                 class="nav-link py-1 {{ request()->routeIs('fulfillment.scan_page') ? 'active text-white' : 'text-secondary' }}">Scan
                                 & Kemas Barcode</a>
                         @endcan
+                    </div>
+                </div>
+            </div>
+        @endif
+
+        <!-- 10. TITIPAN BARANG -->
+        @if (auth()->user()->isSuperAdmin() ||
+                auth()->user()->role === 'admin' ||
+                auth()->user()->hasAnyPermission(['inventory.index', 'supplier-consignments.index']))
+            <div>
+                <a class="nav-link d-flex align-items-center justify-content-between text-dark {{ $isTitipanBarangActive ? '' : 'collapsed' }}"
+                    data-bs-toggle="collapse" data-bs-target="#collapseTitipanBarang" role="button"
+                    aria-expanded="{{ $isTitipanBarangActive ? 'true' : 'false' }}" aria-controls="collapseTitipanBarang">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-box-seam"></i>
+                        <span>Titipan Barang</span>
+                    </div>
+                    <i class="bi bi-chevron-down small"></i>
+                </a>
+                <div class="collapse {{ $isTitipanBarangActive ? 'show' : '' }}" id="collapseTitipanBarang">
+                    <div class="nav flex-column ms-3 mt-1 gap-1 border-start ps-2">
+                        <a href="{{ route('supplier_consignments.index') }}"
+                            class="nav-link py-1 {{ request()->routeIs('supplier_consignments.index') || request()->routeIs('supplier_consignments.create') || request()->routeIs('supplier_consignments.show') || request()->routeIs('supplier_consignments.edit') ? 'active text-white' : 'text-secondary' }}">
+                            Penerimaan Barang Titipan
+                        </a>
+                        <a href="{{ route('supplier_consignments.stock_card') }}"
+                            class="nav-link py-1 {{ request()->routeIs('supplier_consignments.stock_card') ? 'active text-white' : 'text-secondary' }}">
+                            Kartu Stok Konsinyasi
+                        </a>
+                        <a href="{{ route('supplier_consignments.settlement.index') }}"
+                            class="nav-link py-1 {{ request()->routeIs('supplier_consignments.settlement.*') ? 'active text-white' : 'text-secondary' }}">
+                            Riwayat Setoran Supplier
+                        </a>
                     </div>
                 </div>
             </div>
