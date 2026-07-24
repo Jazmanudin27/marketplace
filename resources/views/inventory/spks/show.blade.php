@@ -151,7 +151,7 @@
                     <thead class="table-light text-muted small">
                         <tr>
                             <th></th>
-                            <th class="text-start ps-3" style="width: 22%;">Nama Produk &amp; Size</th>
+                            <th class="text-start ps-3" style="width: 22%;">SKU Produk &amp; Size</th>
                             <th style="width: 10%;">Tukang Potong</th>
                             <th style="width: 10%;">Tukang Jahit</th>
                             <th style="width: 18%;">Catatan Khusus</th>
@@ -207,9 +207,9 @@
                                         <i class="fas fa-chevron-down text-secondary" style="font-size: 11px;"></i>
                                     </button>
                                 </td>
-                                <td class="text-start ps-3 fw-bold text-dark">
-                                    {{ $item->nama_produk }}
-                                    <span class="badge bg-light text-dark border ms-1 small">{{ $item->ukuran ?: 'All Size' }}</span>
+                                <td class="text-start ps-3 fw-bold text-dark font-monospace">
+                                    {{ $item->sku ?: ($item->sku_induk ?: $item->nama_produk) }}
+                                    <span class="badge bg-light text-dark border ms-1 small font-monospace">{{ $item->ukuran ?: 'All Size' }}</span>
                                 </td>
                                 <td><span class="badge bg-info-subtle text-info border font-monospace">{{ $item->pemotong ?: '—' }}</span></td>
                                 <td><span class="badge bg-primary-subtle text-primary border font-monospace">{{ $item->penjahit ?: '—' }}</span></td>

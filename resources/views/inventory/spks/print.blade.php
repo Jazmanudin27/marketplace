@@ -156,7 +156,7 @@
     <table class="product-table">
         <thead>
             <tr>
-                <th style="width: 25%; text-align: left; padding-left: 8px;">Nama Produk &amp; Size</th>
+                <th style="width: 25%; text-align: left; padding-left: 8px;">SKU &amp; Size</th>
                 <th style="width: 15%;">Alur Kerja</th>
                 <th style="width: 15%;">Tukang Jahit</th>
                 <th style="width: 10%;">Bahan / pcs</th>
@@ -185,8 +185,8 @@
                     }
                 @endphp
                 <tr>
-                    <td style="text-align: left; font-weight: bold; padding-left: 8px;">
-                        {{ $item->nama_produk }} ({{ $item->ukuran ?: 'All Size' }})
+                    <td style="text-align: left; font-weight: bold; font-family: monospace; padding-left: 8px;">
+                        {{ $item->sku ?: ($item->sku_induk ?: $item->nama_produk) }} ({{ $item->ukuran ?: 'All Size' }})
                         @if($item->catatan)
                             <div style="font-size: 9px; font-weight: normal; color: #2563eb; margin-top: 2px;">Catatan: {{ $item->catatan }}</div>
                         @endif
