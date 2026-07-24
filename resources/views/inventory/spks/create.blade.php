@@ -24,7 +24,7 @@
                 <div class="card-body p-4">
 
                     @if ($errors->any())
-                        <div class="alert alert-danger mb-3">
+                        <div class="alert alert-danger mb-4">
                             <ul class="mb-0 small">
                                 @foreach ($errors->all() as $e)
                                     <li>{{ $e }}</li>
@@ -33,144 +33,172 @@
                         </div>
                     @endif
 
-                    {{-- ── Header SPK ─────────────────────────────────── --}}
+                    {{-- ── BARIS ATAS: 3 Card Panel Sesuai Tata Letak Transaksi ── --}}
                     <div class="row g-3 mb-4">
-                        <div class="col-md-6 col-lg-3">
-                            <label class="form-label fw-semibold small">No. Produksi</label>
-                            <input type="text" class="form-control form-control-sm bg-light text-muted" readonly
-                                value="[Otomatis: JN{{ date('ym') }}xxx]">
+                        {{-- CARD 1: DATA TRANSAKSI / SPK --}}
+                        <div class="col-lg-4 col-md-6">
+                            <div class="card border h-100 shadow-sm">
+                                <div class="card-header bg-white border-bottom py-2 font-monospace fw-bold text-uppercase small text-muted">
+                                    <i class="fas fa-file-invoice text-primary me-2"></i>DATA TRANSAKSI &amp; SPK
+                                </div>
+                                <div class="card-body p-3">
+                                    <div class="row g-2">
+                                        <div class="col-6">
+                                            <label class="form-label fw-semibold small mb-1">No. Produksi</label>
+                                            <input type="text" class="form-control form-control-sm bg-light text-muted" readonly
+                                                value="[Otomatis: JN{{ date('ym') }}xxx]">
+                                        </div>
+                                        <div class="col-6">
+                                            <label class="form-label fw-semibold small mb-1">No. SPK</label>
+                                            <input type="text" class="form-control form-control-sm bg-light text-muted" readonly
+                                                value="[Otomatis]">
+                                        </div>
+                                        <div class="col-6">
+                                            <label class="form-label fw-semibold small mb-1">Tanggal Order <span class="text-danger">*</span></label>
+                                            <input type="date" name="tanggal" class="form-control form-control-sm" required
+                                                value="{{ old('tanggal', date('Y-m-d')) }}">
+                                        </div>
+                                        <div class="col-6">
+                                            <label class="form-label fw-semibold small mb-1">Deadline <span class="text-danger">*</span></label>
+                                            <input type="date" name="deadline" class="form-control form-control-sm" required
+                                                value="{{ old('deadline', date('Y-m-d', strtotime('+14 days'))) }}">
+                                        </div>
+                                        <div class="col-12">
+                                            <label class="form-label fw-semibold small mb-1">Upload Foto Desain</label>
+                                            <input type="file" name="image" class="form-control form-control-sm" accept="image/*">
+                                            <small class="text-muted d-block mt-1" style="font-size:10px;">JPEG/PNG/JPG, maks 4MB</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                        <div class="col-md-6 col-lg-3">
-                            <label class="form-label fw-semibold small">No. SPK</label>
-                            <input type="text" class="form-control form-control-sm bg-light text-muted" readonly
-                                value="[Otomatis Digenerate Sistem]">
+
+                        {{-- CARD 2: DATA PEMESAN --}}
+                        <div class="col-lg-4 col-md-6">
+                            <div class="card border h-100 shadow-sm">
+                                <div class="card-header bg-white border-bottom py-2 font-monospace fw-bold text-uppercase small text-muted">
+                                    <i class="fas fa-user-tie text-success me-2"></i>DATA PEMESAN
+                                </div>
+                                <div class="card-body p-3">
+                                    <div class="row g-2">
+                                        <div class="col-12">
+                                            <label class="form-label fw-semibold small mb-1">Pelanggan / Pemesan <span class="text-danger">*</span></label>
+                                            <input type="text" name="pemesan" class="form-control form-control-sm"
+                                                placeholder="Contoh: Ibu Yanti" value="{{ old('pemesan', $order->buyer_name ?? '') }}" required>
+                                        </div>
+                                        <div class="col-6">
+                                            <label class="form-label fw-semibold small mb-1">No HP</label>
+                                            <input type="text" name="no_hp_pemesan" class="form-control form-control-sm"
+                                                placeholder="0852-xxxx-xxxx" value="{{ old('no_hp_pemesan', $order->buyer_phone ?? '') }}">
+                                        </div>
+                                        <div class="col-6">
+                                            <label class="form-label fw-semibold small mb-1">Instansi / Perusahaan</label>
+                                            <input type="text" name="instansi" class="form-control form-control-sm"
+                                                placeholder="Contoh: Seragam SMAN 1" value="{{ old('instansi') }}">
+                                        </div>
+                                        <div class="col-12">
+                                            <label class="form-label fw-semibold small mb-1">Aksesoris / Atribut Tambahan</label>
+                                            <textarea name="tambahan" class="form-control form-control-sm" rows="2"
+                                                placeholder="Misal: Bordir Logo 46 Pcs, Kancing Emas...">{{ old('tambahan', isset($order) ? 'Diproduksi untuk Pesanan #' . ($order->invoice_number ?? $order->order_marketplace_id) : '') }}</textarea>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                        <div class="col-md-6 col-lg-3">
-                            <label class="form-label fw-semibold small">Tanggal Order <span
-                                    class="text-danger">*</span></label>
-                            <input type="date" name="tanggal" class="form-control form-control-sm" required
-                                value="{{ old('tanggal', date('Y-m-d')) }}">
-                        </div>
-                        <div class="col-md-6 col-lg-3">
-                            <label class="form-label fw-semibold small">Deadline <span class="text-danger">*</span></label>
-                            <input type="date" name="deadline" class="form-control form-control-sm" required
-                                value="{{ old('deadline', date('Y-m-d', strtotime('+14 days'))) }}">
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label fw-semibold small">Nama Pemesan</label>
-                            <input type="text" name="pemesan" class="form-control form-control-sm"
-                                placeholder="Contoh: Ibu Yanti" value="{{ old('pemesan', $order->buyer_name ?? '') }}">
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label fw-semibold small">No. HP Pemesan</label>
-                            <input type="text" name="no_hp_pemesan" class="form-control form-control-sm"
-                                placeholder="0852-xxxx-xxxx" value="{{ old('no_hp_pemesan', $order->buyer_phone ?? '') }}">
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label fw-semibold small">Instansi</label>
-                            <input type="text" name="instansi" class="form-control form-control-sm"
-                                placeholder="Contoh: Nusantara Seragam" value="{{ old('instansi') }}">
-                        </div>
-                        <div class="col-md-8">
-                            <label class="form-label fw-semibold small">Aksesoris / Atribut Tambahan</label>
-                            <textarea name="tambahan" class="form-control form-control-sm" rows="2"
-                                placeholder="Misal: Bordir Logo 46 Pcs, Kancing Emas...">{{ old('tambahan', isset($order) ? 'Diproduksi untuk Pesanan #' . ($order->invoice_number ?? $order->order_marketplace_id) : '') }}</textarea>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label fw-semibold small">Upload Foto Desain</label>
-                            <input type="file" name="image" class="form-control form-control-sm" accept="image/*">
-                            <small class="text-muted d-block mt-1" style="font-size:10px;">JPEG/PNG/JPG, maks 4MB</small>
+
+                        {{-- CARD 3: TOTAL & KALKULASI HPP SPK (Side Panel Sesuai Gambar) --}}
+                        <div class="col-lg-4 col-md-12">
+                            <div class="card border h-100 shadow-sm bg-dark text-white">
+                                <div class="card-header bg-transparent border-bottom border-secondary py-2 font-monospace fw-bold text-uppercase small text-white-50">
+                                    <i class="fas fa-calculator text-success me-2"></i>KALKULASI HPP SPK
+                                </div>
+                                <div class="card-body p-3 d-flex flex-column justify-content-center">
+                                    <div class="mb-2">
+                                        <span class="text-white-50 small fw-semibold text-uppercase d-block" style="font-size: 11px;">TOTAL QTY PRODUKSI</span>
+                                        <h3 class="fw-bold font-monospace text-white mb-0" id="summaryTotalQty">0 Pcs</h3>
+                                    </div>
+                                    <div class="mb-2">
+                                        <span class="text-white-50 small fw-semibold text-uppercase d-block" style="font-size: 11px;">GRAND TOTAL BIAYA SPK</span>
+                                        <h4 class="fw-bold font-monospace text-info mb-0" id="summaryGrandTotalCost">Rp 0</h4>
+                                    </div>
+                                    <div class="mt-2 pt-2 border-top border-secondary">
+                                        <span class="text-white-50 small fw-semibold text-uppercase d-block" style="font-size: 11px;">ESTIMASI HPP PER UNIT</span>
+                                        <h2 class="fw-bold font-monospace text-success mb-0" id="summaryAllocatedHpp">Rp 0 / Unit</h2>
+                                        <small class="text-white-50 d-block mt-1" style="font-size: 10px;">(Grand Total Biaya ÷ Total Qty SPK secara otomatis)</small>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
-                    {{-- ── Detail Item Produk ─────────────────────────── --}}
-                    <div class="border-top pt-4">
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <h6 class="fw-bold mb-0">
-                                <i class="fas fa-boxes text-primary me-2"></i>Daftar Item Produk &amp; Tugas Produksi
-                            </h6>
+                    {{-- ── BARIS KEDUA: INPUT ITEM BARANG & SATUAN ── --}}
+                    <div class="card border shadow-sm mb-4">
+                        <div class="card-header bg-white py-3 px-3 border-bottom d-flex justify-content-between align-items-center">
+                            <span class="fw-bold text-dark text-uppercase small font-monospace">
+                                <i class="fas fa-boxes text-primary me-2"></i>INPUT ITEM BARANG &amp; TASK PRODUKSI
+                            </span>
                             <button type="button" class="btn btn-primary btn-sm fw-bold px-3 shadow-sm" id="btnAddRow">
                                 <i class="fas fa-plus-circle me-1"></i> Tambah Item Baru
                             </button>
                         </div>
-
-                        <div id="itemsContainer">
-                            {{-- Dynamic cards will be generated here --}}
+                        <div class="card-body p-3">
+                            <div id="itemsContainer">
+                                {{-- Dynamic cards will be generated here --}}
+                            </div>
                         </div>
                     </div>
 
-                    {{-- ── Panel Rincian Biaya SPK (Tambahan Jasa & Tambahan Bahan / Material) ── --}}
-                    <div class="border-top pt-4 mt-4">
-                        <div class="card border shadow-sm rounded-3 bg-light-subtle">
-                            <div class="card-header bg-white py-3 px-3 border-bottom d-flex justify-content-between align-items-center">
-                                <div>
-                                    <h6 class="fw-bold mb-0 text-dark"><i class="fas fa-calculator text-primary me-2"></i>Setting Biaya SPK di Akhir (Tambahan Jasa &amp; Bahan / Material)</h6>
-                                    <small class="text-muted">Tentukan total biaya Jasa &amp; Bahan untuk 1 dokumen SPK ini. Sistem akan otomatis membagi total biaya dengan Total Qty SPK untuk menetapkan HPP per unit.</small>
-                                </div>
-                                <span class="badge bg-primary-subtle text-primary border border-primary border-opacity-25 font-monospace fw-bold fs-7">
-                                    Kalkulasi HPP SPK
-                                </span>
+                    {{-- ── BARIS KETIGA: SETTING BIAYA SPK DI AKHIR (TAMBAHAN JASA & BAHAN) ── --}}
+                    <div class="card border shadow-sm rounded-3 mb-4">
+                        <div class="card-header bg-white py-3 px-3 border-bottom d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="fw-bold mb-0 text-dark"><i class="fas fa-calculator text-primary me-2"></i>Setting Biaya SPK di Akhir (Tambahan Jasa &amp; Bahan / Material)</h6>
+                                <small class="text-muted">Tentukan total biaya Jasa &amp; Bahan untuk 1 dokumen SPK ini. Sistem akan otomatis membagi total biaya dengan Total Qty SPK untuk menetapkan HPP per unit.</small>
                             </div>
-                            <div class="card-body p-3">
-                                <div class="row g-4">
-                                    {{-- Seksi Tambahan Jasa --}}
-                                    <div class="col-md-6">
-                                        <div class="card border-0 shadow-sm h-100 bg-white">
-                                            <div class="card-header bg-primary bg-opacity-10 py-2 px-3 border-bottom d-flex justify-content-between align-items-center">
-                                                <span class="fw-bold small text-primary"><i class="fas fa-user-tie me-1"></i>1. Tambahan Jasa (Jahit, QC, Finishing, Bordir, dll)</span>
-                                                <button type="button" class="btn btn-outline-primary btn-xs py-0 px-2 fw-semibold" id="btnAddGlobalJasa">
-                                                    <i class="fas fa-plus me-1"></i> Tambah Jasa
-                                                </button>
-                                            </div>
-                                            <div class="card-body p-3">
-                                                <div id="globalJasaContainer">
-                                                    {{-- Dynamic rows for global Jasa --}}
-                                                </div>
-                                                <div class="d-flex justify-content-between align-items-center pt-2 border-top mt-2">
-                                                    <span class="small fw-semibold text-secondary">Subtotal Jasa SPK:</span>
-                                                    <span class="fw-bold font-monospace text-primary" id="subtotalJasaLabel">Rp 0</span>
-                                                </div>
-                                            </div>
+                            <span class="badge bg-primary-subtle text-primary border border-primary border-opacity-25 font-monospace fw-bold fs-7">
+                                Kalkulasi HPP SPK
+                            </span>
+                        </div>
+                        <div class="card-body p-3">
+                            <div class="row g-4">
+                                {{-- Seksi Tambahan Jasa --}}
+                                <div class="col-md-6">
+                                    <div class="card border shadow-sm h-100 bg-white">
+                                        <div class="card-header bg-primary bg-opacity-10 py-2 px-3 border-bottom d-flex justify-content-between align-items-center">
+                                            <span class="fw-bold small text-primary"><i class="fas fa-user-tie me-1"></i>1. Tambahan Jasa (Jahit, QC, Finishing, Bordir, dll)</span>
+                                            <button type="button" class="btn btn-outline-primary btn-xs py-0 px-2 fw-semibold" id="btnAddGlobalJasa">
+                                                <i class="fas fa-plus me-1"></i> Tambah Jasa
+                                            </button>
                                         </div>
-                                    </div>
-
-                                    {{-- Seksi Tambahan Bahan --}}
-                                    <div class="col-md-6">
-                                        <div class="card border-0 shadow-sm h-100 bg-white">
-                                            <div class="card-header bg-info bg-opacity-10 py-2 px-3 border-bottom d-flex justify-content-between align-items-center">
-                                                <span class="fw-bold small text-info"><i class="fas fa-layer-group me-1"></i>2. Tambahan Bahan / Material (Benang, Kancing, Packing)</span>
-                                                <button type="button" class="btn btn-outline-info btn-xs py-0 px-2 fw-semibold" id="btnAddGlobalBahan">
-                                                    <i class="fas fa-plus me-1"></i> Tambah Bahan
-                                                </button>
+                                        <div class="card-body p-3">
+                                            <div id="globalJasaContainer">
+                                                {{-- Dynamic rows for global Jasa --}}
                                             </div>
-                                            <div class="card-body p-3">
-                                                <div id="globalBahanContainer">
-                                                    {{-- Dynamic rows for global Bahan --}}
-                                                </div>
-                                                <div class="d-flex justify-content-between align-items-center pt-2 border-top mt-2">
-                                                    <span class="small fw-semibold text-secondary">Subtotal Bahan SPK:</span>
-                                                    <span class="fw-bold font-monospace text-info" id="subtotalBahanLabel">Rp 0</span>
-                                                </div>
+                                            <div class="d-flex justify-content-between align-items-center pt-2 border-top mt-2">
+                                                <span class="small fw-semibold text-secondary">Subtotal Jasa SPK:</span>
+                                                <span class="fw-bold font-monospace text-primary" id="subtotalJasaLabel">Rp 0</span>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
 
-                                {{-- Ringkasan Kalkulasi HPP Global --}}
-                                <div class="alert alert-primary bg-white border-primary border-opacity-25 shadow-sm mt-3 mb-0 p-3">
-                                    <div class="row align-items-center text-center text-md-start">
-                                        <div class="col-md-3 border-end">
-                                            <div class="text-muted small">Total Qty Produk SPK</div>
-                                            <div class="fw-bold fs-5 text-dark font-monospace" id="summaryTotalQty">0 Pcs</div>
+                                {{-- Seksi Tambahan Bahan --}}
+                                <div class="col-md-6">
+                                    <div class="card border shadow-sm h-100 bg-white">
+                                        <div class="card-header bg-info bg-opacity-10 py-2 px-3 border-bottom d-flex justify-content-between align-items-center">
+                                            <span class="fw-bold small text-info"><i class="fas fa-layer-group me-1"></i>2. Tambahan Bahan / Material (Benang, Kancing, Packing)</span>
+                                            <button type="button" class="btn btn-outline-info btn-xs py-0 px-2 fw-semibold" id="btnAddGlobalBahan">
+                                                <i class="fas fa-plus me-1"></i> Tambah Bahan
+                                            </button>
                                         </div>
-                                        <div class="col-md-3 border-end">
-                                            <div class="text-muted small">Grand Total Biaya SPK</div>
-                                            <div class="fw-bold fs-5 text-primary font-monospace" id="summaryGrandTotalCost">Rp 0</div>
-                                        </div>
-                                        <div class="col-md-6 pt-2 pt-md-0">
-                                            <div class="text-muted small">Alokasi HPP per Unit Item:</div>
-                                            <div class="fw-bold fs-4 text-success font-monospace" id="summaryAllocatedHpp">Rp 0 / Unit</div>
-                                            <small class="text-muted" style="font-size: 11px;">(Grand Total Biaya ÷ Total Qty SPK secara otomatis)</small>
+                                        <div class="card-body p-3">
+                                            <div id="globalBahanContainer">
+                                                {{-- Dynamic rows for global Bahan --}}
+                                            </div>
+                                            <div class="d-flex justify-content-between align-items-center pt-2 border-top mt-2">
+                                                <span class="small fw-semibold text-secondary">Subtotal Bahan SPK:</span>
+                                                <span class="fw-bold font-monospace text-info" id="subtotalBahanLabel">Rp 0</span>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -369,11 +397,11 @@
                     <div class="suggestions-box position-absolute bg-white border rounded shadow-sm w-100 d-none"
                         style="z-index:1050;max-height:180px;overflow-y:auto;top:100%;left:0;"></div>
                 </div>
-                <div class="col-md-2 col-6">
+                <div class="col-md-3 col-6">
                     <label class="form-label small fw-semibold mb-1">SKU Induk</label>
                     <input type="text" name="items[${idx}][sku_induk]" class="form-control form-control-sm item-sku-induk" placeholder="Induk">
                 </div>
-                <div class="col-md-2 col-6">
+                <div class="col-md-3 col-6">
                     <label class="form-label small fw-semibold mb-1">SKU Varian</label>
                     <input type="text" name="items[${idx}][sku]" class="form-control form-control-sm item-sku" placeholder="Varian">
                 </div>
@@ -389,12 +417,6 @@
                 <div class="col-md-1 col-6">
                     <label class="form-label small fw-semibold mb-1">Qty</label>
                     <input type="number" name="items[${idx}][qty]" class="form-control form-control-sm item-qty text-center" required min="1" value="1">
-                </div>
-                <div class="col-md-2 col-6">
-                    <label class="form-label small fw-semibold mb-1">Tukang Jahit</label>
-                    <select name="items[${idx}][tailor]" class="form-select form-select-sm">
-                        ${tailorOpts()}
-                    </select>
                 </div>
             </div>
 
