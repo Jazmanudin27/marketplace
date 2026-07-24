@@ -94,11 +94,10 @@
                         </div>
 
                         <div class="row g-4">
-                            <!-- Kiri: Formulasi Bahan Baku -->
-                            <div class="col-lg-6 border-end pe-lg-4">
+                            <!-- Formulasi Bahan Baku (BOM) Full Width -->
+                            <div class="col-12">
                                 <div class="d-flex justify-content-between align-items-center mb-3">
-                                    <h6 class="fw-bold text-dark mb-0"><i class="fas fa-boxes me-2 text-primary"></i>1.
-                                        Formulasi Bahan Baku (BOM)</h6>
+                                    <h6 class="fw-bold text-dark mb-0"><i class="fas fa-boxes me-2 text-primary"></i>Formulasi Bahan Baku (BOM)</h6>
                                     <button type="button" class="btn btn-sm btn-outline-primary fw-semibold"
                                         id="btn-add-bom-row">
                                         <i class="fas fa-plus me-1"></i> Tambah Bahan
@@ -157,87 +156,6 @@
                                                         <td class="text-center">
                                                             <button type="button"
                                                                 class="btn btn-sm btn-link text-danger btn-remove-bom-row"><i
-                                                                    class="fas fa-trash-alt"></i></button>
-                                                        </td>
-                                                    </tr>
-                                                @endforeach
-                                            @endif
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-
-                            <!-- Kanan: Template Jasa Ahli -->
-                            <div class="col-lg-6 ps-lg-4">
-                                <div class="d-flex justify-content-between align-items-center mb-3">
-                                    <h6 class="fw-bold text-dark mb-0"><i class="fas fa-user-cog me-2 text-warning"></i>2.
-                                        Jasa Ahli &amp; QC</h6>
-                                    <button type="button" class="btn btn-sm btn-outline-warning fw-semibold"
-                                        id="btn-add-labor-row">
-                                        <i class="fas fa-plus me-1"></i> Tambah Jasa
-                                    </button>
-                                </div>
-                                <div class="table-responsive">
-                                    <table class="table table-hover align-middle table-sm" id="table-labor">
-                                        <thead>
-                                            <tr class="small text-uppercase text-muted" style="font-size:11px">
-                                                <th style="width: 40%">Nama Jasa / QC</th>
-                                                <th style="width: 15%" class="text-center">Qty</th>
-                                                <th style="width: 20%">Tarif (Rp)</th>
-                                                <th style="width: 20%">Total (Rp)</th>
-                                                <th style="width: 5%" class="text-center"></th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            @if (isset($recipe) && $recipe->labors->count() > 0)
-                                                @foreach ($recipe->labors as $idx => $rLabor)
-                                                    <tr class="labor-row">
-                                                        <td>
-                                                            <select name="labors[{{ $idx }}][service_name]"
-                                                                class="form-select form-select-sm select-labor-item"
-                                                                required style="width: 100%;">
-                                                                <option value=""></option>
-                                                                @php $found = false; @endphp
-                                                                @foreach ($laborServices as $ls)
-                                                                    @if ($rLabor->service_name === $ls->name)
-                                                                        @php $found = true; @endphp
-                                                                    @endif
-                                                                    <option value="{{ $ls->name }}"
-                                                                        data-cost="{{ (int) $ls->default_cost }}"
-                                                                        {{ $rLabor->service_name === $ls->name ? 'selected' : '' }}>
-                                                                        {{ $ls->name }}
-                                                                    </option>
-                                                                @endforeach
-                                                                @if (!$found && !empty($rLabor->service_name))
-                                                                    <option value="{{ $rLabor->service_name }}"
-                                                                        data-cost="{{ (int) ($rLabor->unit_cost ?? $rLabor->default_cost) }}"
-                                                                        selected>
-                                                                        {{ $rLabor->service_name }} (Kustom)
-                                                                    </option>
-                                                                @endif
-                                                            </select>
-                                                        </td>
-                                                        <td>
-                                                            <input type="number" name="labors[{{ $idx }}][qty]"
-                                                                class="form-control form-control-sm qty-labor-field text-center"
-                                                                value="{{ $rLabor->qty ?? 1 }}" min="1" required>
-                                                        </td>
-                                                        <td>
-                                                            <input type="text"
-                                                                name="labors[{{ $idx }}][unit_cost]"
-                                                                class="form-control form-control-sm unit-cost-field rupiah-mask"
-                                                                value="{{ number_format($rLabor->unit_cost ?? $rLabor->default_cost, 0, ',', '.') }}"
-                                                                required>
-                                                        </td>
-                                                        <td>
-                                                            <input type="text"
-                                                                class="form-control form-control-sm total-cost-field bg-light text-muted font-monospace"
-                                                                value="{{ number_format($rLabor->default_cost, 0, ',', '.') }}"
-                                                                readonly>
-                                                        </td>
-                                                        <td class="text-center">
-                                                            <button type="button"
-                                                                class="btn btn-sm btn-link text-danger btn-remove-labor-row"><i
                                                                     class="fas fa-trash-alt"></i></button>
                                                         </td>
                                                     </tr>
