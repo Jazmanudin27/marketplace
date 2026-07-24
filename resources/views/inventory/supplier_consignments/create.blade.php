@@ -2,15 +2,24 @@
 
 @section('content')
 <div class="container-fluid py-4">
-    <!-- Top Header Banner -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h3 class="fw-bold mb-1"><i class="bi bi-box-seam text-primary me-2"></i>Penerimaan Barang Jadi Konsinyasi Baru</h3>
-            <p class="text-muted small mb-0">Input cepat penerimaan barang titipan supplier dengan sistem keranjang & barcode scanner.</p>
+    <!-- Header Page -->
+    <div class="card border-0 shadow-sm rounded-3 mb-4 bg-white">
+        <div class="card-body p-4">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="bg-primary bg-opacity-10 text-primary rounded-3 p-3 d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
+                        <i class="bi bi-box-seam fs-3"></i>
+                    </div>
+                    <div>
+                        <h4 class="fw-bold mb-0 text-dark">Input Barang Jadi Konsinyasi Baru</h4>
+                        <p class="text-muted small mb-0">Input cepat penerimaan barang titipan supplier ke stok master produk dengan sistem keranjang</p>
+                    </div>
+                </div>
+                <a href="{{ route('supplier_consignments.index') }}" class="btn btn-outline-primary btn-sm rounded-pill px-4">
+                    <i class="bi bi-arrow-left me-1"></i> Kembali ke Daftar
+                </a>
+            </div>
         </div>
-        <a href="{{ route('supplier_consignments.index') }}" class="btn btn-outline-secondary rounded-pill px-4">
-            <i class="bi bi-arrow-left me-1"></i> Kembali ke Daftar
-        </a>
     </div>
 
     @if ($errors->any())
@@ -28,15 +37,15 @@
     <form action="{{ route('supplier_consignments.store') }}" method="POST" id="consignment-form">
         @csrf
 
-        <!-- SECTION 1: HEADER CARDS (Data Transaksi & Total Ringkasan) -->
+        <!-- 1. HEADER CARDS (Data Transaksi & Total Ringkasan - Pure Bootstrap 5) -->
         <div class="row g-4 mb-4">
             <!-- Left: Data Transaksi / Supplier -->
             <div class="col-lg-7">
-                <div class="card border-0 shadow-sm rounded-4 h-100">
-                    <div class="card-header bg-white py-3 border-0">
-                        <h6 class="fw-bold mb-0 text-dark"><i class="bi bi-info-circle text-primary me-2"></i>DATA TRANSAKSI & SUPPLIER</h6>
+                <div class="card border-0 shadow-sm rounded-3 h-100 bg-white">
+                    <div class="card-header bg-white py-3 border-bottom-0">
+                        <h6 class="fw-bold mb-0 text-primary text-uppercase small"><i class="bi bi-info-circle me-2"></i>DATA TRANSAKSI & SUPPLIER</h6>
                     </div>
-                    <div class="card-body p-4 pt-0">
+                    <div class="card-body pt-0">
                         <div class="row g-3">
                             <div class="col-md-4">
                                 <label class="form-label fw-semibold small text-muted text-uppercase">No. Referensi</label>
@@ -66,26 +75,26 @@
                 </div>
             </div>
 
-            <!-- Right: Total Summary Card (Big Total Box) -->
+            <!-- Right: Total Summary Card (Pure Bootstrap 5 Primary Card) -->
             <div class="col-lg-5">
-                <div class="card border-0 shadow-sm rounded-4 h-100 bg-dark text-white p-2">
+                <div class="card border-0 shadow-sm rounded-3 h-100 bg-primary text-white p-2">
                     <div class="card-body p-4 d-flex flex-column justify-content-between">
                         <div>
-                            <span class="badge bg-primary text-white rounded-pill px-3 py-1 mb-2">TOTAL RINGKASAN SETORAN</span>
-                            <small class="text-white-50 d-block fw-semibold text-uppercase">Total HPP Modal (Setoran Supplier)</small>
-                            <h1 class="fw-extrabold display-5 text-warning mb-0" id="big-total-hpp">Rp 0</h1>
+                            <span class="badge bg-white text-primary rounded-pill px-3 py-1 mb-2 fw-bold">TOTAL RINGKASAN</span>
+                            <small class="text-white text-opacity-75 d-block fw-semibold text-uppercase">Total HPP Modal (Setoran Supplier)</small>
+                            <h2 class="fw-bold text-white mb-0 mt-1" id="big-total-hpp">Rp 0</h2>
                         </div>
 
-                        <div class="pt-3 border-top border-secondary border-opacity-50 mt-3">
+                        <div class="pt-3 border-top border-white border-opacity-25 mt-3">
                             <div class="d-flex justify-content-between mb-2 small">
-                                <span class="text-white-50">Total Qty Barang:</span>
+                                <span class="text-white text-opacity-75">Total Qty Barang:</span>
                                 <span class="fw-bold text-white fs-6" id="big-total-qty">0 PCS</span>
                             </div>
                             <div class="d-flex justify-content-between mb-3 small">
-                                <span class="text-white-50">Potensi Keuntungan Toko:</span>
-                                <span class="fw-bold text-success fs-6" id="big-total-profit">+Rp 0</span>
+                                <span class="text-white text-opacity-75">Potensi Keuntungan Toko:</span>
+                                <span class="fw-bold text-white fs-6" id="big-total-profit">+Rp 0</span>
                             </div>
-                            <button type="submit" class="btn btn-success btn-lg w-100 rounded-pill fw-bold shadow">
+                            <button type="submit" class="btn btn-light btn-lg w-100 rounded-pill fw-bold text-primary shadow-sm">
                                 <i class="bi bi-check-circle me-1"></i> SIMPAN TRANSAKSI
                             </button>
                         </div>
@@ -94,10 +103,10 @@
             </div>
         </div>
 
-        <!-- SECTION 2: BARIS QUICK INPUT BARANG & SATUAN (Enter / Auto Add) -->
-        <div class="card border-0 shadow-sm rounded-4 mb-4">
-            <div class="card-header bg-white py-3 border-0">
-                <h6 class="fw-bold mb-0 text-dark"><i class="bi bi-barcode text-primary me-2"></i>INPUT BARANG & SATUAN (TEKAN ENTER UNTUK MASUK KERANJANG)</h6>
+        <!-- 2. BARIS QUICK INPUT BARANG & SATUAN (Enter / Auto Add - Pure Bootstrap 5) -->
+        <div class="card border-0 shadow-sm rounded-3 mb-4 bg-white">
+            <div class="card-header bg-white py-3 border-bottom-0">
+                <h6 class="fw-bold mb-0 text-dark text-uppercase small"><i class="bi bi-barcode text-primary me-2"></i>INPUT BARANG & SATUAN (TEKAN ENTER UNTUK MASUK KERANJANG)</h6>
             </div>
             <div class="card-body p-4 pt-0">
                 <div class="row g-2 align-items-end" id="quick-input-bar">
@@ -145,16 +154,16 @@
             </div>
         </div>
 
-        <!-- SECTION 3: TABEL DAFTAR ITEM BARANG (KERANJANG) -->
-        <div class="card border-0 shadow-sm rounded-4 mb-4">
-            <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center">
-                <h6 class="fw-bold mb-0 text-dark"><i class="bi bi-cart3 text-primary me-2"></i>DAFTAR ITEM BARANG (KERANJANG)</h6>
+        <!-- 3. TABEL DAFTAR ITEM BARANG (KERANJANG - Pure Bootstrap 5) -->
+        <div class="card border-0 shadow-sm rounded-3 mb-4 bg-white">
+            <div class="card-header bg-white py-3 border-bottom-0 d-flex justify-content-between align-items-center">
+                <h6 class="fw-bold mb-0 text-dark text-uppercase small"><i class="bi bi-cart3 text-primary me-2"></i>DAFTAR ITEM BARANG (KERANJANG)</h6>
                 <span class="badge bg-primary bg-opacity-10 text-primary rounded-pill px-3 py-2 fw-bold" id="cart-item-count">0 Item</span>
             </div>
             <div class="card-body p-0">
                 <div class="table-responsive">
                     <table class="table align-middle mb-0 table-hover" id="cart-table">
-                        <thead class="bg-light text-muted small text-uppercase fw-bold">
+                        <thead class="table-light text-muted small text-uppercase fw-bold">
                             <tr>
                                 <th class="ps-4" style="width: 50px;">NO</th>
                                 <th style="width: 15%;">SKU</th>
@@ -236,14 +245,13 @@ $(document).ready(function() {
                 $('#quick_price_raw').val(selectedProductData.price);
                 $('#quick_price_display').val(Math.round(selectedProductData.price).toLocaleString('id-ID'));
             }
-            // Auto focus ke input Qty setelah barang dipilih
             $('#quick_qty').focus().select();
         }
     });
 
     // 3. Enter Key Listener on Quick Inputs to Add Item
     $('#quick_qty, #quick_cost_display, #quick_price_display').on('keypress', function(e) {
-        if (e.which === 13) { // Enter key
+        if (e.which === 13) {
             e.preventDefault();
             addToCart();
         }
@@ -275,7 +283,6 @@ function addToCart() {
         return;
     }
 
-    // Cek apakah barang sudah ada di keranjang, jika ada tambahkan qty nya
     const existingIndex = cart.findIndex(item => item.product_id === selectedProductData.id);
     if (existingIndex !== -1) {
         cart[existingIndex].qty += qty;
@@ -292,14 +299,11 @@ function addToCart() {
         });
     }
 
-    // Reset Quick Input Bar
     $('#quick_product_select').val(null).trigger('change');
     selectedProductData = null;
     $('#quick_qty').val(100);
     
     renderCartTable();
-
-    // Re-focus back to product search for super fast POS entry!
     $('#quick_product_select').select2('open');
 }
 
@@ -360,8 +364,8 @@ function renderCartTable() {
                                min="1" 
                                onchange="updateCartQty(${index}, this.value)">
                     </td>
-                    <td class="text-end">Rp ${Math.round(item.cost).toLocaleString('id-ID')}</td>
-                    <td class="text-end">Rp ${Math.round(item.price).toLocaleString('id-ID')}</td>
+                    <td class="text-end text-muted">Rp ${Math.round(item.cost).toLocaleString('id-ID')}</td>
+                    <td class="text-end text-muted">Rp ${Math.round(item.price).toLocaleString('id-ID')}</td>
                     <td class="text-end fw-bold text-dark">Rp ${subtotalHpp.toLocaleString('id-ID')}</td>
                     <td class="text-center pe-4">
                         <button type="button" class="btn btn-sm btn-outline-danger border-0" onclick="removeFromCart(${index})" title="Hapus">
@@ -374,7 +378,6 @@ function renderCartTable() {
         });
     }
 
-    // Update Totals
     document.getElementById('cart-item-count').innerText = cart.length + ' Item';
     document.getElementById('big-total-qty').innerText = totalQty.toLocaleString() + ' PCS';
     document.getElementById('big-total-hpp').innerText = 'Rp ' + totalHpp.toLocaleString('id-ID');
