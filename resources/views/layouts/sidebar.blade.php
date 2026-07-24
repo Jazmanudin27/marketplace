@@ -422,12 +422,16 @@
                                 Gudang Jadi</a>
                         @endcan
                         <a href="{{ route('supplier_consignments.index') }}"
-                            class="nav-link py-1 {{ request()->routeIs('supplier_consignments.*') && !request()->routeIs('supplier_consignments.stock_card') ? 'active text-white' : 'text-secondary' }}">
-                            Penerimaan Barang
+                            class="nav-link py-1 {{ request()->routeIs('supplier_consignments.index') || request()->routeIs('supplier_consignments.create') || request()->routeIs('supplier_consignments.show') || request()->routeIs('supplier_consignments.edit') ? 'active text-white' : 'text-secondary' }}">
+                            Penerimaan Barang Titipan
                         </a>
                         <a href="{{ route('supplier_consignments.stock_card') }}"
                             class="nav-link py-1 {{ request()->routeIs('supplier_consignments.stock_card') ? 'active text-white' : 'text-secondary' }}">
-                            Setor Penjualan Supplier
+                            Kartu Stok Konsinyasi
+                        </a>
+                        <a href="{{ route('supplier_consignments.settlement.index') }}"
+                            class="nav-link py-1 {{ request()->routeIs('supplier_consignments.settlement.*') ? 'active text-white' : 'text-secondary' }}">
+                            Riwayat Setoran Supplier
                         </a>
                         @can('stock-opnames.index')
                             <a href="{{ route('stock_opnames.index') }}"

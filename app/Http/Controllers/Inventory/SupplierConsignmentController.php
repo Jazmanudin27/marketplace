@@ -680,7 +680,70 @@ class SupplierConsignmentController extends Controller
             return $settlement;
         });
 
-        return redirect()->route('supplier_consignments.stock_card', ['supplier_id' => $request->supplier_id])
+        return redirect()->route('supplier_consignments.settlement.index', ['supplier_id' => $request->supplier_id])
             ->with('success', 'Setoran hasil penjualan ke supplier berhasil disimpan dan dicatat dalam laporan keuangan.');
+    }
+
+    /**
+     * Riwayat Setoran Pembayaran ke Supplier.
+     */
+    public function indexSettlement(Request $request)
+    {
+        $tenantId  = Auth::user()->tenant_id;
+        $suppliers = Supplier::where('tenant_id', $tenantId)->where('is_active', true)->orderBy('name')->get();
+
+        $query = SupplierConsignmentSettlement::where('tenant_id', $tenantId)
+            ->with(['supplier', 'creator', 'items.masterProduct']);
+
+        if ($request->filled('search')) {
+            $query->where(function ($q) use ($request) {
+                $q->where('settlement_number', 'like', '%' . $request->search . '%')
+                  ->orWhere('reference_number', 'like', '%' . $request->search . '%');
+            });
+        }
+
+        if ($request->filled('supplier_id')) {
+            $query->where('supplier_id', $request->supplier_id);
+        }
+
+        if ($request->filled('date_from')) {
+            $query->whereDate('settlement_date', '>=', $request->date_from);
+        }
+
+        if ($request->filled('date_to')) {
+            $query->whereDate('settlement_date', '<=', $request->date_to);
+        }
+
+        $settlements = $query->orderByDesc('settlement_date')->orderByDesc('id')->paginate(20)->withQueryString();
+
+        return view('inventory.supplier_consignments.settlement_index', compact('settlements', 'suppliers'));
+    }
+
+    /**
+     * Detail Rincian Setoran Pembayaran Supplier.
+     */
+    public function showSettlement(SupplierConsignmentSettlement $settlement)
+    {
+        abort_unless($settlement->tenant_id === Auth::user()->tenant_id, 403);
+
+        $settlement->load(['supplier', 'creator', 'bankAccount', 'items.masterProduct', 'items.consignmentItem.consignment']);
+
+        return view('inventory.supplier_consignments.settlement_show', compact('settlement'));
+    }
+
+    /**
+     * Hapus Transaksi Setoran Supplier.
+     */
+    public function destroySettlement(SupplierConsignmentSettlement $settlement)
+    {
+        abort_unless($settlement->tenant_id === Auth::user()->tenant_id, 403);
+
+        DB::transaction(function () use ($settlement) {
+            $settlement->items()->delete();
+            $settlement->delete();
+        });
+
+        return redirect()->route('supplier_consignments.settlement.index')
+            ->with('success', 'Riwayat setoran supplier berhasil dihapus.');
     }
 }
