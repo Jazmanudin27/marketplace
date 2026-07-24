@@ -18,7 +18,6 @@
                 </a>
             </div>
         </div>
-        <!-- Background Decorative Element -->
         <div class="position-absolute end-0 bottom-0 opacity-10 pe-4 pb-2 d-none d-md-block pointer-events-none">
             <i class="bi bi-boxes" style="font-size: 10rem;"></i>
         </div>
@@ -39,79 +38,78 @@
     <form action="{{ route('supplier_consignments.store') }}" method="POST" id="consignment-form">
         @csrf
         <div class="row g-4">
-            <!-- Left Panel: Supplier & Tanggal (Step 1) -->
-            <div class="col-lg-4">
-                <div class="card border-0 shadow-sm rounded-4 h-100">
+            <!-- 1. Header Info Card (Col-12 Full Width) -->
+            <div class="col-12">
+                <div class="card border-0 shadow-sm rounded-4">
                     <div class="card-header bg-white py-3 border-0">
                         <div class="d-flex align-items-center gap-2">
                             <span class="badge bg-primary rounded-circle p-2 d-flex align-items-center justify-content-center" style="width: 28px; height: 28px;">1</span>
-                            <h6 class="fw-bold mb-0 text-dark">Informasi Supplier & Tanggal</h6>
+                            <h6 class="fw-bold mb-0 text-dark">Informasi Supplier & Penerimaan</h6>
                         </div>
                     </div>
-                    <div class="card-body">
-                        <div class="mb-3">
-                            <label class="form-label fw-semibold small text-muted text-uppercase">No. Referensi Konsinyasi</label>
-                            <div class="input-group">
-                                <span class="input-group-text bg-light border-end-0"><i class="bi bi-hash text-muted"></i></span>
-                                <input type="text" class="form-control bg-light border-start-0 fw-bold text-primary" value="{{ $refNumber }}" readonly>
+                    <div class="card-body p-4">
+                        <div class="row g-3">
+                            <div class="col-md-3">
+                                <label class="form-label fw-semibold small text-muted text-uppercase">No. Referensi Konsinyasi</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light border-end-0"><i class="bi bi-hash text-muted"></i></span>
+                                    <input type="text" class="form-control bg-light border-start-0 fw-bold text-primary" value="{{ $refNumber }}" readonly>
+                                </div>
                             </div>
-                        </div>
-
-                        <div class="mb-3">
-                            <label class="form-label fw-semibold small text-muted text-uppercase">Supplier (Pemilik Barang) <span class="text-danger">*</span></label>
-                            <select name="supplier_id" id="supplier_select" class="form-select @error('supplier_id') is-invalid @enderror" required>
-                                <option value="">-- Pilih Supplier Penitip --</option>
-                                @foreach($suppliers as $supplier)
-                                    <option value="{{ $supplier->id }}" {{ old('supplier_id') == $supplier->id ? 'selected' : '' }}>
-                                        {{ $supplier->name }} ({{ $supplier->phone ?: 'No Phone' }})
-                                    </option>
-                                @endforeach
-                            </select>
-                        </div>
-
-                        <div class="mb-3">
-                            <label class="form-label fw-semibold small text-muted text-uppercase">Tanggal Penerimaan <span class="text-danger">*</span></label>
-                            <input type="date" name="consignment_date" class="form-control @error('consignment_date') is-invalid @enderror" value="{{ old('consignment_date', date('Y-m-d')) }}" required>
-                        </div>
-
-                        <div class="mb-3">
-                            <label class="form-label fw-semibold small text-muted text-uppercase">Catatan / Keterangan</label>
-                            <textarea name="notes" class="form-control" rows="4" placeholder="Contoh: Titipan Celana SMA L 100 Pcs disetor tgl 01 tiap bulan...">{{ old('notes') }}</textarea>
-                        </div>
-
-                        <div class="p-3 bg-light rounded-3 border border-dashed mt-4">
-                            <small class="text-muted d-block lh-sm">
-                                <i class="bi bi-info-circle-fill text-primary me-1"></i>
-                                Setelah disetujui (Approved), stok produk master akan otomatis bertambah dan riwayat mutasi stok tercatat.
-                            </small>
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold small text-muted text-uppercase">Supplier (Pemilik Barang) <span class="text-danger">*</span></label>
+                                <select name="supplier_id" id="supplier_select" class="form-select @error('supplier_id') is-invalid @enderror" required>
+                                    <option value="">-- Pilih Supplier Penitip --</option>
+                                    @foreach($suppliers as $supplier)
+                                        <option value="{{ $supplier->id }}" {{ old('supplier_id') == $supplier->id ? 'selected' : '' }}>
+                                            {{ $supplier->name }} ({{ $supplier->phone ?: 'No Contact' }})
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label fw-semibold small text-muted text-uppercase">Tanggal Penerimaan <span class="text-danger">*</span></label>
+                                <input type="date" name="consignment_date" class="form-control @error('consignment_date') is-invalid @enderror" value="{{ old('consignment_date', date('Y-m-d')) }}" required>
+                            </div>
+                            <div class="col-md-2 d-flex align-items-end">
+                                <div class="p-2 bg-primary bg-opacity-10 rounded-3 border border-primary border-opacity-25 w-100 text-center">
+                                    <small class="text-muted d-block" style="font-size: 0.68rem;">Status Awal</small>
+                                    <span class="badge bg-warning text-dark fw-bold">PENDING APPROVAL</span>
+                                </div>
+                            </div>
+                            <div class="col-12 mt-2">
+                                <label class="form-label fw-semibold small text-muted text-uppercase">Catatan / Keterangan Titipan</label>
+                                <input type="text" name="notes" class="form-control" placeholder="Contoh: Titipan Celana SMA L 100 Pcs disetor tgl 01 tiap bulan..." value="{{ old('notes') }}">
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Right Panel: Items Table & Live Summary (Step 2) -->
-            <div class="col-lg-8">
+            <!-- 2. Rincian Produk Titipan (Col-12 Full Width) -->
+            <div class="col-12">
                 <div class="card border-0 shadow-sm rounded-4 mb-4">
                     <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center flex-wrap gap-2">
                         <div class="d-flex align-items-center gap-2">
                             <span class="badge bg-primary rounded-circle p-2 d-flex align-items-center justify-content-center" style="width: 28px; height: 28px;">2</span>
-                            <h6 class="fw-bold mb-0 text-dark">Rincian Produk Titipan</h6>
+                            <h6 class="fw-bold mb-0 text-dark">Rincian Produk Titipan (Full Width Table)</h6>
                         </div>
-                        <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3 fw-bold" id="btn-add-item">
+                        <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-4 fw-bold shadow-sm" id="btn-add-item">
                             <i class="bi bi-plus-lg me-1"></i> Tambah Baris Barang
                         </button>
                     </div>
 
                     <div class="card-body p-0">
                         <div class="table-responsive">
-                            <table class="table align-middle mb-0" id="table-items">
+                            <table class="table align-middle mb-0 table-hover" id="table-items">
                                 <thead class="bg-light text-muted small text-uppercase fw-bold">
                                     <tr>
-                                        <th class="ps-4" style="width: 40%;">Cari Produk Master (Fast AJAX) <span class="text-danger">*</span></th>
-                                        <th style="width: 15%;">Qty (PCS) <span class="text-danger">*</span></th>
-                                        <th style="width: 20%;">Harga Titip (HPP) <span class="text-danger">*</span></th>
-                                        <th style="width: 20%;">Harga Jual Toko <span class="text-danger">*</span></th>
-                                        <th class="text-center pe-3" style="width: 5%;"></th>
+                                        <th class="ps-4" style="width: 32%;">Cari Produk Master (Searching 20rb Data) <span class="text-danger">*</span></th>
+                                        <th style="width: 12%; text-align: center;">Qty (PCS) <span class="text-danger">*</span></th>
+                                        <th style="width: 18%;">Harga Titip / HPP (Rp) <span class="text-danger">*</span></th>
+                                        <th style="width: 18%;">Harga Jual Toko (Rp) <span class="text-danger">*</span></th>
+                                        <th style="width: 15%; text-align: right;">Subtotal HPP</th>
+                                        <th class="text-center pe-4" style="width: 5%;">Aksi</th>
                                     </tr>
                                 </thead>
                                 <tbody id="item-rows">
@@ -121,24 +119,34 @@
                         </div>
                     </div>
 
-                    <!-- Summary Box & Submit -->
+                    <!-- Summary Cards & Submit Bar -->
                     <div class="card-footer bg-white border-top-0 p-4">
                         <div class="row g-3 align-items-center">
-                            <div class="col-md-7">
-                                <div class="p-3 bg-primary bg-opacity-10 rounded-3 border border-primary border-opacity-25 d-flex align-items-center justify-content-between">
-                                    <div>
-                                        <small class="text-muted fw-bold text-uppercase d-block" style="font-size: 0.75rem;">Total Barang Titipan</small>
-                                        <h4 class="fw-bold text-primary mb-0" id="summary-total-qty">0 PCS</h4>
+                            <div class="col-lg-9 col-md-8">
+                                <div class="row g-2">
+                                    <div class="col-md-4">
+                                        <div class="p-3 bg-light rounded-3 border">
+                                            <small class="text-muted fw-bold text-uppercase d-block" style="font-size: 0.7rem;">Total Qty Masuk</small>
+                                            <h4 class="fw-bold text-primary mb-0 mt-1" id="summary-total-qty">0 PCS</h4>
+                                        </div>
                                     </div>
-                                    <div class="text-end">
-                                        <small class="text-muted fw-bold text-uppercase d-block" style="font-size: 0.75rem;">Total HPP Modal</small>
-                                        <h4 class="fw-bold text-dark mb-0" id="summary-total-hpp">Rp 0</h4>
+                                    <div class="col-md-4">
+                                        <div class="p-3 bg-light rounded-3 border">
+                                            <small class="text-muted fw-bold text-uppercase d-block" style="font-size: 0.7rem;">Total HPP Modal (Setoran)</small>
+                                            <h4 class="fw-bold text-dark mb-0 mt-1" id="summary-total-hpp">Rp 0</h4>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="p-3 bg-success bg-opacity-10 rounded-3 border border-success border-opacity-25">
+                                            <small class="text-success fw-bold text-uppercase d-block" style="font-size: 0.7rem;">Potensi Profit Toko</small>
+                                            <h4 class="fw-bold text-success mb-0 mt-1" id="summary-total-profit">+Rp 0</h4>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                            <div class="col-md-5 text-end">
-                                <button type="submit" class="btn btn-primary rounded-pill px-4 py-2 fw-bold shadow-sm w-100">
-                                    <i class="bi bi-check-circle me-1"></i> Simpan Penerimaan Konsinyasi
+                            <div class="col-lg-3 col-md-4 text-end">
+                                <button type="submit" class="btn btn-primary rounded-pill px-4 py-3 fw-bold shadow w-100 fs-6">
+                                    <i class="bi bi-check-circle me-1"></i> Simpan Penerimaan
                                 </button>
                             </div>
                         </div>
@@ -154,19 +162,30 @@
     <tr class="item-row">
         <td class="ps-4 py-3">
             <select name="items[{INDEX}][master_product_id]" class="form-select product-select-ajax" required>
-                <option value="">-- Ketik Nama / SKU Barang (Searching 20rb Data) --</option>
+                <option value="">-- Ketik Nama / SKU Barang --</option>
             </select>
         </td>
         <td class="py-3">
-            <input type="number" name="items[{INDEX}][qty_received]" class="form-control qty-input" value="100" min="1" required oninput="calculateTotals()">
+            <input type="number" name="items[{INDEX}][qty_received]" class="form-control text-center fw-bold qty-input" value="100" min="1" required oninput="calculateTotals()">
         </td>
         <td class="py-3">
-            <input type="number" name="items[{INDEX}][unit_cost_price]" class="form-control cost-input" value="80000" min="0" step="1000" required oninput="calculateTotals()">
+            <div class="input-group input-group-sm">
+                <span class="input-group-text bg-light text-muted fw-bold">Rp</span>
+                <input type="text" class="form-control fw-semibold cost-display-input" value="80.000" required oninput="formatRupiahInput(this); calculateTotals();">
+                <input type="hidden" name="items[{INDEX}][unit_cost_price]" class="cost-raw-input" value="80000">
+            </div>
         </td>
         <td class="py-3">
-            <input type="number" name="items[{INDEX}][unit_selling_price]" class="form-control price-input" value="100000" min="0" step="1000" required oninput="calculateTotals()">
+            <div class="input-group input-group-sm">
+                <span class="input-group-text bg-light text-muted fw-bold">Rp</span>
+                <input type="text" class="form-control fw-semibold price-display-input" value="100.000" required oninput="formatRupiahInput(this); calculateTotals();">
+                <input type="hidden" name="items[{INDEX}][unit_selling_price]" class="price-raw-input" value="100000">
+            </div>
         </td>
-        <td class="text-center pe-3 py-3">
+        <td class="py-3 text-end fw-bold text-dark subtotal-hpp-cell">
+            Rp 8.000.000
+        </td>
+        <td class="text-center pe-4 py-3">
             <button type="button" class="btn btn-sm btn-outline-danger border-0 btn-remove-row" onclick="removeRow(this)" title="Hapus Baris">
                 <i class="bi bi-trash fs-5"></i>
             </button>
@@ -180,10 +199,22 @@
 <script>
 let rowIndex = 0;
 
+function formatRupiahInput(elem) {
+    let value = elem.value.replace(/[^0-9]/g, '');
+    let number = parseInt(value, 10);
+    if (isNaN(number)) {
+        elem.value = '0';
+        elem.closest('.input-group').querySelector('input[type="hidden"]').value = 0;
+        return;
+    }
+    elem.value = number.toLocaleString('id-ID');
+    elem.closest('.input-group').querySelector('input[type="hidden"]').value = number;
+}
+
 function initSelect2(elem) {
     $(elem).select2({
         theme: 'bootstrap-5',
-        placeholder: '-- Ketik Nama / SKU Produk --',
+        placeholder: '-- Ketik Nama / SKU Produk (20rb Data) --',
         allowClear: true,
         dropdownParent: $(elem).parent(),
         ajax: {
@@ -192,7 +223,7 @@ function initSelect2(elem) {
             delay: 300,
             data: function (params) {
                 return {
-                    q: params.term // kata kunci pencarian dari user
+                    q: params.term
                 };
             },
             processResults: function (data) {
@@ -207,13 +238,18 @@ function initSelect2(elem) {
         const data = e.params.data;
         const row = this.closest('tr');
         if (data) {
-            const costInput = row.querySelector('.cost-input');
-            const priceInput = row.querySelector('.price-input');
-            if (costInput && data.cost_price > 0) {
-                costInput.value = data.cost_price;
+            const costDisplay = row.querySelector('.cost-display-input');
+            const costRaw     = row.querySelector('.cost-raw-input');
+            const priceDisplay= row.querySelector('.price-display-input');
+            const priceRaw    = row.querySelector('.price-raw-input');
+
+            if (costDisplay && data.cost_price > 0) {
+                costRaw.value = data.cost_price;
+                costDisplay.value = Math.round(data.cost_price).toLocaleString('id-ID');
             }
-            if (priceInput && data.price > 0) {
-                priceInput.value = data.price;
+            if (priceDisplay && data.price > 0) {
+                priceRaw.value = data.price;
+                priceDisplay.value = Math.round(data.price).toLocaleString('id-ID');
             }
         }
         calculateTotals();
@@ -251,16 +287,29 @@ function removeRow(btn) {
 function calculateTotals() {
     let totalQty = 0;
     let totalHpp = 0;
+    let totalProfit = 0;
 
     document.querySelectorAll('#item-rows tr').forEach(row => {
-        const qty = parseFloat(row.querySelector('.qty-input')?.value || 0);
-        const cost = parseFloat(row.querySelector('.cost-input')?.value || 0);
+        const qty   = parseFloat(row.querySelector('.qty-input')?.value || 0);
+        const cost  = parseFloat(row.querySelector('.cost-raw-input')?.value || 0);
+        const price = parseFloat(row.querySelector('.price-raw-input')?.value || 0);
+        
+        const subtotalHpp = (qty * cost);
+        const profit = qty * (price - cost);
+
+        const subtotalCell = row.querySelector('.subtotal-hpp-cell');
+        if (subtotalCell) {
+            subtotalCell.innerText = 'Rp ' + subtotalHpp.toLocaleString('id-ID');
+        }
+
         totalQty += qty;
-        totalHpp += (qty * cost);
+        totalHpp += subtotalHpp;
+        totalProfit += profit;
     });
 
     document.getElementById('summary-total-qty').innerText = totalQty.toLocaleString() + ' PCS';
     document.getElementById('summary-total-hpp').innerText = 'Rp ' + totalHpp.toLocaleString('id-ID');
+    document.getElementById('summary-total-profit').innerText = '+Rp ' + totalProfit.toLocaleString('id-ID');
 }
 
 $(document).ready(function() {
