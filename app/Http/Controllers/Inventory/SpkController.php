@@ -568,4 +568,22 @@ class SpkController extends Controller
 
         return back()->with('success', 'Detail item (Tukang Jahit, Tukang Potong & Catatan) berhasil diperbarui.');
     }
+
+    public function updateTambahan(Request $request, Spk $spk)
+    {
+        $tenantId = Auth::user()->tenant_id;
+        if ($spk->tenant_id != $tenantId) {
+            abort(403);
+        }
+
+        $request->validate([
+            'tambahan' => 'nullable|string',
+        ]);
+
+        $spk->update([
+            'tambahan' => $request->tambahan,
+        ]);
+
+        return back()->with('success', 'Catatan Atribut & Aksesoris Tambahan berhasil diperbarui.');
+    }
 }

@@ -270,7 +270,7 @@
 
                             <!-- Collapsible Row for Details -->
                             <tr id="collapse-details-{{ $item->id }}" class="collapse bg-light-subtle">
-                                <td colspan="10" class="p-3 border-top-0">
+                                <td colspan="12" class="p-3 border-top-0">
                                     <div class="row text-start" style="font-size: 11px;">
                                         <div class="col-md-6 border-end">
                                             <p class="fw-bold text-success border-bottom pb-1 mb-2">
@@ -312,11 +312,11 @@
                         @endforeach
 
                         <!-- HPP Grand Total -->
-                        <tr class="table-light fw-bold">
-                            <td colspan="7" class="text-end pe-3 align-middle fs-6">Total Nilai HPP Produksi SPK:</td>
-                            <td class="align-middle fs-6">{{ $spk->items->sum('quantity') }} pcs</td>
-                            <td class="align-middle text-primary fs-6">Rp {{ number_format($grandTotalHpp, 0, ',', '.') }}</td>
-                            <td></td>
+                        <tr class="table-light fw-bold border-top border-2">
+                            <td colspan="8" class="text-end pe-3 align-middle fs-6">Total Nilai HPP Produksi SPK:</td>
+                            <td class="align-middle text-center fs-6 text-dark font-monospace">{{ number_format($spk->items->sum('quantity')) }} pcs</td>
+                            <td class="align-middle text-end pe-3 text-primary fs-6 font-monospace">Rp {{ number_format($grandTotalHpp, 0, ',', '.') }}</td>
+                            <td colspan="2"></td>
                         </tr>
                     </tbody>
                 </table>
@@ -325,13 +325,41 @@
 
             <!-- Additional Accessories Block -->
             <div class="border rounded-3 p-3 bg-light mb-4">
-                <div class="text-uppercase fw-bold text-danger mb-2" style="font-size: 11px; letter-spacing: 0.5px;">Atribut &amp; Aksesoris Tambahan:</div>
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="text-uppercase fw-bold text-danger" style="font-size: 11px; letter-spacing: 0.5px;">Atribut &amp; Aksesoris Tambahan:</span>
+                    <button type="button" class="btn btn-xs btn-outline-primary py-0 px-2 fw-semibold" data-bs-toggle="modal" data-bs-target="#editTambahanModal">
+                        <i class="fas fa-edit me-1"></i> Edit Catatan Tambahan
+                    </button>
+                </div>
                 <div class="font-monospace text-wrap" style="white-space: pre-wrap; font-size: 12px; color: #333;">
                     @if($spk->tambahan)
                         {{ $spk->tambahan }}
                     @else
-                        Tidak ada aksesoris tambahan.
+                        <span class="text-muted fst-italic">Tidak ada aksesoris / catatan tambahan.</span>
                     @endif
+                </div>
+            </div>
+
+            <!-- Modal Edit Catatan Tambahan -->
+            <div class="modal fade text-start" id="editTambahanModal" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered">
+                    <form action="{{ route('spks.update_tambahan', $spk->id) }}" method="POST" class="modal-content">
+                        @csrf
+                        <div class="modal-header bg-light py-2">
+                            <h6 class="modal-title fw-bold text-dark"><i class="fas fa-edit me-1 text-primary"></i> Edit Atribut &amp; Aksesoris Tambahan</h6>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body p-3">
+                            <div class="mb-2">
+                                <label class="form-label small fw-semibold">Catatan Aksesoris / Atribut Tambahan</label>
+                                <textarea name="tambahan" class="form-control form-control-sm" rows="5" placeholder="Tuliskan catatan tambahan baru di sini (misal: Bordir Logo 46 Pcs, Kancing Emas, Tambahan Masker...)">{{ old('tambahan', $spk->tambahan) }}</textarea>
+                            </div>
+                        </div>
+                        <div class="modal-footer py-2 bg-light">
+                            <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Batal</button>
+                            <button type="submit" class="btn btn-sm btn-primary fw-bold"><i class="fas fa-save me-1"></i> Simpan Catatan</button>
+                        </div>
+                    </form>
                 </div>
             </div>
 
