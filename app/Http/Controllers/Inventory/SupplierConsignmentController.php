@@ -60,14 +60,48 @@ class SupplierConsignmentController extends Controller
         $tenantId = Auth::user()->tenant_id;
 
         $suppliers = Supplier::where('tenant_id', $tenantId)->where('is_active', true)->orderBy('name')->get();
-        $products  = MasterProduct::where('tenant_id', $tenantId)
-            ->where('is_active', true)
-            ->orderBy('name')
-            ->get();
-
         $refNumber = SupplierConsignment::generateReferenceNumber();
 
-        return view('inventory.supplier_consignments.create', compact('suppliers', 'products', 'refNumber'));
+        return view('inventory.supplier_consignments.create', compact('suppliers', 'refNumber'));
+    }
+
+    /**
+     * AJAX Search untuk MasterProduct (Optimasi 20.000+ data dengan Select2).
+     */
+    public function searchProducts(Request $request)
+    {
+        $tenantId = Auth::user()->tenant_id;
+        $search   = trim($request->input('q', ''));
+
+        $query = MasterProduct::where('tenant_id', $tenantId)
+            ->where('is_active', true);
+
+        if (!empty($search)) {
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', '%' . $search . '%')
+                  ->orWhere('sku', 'like', '%' . $search . '%')
+                  ->orWhere('sku_induk', 'like', '%' . $search . '%');
+            });
+        }
+
+        $products = $query->select(['id', 'sku', 'name', 'stock', 'cost_price', 'price'])
+            ->orderBy('name')
+            ->limit(30)
+            ->get();
+
+        $results = $products->map(function ($p) {
+            return [
+                'id'         => $p->id,
+                'text'       => '[' . $p->sku . '] ' . $p->name . ' (Stok: ' . number_format($p->stock) . ')',
+                'sku'        => $p->sku,
+                'name'       => $p->name,
+                'cost_price' => (float) $p->cost_price,
+                'price'      => (float) $p->price,
+                'stock'      => (int) $p->stock,
+            ];
+        });
+
+        return response()->json(['results' => $results]);
     }
 
     /**
