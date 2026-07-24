@@ -77,10 +77,46 @@
                 </div>
             </div>
 
+            {{-- Tab Filter Status Cetak (Semua Data, Belum Cetak, Sudah Cetak) --}}
+            <div class="d-flex align-items-center mb-3">
+                <ul class="nav nav-pills bg-white p-1 rounded border shadow-sm gap-1">
+                    <li class="nav-item">
+                        <a class="nav-link py-2 px-3 fw-bold small {{ !request('print_status') ? 'active bg-primary text-white' : 'text-secondary' }}" 
+                           href="{{ route('fulfillment.index', array_merge(request()->except('print_status', 'page'))) }}">
+                            <i class="fas fa-layer-group me-1"></i>Semua Data
+                            <span class="badge {{ !request('print_status') ? 'bg-white text-primary' : 'bg-secondary bg-opacity-25 text-secondary' }} rounded-pill ms-1">
+                                {{ number_format($stats['total']) }}
+                            </span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link py-2 px-3 fw-bold small {{ request('print_status') === 'unprinted' ? 'active bg-warning text-dark' : 'text-secondary' }}" 
+                           href="{{ route('fulfillment.index', array_merge(request()->query(), ['print_status' => 'unprinted', 'page' => 1])) }}">
+                            <i class="fas fa-print me-1"></i>Belum Cetak (Unprinted)
+                            <span class="badge {{ request('print_status') === 'unprinted' ? 'bg-dark text-warning' : 'bg-warning bg-opacity-25 text-warning-emphasis' }} rounded-pill ms-1">
+                                {{ number_format($stats['unprinted']) }}
+                            </span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link py-2 px-3 fw-bold small {{ request('print_status') === 'printed' ? 'active bg-success text-white' : 'text-secondary' }}" 
+                           href="{{ route('fulfillment.index', array_merge(request()->query(), ['print_status' => 'printed', 'page' => 1])) }}">
+                            <i class="fas fa-check-circle me-1"></i>Sudah Cetak (Printed)
+                            <span class="badge {{ request('print_status') === 'printed' ? 'bg-white text-success' : 'bg-success bg-opacity-25 text-success' }} rounded-pill ms-1">
+                                {{ number_format($stats['printed']) }}
+                            </span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+
             {{-- Filter Panel --}}
             <div class="card border rounded shadow-sm bg-white mb-4">
                 <div class="card-body p-3">
                     <form method="GET" action="{{ route('fulfillment.index') }}">
+                        @if(request('print_status'))
+                            <input type="hidden" name="print_status" value="{{ request('print_status') }}">
+                        @endif
                         <div class="row g-2 align-items-end">
                             <div class="col-12 col-md-3">
                                 <label class="form-label fw-bold small text-dark mb-1">
