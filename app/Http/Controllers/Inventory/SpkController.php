@@ -51,19 +51,28 @@ class SpkController extends Controller
             ->where('is_active', true)
             ->orderBy('name')
             ->with(['activeRecipe.items.inventoryItem', 'activeRecipe.labors'])
-            ->get();
+            ->get(['id', 'tenant_id', 'name', 'sku', 'sku_induk', 'is_active']);
 
-        foreach ($products as $product) {
-            $latestItem = SpkItem::with('extras')
-                ->whereHas('spk', function($q) use ($tenantId) {
+        // Fetch latest SpkItem extras in ONE single query to eliminate N+1 loop slowness
+        $productIds = $products->pluck('id')->toArray();
+        $latestItems = [];
+        if (!empty($productIds)) {
+            $latestItems = SpkItem::with('extras')
+                ->whereHas('spk', function ($q) use ($tenantId) {
                     $q->where('tenant_id', $tenantId);
                 })
-                ->where('master_product_id', $product->id)
-                ->latest()
-                ->first();
+                ->whereIn('master_product_id', $productIds)
+                ->orderBy('id', 'desc')
+                ->get()
+                ->unique('master_product_id')
+                ->keyBy('master_product_id');
+        }
 
-            if ($latestItem) {
-                $product->latest_costs = $latestItem->extras->map(function($ex) {
+        foreach ($products as $product) {
+            $latestItem = $latestItems[$product->id] ?? null;
+
+            if ($latestItem && $latestItem->extras->count() > 0) {
+                $product->latest_costs = $latestItem->extras->map(function ($ex) {
                     return [
                         'keterangan' => $ex->keterangan,
                         'nominal' => (float)$ex->nominal

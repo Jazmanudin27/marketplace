@@ -106,25 +106,25 @@
                             </div>
                         </div>
 
-                        {{-- CARD 3: TOTAL & KALKULASI HPP SPK (Side Panel Sesuai Gambar) --}}
+                        {{-- CARD 3: TOTAL & KALKULASI HPP SPK (White Card) --}}
                         <div class="col-lg-4 col-md-12">
-                            <div class="card border h-100 shadow-sm bg-dark text-white">
-                                <div class="card-header bg-transparent border-bottom border-secondary py-2 font-monospace fw-bold text-uppercase small text-white-50">
+                            <div class="card border h-100 shadow-sm bg-white">
+                                <div class="card-header bg-white border-bottom py-2 font-monospace fw-bold text-uppercase small text-muted">
                                     <i class="fas fa-calculator text-success me-2"></i>KALKULASI HPP SPK
                                 </div>
                                 <div class="card-body p-3 d-flex flex-column justify-content-center">
                                     <div class="mb-2">
-                                        <span class="text-white-50 small fw-semibold text-uppercase d-block" style="font-size: 11px;">TOTAL QTY PRODUKSI</span>
-                                        <h3 class="fw-bold font-monospace text-white mb-0" id="summaryTotalQty">0 Pcs</h3>
+                                        <span class="text-muted small fw-semibold text-uppercase d-block" style="font-size: 11px;">TOTAL QTY PRODUKSI</span>
+                                        <h3 class="fw-bold font-monospace text-dark mb-0" id="summaryTotalQty">0 Pcs</h3>
                                     </div>
                                     <div class="mb-2">
-                                        <span class="text-white-50 small fw-semibold text-uppercase d-block" style="font-size: 11px;">GRAND TOTAL BIAYA SPK</span>
-                                        <h4 class="fw-bold font-monospace text-info mb-0" id="summaryGrandTotalCost">Rp 0</h4>
+                                        <span class="text-muted small fw-semibold text-uppercase d-block" style="font-size: 11px;">GRAND TOTAL BIAYA SPK</span>
+                                        <h4 class="fw-bold font-monospace text-primary mb-0" id="summaryGrandTotalCost">Rp 0</h4>
                                     </div>
-                                    <div class="mt-2 pt-2 border-top border-secondary">
-                                        <span class="text-white-50 small fw-semibold text-uppercase d-block" style="font-size: 11px;">ESTIMASI HPP PER UNIT</span>
+                                    <div class="mt-2 pt-2 border-top">
+                                        <span class="text-muted small fw-semibold text-uppercase d-block" style="font-size: 11px;">ESTIMASI HPP PER UNIT</span>
                                         <h2 class="fw-bold font-monospace text-success mb-0" id="summaryAllocatedHpp">Rp 0 / Unit</h2>
-                                        <small class="text-white-50 d-block mt-1" style="font-size: 10px;">(Grand Total Biaya ÷ Total Qty SPK secara otomatis)</small>
+                                        <small class="text-muted d-block mt-1" style="font-size: 10px;">(Grand Total Biaya ÷ Total Qty SPK secara otomatis)</small>
                                     </div>
                                 </div>
                             </div>
