@@ -162,7 +162,7 @@
                                 <th class="text-end">HARGA JUAL</th>
                                 <th class="text-center">TOTAL MASUK</th>
                                 <th class="text-center">TERJUAL</th>
-                                <th class="text-center">SISA STOK</th>
+                                <th class="text-center">STOK GUDANG SEKARANG</th>
                                 <th class="text-center">SUDAH DISETOR</th>
                                 <th class="text-center">BELUM DISETOR</th>
                                 <th class="text-end">HAK SUPPLIER (DISETOR)</th>
@@ -180,7 +180,11 @@
                                     <td class="text-end font-monospace text-muted">Rp {{ number_format($row['unit_selling'], 0, ',', '.') }}</td>
                                     <td class="text-center font-monospace font-semibold">{{ number_format($row['qty_received']) }} {{ $row['unit'] }}</td>
                                     <td class="text-center font-monospace fw-bold text-info">{{ number_format($row['qty_sold']) }} {{ $row['unit'] }}</td>
-                                    <td class="text-center font-monospace fw-bold text-warning">{{ number_format($row['qty_remaining']) }} {{ $row['unit'] }}</td>
+                                    <td class="text-center">
+                                        <span class="badge bg-warning-subtle text-dark border border-warning-subtle px-3 py-1 font-monospace fw-bold fs-6">
+                                            {{ number_format($row['current_stock']) }} {{ $row['unit'] }}
+                                        </span>
+                                    </td>
                                     <td class="text-center font-monospace fw-bold text-success">{{ number_format($row['qty_settled']) }} {{ $row['unit'] }}</td>
                                     <td class="text-center font-monospace fw-bold text-danger">{{ number_format($row['qty_unsettled']) }} {{ $row['unit'] }}</td>
                                     <td class="text-end fw-semibold text-dark font-monospace">Rp {{ number_format($row['nominal_paid'], 0, ',', '.') }}</td>

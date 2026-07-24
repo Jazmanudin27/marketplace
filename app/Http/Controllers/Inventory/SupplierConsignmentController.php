@@ -496,6 +496,7 @@ class SupplierConsignmentController extends Controller
                     'unit_cost'           => $unitCost,
                     'unit_selling'        => $unitSelling,
                     'qty_received'        => $qtyReceivedTotal,
+                    'current_stock'       => $product->stock,
                     'qty_sold'            => $qtySoldTotal,
                     'qty_remaining'       => $qtyRemainingTotal,
                     'qty_settled'         => $qtySettledTotal,
