@@ -321,6 +321,8 @@
                     </tbody>
                 </table>
             </div>
+            @endif
+
             <!-- Setting Biaya SPK di Akhir (Tambahan Jasa & Bahan / Material) -->
             @if(auth()->user()->isSuperAdmin() || auth()->user()->role === 'admin' || auth()->user()->hasRole('admin'))
             <div class="card border shadow-sm rounded-3 mb-4">
