@@ -27,13 +27,7 @@
                     <div>
                         <div class="d-flex align-items-center gap-2 mb-1">
                             <h4 class="fw-bold mb-0 text-dark">Penerimaan Barang Konsinyasi: {{ $consignment->reference_number }}</h4>
-                            @if($consignment->status === 'approved')
-                                <span class="badge bg-success rounded-pill px-3 py-1"><i class="bi bi-check-circle me-1"></i>Approved</span>
-                            @elseif($consignment->status === 'pending')
-                                <span class="badge bg-warning text-dark rounded-pill px-3 py-1"><i class="bi bi-clock me-1"></i>Pending Approval</span>
-                            @else
-                                <span class="badge bg-secondary rounded-pill px-3 py-1">Batal</span>
-                            @endif
+                            <span class="badge bg-success rounded-pill px-3 py-1"><i class="bi bi-check-circle me-1"></i>Selesai / Stok Bertambah</span>
                         </div>
                         <p class="text-muted small mb-0">Detail rincian penerimaan barang titipan dari supplier ke gudang master</p>
                     </div>
@@ -42,15 +36,6 @@
                     <button type="button" onclick="window.print()" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
                         <i class="bi bi-printer me-1"></i> Cetak Faktur
                     </button>
-
-                    @if($consignment->status === 'pending')
-                        <form action="{{ route('supplier_consignments.approve', $consignment) }}" method="POST" class="d-inline" onsubmit="return confirm('Setujui penerimaan barang titipan ini? Stok master produk akan otomatis bertambah.')">
-                            @csrf
-                            <button type="submit" class="btn btn-success btn-sm rounded-pill px-4 shadow-sm fw-bold">
-                                <i class="bi bi-check-circle-fill me-1"></i> Setujui & Tambah Stok
-                            </button>
-                        </form>
-                    @endif
 
                     <a href="{{ route('supplier_consignments.index') }}" class="btn btn-outline-primary btn-sm rounded-pill px-3">
                         <i class="bi bi-arrow-left me-1"></i> Kembali

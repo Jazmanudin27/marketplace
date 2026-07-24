@@ -125,7 +125,8 @@ class SupplierConsignmentController extends Controller
             'items.required'       => 'Minimal satu produk konsinyasi harus diisikan.',
         ]);
 
-        $consignment = DB::transaction(function () use ($request, $tenantId) {
+        $userId = Auth::id();
+        $consignment = DB::transaction(function () use ($request, $tenantId, $userId) {
             $refNumber        = SupplierConsignment::generateReferenceNumber();
             $totalQtyReceived = 0;
             $totalAmountHpp   = 0;
@@ -135,9 +136,11 @@ class SupplierConsignmentController extends Controller
                 'supplier_id'        => $request->supplier_id,
                 'reference_number'   => $refNumber,
                 'consignment_date'   => $request->consignment_date,
-                'status'             => 'pending',
+                'status'             => 'approved',
                 'notes'              => $request->notes,
-                'created_by'         => Auth::id(),
+                'created_by'         => $userId,
+                'approved_by'        => $userId,
+                'approved_at'        => now(),
             ]);
 
             foreach ($request->items as $row) {
@@ -148,13 +151,38 @@ class SupplierConsignmentController extends Controller
                 $totalQtyReceived += $qty;
                 $totalAmountHpp   += ($qty * $costPrice);
 
-                $consignment->items()->create([
+                $consignmentItem = $consignment->items()->create([
                     'master_product_id'  => $row['master_product_id'],
                     'qty_received'       => $qty,
                     'unit_cost_price'    => $costPrice,
                     'unit_selling_price' => $sellingPrice,
                     'notes'              => $row['notes'] ?? null,
                 ]);
+
+                // Langsung tambah stok master produk & update harga
+                $product = MasterProduct::find($row['master_product_id']);
+                if ($product) {
+                    $product->increment('stock', $qty);
+                    $product->update([
+                        'cost_price' => $costPrice > 0 ? $costPrice : $product->cost_price,
+                        'price'      => $sellingPrice > 0 ? $sellingPrice : $product->price,
+                    ]);
+
+                    $newStock = $product->fresh()->stock;
+
+                    // Catat mutasi stok masuk
+                    StockMovement::create([
+                        'tenant_id'         => $tenantId,
+                        'master_product_id' => $product->id,
+                        'user_id'           => $userId,
+                        'type'              => 'in',
+                        'quantity'          => $qty,
+                        'stock_after'       => $newStock,
+                        'reference_type'    => 'supplier_consignment',
+                        'reference_id'      => $consignment->id,
+                        'notes'             => "Penerimaan Konsinyasi: {$refNumber}",
+                    ]);
+                }
             }
 
             $consignment->update([
@@ -166,7 +194,7 @@ class SupplierConsignmentController extends Controller
         });
 
         return redirect()->route('supplier_consignments.show', $consignment)
-            ->with('success', 'Penerimaan barang konsinyasi berhasil dibuat (Status: Pending). Silakan periksa dan setujui untuk menambah stok.');
+            ->with('success', 'Penerimaan barang konsinyasi berhasil disimpan dan stok master produk telah langsung bertambah.');
     }
 
     /**

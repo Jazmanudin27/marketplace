@@ -105,41 +105,14 @@
                                 Rp {{ number_format($item->total_amount_hpp, 0, ',', '.') }}
                             </td>
                             <td class="text-center">
-                                @if($item->status === 'approved')
-                                    <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-1">
-                                        <i class="bi bi-check-circle me-1"></i>Approved
-                                    </span>
-                                @elseif($item->status === 'pending')
-                                    <span class="badge bg-warning-subtle text-warning border border-warning-subtle rounded-pill px-3 py-1">
-                                        <i class="bi bi-clock me-1"></i>Pending Approval
-                                    </span>
-                                @else
-                                    <span class="badge bg-secondary-subtle text-secondary rounded-pill px-3 py-1">
-                                        Batal
-                                    </span>
-                                @endif
+                                <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-1">
+                                    <i class="bi bi-check-circle me-1"></i>Selesai (Stok Bertambah)
+                                </span>
                             </td>
                             <td class="text-center pe-3">
-                                <div class="btn-group btn-group-sm">
-                                    <a href="{{ route('supplier_consignments.show', $item) }}" class="btn btn-outline-secondary" title="Detail">
-                                        <i class="bi bi-eye"></i>
-                                    </a>
-                                    @if($item->status === 'pending')
-                                        <form action="{{ route('supplier_consignments.approve', $item) }}" method="POST" class="d-inline" onsubmit="return confirm('Setujui penerimaan barang titipan ini? Stok master produk akan otomatis bertambah.')">
-                                            @csrf
-                                            <button type="submit" class="btn btn-success" title="Approve & Tambah Stok">
-                                                <i class="bi bi-check-lg"></i>
-                                            </button>
-                                        </form>
-                                        <form action="{{ route('supplier_consignments.destroy', $item) }}" method="POST" class="d-inline" onsubmit="return confirm('Hapus transaksi pending ini?')">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" class="btn btn-outline-danger" title="Hapus">
-                                                <i class="bi bi-trash"></i>
-                                            </button>
-                                        </form>
-                                    @endif
-                                </div>
+                                <a href="{{ route('supplier_consignments.show', $item) }}" class="btn btn-sm btn-outline-secondary" title="Detail">
+                                    <i class="bi bi-eye me-1"></i> Detail
+                                </a>
                             </td>
                         </tr>
                     @empty
