@@ -268,12 +268,6 @@
                             <div class="d-flex flex-wrap gap-2">
 
 
-                                <button type="button" id="btn-top-pick"
-                                    class="btn btn-info text-white btn-sm d-inline-flex align-items-center gap-1 fw-semibold shadow-sm"
-                                    title="Cetak Pick List (Kertas A4 / Standar)">
-                                    <i class="fas fa-list-alt"></i> Cetak Pick List (A4)
-                                </button>
-
                                 <button type="button" id="btn-top-label"
                                     class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1 fw-semibold shadow-sm"
                                     title="Cetak Resi Massal (Kertas Stiker Thermal)">
@@ -495,14 +489,6 @@
             });
 
 
-
-            // 1. Cetak Pick List (Daftar Pengambilan Barang) -> Kertas A4 / Standar
-            $('#btn-top-pick').on('click', function() {
-                batchForm.attr('action', "{{ route('fulfillment.batch_picklist') }}");
-                batchForm.attr('method', "GET");
-                batchForm.attr('target', "_blank");
-                batchForm.submit();
-            });
 
             // 2. Cetak Resi / Label Massal -> Kertas Stiker Thermal
             $('#btn-top-label').on('click', function() {
