@@ -86,36 +86,22 @@
                 </div>
             </div>
 
-            <!-- 2. Rincian Produk Titipan (Col-12 Full Width) -->
+            <!-- 2. Rincian Produk Titipan (Card-Based Item Blocks with Col-12 Product Name) -->
             <div class="col-12">
                 <div class="card border-0 shadow-sm rounded-4 mb-4">
                     <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center flex-wrap gap-2">
                         <div class="d-flex align-items-center gap-2">
                             <span class="badge bg-primary rounded-circle p-2 d-flex align-items-center justify-content-center" style="width: 28px; height: 28px;">2</span>
-                            <h6 class="fw-bold mb-0 text-dark">Rincian Produk Titipan (Full Width Table)</h6>
+                            <h6 class="fw-bold mb-0 text-dark">Daftar Barang Titipan (Nama Produk Col-12)</h6>
                         </div>
                         <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-4 fw-bold shadow-sm" id="btn-add-item">
-                            <i class="bi bi-plus-lg me-1"></i> Tambah Baris Barang
+                            <i class="bi bi-plus-lg me-1"></i> Tambah Item Barang Baru
                         </button>
                     </div>
 
-                    <div class="card-body p-0">
-                        <div class="table-responsive">
-                            <table class="table align-middle mb-0 table-hover" id="table-items">
-                                <thead class="bg-light text-muted small text-uppercase fw-bold">
-                                    <tr>
-                                        <th class="ps-4" style="width: 32%;">Cari Produk Master (Searching 20rb Data) <span class="text-danger">*</span></th>
-                                        <th style="width: 12%; text-align: center;">Qty (PCS) <span class="text-danger">*</span></th>
-                                        <th style="width: 18%;">Harga Titip / HPP (Rp) <span class="text-danger">*</span></th>
-                                        <th style="width: 18%;">Harga Jual Toko (Rp) <span class="text-danger">*</span></th>
-                                        <th style="width: 15%; text-align: right;">Subtotal HPP</th>
-                                        <th class="text-center pe-4" style="width: 5%;">Aksi</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="item-rows">
-                                    <!-- Dynamic Select2 Rows -->
-                                </tbody>
-                            </table>
+                    <div class="card-body p-4 bg-light bg-opacity-50">
+                        <div id="item-blocks-container" class="d-flex flex-column gap-3">
+                            <!-- Dynamic Item Cards -->
                         </div>
                     </div>
 
@@ -157,40 +143,66 @@
     </form>
 </div>
 
-<!-- Template Row -->
-<template id="row-template">
-    <tr class="item-row">
-        <td class="ps-4 py-3">
-            <select name="items[{INDEX}][master_product_id]" class="form-select product-select-ajax" required>
-                <option value="">-- Ketik Nama / SKU Barang --</option>
-            </select>
-        </td>
-        <td class="py-3">
-            <input type="number" name="items[{INDEX}][qty_received]" class="form-control text-center fw-bold qty-input" value="100" min="1" required oninput="calculateTotals()">
-        </td>
-        <td class="py-3">
-            <div class="input-group input-group-sm">
-                <span class="input-group-text bg-light text-muted fw-bold">Rp</span>
-                <input type="text" class="form-control fw-semibold cost-display-input" value="80.000" required oninput="formatRupiahInput(this); calculateTotals();">
-                <input type="hidden" name="items[{INDEX}][unit_cost_price]" class="cost-raw-input" value="80000">
+<!-- Template Card Item (Col-12 Product Name + Detail Row Below) -->
+<template id="item-card-template">
+    <div class="card border border-light-subtle shadow-sm rounded-4 item-card position-relative bg-white overflow-hidden">
+        <div class="card-body p-4">
+            <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+                <span class="badge bg-primary-subtle text-primary fw-bold px-3 py-1 rounded-pill">
+                    <i class="bi bi-box-seam me-1"></i> Item Barang #{ITEM_NUMBER}
+                </span>
+                <button type="button" class="btn btn-sm btn-outline-danger border-0 rounded-pill px-3 py-1 btn-remove-item" onclick="removeItemCard(this)">
+                    <i class="bi bi-trash me-1"></i> Hapus Item
+                </button>
             </div>
-        </td>
-        <td class="py-3">
-            <div class="input-group input-group-sm">
-                <span class="input-group-text bg-light text-muted fw-bold">Rp</span>
-                <input type="text" class="form-control fw-semibold price-display-input" value="100.000" required oninput="formatRupiahInput(this); calculateTotals();">
-                <input type="hidden" name="items[{INDEX}][unit_selling_price]" class="price-raw-input" value="100000">
+
+            <!-- Baris 1: Nama Produk Master (Col-12 FULL WIDTH) -->
+            <div class="row g-3">
+                <div class="col-12">
+                    <label class="form-label fw-bold text-dark mb-1">
+                        Cari & Pilih Produk Master (Nama Panjang / SKU) <span class="text-danger">*</span>
+                    </label>
+                    <select name="items[{INDEX}][master_product_id]" class="form-select product-select-ajax w-100" required>
+                        <option value="">-- Ketik Nama / SKU Barang (Pencarian Panjang 20.000 Data) --</option>
+                    </select>
+                </div>
+
+                <!-- Baris 2: Detail Qty, HPP, Harga Jual, & Subtotal -->
+                <div class="col-md-3 col-6">
+                    <label class="form-label fw-semibold small text-muted text-uppercase mb-1">Qty Diterima (PCS) <span class="text-danger">*</span></label>
+                    <div class="input-group input-group-sm">
+                        <input type="number" name="items[{INDEX}][qty_received]" class="form-control fw-bold qty-input text-center fs-6" value="100" min="1" required oninput="calculateTotals()">
+                        <span class="input-group-text bg-light text-muted">PCS</span>
+                    </div>
+                </div>
+
+                <div class="col-md-3 col-6">
+                    <label class="form-label fw-semibold small text-muted text-uppercase mb-1">Harga Titip / HPP <span class="text-danger">*</span></label>
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text bg-light text-muted fw-bold">Rp</span>
+                        <input type="text" class="form-control fw-semibold cost-display-input fs-6" value="80.000" required oninput="formatRupiahInput(this); calculateTotals();">
+                        <input type="hidden" name="items[{INDEX}][unit_cost_price]" class="cost-raw-input" value="80000">
+                    </div>
+                </div>
+
+                <div class="col-md-3 col-6">
+                    <label class="form-label fw-semibold small text-muted text-uppercase mb-1">Harga Jual Toko <span class="text-danger">*</span></label>
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text bg-light text-muted fw-bold">Rp</span>
+                        <input type="text" class="form-control fw-semibold price-display-input fs-6" value="100.000" required oninput="formatRupiahInput(this); calculateTotals();">
+                        <input type="hidden" name="items[{INDEX}][unit_selling_price]" class="price-raw-input" value="100000">
+                    </div>
+                </div>
+
+                <div class="col-md-3 col-6">
+                    <label class="form-label fw-semibold small text-muted text-uppercase mb-1">Subtotal Modal HPP</label>
+                    <div class="p-2 bg-light rounded-3 border text-end">
+                        <span class="fw-bold text-dark fs-6 subtotal-hpp-cell">Rp 8.000.000</span>
+                    </div>
+                </div>
             </div>
-        </td>
-        <td class="py-3 text-end fw-bold text-dark subtotal-hpp-cell">
-            Rp 8.000.000
-        </td>
-        <td class="text-center pe-4 py-3">
-            <button type="button" class="btn btn-sm btn-outline-danger border-0 btn-remove-row" onclick="removeRow(this)" title="Hapus Baris">
-                <i class="bi bi-trash fs-5"></i>
-            </button>
-        </td>
-    </tr>
+        </div>
+    </div>
 </template>
 
 @endsection
@@ -214,8 +226,9 @@ function formatRupiahInput(elem) {
 function initSelect2(elem) {
     $(elem).select2({
         theme: 'bootstrap-5',
-        placeholder: '-- Ketik Nama / SKU Produk (20rb Data) --',
+        placeholder: '-- Ketik Nama Panjang / SKU Produk (20rb Data) --',
         allowClear: true,
+        width: '100%',
         dropdownParent: $(elem).parent(),
         ajax: {
             url: "{{ route('supplier_consignments.search_products') }}",
@@ -236,12 +249,12 @@ function initSelect2(elem) {
         minimumInputLength: 1
     }).on('select2:select', function (e) {
         const data = e.params.data;
-        const row = this.closest('tr');
+        const card = this.closest('.item-card');
         if (data) {
-            const costDisplay = row.querySelector('.cost-display-input');
-            const costRaw     = row.querySelector('.cost-raw-input');
-            const priceDisplay= row.querySelector('.price-display-input');
-            const priceRaw    = row.querySelector('.price-raw-input');
+            const costDisplay = card.querySelector('.cost-display-input');
+            const costRaw     = card.querySelector('.cost-raw-input');
+            const priceDisplay= card.querySelector('.price-display-input');
+            const priceRaw    = card.querySelector('.price-raw-input');
 
             if (costDisplay && data.cost_price > 0) {
                 costRaw.value = data.cost_price;
@@ -257,31 +270,46 @@ function initSelect2(elem) {
 }
 
 function addRow() {
-    const template = document.getElementById('row-template').innerHTML;
-    const rowHtml = template.replaceAll('{INDEX}', rowIndex);
-    const container = document.getElementById('item-rows');
+    const template = document.getElementById('item-card-template').innerHTML;
+    const itemNumber = document.querySelectorAll('.item-card').length + 1;
+    let rowHtml = template.replaceAll('{INDEX}', rowIndex);
+    rowHtml = rowHtml.replaceAll('{ITEM_NUMBER}', itemNumber);
+    
+    const container = document.getElementById('item-blocks-container');
     container.insertAdjacentHTML('beforeend', rowHtml);
     
-    const newSelect = container.querySelectorAll('.product-select-ajax')[container.querySelectorAll('.product-select-ajax').length - 1];
+    const newCard = container.lastElementChild;
+    const newSelect = newCard.querySelector('.product-select-ajax');
     initSelect2(newSelect);
 
     rowIndex++;
+    updateItemNumbers();
     calculateTotals();
 }
 
-function removeRow(btn) {
-    const rows = document.querySelectorAll('#item-rows tr');
-    if (rows.length <= 1) {
+function removeItemCard(btn) {
+    const cards = document.querySelectorAll('.item-card');
+    if (cards.length <= 1) {
         Swal.fire({
             icon: 'warning',
             title: 'Perhatian',
-            text: 'Minimal satu baris produk konsinyasi harus diisikan.',
+            text: 'Minimal satu item produk konsinyasi harus diisikan.',
             confirmButtonColor: '#0d6efd'
         });
         return;
     }
-    btn.closest('tr').remove();
+    btn.closest('.item-card').remove();
+    updateItemNumbers();
     calculateTotals();
+}
+
+function updateItemNumbers() {
+    document.querySelectorAll('.item-card').forEach((card, idx) => {
+        const badge = card.querySelector('.badge');
+        if (badge) {
+            badge.innerHTML = `<i class="bi bi-box-seam me-1"></i> Item Barang #${idx + 1}`;
+        }
+    });
 }
 
 function calculateTotals() {
@@ -289,15 +317,15 @@ function calculateTotals() {
     let totalHpp = 0;
     let totalProfit = 0;
 
-    document.querySelectorAll('#item-rows tr').forEach(row => {
-        const qty   = parseFloat(row.querySelector('.qty-input')?.value || 0);
-        const cost  = parseFloat(row.querySelector('.cost-raw-input')?.value || 0);
-        const price = parseFloat(row.querySelector('.price-raw-input')?.value || 0);
+    document.querySelectorAll('.item-card').forEach(card => {
+        const qty   = parseFloat(card.querySelector('.qty-input')?.value || 0);
+        const cost  = parseFloat(card.querySelector('.cost-raw-input')?.value || 0);
+        const price = parseFloat(card.querySelector('.price-raw-input')?.value || 0);
         
         const subtotalHpp = (qty * cost);
         const profit = qty * (price - cost);
 
-        const subtotalCell = row.querySelector('.subtotal-hpp-cell');
+        const subtotalCell = card.querySelector('.subtotal-hpp-cell');
         if (subtotalCell) {
             subtotalCell.innerText = 'Rp ' + subtotalHpp.toLocaleString('id-ID');
         }
