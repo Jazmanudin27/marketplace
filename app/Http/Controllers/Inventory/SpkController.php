@@ -51,7 +51,7 @@ class SpkController extends Controller
             ->where('is_active', true)
             ->orderBy('name')
             ->with(['activeRecipe.items.inventoryItem', 'activeRecipe.labors'])
-            ->get(['id', 'tenant_id', 'name', 'sku', 'sku_induk', 'is_active']);
+            ->get();
 
         // Fetch latest SpkItem extras in ONE single query to eliminate N+1 loop slowness
         $productIds = $products->pluck('id')->toArray();

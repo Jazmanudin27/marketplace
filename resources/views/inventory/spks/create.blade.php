@@ -589,7 +589,8 @@
             @endif
 
             // Tambah item baru
-            $('#btnAddRow').on('click', function() {
+            $(document).on('click', '#btnAddRow', function(e) {
+                e.preventDefault();
                 addRow();
                 recalcGlobalSpkCosts();
             });
