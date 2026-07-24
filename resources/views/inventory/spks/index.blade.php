@@ -70,7 +70,7 @@
                         <th>Pemesan</th>
                         <th>Instansi</th>
                         <th>Total Pcs</th>
-                        <th>Penginput</th>
+                        <th>PIC Pembuat</th>
                         <th class="text-center">Aksi</th>
                     </tr>
                 </thead>
@@ -90,7 +90,7 @@
                             <td>
                                 <span class="badge bg-primary rounded-pill">{{ number_format($row->items->sum('quantity')) }} pcs</span>
                             </td>
-                            <td class="small text-muted">{{ $row->penginput->name ?? 'SYSTEM' }}</td>
+                            <td class="small text-dark fw-semibold"><i class="fas fa-user-circle text-primary me-1"></i>{{ $row->penginput->name ?? 'SYSTEM' }}</td>
                             <td class="text-center">
                                  <div class="d-flex justify-content-center gap-1">
                                     @can('spks.show')

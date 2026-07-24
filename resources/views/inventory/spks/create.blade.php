@@ -64,6 +64,11 @@
                                                 value="{{ old('deadline', date('Y-m-d', strtotime('+14 days'))) }}">
                                         </div>
                                         <div class="col-12">
+                                            <label class="form-label fw-semibold small mb-1">PIC / Pembuat SPK</label>
+                                            <input type="text" class="form-control form-control-sm bg-light text-muted fw-bold" readonly
+                                                value="{{ Auth::user()->name ?? '—' }}">
+                                        </div>
+                                        <div class="col-12">
                                             <label class="form-label fw-semibold small mb-1">Upload Foto Desain</label>
                                             <input type="file" name="image" class="form-control form-control-sm" accept="image/*">
                                             <small class="text-muted d-block mt-1" style="font-size:10px;">JPEG/PNG/JPG, maks 4MB</small>

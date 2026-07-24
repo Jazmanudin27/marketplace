@@ -85,8 +85,8 @@
                     <span class="text-truncate d-block">{{ $spk->instansi ?: '—' }}</span>
                 </div>
                 <div class="col-md-3 border-start border-secondary ps-3">
-                    <span class="text-white-50">Penginput:</span><br>
-                    <span class="text-truncate d-block">{{ $spk->penginput->name ?? 'SYSTEM' }}</span>
+                    <span class="text-white-50">PIC / Pembuat SPK:</span><br>
+                    <span class="text-truncate d-block text-warning fw-bold">{{ $spk->penginput->name ?? 'SYSTEM' }}</span>
                 </div>
             </div>
 
