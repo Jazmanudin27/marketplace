@@ -416,9 +416,6 @@
                         <span class="small fw-bold text-secondary" style="font-size:11px;">
                             <i class="fas fa-boxes text-primary me-1"></i>Komponen Biaya Produksi (BOM &amp; Jasa)
                         </span>
-                        <button type="button" class="btn btn-outline-primary btn-sm btn-add-extra py-0 px-2 fw-semibold" style="font-size:11px;">
-                            <i class="fas fa-plus me-1"></i> Tambah Baris Biaya
-                        </button>
                     </div>
                     <div class="extras-list mb-2"></div>
                 </div>
