@@ -49,27 +49,39 @@ class SpkController extends Controller
 
         $products = MasterProduct::where('tenant_id', $tenantId)
             ->where('is_active', true)
+            ->select(['id', 'tenant_id', 'name', 'sku', 'sku_induk', 'cost_price'])
+            ->with([
+                'activeRecipe:id,master_product_id,batch_qty',
+                'activeRecipe.items:id,product_recipe_id,inventory_item_id,quantity',
+                'activeRecipe.items.inventoryItem:id,name,unit,cost_price',
+                'activeRecipe.labors:id,product_recipe_id,service_name,default_cost'
+            ])
             ->orderBy('name')
-            ->with(['activeRecipe.items.inventoryItem', 'activeRecipe.labors'])
             ->get();
 
-        // Fetch latest SpkItem extras in ONE single query to eliminate N+1 loop slowness
+        // Optimized query: Only fetch the MAX(id) spk_item per product to avoid scanning entire spk_items table
         $productIds = $products->pluck('id')->toArray();
-        $latestItems = [];
+        $latestItems = collect();
         if (!empty($productIds)) {
-            $latestItems = SpkItem::with('extras')
-                ->whereHas('spk', function ($q) use ($tenantId) {
-                    $q->where('tenant_id', $tenantId);
-                })
-                ->whereIn('master_product_id', $productIds)
-                ->orderBy('id', 'desc')
-                ->get()
-                ->unique('master_product_id')
-                ->keyBy('master_product_id');
+            $latestSpkItemIds = DB::table('spk_items')
+                ->join('spks', 'spk_items.spk_id', '=', 'spks.id')
+                ->where('spks.tenant_id', $tenantId)
+                ->whereIn('spk_items.master_product_id', $productIds)
+                ->select(DB::raw('MAX(spk_items.id) as max_id'))
+                ->groupBy('spk_items.master_product_id')
+                ->pluck('max_id')
+                ->filter();
+
+            if ($latestSpkItemIds->isNotEmpty()) {
+                $latestItems = SpkItem::with('extras')
+                    ->whereIn('id', $latestSpkItemIds)
+                    ->get()
+                    ->keyBy('master_product_id');
+            }
         }
 
         foreach ($products as $product) {
-            $latestItem = $latestItems[$product->id] ?? null;
+            $latestItem = $latestItems->get($product->id);
 
             if ($latestItem && $latestItem->extras->count() > 0) {
                 $product->latest_costs = $latestItem->extras->map(function ($ex) {
