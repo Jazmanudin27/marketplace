@@ -448,6 +448,7 @@
 
         /* Responsive Layout */
         @media (max-width: 992px) {
+
             .auth-header,
             .auth-footer {
                 padding: 0 40px;
@@ -460,6 +461,7 @@
         }
 
         @media (max-width: 768px) {
+
             .auth-header,
             .auth-footer {
                 padding: 0 20px;
@@ -744,7 +746,8 @@
             <span>© {{ date('Y') }} ERP Marketplace. All rights reserved.</span>
         </div>
         <div class="footer-text">
-            <i class="fas fa-user-shield text-primary"></i> Dikelola oleh <strong>Jazmanudin</strong>
+            <i class="fas fa-user-shield text-primary"></i> Usaha ini dimiliki dan dikelola oleh
+            <strong>Jazmanudin</strong>
         </div>
     </footer>
 
