@@ -26,11 +26,6 @@ class MobileController extends Controller
         abort(403, 'Anda tidak memiliki akses ke dasbor mobile.');
     }
 
-    public function produksiDashboard(Request $request)
-    {
-        return $this->ownerSpk($request);
-    }
-
     public function ownerDashboard()
     {
         $tenantId = Auth::user()->tenant_id;
@@ -212,33 +207,9 @@ class MobileController extends Controller
         return back()->with('success', 'Permintaan produksi berhasil dikirim ke bagian produksi.');
     }
 
-    public function produksiDashboard()
+    public function produksiDashboard(Request $request)
     {
-        $tenantId = Auth::user()->tenant_id;
-
-        // Pending production orders
-        $pendingOrders = ProductionOrder::where('tenant_id', $tenantId)
-            ->with('masterProduct', 'requestedBy')
-            ->where('status', 'pending')
-            ->orderBy('created_at')
-            ->get();
-
-        // Active producing orders
-        $producingOrders = ProductionOrder::where('tenant_id', $tenantId)
-            ->with('masterProduct', 'requestedBy')
-            ->where('status', 'producing')
-            ->orderBy('updated_at')
-            ->get();
-
-        // Completed production orders
-        $completedOrders = ProductionOrder::where('tenant_id', $tenantId)
-            ->with('masterProduct', 'requestedBy')
-            ->whereIn('status', ['completed', 'cancelled'])
-            ->orderByDesc('updated_at')
-            ->limit(15)
-            ->get();
-
-        return view('mobile.produksi', compact('pendingOrders', 'producingOrders', 'completedOrders'));
+        return $this->ownerSpk($request);
     }
 
     public function produksiStart(ProductionOrder $order)
