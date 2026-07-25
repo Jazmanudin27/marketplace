@@ -99,52 +99,7 @@
                 </div>
             </div>
 
-            <!-- Rincian Produk & Pembagian Kerja (Matriks Ukuran) -->
-            <h5 class="fw-bold text-dark mb-3">
-                <i class="fas fa-table text-primary me-2"></i>Rincian Produk &amp; Pembagian Kerja
-            </h5>
-            <div class="table-responsive mb-4">
-                <table class="table table-bordered table-sm align-middle text-center mb-0">
-                    <thead class="table-light text-muted small">
-                        <tr>
-                            <th rowspan="2" class="align-middle text-start ps-3" style="width: 25%;">Model Varian</th>
-                            <th colspan="{{ count($sizesHeader) }}">Size</th>
-                            <th rowspan="2" class="align-middle" style="width: 10%;">Total QTY</th>
-                        </tr>
-                        <tr>
-                            @foreach($sizesHeader as $sz)
-                                <th>{{ $sz }}</th>
-                            @endforeach
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @php $grandTotalQty = 0; @endphp
-                        @forelse($grouped as $model)
-                            <tr>
-                                <td class="text-start ps-3 fw-bold text-dark">{{ $model['model'] }}</td>
-                                @foreach($sizesHeader as $sz)
-                                    @php
-                                        $szKey = $sz === 'XXXL' ? '3XL' : $sz;
-                                    @endphp
-                                    <td>
-                                        @if(isset($model['sizes'][$szKey]) && $model['sizes'][$szKey] > 0)
-                                            <span class="fw-semibold text-dark">{{ $model['sizes'][$szKey] }}</span>
-                                        @else
-                                            <span class="text-muted opacity-50">—</span>
-                                        @endif
-                                    </td>
-                                @endforeach
-                                <td class="bg-danger-subtle fw-bold text-danger">{{ $model['total'] }}</td>
-                            </tr>
-                            @php $grandTotalQty += $model['total']; @endphp
-                        @empty
-                            <tr>
-                                <td colspan="{{ count($sizesHeader) + 2 }}" class="text-center py-3 text-muted">Tidak ada data produk.</td>
-                            </tr>
-                        @endforelse
-                    </tbody>
-                </table>
-            </div>
+
 
             <!-- Rincian HPP Produksi (Internal Office / Authorized Roles Only) -->
             @if(auth()->user()->isSuperAdmin() || auth()->user()->role === 'admin' || auth()->user()->hasRole('admin') || auth()->user()->can('spks.view_hpp'))
