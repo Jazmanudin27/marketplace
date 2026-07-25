@@ -618,9 +618,12 @@
         $('#progresEditorModal').modal('show');
     });
 
-    $('#btnSaveProgres').on('click', function() {
+    $(document).on('click', '#btnSaveProgres', function() {
+        const btn = $(this);
         const qtyDone = parseInt($('#progresQtyInput').val());
         if (!activePgUrl || isNaN(qtyDone)) return;
+
+        btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i> Menyimpan...');
 
         $.ajax({
             url: activePgUrl,
@@ -630,23 +633,17 @@
                 qty_done: qtyDone,
             },
             success: function(res) {
-                if (res.success && activeBadge) {
-                    const total = activeBadge.data('qty-total');
-                    activeBadge.text(res.qty_done + '/' + total);
-                    const done = res.qty_done;
-                    activeBadge.removeClass('bg-success bg-warning bg-secondary text-dark');
-                    if (done >= total) {
-                        activeBadge.addClass('bg-success');
-                    } else if (done > 0) {
-                        activeBadge.addClass('bg-warning text-dark');
-                    } else {
-                        activeBadge.addClass('bg-secondary');
-                    }
+                if (res.success) {
                     $('#progresEditorModal').modal('hide');
+                    location.reload();
+                } else {
+                    btn.prop('disabled', false).html('<i class="fas fa-check me-1"></i> Simpan');
+                    alert('Gagal menyimpan progres.');
                 }
             },
-            error: function() {
-                alert('Gagal menyimpan progres. Coba lagi.');
+            error: function(xhr) {
+                btn.prop('disabled', false).html('<i class="fas fa-check me-1"></i> Simpan');
+                alert('Gagal menyimpan progres. Pastikan koneksi aman.');
             }
         });
     });
