@@ -69,10 +69,16 @@
                     Isi kolom <strong class="text-primary">Stok Fisik (Opname)</strong> sesuai hasil hitung fisik di gudang. Kosongkan jika barang tidak dihitung.
                 </small>
             </div>
-            <a href="{{ route('stock_opnames.index') }}"
-                class="btn btn-outline-secondary btn-sm d-inline-flex align-items-center gap-1">
-                <i class="fas fa-arrow-left"></i> Riwayat Opname
-            </a>
+            <div class="d-flex gap-2">
+                <a href="{{ route('stock_opnames.import') }}"
+                    class="btn btn-outline-primary btn-sm d-inline-flex align-items-center gap-1">
+                    <i class="fas fa-file-import"></i> Import Opname
+                </a>
+                <a href="{{ route('stock_opnames.index') }}"
+                    class="btn btn-outline-secondary btn-sm d-inline-flex align-items-center gap-1">
+                    <i class="fas fa-arrow-left"></i> Riwayat Opname
+                </a>
+            </div>
         </div>
 
         <div class="card-body">

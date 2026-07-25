@@ -157,12 +157,13 @@
         <thead>
             <tr>
                 <th width="3%" class="text-center">NO</th>
-                <th width="15%">SKU PRODUK</th>
-                <th width="22%">NAMA PRODUK</th>
-                <th width="10%" class="text-center">TIPE</th>
-                <th width="25%">KOMPONEN SET / BUNDLE</th>
-                <th width="9%" class="text-right">HPP (MODAL)</th>
-                <th width="9%" class="text-right">HARGA JUAL</th>
+                <th width="14%">SKU PRODUK</th>
+                <th width="20%">NAMA PRODUK</th>
+                <th width="10%">VARIAN</th>
+                <th width="8%" class="text-center">TIPE</th>
+                <th width="22%">KOMPONEN SET (SKU)</th>
+                <th width="8%" class="text-right">HPP (MODAL)</th>
+                <th width="8%" class="text-right">HARGA JUAL</th>
                 <th width="7%" class="text-center">STOK</th>
             </tr>
         </thead>
@@ -178,9 +179,9 @@
                     </td>
                     <td>
                         <strong>{{ $p->name }}</strong>
-                        @if($p->ukuran || $p->warna)
-                            <br><span style="color: #666; font-size: 9px;">{{ $p->ukuran }} {{ $p->warna }}</span>
-                        @endif
+                    </td>
+                    <td>
+                        {{ implode(' / ', array_filter([$p->ukuran, $p->warna])) ?: '-' }}
                     </td>
                     <td class="text-center">
                         @if($p->is_bundle)
@@ -189,14 +190,10 @@
                             <span class="badge-single">SINGLE</span>
                         @endif
                     </td>
-                    <td>
+                    <td class="font-mono">
                         @if($p->is_bundle)
                             @if($p->components->isNotEmpty())
-                                <ul class="component-list">
-                                    @foreach($p->components as $c)
-                                        <li>{{ $c->pivot->quantity }}x <span class="font-mono">{{ $c->sku }}</span> ({{ $c->name }})</li>
-                                    @endforeach
-                                </ul>
+                                {{ $p->components->map(fn($c) => ($c->pivot->quantity > 1 ? $c->pivot->quantity . 'x ' : '') . $c->sku)->implode(', ') }}
                             @else
                                 <span style="color: red; font-style: italic;">Belum ada komponen</span>
                             @endif
@@ -210,7 +207,7 @@
                 </tr>
             @empty
                 <tr>
-                    <td colspan="8" class="text-center" style="padding: 15px;">Tidak ada data produk.</td>
+                    <td colspan="9" class="text-center" style="padding: 15px;">Tidak ada data produk.</td>
                 </tr>
             @endforelse
         </tbody>

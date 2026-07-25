@@ -875,12 +875,12 @@ class ReportController extends Controller
                 'SKU Produk',
                 'SKU Induk',
                 'Nama Produk',
-                'Tipe Produk',
-                'Kategori',
-                'Merk',
                 'Ukuran',
                 'Warna',
-                'Detail Komponen (Jika Set/Bundle)',
+                'Tipe Produk',
+                'Komponen Set (SKU)',
+                'Kategori',
+                'Merk',
                 'HPP (Modal)',
                 'Harga Jual',
                 'Stok',
@@ -890,7 +890,7 @@ class ReportController extends Controller
             foreach ($products as $i => $p) {
                 $type = $p->is_bundle ? 'Set / Bundling' : 'Single';
                 $comps = $p->is_bundle 
-                    ? $p->components->map(fn($c) => "{$c->pivot->quantity}x {$c->sku} ({$c->name})")->implode(' + ')
+                    ? $p->components->map(fn($c) => ($c->pivot->quantity > 1 ? $c->pivot->quantity . 'x ' : '') . $c->sku)->implode(', ')
                     : '-';
 
                 fputcsv($file, [
@@ -898,12 +898,12 @@ class ReportController extends Controller
                     $p->sku,
                     $p->sku_induk ?? '-',
                     $p->name,
-                    $type,
-                    $p->category->name ?? '-',
-                    $p->brand->name ?? '-',
                     $p->ukuran ?? '-',
                     $p->warna ?? '-',
+                    $type,
                     $comps,
+                    $p->category->name ?? '-',
+                    $p->brand->name ?? '-',
                     $p->cost_price,
                     $p->price,
                     $p->stock,

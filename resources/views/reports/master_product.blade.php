@@ -138,11 +138,12 @@
                     <thead class="table-light">
                         <tr>
                             <th class="text-center" style="width: 40px;">NO</th>
-                            <th style="width: 160px;">SKU VARIASI</th>
+                            <th style="width: 150px;">SKU VARIASI</th>
                             <th>NAMA PRODUK</th>
-                            <th class="text-center" style="width: 130px;">TIPE PRODUK</th>
-                            <th>DETAIL KOMPONEN SET</th>
-                            <th style="width: 130px;">KATEGORI / MERK</th>
+                            <th style="width: 120px;">VARIAN</th>
+                            <th class="text-center" style="width: 110px;">TIPE PRODUK</th>
+                            <th>KOMPONEN SET (SKU)</th>
+                            <th style="width: 120px;">KATEGORI / MERK</th>
                             <th class="text-end" style="width: 110px;">HPP (MODAL)</th>
                             <th class="text-end" style="width: 110px;">HARGA JUAL</th>
                             <th class="text-center" style="width: 80px;">STOK</th>
@@ -161,11 +162,15 @@
                                 </td>
                                 <td>
                                     <div class="fw-semibold text-dark">{{ $product->name }}</div>
+                                </td>
+                                <td>
                                     @if($product->ukuran || $product->warna)
-                                        <small class="text-muted">
-                                            @if($product->ukuran) Sz: <strong>{{ $product->ukuran }}</strong> @endif
-                                            @if($product->warna) Wrn: <strong>{{ $product->warna }}</strong> @endif
-                                        </small>
+                                        <div class="small">
+                                            @if($product->ukuran)<span class="badge bg-light text-dark border me-1">{{ $product->ukuran }}</span>@endif
+                                            @if($product->warna)<span class="badge bg-light text-dark border">{{ $product->warna }}</span>@endif
+                                        </div>
+                                    @else
+                                        <span class="text-muted opacity-50">—</span>
                                     @endif
                                 </td>
                                 <td class="text-center">
@@ -182,15 +187,13 @@
                                 <td>
                                     @if($product->is_bundle)
                                         @if($product->components->isNotEmpty())
-                                            <ul class="list-unstyled mb-0 small">
+                                            <div class="d-flex flex-wrap gap-1 align-items-center">
                                                 @foreach($product->components as $comp)
-                                                    <li class="mb-1">
-                                                        <span class="badge bg-secondary font-monospace me-1">{{ $comp->pivot->quantity }}x</span>
-                                                        <code class="text-dark font-monospace fw-semibold">{{ $comp->sku }}</code>
-                                                        <span class="text-muted">({{ $comp->name }})</span>
-                                                    </li>
+                                                    <span class="badge bg-light text-dark border font-monospace" title="{{ $comp->name }}">
+                                                        @if($comp->pivot->quantity > 1)<strong class="text-primary">{{ $comp->pivot->quantity }}x</strong> @endif{{ $comp->sku }}
+                                                    </span>
                                                 @endforeach
-                                            </ul>
+                                            </div>
                                         @else
                                             <span class="text-danger small"><i class="fas fa-exclamation-triangle me-1"></i>Belum set komponen!</span>
                                         @endif

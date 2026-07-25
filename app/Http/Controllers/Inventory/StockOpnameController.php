@@ -116,4 +116,164 @@ class StockOpnameController extends Controller
 
         return redirect()->route('stock_opnames.index')->with('success', "Stock Opname berhasil disimpan. Terdapat {$changesCount} produk yang disesuaikan pada tanggal {$request->opname_date} oleh {$request->pic}.");
     }
+
+    public function importForm()
+    {
+        return view('inventory.stock_opnames.import');
+    }
+
+    public function downloadTemplate()
+    {
+        $csvContent = "SKU,Jumlah\nPROD-001,50\nPROD-002,120\nPROD-003,0\n";
+
+        return response($csvContent, 200, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="template_import_stok_opname.csv"',
+        ]);
+    }
+
+    public function importStore(Request $request)
+    {
+        $tenantId = Auth::user()->tenant_id;
+
+        $request->validate([
+            'file' => 'required|file|max:10240',
+            'opname_date' => 'required|date',
+            'pic' => 'required|string|max:255',
+        ]);
+
+        $file = $request->file('file');
+        $path = $file->getRealPath();
+
+        $content = file_get_contents($path);
+
+        // Remove UTF-8 BOM
+        if (substr($content, 0, 3) === "\xEF\xBB\xBF") {
+            $content = substr($content, 3);
+        }
+
+        $lines = preg_split('/\r\n|\r|\n/', trim($content));
+        if (empty($lines)) {
+            return redirect()->back()->with('error', 'File yang diunggah kosong.');
+        }
+
+        $firstLine = $lines[0];
+        $delimiters = [',', ';', "\t", '|'];
+        $chosenDelimiter = ',';
+        $maxCount = 0;
+        foreach ($delimiters as $delim) {
+            $count = substr_count($firstLine, $delim);
+            if ($count > $maxCount) {
+                $maxCount = $count;
+                $chosenDelimiter = $delim;
+            }
+        }
+
+        $rows = [];
+        foreach ($lines as $line) {
+            if (trim($line) === '') continue;
+            $rows[] = str_getcsv($line, $chosenDelimiter);
+        }
+
+        if (empty($rows)) {
+            return redirect()->back()->with('error', 'Tidak ada baris data yang valid ditemukan dalam berkas.');
+        }
+
+        $skuCol = 0;
+        $qtyCol = 1;
+
+        $firstRow = array_map('strtolower', array_map('trim', $rows[0]));
+        $hasHeader = false;
+
+        foreach ($firstRow as $idx => $headerName) {
+            $cleanHeader = preg_replace('/[^a-z0-9_]/', '', $headerName);
+            if (in_array($cleanHeader, ['sku', 'kode', 'kode_barang', 'skuinbuk', 'kodeproduk', 'product_sku'])) {
+                $skuCol = $idx;
+                $hasHeader = true;
+            }
+            if (in_array($cleanHeader, ['jumlah', 'stok', 'qty', 'quantity', 'stok_fisik', 'actual_stock', 'jumlah_fisik', 'stokfisik'])) {
+                $qtyCol = $idx;
+                $hasHeader = true;
+            }
+        }
+
+        $startIndex = $hasHeader ? 1 : 0;
+
+        $date = \Carbon\Carbon::parse($request->opname_date)->format('Y-m-d H:i:s');
+        $reference = 'Stock Opname Massal - ' . $request->pic;
+
+        $changesCount = 0;
+        $unchangedCount = 0;
+        $errors = [];
+        $processedSkus = [];
+
+        for ($i = $startIndex; $i < count($rows); $i++) {
+            $row = $rows[$i];
+            $rowNum = $i + 1;
+
+            if (!isset($row[$skuCol]) || trim($row[$skuCol]) === '') {
+                continue;
+            }
+
+            $sku = trim($row[$skuCol]);
+            $rawQty = isset($row[$qtyCol]) ? trim($row[$qtyCol]) : null;
+
+            if ($rawQty === null || $rawQty === '') {
+                $errors[] = "Baris #{$rowNum}: SKU {$sku} dilewati (kolom Jumlah kosong).";
+                continue;
+            }
+
+            $cleanQtyStr = str_replace([' ', ','], ['', ''], $rawQty);
+            if (!is_numeric($cleanQtyStr)) {
+                $errors[] = "Baris #{$rowNum}: SKU {$sku} memiliki format Jumlah tidak valid ('{$rawQty}').";
+                continue;
+            }
+
+            $actualStock = (int) round((float) $cleanQtyStr);
+            if ($actualStock < 0) {
+                $errors[] = "Baris #{$rowNum}: SKU {$sku} memiliki Jumlah negatif ('{$rawQty}').";
+                continue;
+            }
+
+            $product = MasterProduct::where('tenant_id', $tenantId)
+                ->where('sku', $sku)
+                ->first();
+
+            if (!$product) {
+                $errors[] = "Baris #{$rowNum}: SKU '{$sku}' tidak ditemukan di sistem.";
+                continue;
+            }
+
+            if (in_array($product->id, $processedSkus)) {
+                $errors[] = "Baris #{$rowNum}: SKU '{$sku}' ganda/duplikat dalam berkas, hanya baris pertama yang diproses.";
+                continue;
+            }
+
+            $processedSkus[] = $product->id;
+            $difference = $actualStock - $product->stock;
+
+            if ($difference != 0) {
+                $product->recordStockMovement(
+                    $difference,
+                    'adj',
+                    $reference,
+                    Auth::id(),
+                    $date
+                );
+                $changesCount++;
+            } else {
+                $unchangedCount++;
+            }
+        }
+
+        $summaryMessage = "Import Stok Opname Selesai. {$changesCount} produk disesuaikan, {$unchangedCount} produk stoknya sesuai.";
+
+        if (!empty($errors)) {
+            return redirect()->route('stock_opnames.index')
+                ->with('success', $summaryMessage)
+                ->with('import_errors', $errors);
+        }
+
+        return redirect()->route('stock_opnames.index')->with('success', $summaryMessage);
+    }
 }

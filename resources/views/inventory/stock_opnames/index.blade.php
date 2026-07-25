@@ -4,6 +4,18 @@
 
 @section('content')
 
+    @if(session('import_errors') && count(session('import_errors')) > 0)
+        <div class="alert alert-warning alert-dismissible fade show shadow-sm border-0 mb-4" role="alert">
+            <div class="fw-bold mb-1"><i class="fas fa-exclamation-triangle me-1"></i> Catatan Proses Import:</div>
+            <ul class="mb-0 small ps-3">
+                @foreach(session('import_errors') as $err)
+                    <li>{{ $err }}</li>
+                @endforeach
+            </ul>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    @endif
+
     {{-- Filter Card --}}
     <div class="card mb-4 border-0 shadow-sm">
         <div class="card-body py-3">
@@ -56,9 +68,13 @@
                     class="btn btn-outline-secondary btn-sm d-inline-flex align-items-center gap-1">
                     <i class="fas fa-arrow-left"></i> Inventory
                 </a>
+                <a href="{{ route('stock_opnames.import') }}"
+                    class="btn btn-outline-primary btn-sm d-inline-flex align-items-center gap-1">
+                    <i class="fas fa-file-import"></i> Import Opname
+                </a>
                 <a href="{{ route('stock_opnames.create') }}"
                     class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1">
-                    <i class="fas fa-plus"></i> Tambah Opname
+                    <i class="fas fa-plus"></i> Tambah Manual
                 </a>
             </div>
         </div>

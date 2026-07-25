@@ -232,7 +232,7 @@ class User extends Authenticatable
             'manage-offline-sales' => ['offline-sales.index', 'offline-sales.show', 'offline-sales.create', 'offline-sales.approve', 'offline-sales.complete', 'offline-sales.cancel', 'offline-sales.print'],
             'manage-chats' => ['chats.index', 'chats.show', 'chats.reply', 'chats.sync'],
             'manage-inventory' => [
-                'inventory.index', 'inventory.ledger', 'inventory.adjust', 'inventory.stock_sync', 'stock-opnames.index', 'stock-opnames.create',
+                'inventory.index', 'inventory.ledger', 'inventory.adjust', 'inventory.stock_sync', 'stock-opnames.index', 'stock-opnames.create', 'stock-opnames.import',
                 'goods-receipts.index', 'goods-receipts.create', 'goods-receipts.edit', 'goods-receipts.destroy',
                 'goods-issues.index', 'goods-issues.create', 'goods-issues.edit', 'goods-issues.destroy',
                 'purchase-returns.index', 'purchase-returns.create', 'purchase-returns.edit', 'purchase-returns.destroy',
