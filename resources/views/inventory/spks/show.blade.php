@@ -150,22 +150,16 @@
                     <thead class="table-light text-muted small">
                         <tr>
                             <th></th>
-                            <th class="text-start ps-3" style="width: 18%;">SKU Produk &amp; Size</th>
-                            <th style="width: 8%;">Tukang Potong</th>
-                            <th style="width: 8%;">Tukang Jahit</th>
-                            <th style="width: 12%;">Catatan Khusus</th>
-                            <th style="width: 6%;">Bahan / pcs</th>
-                            <th style="width: 6%;">Jasa / pcs</th>
-                            <th style="width: 6%;">HPP / Pcs</th>
-                            <th style="width: 4%;">Qty</th>
-                            {{-- Dynamic progress columns per proses --}}
-                            @foreach($spk->proses as $proses)
-                                <th style="min-width: 80px; font-size: 10px;" class="text-success">
-                                    <i class="fas fa-circle-notch me-1" style="font-size: 9px;"></i>{{ $proses->nama_proses }}
-                                </th>
-                            @endforeach
-                            <th style="width: 8%;">Subtotal HPP</th>
-                            <th style="width: 8%;">Status</th>
+                            <th class="text-start ps-3" style="width: 22%;">SKU Produk &amp; Size</th>
+                            <th style="width: 10%;">Tukang Potong</th>
+                            <th style="width: 10%;">Tukang Jahit</th>
+                            <th style="width: 15%;">Catatan Khusus</th>
+                            <th style="width: 8%;">Bahan / pcs</th>
+                            <th style="width: 8%;">Jasa / pcs</th>
+                            <th style="width: 8%;">HPP / Pcs</th>
+                            <th style="width: 5%;">Qty</th>
+                            <th style="width: 10%;">Subtotal HPP</th>
+                            <th style="width: 10%;">Status</th>
                             <th style="width: 4%;">Edit</th>
                         </tr>
                     </thead>
@@ -210,29 +204,6 @@
                                 <td>Rp {{ number_format($totalJasa, 0, ',', '.') }}</td>
                                 <td class="bg-danger-subtle fw-bold text-danger">Rp {{ number_format($item->hpp, 0, ',', '.') }}</td>
                                 <td>{{ $item->quantity }}</td>
-                                {{-- Progress cells per proses --}}
-                                @foreach($spk->proses as $proses)
-                                    @php
-                                        $pg = $progresMap[$item->id][$proses->id] ?? null;
-                                        $qtyDone = $pg ? $pg->qty_done : 0;
-                                        $isFull  = $qtyDone >= $item->quantity;
-                                        $pgId    = $pg ? $pg->id : null;
-                                    @endphp
-                                    <td class="p-1">
-                                        @if($pgId)
-                                            <span
-                                                class="badge {{ $isFull ? 'bg-success' : ($qtyDone > 0 ? 'bg-warning text-dark' : 'bg-secondary') }} progres-badge fw-semibold"
-                                                style="font-size: 11px; cursor: pointer;"
-                                                data-pg-id="{{ $pgId }}"
-                                                data-qty-total="{{ $item->quantity }}"
-                                                data-update-url="{{ route('spks.progres.update', $pgId) }}"
-                                                title="Klik untuk update qty selesai"
-                                            >{{ $qtyDone }}/{{ $item->quantity }}</span>
-                                        @else
-                                            <span class="badge bg-light text-muted border" style="font-size: 10px;">—</span>
-                                        @endif
-                                    </td>
-                                @endforeach
                                 <td class="fw-bold">Rp {{ number_format($subtotal, 0, ',', '.') }}</td>
                                 <td>
                                     {{-- Status Selector Form --}}
@@ -330,15 +301,87 @@
                         <tr class="table-light fw-bold border-top border-2">
                             <td colspan="8" class="text-end pe-3 align-middle fs-6">Total Nilai HPP Produksi SPK:</td>
                             <td class="align-middle text-center fs-6 text-dark font-monospace">{{ number_format($spk->items->sum('quantity')) }} pcs</td>
-                            {{-- Empty cells for proses progress columns --}}
-                            @foreach($spk->proses as $proses)
-                                <td></td>
-                            @endforeach
                             <td class="align-middle text-end pe-3 text-primary fs-6 font-monospace">Rp {{ number_format($grandTotalHpp, 0, ',', '.') }}</td>
                             <td colspan="2"></td>
                         </tr>
                     </tbody>
                 </table>
+            </div>
+
+            <!-- Tracking Progress Tahapan Produksi (Separated Table) -->
+            <div class="card border shadow-sm rounded-3 mb-4 bg-white overflow-hidden">
+                <div class="card-header bg-white py-3 px-3 border-bottom d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="fw-bold mb-0 text-dark">
+                            <i class="fas fa-tasks text-success me-2"></i>Tracking Progress Tahapan Produksi
+                        </h6>
+                        <small class="text-muted">Klik pada badge angka (misal <span class="badge bg-warning text-dark">2/5</span>) untuk mengupdate jumlah item yang sudah selesai di tahapan tersebut secara real-time.</small>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-striped table-sm align-middle text-center mb-0" style="font-size: 12px;">
+                            <thead class="table-light text-muted">
+                                <tr>
+                                    <th class="text-start ps-3" style="width: 30%;">SKU Produk &amp; Ukuran</th>
+                                    <th style="width: 12%;">Total Qty</th>
+                                    @foreach($spk->proses as $proses)
+                                        <th class="text-success fw-bold">
+                                            <i class="fas fa-circle-notch me-1" style="font-size: 9px;"></i>{{ $proses->nama_proses }}
+                                        </th>
+                                    @endforeach
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @php
+                                    $prosesTotals = [];
+                                    foreach($spk->proses as $pr) { $prosesTotals[$pr->id] = 0; }
+                                @endphp
+                                @foreach($spk->items as $item)
+                                    <tr>
+                                        <td class="text-start ps-3 fw-bold text-dark font-monospace">
+                                            {{ $item->sku ?: ($item->sku_induk ?: $item->nama_produk) }}
+                                            <span class="badge bg-light text-dark border ms-1 font-monospace">{{ $item->ukuran ?: 'All Size' }}</span>
+                                        </td>
+                                        <td class="fw-bold text-dark">{{ $item->quantity }} pcs</td>
+                                        @foreach($spk->proses as $proses)
+                                            @php
+                                                $pg = $progresMap[$item->id][$proses->id] ?? null;
+                                                $qtyDone = $pg ? $pg->qty_done : 0;
+                                                $isFull  = $qtyDone >= $item->quantity;
+                                                $pgId    = $pg ? $pg->id : null;
+                                                $prosesTotals[$proses->id] += $qtyDone;
+                                            @endphp
+                                            <td class="p-2">
+                                                @if($pgId)
+                                                    <span
+                                                        class="badge {{ $isFull ? 'bg-success' : ($qtyDone > 0 ? 'bg-warning text-dark' : 'bg-secondary') }} progres-badge fw-bold px-2 py-1"
+                                                        style="font-size: 11px; cursor: pointer;"
+                                                        data-pg-id="{{ $pgId }}"
+                                                        data-qty-total="{{ $item->quantity }}"
+                                                        data-update-url="{{ route('spks.progres.update', $pgId) }}"
+                                                        title="Klik untuk update qty selesai"
+                                                    >{{ $qtyDone }} / {{ $item->quantity }}</span>
+                                                @else
+                                                    <span class="badge bg-light text-muted border" style="font-size: 10px;">—</span>
+                                                @endif
+                                            </td>
+                                        @endforeach
+                                    </tr>
+                                @endforeach
+                                <tr class="table-light fw-bold">
+                                    <td class="text-end pe-3">Total Selesai Tahapan:</td>
+                                    <td>{{ number_format($spk->items->sum('quantity')) }} pcs</td>
+                                    @foreach($spk->proses as $proses)
+                                        <td class="text-success font-monospace fs-7">
+                                            {{ number_format($prosesTotals[$proses->id] ?? 0) }} / {{ number_format($spk->items->sum('quantity')) }} pcs
+                                        </td>
+                                    @endforeach
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
             @endif
 
