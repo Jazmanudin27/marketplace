@@ -69,6 +69,14 @@
     </style>
 </head>
 <body>
+    <div class="no-print" style="margin-bottom: 12px; padding: 8px 12px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px; display: flex; justify-content: space-between; align-items: center;">
+        <span style="font-size: 11px; font-weight: bold; color: #334155;">
+            💡 Pratinjau Dokumen SPK. Tekan <strong>Ctrl + P</strong> atau klik tombol di samping untuk mencetak.
+        </span>
+        <button type="button" onclick="window.print()" style="padding: 5px 12px; background: #2563eb; color: #fff; border: none; border-radius: 4px; font-weight: bold; font-size: 11px; cursor: pointer;">
+            🖨️ Cetak SPK (Ctrl+P)
+        </button>
+    </div>
     
     <div class="page-header">Arsip Lembar SPK Kantor</div>
 
@@ -318,10 +326,5 @@
 
     <div class="page-num">Dokumen Cetak SPK</div>
 
-    <script>
-        window.onload = function() {
-            window.print();
-        }
-    </script>
 </body>
 </html>
