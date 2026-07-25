@@ -146,8 +146,8 @@
                 </table>
             </div>
 
-            <!-- Rincian HPP Produksi (Internal Office Only) -->
-            @if(auth()->user()->isSuperAdmin() || auth()->user()->role === 'admin' || auth()->user()->hasRole('admin'))
+            <!-- Rincian HPP Produksi (Internal Office / Authorized Roles Only) -->
+            @if(auth()->user()->isSuperAdmin() || auth()->user()->role === 'admin' || auth()->user()->hasRole('admin') || auth()->user()->can('spks.view_hpp'))
             <div class="d-flex justify-content-between align-items-center mb-3 mt-4">
                 <h5 class="fw-bold text-dark mb-0">
                     <i class="fas fa-calculator text-primary me-2"></i>Rincian HPP Produksi
@@ -567,7 +567,7 @@
             @endif
 
             <!-- Setting Biaya SPK di Akhir (Tambahan Jasa & Bahan / Material) -->
-            @if(auth()->user()->isSuperAdmin() || auth()->user()->role === 'admin' || auth()->user()->hasRole('admin'))
+            @if(auth()->user()->isSuperAdmin() || auth()->user()->role === 'admin' || auth()->user()->hasRole('admin') || auth()->user()->can('spks.edit_costs'))
             <div class="card border shadow-sm rounded-3 mb-4">
                 <div class="card-header bg-white py-3 px-3 border-bottom d-flex justify-content-between align-items-center">
                     <div>
