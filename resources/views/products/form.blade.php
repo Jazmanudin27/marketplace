@@ -421,7 +421,7 @@
                             </div>
                         </div>
 
-                        <div class="mb-3">
+                        <div class="mb-3 d-none">
                             <label for="description" class="form-label form-label-sm fw-semibold">Deskripsi Produk</label>
                             <textarea id="description" name="description" class="form-control form-control-sm" rows="6"
                                 placeholder="Deskripsi lengkap produk...">{{ old('description', $product->description ?? '') }}</textarea>
