@@ -54,7 +54,7 @@
             background-color: var(--bg-primary);
             color: var(--text-main);
             margin: 0;
-            padding-bottom: 110px; /* Enhanced space for floating bottom nav */
+            padding-bottom: @if(in_array(Auth::user()->role ?? '', ['production', 'produksi', 'admin_produksi'])) 20px @else 110px @endif; /* Enhanced space for floating bottom nav */
             overflow-x: hidden;
             -webkit-tap-highlight-color: transparent;
         }
@@ -470,48 +470,50 @@
         @yield('content')
     </main>
 
-    <!-- Bottom Navigation Bar -->
-    <nav class="bottom-nav">
-        <!-- Tab Owner -->
-        @if(in_array($role, ['admin', 'owner', 'finance']))
-            <a href="{{ route('mobile.owner') }}" class="nav-item-custom {{ $isOwnerActive ? 'active' : '' }}">
-                <i class="fas fa-home"></i>
-                <span>Home</span>
-            </a>
-            <a href="{{ route('mobile.owner.sales') }}" class="nav-item-custom {{ $isSalesActive ? 'active' : '' }}">
-                <i class="fas fa-shopping-cart"></i>
-                <span>Penjualan</span>
-            </a>
-            <a href="{{ route('mobile.owner.stok_produk') }}" class="nav-item-custom {{ $isStokProdukActive ? 'active' : '' }}">
-                <i class="fas fa-box-open"></i>
-                <span>Stok Produk</span>
-            </a>
-            <a href="{{ route('mobile.owner.stok_barang') }}" class="nav-item-custom {{ $isStokBarangActive ? 'active' : '' }}">
-                <i class="fas fa-scroll"></i>
-                <span>Stok Barang</span>
-            </a>
-        @endif
+    <!-- Bottom Navigation Bar (Hidden for dedicated production roles) -->
+    @if(!in_array($role, ['production', 'produksi', 'admin_produksi']))
+        <nav class="bottom-nav">
+            <!-- Tab Owner -->
+            @if(in_array($role, ['admin', 'owner', 'finance']))
+                <a href="{{ route('mobile.owner') }}" class="nav-item-custom {{ $isOwnerActive ? 'active' : '' }}">
+                    <i class="fas fa-home"></i>
+                    <span>Home</span>
+                </a>
+                <a href="{{ route('mobile.owner.sales') }}" class="nav-item-custom {{ $isSalesActive ? 'active' : '' }}">
+                    <i class="fas fa-shopping-cart"></i>
+                    <span>Penjualan</span>
+                </a>
+                <a href="{{ route('mobile.owner.stok_produk') }}" class="nav-item-custom {{ $isStokProdukActive ? 'active' : '' }}">
+                    <i class="fas fa-box-open"></i>
+                    <span>Stok Produk</span>
+                </a>
+                <a href="{{ route('mobile.owner.stok_barang') }}" class="nav-item-custom {{ $isStokBarangActive ? 'active' : '' }}">
+                    <i class="fas fa-scroll"></i>
+                    <span>Stok Barang</span>
+                </a>
+            @endif
 
-        <!-- Tab Gudang (For non-owner roles) -->
-        @if(!in_array($role, ['owner']) && in_array($role, ['admin', 'warehouse', 'gudang']))
-            <a href="{{ route('mobile.gudang') }}" class="nav-item-custom {{ $isGudangActive ? 'active' : '' }}">
-                <i class="fas fa-warehouse"></i>
-                <span>Gudang</span>
-            </a>
-            <a href="{{ route('mobile.gudang.scan') }}" class="nav-item-custom {{ $isScanActive ? 'active' : '' }}">
-                <i class="fas fa-barcode"></i>
-                <span>Scan SKU</span>
-            </a>
-        @endif
+            <!-- Tab Gudang (For non-owner roles) -->
+            @if(!in_array($role, ['owner']) && in_array($role, ['admin', 'warehouse', 'gudang']))
+                <a href="{{ route('mobile.gudang') }}" class="nav-item-custom {{ $isGudangActive ? 'active' : '' }}">
+                    <i class="fas fa-warehouse"></i>
+                    <span>Gudang</span>
+                </a>
+                <a href="{{ route('mobile.gudang.scan') }}" class="nav-item-custom {{ $isScanActive ? 'active' : '' }}">
+                    <i class="fas fa-barcode"></i>
+                    <span>Scan SKU</span>
+                </a>
+            @endif
 
-        <!-- Tab Produksi (For non-owner roles) -->
-        @if(!in_array($role, ['owner']) && in_array($role, ['admin', 'production', 'produksi', 'admin_produksi']))
-            <a href="{{ route('mobile.produksi') }}" class="nav-item-custom {{ $isProduksiActive ? 'active' : '' }}">
-                <i class="fas fa-tools"></i>
-                <span>Produksi</span>
-            </a>
-        @endif
-    </nav>
+            <!-- Tab Produksi (For non-owner roles) -->
+            @if(!in_array($role, ['owner']) && in_array($role, ['admin', 'production', 'produksi', 'admin_produksi']))
+                <a href="{{ route('mobile.produksi') }}" class="nav-item-custom {{ $isProduksiActive ? 'active' : '' }}">
+                    <i class="fas fa-tools"></i>
+                    <span>Produksi</span>
+                </a>
+            @endif
+        </nav>
+    @endif
 
     <!-- Bootstrap 5 Bundle JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
