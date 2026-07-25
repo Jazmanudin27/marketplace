@@ -99,166 +99,169 @@
                 </div>
             </div>
 
-
-
             <!-- Rincian HPP Produksi (Internal Office / Authorized Roles Only) -->
             @if(auth()->user()->isSuperAdmin() || auth()->user()->role === 'admin' || auth()->user()->hasRole('admin') || auth()->user()->can('spks.view_hpp'))
-            <div class="d-flex justify-content-between align-items-center mb-3 mt-4">
-                <h5 class="fw-bold text-dark mb-0">
-                    <i class="fas fa-calculator text-primary me-2"></i>Rincian HPP Produksi
-                    <span class="badge bg-danger-subtle text-danger" style="font-size: 11px;">Internal Office Only</span>
-                </h5>
+            <div class="card border shadow-sm rounded-3 mb-4 bg-white overflow-hidden">
+                <div class="card-header bg-white py-3 px-3 border-bottom d-flex justify-content-between align-items-center">
+                    <h6 class="fw-bold mb-0 text-dark">
+                        <i class="fas fa-calculator text-primary me-2"></i>Rincian HPP Produksi
+                        <span class="badge bg-danger-subtle text-danger ms-2" style="font-size: 11px;">Internal Office Only</span>
+                    </h6>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover align-middle text-center mb-0" style="font-size: 13px;">
+                            <thead class="table-light text-muted small">
+                                <tr>
+                                    <th class="py-2.5" style="width: 30px;"></th>
+                                    <th class="text-start ps-3 py-2.5">SKU Produk &amp; Size</th>
+                                    <th class="py-2.5">Tukang Potong</th>
+                                    <th class="py-2.5">Tukang Jahit</th>
+                                    <th class="text-start py-2.5">Catatan Khusus</th>
+                                    <th class="py-2.5" style="white-space: nowrap;">Bahan / pcs</th>
+                                    <th class="py-2.5" style="white-space: nowrap;">Jasa / pcs</th>
+                                    <th class="py-2.5" style="white-space: nowrap;">HPP / Pcs</th>
+                                    <th class="py-2.5">Qty</th>
+                                    <th class="py-2.5" style="white-space: nowrap;">Subtotal HPP</th>
+                                    <th class="py-2.5" style="width: 50px;">Edit</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @php $grandTotalHpp = 0; @endphp
+                                @foreach($spk->items as $item)
+                                    @php
+                                        $subtotal = $item->hpp * $item->quantity;
+                                        $grandTotalHpp += $subtotal;
+
+                                        $totalBahan = 0;
+                                        $totalJasa = 0;
+                                        $materials = [];
+                                        $services = [];
+                                        foreach($item->extras as $ex) {
+                                            $desc = strtolower($ex->keterangan);
+                                            if (str_starts_with($desc, 'bahan:') || str_contains($desc, 'bahan')) {
+                                                $totalBahan += (float)$ex->nominal;
+                                                $materials[] = $ex;
+                                            } else {
+                                                $totalJasa += (float)$ex->nominal;
+                                                $services[] = $ex;
+                                            }
+                                        }
+                                    @endphp
+                                    
+                                    <!-- Main Row -->
+                                    <tr>
+                                        <td class="py-2.5">
+                                            <button class="btn btn-link btn-sm p-0 m-0 text-decoration-none" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-details-{{ $item->id }}" aria-expanded="false">
+                                                <i class="fas fa-chevron-down text-secondary" style="font-size: 11px;"></i>
+                                            </button>
+                                        </td>
+                                        <td class="text-start ps-3 py-2.5 fw-bold text-dark font-monospace" style="white-space: nowrap;">
+                                            {{ $item->sku ?: ($item->sku_induk ?: $item->nama_produk) }}
+                                            <span class="badge bg-light text-dark border ms-1 small font-monospace">{{ $item->ukuran ?: 'All Size' }}</span>
+                                        </td>
+                                        <td class="py-2.5"><span class="badge bg-info-subtle text-info border font-monospace px-2 py-1">{{ $item->pemotong ?: '—' }}</span></td>
+                                        <td class="py-2.5"><span class="badge bg-primary-subtle text-primary border font-monospace px-2 py-1">{{ $item->penjahit ?: '—' }}</span></td>
+                                        <td class="text-start small text-muted py-2.5">{{ $item->catatan ?: '—' }}</td>
+                                        <td class="py-2.5" style="white-space: nowrap;">Rp {{ number_format($totalBahan, 0, ',', '.') }}</td>
+                                        <td class="py-2.5" style="white-space: nowrap;">Rp {{ number_format($totalJasa, 0, ',', '.') }}</td>
+                                        <td class="bg-danger-subtle fw-bold text-danger py-2.5" style="white-space: nowrap;">Rp {{ number_format($item->hpp, 0, ',', '.') }}</td>
+                                        <td class="py-2.5 fw-semibold">{{ $item->quantity }}</td>
+                                        <td class="fw-bold py-2.5 text-primary" style="white-space: nowrap;">Rp {{ number_format($subtotal, 0, ',', '.') }}</td>
+                                        <td class="py-2.5">
+                                            <button type="button" class="btn btn-xs btn-outline-primary py-1 px-2" data-bs-toggle="modal" data-bs-target="#editItemModal-{{ $item->id }}" title="Edit Potong, Jahit & Catatan">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+
+                                            <!-- Modal Edit Item Details -->
+                                            <div class="modal fade text-start" id="editItemModal-{{ $item->id }}" tabindex="-1" aria-hidden="true">
+                                                <div class="modal-dialog modal-dialog-centered">
+                                                    <form action="{{ route('spks.items.update_details', $item->id) }}" method="POST" class="modal-content">
+                                                        @csrf
+                                                        <div class="modal-header bg-light py-2">
+                                                            <h6 class="modal-title fw-bold text-dark"><i class="fas fa-edit me-1 text-primary"></i> Edit Detail Item: {{ $item->nama_produk }}</h6>
+                                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                        </div>
+                                                        <div class="modal-body p-3">
+                                                            <div class="mb-3">
+                                                                <label class="form-label small fw-semibold">Tukang Potong</label>
+                                                                <input type="text" name="pemotong" class="form-control form-control-sm" value="{{ $item->pemotong }}" placeholder="Nama tukang potong...">
+                                                            </div>
+                                                            <div class="mb-3">
+                                                                <label class="form-label small fw-semibold">Tukang Jahit</label>
+                                                                <input type="text" name="penjahit" class="form-control form-control-sm" value="{{ $item->penjahit }}" placeholder="Nama tukang jahit...">
+                                                            </div>
+                                                            <div class="mb-3">
+                                                                <label class="form-label small fw-semibold">Catatan Khusus / Variasi (Panjang/Pendek, Custom Size)</label>
+                                                                <textarea name="catatan" class="form-control form-control-sm" rows="3" placeholder="Contoh: Lengan Panjang, Kancing Depan...">{{ $item->catatan }}</textarea>
+                                                            </div>
+                                                        </div>
+                                                        <div class="modal-footer py-2 bg-light">
+                                                            <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Batal</button>
+                                                            <button type="submit" class="btn btn-sm btn-primary fw-bold"><i class="fas fa-save me-1"></i> Simpan Perubahan</button>
+                                                        </div>
+                                                    </form>
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+
+                                    <!-- Collapsible Row for Details -->
+                                    <tr id="collapse-details-{{ $item->id }}" class="collapse bg-light-subtle">
+                                        <td colspan="11" class="p-3 border-top-0">
+                                            <div class="row text-start" style="font-size: 11px;">
+                                                <div class="col-md-6 border-end">
+                                                    <p class="fw-bold text-success border-bottom pb-1 mb-2">
+                                                        <i class="fas fa-boxes me-1"></i> Rincian Bahan Baku &amp; Kemasan
+                                                    </p>
+                                                    <table class="table table-sm table-borderless mb-0">
+                                                        @forelse($materials as $ex)
+                                                            <tr>
+                                                                <td class="text-muted p-0 py-1">{{ $ex->keterangan }}</td>
+                                                                <td class="text-end font-monospace fw-semibold p-0 py-1">Rp {{ number_format($ex->nominal, 0, ',', '.') }}</td>
+                                                            </tr>
+                                                        @empty
+                                                            <tr>
+                                                                <td colspan="2" class="text-muted text-center py-1">Tidak ada rincian bahan baku</td>
+                                                            </tr>
+                                                        @endforelse
+                                                    </table>
+                                                </div>
+                                                <div class="col-md-6 ps-md-4">
+                                                    <p class="fw-bold text-primary border-bottom pb-1 mb-2">
+                                                        <i class="fas fa-cut me-1"></i> Rincian Biaya Jasa &amp; Operasional
+                                                    </p>
+                                                    <table class="table table-sm table-borderless mb-0">
+                                                        @forelse($services as $ex)
+                                                            <tr>
+                                                                <td class="text-muted p-0 py-1">{{ $ex->keterangan }}</td>
+                                                                <td class="text-end font-monospace fw-semibold p-0 py-1">Rp {{ number_format($ex->nominal, 0, ',', '.') }}</td>
+                                                            </tr>
+                                                        @empty
+                                                            <tr>
+                                                                <td colspan="2" class="text-muted text-center py-1">Tidak ada rincian biaya jasa</td>
+                                                            </tr>
+                                                        @endforelse
+                                                    </table>
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                @endforeach
+
+                                <!-- HPP Grand Total -->
+                                <tr class="table-light fw-bold border-top border-2">
+                                    <td colspan="8" class="text-end pe-3 align-middle fs-6 py-3">Total Nilai HPP Produksi SPK:</td>
+                                    <td class="align-middle text-center fs-6 text-dark font-monospace py-3">{{ number_format($spk->items->sum('quantity')) }} pcs</td>
+                                    <td class="align-middle text-end pe-3 text-primary fs-6 font-monospace py-3" style="white-space: nowrap;">Rp {{ number_format($grandTotalHpp, 0, ',', '.') }}</td>
+                                    <td></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
-            <div class="table-responsive mb-4">
-                <table class="table table-bordered table-sm align-middle text-center mb-0">
-                    <thead class="table-light text-muted small">
-                        <tr>
-                            <th></th>
-                            <th class="text-start ps-3" style="width: 25%;">SKU Produk &amp; Size</th>
-                            <th style="width: 12%;">Tukang Potong</th>
-                            <th style="width: 12%;">Tukang Jahit</th>
-                            <th style="width: 18%;">Catatan Khusus</th>
-                            <th style="width: 8%;">Bahan / pcs</th>
-                            <th style="width: 8%;">Jasa / pcs</th>
-                            <th style="width: 8%;">HPP / Pcs</th>
-                            <th style="width: 5%;">Qty</th>
-                            <th style="width: 12%;">Subtotal HPP</th>
-                            <th style="width: 4%;">Edit</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @php $grandTotalHpp = 0; @endphp
-                        @foreach($spk->items as $item)
-                            @php
-                                $subtotal = $item->hpp * $item->quantity;
-                                $grandTotalHpp += $subtotal;
-
-                                $totalBahan = 0;
-                                $totalJasa = 0;
-                                $materials = [];
-                                $services = [];
-                                foreach($item->extras as $ex) {
-                                    $desc = strtolower($ex->keterangan);
-                                    if (str_starts_with($desc, 'bahan:') || str_contains($desc, 'bahan')) {
-                                        $totalBahan += (float)$ex->nominal;
-                                        $materials[] = $ex;
-                                    } else {
-                                        $totalJasa += (float)$ex->nominal;
-                                        $services[] = $ex;
-                                    }
-                                }
-                            @endphp
-                            
-                            <!-- Main Row -->
-                            <tr>
-                                <td>
-                                    <button class="btn btn-link btn-sm p-0 m-0 text-decoration-none" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-details-{{ $item->id }}" aria-expanded="false">
-                                        <i class="fas fa-chevron-down text-secondary" style="font-size: 11px;"></i>
-                                    </button>
-                                </td>
-                                <td class="text-start ps-3 fw-bold text-dark font-monospace">
-                                    {{ $item->sku ?: ($item->sku_induk ?: $item->nama_produk) }}
-                                    <span class="badge bg-light text-dark border ms-1 small font-monospace">{{ $item->ukuran ?: 'All Size' }}</span>
-                                </td>
-                                <td><span class="badge bg-info-subtle text-info border font-monospace">{{ $item->pemotong ?: '—' }}</span></td>
-                                <td><span class="badge bg-primary-subtle text-primary border font-monospace">{{ $item->penjahit ?: '—' }}</span></td>
-                                <td class="text-start small text-muted">{{ $item->catatan ?: '—' }}</td>
-                                <td>Rp {{ number_format($totalBahan, 0, ',', '.') }}</td>
-                                <td>Rp {{ number_format($totalJasa, 0, ',', '.') }}</td>
-                                <td class="bg-danger-subtle fw-bold text-danger">Rp {{ number_format($item->hpp, 0, ',', '.') }}</td>
-                                <td>{{ $item->quantity }}</td>
-                                <td class="fw-bold">Rp {{ number_format($subtotal, 0, ',', '.') }}</td>
-                                <td>
-                                    <button type="button" class="btn btn-xs btn-outline-primary py-0 px-2" data-bs-toggle="modal" data-bs-target="#editItemModal-{{ $item->id }}" title="Edit Potong, Jahit & Catatan">
-                                        <i class="fas fa-edit"></i>
-                                    </button>
-
-                                    <!-- Modal Edit Item Details -->
-                                    <div class="modal fade text-start" id="editItemModal-{{ $item->id }}" tabindex="-1" aria-hidden="true">
-                                        <div class="modal-dialog modal-dialog-centered">
-                                            <form action="{{ route('spks.items.update_details', $item->id) }}" method="POST" class="modal-content">
-                                                @csrf
-                                                <div class="modal-header bg-light py-2">
-                                                    <h6 class="modal-title fw-bold text-dark"><i class="fas fa-edit me-1 text-primary"></i> Edit Detail Item: {{ $item->nama_produk }}</h6>
-                                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                                </div>
-                                                <div class="modal-body p-3">
-                                                    <div class="mb-3">
-                                                        <label class="form-label small fw-semibold">Tukang Potong</label>
-                                                        <input type="text" name="pemotong" class="form-control form-control-sm" value="{{ $item->pemotong }}" placeholder="Nama tukang potong...">
-                                                    </div>
-                                                    <div class="mb-3">
-                                                        <label class="form-label small fw-semibold">Tukang Jahit</label>
-                                                        <input type="text" name="penjahit" class="form-control form-control-sm" value="{{ $item->penjahit }}" placeholder="Nama tukang jahit...">
-                                                    </div>
-                                                    <div class="mb-3">
-                                                        <label class="form-label small fw-semibold">Catatan Khusus / Variasi (Panjang/Pendek, Custom Size)</label>
-                                                        <textarea name="catatan" class="form-control form-control-sm" rows="3" placeholder="Contoh: Lengan Panjang, Kancing Depan...">{{ $item->catatan }}</textarea>
-                                                    </div>
-                                                </div>
-                                                <div class="modal-footer py-2 bg-light">
-                                                    <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Batal</button>
-                                                    <button type="submit" class="btn btn-sm btn-primary fw-bold"><i class="fas fa-save me-1"></i> Simpan Perubahan</button>
-                                                </div>
-                                            </form>
-                                        </div>
-                                    </div>
-                                </td>
-                            </tr>
-
-                            <!-- Collapsible Row for Details -->
-                            <tr id="collapse-details-{{ $item->id }}" class="collapse bg-light-subtle">
-                                <td colspan="11" class="p-3 border-top-0">
-                                    <div class="row text-start" style="font-size: 11px;">
-                                        <div class="col-md-6 border-end">
-                                            <p class="fw-bold text-success border-bottom pb-1 mb-2">
-                                                <i class="fas fa-boxes me-1"></i> Rincian Bahan Baku &amp; Kemasan
-                                            </p>
-                                            <table class="table table-sm table-borderless mb-0">
-                                                @forelse($materials as $ex)
-                                                    <tr>
-                                                        <td class="text-muted p-0 py-1">{{ $ex->keterangan }}</td>
-                                                        <td class="text-end font-monospace fw-semibold p-0 py-1">Rp {{ number_format($ex->nominal, 0, ',', '.') }}</td>
-                                                    </tr>
-                                                @empty
-                                                    <tr>
-                                                        <td colspan="2" class="text-muted text-center py-1">Tidak ada rincian bahan baku</td>
-                                                    </tr>
-                                                @endforelse
-                                            </table>
-                                        </div>
-                                        <div class="col-md-6 ps-md-4">
-                                            <p class="fw-bold text-primary border-bottom pb-1 mb-2">
-                                                <i class="fas fa-cut me-1"></i> Rincian Biaya Jasa &amp; Operasional
-                                            </p>
-                                            <table class="table table-sm table-borderless mb-0">
-                                                @forelse($services as $ex)
-                                                    <tr>
-                                                        <td class="text-muted p-0 py-1">{{ $ex->keterangan }}</td>
-                                                        <td class="text-end font-monospace fw-semibold p-0 py-1">Rp {{ number_format($ex->nominal, 0, ',', '.') }}</td>
-                                                    </tr>
-                                                @empty
-                                                    <tr>
-                                                        <td colspan="2" class="text-muted text-center py-1">Tidak ada rincian biaya jasa</td>
-                                                    </tr>
-                                                @endforelse
-                                            </table>
-                                        </div>
-                                    </div>
-                                </td>
-                            </tr>
-                        @endforeach
-
-                        <!-- HPP Grand Total -->
-                        <tr class="table-light fw-bold border-top border-2">
-                            <td colspan="8" class="text-end pe-3 align-middle fs-6">Total Nilai HPP Produksi SPK:</td>
-                            <td class="align-middle text-center fs-6 text-dark font-monospace">{{ number_format($spk->items->sum('quantity')) }} pcs</td>
-                            <td class="align-middle text-end pe-3 text-primary fs-6 font-monospace">Rp {{ number_format($grandTotalHpp, 0, ',', '.') }}</td>
-                            <td></td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
+            @endif
 
             <!-- Tracking Progress Tahapan Produksi (Separated Table) -->
             <div class="card border shadow-sm rounded-3 mb-4 bg-white overflow-hidden">
