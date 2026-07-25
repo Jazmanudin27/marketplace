@@ -100,15 +100,119 @@
                             <td class="text-center">
                                 <div class="d-flex justify-content-center gap-1">
                                     <a href="{{ route('pembelian.goods_issue.show', $row) }}"
-                                        class="btn btn-sm btn-outline-success">
-                                        <i class="fas fa-eye"></i> Detail
+                                        class="btn btn-xs btn-outline-success py-1 px-2 fw-semibold" title="Detail">
+                                        <i class="fas fa-eye me-1"></i> Detail
                                     </a>
+                                    @if(auth()->user()->isSuperAdmin() || auth()->user()->role === 'admin')
+                                        <button type="button" class="btn btn-xs btn-outline-warning text-dark fw-semibold py-1 px-2" data-bs-toggle="modal" data-bs-target="#editModal-{{ $row->id }}" title="Edit">
+                                            <i class="fas fa-edit me-1"></i> Edit
+                                        </button>
+                                        <button type="button" class="btn btn-xs btn-outline-danger py-1 px-2 btn-delete-issue" data-form-id="delete-form-{{ $row->id }}" title="Hapus">
+                                            <i class="fas fa-trash-alt me-1"></i> Hapus
+                                        </button>
+                                        
+                                        <form action="{{ route('pembelian.goods_issue.destroy', $row->id) }}" method="POST" id="delete-form-{{ $row->id }}" class="d-none">
+                                            @csrf
+                                            @method('DELETE')
+                                        </form>
+
+                                        {{-- Modal Edit Transaksi --}}
+                                        <div class="modal fade text-start" id="editModal-{{ $row->id }}" tabindex="-1" aria-hidden="true">
+                                            <div class="modal-dialog modal-dialog-centered modal-lg">
+                                                <form action="{{ route('pembelian.goods_issue.update', $row->id) }}" method="POST" class="modal-content">
+                                                    @csrf
+                                                    @method('PUT')
+                                                    <div class="modal-header bg-light py-2 px-3">
+                                                        <h6 class="modal-title fw-bold text-dark mb-0">
+                                                            <i class="fas fa-edit me-1 text-warning"></i> Edit Transaksi Pengeluaran #{{ $row->mutation_number }}
+                                                        </h6>
+                                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                    </div>
+                                                    <div class="modal-body p-4">
+                                                        <div class="row g-3 mb-3">
+                                                            <div class="col-md-6">
+                                                                <label class="form-label fw-semibold small text-muted">Tanggal Keluar <span class="text-danger">*</span></label>
+                                                                <input type="date" name="mutation_date" class="form-control form-control-sm" value="{{ old('mutation_date', $row->mutation_date ? $row->mutation_date->format('Y-m-d') : date('Y-m-d')) }}" required>
+                                                            </div>
+                                                            <div class="col-md-6">
+                                                                @php
+                                                                    $currentDept = strtolower($row->toDepartment->name ?? '');
+                                                                    $selectedTujuan = 'lain_lain';
+                                                                    if (str_contains($currentDept, 'produksi')) {
+                                                                        $selectedTujuan = 'produksi';
+                                                                    } elseif (str_contains($currentDept, 'cetak') || str_contains($currentDept, 'print')) {
+                                                                        $selectedTujuan = 'percetakan';
+                                                                    }
+                                                                @endphp
+                                                                <label class="form-label fw-semibold small text-muted">Tujuan Keluar <span class="text-danger">*</span></label>
+                                                                <select name="tujuan" class="form-select form-select-sm" required>
+                                                                    <option value="produksi" {{ $selectedTujuan === 'produksi' ? 'selected' : '' }}>🏭 Ke Produksi</option>
+                                                                    <option value="percetakan" {{ $selectedTujuan === 'percetakan' ? 'selected' : '' }}>🖨️ Ke Percetakan</option>
+                                                                    <option value="lain_lain" {{ $selectedTujuan === 'lain_lain' ? 'selected' : '' }}>❓ Lain-lain</option>
+                                                                </select>
+                                                            </div>
+                                                            <div class="col-12">
+                                                                <label class="form-label fw-semibold small text-muted">Catatan / Alasan Keluar</label>
+                                                                <textarea name="notes" class="form-control form-control-sm" rows="2" placeholder="Catatan pengeluaran...">{{ old('notes', $row->notes) }}</textarea>
+                                                            </div>
+                                                        </div>
+
+                                                        <hr class="my-3">
+
+                                                        <h6 class="fw-bold text-dark mb-2" style="font-size: 13px;">
+                                                            <i class="fas fa-cubes me-1 text-success"></i> Edit Kuantitas Barang Dikeluarkan:
+                                                        </h6>
+                                                        <div class="table-responsive">
+                                                            <table class="table table-sm table-bordered align-middle mb-0" style="font-size: 12px;">
+                                                                <thead class="table-light">
+                                                                    <tr>
+                                                                        <th>Barang</th>
+                                                                        <th>Kategori</th>
+                                                                        <th class="text-center" style="width: 140px;">Stok Gudang</th>
+                                                                        <th class="text-center" style="width: 170px;">Qty Dikeluarkan</th>
+                                                                    </tr>
+                                                                </thead>
+                                                                <tbody>
+                                                                    @foreach($row->items as $itemIdx => $rItem)
+                                                                        <tr>
+                                                                            <td>
+                                                                                <div class="fw-bold text-dark">{{ $rItem->inventoryItem->name ?? '—' }}</div>
+                                                                                <input type="hidden" name="items[{{ $itemIdx }}][id]" value="{{ $rItem->id }}">
+                                                                            </td>
+                                                                            <td>
+                                                                                <span class="badge bg-secondary text-uppercase" style="font-size: 9px;">{{ $rItem->inventoryItem->type ?? 'general' }}</span>
+                                                                            </td>
+                                                                            <td class="text-center font-monospace">
+                                                                                {{ number_format($rItem->inventoryItem->stock ?? 0) }} {{ $rItem->inventoryItem->unit ?? '' }}
+                                                                            </td>
+                                                                            <td>
+                                                                                <div class="input-group input-group-sm">
+                                                                                    <input type="number" step="any" name="items[{{ $itemIdx }}][qty]" class="form-control form-control-sm text-end font-monospace fw-bold" value="{{ number_format($rItem->quantity, 0, '', '') }}" required min="0.01">
+                                                                                    <span class="input-group-text small">{{ $rItem->inventoryItem->unit ?? '' }}</span>
+                                                                                </div>
+                                                                            </td>
+                                                                        </tr>
+                                                                    @endforeach
+                                                                </tbody>
+                                                            </table>
+                                                        </div>
+                                                    </div>
+                                                    <div class="modal-footer py-2 bg-light">
+                                                        <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Batal</button>
+                                                        <button type="submit" class="btn btn-sm btn-warning text-dark fw-bold px-3">
+                                                            <i class="fas fa-save me-1"></i> Simpan Perubahan
+                                                        </button>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    @endif
                                 </div>
                             </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="6" class="text-center py-5 text-muted">
+                            <td colspan="7" class="text-center py-5 text-muted">
                                 <i class="fas fa-sign-out-alt fa-2x mb-3 opacity-25 d-block"></i>
                                 Tidak ada data pengeluaran barang ditemukan.
                             </td>
@@ -124,3 +228,27 @@
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+$(document).ready(function() {
+    $(document).on('click', '.btn-delete-issue', function() {
+        const formId = $(this).data('form-id');
+        Swal.fire({
+            title: 'Batalkan Transaksi?',
+            text: "Tindakan ini akan menghapus transaksi dan mengembalikan stok barang ke jumlah semula!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc2626',
+            cancelButtonColor: '#6b7280',
+            confirmButtonText: 'Ya, Batalkan & Hapus!',
+            cancelButtonText: 'Batal'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $('#' + formId).submit();
+            }
+        });
+    });
+});
+</script>
+@endpush
