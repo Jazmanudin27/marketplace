@@ -61,7 +61,34 @@ class InventoryController extends Controller
             ->orderBy('id', 'desc')
             ->paginate(30);
 
-        return view('inventory.ledger', compact('product', 'movements'));
+        // Resolve channel & toko dari referensi order dalam pergerakan stok
+        $prefixes = [
+            'Pesanan Masuk: ',
+            'Pembatalan Pesanan: ',
+            'Terima Retur (Layak Jual): ',
+            'Penggantian Retur: ',
+        ];
+        $orderMarketplaceIds = [];
+        foreach ($movements as $mov) {
+            foreach ($prefixes as $prefix) {
+                if (str_starts_with($mov->reference ?? '', $prefix)) {
+                    $orderMarketplaceIds[] = substr($mov->reference, strlen($prefix));
+                    break;
+                }
+            }
+        }
+        $orderMarketplaceIds = array_unique(array_filter($orderMarketplaceIds));
+
+        $orderMap = collect();
+        if (!empty($orderMarketplaceIds)) {
+            $orderMap = \App\Models\Order::with('store.channel')
+                ->whereIn('order_marketplace_id', $orderMarketplaceIds)
+                ->where('tenant_id', Auth::user()->tenant_id)
+                ->get()
+                ->keyBy('order_marketplace_id');
+        }
+
+        return view('inventory.ledger', compact('product', 'movements', 'orderMap'));
     }
 
     public function adjust(Request $request, MasterProduct $product)

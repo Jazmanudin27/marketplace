@@ -32,16 +32,49 @@
                         <table class="table table-hover align-middle mb-0">
                             <thead class="table-light">
                                 <tr>
-                                    <th class="ps-3" style="width: 20%;">Waktu</th>
-                                    <th style="width: 12%;">Tipe</th>
-                                    <th class="text-end" style="width: 15%;">Qty Mutasi</th>
-                                    <th class="text-end" style="width: 15%;">Sisa Stok</th>
+                                    <th class="ps-3" style="width: 16%;">Waktu</th>
+                                    <th style="width: 10%;">Tipe</th>
+                                    <th class="text-end" style="width: 10%;">Qty Mutasi</th>
+                                    <th class="text-end" style="width: 10%;">Sisa Stok</th>
                                     <th>Referensi / Alasan</th>
-                                    <th class="pe-3" style="width: 18%;">User</th>
+                                    <th style="width: 10%;">Channel</th>
+                                    <th style="width: 12%;">Toko</th>
+                                    <th class="pe-3" style="width: 12%;">User</th>
                                 </tr>
                             </thead>
                             <tbody>
+                                @php
+                                    $orderRefPrefixes = [
+                                        'Pesanan Masuk: ',
+                                        'Pembatalan Pesanan: ',
+                                        'Terima Retur (Layak Jual): ',
+                                        'Penggantian Retur: ',
+                                    ];
+                                    $channelConfig = [
+                                        'shopee'    => ['label' => 'Shopee',    'color' => '#ee4d2d', 'icon' => 'fas fa-shopping-bag'],
+                                        'tiktok'    => ['label' => 'TikTok',    'color' => '#111',    'icon' => 'fab fa-tiktok'],
+                                        'tokopedia' => ['label' => 'Tokopedia', 'color' => '#00aa5b', 'icon' => 'fas fa-store'],
+                                        'lazada'    => ['label' => 'Lazada',    'color' => '#0f146d', 'icon' => 'fas fa-store'],
+                                    ];
+                                @endphp
                                 @forelse($movements as $mov)
+                                    @php
+                                        // Resolve order dari reference
+                                        $orderRef = null;
+                                        foreach ($orderRefPrefixes as $prefix) {
+                                            if (str_starts_with($mov->reference ?? '', $prefix)) {
+                                                $orderRef = substr($mov->reference, strlen($prefix));
+                                                break;
+                                            }
+                                        }
+                                        $order       = $orderRef ? ($orderMap[$orderRef] ?? null) : null;
+                                        $channelCode = $order?->store?->channel?->code;
+                                        $storeName   = $order?->store?->store_name;
+                                        $chCfg       = $channelCode ? ($channelConfig[$channelCode] ?? null) : null;
+
+                                        $isOffline  = !$order && str_contains(strtolower($mov->reference ?? ''), 'offline');
+                                        $isInternal = !$order && !$isOffline;
+                                    @endphp
                                     <tr>
                                         <td class="ps-3 small text-muted font-monospace">
                                             {{ $mov->created_at->format('d M Y H:i') }}
@@ -68,6 +101,37 @@
                                             {{ number_format($mov->balance_after) }}
                                         </td>
                                         <td class="text-secondary small">{{ $mov->reference }}</td>
+
+                                        {{-- Kolom Channel --}}
+                                        <td>
+                                            @if ($chCfg)
+                                                <span class="badge rounded-pill px-2 py-1 small" style="background:{{ $chCfg['color'] }};color:#fff;">
+                                                    <i class="{{ $chCfg['icon'] }} me-1"></i>{{ $chCfg['label'] }}
+                                                </span>
+                                            @elseif ($isOffline)
+                                                <span class="badge bg-secondary rounded-pill px-2 py-1 small">
+                                                    <i class="fas fa-store me-1"></i>Offline
+                                                </span>
+                                            @elseif ($isInternal)
+                                                <span class="badge bg-light text-muted border rounded-pill px-2 py-1 small">
+                                                    <i class="fas fa-warehouse me-1"></i>Internal
+                                                </span>
+                                            @else
+                                                <span class="text-muted" style="font-size:.75rem;">—</span>
+                                            @endif
+                                        </td>
+
+                                        {{-- Kolom Toko --}}
+                                        <td class="small">
+                                            @if ($storeName)
+                                                <span class="fw-semibold text-dark">{{ $storeName }}</span>
+                                            @elseif ($isOffline)
+                                                <span class="text-secondary">Toko Offline</span>
+                                            @else
+                                                <span class="text-muted">—</span>
+                                            @endif
+                                        </td>
+
                                         <td class="pe-3">
                                             <div class="d-flex align-items-center gap-2">
                                                 <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center fw-bold" style="width:24px;height:24px;font-size:.65rem;flex-shrink:0">
@@ -79,7 +143,7 @@
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="6" class="text-center text-secondary py-5">
+                                        <td colspan="8" class="text-center text-secondary py-5">
                                             <i class="fas fa-history fa-2x mb-3 d-block opacity-25"></i>
                                             <div class="fw-semibold mb-1">Belum Ada Riwayat Pergerakan Stok</div>
                                             <div class="small text-muted">Mutasi stok (masuk, keluar, opname) akan tercatat di sini.</div>
