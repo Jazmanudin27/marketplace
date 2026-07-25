@@ -25,10 +25,10 @@
         .info-val-red { color: #d11a2a; font-weight: bold; }
         
         /* Image Box Container */
-        .design-box { border: 2px dashed #000; border-radius: 8px; padding: 12px; text-align: center; position: relative; margin-bottom: 12px; min-height: 160px; display: flex; flex-direction: column; justify-content: center; align-items: center; }
-        .design-image-container { display: flex; justify-content: center; gap: 20px; margin-top: 5px; }
-        .design-image { max-height: 130px; max-width: 130px; object-fit: contain; border: 1px solid #ddd; padding: 3px; background: #fff; }
-        .design-label { font-size: 11px; font-weight: bold; margin-bottom: 5px; text-transform: uppercase; }
+        .design-box { border: 2px dashed #000; border-radius: 8px; padding: 18px; text-align: center; position: relative; margin-bottom: 15px; min-height: 250px; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+        .design-image-container { display: flex; justify-content: center; gap: 20px; margin-top: 8px; width: 100%; }
+        .design-image { max-height: 280px; max-width: 90%; object-fit: contain; border: 1px solid #94a3b8; padding: 4px; background: #fff; border-radius: 4px; }
+        .design-label { font-size: 12px; font-weight: bold; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 1px; }
         
         /* Bar Pemesan */
         .pemesan-bar { border-top: 1px dashed #000; border-bottom: 1px dashed #000; padding: 6px 0; font-size: 10px; font-weight: bold; margin-bottom: 12px; }
@@ -113,8 +113,8 @@
             @if($spk->image_url)
                 <img class="design-image" src="{{ $spk->image_url }}" alt="Desain">
             @else
-                <div style="color:#777; font-size:10px; border:1px dashed #ccc; padding: 20px 35px; border-radius: 4px; background:#fafafa;">
-                    TEMPEL GAMBAR DESAIN DI SINI
+                <div style="color:#64748b; font-size:12px; font-weight:bold; border:2px dashed #cbd5e1; padding: 45px 80px; border-radius: 6px; background:#f8fafc;">
+                    📷 TEMPEL GAMBAR DESAIN DI SINI
                 </div>
             @endif
         </div>

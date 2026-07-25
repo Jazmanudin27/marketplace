@@ -67,13 +67,13 @@
                 <div class="position-absolute top-0 start-50 translate-middle bg-white px-3 text-uppercase fw-bold small text-muted border rounded-pill">
                     Desain Model / Bordir Logo
                 </div>
-                <div class="mt-2">
+                <div class="mt-2 py-2">
                     @if($spk->image_url)
-                        <img src="{{ $spk->image_url }}" alt="Desain Pakaian" class="img-fluid rounded border p-2 bg-white shadow-sm" style="max-height: 220px; object-fit: contain;">
+                        <img src="{{ $spk->image_url }}" alt="Desain Pakaian" class="img-fluid rounded border p-2 bg-white shadow-sm" style="max-height: 380px; width: auto; object-fit: contain;">
                     @else
-                        <div class="py-4 text-muted small">
-                            <i class="fas fa-image fa-3x opacity-25 d-block mb-2 text-secondary"></i>
-                            <span class="fw-semibold">TEMPEL GAMBAR DESAIN DI SINI</span>
+                        <div class="py-5 text-muted">
+                            <i class="fas fa-image fa-4x opacity-25 d-block mb-3 text-secondary"></i>
+                            <span class="fw-bold fs-6">TEMPEL GAMBAR DESAIN DI SINI</span>
                         </div>
                     @endif
                 </div>
