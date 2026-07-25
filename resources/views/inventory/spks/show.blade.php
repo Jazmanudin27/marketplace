@@ -505,7 +505,7 @@
                     @if($allPickups->isNotEmpty())
                         <div class="p-3 bg-light border-top">
                             <h6 class="fw-bold text-dark mb-2" style="font-size: 13px;">
-                                <i class="fas fa-history text-secondary me-1"></i> Log Riwayat Transaksi Pengambilan Barang:
+                                <i class="fas fa-history text-secondary me-1"></i> Log Riwayat Transaksi Pengambilan Barang (Siapa Yang Ambil &amp; Siapa Yang Input):
                             </h6>
                             <div class="table-responsive">
                                 <table class="table table-sm table-bordered bg-white align-middle mb-0" style="font-size: 11px;">
@@ -514,8 +514,8 @@
                                             <th>Waktu Ambil</th>
                                             <th>SKU Produk / Ukuran</th>
                                             <th class="text-center">Qty Diambil</th>
-                                            <th>Nama Pengambil</th>
-                                            <th>Petugas PIC (Pemberi)</th>
+                                            <th><i class="fas fa-user me-1 text-primary"></i>Yang Mengambil Barang (Klien/Driver)</th>
+                                            <th><i class="fas fa-user-check me-1 text-success"></i>Yang Input Data (Admin/Petugas)</th>
                                             <th>Catatan</th>
                                             <th class="text-center" style="width: 50px;">Aksi</th>
                                         </tr>
@@ -527,9 +527,15 @@
                                                 <td class="fw-bold text-dark">
                                                     {{ $pk->item->sku ?: $pk->item->nama_produk }} ({{ $pk->item->ukuran ?: 'All Size' }})
                                                 </td>
-                                                <td class="text-center fw-bold text-primary">+{{ $pk->qty_diambil }} pcs</td>
-                                                <td class="fw-semibold text-dark">{{ $pk->nama_pengambil }}</td>
-                                                <td><span class="badge bg-light text-dark border">{{ $pk->pemberi->name ?? 'SYSTEM' }}</span></td>
+                                                <td class="text-center fw-bold text-primary fs-7">+{{ $pk->qty_diambil }} pcs</td>
+                                                <td>
+                                                    <span class="fw-bold text-dark"><i class="fas fa-user-tag text-primary me-1"></i>{{ $pk->nama_pengambil }}</span>
+                                                </td>
+                                                <td>
+                                                    <span class="badge bg-success-subtle text-success border border-success-subtle fw-bold px-2 py-1">
+                                                        <i class="fas fa-user-shield me-1"></i>{{ $pk->pemberi->name ?? 'SYSTEM' }}
+                                                    </span>
+                                                </td>
                                                 <td class="text-muted">{{ $pk->catatan ?: '—' }}</td>
                                                 <td class="text-center">
                                                     <form action="{{ route('spks.pickups.destroy', $pk->id) }}" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin menghapus catatan pengambilan ini?')">
