@@ -209,7 +209,35 @@ class MobileController extends Controller
 
     public function produksiDashboard(Request $request)
     {
-        return $this->ownerSpk($request);
+        $tenantId = Auth::user()->tenant_id;
+        $search = $request->input('search');
+
+        $query = \App\Models\Spk::with(['items.masterProduct', 'proses', 'items.progres'])
+            ->where('tenant_id', $tenantId)
+            ->orderByDesc('tanggal');
+
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('no_spk', 'like', "%{$search}%")
+                  ->orWhere('no_produksi', 'like', "%{$search}%")
+                  ->orWhere('pemesan', 'like', "%{$search}%")
+                  ->orWhere('instansi', 'like', "%{$search}%")
+                  ->orWhereHas('items', function ($i) use ($search) {
+                      $i->where('nama_produk', 'like', "%{$search}%")
+                        ->orWhere('sku', 'like', "%{$search}%");
+                  });
+            });
+        }
+
+        $spks = $query->paginate(10)->withQueryString();
+
+        $pendingOrders = ProductionOrder::where('tenant_id', $tenantId)
+            ->with('masterProduct', 'requestedBy')
+            ->where('status', 'pending')
+            ->orderBy('created_at')
+            ->get();
+
+        return view('mobile.produksi', compact('spks', 'search', 'pendingOrders'));
     }
 
     public function produksiStart(ProductionOrder $order)
