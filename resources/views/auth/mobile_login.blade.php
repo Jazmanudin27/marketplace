@@ -23,7 +23,7 @@
         }
 
         body {
-            background-color: #0f172a;
+            background-color: #f1f5f9;
             font-family: 'Inter', sans-serif;
             min-height: 100vh;
             display: flex;
@@ -31,17 +31,17 @@
             justify-content: center;
             padding: 16px;
             margin: 0;
-            color: #f8fafc;
+            color: #0f172a;
         }
 
         .mobile-card {
             width: 100%;
             max-width: 420px;
-            background: #1e293b;
-            border: 1px solid #334155;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
             border-radius: 20px;
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
-            padding: 28px 24px;
+            box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.08), 0 8px 10px -6px rgba(15, 23, 42, 0.04);
+            padding: 32px 24px;
             position: relative;
             overflow: hidden;
         }
@@ -52,22 +52,22 @@
             top: 0;
             left: 0;
             right: 0;
-            height: 4px;
+            height: 5px;
             background: linear-gradient(90deg, var(--secondary), var(--primary));
         }
 
         .brand-icon {
-            width: 60px;
-            height: 60px;
+            width: 64px;
+            height: 64px;
             background: linear-gradient(135deg, var(--secondary), var(--primary));
-            border-radius: 16px;
+            border-radius: 18px;
             display: flex;
             align-items: center;
             justify-content: center;
             color: white;
-            font-size: 26px;
+            font-size: 28px;
             margin: 0 auto 16px auto;
-            box-shadow: 0 8px 20px rgba(79, 70, 229, 0.4);
+            box-shadow: 0 10px 20px rgba(79, 70, 229, 0.25);
         }
 
         .brand-title {
@@ -75,47 +75,47 @@
             font-size: 22px;
             font-weight: 800;
             text-align: center;
-            letter-spacing: 0.5px;
-            color: #ffffff;
+            letter-spacing: 0.3px;
+            color: #0f172a;
             margin-bottom: 4px;
         }
 
         .brand-subtitle {
             font-size: 13px;
-            color: #94a3b8;
+            color: #64748b;
             text-align: center;
             margin-bottom: 24px;
         }
 
         .form-label {
             font-size: 12px;
-            font-weight: 600;
-            color: #cbd5e1;
+            font-weight: 700;
+            color: #475569;
             text-transform: uppercase;
             letter-spacing: 0.5px;
             margin-bottom: 6px;
         }
 
         .input-group-text {
-            background-color: #0f172a;
-            border-color: #334155;
+            background-color: #f8fafc;
+            border-color: #cbd5e1;
             color: #64748b;
         }
 
         .form-control {
-            background-color: #0f172a;
-            border-color: #334155;
-            color: #ffffff;
+            background-color: #ffffff;
+            border-color: #cbd5e1;
+            color: #0f172a;
             font-size: 14px;
             padding: 12px 14px;
             border-radius: 10px;
         }
 
         .form-control:focus {
-            background-color: #0f172a;
+            background-color: #ffffff;
             border-color: var(--primary);
-            color: #ffffff;
-            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.25);
+            color: #0f172a;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
         }
 
         .btn-mobile-submit {
@@ -128,7 +128,7 @@
             border: none;
             width: 100%;
             margin-top: 10px;
-            box-shadow: 0 8px 16px rgba(79, 70, 229, 0.35);
+            box-shadow: 0 8px 16px rgba(79, 70, 229, 0.25);
             transition: all 0.2s ease;
         }
 
@@ -137,12 +137,12 @@
         }
 
         .badge-portal {
-            background: rgba(14, 165, 233, 0.15);
-            color: #38bdf8;
-            border: 1px solid rgba(14, 165, 233, 0.3);
+            background: #e0e7ff;
+            color: #3730a3;
+            border: 1px solid #c7d2fe;
             font-size: 10px;
             font-weight: 700;
-            padding: 4px 10px;
+            padding: 4px 12px;
             border-radius: 20px;
             display: inline-block;
             margin-bottom: 16px;
@@ -152,13 +152,17 @@
             font-size: 12px;
             color: #64748b;
             text-align: center;
-            margin-top: 20px;
+            margin-top: 24px;
         }
 
         .footer-link a {
-            color: #38bdf8;
+            color: var(--primary);
             text-decoration: none;
-            font-weight: 600;
+            font-weight: 700;
+        }
+
+        .footer-link a:hover {
+            text-decoration: underline;
         }
     </style>
 </head>
@@ -175,7 +179,7 @@
         </div>
 
         @if ($errors->any())
-            <div class="alert alert-danger py-2 px-3 small border-0 mb-3" style="background-color: rgba(225, 29, 72, 0.2); color: #fecdd3;">
+            <div class="alert alert-danger py-2 px-3 small border-0 mb-3" style="background-color: #ffe4e6; color: #9f1239;">
                 <i class="fas fa-exclamation-circle me-1"></i> {{ $errors->first() }}
             </div>
         @endif
@@ -203,8 +207,8 @@
 
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <div class="form-check">
-                    <input class="form-check-input" type="checkbox" name="remember" id="remember" style="background-color: #0f172a; border-color: #334155;">
-                    <label class="form-check-label small text-muted" for="remember">
+                    <input class="form-check-input" type="checkbox" name="remember" id="remember">
+                    <label class="form-check-label small text-muted fw-semibold" for="remember">
                         Ingat Saya
                     </label>
                 </div>
