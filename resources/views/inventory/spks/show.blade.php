@@ -196,19 +196,6 @@
                                         $services[] = $ex;
                                     }
                                 }
-
-                                $activeStatus = $productionStatuses->firstWhere('name', $item->status) ?? $productionStatuses->first();
-                                $badgeColors = [
-                                    'secondary' => 'bg-secondary text-white',
-                                    'dark' => 'bg-dark text-white',
-                                    'warning' => 'bg-warning text-dark',
-                                    'info' => 'bg-info text-dark',
-                                    'primary' => 'bg-primary text-white',
-                                    'success' => 'bg-success text-white',
-                                    'danger' => 'bg-danger text-white'
-                                ];
-                                $currentStatusColor = $badgeColors[$activeStatus->color ?? 'secondary'] ?? 'bg-secondary text-white';
-                                $currentStatusName = $activeStatus->name ?? 'Belum Mulai';
                             @endphp
                             
                             <!-- Main Row -->
