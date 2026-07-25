@@ -442,7 +442,7 @@
         </div>
         <div class="d-flex align-items-center gap-2">
             <span class="user-tag" style="@if(request()->routeIs('mobile.owner*')) background: rgba(79, 70, 229, 0.08); border: 1px solid rgba(79, 70, 229, 0.2); color: #4f46e5; @endif">{{ Auth::user()->role }}</span>
-            <form action="{{ route('logout') }}" method="POST" class="m-0" id="logout-form">
+            <form action="{{ route('mobile.logout') }}" method="POST" class="m-0" id="logout-form">
                 @csrf
                 <button type="submit" class="btn p-0 text-danger border-0 bg-transparent ms-2" title="Logout" style="outline: none; box-shadow: none;">
                     <i class="fas fa-sign-out-alt" style="font-size: 1.2rem;"></i>

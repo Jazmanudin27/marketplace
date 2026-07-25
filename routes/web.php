@@ -155,6 +155,7 @@ Route::get('/shopee/debug-sign', function () {
 Route::middleware('auth')->group(function () {
 
     Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
+    Route::post('/mobile/logout', [LoginController::class, 'mobileLogout'])->name('mobile.logout');
 
     // =========================================================================
     // Master Data & Pengaturan Hak Akses
