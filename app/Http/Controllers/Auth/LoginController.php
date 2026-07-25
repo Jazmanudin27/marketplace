@@ -16,6 +16,14 @@ class LoginController extends Controller
         return view('auth.login');
     }
 
+    public function showMobileLogin()
+    {
+        if (Auth::check()) {
+            return redirect()->route('mobile.index');
+        }
+        return view('auth.mobile_login');
+    }
+
     public function login(Request $request)
     {
         $request->validate([
@@ -37,6 +45,48 @@ class LoginController extends Controller
             if (Auth::guard('web')->attempt($credentials, $remember)) {
                 $request->session()->regenerate();
                 return redirect()->intended(route('dashboard'));
+            }
+
+            return back()->withErrors([
+                'login' => 'Email atau password yang Anda masukkan salah.',
+            ])->onlyInput('login');
+        } else {
+            $credentials = [
+                'username' => $login,
+                'password' => $password,
+            ];
+
+            if (Auth::guard('employee')->attempt($credentials, $remember)) {
+                $request->session()->regenerate();
+                return redirect()->intended(route('employee.dashboard'));
+            }
+
+            return back()->withErrors([
+                'login' => 'Username atau password karyawan salah.',
+            ])->onlyInput('login');
+        }
+    }
+
+    public function mobileLogin(Request $request)
+    {
+        $request->validate([
+            'login'    => ['required', 'string'],
+            'password' => ['required', 'string'],
+        ]);
+
+        $login = $request->login;
+        $password = $request->password;
+        $remember = $request->boolean('remember');
+
+        if (filter_var($login, FILTER_VALIDATE_EMAIL)) {
+            $credentials = [
+                'email'    => $login,
+                'password' => $password,
+            ];
+
+            if (Auth::guard('web')->attempt($credentials, $remember)) {
+                $request->session()->regenerate();
+                return redirect()->intended(route('mobile.index'));
             }
 
             return back()->withErrors([

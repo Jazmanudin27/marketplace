@@ -90,6 +90,10 @@ Route::middleware('guest')->group(function () {
     Route::get('/', fn() => redirect()->route('login'));
     Route::get('/login', [LoginController::class, 'showLogin'])->name('login');
     Route::post('/login', [LoginController::class, 'login'])->name('login.post');
+
+    // Dedicated Mobile Login Routes
+    Route::get('/mobile/login', [LoginController::class, 'showMobileLogin'])->name('mobile.login');
+    Route::post('/mobile/login', [LoginController::class, 'mobileLogin'])->name('mobile.login.post');
 });
 
 // =========================================================================

@@ -12,7 +12,7 @@ class MobileGudangMiddleware
     public function handle(Request $request, Closure $next): Response
     {
         if (!Auth::check()) {
-            return redirect('/login');
+            return redirect()->route('mobile.login');
         }
 
         $userRole = Auth::user()->role;
