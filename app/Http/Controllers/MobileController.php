@@ -492,6 +492,7 @@ class MobileController extends Controller
     {
         $tenantId = Auth::user()->tenant_id;
         $search = $request->input('search');
+        $tipeSpk = $request->input('tipe_spk');
 
         $query = \App\Models\Spk::with(['items.masterProduct'])
             ->where('tenant_id', $tenantId)
@@ -510,9 +511,13 @@ class MobileController extends Controller
             });
         }
 
+        if ($tipeSpk && in_array($tipeSpk, ['pesanan_pelanggan', 'stok_gudang'])) {
+            $query->where('tipe_spk', $tipeSpk);
+        }
+
         $spks = $query->paginate(10)->withQueryString();
 
-        return view('mobile.owner_spk', compact('spks', 'search'));
+        return view('mobile.owner_spk', compact('spks', 'search', 'tipeSpk'));
     }
 
     public function ownerProfitLoss(Request $request)

@@ -29,15 +29,6 @@
         padding: 16px;
     }
 
-    .spk-item-row {
-        padding: 10px 0;
-        border-bottom: 1px solid #f1f5f9;
-    }
-
-    .spk-item-row:last-child {
-        border-bottom: none;
-    }
-
     .badge-premium {
         font-size: 0.68rem;
         font-weight: 700;
@@ -45,24 +36,6 @@
         border-radius: 20px;
         text-transform: uppercase;
         letter-spacing: 0.3px;
-    }
-
-    .badge-success-light {
-        background: #ecfdf5;
-        color: #059669;
-        border: 1px solid rgba(16, 185, 129, 0.2);
-    }
-
-    .badge-warning-light {
-        background: #fffbeb;
-        color: #d97706;
-        border: 1px solid rgba(245, 158, 11, 0.2);
-    }
-
-    .badge-primary-light {
-        background: #e0e7ff;
-        color: #4f46e5;
-        border: 1px solid rgba(79, 70, 229, 0.2);
     }
 
     .search-container {
@@ -73,8 +46,8 @@
         background-color: #ffffff;
         border: 1px solid rgba(0, 0, 0, 0.12);
         border-radius: 12px;
-        padding: 11px 16px 11px 40px;
-        font-size: 0.88rem;
+        padding: 10px 14px 10px 38px;
+        font-size: 0.82rem;
         transition: all 0.2s ease;
         color: #0f172a;
     }
@@ -87,11 +60,11 @@
 
     .search-icon {
         position: absolute;
-        left: 14px;
+        left: 12px;
         top: 50%;
         transform: translateY(-50%);
         color: #94a3b8;
-        font-size: 0.95rem;
+        font-size: 0.88rem;
     }
 </style>
 @endsection
@@ -113,13 +86,24 @@
         </div>
     @endif
 
-    <!-- Search Form -->
+    <!-- Search & Filter Form -->
     <div class="mb-3">
         <form action="{{ route('mobile.produksi') }}" method="GET" class="m-0">
-            <div class="search-container">
-                <i class="fas fa-search search-icon"></i>
-                <input type="text" name="search" class="form-control search-input w-100" 
-                       value="{{ $search ?? '' }}" placeholder="Cari No. SPK, No. Produksi, Pemesan...">
+            <div class="row g-2">
+                <div class="col-7">
+                    <div class="search-container">
+                        <i class="fas fa-search search-icon"></i>
+                        <input type="text" name="search" class="form-control search-input w-100" 
+                               value="{{ $search ?? '' }}" placeholder="Cari SPK, pemesan...">
+                    </div>
+                </div>
+                <div class="col-5">
+                    <select name="tipe_spk" class="form-select search-input py-2" onchange="this.form.submit()" style="font-size:0.75rem; padding-left:10px;">
+                        <option value="">-- Tipe SPK --</option>
+                        <option value="pesanan_pelanggan" {{ ($tipeSpk ?? '') === 'pesanan_pelanggan' ? 'selected' : '' }}>🛒 Pesanan</option>
+                        <option value="stok_gudang" {{ ($tipeSpk ?? '') === 'stok_gudang' ? 'selected' : '' }}>🏬 Stok Gudang</option>
+                    </select>
+                </div>
             </div>
         </form>
     </div>
@@ -163,7 +147,7 @@
                     </div>
 
                     <!-- SPK Metadata -->
-                    <div class="row g-2 mb-3 pb-3 border-bottom border-light">
+                    <div class="row g-2 mb-2">
                         <div class="col-6">
                             <span class="text-muted d-block small mb-0.5" style="font-size: 0.68rem;">Tanggal SPK</span>
                             <span class="small fw-semibold text-dark">{{ $spk->tanggal ? $spk->tanggal->format('d M Y') : '-' }}</span>
@@ -172,7 +156,7 @@
                             <span class="text-muted d-block small mb-0.5" style="font-size: 0.68rem;">Target Deadline</span>
                             <span class="small fw-semibold text-danger">{{ $spk->deadline ? $spk->deadline->format('d M Y') : '-' }}</span>
                         </div>
-                        <div class="col-12 mt-2">
+                        <div class="col-12 mt-1">
                             <span class="text-muted d-block small mb-0.5" style="font-size: 0.68rem;">Pemesan / Instansi</span>
                             <span class="small fw-semibold text-dark">
                                 {{ $spk->pemesan ?: '-' }} 
@@ -181,43 +165,10 @@
                         </div>
                     </div>
 
-                    <!-- SPK Items -->
-                    <h6 class="fw-bold text-dark mb-2" style="font-size: 0.8rem;">Daftar Item Produksi:</h6>
-                    <div class="d-flex flex-column">
-                        @foreach($spk->items as $item)
-                            <div class="spk-item-row d-flex justify-content-between align-items-center">
-                                <div style="flex: 1; min-width: 0; padding-right: 10px;">
-                                    <div class="fw-bold text-dark text-truncate" style="font-size: 0.82rem;">{{ $item->nama_produk }}</div>
-                                    <div class="d-flex gap-1.5 align-items-center mt-1 text-muted" style="font-size: 0.7rem;">
-                                        <span>Size: <strong>{{ $item->ukuran ?: '-' }}</strong></span>
-                                        <span>•</span>
-                                        <span>Penjahit: <strong class="text-primary">{{ $item->penjahit ?: 'Belum ditunjuk' }}</strong></span>
-                                    </div>
-                                </div>
-                                <div class="text-end" style="white-space: nowrap;">
-                                    <div class="fw-bold text-dark mb-1" style="font-size: 0.82rem;">
-                                        {{ $item->quantity }} pcs
-                                    </div>
-                                    @php
-                                        $badgeBg = 'badge-primary-light';
-                                        if ($item->status === 'Selesai') {
-                                            $badgeBg = 'badge-success-light';
-                                        } elseif (in_array($item->status, ['Sedang Dikerjakan', 'Dipotong', 'Dijahit'])) {
-                                            $badgeBg = 'badge-warning-light';
-                                        }
-                                    @endphp
-                                    <span class="badge badge-premium {{ $badgeBg }}">
-                                        {{ $item->status ?: 'Menunggu' }}
-                                    </span>
-                                </div>
-                            </div>
-                        @endforeach
-                    </div>
-
                     <!-- Direct Action Button to SPK Detail & Stage Progress -->
                     <div class="mt-3 pt-2 border-top">
                         <a href="{{ route('spks.show', $spk->id) }}" class="btn btn-primary w-100 fw-bold rounded-3 shadow-sm py-2" style="font-size: 0.82rem;">
-                            <i class="fas fa-edit me-1.5"></i> BUKA DETAIL &amp; UPDATE PROGRES SPK
+                            <i class="fas fa-eye me-1.5"></i> BUKA DETAIL &amp; UPDATE PROGRES SPK
                         </a>
                     </div>
                 </div>

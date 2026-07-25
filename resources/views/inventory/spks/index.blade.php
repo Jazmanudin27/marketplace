@@ -31,7 +31,7 @@
         {{-- Filter & Search Form --}}
         <form action="{{ route('spks.index') }}" method="GET" class="m-0">
             <div class="row g-2">
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <div class="input-group input-group-sm">
                         <span class="input-group-text bg-light text-muted border-end-0"><i class="fas fa-search"></i></span>
                         <input type="text" name="search" class="form-control border-start-0" 
@@ -39,16 +39,23 @@
                     </div>
                 </div>
                 <div class="col-md-3">
+                    <select name="tipe_spk" class="form-select form-select-sm">
+                        <option value="">-- Semua Tipe SPK --</option>
+                        <option value="pesanan_pelanggan" {{ request('tipe_spk') === 'pesanan_pelanggan' ? 'selected' : '' }}>🛒 Pesanan Pelanggan</option>
+                        <option value="stok_gudang" {{ request('tipe_spk') === 'stok_gudang' ? 'selected' : '' }}>🏬 Produksi Stok Gudang</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
                     <input type="date" name="date_from" class="form-control form-control-sm" 
                         value="{{ request('date_from') }}" placeholder="Tanggal Awal">
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-2">
                     <input type="date" name="date_to" class="form-control form-control-sm" 
                         value="{{ request('date_to') }}" placeholder="Tanggal Akhir">
                 </div>
                 <div class="col-md-2 d-flex gap-1">
                     <button type="submit" class="btn btn-sm btn-primary w-100 fw-bold">Filter</button>
-                    @if(request()->anyFilled(['search', 'date_from', 'date_to']))
+                    @if(request()->anyFilled(['search', 'tipe_spk', 'date_from', 'date_to']))
                         <a href="{{ route('spks.index') }}" class="btn btn-sm btn-outline-secondary">Reset</a>
                     @endif
                 </div>

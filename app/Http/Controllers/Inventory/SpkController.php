@@ -39,6 +39,9 @@ class SpkController extends Controller
         if ($request->filled('date_to')) {
             $query->whereDate('deadline', '<=', $request->date_to);
         }
+        if ($request->filled('tipe_spk')) {
+            $query->where('tipe_spk', $request->tipe_spk);
+        }
 
         $spks = $query->paginate(15)->withQueryString();
 
