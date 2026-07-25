@@ -510,7 +510,6 @@
                     @endif
                 </div>
             </div>
-            @endif
 
             <!-- Setting Biaya SPK di Akhir (Tambahan Jasa & Bahan / Material) -->
             @if(auth()->user()->isSuperAdmin() || auth()->user()->role === 'admin' || auth()->user()->hasRole('admin') || auth()->user()->can('spks.edit_costs'))
