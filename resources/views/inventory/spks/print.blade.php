@@ -8,7 +8,7 @@
         .page-header { text-align: right; font-size: 8px; color: #555; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 5px; }
         
         /* Layout Grid Header */
-        .header-table { width: 100%; border-collapse: collapse; margin-bottom: 15px; }
+        .header-table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
         .header-table td { vertical-align: top; padding: 0; }
         .header-left { width: 35%; font-size: 11px; }
         .header-center { width: 40%; text-align: center; }
@@ -17,55 +17,60 @@
         .spk-title { font-size: 24px; font-weight: 900; letter-spacing: 4px; margin: 0; line-height: 1; }
         .spk-subtitle { font-size: 10px; font-weight: bold; letter-spacing: 2px; margin: 2px 0 0 0; text-transform: uppercase; }
         
+        .badge-tipe { font-size: 9px; font-weight: bold; padding: 2px 8px; border-radius: 4px; display: inline-block; margin-top: 4px; text-transform: uppercase; }
+        .badge-stok { background: #dcfce7; color: #15803d; border: 1px solid #86efac; }
+        .badge-klien { background: #dbeafe; color: #1e40af; border: 1px solid #93c5fd; }
+
         .info-label { font-weight: bold; }
         .info-val-red { color: #d11a2a; font-weight: bold; }
         
         /* Image Box Container */
-        .design-box { border: 2px dashed #000; border-radius: 8px; padding: 15px; text-align: center; position: relative; margin-bottom: 15px; min-height: 180px; display: flex; flex-direction: column; justify-content: center; align-items: center; }
-        .design-image-container { display: flex; justify-content: center; gap: 20px; margin-top: 10px; }
-        .design-image { max-height: 140px; max-width: 140px; object-fit: contain; border: 1px solid #ddd; padding: 3px; background: #fff; }
+        .design-box { border: 2px dashed #000; border-radius: 8px; padding: 12px; text-align: center; position: relative; margin-bottom: 12px; min-height: 160px; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+        .design-image-container { display: flex; justify-content: center; gap: 20px; margin-top: 5px; }
+        .design-image { max-height: 130px; max-width: 130px; object-fit: contain; border: 1px solid #ddd; padding: 3px; background: #fff; }
         .design-label { font-size: 11px; font-weight: bold; margin-bottom: 5px; text-transform: uppercase; }
         
         /* Bar Pemesan */
-        .pemesan-bar { border-top: 1px dashed #000; border-bottom: 1px dashed #000; padding: 6px 0; font-size: 10px; font-weight: bold; margin-bottom: 15px; }
+        .pemesan-bar { border-top: 1px dashed #000; border-bottom: 1px dashed #000; padding: 6px 0; font-size: 10px; font-weight: bold; margin-bottom: 12px; }
         
-        /* Table Rincian Produk */
-        .table-title { background: #1e293b; color: #fff; font-size: 10px; font-weight: bold; text-align: center; padding: 5px; text-transform: uppercase; letter-spacing: 1px; }
-        .product-table { width: 100%; border-collapse: collapse; margin-bottom: 15px; }
-        .product-table th, .product-table td { border: 1px solid #000; padding: 6px; text-align: center; }
+        /* Table Rincian Produk & Common Tables */
+        .table-section-title { background: #0f172a; color: #fff; font-size: 10px; font-weight: bold; text-align: left; padding: 5px 8px; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 12px; margin-bottom: 0; }
+        .product-table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
+        .product-table th, .product-table td { border: 1px solid #000; padding: 5px 6px; text-align: center; font-size: 10px; }
         .product-table th { background: #f1f5f9; font-size: 9px; font-weight: bold; text-transform: uppercase; }
         .product-table td.align-left { text-align: left; font-weight: bold; }
         .bg-red-light { background: #fee2e2; color: #991b1b; font-weight: bold; }
+        .bg-gray-light { background: #f8fafc; font-weight: bold; }
         
         /* Accessories & Additional Attributes */
-        .attrib-box { border: 1px solid #000; padding: 10px; margin-bottom: 15px; background: #f8fafc; }
-        .attrib-title { font-weight: bold; color: #b91c1c; text-transform: uppercase; font-size: 9px; margin-bottom: 5px; letter-spacing: 0.5px; }
-        .attrib-content { font-size: 11px; font-weight: bold; }
+        .attrib-box { border: 1px solid #000; padding: 8px 10px; margin-bottom: 12px; background: #f8fafc; }
+        .attrib-title { font-weight: bold; color: #b91c1c; text-transform: uppercase; font-size: 9px; margin-bottom: 3px; letter-spacing: 0.5px; }
+        .attrib-content { font-size: 10px; font-weight: bold; }
         
         /* Documentation Checklist */
-        .doc-checklist { display: flex; border: 1px solid #000; margin-bottom: 15px; font-weight: bold; }
-        .doc-title { width: 30%; border-right: 1px solid #000; padding: 6px 10px; background: #f8fafc; }
-        .doc-item { width: 35%; padding: 6px 10px; display: flex; align-items: center; justify-content: center; }
+        .doc-checklist { display: flex; border: 1px solid #000; margin-bottom: 12px; font-weight: bold; font-size: 10px; }
+        .doc-title { width: 30%; border-right: 1px solid #000; padding: 5px 8px; background: #f8fafc; }
+        .doc-item { width: 35%; padding: 5px 8px; display: flex; align-items: center; justify-content: center; }
         .doc-item:not(:last-child) { border-right: 1px solid #000; }
-        .checkbox-square { border: 1px solid #000; width: 12px; height: 12px; margin-right: 8px; display: inline-block; }
+        .checkbox-square { border: 1px solid #000; width: 11px; height: 11px; margin-right: 6px; display: inline-block; }
         
         /* Signatures Grid */
         .signature-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        .signature-table td { border: 1px solid #000; width: 50%; vertical-align: top; padding: 10px 15px; height: 90px; }
-        .signature-title { font-weight: bold; text-transform: uppercase; font-size: 9px; margin-bottom: 40px; border-bottom: 1px solid #000; padding-bottom: 4px; }
+        .signature-table td { border: 1px solid #000; width: 50%; vertical-align: top; padding: 8px 12px; height: 80px; }
+        .signature-title { font-weight: bold; text-transform: uppercase; font-size: 9px; margin-bottom: 35px; border-bottom: 1px solid #000; padding-bottom: 4px; }
         
-        .page-num { text-align: right; font-size: 9px; color: #555; margin-top: 15px; font-weight: bold; }
+        .page-num { text-align: right; font-size: 9px; color: #555; margin-top: 10px; font-weight: bold; }
         
         @media print {
             body { margin: 0; }
             .no-print { display: none; }
-            @page { size: A4; margin: 12mm 15mm; }
+            @page { size: A4; margin: 10mm 12mm; }
         }
     </style>
 </head>
 <body>
     
-    <div class="page-header">Halaman 3: Arsip Kantor</div>
+    <div class="page-header">Arsip Lembar SPK Kantor</div>
 
     <!-- Header Grid -->
     <table class="header-table">
@@ -77,10 +82,15 @@
             <td class="header-center">
                 <h1 class="spk-title">S P K</h1>
                 <div class="spk-subtitle">Surat Perintah Kerja</div>
+                @if(($spk->tipe_spk ?? 'pesanan_pelanggan') === 'stok_gudang')
+                    <div class="badge-tipe badge-stok">🏬 PRODUKSI STOK GUDANG</div>
+                @else
+                    <div class="badge-tipe badge-klien">🛒 PESANAN PELANGGAN</div>
+                @endif
             </td>
             <td class="header-right">
-                <div><span class="info-label">TANGGAL :</span> <strong>{{ $spk->tanggal ? $spk->tanggal->format('Y-m-d') : '—' }}</strong></div>
-                <div style="margin-top: 3px;"><span class="info-label">JATUH TEMPO :</span> <span class="info-val-red">{{ $spk->deadline ? $spk->deadline->format('Y-m-d') : '—' }}</span></div>
+                <div><span class="info-label">TANGGAL :</span> <strong>{{ $spk->tanggal ? $spk->tanggal->format('d F Y') : '—' }}</strong></div>
+                <div style="margin-top: 3px;"><span class="info-label">JATUH TEMPO :</span> <span class="info-val-red">{{ $spk->deadline ? $spk->deadline->format('d F Y') : '—' }}</span></div>
             </td>
             <td style="width: 60px; padding-left: 15px;">
                 <img src="https://api.qrserver.com/v1/create-qr-code/?size=55x55&data={{ $spk->no_spk }}" alt="QR Code" style="display:block;">
@@ -95,7 +105,7 @@
             @if($spk->image_url)
                 <img class="design-image" src="{{ $spk->image_url }}" alt="Desain">
             @else
-                <div style="color:#777; font-size:10px; border:1px dashed #ccc; padding: 25px 40px; border-radius: 4px; background:#fafafa;">
+                <div style="color:#777; font-size:10px; border:1px dashed #ccc; padding: 20px 35px; border-radius: 4px; background:#fafafa;">
                     TEMPEL GAMBAR DESAIN DI SINI
                 </div>
             @endif
@@ -106,14 +116,12 @@
     <div class="pemesan-bar">
         PEMESAN: {{ strtoupper($spk->pemesan ?: 'INTERNAL STOCK') }} 
         | NO HP PEMESAN: {{ $spk->no_hp_pemesan ?: '—' }}
-        | INSTANSI: {{ strtoupper($spk->instansi ?: '—') }}
+        | INSTANSI / TOKO: {{ strtoupper($spk->instansi ?: '—') }}
         | PENGINPUT: {{ strtoupper($spk->penginput->name ?? 'SYSTEM') }}
     </div>
 
-    <!-- Rincian Produk Title -->
-    <div class="table-title">Arsip Kantor: Rincian Produk &amp; Pembagian Kerja</div>
-
-    <!-- Grid Size Table -->
+    <!-- 1. Rincian Produk & Pembagian Kerja (Matriks Ukuran) -->
+    <div class="table-section-title">1. Rincian Produk &amp; Pembagian Kerja (Matriks Ukuran)</div>
     <table class="product-table">
         <thead>
             <tr>
@@ -135,8 +143,9 @@
                 <tr>
                     <td class="align-left">{{ $model['model'] }}</td>
                     @foreach($sizesHeader as $sz)
+                        @php $szKey = $sz === 'XXXL' ? '3XL' : $sz; @endphp
                         <td>
-                            {{ isset($model['sizes'][$sz]) && $model['sizes'][$sz] > 0 ? $model['sizes'][$sz] : '' }}
+                            {{ isset($model['sizes'][$szKey]) && $model['sizes'][$szKey] > 0 ? $model['sizes'][$szKey] : '' }}
                         </td>
                     @endforeach
                     <td class="bg-red-light">{{ $model['total'] }}</td>
@@ -145,25 +154,150 @@
                 </tr>
                 @php $grandTotal += $model['total']; @endphp
             @endforeach
+            <tr class="bg-gray-light">
+                <td colspan="{{ count($sizesHeader) + 1 }}" style="text-align: right; padding-right: 10px;">GRAND TOTAL PRODUCTION QTY:</td>
+                <td class="bg-red-light" style="font-size: 11px;">{{ $grandTotal }} pcs</td>
+                <td colspan="2"></td>
+            </tr>
         </tbody>
     </table>
 
-    <!-- HPP Production Details (Office Only) -->
-    @if(auth()->user()->isSuperAdmin() || auth()->user()->role === 'admin' || auth()->user()->hasRole('admin'))
-    <div style="font-weight: bold; font-size: 10px; margin-top: 15px; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.5px;">
-        Rincian HPP Produksi (Internal Office Only):
-    </div>
+    <!-- 2. Tracking Progress Tahapan Produksi -->
+    @if($spk->proses && $spk->proses->count() > 0)
+    <div class="table-section-title">2. Tracking Progress Tahapan Produksi</div>
     <table class="product-table">
         <thead>
             <tr>
-                <th style="width: 25%; text-align: left; padding-left: 8px;">SKU &amp; Size</th>
-                <th style="width: 15%;">Alur Kerja</th>
-                <th style="width: 15%;">Tukang Jahit</th>
-                <th style="width: 10%;">Bahan / pcs</th>
-                <th style="width: 10%;">Jasa / pcs</th>
-                <th style="width: 10%;">HPP / Pcs</th>
+                <th style="width: 30%; text-align: left; padding-left: 8px;">SKU Produk &amp; Ukuran</th>
+                <th style="width: 12%;">Total Qty</th>
+                @foreach($spk->proses as $proses)
+                    <th>{{ $proses->nama_proses }}</th>
+                @endforeach
+            </tr>
+        </thead>
+        <tbody>
+            @php
+                $prosesTotals = [];
+                foreach($spk->proses as $p) { $prosesTotals[$p->id] = 0; }
+            @endphp
+            @foreach($spk->items as $item)
+                <tr>
+                    <td style="text-align: left; font-weight: bold; font-family: monospace; padding-left: 8px;">
+                        {{ $item->sku ?: ($item->sku_induk ?: $item->nama_produk) }} ({{ $item->ukuran ?: 'All Size' }})
+                    </td>
+                    <td style="font-weight: bold;">{{ $item->quantity }} pcs</td>
+                    @foreach($spk->proses as $proses)
+                        @php
+                            $pg = $progresMap[$item->id][$proses->id] ?? null;
+                            $qtyDone = $pg ? $pg->qty_selesai : 0;
+                            $prosesTotals[$proses->id] += $qtyDone;
+                        @endphp
+                        <td style="font-weight: bold; font-family: monospace;">
+                            {{ $qtyDone }} / {{ $item->quantity }}
+                        </td>
+                    @endforeach
+                </tr>
+            @endforeach
+            <tr class="bg-gray-light">
+                <td style="text-align: right; padding-right: 8px;">Total Selesai Tahapan:</td>
+                <td style="font-size: 11px;">{{ $spk->items->sum('quantity') }} pcs</td>
+                @foreach($spk->proses as $proses)
+                    <td style="font-weight: bold; font-family: monospace;">
+                        {{ $prosesTotals[$proses->id] ?? 0 }} / {{ $spk->items->sum('quantity') }} pcs
+                    </td>
+                @endforeach
+            </tr>
+        </tbody>
+    </table>
+    @endif
+
+    <!-- 3. Status & Riwayat Pengambilan Barang (Partial Handover) -->
+    <div class="table-section-title">3. Status &amp; Riwayat Pengambilan Barang (Partial Handover)</div>
+    <table class="product-table">
+        <thead>
+            <tr>
+                <th style="width: 35%; text-align: left; padding-left: 8px;">SKU Produk &amp; Ukuran</th>
+                <th style="width: 15%;">Total Qty SPK</th>
+                <th style="width: 25%;">Sudah Diambil</th>
+                <th style="width: 25%;">Sisa Belum Diambil</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach($spk->items as $item)
+                @php
+                    $diambil = $item->qty_diambil;
+                    $sisa = $item->sisa_qty;
+                @endphp
+                <tr>
+                    <td style="text-align: left; font-weight: bold; font-family: monospace; padding-left: 8px;">
+                        {{ $item->sku ?: ($item->sku_induk ?: $item->nama_produk) }} ({{ $item->ukuran ?: 'All Size' }})
+                    </td>
+                    <td style="font-weight: bold;">{{ $item->quantity }} pcs</td>
+                    <td style="font-weight: bold; color: #0284c7;">{{ $diambil }} pcs</td>
+                    <td style="font-weight: bold; color: {{ $sisa == 0 ? '#16a34a' : '#dc2626' }};">
+                        {{ $sisa == 0 ? 'Lunas / Selesai (0 pcs)' : $sisa . ' pcs lagi' }}
+                    </td>
+                </tr>
+            @endforeach
+        </tbody>
+    </table>
+
+    {{-- Sub-table Riwayat Log Pengambilan (jika ada) --}}
+    @php
+        $allPickups = collect();
+        foreach($spk->items as $it) {
+            foreach($it->pickups as $pk) {
+                $allPickups->push($pk);
+            }
+        }
+        $allPickups = $allPickups->sortByDesc('tanggal_ambil');
+    @endphp
+    @if($allPickups->isNotEmpty())
+        <div style="font-weight: bold; font-size: 9px; margin-top: 4px; margin-bottom: 4px; text-transform: uppercase;">
+            Log Catatan Pengambilan Barang:
+        </div>
+        <table class="product-table" style="margin-bottom: 12px;">
+            <thead>
+                <tr>
+                    <th style="width: 20%;">Waktu Ambil</th>
+                    <th style="width: 25%; text-align: left; padding-left: 6px;">SKU Produk / Ukuran</th>
+                    <th style="width: 10%;">Qty</th>
+                    <th style="width: 22%;">Yang Mengambil</th>
+                    <th style="width: 23%;">Yang Input Data</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach($allPickups as $pk)
+                    <tr>
+                        <td style="font-family: monospace;">{{ $pk->tanggal_ambil ? $pk->tanggal_ambil->format('d/m/Y H:i') : '—' }}</td>
+                        <td style="text-align: left; font-weight: bold; padding-left: 6px;">
+                            {{ $pk->item->sku ?: $pk->item->nama_produk }} ({{ $pk->item->ukuran ?: 'All Size' }})
+                        </td>
+                        <td style="font-weight: bold; color: #2563eb;">+{{ $pk->qty_diambil }} pcs</td>
+                        <td style="font-weight: bold;">{{ $pk->nama_pengambil }}</td>
+                        <td>{{ $pk->pemberi->name ?? 'SYSTEM' }}</td>
+                    </tr>
+                @endforeach
+            </tbody>
+        </table>
+    @endif
+
+    <!-- 4. Rincian HPP Produksi (Internal Office Only) -->
+    @if(auth()->user()->isSuperAdmin() || auth()->user()->role === 'admin' || auth()->user()->hasRole('admin') || auth()->user()->can('spks.view_hpp'))
+    <div class="table-section-title">4. Rincian HPP Produksi (Internal Office Only)</div>
+    <table class="product-table">
+        <thead>
+            <tr>
+                <th style="width: 22%; text-align: left; padding-left: 8px;">SKU &amp; Size</th>
+                <th style="width: 10%;">Tukang Potong</th>
+                <th style="width: 10%;">Tukang Jahit</th>
+                <th style="width: 14%;">Catatan Khusus</th>
+                <th style="width: 8%;">Bahan / pcs</th>
+                <th style="width: 8%;">Jasa / pcs</th>
+                <th style="width: 8%;">HPP / Pcs</th>
                 <th style="width: 5%;">Qty</th>
-                <th style="width: 10%;">Subtotal HPP</th>
+                <th style="width: 9%;">Subtotal HPP</th>
+                <th style="width: 6%;">Status</th>
             </tr>
         </thead>
         <tbody>
@@ -187,23 +321,22 @@
                 <tr>
                     <td style="text-align: left; font-weight: bold; font-family: monospace; padding-left: 8px;">
                         {{ $item->sku ?: ($item->sku_induk ?: $item->nama_produk) }} ({{ $item->ukuran ?: 'All Size' }})
-                        @if($item->catatan)
-                            <div style="font-size: 9px; font-weight: normal; color: #2563eb; margin-top: 2px;">Catatan: {{ $item->catatan }}</div>
-                        @endif
                     </td>
-                    <td>{{ $item->alur_proses ?: 'Langsung Jahit' }}</td>
+                    <td>{{ $item->pemotong ?: '—' }}</td>
                     <td>{{ $item->penjahit ?: '—' }}</td>
+                    <td style="text-align: left; font-size: 9px;">{{ $item->catatan ?: '—' }}</td>
                     <td>Rp {{ number_format($totalBahan, 0, ',', '.') }}</td>
                     <td>Rp {{ number_format($totalJasa, 0, ',', '.') }}</td>
                     <td class="bg-red-light">Rp {{ number_format($item->hpp, 0, ',', '.') }}</td>
                     <td>{{ $item->quantity }}</td>
                     <td style="font-weight: bold;">Rp {{ number_format($subtotal, 0, ',', '.') }}</td>
+                    <td><span style="font-size: 8px; font-weight: bold;">{{ strtoupper($item->status ?: 'Pending') }}</span></td>
                 </tr>
             @endforeach
             <tr style="background: #f1f5f9; font-weight: bold;">
-                <td colspan="6" style="text-align: right; padding-right: 10px;">Total HPP Produksi SPK:</td>
+                <td colspan="7" style="text-align: right; padding-right: 10px;">Total HPP Produksi SPK:</td>
                 <td>{{ $spk->items->sum('quantity') }}</td>
-                <td>Rp {{ number_format($grandTotalHpp, 0, ',', '.') }}</td>
+                <td colspan="2">Rp {{ number_format($grandTotalHpp, 0, ',', '.') }}</td>
             </tr>
         </tbody>
     </table>
@@ -246,7 +379,7 @@
         </tr>
     </table>
 
-    <div class="page-num">3/3</div>
+    <div class="page-num">Dokumen Cetak SPK</div>
 
     <script>
         window.onload = function() {

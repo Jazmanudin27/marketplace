@@ -324,7 +324,7 @@ class SpkController extends Controller
     public function print(Spk $spk)
     {
         abort_unless($spk->tenant_id === Auth::user()->tenant_id, 403);
-        $spk->load(['penginput', 'items.extras']);
+        $spk->load(['penginput', 'items.extras', 'items.progres', 'items.pickups.pemberi', 'proses']);
         $grouped = $this->getGroupedItems($spk);
         $sizesHeader = ['S', 'M', 'L', 'XL', 'XXL', '3XL'];
 
@@ -335,7 +335,14 @@ class SpkController extends Controller
             }
         }
 
-        return view('inventory.spks.print', compact('spk', 'grouped', 'sizesHeader'));
+        $progresMap = [];
+        foreach ($spk->items as $item) {
+            foreach ($item->progres as $pg) {
+                $progresMap[$item->id][$pg->spk_proses_id] = $pg;
+            }
+        }
+
+        return view('inventory.spks.print', compact('spk', 'grouped', 'sizesHeader', 'progresMap'));
     }
 
     public function updateItemStatus(Request $request, $itemId)
