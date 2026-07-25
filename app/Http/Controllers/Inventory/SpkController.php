@@ -302,11 +302,8 @@ class SpkController extends Controller
             }
         }
 
-        // Fetch dynamic production statuses (with seed fallback)
-        \App\Models\ProductionStatus::seedDefaultsForTenant($spk->tenant_id);
-        $productionStatuses = \App\Models\ProductionStatus::where('tenant_id', $spk->tenant_id)
-            ->orderBy('sort_order')
-            ->get();
+        // Fetch dynamic production status options (Master Tahapan / SPK Proses)
+        $statusOptions = $this->getStatusOptions($spk);
 
         // Build progres map: [item_id][proses_id] => qty_done
         $progresMap = [];
@@ -316,7 +313,7 @@ class SpkController extends Controller
             }
         }
 
-        return view('inventory.spks.show', compact('spk', 'grouped', 'productionStatuses', 'sizesHeader', 'progresMap'));
+        return view('inventory.spks.show', compact('spk', 'grouped', 'statusOptions', 'sizesHeader', 'progresMap'));
     }
 
     public function print(Spk $spk)
@@ -342,9 +339,7 @@ class SpkController extends Controller
         $spk = $item->spk;
         abort_unless($spk->tenant_id === Auth::user()->tenant_id, 403);
 
-        $validStatuses = \App\Models\ProductionStatus::where('tenant_id', $spk->tenant_id)
-            ->pluck('name')
-            ->toArray();
+        $validStatuses = $this->getStatusOptions($spk);
 
         $request->validate([
             'status' => 'required|string|in:' . implode(',', $validStatuses),
@@ -767,5 +762,22 @@ class SpkController extends Controller
             'success'  => true,
             'qty_done' => $progres->qty_done,
         ]);
+    }
+
+    private function getStatusOptions(Spk $spk): array
+    {
+        if ($spk->proses->isNotEmpty()) {
+            $stageNames = $spk->proses->pluck('nama_proses')->toArray();
+        } else {
+            \App\Models\MasterProductionStage::seedDefaultsForTenant($spk->tenant_id);
+            $stageNames = \App\Models\MasterProductionStage::where('tenant_id', $spk->tenant_id)
+                ->where('is_active', true)
+                ->orderBy('sort_order')
+                ->pluck('name')
+                ->toArray();
+        }
+
+        $all = array_merge(['Belum Mulai'], $stageNames, ['Selesai']);
+        return array_values(array_unique($all));
     }
 }

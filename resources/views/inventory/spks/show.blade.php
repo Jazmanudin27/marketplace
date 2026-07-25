@@ -257,9 +257,9 @@
                                     {{-- Status Selector Form --}}
                                     <form action="{{ route('spks.items.update_status', $item->id) }}" method="POST" class="m-0">
                                         @csrf
-                                        <select name="status" class="form-select form-select-sm py-0 border-primary-subtle text-primary fw-semibold" style="font-size: 10px; height: 22px; width: 100px; margin: 0 auto;" onchange="this.form.submit()">
-                                            @foreach($productionStatuses as $pStat)
-                                                <option value="{{ $pStat->name }}" {{ ($item->status ?? 'Belum Mulai') == $pStat->name ? 'selected' : '' }}>{{ $pStat->name }}</option>
+                                        <select name="status" class="form-select form-select-sm py-0 border-primary-subtle text-primary fw-semibold" style="font-size: 10px; height: 22px; width: 110px; margin: 0 auto;" onchange="this.form.submit()">
+                                            @foreach($statusOptions as $stName)
+                                                <option value="{{ $stName }}" {{ ($item->status ?? 'Belum Mulai') == $stName ? 'selected' : '' }}>{{ $stName }}</option>
                                             @endforeach
                                         </select>
                                     </form>
