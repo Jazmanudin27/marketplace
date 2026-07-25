@@ -64,6 +64,19 @@
                                                 value="{{ old('deadline', date('Y-m-d', strtotime('+14 days'))) }}">
                                         </div>
                                         <div class="col-12">
+                                            <label class="form-label fw-semibold small mb-1 text-primary">
+                                                <i class="fas fa-tag me-1"></i>Tipe / Tujuan SPK <span class="text-danger">*</span>
+                                            </label>
+                                            <select name="tipe_spk" class="form-select form-select-sm fw-bold border-primary-subtle text-primary" required>
+                                                <option value="pesanan_pelanggan" {{ old('tipe_spk') === 'pesanan_pelanggan' ? 'selected' : '' }}>
+                                                    🛒 Pesanan Pelanggan (Custom Order / Klien)
+                                                </option>
+                                                <option value="stok_gudang" {{ old('tipe_spk') === 'stok_gudang' ? 'selected' : '' }}>
+                                                    🏬 Produksi Stok Gudang (Menambah Persediaan Ready Stock)
+                                                </option>
+                                            </select>
+                                        </div>
+                                        <div class="col-12">
                                             <label class="form-label fw-semibold small mb-1">PIC / Pembuat SPK</label>
                                             <input type="text" class="form-control form-control-sm bg-light text-muted fw-bold" readonly
                                                 value="{{ Auth::user()->name ?? '—' }}">

@@ -152,6 +152,7 @@ class SpkController extends Controller
                 'order_id'      => $request->order_id,
                 'no_produksi'   => $noProduksi,
                 'no_spk'        => $noSpk,
+                'tipe_spk'      => $request->input('tipe_spk', 'pesanan_pelanggan'),
                 'tanggal'       => $request->tanggal,
                 'deadline'      => $request->deadline,
                 'pemesan'       => $request->pemesan,

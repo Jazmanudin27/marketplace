@@ -40,6 +40,15 @@
                 <div class="col-md-4 text-center">
                     <h2 class="fw-bold mb-0 text-dark" style="letter-spacing: 3px; font-family: 'Outfit', sans-serif;">S P K</h2>
                     <div class="text-uppercase fw-semibold text-muted small" style="letter-spacing: 2px;">Surat Perintah Kerja</div>
+                    @if(($spk->tipe_spk ?? 'pesanan_pelanggan') === 'stok_gudang')
+                        <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-1 mt-2 font-monospace fw-bold" style="font-size: 11px;">
+                            <i class="fas fa-warehouse me-1"></i>PRODUKSI STOK GUDANG
+                        </span>
+                    @else
+                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-1 mt-2 font-monospace fw-bold" style="font-size: 11px;">
+                            <i class="fas fa-user-tag me-1"></i>PESANAN PELANGGAN
+                        </span>
+                    @endif
                 </div>
                 <div class="col-md-3 text-end">
                     <div class="mb-1 text-muted small text-uppercase fw-bold">Tanggal</div>

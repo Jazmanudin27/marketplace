@@ -79,6 +79,11 @@
                         <tr>
                             <td class="font-monospace fw-bold py-3 px-3">
                                 <a href="{{ route('spks.show', $row) }}" class="text-primary">{{ $row->no_spk }}</a>
+                                @if(($row->tipe_spk ?? 'pesanan_pelanggan') === 'stok_gudang')
+                                    <div><span class="badge bg-success-subtle text-success border border-success-subtle" style="font-size: 9px;"><i class="fas fa-warehouse me-1"></i>Stok Gudang</span></div>
+                                @else
+                                    <div><span class="badge bg-primary-subtle text-primary border border-primary-subtle" style="font-size: 9px;"><i class="fas fa-user-tag me-1"></i>Pesanan Pelanggan</span></div>
+                                @endif
                             </td>
                             <td>
                                 <span class="badge bg-light text-dark border font-monospace">{{ $row->no_produksi ?: '—' }}</span>

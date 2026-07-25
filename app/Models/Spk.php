@@ -13,6 +13,7 @@ class Spk extends Model
         'order_id',
         'no_produksi',
         'no_spk',
+        'tipe_spk',
         'tanggal',
         'deadline',
         'pemesan',
