@@ -144,12 +144,6 @@
                     <i class="fas fa-calculator text-primary me-2"></i>Rincian HPP Produksi
                     <span class="badge bg-danger-subtle text-danger" style="font-size: 11px;">Internal Office Only</span>
                 </h5>
-                <button type="button" class="btn btn-sm btn-outline-success fw-bold" data-bs-toggle="modal" data-bs-target="#kelolaTahapanModal">
-                    <i class="fas fa-tasks me-1"></i> Kelola Tahapan Produksi
-                    @if($spk->proses->count() > 0)
-                        <span class="badge bg-success ms-1">{{ $spk->proses->count() }}</span>
-                    @endif
-                </button>
             </div>
             <div class="table-responsive mb-4">
                 <table class="table table-bordered table-sm align-middle text-center mb-0">
@@ -568,30 +562,6 @@
         $(this).closest('.row').remove();
     });
 
-    // ── KELOLA TAHAPAN: dynamic rows ──
-    let prosesIdx = {{ $spk->proses->count() + 1 }};
-    $(document).on('click', '#btnAddProsesRow', function() {
-        const idx = prosesIdx++;
-        const html = `
-            <div class="input-group mb-2 proses-row">
-                <span class="input-group-text bg-white text-muted fw-bold" style="width:32px;">#</span>
-                <input type="hidden" name="proses[${idx}][id]" value="">
-                <input type="text" name="proses[${idx}][nama_proses]" class="form-control" placeholder="Nama tahapan, misal: Potong / Printing / QC">
-                <button type="button" class="btn btn-outline-danger btn-remove-proses-row"><i class="fas fa-times"></i></button>
-            </div>`;
-        $('#prosesContainer').append(html);
-        renumberProses();
-    });
-    $(document).on('click', '.btn-remove-proses-row', function() {
-        $(this).closest('.proses-row').remove();
-        renumberProses();
-    });
-    function renumberProses() {
-        $('#prosesContainer .proses-row').each(function(i) {
-            $(this).find('.input-group-text').text('#' + (i + 1));
-        });
-    }
-
     // ── INLINE PROGRES BADGE CLICK → show qty editor modal ──
     let activePgUrl = null;
     let activeBadge = null;
@@ -638,55 +608,6 @@
         });
     });
 </script>
-
-{{-- Hidden form for loading master stages --}}
-<form id="formLoadMasterStage" action="{{ route('spks.proses.load_master', $spk->id) }}" method="POST" class="d-none">
-    @csrf
-</form>
-
-{{-- Modal: Kelola Tahapan Produksi --}}
-<div class="modal fade text-start" id="kelolaTahapanModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <form action="{{ route('spks.proses.store', $spk->id) }}" method="POST" class="modal-content">
-            @csrf
-            <div class="modal-header bg-light py-2 px-3">
-                <h6 class="modal-title fw-bold text-dark mb-0">
-                    <i class="fas fa-tasks me-1 text-success"></i> Kelola Tahapan Produksi SPK
-                </h6>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body p-3">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <span class="text-muted small">
-                        Atur alur tahapan produksi untuk SPK ini.
-                    </span>
-                    <button type="button" class="btn btn-xs btn-outline-info fw-semibold py-1 ms-2" onclick="if(confirm('Impor alur tahapan standar dari Master Data?')) document.getElementById('formLoadMasterStage').submit();">
-                        <i class="fas fa-file-import me-1"></i> Impor dari Master
-                    </button>
-                </div>
-                <div id="prosesContainer">
-                    @foreach($spk->proses as $idx => $pr)
-                        <div class="input-group mb-2 proses-row">
-                            <span class="input-group-text bg-white text-muted fw-bold" style="width:36px;">#{{ $idx + 1 }}</span>
-                            <input type="hidden" name="proses[{{ $idx }}][id]" value="{{ $pr->id }}">
-                            <input type="text" name="proses[{{ $idx }}][nama_proses]" class="form-control form-control-sm" value="{{ $pr->nama_proses }}" placeholder="Nama tahapan...">
-                            <button type="button" class="btn btn-outline-danger btn-remove-proses-row py-0 px-2"><i class="fas fa-times"></i></button>
-                        </div>
-                    @endforeach
-                </div>
-                <button type="button" class="btn btn-outline-success btn-sm w-100 mt-2 fw-semibold" id="btnAddProsesRow">
-                    <i class="fas fa-plus me-1"></i> Tambah Tahapan Baru
-                </button>
-            </div>
-            <div class="modal-footer py-2 bg-light">
-                <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Batal</button>
-                <button type="submit" class="btn btn-sm btn-success fw-bold">
-                    <i class="fas fa-save me-1"></i> Simpan Tahapan
-                </button>
-            </div>
-        </form>
-    </div>
-</div>
 
 {{-- Modal: Inline Progres Qty Editor --}}
 <div class="modal fade" id="progresEditorModal" tabindex="-1" aria-hidden="true">

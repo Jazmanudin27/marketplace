@@ -292,6 +292,10 @@ class SpkController extends Controller
     {
         abort_unless($spk->tenant_id === Auth::user()->tenant_id, 403);
         $spk->load(['penginput', 'items.extras', 'items.progres', 'proses']);
+        
+        // Auto-load master production stages if SPK has no custom processes yet
+        $this->ensureDefaultProses($spk);
+        
         $grouped = $this->getGroupedItems($spk);
 
         $sizesHeader = ['S', 'M', 'L', 'XL', 'XXL', '3XL'];
@@ -779,5 +783,38 @@ class SpkController extends Controller
 
         $all = array_merge(['Belum Mulai'], $stageNames, ['Selesai']);
         return array_values(array_unique($all));
+    }
+
+    private function ensureDefaultProses(Spk $spk): void
+    {
+        if ($spk->proses->isEmpty()) {
+            $tenantId = $spk->tenant_id;
+            \App\Models\MasterProductionStage::seedDefaultsForTenant($tenantId);
+            $masterStages = \App\Models\MasterProductionStage::where('tenant_id', $tenantId)
+                ->where('is_active', true)
+                ->orderBy('sort_order')
+                ->get();
+
+            if ($masterStages->isNotEmpty()) {
+                DB::transaction(function () use ($spk, $masterStages) {
+                    $seq = 1;
+                    foreach ($masterStages as $stage) {
+                        $prosesRecord = SpkProses::firstOrCreate(
+                            ['spk_id' => $spk->id, 'nama_proses' => $stage->name],
+                            ['urutan' => $seq]
+                        );
+                        $seq++;
+
+                        foreach ($spk->items as $item) {
+                            SpkItemProgres::firstOrCreate(
+                                ['spk_item_id' => $item->id, 'spk_proses_id' => $prosesRecord->id],
+                                ['qty_done' => 0]
+                            );
+                        }
+                    }
+                });
+                $spk->load(['proses', 'items.progres']);
+            }
+        }
     }
 }
