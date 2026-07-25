@@ -652,36 +652,38 @@
     });
 </script>
 
+{{-- Hidden form for loading master stages --}}
+<form id="formLoadMasterStage" action="{{ route('spks.proses.load_master', $spk->id) }}" method="POST" class="d-none">
+    @csrf
+</form>
+
 {{-- Modal: Kelola Tahapan Produksi --}}
 <div class="modal fade text-start" id="kelolaTahapanModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-md">
+    <div class="modal-dialog modal-dialog-centered">
         <form action="{{ route('spks.proses.store', $spk->id) }}" method="POST" class="modal-content">
             @csrf
-            <div class="modal-header bg-light py-2">
-                <h6 class="modal-title fw-bold text-dark">
+            <div class="modal-header bg-light py-2 px-3">
+                <h6 class="modal-title fw-bold text-dark mb-0">
                     <i class="fas fa-tasks me-1 text-success"></i> Kelola Tahapan Produksi SPK
                 </h6>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body p-3">
                 <div class="d-flex justify-content-between align-items-center mb-3">
-                    <p class="text-muted small mb-0">
-                        Kelola alur tahapan produksi khusus untuk SPK ini.
-                    </p>
-                    <form action="{{ route('spks.proses.load_master', $spk->id) }}" method="POST" class="m-0" onsubmit="return confirm('Impor alur tahapan standar dari Master Data?')">
-                        @csrf
-                        <button type="submit" class="btn btn-xs btn-outline-info fw-semibold py-1">
-                            <i class="fas fa-file-import me-1"></i> Impor dari Master Tahapan
-                        </button>
-                    </form>
+                    <span class="text-muted small">
+                        Atur alur tahapan produksi untuk SPK ini.
+                    </span>
+                    <button type="button" class="btn btn-xs btn-outline-info fw-semibold py-1 ms-2" onclick="if(confirm('Impor alur tahapan standar dari Master Data?')) document.getElementById('formLoadMasterStage').submit();">
+                        <i class="fas fa-file-import me-1"></i> Impor dari Master
+                    </button>
                 </div>
                 <div id="prosesContainer">
                     @foreach($spk->proses as $idx => $pr)
                         <div class="input-group mb-2 proses-row">
-                            <span class="input-group-text bg-white text-muted fw-bold" style="width:32px;">#{{ $idx + 1 }}</span>
+                            <span class="input-group-text bg-white text-muted fw-bold" style="width:36px;">#{{ $idx + 1 }}</span>
                             <input type="hidden" name="proses[{{ $idx }}][id]" value="{{ $pr->id }}">
-                            <input type="text" name="proses[{{ $idx }}][nama_proses]" class="form-control" value="{{ $pr->nama_proses }}" placeholder="Nama tahapan...">
-                            <button type="button" class="btn btn-outline-danger btn-remove-proses-row"><i class="fas fa-times"></i></button>
+                            <input type="text" name="proses[{{ $idx }}][nama_proses]" class="form-control form-control-sm" value="{{ $pr->nama_proses }}" placeholder="Nama tahapan...">
+                            <button type="button" class="btn btn-outline-danger btn-remove-proses-row py-0 px-2"><i class="fas fa-times"></i></button>
                         </div>
                     @endforeach
                 </div>
