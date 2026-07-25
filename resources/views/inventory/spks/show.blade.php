@@ -383,6 +383,172 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Status & Riwayat Pengambilan Barang (Partial Handover) -->
+            <div class="card border shadow-sm rounded-3 mb-4 bg-white overflow-hidden">
+                <div class="card-header bg-white py-3 px-3 border-bottom d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="fw-bold mb-0 text-dark">
+                            <i class="fas fa-hand-holding-box text-primary me-2"></i>Status &amp; Riwayat Pengambilan Barang (Partial Handover)
+                        </h6>
+                        <small class="text-muted">Catat pengambilan barang secara bertahap jika barang yang selesai diambil sebagian oleh klien/pemesan.</small>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-sm align-middle text-center mb-0" style="font-size: 12px;">
+                            <thead class="table-light text-muted">
+                                <tr>
+                                    <th class="text-start ps-3" style="width: 30%;">SKU Produk &amp; Ukuran</th>
+                                    <th style="width: 15%;">Total Qty SPK</th>
+                                    <th style="width: 15%;">Sudah Diambil</th>
+                                    <th style="width: 15%;">Sisa Belum Diambil</th>
+                                    <th style="width: 25%;">Aksi Handover</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($spk->items as $item)
+                                    @php
+                                        $diambil = $item->qty_diambil;
+                                        $sisa = $item->sisa_qty;
+                                    @endphp
+                                    <tr>
+                                        <td class="text-start ps-3 fw-bold text-dark font-monospace">
+                                            {{ $item->sku ?: ($item->sku_induk ?: $item->nama_produk) }}
+                                            <span class="badge bg-light text-dark border ms-1 font-monospace">{{ $item->ukuran ?: 'All Size' }}</span>
+                                        </td>
+                                        <td class="fw-bold text-dark">{{ $item->quantity }} pcs</td>
+                                        <td>
+                                            <span class="badge bg-info-subtle text-info border border-info-subtle px-2 py-1 fs-7 fw-bold">
+                                                {{ $diambil }} pcs
+                                            </span>
+                                        </td>
+                                        <td>
+                                            @if($sisa == 0)
+                                                <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1 fs-7 fw-bold">
+                                                    Lunas / Selesai (0 pcs)
+                                                </span>
+                                            @else
+                                                <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1 fs-7 fw-bold">
+                                                    {{ $sisa }} pcs lagi
+                                                </span>
+                                            @endif
+                                        </td>
+                                        <td>
+                                            @if($sisa > 0)
+                                                <button type="button" class="btn btn-xs btn-outline-primary fw-bold py-1 px-3" data-bs-toggle="modal" data-bs-target="#pickupModal-{{ $item->id }}">
+                                                    <i class="fas fa-plus-circle me-1"></i> Catat Pengambilan
+                                                </button>
+                                            @else
+                                                <span class="text-muted small"><i class="fas fa-check-circle text-success me-1"></i>Sudah Diambil Semua</span>
+                                            @endif
+
+                                            <!-- Modal Catat Pengambilan -->
+                                            <div class="modal fade text-start" id="pickupModal-{{ $item->id }}" tabindex="-1" aria-hidden="true">
+                                                <div class="modal-dialog modal-dialog-centered">
+                                                    <form action="{{ route('spks.items.store_pickup', $item->id) }}" method="POST" class="modal-content">
+                                                        @csrf
+                                                        <div class="modal-header bg-light py-2">
+                                                            <h6 class="modal-title fw-bold text-dark">
+                                                                <i class="fas fa-hand-holding me-1 text-primary"></i> Catat Pengambilan Barang
+                                                            </h6>
+                                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                        </div>
+                                                        <div class="modal-body p-3">
+                                                            <div class="alert alert-info py-2 px-3 small mb-3">
+                                                                <i class="fas fa-info-circle me-1"></i> Produk: <strong>{{ $item->nama_produk }}</strong> ({{ $item->ukuran ?: 'All Size' }})<br>
+                                                                Sisa barang yang dapat diambil: <strong class="text-danger">{{ $sisa }} pcs</strong>
+                                                            </div>
+                                                            <div class="mb-3">
+                                                                <label class="form-label small fw-semibold">Jumlah yang Diambil (Pcs)</label>
+                                                                <input type="number" name="qty_diambil" class="form-control form-control-sm text-center fw-bold fs-6" min="1" max="{{ $sisa }}" value="{{ min(1, $sisa) }}" required>
+                                                            </div>
+                                                            <div class="mb-3">
+                                                                <label class="form-label small fw-semibold">Nama Pengambil / Kurir / Driver</label>
+                                                                <input type="text" name="nama_pengambil" class="form-control form-control-sm" required placeholder="Contoh: Pak Budi (Supir Klien) / Pak Eko">
+                                                            </div>
+                                                            <div class="mb-3">
+                                                                <label class="form-label small fw-semibold">Tanggal &amp; Waktu Pengambilan</label>
+                                                                <input type="datetime-local" name="tanggal_ambil" class="form-control form-control-sm" value="{{ now()->format('Y-m-d\TH:i') }}" required>
+                                                            </div>
+                                                            <div class="mb-2">
+                                                                <label class="form-label small fw-semibold">Catatan Khusus (Opsional)</label>
+                                                                <textarea name="catatan" class="form-control form-control-sm" rows="2" placeholder="Contoh: Diambil partial untuk dipakai acara besok..."></textarea>
+                                                            </div>
+                                                        </div>
+                                                        <div class="modal-footer py-2 bg-light">
+                                                            <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Batal</button>
+                                                            <button type="submit" class="btn btn-sm btn-primary fw-bold">
+                                                                <i class="fas fa-save me-1"></i> Simpan Transaksi Pengambilan
+                                                            </button>
+                                                        </div>
+                                                    </form>
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {{-- History Log Sub-table --}}
+                    @php
+                        $allPickups = collect();
+                        foreach($spk->items as $it) {
+                            foreach($it->pickups as $pk) {
+                                $allPickups->push($pk);
+                            }
+                        }
+                        $allPickups = $allPickups->sortByDesc('tanggal_ambil');
+                    @endphp
+                    @if($allPickups->isNotEmpty())
+                        <div class="p-3 bg-light border-top">
+                            <h6 class="fw-bold text-dark mb-2" style="font-size: 13px;">
+                                <i class="fas fa-history text-secondary me-1"></i> Log Riwayat Transaksi Pengambilan Barang:
+                            </h6>
+                            <div class="table-responsive">
+                                <table class="table table-sm table-bordered bg-white align-middle mb-0" style="font-size: 11px;">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Waktu Ambil</th>
+                                            <th>SKU Produk / Ukuran</th>
+                                            <th class="text-center">Qty Diambil</th>
+                                            <th>Nama Pengambil</th>
+                                            <th>Petugas PIC (Pemberi)</th>
+                                            <th>Catatan</th>
+                                            <th class="text-center" style="width: 50px;">Aksi</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach($allPickups as $pk)
+                                            <tr>
+                                                <td class="font-monospace fw-semibold">{{ $pk->tanggal_ambil ? $pk->tanggal_ambil->format('d M Y H:i') : '—' }}</td>
+                                                <td class="fw-bold text-dark">
+                                                    {{ $pk->item->sku ?: $pk->item->nama_produk }} ({{ $pk->item->ukuran ?: 'All Size' }})
+                                                </td>
+                                                <td class="text-center fw-bold text-primary">+{{ $pk->qty_diambil }} pcs</td>
+                                                <td class="fw-semibold text-dark">{{ $pk->nama_pengambil }}</td>
+                                                <td><span class="badge bg-light text-dark border">{{ $pk->pemberi->name ?? 'SYSTEM' }}</span></td>
+                                                <td class="text-muted">{{ $pk->catatan ?: '—' }}</td>
+                                                <td class="text-center">
+                                                    <form action="{{ route('spks.pickups.destroy', $pk->id) }}" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin menghapus catatan pengambilan ini?')">
+                                                        @csrf
+                                                        @method('DELETE')
+                                                        <button type="submit" class="btn btn-xs btn-outline-danger py-0 px-1" title="Hapus Riwayat">
+                                                            <i class="fas fa-trash-alt"></i>
+                                                        </button>
+                                                    </form>
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    @endif
+                </div>
+            </div>
             @endif
 
             <!-- Setting Biaya SPK di Akhir (Tambahan Jasa & Bahan / Material) -->

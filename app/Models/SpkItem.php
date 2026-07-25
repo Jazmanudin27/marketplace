@@ -45,4 +45,19 @@ class SpkItem extends Model
     {
         return $this->hasMany(SpkItemProgres::class);
     }
+
+    public function pickups(): HasMany
+    {
+        return $this->hasMany(SpkItemPickup::class, 'spk_item_id');
+    }
+
+    public function getQtyDiambilAttribute(): int
+    {
+        return (int) $this->pickups()->sum('qty_diambil');
+    }
+
+    public function getSisaQtyAttribute(): int
+    {
+        return max(0, (int) $this->quantity - $this->qty_diambil);
+    }
 }

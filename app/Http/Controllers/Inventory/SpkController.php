@@ -291,7 +291,7 @@ class SpkController extends Controller
     public function show(Spk $spk)
     {
         abort_unless($spk->tenant_id === Auth::user()->tenant_id, 403);
-        $spk->load(['penginput', 'items.extras', 'items.progres', 'proses']);
+        $spk->load(['penginput', 'items.extras', 'items.progres', 'items.pickups.pemberi', 'proses']);
         
         // Auto-load master production stages if SPK has no custom processes yet
         $this->ensureDefaultProses($spk);
@@ -816,5 +816,101 @@ class SpkController extends Controller
                 $spk->load(['proses', 'items.progres']);
             }
         }
+    }
+
+    public function storePickup(Request $request, SpkItem $item)
+    {
+        $spk = $item->spk;
+        abort_unless($spk->tenant_id === Auth::user()->tenant_id, 403);
+
+        $sisaQty = $item->sisa_qty;
+        if ($sisaQty <= 0) {
+            return back()->with('error', 'Semua barang untuk item ini sudah diambil.');
+        }
+
+        $request->validate([
+            'qty_diambil'    => 'required|integer|min:1|max:' . $sisaQty,
+            'nama_pengambil' => 'required|string|max:255',
+            'tanggal_ambil'  => 'required|date',
+            'catatan'        => 'nullable|string',
+        ]);
+
+        $qtyTaken = (int) $request->qty_diambil;
+
+        DB::transaction(function () use ($request, $item, $spk, $qtyTaken) {
+            // 1. Create pickup record
+            \App\Models\SpkItemPickup::create([
+                'spk_item_id'    => $item->id,
+                'qty_diambil'    => $qtyTaken,
+                'tanggal_ambil'  => $request->tanggal_ambil,
+                'nama_pengambil' => $request->nama_pengambil,
+                'pemberi_id'     => Auth::id(),
+                'catatan'        => $request->catatan,
+            ]);
+
+            // 2. Handle Stock Movements for Finished Goods & Raw Materials
+            $product = null;
+            if ($item->master_product_id) {
+                $product = MasterProduct::find($item->master_product_id);
+            } elseif (!empty($item->sku)) {
+                $product = MasterProduct::where('tenant_id', $spk->tenant_id)->where('sku', trim($item->sku))->first();
+            } elseif (!empty($item->nama_produk)) {
+                $product = MasterProduct::where('tenant_id', $spk->tenant_id)->where('name', trim($item->nama_produk))->first();
+            }
+
+            if ($product) {
+                // Record production finish (+in)
+                $product->recordStockMovement(
+                    $qtyTaken,
+                    'in',
+                    'Penerimaan SPK Partial #' . $spk->no_spk . ' (Item: ' . $item->nama_produk . ')',
+                    Auth::id()
+                );
+
+                // Record handover to client (-out)
+                $product->recordStockMovement(
+                    $qtyTaken,
+                    'out',
+                    'Penyerahan Barang Partial SPK #' . $spk->no_spk . ' (Pengambil: ' . $request->nama_pengambil . ')',
+                    Auth::id()
+                );
+
+                // Deduct raw materials based on active recipe
+                $recipe = \App\Models\ProductRecipe::where('master_product_id', $product->id)
+                    ->where('tenant_id', $spk->tenant_id)
+                    ->where('is_active', true)
+                    ->with('items.inventoryItem')
+                    ->first();
+
+                if ($recipe) {
+                    foreach ($recipe->items as $recipeItem) {
+                        $invItem = $recipeItem->inventoryItem;
+                        if ($invItem) {
+                            $batchQty = max(1, $recipe->batch_qty);
+                            $qtyNeeded = ($recipeItem->quantity / $batchQty) * $qtyTaken;
+
+                            $invItem->recordStockMovement(
+                                (int)ceil($qtyNeeded),
+                                'out',
+                                'Konsumsi Bahan SPK Partial #' . $spk->no_spk . ' (' . $qtyTaken . ' pcs)',
+                                Auth::id()
+                            );
+                        }
+                    }
+                }
+            }
+        });
+
+        return back()->with('success', 'Pengambilan barang partial ' . $qtyTaken . ' pcs oleh "' . $request->nama_pengambil . '" berhasil dicatat.');
+    }
+
+    public function destroyPickup(\App\Models\SpkItemPickup $pickup)
+    {
+        $spk = $pickup->item->spk;
+        abort_unless($spk->tenant_id === Auth::user()->tenant_id, 403);
+
+        $pickup->delete();
+
+        return back()->with('success', 'Catatan pengambilan barang berhasil dihapus.');
     }
 }
