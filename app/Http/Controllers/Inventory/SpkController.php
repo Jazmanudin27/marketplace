@@ -683,21 +683,23 @@ class SpkController extends Controller
                 ->whereNotIn('id', $submittedIds)
                 ->delete();
 
-            foreach ($submitted as $idx => $row) {
+            $seq = 1;
+            foreach ($submitted as $row) {
                 $nama = trim($row['nama_proses'] ?? '');
                 if (!$nama) continue;
 
                 $prosesId = $row['id'] ?? null;
                 if ($prosesId && $existing->has($prosesId)) {
-                    $existing[$prosesId]->update(['nama_proses' => $nama, 'urutan' => $idx + 1]);
+                    $existing[$prosesId]->update(['nama_proses' => $nama, 'urutan' => $seq]);
                     $prosesRecord = $existing[$prosesId];
                 } else {
                     $prosesRecord = SpkProses::create([
                         'spk_id'      => $spk->id,
                         'nama_proses' => $nama,
-                        'urutan'      => $idx + 1,
+                        'urutan'      => $seq,
                     ]);
                 }
+                $seq++;
 
                 // Ensure a progres row exists for every item x proses combo
                 foreach ($spk->items as $item) {
@@ -710,6 +712,43 @@ class SpkController extends Controller
         });
 
         return back()->with('success', 'Tahapan produksi berhasil diperbarui.');
+    }
+
+    public function loadMasterProses(Spk $spk)
+    {
+        abort_unless($spk->tenant_id === Auth::user()->tenant_id, 403);
+        $tenantId = Auth::user()->tenant_id;
+
+        \App\Models\MasterProductionStage::seedDefaultsForTenant($tenantId);
+        $masterStages = \App\Models\MasterProductionStage::where('tenant_id', $tenantId)
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->get();
+
+        if ($masterStages->isEmpty()) {
+            return back()->with('error', 'Tidak ada master tahapan produksi yang aktif.');
+        }
+
+        DB::transaction(function () use ($spk, $masterStages) {
+            $seq = 1;
+            foreach ($masterStages as $stage) {
+                $prosesRecord = SpkProses::firstOrCreate(
+                    ['spk_id' => $spk->id, 'nama_proses' => $stage->name],
+                    ['urutan' => $seq]
+                );
+                $prosesRecord->update(['urutan' => $seq]);
+                $seq++;
+
+                foreach ($spk->items as $item) {
+                    SpkItemProgres::firstOrCreate(
+                        ['spk_item_id' => $item->id, 'spk_proses_id' => $prosesRecord->id],
+                        ['qty_done' => 0]
+                    );
+                }
+            }
+        });
+
+        return back()->with('success', 'Master tahapan produksi berhasil diimpor ke SPK ini.');
     }
 
     public function updateItemProgres(Request $request, SpkItemProgres $progres)

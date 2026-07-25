@@ -221,6 +221,7 @@ Route::middleware('auth')->group(function () {
     Route::middleware('permission:manage-employees')->group(function () {
         Route::resource('tailors', \App\Http\Controllers\Inventory\TailorController::class);
         Route::resource('production-statuses', \App\Http\Controllers\Master\ProductionStatusController::class);
+        Route::resource('production-stages', \App\Http\Controllers\Master\MasterProductionStageController::class);
         Route::resource('employees', EmployeeController::class)->except(['show']);
         Route::resource('labor_services', LaborServiceController::class);
         Route::put('employees/{employee}/salary', [EmployeeController::class, 'updateSalary'])->name('employees.salary.update');
@@ -547,6 +548,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/spks/{spk}/update-tambahan', [\App\Http\Controllers\Inventory\SpkController::class, 'updateTambahan'])->name('spks.update_tambahan');
         Route::post('/spks/{spk}/update-global-costs', [\App\Http\Controllers\Inventory\SpkController::class, 'updateGlobalCosts'])->name('spks.update_global_costs');
         Route::post('/spks/{spk}/proses', [\App\Http\Controllers\Inventory\SpkController::class, 'storeProsesSteps'])->name('spks.proses.store');
+        Route::post('/spks/{spk}/load-master-proses', [\App\Http\Controllers\Inventory\SpkController::class, 'loadMasterProses'])->name('spks.proses.load_master');
         Route::post('/spks/progres/{progres}/update', [\App\Http\Controllers\Inventory\SpkController::class, 'updateItemProgres'])->name('spks.progres.update');
 
         // Stock Sync

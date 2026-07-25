@@ -582,7 +582,7 @@
     });
 
     // ── KELOLA TAHAPAN: dynamic rows ──
-    let prosesIdx = 500;
+    let prosesIdx = {{ $spk->proses->count() + 1 }};
     $(document).on('click', '#btnAddProsesRow', function() {
         const idx = prosesIdx++;
         const html = `
@@ -664,9 +664,17 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body p-3">
-                <p class="text-muted small mb-3">
-                    Tambahkan tahapan produksi sesuai alur SPK ini (Potong, Printing, Jahit, QC, dll). Urutan sesuai posisi baris.
-                </p>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <p class="text-muted small mb-0">
+                        Kelola alur tahapan produksi khusus untuk SPK ini.
+                    </p>
+                    <form action="{{ route('spks.proses.load_master', $spk->id) }}" method="POST" class="m-0" onsubmit="return confirm('Impor alur tahapan standar dari Master Data?')">
+                        @csrf
+                        <button type="submit" class="btn btn-xs btn-outline-info fw-semibold py-1">
+                            <i class="fas fa-file-import me-1"></i> Impor dari Master Tahapan
+                        </button>
+                    </form>
+                </div>
                 <div id="prosesContainer">
                     @foreach($spk->proses as $idx => $pr)
                         <div class="input-group mb-2 proses-row">
