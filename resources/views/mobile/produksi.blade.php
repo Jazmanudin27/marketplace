@@ -167,7 +167,7 @@
 
                     <!-- Direct Action Button to SPK Detail & Stage Progress -->
                     <div class="mt-3 pt-2 border-top">
-                        <a href="{{ route('spks.show', $spk->id) }}" class="btn btn-primary w-100 fw-bold rounded-3 shadow-sm py-2" style="font-size: 0.82rem;">
+                        <a href="{{ route('mobile.spk.detail', $spk->id) }}" class="btn btn-primary w-100 fw-bold rounded-3 shadow-sm py-2" style="font-size: 0.82rem;">
                             <i class="fas fa-eye me-1.5"></i> BUKA DETAIL &amp; UPDATE PROGRES SPK
                         </a>
                     </div>

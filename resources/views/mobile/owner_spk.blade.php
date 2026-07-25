@@ -133,7 +133,7 @@
                     </div>
 
                     <div class="mt-3 pt-2 border-top">
-                        <a href="{{ route('spks.show', $spk->id) }}" class="btn btn-sm btn-primary w-100 fw-bold rounded-3 shadow-sm py-2" style="font-size: 0.8rem;">
+                        <a href="{{ route('mobile.spk.detail', $spk->id) }}" class="btn btn-sm btn-primary w-100 fw-bold rounded-3 shadow-sm py-2" style="font-size: 0.8rem;">
                             <i class="fas fa-eye me-1"></i> Buka Detail &amp; Update Progres SPK
                         </a>
                     </div>

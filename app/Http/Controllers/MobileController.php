@@ -520,6 +520,52 @@ class MobileController extends Controller
         return view('mobile.owner_spk', compact('spks', 'search', 'tipeSpk'));
     }
 
+    public function showSpkDetail($id)
+    {
+        $tenantId = Auth::user()->tenant_id;
+        $spk = \App\Models\Spk::where('tenant_id', $tenantId)->findOrFail($id);
+        
+        $spk->load(['penginput', 'items.extras', 'items.progres', 'items.pickups.pemberi', 'proses']);
+        
+        if ($spk->proses->isEmpty()) {
+            \App\Models\MasterProductionStage::seedDefaultsForTenant($tenantId);
+            $masterStages = \App\Models\MasterProductionStage::where('tenant_id', $tenantId)
+                ->where('is_active', true)
+                ->orderBy('sort_order')
+                ->get();
+
+            if ($masterStages->isNotEmpty()) {
+                \Illuminate\Support\Facades\DB::transaction(function () use ($spk, $masterStages) {
+                    $seq = 1;
+                    foreach ($masterStages as $stage) {
+                        $prosesRecord = \App\Models\SpkProses::firstOrCreate(
+                            ['spk_id' => $spk->id, 'nama_proses' => $stage->name],
+                            ['urutan' => $seq]
+                        );
+                        $seq++;
+
+                        foreach ($spk->items as $item) {
+                            \App\Models\SpkItemProgres::firstOrCreate(
+                                ['spk_item_id' => $item->id, 'spk_proses_id' => $prosesRecord->id],
+                                ['qty_done' => 0]
+                            );
+                        }
+                    }
+                });
+                $spk->load(['proses', 'items.progres']);
+            }
+        }
+
+        $progresMap = [];
+        foreach ($spk->items as $item) {
+            foreach ($item->progres as $pg) {
+                $progresMap[$item->id][$pg->spk_proses_id] = $pg;
+            }
+        }
+
+        return view('mobile.spk_detail', compact('spk', 'progresMap'));
+    }
+
     public function ownerProfitLoss(Request $request)
     {
         $tenantId = Auth::user()->tenant_id;

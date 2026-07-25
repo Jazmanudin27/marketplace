@@ -808,6 +808,9 @@ Route::middleware('auth')->group(function () {
         Route::post('/mobile/produksi/{order}/cancel', [\App\Http\Controllers\MobileController::class, 'produksiCancel'])->name('mobile.produksi.cancel');
     });
 
+    // Mobile Dedicated SPK Detail View
+    Route::get('/mobile/spk/{spk}', [\App\Http\Controllers\MobileController::class, 'showSpkDetail'])->name('mobile.spk.detail');
+
     // Tenant Switcher (Super Admin)
     Route::post('/settings/switch-tenant', function (\Illuminate\Http\Request $request) {
         if (auth()->user() && auth()->user()->isSuperAdmin()) {
