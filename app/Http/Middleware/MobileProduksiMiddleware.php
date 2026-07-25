@@ -18,7 +18,7 @@ class MobileProduksiMiddleware
         $userRole = Auth::user()->role;
 
         // Allow admin, production, or produksi
-        if (in_array($userRole, ['admin', 'production', 'produksi'])) {
+        if (in_array($userRole, ['admin', 'production', 'produksi', 'admin_produksi'])) {
             return $next($request);
         }
 

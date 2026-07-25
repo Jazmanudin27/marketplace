@@ -505,7 +505,7 @@
         @endif
 
         <!-- Tab Produksi (For non-owner roles) -->
-        @if(!in_array($role, ['owner']) && in_array($role, ['admin', 'production', 'produksi']))
+        @if(!in_array($role, ['owner']) && in_array($role, ['admin', 'production', 'produksi', 'admin_produksi']))
             <a href="{{ route('mobile.produksi') }}" class="nav-item-custom {{ $isProduksiActive ? 'active' : '' }}">
                 <i class="fas fa-tools"></i>
                 <span>Produksi</span>

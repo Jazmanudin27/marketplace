@@ -22,6 +22,11 @@ class MobileOwnerMiddleware
             return $next($request);
         }
 
+        // Allow production role specifically for SPK mobile view
+        if (in_array($userRole, ['production', 'produksi', 'admin_produksi']) && $request->routeIs('mobile.owner.spk')) {
+            return $next($request);
+        }
+
         abort(403, 'Akses Ditolak: Anda tidak memiliki izin untuk halaman Owner Mobile.');
     }
 }
