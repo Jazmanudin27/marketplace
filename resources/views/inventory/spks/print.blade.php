@@ -277,65 +277,7 @@
         </table>
     @endif
 
-    <!-- 4. Rincian HPP Produksi (Internal Office Only) -->
-    @if(auth()->user()->isSuperAdmin() || auth()->user()->role === 'admin' || auth()->user()->hasRole('admin') || auth()->user()->can('spks.view_hpp'))
-    <div class="table-section-title">4. Rincian HPP Produksi (Internal Office Only)</div>
-    <table class="product-table">
-        <thead>
-            <tr>
-                <th style="width: 22%; text-align: left; padding-left: 8px;">SKU &amp; Size</th>
-                <th style="width: 10%;">Tukang Potong</th>
-                <th style="width: 10%;">Tukang Jahit</th>
-                <th style="width: 14%;">Catatan Khusus</th>
-                <th style="width: 8%;">Bahan / pcs</th>
-                <th style="width: 8%;">Jasa / pcs</th>
-                <th style="width: 8%;">HPP / Pcs</th>
-                <th style="width: 5%;">Qty</th>
-                <th style="width: 9%;">Subtotal HPP</th>
-                <th style="width: 6%;">Status</th>
-            </tr>
-        </thead>
-        <tbody>
-            @php $grandTotalHpp = 0; @endphp
-            @foreach($spk->items as $item)
-                @php
-                    $subtotal = $item->hpp * $item->quantity;
-                    $grandTotalHpp += $subtotal;
 
-                    $totalBahan = 0;
-                    $totalJasa = 0;
-                    foreach($item->extras as $ex) {
-                        $desc = strtolower($ex->keterangan);
-                        if (str_starts_with($desc, 'bahan:') || str_contains($desc, 'bahan')) {
-                            $totalBahan += (float)$ex->nominal;
-                        } else {
-                            $totalJasa += (float)$ex->nominal;
-                        }
-                    }
-                @endphp
-                <tr>
-                    <td style="text-align: left; font-weight: bold; font-family: monospace; padding-left: 8px;">
-                        {{ $item->sku ?: ($item->sku_induk ?: $item->nama_produk) }} ({{ $item->ukuran ?: 'All Size' }})
-                    </td>
-                    <td>{{ $item->pemotong ?: '—' }}</td>
-                    <td>{{ $item->penjahit ?: '—' }}</td>
-                    <td style="text-align: left; font-size: 9px;">{{ $item->catatan ?: '—' }}</td>
-                    <td>Rp {{ number_format($totalBahan, 0, ',', '.') }}</td>
-                    <td>Rp {{ number_format($totalJasa, 0, ',', '.') }}</td>
-                    <td class="bg-red-light">Rp {{ number_format($item->hpp, 0, ',', '.') }}</td>
-                    <td>{{ $item->quantity }}</td>
-                    <td style="font-weight: bold;">Rp {{ number_format($subtotal, 0, ',', '.') }}</td>
-                    <td><span style="font-size: 8px; font-weight: bold;">{{ strtoupper($item->status ?: 'Pending') }}</span></td>
-                </tr>
-            @endforeach
-            <tr style="background: #f1f5f9; font-weight: bold;">
-                <td colspan="7" style="text-align: right; padding-right: 10px;">Total HPP Produksi SPK:</td>
-                <td>{{ $spk->items->sum('quantity') }}</td>
-                <td colspan="2">Rp {{ number_format($grandTotalHpp, 0, ',', '.') }}</td>
-            </tr>
-        </tbody>
-    </table>
-    @endif
 
     <!-- Additional Attributes -->
     <div class="attrib-box">
