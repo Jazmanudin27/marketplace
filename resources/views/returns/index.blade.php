@@ -389,66 +389,6 @@
                                         <div class="small text-muted mt-2" style="font-size: 0.72rem;">
                                             Klik untuk periksa fisik<br>dan terima barang.
                                         </div>
-
-                                        <!-- Modal QC -->
-                                        <div class="modal fade text-start" id="qcModal-{{ $ret->id }}"
-                                            tabindex="-1" aria-hidden="true">
-                                            <div class="modal-dialog modal-dialog-centered modal-lg">
-                                                <div class="modal-content border-0 shadow">
-                                                    <div class="modal-header bg-light">
-                                                        <h5 class="modal-title fw-bold text-dark" id="qcModalLabel-{{ $ret->id }}">
-                                                            <i class="fas fa-undo-alt text-primary me-2"></i>QC Retur: {{ $ret->return_sn }}
-                                                        </h5>
-                                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                                    </div>
-                                                    <form action="{{ route('returns.restock', $ret->id) }}" method="POST" enctype="multipart/form-data">
-                                                        @csrf
-                                                        <div class="modal-body">
-                                                            <div class="alert alert-info py-2 px-3 mb-3" style="font-size: 0.78rem;">
-                                                                <i class="fas fa-info-circle me-1"></i> Periksa fisik masing-masing produk di bawah ini, unggah foto bukti fisik, dan tentukan kelayakannya untuk dikembalikan ke stok aktif gudang.
-                                                            </div>
-                                                            
-                                                            <div class="d-flex flex-column gap-3">
-                                                                @foreach ($ret->items as $rItem)
-                                                                    @php $mpProduct = $rItem->orderItem->marketplaceProduct ?? null; @endphp
-                                                                    <div class="border rounded p-3 bg-light bg-opacity-50">
-                                                                        <div class="d-flex align-items-center gap-2 mb-2">
-                                                                            <i class="fas fa-box text-muted"></i>
-                                                                            <span class="badge bg-secondary">{{ $rItem->quantity }} Pcs</span>
-                                                                            <span class="fw-semibold small text-dark">{{ $mpProduct ? $mpProduct->name : $rItem->orderItem->product_name ?? 'Item Tidak Ditemukan' }}</span>
-                                                                        </div>
-                                                                        
-                                                                        <div class="row g-2">
-                                                                            <div class="col-12 col-md-5">
-                                                                                <label class="form-label fw-semibold small mb-1">Hasil Inspeksi / Kondisi:</label>
-                                                                                <select name="items[{{ $rItem->id }}][inspection_status]" class="form-select form-select-sm" required>
-                                                                                    <option value="GOOD">Layak Jual / Good (Masuk Stok)</option>
-                                                                                    <option value="DEFECTIVE">Rusak / Defective (Abaikan Stok)</option>
-                                                                                </select>
-                                                                            </div>
-                                                                            <div class="col-12 col-md-7">
-                                                                                <label class="form-label fw-semibold small mb-1">Catatan (Opsional):</label>
-                                                                                <input type="text" name="items[{{ $rItem->id }}][inspection_notes]" class="form-control form-control-sm" placeholder="Contoh: Plastik terbuka, mulus...">
-                                                                            </div>
-                                                                            <div class="col-12">
-                                                                                <label class="form-label fw-semibold small mb-1 mt-1">Unggah Foto Bukti QC (Opsional):</label>
-                                                                                <input type="file" name="items[{{ $rItem->id }}][photo]" class="form-control form-control-sm" accept="image/*">
-                                                                            </div>
-                                                                        </div>
-                                                                    </div>
-                                                                @endforeach
-                                                            </div>
-                                                        </div>
-                                                        <div class="modal-footer bg-light">
-                                                            <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Batal</button>
-                                                            <button type="submit" class="btn btn-primary btn-sm fw-semibold">
-                                                                <i class="fas fa-check me-1"></i>Simpan Hasil QC
-                                                            </button>
-                                                        </div>
-                                                    </form>
-                                                </div>
-                                            </div>
-                                        </div>
                                     @endif
                                 </td>
                             </tr>
@@ -469,6 +409,74 @@
     <div class="mt-3">
         {{ $returns->withQueryString()->links('pagination::bootstrap-5') }}
     </div>
+
+    {{-- Render QC Modals outside table for valid DOM structure --}}
+    @foreach ($returns as $ret)
+        @if (!$ret->is_restocked)
+            <!-- Modal QC -->
+            <div class="modal fade text-start" id="qcModal-{{ $ret->id }}" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered modal-lg">
+                    <div class="modal-content border-0 shadow">
+                        <div class="modal-header bg-light">
+                            <h5 class="modal-title fw-bold text-dark" id="qcModalLabel-{{ $ret->id }}">
+                                <i class="fas fa-undo-alt text-primary me-2"></i>QC Retur: {{ $ret->return_sn }}
+                            </h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <form action="{{ route('returns.restock', $ret->id) }}" method="POST" enctype="multipart/form-data">
+                            @csrf
+                            <div class="modal-body">
+                                <div class="alert alert-info py-2 px-3 mb-3" style="font-size: 0.78rem;">
+                                    <i class="fas fa-info-circle me-1"></i> Periksa fisik masing-masing produk di bawah ini, unggah foto bukti fisik, dan tentukan kelayakannya untuk dikembalikan ke stok aktif gudang.
+                                </div>
+                                
+                                <div class="d-flex flex-column gap-3">
+                                    @foreach ($ret->items as $rItem)
+                                        @php 
+                                            $orderItem = $rItem->orderItem;
+                                            $mpProduct = $orderItem ? $orderItem->marketplaceProduct : null;
+                                            $itemName = $mpProduct ? $mpProduct->name : ($orderItem->product_name ?? 'Item Tidak Ditemukan');
+                                        @endphp
+                                        <div class="border rounded p-3 bg-light bg-opacity-50">
+                                            <div class="d-flex align-items-center gap-2 mb-2">
+                                                <i class="fas fa-box text-muted"></i>
+                                                <span class="badge bg-secondary">{{ $rItem->quantity }} Pcs</span>
+                                                <span class="fw-semibold small text-dark">{{ $itemName }}</span>
+                                            </div>
+                                            
+                                            <div class="row g-2">
+                                                <div class="col-12 col-md-5">
+                                                    <label class="form-label fw-semibold small mb-1">Hasil Inspeksi / Kondisi:</label>
+                                                    <select name="items[{{ $rItem->id }}][inspection_status]" class="form-select form-select-sm" required>
+                                                        <option value="GOOD">Layak Jual / Good (Masuk Stok)</option>
+                                                        <option value="DEFECTIVE">Rusak / Defective (Abaikan Stok)</option>
+                                                    </select>
+                                                </div>
+                                                <div class="col-12 col-md-7">
+                                                    <label class="form-label fw-semibold small mb-1">Catatan (Opsional):</label>
+                                                    <input type="text" name="items[{{ $rItem->id }}][inspection_notes]" class="form-control form-control-sm" placeholder="Contoh: Plastik terbuka, mulus...">
+                                                </div>
+                                                <div class="col-12">
+                                                    <label class="form-label fw-semibold small mb-1 mt-1">Unggah Foto Bukti QC (Opsional):</label>
+                                                    <input type="file" name="items[{{ $rItem->id }}][photo]" class="form-control form-control-sm" accept="image/*">
+                                                </div>
+                                            </div>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            </div>
+                            <div class="modal-footer bg-light">
+                                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Batal</button>
+                                <button type="submit" class="btn btn-primary btn-sm fw-semibold">
+                                    <i class="fas fa-check me-1"></i>Simpan Hasil QC
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        @endif
+    @endforeach
 
 @if(!$reasonsStats->isEmpty())
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>

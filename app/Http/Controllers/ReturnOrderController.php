@@ -282,7 +282,22 @@ class ReturnOrderController extends Controller
 
             if ($status === 'GOOD') {
                 $hasGood = true;
-                $masterProduct = $rItem->orderItem->marketplaceProduct->masterProduct ?? null;
+                $masterProduct = null;
+                if ($rItem->orderItem) {
+                    $masterProduct = $rItem->orderItem->masterProduct 
+                        ?? ($rItem->orderItem->marketplaceProduct->masterProduct ?? null);
+
+                    if (!$masterProduct && $rItem->orderItem->master_product_id) {
+                        $masterProduct = \App\Models\MasterProduct::find($rItem->orderItem->master_product_id);
+                    }
+                    if (!$masterProduct && $rItem->orderItem->marketplace_product_id) {
+                        $mp = \App\Models\MarketplaceProduct::find($rItem->orderItem->marketplace_product_id);
+                        if ($mp && $mp->master_product_id) {
+                            $masterProduct = \App\Models\MasterProduct::find($mp->master_product_id);
+                        }
+                    }
+                }
+
                 if ($masterProduct) {
                     $masterProduct->recordStockMovement(
                         $rItem->quantity,
