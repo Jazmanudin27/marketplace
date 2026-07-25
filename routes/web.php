@@ -534,6 +534,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/pembelian/pengeluaran/create', [WarehouseMutationController::class, 'goodsIssueCreate'])->name('pembelian.goods_issue.create');
         Route::post('/pembelian/pengeluaran', [WarehouseMutationController::class, 'goodsIssueStore'])->name('pembelian.goods_issue.store');
         Route::get('/pembelian/pengeluaran/{warehouseMutation}', [WarehouseMutationController::class, 'goodsIssueShow'])->name('pembelian.goods_issue.show');
+        Route::put('/pembelian/pengeluaran/{warehouseMutation}', [WarehouseMutationController::class, 'goodsIssueUpdate'])->name('pembelian.goods_issue.update');
         Route::delete('/pembelian/pengeluaran/{warehouseMutation}', [WarehouseMutationController::class, 'goodsIssueDestroy'])->name('pembelian.goods_issue.destroy');
 
         // ── SURAT PERINTAH KERJA (SPK) ────────────────────────────────────────

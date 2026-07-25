@@ -433,6 +433,85 @@ class WarehouseMutationController extends Controller
         return view('inventory.pembelian.goods_issue.show', compact('warehouseMutation'));
     }
 
+    public function goodsIssueUpdate(Request $request, WarehouseMutation $warehouseMutation)
+    {
+        abort_unless($warehouseMutation->tenant_id === Auth::user()->tenant_id, 403);
+
+        $request->validate([
+            'mutation_date'  => 'required|date',
+            'tujuan'         => 'required|string',
+            'notes'          => 'nullable|string',
+            'items'          => 'required|array',
+            'items.*.id'     => 'required|exists:warehouse_mutation_items,id',
+            'items.*.qty'    => 'required|numeric|min:0.01',
+        ]);
+
+        try {
+            DB::transaction(function () use ($request, $warehouseMutation) {
+                $tenantId = Auth::user()->tenant_id;
+                $userId   = Auth::id();
+
+                $dept = Department::where('tenant_id', $tenantId)
+                    ->where(function($q) use ($request) {
+                        if ($request->tujuan === 'produksi') {
+                            $q->where('name', 'like', '%produksi%');
+                        } elseif ($request->tujuan === 'percetakan') {
+                            $q->where('name', 'like', '%cetak%')->orWhere('name', 'like', '%print%');
+                        }
+                    })->first();
+
+                $warehouseMutation->update([
+                    'mutation_date'    => $request->mutation_date,
+                    'to_department_id' => $dept ? $dept->id : null,
+                    'notes'            => $request->notes,
+                ]);
+
+                foreach ($request->items as $itemData) {
+                    $mutationItem = $warehouseMutation->items()->find($itemData['id']);
+                    if (!$mutationItem) continue;
+
+                    $invItem = $mutationItem->inventoryItem;
+                    if (!$invItem) continue;
+
+                    $oldQty = (float) $mutationItem->quantity;
+                    $newQty = (float) $itemData['qty'];
+                    $diff = $newQty - $oldQty;
+
+                    if ($diff != 0) {
+                        if ($diff > 0 && $invItem->stock < $diff) {
+                            throw new \Exception('Stok item "' . $invItem->name . '" tidak mencukupi untuk penambahan pengeluaran ' . $diff . ' ' . $invItem->unit);
+                        }
+
+                        $mutationItem->update(['quantity' => $newQty]);
+
+                        if ($diff > 0) {
+                            $invItem->decrement('stock', $diff);
+                        } else {
+                            $invItem->increment('stock', abs($diff));
+                        }
+                        $newStock = $invItem->fresh()->stock;
+
+                        StockMovement::create([
+                            'tenant_id'             => $tenantId,
+                            'inventory_item_id'     => $invItem->id,
+                            'warehouse_mutation_id' => $warehouseMutation->id,
+                            'user_id'               => $userId,
+                            'type'                  => $diff > 0 ? 'out' : 'adjustment',
+                            'quantity'              => -$diff,
+                            'reference'             => 'Edit Pengeluaran Barang (' . $warehouseMutation->mutation_number . ')',
+                            'balance_after'         => $newStock,
+                        ]);
+                    }
+                }
+            });
+        } catch (\Exception $e) {
+            return back()->with('error', $e->getMessage());
+        }
+
+        return redirect()->route('pembelian.goods_issue.show', $warehouseMutation)
+            ->with('success', 'Detail Pengeluaran berhasil diperbarui.');
+    }
+
     public function goodsIssueDestroy(WarehouseMutation $warehouseMutation)
     {
         abort_unless($warehouseMutation->tenant_id === Auth::user()->tenant_id, 403);
