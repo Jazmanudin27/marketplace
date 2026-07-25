@@ -114,16 +114,15 @@
                     <thead class="table-light text-muted small">
                         <tr>
                             <th></th>
-                            <th class="text-start ps-3" style="width: 22%;">SKU Produk &amp; Size</th>
-                            <th style="width: 10%;">Tukang Potong</th>
-                            <th style="width: 10%;">Tukang Jahit</th>
-                            <th style="width: 15%;">Catatan Khusus</th>
+                            <th class="text-start ps-3" style="width: 25%;">SKU Produk &amp; Size</th>
+                            <th style="width: 12%;">Tukang Potong</th>
+                            <th style="width: 12%;">Tukang Jahit</th>
+                            <th style="width: 18%;">Catatan Khusus</th>
                             <th style="width: 8%;">Bahan / pcs</th>
                             <th style="width: 8%;">Jasa / pcs</th>
                             <th style="width: 8%;">HPP / Pcs</th>
                             <th style="width: 5%;">Qty</th>
-                            <th style="width: 10%;">Subtotal HPP</th>
-                            <th style="width: 10%;">Status</th>
+                            <th style="width: 12%;">Subtotal HPP</th>
                             <th style="width: 4%;">Edit</th>
                         </tr>
                     </thead>
@@ -170,17 +169,6 @@
                                 <td>{{ $item->quantity }}</td>
                                 <td class="fw-bold">Rp {{ number_format($subtotal, 0, ',', '.') }}</td>
                                 <td>
-                                    {{-- Status Selector Form --}}
-                                    <form action="{{ route('spks.items.update_status', $item->id) }}" method="POST" class="m-0">
-                                        @csrf
-                                        <select name="status" class="form-select form-select-sm py-0 border-primary-subtle text-primary fw-semibold" style="font-size: 10px; height: 22px; width: 110px; margin: 0 auto;" onchange="this.form.submit()">
-                                            @foreach($statusOptions as $stName)
-                                                <option value="{{ $stName }}" {{ ($item->status ?? 'Belum Mulai') == $stName ? 'selected' : '' }}>{{ $stName }}</option>
-                                            @endforeach
-                                        </select>
-                                    </form>
-                                </td>
-                                <td>
                                     <button type="button" class="btn btn-xs btn-outline-primary py-0 px-2" data-bs-toggle="modal" data-bs-target="#editItemModal-{{ $item->id }}" title="Edit Potong, Jahit & Catatan">
                                         <i class="fas fa-edit"></i>
                                     </button>
@@ -220,7 +208,7 @@
 
                             <!-- Collapsible Row for Details -->
                             <tr id="collapse-details-{{ $item->id }}" class="collapse bg-light-subtle">
-                                <td colspan="12" class="p-3 border-top-0">
+                                <td colspan="11" class="p-3 border-top-0">
                                     <div class="row text-start" style="font-size: 11px;">
                                         <div class="col-md-6 border-end">
                                             <p class="fw-bold text-success border-bottom pb-1 mb-2">
@@ -266,7 +254,7 @@
                             <td colspan="8" class="text-end pe-3 align-middle fs-6">Total Nilai HPP Produksi SPK:</td>
                             <td class="align-middle text-center fs-6 text-dark font-monospace">{{ number_format($spk->items->sum('quantity')) }} pcs</td>
                             <td class="align-middle text-end pe-3 text-primary fs-6 font-monospace">Rp {{ number_format($grandTotalHpp, 0, ',', '.') }}</td>
-                            <td colspan="2"></td>
+                            <td></td>
                         </tr>
                     </tbody>
                 </table>
