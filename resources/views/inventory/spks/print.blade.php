@@ -128,46 +128,86 @@
         | PENGINPUT: {{ strtoupper($spk->penginput->name ?? 'SYSTEM') }}
     </div>
 
-    <!-- 1. Rincian Produk & Pembagian Kerja (Matriks Ukuran) -->
-    <div class="table-section-title">1. Rincian Produk &amp; Pembagian Kerja (Matriks Ukuran)</div>
-    <table class="product-table">
-        <thead>
-            <tr>
-                <th rowspan="2" style="width: 35%;">Model Varian</th>
-                <th colspan="{{ count($sizesHeader) }}">Size</th>
-                <th rowspan="2" style="width: 15%;">Total QTY</th>
-            </tr>
-            <tr>
-                @foreach($sizesHeader as $sz)
-                    <th>{{ $sz }}</th>
-                @endforeach
-            </tr>
-        </thead>
-        <tbody>
-            @php $grandTotal = 0; @endphp
-            @foreach($grouped as $model)
-                <tr>
-                    <td class="align-left">{{ $model['model'] }}</td>
-                    @foreach($sizesHeader as $sz)
-                        @php $szKey = $sz === 'XXXL' ? '3XL' : $sz; @endphp
-                        <td>
-                            {{ isset($model['sizes'][$szKey]) && $model['sizes'][$szKey] > 0 ? $model['sizes'][$szKey] : '' }}
-                        </td>
-                    @endforeach
-                    <td class="bg-red-light">{{ $model['total'] }}</td>
-                </tr>
-                @php $grandTotal += $model['total']; @endphp
-            @endforeach
-            <tr class="bg-gray-light">
-                <td colspan="{{ count($sizesHeader) + 1 }}" style="text-align: right; padding-right: 10px;">GRAND TOTAL PRODUCTION QTY:</td>
-                <td class="bg-red-light" style="font-size: 11px;">{{ $grandTotal }} pcs</td>
-            </tr>
-        </tbody>
+    <!-- Layout 2 Kolom (Side-by-Side 50%:50%) untuk Matriks Ukuran & Status Pengambilan Barang -->
+    <table style="width: 100%; border-collapse: collapse; margin-bottom: 10px;">
+        <tr>
+            <td style="width: 49%; vertical-align: top; padding: 0;">
+                <!-- 1. Rincian Produk & Matriks Ukuran -->
+                <div class="table-section-title">1. Rincian Produk &amp; Matriks Ukuran</div>
+                <table class="product-table" style="margin-bottom: 0;">
+                    <thead>
+                        <tr>
+                            <th rowspan="2" style="width: 40%;">Model Varian</th>
+                            <th colspan="{{ count($sizesHeader) }}">Size</th>
+                            <th rowspan="2" style="width: 20%;">Total</th>
+                        </tr>
+                        <tr>
+                            @foreach($sizesHeader as $sz)
+                                <th>{{ $sz }}</th>
+                            @endforeach
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @php $grandTotal = 0; @endphp
+                        @foreach($grouped as $model)
+                            <tr>
+                                <td class="align-left">{{ $model['model'] }}</td>
+                                @foreach($sizesHeader as $sz)
+                                    @php $szKey = $sz === 'XXXL' ? '3XL' : $sz; @endphp
+                                    <td>
+                                        {{ isset($model['sizes'][$szKey]) && $model['sizes'][$szKey] > 0 ? $model['sizes'][$szKey] : '' }}
+                                    </td>
+                                @endforeach
+                                <td class="bg-red-light">{{ $model['total'] }}</td>
+                            </tr>
+                            @php $grandTotal += $model['total']; @endphp
+                        @endforeach
+                        <tr class="bg-gray-light">
+                            <td colspan="{{ count($sizesHeader) + 1 }}" style="text-align: right; padding-right: 6px;">TOTAL QTY:</td>
+                            <td class="bg-red-light" style="font-size: 11px;">{{ $grandTotal }} pcs</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </td>
+            <td style="width: 2%;"></td>
+            <td style="width: 49%; vertical-align: top; padding: 0;">
+                <!-- 2. Status Pengambilan Barang (Partial Handover) -->
+                <div class="table-section-title">2. Status Pengambilan Barang (Partial Handover)</div>
+                <table class="product-table" style="margin-bottom: 0;">
+                    <thead>
+                        <tr>
+                            <th style="width: 40%; text-align: left; padding-left: 6px;">SKU Produk &amp; Ukuran</th>
+                            <th style="width: 20%;">Total</th>
+                            <th style="width: 20%;">Diambil</th>
+                            <th style="width: 20%;">Sisa</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($spk->items as $item)
+                            @php
+                                $diambil = $item->qty_diambil;
+                                $sisa = $item->sisa_qty;
+                            @endphp
+                            <tr>
+                                <td style="text-align: left; font-weight: bold; font-family: monospace; padding-left: 6px;">
+                                    {{ $item->sku ?: ($item->sku_induk ?: $item->nama_produk) }} ({{ $item->ukuran ?: 'All Size' }})
+                                </td>
+                                <td style="font-weight: bold;">{{ $item->quantity }} pcs</td>
+                                <td style="font-weight: bold; color: #0284c7;">{{ $diambil }} pcs</td>
+                                <td style="font-weight: bold; color: {{ $sisa == 0 ? '#16a34a' : '#dc2626' }};">
+                                    {{ $sisa == 0 ? '0 (Selesai)' : $sisa . ' pcs' }}
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </td>
+        </tr>
     </table>
 
-    <!-- 2. Tracking Progress Tahapan Produksi -->
+    <!-- 3. Tracking Progress Tahapan Produksi -->
     @if($spk->proses && $spk->proses->count() > 0)
-    <div class="table-section-title">2. Tracking Progress Tahapan Produksi</div>
+    <div class="table-section-title">3. Tracking Progress Tahapan Produksi</div>
     <table class="product-table">
         <thead>
             <tr>
@@ -214,37 +254,6 @@
     </table>
     @endif
 
-    <!-- 3. Status & Riwayat Pengambilan Barang (Partial Handover) -->
-    <div class="table-section-title">3. Status &amp; Riwayat Pengambilan Barang (Partial Handover)</div>
-    <table class="product-table">
-        <thead>
-            <tr>
-                <th style="width: 35%; text-align: left; padding-left: 8px;">SKU Produk &amp; Ukuran</th>
-                <th style="width: 15%;">Total Qty SPK</th>
-                <th style="width: 25%;">Sudah Diambil</th>
-                <th style="width: 25%;">Sisa Belum Diambil</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach($spk->items as $item)
-                @php
-                    $diambil = $item->qty_diambil;
-                    $sisa = $item->sisa_qty;
-                @endphp
-                <tr>
-                    <td style="text-align: left; font-weight: bold; font-family: monospace; padding-left: 8px;">
-                        {{ $item->sku ?: ($item->sku_induk ?: $item->nama_produk) }} ({{ $item->ukuran ?: 'All Size' }})
-                    </td>
-                    <td style="font-weight: bold;">{{ $item->quantity }} pcs</td>
-                    <td style="font-weight: bold; color: #0284c7;">{{ $diambil }} pcs</td>
-                    <td style="font-weight: bold; color: {{ $sisa == 0 ? '#16a34a' : '#dc2626' }};">
-                        {{ $sisa == 0 ? 'Lunas / Selesai (0 pcs)' : $sisa . ' pcs lagi' }}
-                    </td>
-                </tr>
-            @endforeach
-        </tbody>
-    </table>
-
     {{-- Sub-table Riwayat Log Pengambilan (jika ada) --}}
     @php
         $allPickups = collect();
@@ -259,7 +268,7 @@
         <div style="font-weight: bold; font-size: 9px; margin-top: 4px; margin-bottom: 4px; text-transform: uppercase;">
             Log Catatan Pengambilan Barang:
         </div>
-        <table class="product-table" style="margin-bottom: 12px;">
+        <table class="product-table" style="margin-bottom: 10px;">
             <thead>
                 <tr>
                     <th style="width: 20%;">Waktu Ambil</th>
