@@ -125,11 +125,9 @@
     <table class="product-table">
         <thead>
             <tr>
-                <th rowspan="2" style="width: 25%;">Model Varian</th>
+                <th rowspan="2" style="width: 35%;">Model Varian</th>
                 <th colspan="{{ count($sizesHeader) }}">Size</th>
-                <th rowspan="2" style="width: 10%;">Total QTY</th>
-                <th rowspan="2" style="width: 20%;">Tukang Jahit</th>
-                <th rowspan="2" style="width: 20%;">Barang Sudah Ada Di Kantor</th>
+                <th rowspan="2" style="width: 15%;">Total QTY</th>
             </tr>
             <tr>
                 @foreach($sizesHeader as $sz)
@@ -149,15 +147,12 @@
                         </td>
                     @endforeach
                     <td class="bg-red-light">{{ $model['total'] }}</td>
-                    <td style="font-family: monospace; font-size: 10px;">{{ $model['tailors_list'] }}</td>
-                    <td></td>
                 </tr>
                 @php $grandTotal += $model['total']; @endphp
             @endforeach
             <tr class="bg-gray-light">
                 <td colspan="{{ count($sizesHeader) + 1 }}" style="text-align: right; padding-right: 10px;">GRAND TOTAL PRODUCTION QTY:</td>
                 <td class="bg-red-light" style="font-size: 11px;">{{ $grandTotal }} pcs</td>
-                <td colspan="2"></td>
             </tr>
         </tbody>
     </table>
