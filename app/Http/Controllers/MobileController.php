@@ -19,11 +19,16 @@ class MobileController extends Controller
             return redirect()->route('mobile.owner');
         } elseif (in_array($role, ['warehouse', 'gudang'])) {
             return redirect()->route('mobile.gudang');
-        } elseif (in_array($role, ['production', 'produksi'])) {
+        } elseif (in_array($role, ['production', 'produksi', 'admin_produksi'])) {
             return redirect()->route('mobile.produksi');
         }
 
         abort(403, 'Anda tidak memiliki akses ke dasbor mobile.');
+    }
+
+    public function produksiDashboard(Request $request)
+    {
+        return $this->ownerSpk($request);
     }
 
     public function ownerDashboard()
