@@ -557,14 +557,23 @@
                             `);
                         }
 
+                        // Tentukan icon & warna toast berdasarkan hasil sinkronisasi Shopee
+                        let toastIcon = 'success';
+                        if (res.shopee_fail > 0 && res.shopee_success === 0) {
+                            toastIcon = 'warning';
+                        } else if (res.shopee_fail > 0) {
+                            toastIcon = 'warning';
+                        }
+
                         if (typeof Swal !== 'undefined') {
                             Swal.fire({
                                 toast: true,
                                 position: 'top-end',
-                                icon: 'success',
+                                icon: toastIcon,
                                 title: res.message,
                                 showConfirmButton: false,
-                                timer: 2000
+                                timer: res.shopee_fail > 0 ? 4000 : 2500,
+                                timerProgressBar: true,
                             });
                         }
                     }

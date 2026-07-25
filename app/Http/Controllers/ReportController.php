@@ -133,7 +133,34 @@ class ReportController extends Controller
                 : $product->stock;
         }
 
-        return view('reports.print_ledger', compact('product', 'movements', 'saldoAwal'));
+        // Resolve channel & store dari referensi order di stock movements
+        $orderMarketplaceIds = [];
+        $prefixes = [
+            'Pesanan Masuk: ',
+            'Pembatalan Pesanan: ',
+            'Terima Retur (Layak Jual): ',
+            'Penggantian Retur: ',
+        ];
+        foreach ($movements as $mov) {
+            foreach ($prefixes as $prefix) {
+                if (str_starts_with($mov->reference, $prefix)) {
+                    $orderMarketplaceIds[] = substr($mov->reference, strlen($prefix));
+                    break;
+                }
+            }
+        }
+        $orderMarketplaceIds = array_unique(array_filter($orderMarketplaceIds));
+
+        $orderMap = collect();
+        if (!empty($orderMarketplaceIds)) {
+            $orderMap = \App\Models\Order::with('store.channel')
+                ->whereIn('order_marketplace_id', $orderMarketplaceIds)
+                ->where('tenant_id', $tenantId)
+                ->get()
+                ->keyBy('order_marketplace_id');
+        }
+
+        return view('reports.print_ledger', compact('product', 'movements', 'saldoAwal', 'orderMap'));
     }
 
     public function summaryReport(Request $request)

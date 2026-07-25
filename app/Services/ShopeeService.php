@@ -766,8 +766,57 @@ class ShopeeService
         return $data['response'] ?? [];
     }
 
-    // =========================================================================
-    // Shopee Sellerchat API
+    /**
+     * Update setting Pre-Order sebuah item di Shopee.
+     * Menggunakan /api/v2/product/update_item dengan hanya mengirim field pre_order.
+     */
+    public function updatePreOrder(string $accessToken, int $shopId, int $itemId, bool $isPreorder, int $daysToShip = 7): array
+    {
+        $path = '/api/v2/product/update_item';
+        $timestamp = time();
+        $sign = $this->signShopRequest($path, $timestamp, $accessToken, $shopId);
+
+        $queryParams = [
+            'partner_id'   => $this->partnerId,
+            'timestamp'    => $timestamp,
+            'sign'         => $sign,
+            'access_token' => $accessToken,
+            'shop_id'      => $shopId,
+        ];
+
+        $body = [
+            'item_id'   => $itemId,
+            'pre_order' => [
+                'is_pre_order'  => $isPreorder,
+                'days_to_ship'  => $isPreorder ? max(1, $daysToShip) : 3,
+            ],
+        ];
+
+        Log::info('[Shopee] updatePreOrder request', [
+            'item_id'     => $itemId,
+            'is_preorder' => $isPreorder,
+            'days'        => $daysToShip,
+        ]);
+
+        $response = Http::timeout(30)->retry(2, 1000)->asJson()
+            ->post($this->baseUrl . $path . '?' . http_build_query($queryParams), $body);
+
+        if ($response->failed()) {
+            throw new \RuntimeException('Gagal update Pre-Order di Shopee: ' . $response->body());
+        }
+
+        $data = $response->json();
+
+        if (!empty($data['error']) && $data['error'] !== '') {
+            throw new \RuntimeException('Shopee API Error [' . $data['error'] . ']: ' . ($data['message'] ?? ''));
+        }
+
+        Log::info('[Shopee] updatePreOrder response', ['response' => $data['response'] ?? []]);
+
+        return $data['response'] ?? [];
+    }
+
+
     // =========================================================================
 
     /**

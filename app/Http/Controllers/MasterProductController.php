@@ -1163,7 +1163,8 @@ class MasterProductController extends Controller
     }
 
     /**
-     * Update status PO (Pre-Order) dan estimasi hari secara cepat via AJAX dari index
+     * Update status PO (Pre-Order) dan estimasi hari secara cepat via AJAX dari index.
+     * Setelah update DB, otomatis push setting ke semua toko Shopee yang terhubung.
      */
     public function quickUpdatePo(Request $request, MasterProduct $product)
     {
@@ -1173,23 +1174,86 @@ class MasterProductController extends Controller
         }
 
         $request->validate([
-            'is_preorder' => 'required|boolean',
-            'preorder_days' => 'nullable|integer|min:1',
+            'is_preorder'   => 'required|boolean',
+            'preorder_days' => 'nullable|integer|min:1|max:90',
         ]);
 
-        $isPreorder = filter_var($request->is_preorder, FILTER_VALIDATE_BOOLEAN);
+        $isPreorder   = filter_var($request->is_preorder, FILTER_VALIDATE_BOOLEAN);
         $preorderDays = $isPreorder ? ($request->preorder_days ?? 7) : null;
 
+        // 1. Simpan ke DB lokal
         $product->update([
-            'is_preorder' => $isPreorder,
+            'is_preorder'   => $isPreorder,
             'preorder_days' => $preorderDays,
         ]);
 
+        // 2. Push ke semua toko Shopee yang terhubung ke produk ini
+        $shopeeResults  = [];
+        $shopeeSuccess  = 0;
+        $shopeeFail     = 0;
+
+        $shopeeMarketplaceProducts = $product->marketplaceProducts()
+            ->with('store.channel')
+            ->get()
+            ->filter(fn($mp) => $mp->store && $mp->store->channel && $mp->store->channel->code === 'shopee');
+
+        if ($shopeeMarketplaceProducts->isNotEmpty()) {
+            $shopeeService = app(ShopeeService::class);
+
+            // Group by store to avoid duplicate calls (variants in same store share item_id)
+            $groupedByStore = $shopeeMarketplaceProducts->groupBy('store_id');
+
+            foreach ($groupedByStore as $storeId => $storeProducts) {
+                $store = $storeProducts->first()->store;
+
+                try {
+                    $accessToken = $store->getValidAccessToken();
+                    $shopId      = (int) $store->marketplace_store_id;
+
+                    // Ambil item_id unik (bisa ada beberapa varian tapi item_id sama)
+                    $itemIds = $storeProducts->pluck('marketplace_product_id')->unique()->filter();
+
+                    foreach ($itemIds as $itemId) {
+                        $shopeeService->updatePreOrder(
+                            $accessToken,
+                            $shopId,
+                            (int) $itemId,
+                            $isPreorder,
+                            $preorderDays ?? 7
+                        );
+                        $shopeeSuccess++;
+                        $shopeeResults[] = ['store' => $store->store_name, 'item_id' => $itemId, 'status' => 'ok'];
+                    }
+                } catch (\Throwable $e) {
+                    $shopeeFail++;
+                    $shopeeResults[] = ['store' => $store->store_name ?? $storeId, 'status' => 'error', 'message' => $e->getMessage()];
+                    \Illuminate\Support\Facades\Log::warning('[quickUpdatePo] Gagal push Pre-Order ke Shopee', [
+                        'product_id' => $product->id,
+                        'store_id'   => $storeId,
+                        'error'      => $e->getMessage(),
+                    ]);
+                }
+            }
+        }
+
+        // 3. Susun pesan respons
+        $message = 'Status PO produk berhasil diperbarui.';
+        if ($shopeeSuccess > 0 && $shopeeFail === 0) {
+            $message .= " ✅ Berhasil disinkronkan ke {$shopeeSuccess} listing Shopee.";
+        } elseif ($shopeeSuccess > 0 && $shopeeFail > 0) {
+            $message .= " ⚠️ {$shopeeSuccess} Shopee berhasil, {$shopeeFail} gagal.";
+        } elseif ($shopeeFail > 0) {
+            $message .= " ❌ Gagal push ke Shopee ({$shopeeFail} toko). Cek koneksi token toko.";
+        }
+
         return response()->json([
-            'success' => true,
-            'message' => 'Status PO produk berhasil diperbarui.',
-            'is_preorder' => $product->is_preorder,
-            'preorder_days' => $product->preorder_days,
+            'success'        => true,
+            'message'        => $message,
+            'is_preorder'    => $product->is_preorder,
+            'preorder_days'  => $product->preorder_days,
+            'shopee_success' => $shopeeSuccess,
+            'shopee_fail'    => $shopeeFail,
+            'shopee_results' => $shopeeResults,
         ]);
     }
 
