@@ -127,7 +127,7 @@
     </style>
 </head>
 
-<body onload="window.print()">
+<body>
 
     <div class="no-print" style="margin-bottom: 15px; text-align: right;">
         <button onclick="window.print()" style="padding: 6px 15px; cursor: pointer; font-weight: bold;">Cetak Halaman
@@ -162,16 +162,17 @@
         <thead>
             <tr>
                 <th width="3%" class="text-center">NO</th>
-                <th width="11%">SKU PRODUK</th>
-                <th width="16%">NAMA PRODUK</th>
-                <th width="7%">VARIAN</th>
+                <th width="10%">SKU VARIASI</th>
+                <th width="10%">SKU INDUK</th>
+                <th width="15%">NAMA PRODUK</th>
+                <th width="6%">VARIAN</th>
                 <th width="6%" class="text-center">TIPE</th>
-                <th width="16%">KOMPONEN SET</th>
+                <th width="15%">KOMPONEN SET</th>
                 <th width="7%" class="text-right">HPP</th>
                 <th width="7%" class="text-right">JUAL</th>
-                <th width="5%" class="text-center">STOK</th>
-                <th width="7%" class="text-center">JML TAUTAN</th>
-                <th width="15%">CHANNEL / TOKO MARKETPLACE</th>
+                <th width="4%" class="text-center">STOK</th>
+                <th width="5%" class="text-center">JML TAUTAN</th>
+                <th width="12%">CHANNEL / TOKO MARKETPLACE</th>
             </tr>
         </thead>
         <tbody>
@@ -191,8 +192,12 @@
                     <td class="text-center">{{ $index + 1 }}</td>
                     <td class="font-mono">
                         <strong>{{ $p->sku }}</strong>
-                        @if ($p->sku_induk)
-                            <br><span style="color: #666; font-size: 9px;">Induk: {{ $p->sku_induk }}</span>
+                    </td>
+                    <td class="font-mono">
+                        @if($p->sku_induk)
+                            <strong>{{ $p->sku_induk }}</strong>
+                        @else
+                            <span style="color: #888;">-</span>
                         @endif
                     </td>
                     <td>

@@ -138,7 +138,8 @@
                     <thead class="table-light">
                         <tr>
                             <th class="text-center" style="width: 40px;">NO</th>
-                            <th style="width: 150px;">SKU VARIASI</th>
+                            <th style="width: 140px;">SKU VARIASI</th>
+                            <th style="width: 130px;">SKU INDUK</th>
                             <th>NAMA PRODUK</th>
                             <th style="width: 120px;">VARIAN</th>
                             <th class="text-center" style="width: 110px;">TIPE PRODUK</th>
@@ -161,8 +162,12 @@
                                 <td class="text-center fw-semibold text-muted">{{ $index + 1 }}</td>
                                 <td>
                                     <code class="text-primary font-monospace fw-bold">{{ $product->sku }}</code>
+                                </td>
+                                <td>
                                     @if($product->sku_induk)
-                                        <div class="small text-muted font-monospace"><i class="fas fa-code-branch me-1"></i>{{ $product->sku_induk }}</div>
+                                        <code class="text-secondary font-monospace">{{ $product->sku_induk }}</code>
+                                    @else
+                                        <span class="text-muted opacity-50">—</span>
                                     @endif
                                 </td>
                                 <td>
@@ -257,7 +262,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="13" class="text-center text-muted py-4">
+                                <td colspan="14" class="text-center text-muted py-4">
                                     <i class="fas fa-inbox fs-2 d-block mb-2 opacity-25"></i>
                                     Tidak ada data produk yang sesuai filter.
                                 </td>
