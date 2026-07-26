@@ -317,13 +317,12 @@ class SpkController extends Controller
                         ]];
                     }
 
-                    $bahanList = $rBlock['bahan'] ?? [];
-
                     foreach ($productRows as $pRow) {
                         $namaProduk  = $pRow['nama_produk'] ?? 'Produk SPK';
                         $skuProduk   = $pRow['sku_produk'] ?? ($pRow['sku'] ?? null);
                         $qtyProduksi = max(1, (int) ($pRow['qty_produksi'] ?? ($pRow['qty'] ?? 1)));
                         $ukuran      = $pRow['ukuran'] ?? null;
+                        $bahanList   = $pRow['bahan'] ?? ($rBlock['bahan'] ?? []);
 
                         $spkItem = SpkItem::create([
                             'spk_id'            => $spkRecord->id,
