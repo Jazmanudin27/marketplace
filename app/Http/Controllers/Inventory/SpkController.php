@@ -153,7 +153,7 @@ class SpkController extends Controller
 
         $inventoryItemsData = \App\Models\InventoryItem::where('tenant_id', $tenantId)
             ->where('is_active', true)
-            ->select(['id', 'name', 'unit', 'cost_price', 'unit_price'])
+            ->select(['id', 'name', 'unit', 'cost_price'])
             ->orderBy('name')
             ->get();
 
@@ -165,7 +165,7 @@ class SpkController extends Controller
                 $inventoryItemsMap[strtoupper(trim($inv->name))] = [
                     'name'       => $inv->name,
                     'unit'       => $inv->unit ?? '',
-                    'cost_price' => (float) ($inv->cost_price ?? $inv->unit_price ?? 0),
+                    'cost_price' => (float) ($inv->cost_price ?? 0),
                 ];
             }
         }
