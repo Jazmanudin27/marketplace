@@ -27,7 +27,22 @@ class StockSyncController extends Controller
             });
         }
 
-        $mappedProducts = $query->paginate(20)->withQueryString();
+        // Filter: nomap = belum terhubung ke produk master
+        if ($request->filter === 'nomap') {
+            $query->whereNull('master_product_id');
+        }
+
+        // Filter: diff = stok marketplace ≠ (stok lokal - safety_stock)
+        // Ini dilakukan setelah load karena perlu data dari master product
+        // Kita gunakan whereHas + kolom langsung untuk perbandingan di DB
+        if ($request->filter === 'diff') {
+            $query->whereHas('masterProduct')
+                  ->whereRaw('marketplace_products.stock != GREATEST(0, (
+                      SELECT stock FROM master_products WHERE master_products.id = marketplace_products.master_product_id
+                  ) - COALESCE(marketplace_products.safety_stock, 0))');
+        }
+
+        $mappedProducts = $query->orderByDesc('last_synced_at')->paginate(25)->withQueryString();
 
         $syncLogs = MarketplaceSyncLog::where('tenant_id', $tenantId)
             ->orderBy('created_at', 'desc')
