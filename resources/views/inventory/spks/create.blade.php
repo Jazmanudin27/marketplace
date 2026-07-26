@@ -270,9 +270,9 @@
 @section('content')
 <div class="container-fluid py-2 px-3 spk-create-wrap">
 
-    {{-- Datalist Autocomplete SKU Master --}}
+    {{-- Datalist Autocomplete SKU Master (Limit 10 untuk cegah lag) --}}
     <datalist id="master_skus_datalist">
-        @foreach($products as $p)
+        @foreach($products->take(10) as $p)
             <option value="{{ $p->sku }}">{{ $p->name }} @if($p->ukuran)({{ $p->ukuran }})@endif</option>
             @if($p->sku_induk && $p->sku_induk !== $p->sku)
                 <option value="{{ $p->sku_induk }}">{{ $p->name }} (Induk)</option>
@@ -280,9 +280,9 @@
         @endforeach
     </datalist>
 
-    {{-- Datalist Autocomplete Inventory Items (Tabel Barang) --}}
+    {{-- Datalist Autocomplete Inventory Items (Limit 10 untuk cegah lag) --}}
     <datalist id="inventory_items_datalist">
-        @foreach($inventoryItems as $invItemName)
+        @foreach($inventoryItems->take(10) as $invItemName)
             <option value="{{ $invItemName }}"></option>
         @endforeach
     </datalist>
@@ -556,6 +556,19 @@
     const orderItemsList = @json(isset($order) ? $order->items : []);
     const recipesMap = @json($recipesMap ?? []);
     
+    const allMasterProductsList = @json(
+        $products->map(function($p) {
+            return [
+                'sku' => $p->sku,
+                'sku_induk' => $p->sku_induk,
+                'name' => $p->name,
+                'ukuran' => implode(' / ', array_filter([$p->ukuran, $p->warna])) ?: ($p->ukuran ?? '')
+            ];
+        })
+    );
+
+    const allInventoryItemsList = @json($inventoryItems);
+
     // Master Products map keyed by SKU and SKU Induk for instantaneous auto-filling
     const masterProductsMap = {};
     @foreach($products as $p)
@@ -1086,12 +1099,66 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
+    function updateMasterSkuDatalist(query) {
+        const datalist = document.getElementById('master_skus_datalist');
+        if (!datalist) return;
+        const cleanQ = (query || '').trim().toLowerCase();
+
+        let matches = [];
+        if (!cleanQ) {
+            matches = allMasterProductsList.slice(0, 10);
+        } else {
+            matches = allMasterProductsList.filter(p => {
+                return (p.sku && p.sku.toLowerCase().includes(cleanQ)) ||
+                       (p.sku_induk && p.sku_induk.toLowerCase().includes(cleanQ)) ||
+                       (p.name && p.name.toLowerCase().includes(cleanQ));
+            }).slice(0, 10);
+        }
+
+        let html = '';
+        matches.forEach(p => {
+            if (p.sku) {
+                html += `<option value="${escHtml(p.sku)}">${escHtml(p.name)} ${p.ukuran ? '(' + escHtml(p.ukuran) + ')' : ''}</option>`;
+            }
+            if (p.sku_induk && p.sku_induk !== p.sku) {
+                html += `<option value="${escHtml(p.sku_induk)}">${escHtml(p.name)} (Induk)</option>`;
+            }
+        });
+        datalist.innerHTML = html;
+    }
+
+    function updateInventoryItemsDatalist(query) {
+        const datalist = document.getElementById('inventory_items_datalist');
+        if (!datalist) return;
+        const cleanQ = (query || '').trim().toLowerCase();
+
+        let matches = [];
+        if (!cleanQ) {
+            matches = allInventoryItemsList.slice(0, 10);
+        } else {
+            matches = allInventoryItemsList.filter(name => {
+                return name && name.toLowerCase().includes(cleanQ);
+            }).slice(0, 10);
+        }
+
+        let html = '';
+        matches.forEach(name => {
+            html += `<option value="${escHtml(name)}"></option>`;
+        });
+        datalist.innerHTML = html;
+    }
+
     // Delegate input changes for SKU lookup, calculation & recipe lookup
     document.getElementById('rincianContainer').addEventListener('input', function(e) {
-        // When SKU PRODUK changes -> Auto-fill Nama Produk & Ukuran first
+        // Dynamic datalist filter capped at 10 items max to prevent lag
         if (e.target.classList.contains('row-sku-produk')) {
+            updateMasterSkuDatalist(e.target.value);
             const tr = e.target.closest('tr');
             if (tr) handleSkuSelection(tr);
+        }
+
+        if (e.target.classList.contains('row-nama-bahan')) {
+            updateInventoryItemsDatalist(e.target.value);
         }
 
         // Product Table Inputs -> trigger total Qty & Recipe lookup
