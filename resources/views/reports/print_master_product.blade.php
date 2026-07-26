@@ -157,14 +157,15 @@
         <thead>
             <tr>
                 <th width="3%" class="text-center">NO</th>
-                <th width="14%">SKU PRODUK</th>
-                <th width="20%">NAMA PRODUK</th>
-                <th width="10%">VARIAN</th>
-                <th width="8%" class="text-center">TIPE</th>
-                <th width="22%">KOMPONEN SET (SKU)</th>
-                <th width="8%" class="text-right">HPP (MODAL)</th>
-                <th width="8%" class="text-right">HARGA JUAL</th>
-                <th width="7%" class="text-center">STOK</th>
+                <th width="12%">SKU PRODUK</th>
+                <th width="18%">NAMA PRODUK</th>
+                <th width="8%">VARIAN</th>
+                <th width="7%" class="text-center">TIPE</th>
+                <th width="18%">KOMPONEN SET</th>
+                <th width="8%" class="text-right">HPP</th>
+                <th width="8%" class="text-right">JUAL</th>
+                <th width="5%" class="text-center">STOK</th>
+                <th width="13%" class="text-center">TAUTAN MARKETPLACE</th>
             </tr>
         </thead>
         <tbody>
@@ -204,10 +205,23 @@
                     <td class="text-right font-mono">Rp {{ number_format($p->cost_price, 0, ',', '.') }}</td>
                     <td class="text-right font-mono">Rp {{ number_format($p->price, 0, ',', '.') }}</td>
                     <td class="text-center font-mono"><strong>{{ number_format($p->stock) }}</strong></td>
+                    <td class="text-center">
+                        @php
+                            $mpCount = $p->marketplaceProducts->count();
+                        @endphp
+                        @if($mpCount > 0)
+                            <strong style="color: #198754;">{{ $mpCount }} Produk</strong>
+                            <div style="font-size: 8px; color: #555;">
+                                ({{ $p->marketplaceProducts->map(fn($m) => $m->store->channel->name ?? '')->unique()->implode(', ') }})
+                            </div>
+                        @else
+                            <span style="color: #888;">Belum Ditautkan</span>
+                        @endif
+                    </td>
                 </tr>
             @empty
                 <tr>
-                    <td colspan="9" class="text-center" style="padding: 15px;">Tidak ada data produk.</td>
+                    <td colspan="10" class="text-center" style="padding: 15px;">Tidak ada data produk.</td>
                 </tr>
             @endforelse
         </tbody>

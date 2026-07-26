@@ -734,7 +734,7 @@ class ReportController extends Controller
         $categories = Category::where('tenant_id', $tenantId)->orderBy('name')->get();
         $brands = Brand::where('tenant_id', $tenantId)->orderBy('name')->get();
 
-        $query = MasterProduct::with(['category', 'brand', 'components'])
+        $query = MasterProduct::with(['category', 'brand', 'components', 'marketplaceProducts.store.channel'])
             ->where('tenant_id', $tenantId);
 
         if ($request->filled('search')) {
@@ -792,7 +792,7 @@ class ReportController extends Controller
     {
         $tenantId = Auth::user()->tenant_id;
 
-        $query = MasterProduct::with(['category', 'brand', 'components'])
+        $query = MasterProduct::with(['category', 'brand', 'components', 'marketplaceProducts.store.channel'])
             ->where('tenant_id', $tenantId);
 
         if ($request->filled('search')) {
@@ -848,7 +848,7 @@ class ReportController extends Controller
     {
         $tenantId = Auth::user()->tenant_id;
 
-        $query = MasterProduct::with(['category', 'brand', 'components'])
+        $query = MasterProduct::with(['category', 'brand', 'components', 'marketplaceProducts.store.channel'])
             ->where('tenant_id', $tenantId);
 
         if ($request->filled('search')) {
@@ -911,7 +911,9 @@ class ReportController extends Controller
                 'HPP (Modal)',
                 'Harga Jual',
                 'Stok',
-                'Status'
+                'Status',
+                'Jumlah Produk MP Taut',
+                'Toko Marketplace Taut'
             ]);
 
             foreach ($products as $i => $p) {
@@ -919,6 +921,8 @@ class ReportController extends Controller
                 $comps = $p->is_bundle 
                     ? $p->components->map(fn($c) => ($c->pivot->quantity > 1 ? $c->pivot->quantity . 'x ' : '') . $c->sku)->implode(', ')
                     : '-';
+                $mpCount = $p->marketplaceProducts->count();
+                $mpStores = $p->marketplaceProducts->unique('store_id')->map(fn($m) => ($m->store->channel->name ?? '') . ': ' . ($m->store->store_name ?? ''))->implode('; ');
 
                 fputcsv($file, [
                     $i + 1,
@@ -934,7 +938,9 @@ class ReportController extends Controller
                     $p->cost_price,
                     $p->price,
                     $p->stock,
-                    $p->is_active ? 'Aktif' : 'Nonaktif'
+                    $p->is_active ? 'Aktif' : 'Nonaktif',
+                    $mpCount,
+                    $mpCount > 0 ? $mpStores : 'Belum Ditautkan'
                 ]);
             }
 

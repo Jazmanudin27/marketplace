@@ -148,6 +148,7 @@
                             <th class="text-end" style="width: 110px;">HARGA JUAL</th>
                             <th class="text-center" style="width: 80px;">STOK</th>
                             <th class="text-center" style="width: 80px;">STATUS</th>
+                            <th class="text-center" style="width: 140px;">TAUTAN MARKETPLACE</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -225,10 +226,31 @@
                                         <span class="badge bg-secondary">Nonaktif</span>
                                     @endif
                                 </td>
+                                <td class="text-center">
+                                    @php
+                                        $mpCount = $product->marketplaceProducts->count();
+                                    @endphp
+                                    @if($mpCount > 0)
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1" style="font-size: 11px;">
+                                            <i class="fas fa-link me-1"></i>{{ $mpCount }} Produk MP
+                                        </span>
+                                        <div class="small text-muted mt-1" style="font-size: 10px;">
+                                            @foreach($product->marketplaceProducts->unique('store_id') as $mp)
+                                                <span class="badge bg-light text-dark border me-1 mb-1">
+                                                    {{ $mp->store->channel->name ?? '' }}: {{ $mp->store->store_name ?? '' }}
+                                                </span>
+                                            @endforeach
+                                        </div>
+                                    @else
+                                        <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-2 py-1" style="font-size: 10px;">
+                                            <i class="fas fa-unlink me-1"></i>Belum Ditautkan
+                                        </span>
+                                    @endif
+                                </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="10" class="text-center text-muted py-4">
+                                <td colspan="12" class="text-center text-muted py-4">
                                     <i class="fas fa-inbox fs-2 d-block mb-2 opacity-25"></i>
                                     Tidak ada data produk yang sesuai filter.
                                 </td>
