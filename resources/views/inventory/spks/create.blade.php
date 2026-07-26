@@ -270,13 +270,6 @@
 @section('content')
 <div class="container-fluid py-2 px-3 spk-create-wrap">
 
-    {{-- Datalist Autocomplete Nama Produk --}}
-    <datalist id="master_product_names_datalist">
-        @foreach($products->pluck('name')->unique() as $pName)
-            <option value="{{ $pName }}"></option>
-        @endforeach
-    </datalist>
-
     {{-- Datalist Autocomplete SKU Master --}}
     <datalist id="master_skus_datalist">
         @foreach($products as $p)
@@ -430,7 +423,7 @@
                         🛒 PESANAN / CUSTOM
                     </label>
 
-                    <input type="radio" name="tipe_spk" class="btn-check" id="tipe_stok" value="stok_gudang"
+                    <input type="radio" name="tipe_stok" class="btn-check" id="tipe_stok" value="stok_gudang"
                         {{ old('tipe_spk') === 'stok_gudang' ? 'checked' : '' }}>
                     <label class="btn btn-outline-secondary" for="tipe_stok">
                         🏬 PRODUKSI STOK
@@ -562,6 +555,24 @@
     const existingNoProduksiList = @json($existingNoProduksi);
     const orderItemsList = @json(isset($order) ? $order->items : []);
     const recipesMap = @json($recipesMap ?? []);
+    
+    // Master Products map keyed by SKU and SKU Induk for instantaneous auto-filling
+    const masterProductsMap = {};
+    @foreach($products as $p)
+        @php
+            $prodInfo = [
+                'name' => $p->name,
+                'sku' => $p->sku,
+                'ukuran' => implode(' / ', array_filter([$p->ukuran, $p->warna])) ?: ($p->ukuran ?? ''),
+            ];
+        @endphp
+        @if(!empty($p->sku))
+            masterProductsMap[@json(strtoupper(trim($p->sku)))] = @json($prodInfo);
+        @endif
+        @if(!empty($p->sku_induk))
+            masterProductsMap[@json(strtoupper(trim($p->sku_induk)))] = @json($prodInfo);
+        @endif
+    @endforeach
 </script>
 
 <script>
@@ -705,7 +716,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     {{-- Right: Tabel Produk & Tabel Bahan --}}
                     <div class="col-xl-9 col-lg-8">
 
-                        {{-- ── 1. TABEL PRODUK & VARIASI (Multi Product Rows) ── --}}
+                        {{-- ── 1. TABEL PRODUK & VARIASI (Pilih SKU Dulu -> Nama Produk & Ukuran Otomatis) ── --}}
                         <div class="mb-3">
                             <div class="d-flex justify-content-between align-items-center mb-1">
                                 <span class="fw-bold text-dark" style="font-size:12px; letter-spacing:.3px;">
@@ -720,8 +731,8 @@ document.addEventListener('DOMContentLoaded', function() {
                                 <table class="table table-sm product-table-custom mb-0 align-middle">
                                     <thead>
                                         <tr class="text-uppercase text-center">
-                                            <th style="width:35%;">NAMA PRODUK</th>
                                             <th style="width:30%;">SKU PRODUK</th>
+                                            <th style="width:35%;">NAMA PRODUK</th>
                                             <th style="width:18%;">UKURAN / VARIAN</th>
                                             <th style="width:17%;">QTY (PCS)</th>
                                             <th style="width:36px;"></th>
@@ -794,18 +805,18 @@ document.addEventListener('DOMContentLoaded', function() {
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td>
-                <input type="text" name="rincian[${rIdx}][produk][${pIdx}][nama_produk]" class="form-control row-nama-produk"
-                    list="master_product_names_datalist" autocomplete="off"
-                    placeholder="Contoh: Baju Putih SD" value="${defaultData ? escHtml(defaultData.nama_produk) : ''}">
+                <input type="text" name="rincian[${rIdx}][produk][${pIdx}][sku_produk]" class="form-control row-sku-produk font-monospace fw-bold text-primary"
+                    list="master_skus_datalist" autocomplete="off"
+                    placeholder="Pilih / Ketik SKU" value="${defaultData ? escHtml(defaultData.sku_produk) : ''}">
             </td>
             <td>
-                <input type="text" name="rincian[${rIdx}][produk][${pIdx}][sku_produk]" class="form-control row-sku-produk"
-                    list="master_skus_datalist" autocomplete="off"
-                    placeholder="Contoh: BP-WHITE-S" value="${defaultData ? escHtml(defaultData.sku_produk) : ''}">
+                <input type="text" name="rincian[${rIdx}][produk][${pIdx}][nama_produk]" class="form-control row-nama-produk"
+                    list="master_product_names_datalist" autocomplete="off"
+                    placeholder="Nama produk (otomatis)" value="${defaultData ? escHtml(defaultData.nama_produk) : ''}">
             </td>
             <td>
                 <input type="text" name="rincian[${rIdx}][produk][${pIdx}][ukuran]" class="form-control row-ukuran"
-                    placeholder="S, M, L, XL" value="${defaultData ? escHtml(defaultData.ukuran) : ''}">
+                    placeholder="Ukuran (otomatis)" value="${defaultData ? escHtml(defaultData.ukuran) : ''}">
             </td>
             <td>
                 <input type="number" name="rincian[${rIdx}][produk][${pIdx}][qty_produksi]" class="form-control text-center row-qty-produksi"
@@ -961,6 +972,21 @@ document.addEventListener('DOMContentLoaded', function() {
         if (totalSpan) totalSpan.textContent = 'Total Bahan: ' + formatRupiah(total);
     }
 
+    function handleSkuSelection(tr) {
+        const skuInput = tr.querySelector('.row-sku-produk');
+        if (!skuInput) return;
+        const cleanSku = skuInput.value.trim().toUpperCase();
+        if (!cleanSku) return;
+
+        const masterProd = masterProductsMap[cleanSku];
+        if (masterProd) {
+            const nameInput = tr.querySelector('.row-nama-produk');
+            const ukInput   = tr.querySelector('.row-ukuran');
+            if (nameInput) nameInput.value = masterProd.name;
+            if (ukInput) ukInput.value = masterProd.ukuran;
+        }
+    }
+
     function applyRecipeForBlock(rIdx) {
         const tbody = document.getElementById(`productTableBody_${rIdx}`);
         if (!tbody) return;
@@ -970,19 +996,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Find recipe match from any filled product row in the block
         tbody.querySelectorAll('tr').forEach(tr => {
-            const nameVal = tr.querySelector('.row-nama-produk')?.value?.trim()?.toUpperCase();
             const skuVal  = tr.querySelector('.row-sku-produk')?.value?.trim()?.toUpperCase();
+            const nameVal = tr.querySelector('.row-nama-produk')?.value?.trim()?.toUpperCase();
 
             if (!foundRecipe && skuVal && recipesMap[skuVal]) {
                 foundRecipe = recipesMap[skuVal];
-                if (nameVal && !tr.querySelector('.row-nama-produk').value) {
-                    tr.querySelector('.row-nama-produk').value = foundRecipe.name;
-                }
             } else if (!foundRecipe && nameVal && recipesMap[nameVal]) {
                 foundRecipe = recipesMap[nameVal];
-                if (!skuVal && foundRecipe.sku) {
-                    tr.querySelector('.row-sku-produk').value = foundRecipe.sku;
-                }
             }
         });
 
@@ -1066,10 +1086,16 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Delegate input changes for calculation & recipe lookup
+    // Delegate input changes for SKU lookup, calculation & recipe lookup
     document.getElementById('rincianContainer').addEventListener('input', function(e) {
+        // When SKU PRODUK changes -> Auto-fill Nama Produk & Ukuran first
+        if (e.target.classList.contains('row-sku-produk')) {
+            const tr = e.target.closest('tr');
+            if (tr) handleSkuSelection(tr);
+        }
+
         // Product Table Inputs -> trigger total Qty & Recipe lookup
-        if (e.target.classList.contains('row-nama-produk') || e.target.classList.contains('row-sku-produk') || e.target.classList.contains('row-qty-produksi')) {
+        if (e.target.classList.contains('row-sku-produk') || e.target.classList.contains('row-nama-produk') || e.target.classList.contains('row-qty-produksi')) {
             const tr = e.target.closest('tr');
             const tbody = tr ? tr.closest('tbody') : null;
             if (tbody) {

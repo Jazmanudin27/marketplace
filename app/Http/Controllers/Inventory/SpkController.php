@@ -79,7 +79,7 @@ class SpkController extends Controller
 
         $products = MasterProduct::where('tenant_id', $tenantId)
             ->where('is_active', true)
-            ->select(['id', 'tenant_id', 'name', 'sku', 'sku_induk', 'cost_price'])
+            ->select(['id', 'tenant_id', 'name', 'sku', 'sku_induk', 'ukuran', 'warna', 'cost_price'])
             ->with([
                 'activeRecipe:id,master_product_id,batch_qty',
                 'activeRecipe.items:id,product_recipe_id,inventory_item_id,quantity',
