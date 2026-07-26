@@ -468,7 +468,7 @@
                             <i class="fas fa-box-open fa-2x mb-3 d-block opacity-25"></i>
                             Tidak ada produk yang sesuai filter.
                             @if(request()->anyFilled(['search','filter','channel','store_id','sync_status']))
-                                <br><a href="{{ route('inventory.stock_sync.index') }}" class="btn btn-sm btn-outline-secondary mt-2">
+                                <br><a href="{{ route('inventory.stock_sync') }}" class="btn btn-sm btn-outline-secondary mt-2">
                                     Reset Filter
                                 </a>
                             @endif
