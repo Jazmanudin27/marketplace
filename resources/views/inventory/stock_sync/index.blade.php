@@ -126,7 +126,7 @@
             $isActive = request($sc['key']) === $sc['val'];
             $href = $sc['key']
                 ? request()->fullUrlWithQuery([$sc['key'] => $sc['val'], 'page' => 1])
-                : route('inventory.stock_sync.index');
+                : route('inventory.stock_sync');
         @endphp
         <div class="col-6 col-sm-4 col-md-2-4" style="flex:1;min-width:120px;">
             <a href="{{ $href }}" class="stat-card {{ $sc['class'] }} {{ $isActive ? 'active' : '' }}">
@@ -256,7 +256,7 @@
                         <i class="fas fa-search"></i>
                     </button>
                     @if(request()->anyFilled(['search','filter','channel','store_id','sync_status']))
-                        <a href="{{ route('inventory.stock_sync.index') }}"
+                        <a href="{{ route('inventory.stock_sync') }}"
                            class="btn btn-outline-secondary btn-sm" title="Reset semua filter">
                             <i class="fas fa-times"></i>
                         </a>
