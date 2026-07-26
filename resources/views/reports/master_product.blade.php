@@ -148,11 +148,15 @@
                             <th class="text-end" style="width: 110px;">HARGA JUAL</th>
                             <th class="text-center" style="width: 80px;">STOK</th>
                             <th class="text-center" style="width: 80px;">STATUS</th>
-                            <th class="text-center" style="width: 140px;">TAUTAN MARKETPLACE</th>
+                            <th class="text-center" style="width: 90px;">JML TAUTAN</th>
+                            <th style="width: 170px;">CHANNEL / TOKO MARKETPLACE</th>
                         </tr>
                     </thead>
                     <tbody>
                         @forelse($products as $index => $product)
+                            @php
+                                $mpCount = $product->marketplaceProducts->count();
+                            @endphp
                             <tr>
                                 <td class="text-center fw-semibold text-muted">{{ $index + 1 }}</td>
                                 <td>
@@ -227,30 +231,33 @@
                                     @endif
                                 </td>
                                 <td class="text-center">
-                                    @php
-                                        $mpCount = $product->marketplaceProducts->count();
-                                    @endphp
                                     @if($mpCount > 0)
                                         <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1" style="font-size: 11px;">
-                                            <i class="fas fa-link me-1"></i>{{ $mpCount }} Produk MP
+                                            <i class="fas fa-link me-1"></i>{{ $mpCount }} MP
                                         </span>
-                                        <div class="small text-muted mt-1" style="font-size: 10px;">
+                                    @else
+                                        <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-2 py-1" style="font-size: 10px;">
+                                            0
+                                        </span>
+                                    @endif
+                                </td>
+                                <td>
+                                    @if($mpCount > 0)
+                                        <div class="d-flex flex-wrap gap-1">
                                             @foreach($product->marketplaceProducts->unique('store_id') as $mp)
-                                                <span class="badge bg-light text-dark border me-1 mb-1">
-                                                    {{ $mp->store->channel->name ?? '' }}: {{ $mp->store->store_name ?? '' }}
+                                                <span class="badge bg-light text-dark border" style="font-size: 10px;">
+                                                    <i class="fas fa-store me-1 text-primary"></i>{{ $mp->store->channel->name ?? '' }}: {{ $mp->store->store_name ?? '' }}
                                                 </span>
                                             @endforeach
                                         </div>
                                     @else
-                                        <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-2 py-1" style="font-size: 10px;">
-                                            <i class="fas fa-unlink me-1"></i>Belum Ditautkan
-                                        </span>
+                                        <span class="text-muted small italic">Belum Ditautkan</span>
                                     @endif
                                 </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="12" class="text-center text-muted py-4">
+                                <td colspan="13" class="text-center text-muted py-4">
                                     <i class="fas fa-inbox fs-2 d-block mb-2 opacity-25"></i>
                                     Tidak ada data produk yang sesuai filter.
                                 </td>
