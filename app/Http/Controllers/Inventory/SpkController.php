@@ -162,31 +162,29 @@ class SpkController extends Controller
                 $batchQty = max(1, (int)$rec->batch_qty);
                 $itemsList = [];
                 foreach ($rec->items as $rItem) {
-                    $invName = $rItem->inventoryItem->name ?? '';
-                    if ($invName !== '') {
+                    $invItem = $rItem->inventoryItem;
+                    if ($invItem && !empty($invItem->name)) {
                         $itemsList[] = [
-                            'sku_kain' => $invName,
-                            'est_kain' => round((float)$rItem->quantity / $batchQty, 2),
+                            'nama_bahan' => $invItem->name,
+                            'unit'       => $invItem->unit ?? '',
+                            'qty_unit'   => round((float)$rItem->quantity / $batchQty, 4),
+                            'harga'      => (float)($invItem->cost_price ?? 0),
                         ];
                     }
                 }
-                $penjahit = '';
-                $vendorKancing = '';
-                foreach ($rec->labors as $rLabor) {
-                    $sName = strtolower($rLabor->service_name);
-                    if (str_contains($sName, 'kancing') || str_contains($sName, 'lkpk')) {
-                        $vendorKancing = $rLabor->service_name;
-                    } elseif (str_contains($sName, 'jahit') || empty($penjahit)) {
-                        $penjahit = $rLabor->service_name;
-                    }
-                }
+
                 $recipeData = [
-                    'sku' => $prod->sku,
-                    'name' => $prod->name,
-                    'items' => $itemsList,
-                    'penjahit' => $penjahit,
-                    'vendor_kancing' => $vendorKancing,
+                    'product_id' => $prod->id,
+                    'name'       => $prod->name,
+                    'sku'        => $prod->sku,
+                    'sku_induk'  => $prod->sku_induk,
+                    'ukuran'     => $prod->ukuran,
+                    'items'      => $itemsList,
                 ];
+
+                if (!empty($prod->name)) {
+                    $recipesMap[strtoupper(trim($prod->name))] = $recipeData;
+                }
                 if (!empty($prod->sku)) {
                     $recipesMap[strtoupper(trim($prod->sku))] = $recipeData;
                 }
@@ -299,29 +297,46 @@ class SpkController extends Controller
 
                     if (!$firstSpk) $firstSpk = $spkRecord;
 
-                    // Items for this rincian block
-                    $blockItems = $rBlock['items'] ?? [];
-                    if (!empty($blockItems) && is_array($blockItems)) {
-                        foreach ($blockItems as $row) {
-                            $skuProduk = $row['sku_produk'] ?? ($row['sku'] ?? null);
-                            $namaProduk = $row['name'] ?? $skuProduk ?? 'Produk SPK';
+                    $namaProduk = $rBlock['nama_produk'] ?? 'Produk SPK';
+                    $skuProduk = $rBlock['sku_produk'] ?? ($rBlock['sku'] ?? null);
+                    $qtyProduksi = (int) ($rBlock['qty_produksi'] ?? ($rBlock['quantity'] ?? 1));
+                    $ukuran = $rBlock['ukuran'] ?? null;
+                    $skuKain = $rBlock['sku_kain'] ?? null;
 
-                            SpkItem::create([
-                                'spk_id'            => $spkRecord->id,
-                                'nama_produk'       => $namaProduk,
-                                'sku'               => $skuProduk,
-                                'sku_kain'          => $row['sku_kain'] ?? ($rBlock['sku_kain'] ?? null),
-                                'ukuran'            => $row['size'] ?? null,
-                                'catatan'           => $row['catatan'] ?? null,
-                                'quantity'          => (int) ($row['qty'] ?? 1),
-                                'est_kain'          => (float) ($row['est_kain'] ?? 0),
-                                'kain_pakai'        => (float) ($row['kain_pakai'] ?? 0),
-                                'kain_sisa'         => (float) ($row['kain_sisa'] ?? 0),
-                                'penjahit'          => $row['penjahit'] ?? ($row['tailor'] ?? null),
-                                'vendor_kancing'    => $row['vendor_kancing'] ?? null,
-                                'alur_proses'       => $row['alur_proses'] ?? 'Langsung Jahit',
-                                'hpp'               => 0,
-                            ]);
+                    // Items / Bahan for this rincian block
+                    $bahanList = $rBlock['bahan'] ?? ($rBlock['items'] ?? []);
+
+                    $spkItem = SpkItem::create([
+                        'spk_id'            => $spkRecord->id,
+                        'nama_produk'       => $namaProduk,
+                        'sku'               => $skuProduk,
+                        'sku_kain'          => $skuKain ?: ($bahanList[0]['nama_bahan'] ?? $bahanList[0]['sku_kain'] ?? null),
+                        'ukuran'            => $ukuran,
+                        'catatan'           => $rBlock['catatan'] ?? null,
+                        'quantity'          => max(1, $qtyProduksi),
+                        'hpp'               => 0,
+                    ]);
+
+                    if (!empty($bahanList) && is_array($bahanList)) {
+                        $totalHpp = 0;
+                        foreach ($bahanList as $b) {
+                            $namaBahan = $b['nama_bahan'] ?? ($b['sku_kain'] ?? $b['keterangan'] ?? null);
+                            $qtyBahan  = $b['qty_bahan'] ?? ($b['qty'] ?? 1);
+                            $hargaBahan= floatval($b['harga'] ?? ($b['nominal'] ?? 0));
+                            $subtotal  = floatval($b['subtotal'] ?? ($qtyBahan * $hargaBahan));
+
+                            if ($namaBahan) {
+                                $keterangan = "{$namaBahan} (Qty: {$qtyBahan})";
+                                SpkItemExtra::create([
+                                    'spk_item_id' => $spkItem->id,
+                                    'keterangan'  => $keterangan,
+                                    'nominal'     => $subtotal,
+                                ]);
+                                $totalHpp += $subtotal;
+                            }
+                        }
+                        if ($totalHpp > 0) {
+                            $spkItem->update(['hpp' => $totalHpp]);
                         }
                     }
                 }

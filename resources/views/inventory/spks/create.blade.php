@@ -37,20 +37,6 @@
         margin-bottom: 14px;
         box-shadow: 0 1px 4px rgba(0,0,0,.05);
     }
-    .spk-field-group label {
-        display: block;
-        font-size: 10px;
-        font-weight: 700;
-        letter-spacing: .8px;
-        text-transform: uppercase;
-        color: #6b7280;
-        margin-bottom: 4px;
-    }
-    .spk-field-group .field-value {
-        font-size: 14px;
-        font-weight: 700;
-        color: #111;
-    }
     .draft-badge {
         display: inline-block;
         background: #fef9c3;
@@ -167,9 +153,6 @@
     }
 
     /* Tahapan Dropdown */
-    .tahap-select-wrap {
-        position: relative;
-    }
     .tahap-select {
         background: #f1f5f9;
         border: 1.5px solid #e2e8f0;
@@ -179,21 +162,15 @@
         padding: 10px 14px;
         color: #1e293b;
         cursor: pointer;
-        transition: border-color .2s;
-    }
-    .tahap-select:focus {
-        border-color: #3b82f6;
-        outline: none;
-        background: #fff;
     }
 
-    /* Rincian Produk Section */
+    /* Rincian Produk Section Card */
     .rincian-card {
         background: #fff;
         border: 1px solid #e5e7eb;
         border-radius: 12px;
-        margin-bottom: 14px;
-        box-shadow: 0 1px 4px rgba(0,0,0,.05);
+        margin-bottom: 16px;
+        box-shadow: 0 1px 5px rgba(0,0,0,.05);
         overflow: hidden;
     }
     .rincian-card .rincian-header {
@@ -214,7 +191,7 @@
     .upload-zone {
         border: 2px dashed #d1d5db;
         border-radius: 10px;
-        min-height: 100px;
+        min-height: 90px;
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -224,7 +201,7 @@
         position: relative;
         background: #fafafa;
         text-align: center;
-        padding: 14px;
+        padding: 10px;
     }
     .upload-zone:hover { border-color: #3b82f6; background: #eff6ff; }
     .upload-zone.has-file { border-style: solid; border-color: #10b981; background: #ecfdf5; }
@@ -234,31 +211,30 @@
         opacity: 0;
         cursor: pointer;
     }
-    .upload-zone .uz-icon { font-size: 24px; opacity: .35; }
-    .upload-zone .uz-label { font-size: 11px; font-weight: 700; color: #6b7280; letter-spacing: .5px; margin-top: 4px; }
-    .upload-zone .uz-hint { font-size: 10px; color: #9ca3af; }
+    .upload-zone .uz-icon { font-size: 20px; opacity: .4; }
+    .upload-zone .uz-label { font-size: 10px; font-weight: 700; color: #6b7280; margin-top: 2px; }
 
-    /* SKU Table */
-    .sku-table-custom {
+    /* Bahan Table */
+    .bahan-table {
         border-collapse: separate;
         border-spacing: 0;
         font-size: 12px;
     }
-    .sku-table-custom thead tr th {
+    .bahan-table thead tr th {
         background: #f1f5f9;
         border: 1px solid #e2e8f0;
         font-size: 11px;
         font-weight: 700;
         text-align: center;
         letter-spacing: .4px;
-        padding: 8px 6px;
+        padding: 8px;
     }
-    .sku-table-custom tbody td {
+    .bahan-table tbody td {
         border: 1px solid #e2e8f0;
-        padding: 6px;
+        padding: 6px 8px;
         vertical-align: middle;
     }
-    .sku-table-custom .form-control, .sku-table-custom .form-select {
+    .bahan-table .form-control {
         border: 1px solid #d1d5db;
         border-radius: 6px;
         font-size: 12px;
@@ -294,10 +270,17 @@
 @section('content')
 <div class="container-fluid py-2 px-3 spk-create-wrap">
 
+    {{-- Datalist Autocomplete Nama Produk --}}
+    <datalist id="master_product_names_datalist">
+        @foreach($products->pluck('name')->unique() as $pName)
+            <option value="{{ $pName }}"></option>
+        @endforeach
+    </datalist>
+
     {{-- Datalist Autocomplete SKU Master --}}
     <datalist id="master_skus_datalist">
         @foreach($products as $p)
-            <option value="{{ $p->sku }}">{{ $p->name }} @if($p->sku_induk)({{ $p->sku_induk }})@endif</option>
+            <option value="{{ $p->sku }}">{{ $p->name }} @if($p->ukuran)({{ $p->ukuran }})@endif</option>
             @if($p->sku_induk && $p->sku_induk !== $p->sku)
                 <option value="{{ $p->sku_induk }}">{{ $p->name }} (Induk)</option>
             @endif
@@ -633,12 +616,17 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // ── 3. DYNAMIC RINCIAN PRODUK (SPK) BLOCKS ──
     let rincianBlockCount = 0;
+    let bahanRowCounters = {};
 
     function escHtml(str) {
         if (!str) return '';
         return String(str)
             .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
             .replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+    }
+
+    function formatRupiah(val) {
+        return 'Rp ' + (parseFloat(val) || 0).toLocaleString('id-ID');
     }
 
     window.addRincianBlock = function() {
@@ -664,20 +652,37 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>
             <div class="rincian-body">
 
-                {{-- PRODUK UMUM + SKU KAIN --}}
-                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3 p-2 rounded" style="background:#f8fafc; border:1px solid #e2e8f0;">
-                    <div class="d-flex align-items-center gap-2 flex-grow-1" style="max-width:400px;">
-                        <span class="fw-bold text-dark" style="font-size:12px; letter-spacing:.3px; white-space:nowrap;">
-                            🧵 PRODUK / SPK:
+                {{-- INFORMASI PRODUK UTAMA SPK --}}
+                <div class="p-3 mb-3 rounded" style="background:#f8fafc; border:1px solid #e2e8f0;">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="fw-bold text-dark" style="font-size:12px; letter-spacing:.3px;">
+                            👕 INFORMASI PRODUK UTAMA (SPK)
                         </span>
-                        <input type="text" name="rincian[${rIdx}][nama_produk]" class="form-control form-control-sm rincian-nama-produk"
-                            placeholder="Contoh: Kemeja Batik SD, Celana PDL..." style="font-size:12px; font-weight:600;">
+                        <div class="recipe-status-badge-${rIdx}"></div>
                     </div>
-                    <div class="d-flex align-items-center gap-2">
-                        <span class="badge bg-primary fw-bold" style="font-size:11px; padding:6px 10px;">📦 SKU KAIN / BAHAN :</span>
-                        <input type="text" name="rincian[${rIdx}][sku_kain]" class="form-control form-control-sm rincian-sku-kain"
-                            list="inventory_items_datalist" autocomplete="off"
-                            style="width:220px; font-size:12px;" placeholder="Pilih / ketik bahan..." data-rincian-idx="${rIdx}">
+                    <div class="row g-2">
+                        <div class="col-md-4">
+                            <label class="form-label mb-1" style="font-size:10px; font-weight:700; color:#64748b;">NAMA PRODUK</label>
+                            <input type="text" name="rincian[${rIdx}][nama_produk]" class="form-control form-control-sm rincian-nama-produk"
+                                list="master_product_names_datalist" autocomplete="off"
+                                placeholder="Contoh: Baju Putih SD..." style="font-size:12px; font-weight:600;" data-rincian-idx="${rIdx}">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label mb-1" style="font-size:10px; font-weight:700; color:#64748b;">SKU PRODUK</label>
+                            <input type="text" name="rincian[${rIdx}][sku_produk]" class="form-control form-control-sm rincian-sku-produk"
+                                list="master_skus_datalist" autocomplete="off"
+                                placeholder="Contoh: BP-WHITE-L..." style="font-size:12px; font-weight:600;" data-rincian-idx="${rIdx}">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label mb-1" style="font-size:10px; font-weight:700; color:#64748b;">UKURAN / VARIAN</label>
+                            <input type="text" name="rincian[${rIdx}][ukuran]" class="form-control form-control-sm rincian-ukuran"
+                                placeholder="Contoh: L, M, XL" style="font-size:12px;">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label mb-1" style="font-size:10px; font-weight:700; color:#64748b;">QTY PRODUKSI (PCS)</label>
+                            <input type="number" name="rincian[${rIdx}][qty_produksi]" class="form-control form-control-sm rincian-qty-produksi text-center"
+                                min="1" value="1" style="font-size:12px; font-weight:700;" data-rincian-idx="${rIdx}">
+                        </div>
                     </div>
                 </div>
 
@@ -695,7 +700,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 <div class="ref-placeholder-${rIdx}">
                                     <div class="uz-icon">📸</div>
                                     <div class="uz-label">UPLOAD REFERENSI</div>
-                                    <div class="uz-hint">Foto contoh / referensi dari klien</div>
+                                    <div class="uz-hint">Foto contoh dari klien</div>
                                 </div>
                                 <img class="ref-preview-${rIdx} d-none img-fluid rounded" style="max-height:80px;" alt="Referensi">
                             </div>
@@ -730,30 +735,35 @@ document.addEventListener('DOMContentLoaded', function() {
                         </div>
                     </div>
 
-                    {{-- Right: SKU Table --}}
+                    {{-- Right: Tabel Bahan & Barang Komponen --}}
                     <div class="col-xl-9 col-lg-8">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="fw-bold text-secondary" style="font-size:11px; text-transform:uppercase; letter-spacing:.5px;">
+                                📦 RINCIAN BAHAN &amp; BARANG KOMPONEN:
+                            </span>
+                            <span class="fw-bold text-success total-biaya-bahan-${rIdx}" style="font-size:12px;">Total Bahan: Rp 0</span>
+                        </div>
                         <div class="table-responsive" style="border-radius:10px; border:1px solid #e2e8f0; overflow:hidden;">
-                            <table class="table table-sm sku-table-custom mb-0 align-middle">
+                            <table class="table table-sm bahan-table mb-0 align-middle">
                                 <thead>
                                     <tr class="text-uppercase text-center">
-                                        <th style="width:50%;">SKU PRODUK</th>
-                                        <th style="width:35%;">SKU KAIN / BAHAN</th>
-                                        <th style="width:15%;">QTY</th>
+                                        <th style="width:45%;">NAMA BAHAN / BARANG</th>
+                                        <th style="width:18%;">QTY BAHAN</th>
+                                        <th style="width:20%;">HARGA (Rp)</th>
+                                        <th style="width:17%;">SUBTOTAL (Rp)</th>
                                         <th style="width:36px;"></th>
                                     </tr>
                                 </thead>
-                                <tbody id="skuTableBody_${rIdx}">
-                                    {{-- SKU Rows --}}
+                                <tbody id="bahanTableBody_${rIdx}">
+                                    {{-- Dynamic Bahan Rows --}}
                                 </tbody>
                             </table>
                         </div>
                         <div class="mt-2 d-flex align-items-center justify-content-between">
-                            <div class="d-flex align-items-center gap-2">
-                                <button type="button" class="btn btn-outline-primary btn-sm fw-bold px-3 btn-add-sku-row" data-rincian-idx="${rIdx}">
-                                    ✚ Baris SKU
-                                </button>
-                                <span class="text-muted small sku-row-count-${rIdx}">0 baris SKU</span>
-                            </div>
+                            <button type="button" class="btn btn-outline-primary btn-sm fw-bold px-3 btn-add-bahan-row" data-rincian-idx="${rIdx}">
+                                ✚ Tambah Bahan / Barang
+                            </button>
+                            <span class="text-muted small bahan-row-count-${rIdx}">0 jenis bahan</span>
                         </div>
                     </div>
                 </div>
@@ -765,88 +775,51 @@ document.addEventListener('DOMContentLoaded', function() {
         // Bind image previews for this block
         bindRincianUploads(rIdx);
 
-        // Add 1 default SKU row
-        addSkuRowToBlock(rIdx);
+        // Add 1 default bahan row
+        addBahanRowToBlock(rIdx);
     };
 
-    let itemCounters = {};
-
-    window.addSkuRowToBlock = function(rIdx, defaultData = null) {
-        if (!itemCounters[rIdx]) itemCounters[rIdx] = 0;
-        const itemIdx = itemCounters[rIdx]++;
-
-        const card = document.getElementById(`rincian-card-${rIdx}`);
-        const skuKainInput = card ? card.querySelector('.rincian-sku-kain') : null;
-        const currentSkuKain = skuKainInput ? skuKainInput.value : '';
+    window.addBahanRowToBlock = function(rIdx, defaultData = null) {
+        if (!bahanRowCounters[rIdx]) bahanRowCounters[rIdx] = 0;
+        const bIdx = bahanRowCounters[rIdx]++;
 
         const tr = document.createElement('tr');
+        const qtyVal = defaultData ? defaultData.qty_bahan : '1';
+        const hargaVal = defaultData ? defaultData.harga : '0';
+        const subtotalVal = (parseFloat(qtyVal) || 0) * (parseFloat(hargaVal) || 0);
+
         tr.innerHTML = `
             <td>
-                <input type="text" name="rincian[${rIdx}][items][${itemIdx}][sku_produk]" class="form-control row-sku-produk"
-                    list="master_skus_datalist" autocomplete="off"
-                    placeholder="SKU Produk" style="font-size:12px;" value="${defaultData ? escHtml(defaultData.sku_produk) : ''}">
-            </td>
-            <td>
-                <input type="text" name="rincian[${rIdx}][items][${itemIdx}][sku_kain]" class="form-control row-sku-kain"
+                <input type="text" name="rincian[${rIdx}][bahan][${bIdx}][nama_bahan]" class="form-control row-nama-bahan"
                     list="inventory_items_datalist" autocomplete="off"
-                    placeholder="Pilih / SKU Kain" value="${defaultData ? escHtml(defaultData.sku_kain) : escHtml(currentSkuKain)}"
-                    style="font-size:12px;">
+                    placeholder="Contoh: Kain Drill, Kancing, Benang..." value="${defaultData ? escHtml(defaultData.nama_bahan) : ''}">
             </td>
             <td>
-                <input type="number" name="rincian[${rIdx}][items][${itemIdx}][qty]" class="form-control text-center row-qty"
-                    placeholder="0" min="1" value="${defaultData ? defaultData.qty : 1}" style="font-size:12px; padding:4px;">
+                <input type="text" name="rincian[${rIdx}][bahan][${bIdx}][qty_bahan]" class="form-control text-center row-qty-bahan"
+                    placeholder="1.5 / 10 pcs" value="${defaultData ? escHtml(defaultData.qty_bahan) : '1'}">
+            </td>
+            <td>
+                <input type="number" name="rincian[${rIdx}][bahan][${bIdx}][harga]" class="form-control text-end row-harga-bahan"
+                    placeholder="0" min="0" value="${defaultData ? defaultData.harga : '0'}">
+            </td>
+            <td>
+                <input type="text" name="rincian[${rIdx}][bahan][${bIdx}][subtotal]" class="form-control text-end bg-light row-subtotal-bahan"
+                    readonly tabindex="-1" value="${formatRupiah(subtotalVal)}">
             </td>
             <td class="text-center">
-                <button type="button" class="btn btn-sm btn-outline-danger btn-remove-sku-row py-0 px-1" title="Hapus baris">
+                <button type="button" class="btn btn-sm btn-outline-danger btn-remove-bahan-row py-0 px-1" title="Hapus baris bahan">
                     <i class="fas fa-times"></i>
                 </button>
             </td>
         `;
 
-        const tbody = document.getElementById(`skuTableBody_${rIdx}`);
+        const tbody = document.getElementById(`bahanTableBody_${rIdx}`);
         if (tbody) {
             tbody.appendChild(tr);
-            updateRowCount(rIdx);
-            if (defaultData && defaultData.sku_produk) {
-                applyRecipeToRow(tr, defaultData.sku_produk);
-            }
+            updateBahanRowCount(rIdx);
+            calculateBlockTotalBahan(rIdx);
         }
     };
-
-    function applyRecipeToRow(tr, skuVal) {
-        if (!skuVal) return;
-        const cleanSku = skuVal.trim().toUpperCase();
-        const recipe = recipesMap[cleanSku];
-
-        if (recipe && recipe.items && recipe.items.length > 0) {
-            const qtyInput = tr.querySelector('.row-qty');
-            const qty = parseInt(qtyInput ? qtyInput.value : 1) || 1;
-            const tbody = tr.closest('tbody');
-            const rIdx = tbody ? tbody.id.replace('skuTableBody_', '') : 0;
-
-            const item0 = recipe.items[0];
-            const kainInput = tr.querySelector('.row-sku-kain');
-            if (kainInput && item0.sku_kain) {
-                kainInput.value = item0.sku_kain;
-            }
-
-            if (recipe.items.length > 1 && tbody && !tr.dataset.recipeExpanded) {
-                tr.dataset.recipeExpanded = 'true';
-                for (let i = 1; i < recipe.items.length; i++) {
-                    const itemData = recipe.items[i];
-                    addSkuRowToBlock(rIdx, {
-                        sku_produk: skuVal,
-                        sku_kain: itemData.sku_kain,
-                        qty: qty
-                    });
-                    const newTr = tbody.lastElementChild;
-                    if (newTr) {
-                        newTr.dataset.recipeExpanded = 'true';
-                    }
-                }
-            }
-        }
-    }
 
     function bindRincianUploads(rIdx) {
         // Referensi Klien
@@ -893,12 +866,77 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    function updateRowCount(rIdx) {
-        const tbody = document.getElementById(`skuTableBody_${rIdx}`);
+    function updateBahanRowCount(rIdx) {
+        const tbody = document.getElementById(`bahanTableBody_${rIdx}`);
         if (tbody) {
             const count = tbody.querySelectorAll('tr').length;
-            const span = document.querySelector(`.sku-row-count-${rIdx}`);
-            if (span) span.textContent = count + ' baris SKU';
+            const span = document.querySelector(`.bahan-row-count-${rIdx}`);
+            if (span) span.textContent = count + ' jenis bahan';
+        }
+    }
+
+    function calculateBlockTotalBahan(rIdx) {
+        const tbody = document.getElementById(`bahanTableBody_${rIdx}`);
+        if (!tbody) return;
+        let total = 0;
+        tbody.querySelectorAll('tr').forEach(tr => {
+            const qtyStr = tr.querySelector('.row-qty-bahan')?.value || '0';
+            const qty = parseFloat(qtyStr) || 1;
+            const harga = parseFloat(tr.querySelector('.row-harga-bahan')?.value) || 0;
+            const subtotal = qty * harga;
+            const subInput = tr.querySelector('.row-subtotal-bahan');
+            if (subInput) subInput.value = formatRupiah(subtotal);
+            total += subtotal;
+        });
+        const totalSpan = document.querySelector(`.total-biaya-bahan-${rIdx}`);
+        if (totalSpan) totalSpan.textContent = 'Total Bahan: ' + formatRupiah(total);
+    }
+
+    function applyProductRecipe(rIdx, searchTerm) {
+        if (!searchTerm) return;
+        const cleanTerm = searchTerm.trim().toUpperCase();
+        const recipe = recipesMap[cleanTerm];
+        const badgeEl = document.querySelector(`.recipe-status-badge-${rIdx}`);
+
+        if (recipe) {
+            const card = document.getElementById(`rincian-card-${rIdx}`);
+            if (!card) return;
+
+            const nameInp = card.querySelector('.rincian-nama-produk');
+            const skuInp = card.querySelector('.rincian-sku-produk');
+            const ukInp = card.querySelector('.rincian-ukuran');
+            const qtyProdInp = card.querySelector('.rincian-qty-produksi');
+            const qtyProd = parseInt(qtyProdInp?.value || 1) || 1;
+
+            if (nameInp && recipe.name && !nameInp.value) nameInp.value = recipe.name;
+            if (skuInp && recipe.sku && !skuInp.value) skuInp.value = recipe.sku;
+            if (ukInp && recipe.ukuran && !ukInp.value) ukInp.value = recipe.ukuran;
+
+            // Auto-populate bahan table from recipe
+            if (recipe.items && recipe.items.length > 0) {
+                const tbody = document.getElementById(`bahanTableBody_${rIdx}`);
+                if (tbody) {
+                    tbody.innerHTML = '';
+                    bahanRowCounters[rIdx] = 0;
+
+                    recipe.items.forEach(item => {
+                        const calculatedQty = (item.qty_unit * qtyProd).toFixed(2);
+                        addBahanRowToBlock(rIdx, {
+                            nama_bahan: item.nama_bahan + (item.unit ? ' (' + item.unit + ')' : ''),
+                            qty_bahan: calculatedQty,
+                            harga: item.harga
+                        });
+                    });
+                }
+            }
+
+            if (badgeEl) {
+                badgeEl.innerHTML = '<span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1" style="font-size:10px;">✨ Terisi dari Formula (BOM)</span>';
+            }
+        } else {
+            if (badgeEl) {
+                badgeEl.innerHTML = '<span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-2 py-1" style="font-size:10px;">✏️ Manual</span>';
+            }
         }
     }
 
@@ -907,22 +945,23 @@ document.addEventListener('DOMContentLoaded', function() {
         addRincianBlock();
     });
 
-    // Delegate Add SKU Row & Remove Block events
+    // Delegate events inside rincian cards
     document.getElementById('rincianContainer').addEventListener('click', function(e) {
-        const btnAddSku = e.target.closest('.btn-add-sku-row');
-        if (btnAddSku) {
-            const rIdx = btnAddSku.dataset.rincianIdx;
-            addSkuRowToBlock(rIdx);
+        const btnAddBahan = e.target.closest('.btn-add-bahan-row');
+        if (btnAddBahan) {
+            const rIdx = btnAddBahan.dataset.rincianIdx;
+            addBahanRowToBlock(rIdx);
             return;
         }
 
-        const btnRemoveRow = e.target.closest('.btn-remove-sku-row');
-        if (btnRemoveRow) {
-            const tr = btnRemoveRow.closest('tr');
+        const btnRemoveBahan = e.target.closest('.btn-remove-bahan-row');
+        if (btnRemoveBahan) {
+            const tr = btnRemoveBahan.closest('tr');
             const tbody = tr.closest('tbody');
-            const rIdx = tbody.id.replace('skuTableBody_', '');
+            const rIdx = tbody.id.replace('bahanTableBody_', '');
             tr.remove();
-            updateRowCount(rIdx);
+            updateBahanRowCount(rIdx);
+            calculateBlockTotalBahan(rIdx);
             return;
         }
 
@@ -935,28 +974,29 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Delegate Auto-Fill from Formula when SKU or QTY changes
+    // Delegate input changes for calculation & recipe lookup
     document.getElementById('rincianContainer').addEventListener('input', function(e) {
-        if (e.target.classList.contains('row-sku-produk')) {
-            const tr = e.target.closest('tr');
-            if (tr) {
-                const skuVal = tr.querySelector('.row-sku-produk')?.value || '';
-                applyRecipeToRow(tr, skuVal);
-            }
+        // Recipe auto fill when product name or SKU changes
+        if (e.target.classList.contains('rincian-nama-produk') || e.target.classList.contains('rincian-sku-produk')) {
+            const rIdx = e.target.dataset.rincianIdx;
+            applyProductRecipe(rIdx, e.target.value);
         }
 
-        // Global SKU Kain auto-fill per block
-        if (e.target.classList.contains('rincian-sku-kain')) {
+        // Re-calculate recipe bahan qty if Qty Produksi changes
+        if (e.target.classList.contains('rincian-qty-produksi')) {
             const rIdx = e.target.dataset.rincianIdx;
-            const val = e.target.value;
-            const tbody = document.getElementById(`skuTableBody_${rIdx}`);
-            if (tbody) {
-                tbody.querySelectorAll('.row-sku-kain').forEach(inp => {
-                    if (inp.value === '' || inp.dataset.autoFilled === 'true') {
-                        inp.value = val;
-                        inp.dataset.autoFilled = 'true';
-                    }
-                });
+            const card = document.getElementById(`rincian-card-${rIdx}`);
+            const skuVal = card?.querySelector('.rincian-sku-produk')?.value || card?.querySelector('.rincian-nama-produk')?.value || '';
+            if (skuVal) applyProductRecipe(rIdx, skuVal);
+        }
+
+        // Calculate subtotal when bahan Qty or Harga changes
+        if (e.target.classList.contains('row-qty-bahan') || e.target.classList.contains('row-harga-bahan')) {
+            const tr = e.target.closest('tr');
+            if (tr) {
+                const tbody = tr.closest('tbody');
+                const rIdx = tbody.id.replace('bahanTableBody_', '');
+                calculateBlockTotalBahan(rIdx);
             }
         }
     });
