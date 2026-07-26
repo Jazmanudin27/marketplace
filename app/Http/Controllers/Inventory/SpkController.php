@@ -192,6 +192,8 @@ class SpkController extends Controller
             }
         }
 
+        $defaultNoProduksi = Spk::generateNoProduksi();
+
         return view('inventory.spks.create', compact('products', 'tailors', 'laborServices', 'order', 'stores', 'existingNoProduksi', 'defaultNoProduksi', 'recipesMap'));
     }
 
