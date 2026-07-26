@@ -10,7 +10,9 @@ class SpkItem extends Model
 {
     protected $fillable = [
         'spk_id', 'master_product_id',
-        'nama_produk', 'sku', 'sku_induk', 'ukuran', 'catatan', 'quantity', 'penjahit', 'pemotong', 'alur_proses', 'status',
+        'nama_produk', 'sku', 'sku_kain', 'sku_induk', 'ukuran', 'catatan', 'quantity',
+        'est_kain', 'kain_pakai', 'kain_sisa',
+        'penjahit', 'vendor_kancing', 'pemotong', 'alur_proses', 'status',
         'hpp',
     ];
 

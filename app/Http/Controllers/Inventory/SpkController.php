@@ -161,18 +161,26 @@ class SpkController extends Controller
         $tenantId = Auth::user()->tenant_id;
 
         $request->validate([
-            'order_id'       => 'nullable|integer|exists:orders,id',
-            'no_produksi'    => 'nullable|string|max:255',
-            'tanggal'        => 'required|date',
-            'deadline'       => 'required|date|after_or_equal:tanggal',
-            'pemesan'        => 'nullable|string|max:255',
-            'no_hp_pemesan'  => 'nullable|string|max:100',
-            'instansi'       => 'nullable|string|max:255',
-            'tambahan'       => 'nullable|string',
-            'image'          => 'nullable|image|max:4096',
-            'items'          => 'required|array|min:1',
-            'items.*.name'   => 'required|string|max:255',
-            'items.*.qty'    => 'required|integer|min:1',
+            'order_id'          => 'nullable|integer|exists:orders,id',
+            'no_produksi'       => 'nullable|string|max:255',
+            'no_pesanan'        => 'nullable|string|max:255',
+            'tanggal'           => 'required|date',
+            'deadline'          => 'nullable|date|after_or_equal:tanggal',
+            'tipe_spk'          => 'nullable|string|in:pesanan_pelanggan,stok_gudang',
+            'tahap_saat_ini'    => 'nullable|string|max:100',
+            'pemesan'           => 'nullable|string|max:255',
+            'no_hp_pemesan'     => 'nullable|string|max:100',
+            'instansi'          => 'nullable|string|max:255',
+            'nama_pic'          => 'nullable|string|max:255',
+            'tambahan'          => 'nullable|string',
+            'sku_kain'          => 'nullable|string|max:100',
+            'link_file_mentah'  => 'nullable|string|max:2048',
+            'image'             => 'nullable|image|max:4096',
+            'referensi_klien'   => 'nullable|image|max:8192',
+            'mockup_final'      => 'nullable|image|max:8192',
+            'items'             => 'nullable|array',
+            'items.*.sku_produk'=> 'nullable|string|max:255',
+            'items.*.qty'       => 'nullable|integer|min:1',
         ]);
 
         $imagePath = null;
@@ -180,29 +188,59 @@ class SpkController extends Controller
             $imagePath = $request->file('image')->store('spks', 'public');
         }
 
-        $spk = DB::transaction(function () use ($request, $tenantId, $imagePath) {
+        $referensiPath = null;
+        if ($request->hasFile('referensi_klien')) {
+            $referensiPath = $request->file('referensi_klien')->store('spks/referensi', 'public');
+        }
+
+        $mockupPath = null;
+        if ($request->hasFile('mockup_final')) {
+            $mockupPath = $request->file('mockup_final')->store('spks/mockup', 'public');
+        }
+
+        $spk = DB::transaction(function () use ($request, $tenantId, $imagePath, $referensiPath, $mockupPath) {
             $noSpk = Spk::generateNoSpk();
+
+            // If no_produksi is explicitly provided, use it; otherwise leave null (DRAFT)
             $noProduksi = trim((string) $request->input('no_produksi'));
             if (empty($noProduksi)) {
-                $noProduksi = Spk::generateNoProduksi();
+                $noProduksi = null; // DRAFT - no produksi code yet
+            }
+
+            // Determine tahap: if no_produksi is empty, force DRAFT
+            $tahapSaatIni = $request->input('tahap_saat_ini', 'DRAFT');
+            if (empty($noProduksi)) {
+                $tahapSaatIni = 'DRAFT';
             }
 
             $spk = Spk::create([
-                'tenant_id'     => $tenantId,
-                'order_id'      => $request->order_id,
-                'no_produksi'   => $noProduksi,
-                'no_spk'        => $noSpk,
-                'tipe_spk'      => $request->input('tipe_spk', 'pesanan_pelanggan'),
-                'is_urgent'     => $request->boolean('is_urgent'),
-                'tanggal'       => $request->tanggal,
-                'deadline'      => $request->deadline,
-                'pemesan'       => $request->pemesan,
-                'no_hp_pemesan' => $request->no_hp_pemesan,
-                'instansi'      => $request->instansi,
-                'tambahan'      => $request->tambahan,
-                'image_url'     => $imagePath ? Storage::url($imagePath) : null,
-                'penginput_id'  => Auth::id(),
+                'tenant_id'           => $tenantId,
+                'order_id'            => $request->order_id,
+                'no_produksi'         => $noProduksi,
+                'no_pesanan'          => $request->no_pesanan,
+                'no_spk'              => $noSpk,
+                'tipe_spk'            => $request->input('tipe_spk', 'pesanan_pelanggan'),
+                'is_urgent'           => $request->boolean('is_urgent'),
+                'tahap_saat_ini'      => $tahapSaatIni,
+                'tanggal'             => $request->tanggal,
+                'deadline'            => $request->deadline ?: null,
+                'pemesan'             => $request->pemesan,
+                'no_hp_pemesan'       => $request->no_hp_pemesan,
+                'instansi'            => $request->instansi,
+                'nama_pic'            => $request->nama_pic ?: Auth::user()->name,
+                'tambahan'            => $request->tambahan,
+                'sku_kain'            => $request->sku_kain,
+                'link_file_mentah'    => $request->link_file_mentah,
+                'image_url'           => $imagePath ? Storage::url($imagePath) : null,
+                'referensi_klien_url' => $referensiPath ? Storage::url($referensiPath) : null,
+                'mockup_url'          => $mockupPath ? Storage::url($mockupPath) : null,
+                'penginput_id'        => Auth::id(),
             ]);
+
+            // Process items if provided (optional for DRAFT)
+            if (empty($request->items) || !is_array($request->items)) {
+                return $spk;
+            }
 
             // Calculate total SPK Qty across items
             $totalSpkQty = 0;
@@ -279,16 +317,25 @@ class SpkController extends Controller
 
                 $hpp = round($allocatedPerUnit + $itemExtrasTotal, 2);
 
+                // For new form: sku_produk maps to sku; if name empty, use sku_produk
+                $skuProduk = $row['sku_produk'] ?? ($row['sku'] ?? null);
+                $namaProduk = $row['name'] ?? $skuProduk ?? 'Produk SPK';
+
                 $item = SpkItem::create([
                     'spk_id'            => $spk->id,
                     'master_product_id' => $prodId,
-                    'nama_produk'       => $row['name'],
-                    'sku'               => $row['sku'] ?? null,
+                    'nama_produk'       => $namaProduk,
+                    'sku'               => $skuProduk,
+                    'sku_kain'          => $row['sku_kain'] ?? null,
                     'sku_induk'         => $row['sku_induk'] ?? null,
                     'ukuran'            => $row['size'] ?? null,
                     'catatan'           => $row['catatan'] ?? null,
-                    'quantity'          => (int) $row['qty'],
-                    'penjahit'          => $row['tailor'] ?? null,
+                    'quantity'          => (int) ($row['qty'] ?? 1),
+                    'est_kain'          => (float) ($row['est_kain'] ?? 0),
+                    'kain_pakai'        => (float) ($row['kain_pakai'] ?? 0),
+                    'kain_sisa'         => (float) ($row['kain_sisa'] ?? 0),
+                    'penjahit'          => $row['penjahit'] ?? ($row['tailor'] ?? null),
+                    'vendor_kancing'    => $row['vendor_kancing'] ?? null,
                     'alur_proses'       => $row['alur_proses'] ?? 'Langsung Jahit',
                     'hpp'               => $hpp,
                 ]);

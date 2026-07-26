@@ -12,16 +12,23 @@ class Spk extends Model
         'tenant_id',
         'order_id',
         'no_produksi',
+        'no_pesanan',
         'no_spk',
         'tipe_spk',
         'is_urgent',
+        'tahap_saat_ini',
         'tanggal',
         'deadline',
         'pemesan',
         'no_hp_pemesan',
         'instansi',
+        'nama_pic',
         'tambahan',
         'image_url',
+        'referensi_klien_url',
+        'mockup_url',
+        'link_file_mentah',
+        'sku_kain',
         'penginput_id',
     ];
 
@@ -29,6 +36,21 @@ class Spk extends Model
         'tanggal' => 'date',
         'deadline' => 'date',
         'is_urgent' => 'boolean',
+    ];
+
+    /** List of available production stages */
+    public const TAHAPAN = [
+        'DRAFT'                      => ['label' => 'DRAFT (Menunggu DP)',         'emoji' => '🕐', 'color' => 'secondary'],
+        'Tahap Desain & Mockup'      => ['label' => 'Tahap Desain & Mockup',        'emoji' => '🎨', 'color' => 'warning'],
+        'Perencanaan Produksi (SPK)' => ['label' => 'Perencanaan Produksi (SPK)',   'emoji' => '📋', 'color' => 'info'],
+        'Antrian & Sampling'         => ['label' => 'Antrian & Sampling',           'emoji' => '⏳', 'color' => 'primary'],
+        'Tahap Pemotongan'           => ['label' => 'Tahap Pemotongan',             'emoji' => '✂️', 'color' => 'primary'],
+        'Tahap Jahit'                => ['label' => 'Tahap Jahit',                  'emoji' => '🪡', 'color' => 'purple'],
+        'Tahap LKPK (Kancing)'       => ['label' => 'Tahap LKPK (Kancing)',         'emoji' => '💿', 'color' => 'dark'],
+        'Quality Control'            => ['label' => 'Quality Control',              'emoji' => '🔍', 'color' => 'success'],
+        'Packing / Finishing'        => ['label' => 'Packing / Finishing',          'emoji' => '📦', 'color' => 'warning'],
+        'Selesai (Finished Good)'    => ['label' => 'Selesai (Finished Good)',      'emoji' => '✅', 'color' => 'success'],
+        'Telah Dikirim (Shipped)'    => ['label' => 'Telah Dikirim (Shipped)',      'emoji' => '🚀', 'color' => 'dark'],
     ];
 
     public function getCurrentStageNameAttribute(): string
