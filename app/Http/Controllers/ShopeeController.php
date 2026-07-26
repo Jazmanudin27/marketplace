@@ -244,6 +244,7 @@ class ShopeeController extends Controller
                                             'price' => $price,
                                             'stock' => $stock,
                                             'image_url' => $finalImageUrl,
+                                            'is_pre_order' => $isShopeePo,
                                             'last_synced_at' => now(),
                                         ]
                                     );
@@ -283,6 +284,7 @@ class ShopeeController extends Controller
                                 'price' => $price,
                                 'stock' => $stock,
                                 'image_url' => $imageUrl,
+                                'is_pre_order' => $isShopeePo,
                                 'last_synced_at' => now(),
                             ]
                         );

@@ -222,7 +222,7 @@
                         <strong>{{ $p->name }}</strong>
                     </td>
                     <td class="text-center">
-                        @if($p->isPreOrder())
+                        @if($p->isPreOrderFromMarketplace())
                             <span style="color:#6b21a8; font-weight:bold; background:#f3e8ff; border:1px solid #d8b4fe; padding:2px 5px; border-radius:3px; font-size:8px;">⏳ PRE-ORDER</span>
                         @else
                             <span style="color:#6c757d; font-size:9px;">Reguler</span>

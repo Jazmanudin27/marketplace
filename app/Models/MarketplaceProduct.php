@@ -36,14 +36,11 @@ class MarketplaceProduct extends Model
     ];
 
     /**
-     * Cek apakah produk ini Pre-Order
+     * Cek apakah produk ini Pre-Order murni dari data Marketplace (Nama / Flag API Marketplace)
      */
-    public function isPreOrder(): bool
+    public function isPreOrderFromMarketplace(): bool
     {
         if ($this->is_pre_order) {
-            return true;
-        }
-        if ($this->relationLoaded('masterProduct') && $this->masterProduct && $this->masterProduct->is_preorder) {
             return true;
         }
         $nameUpper = strtoupper($this->name ?? '');
@@ -51,6 +48,20 @@ class MarketplaceProduct extends Model
             return true;
         }
         if (str_starts_with($nameUpper, 'PO ') || str_contains($nameUpper, ' PO ')) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Cek apakah produk ini Pre-Order
+     */
+    public function isPreOrder(bool $includeMaster = true): bool
+    {
+        if ($this->isPreOrderFromMarketplace()) {
+            return true;
+        }
+        if ($includeMaster && $this->relationLoaded('masterProduct') && $this->masterProduct && $this->masterProduct->is_preorder) {
             return true;
         }
         return false;

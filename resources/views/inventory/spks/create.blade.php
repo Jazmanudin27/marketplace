@@ -199,10 +199,10 @@
     .rincian-card .rincian-header {
         background: #f8fafc;
         border-bottom: 1px solid #e5e7eb;
-        padding: 14px 20px;
+        padding: 12px 20px;
         display: flex;
+        justify-content: space-between;
         align-items: center;
-        gap: 10px;
         font-weight: 800;
         font-size: 13px;
         letter-spacing: .3px;
@@ -239,12 +239,12 @@
     .upload-zone .uz-hint { font-size: 10px; color: #9ca3af; }
 
     /* SKU Table */
-    #sku-table {
+    .sku-table-custom {
         border-collapse: separate;
         border-spacing: 0;
         font-size: 12px;
     }
-    #sku-table thead tr:first-child th {
+    .sku-table-custom thead tr:first-child th {
         background: #f1f5f9;
         border: 1px solid #e2e8f0;
         font-size: 11px;
@@ -253,7 +253,7 @@
         letter-spacing: .4px;
         padding: 8px 6px;
     }
-    #sku-table thead tr:last-child th {
+    .sku-table-custom thead tr:last-child th {
         background: #f8fafc;
         border: 1px solid #e2e8f0;
         font-size: 10px;
@@ -262,12 +262,12 @@
         padding: 5px 4px;
         color: #64748b;
     }
-    #sku-table tbody td {
+    .sku-table-custom tbody td {
         border: 1px solid #e2e8f0;
         padding: 4px 6px;
         vertical-align: middle;
     }
-    #sku-table .form-control, #sku-table .form-select {
+    .sku-table-custom .form-control, .sku-table-custom .form-select {
         border: 1px solid #d1d5db;
         border-radius: 6px;
         font-size: 12px;
@@ -512,7 +512,7 @@
                 <div class="section-label">CATATAN TAMBAHAN / KETERANGAN</div>
                 <textarea name="tambahan" class="form-control form-control-sm" rows="3"
                     placeholder="Tulis instruksi desain, keterangan khusus, atau pesan untuk tim produksi di sini..."
-                    >{{ old('tambahan', isset($order) ? 'Produksi untuk Pesanan #' . ($order->invoice_number ?? $order->order_marketplace_id) : '') }}</textarea>
+                    >{{ old('tambahan', isset($order) ? 'Diproduksi untuk Pesanan #' . ($order->invoice_number ?? $order->order_marketplace_id) : '') }}</textarea>
             </div>
 
             {{-- Tahapan Saat Ini --}}
@@ -538,117 +538,20 @@
         </div>
 
         {{-- ══════════════════════════════════════════════════════════════════
-             SECTION 3: DETAIL RINCIAN PRODUK (SPK)
+             SECTION 3: DETAIL RINCIAN PRODUK (SPK) - DYNAMIC CONTAINER
         ══════════════════════════════════════════════════════════════════ --}}
-        <div class="rincian-card">
-            <div class="rincian-header">
-                <span>≡</span>
-                <span>DETAIL RINCIAN PRODUK (SPK)</span>
-            </div>
-            <div class="rincian-body">
+        <div id="rincianContainer">
+            {{-- Dynamic Rincian Cards render here --}}
+        </div>
 
-                {{-- PRODUK UMUM + SKU KAIN --}}
-                <div class="d-flex justify-content-between align-items-center mb-3 p-2 rounded" style="background:#f8fafc; border:1px solid #e2e8f0;">
-                    <span class="fw-bold" style="font-size:12px; letter-spacing:.3px;">
-                        🧵 PRODUK UMUM
-                    </span>
-                    <div class="d-flex align-items-center gap-2">
-                        <span class="badge bg-primary fw-bold" style="font-size:11px; padding:6px 10px;">📦 SKU KAIN :</span>
-                        <input type="text" name="sku_kain" id="global_sku_kain"
-                            class="form-control form-control-sm"
-                            style="width:220px; font-size:12px;"
-                            placeholder="Ketik SKU kain — otomatis ke tabel..."
-                            value="{{ old('sku_kain') }}">
-                    </div>
-                </div>
-
-                <div class="row g-3">
-                    {{-- ── Left: Upload Areas + G-Drive Link ── --}}
-                    <div class="col-xl-3 col-lg-4">
-
-                        {{-- 1. Referensi Klien --}}
-                        <div class="mb-3">
-                            <div class="section-label mb-1" style="font-size:10px; font-weight:700; letter-spacing:.7px; text-transform:uppercase; color:#6b7280;">
-                                1. REFERENSI KLIEN (MARKETING)
-                            </div>
-                            <div class="upload-zone" id="ref-zone">
-                                <input type="file" name="referensi_klien" id="input-referensi" accept="image/*">
-                                <div id="ref-placeholder">
-                                    <div class="uz-icon">📸</div>
-                                    <div class="uz-label">UPLOAD REFERENSI</div>
-                                    <div class="uz-hint">Foto contoh / referensi dari klien</div>
-                                </div>
-                                <img id="ref-preview" src="#" class="d-none img-fluid rounded" style="max-height:80px;" alt="Referensi">
-                            </div>
-                        </div>
-
-                        {{-- 2. Mockup Final --}}
-                        <div class="mb-3">
-                            <div class="section-label mb-1" style="font-size:10px; font-weight:700; letter-spacing:.7px; text-transform:uppercase; color:#6b7280;">
-                                2. MOCKUP FINAL (DESAIN)
-                            </div>
-                            <div class="upload-zone" id="mockup-zone" style="opacity:.8;">
-                                <input type="file" name="mockup_final" id="input-mockup" accept="image/*">
-                                <div id="mockup-placeholder">
-                                    <div class="uz-icon">🎨</div>
-                                    <div class="uz-label" style="color:#9ca3af;">MENUNGGU DESAINER</div>
-                                    <div class="uz-hint">Upload setelah desain selesai</div>
-                                </div>
-                                <img id="mockup-preview" src="#" class="d-none img-fluid rounded" style="max-height:80px;" alt="Mockup">
-                            </div>
-                        </div>
-
-                        {{-- 3. Link File Mentah --}}
-                        <div>
-                            <div class="section-label mb-1" style="font-size:10px; font-weight:700; letter-spacing:.7px; text-transform:uppercase; color:#16a34a;">
-                                🔗 LINK FILE MENTAH
-                            </div>
-                            <div class="input-group input-group-sm">
-                                <span class="input-group-text" style="background:#f0fdf4; border-color:#bbf7d0; color:#16a34a; font-size:14px;">G</span>
-                                <input type="url" name="link_file_mentah" class="form-control"
-                                    style="font-size:12px;"
-                                    placeholder="Paste link G-Drive / Dropbox..."
-                                    value="{{ old('link_file_mentah') }}">
-                            </div>
-                        </div>
-                    </div>
-
-                    {{-- ── Right: SKU Table ── --}}
-                    <div class="col-xl-9 col-lg-8">
-                        <div class="table-responsive" style="border-radius:10px; border:1px solid #e2e8f0; overflow:hidden;">
-                            <table class="table table-sm mb-0 align-middle" id="sku-table">
-                                <thead>
-                                    <tr class="text-uppercase text-center">
-                                        <th rowspan="2" style="width:130px;">SKU PRODUK</th>
-                                        <th rowspan="2" style="width:110px;">SKU KAIN</th>
-                                        <th rowspan="2" style="width:55px;">QTY</th>
-                                        <th colspan="3" class="th-potong">TAHAP PEMOTONGAN</th>
-                                        <th colspan="2" class="th-jahit">TAHAP JAHIT</th>
-                                        <th colspan="1" class="th-lkpk">TAHAP LKPK (KANCING)</th>
-                                        <th rowspan="2" style="width:36px;"></th>
-                                    </tr>
-                                    <tr class="text-uppercase text-center">
-                                        <th class="th-potong" style="width:70px;">EST. KAIN</th>
-                                        <th class="th-potong" style="width:70px;">PAKAI</th>
-                                        <th class="th-potong" style="width:60px;">SISA</th>
-                                        <th class="th-jahit" style="width:100px;">PENJAHIT</th>
-                                        <th class="th-jahit" style="width:55px;">QTY</th>
-                                        <th class="th-lkpk" style="width:110px;">VENDOR KANCING</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="skuTableBody">
-                                    {{-- Rows added dynamically --}}
-                                </tbody>
-                            </table>
-                        </div>
-                        <div class="mt-2 d-flex align-items-center gap-2">
-                            <button type="button" class="btn btn-outline-primary btn-sm fw-bold px-3" id="btnAddSkuRow">
-                                ✚ Baris SKU
-                            </button>
-                            <span class="text-muted small" id="sku-row-count">0 baris SKU</span>
-                        </div>
-                    </div>
-                </div>
+        {{-- Button to Add More Rincian Block --}}
+        <div class="mb-4 text-center">
+            <button type="button" class="btn btn-outline-primary btn-md fw-bold px-4 py-2 shadow-sm" id="btnAddRincianBlock"
+                    style="border-width:2px; border-style:dashed; border-radius:10px;">
+                ✚ TAMBAH DETAIL RINCIAN PRODUK (SPK BARU)
+            </button>
+            <div class="text-muted mt-2" style="font-size:11px;">
+                💡 Klik tombol di atas jika dalam 1 Kode Produksi yang sama terdapat beberapa jenis SPK/produk yang berbeda
             </div>
         </div>
 
@@ -669,6 +572,7 @@
 <script>
     const tailorsList = @json($tailors);
     const existingNoProduksiList = @json($existingNoProduksi);
+    const orderItemsList = @json(isset($order) ? $order->items : []);
 </script>
 
 <script>
@@ -680,19 +584,21 @@ document.addEventListener('DOMContentLoaded', function() {
     const desainPreview = document.getElementById('desain-preview-img');
     const desainPlaceholder = document.getElementById('desain-placeholder-content');
 
-    desainInput.addEventListener('change', function() {
-        const file = this.files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = e => {
-                desainPreview.src = e.target.result;
-                desainPreview.classList.remove('d-none');
-                desainPlaceholder.classList.add('d-none');
-                desainArea.classList.add('has-image');
-            };
-            reader.readAsDataURL(file);
-        }
-    });
+    if (desainInput) {
+        desainInput.addEventListener('change', function() {
+            const file = this.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = e => {
+                    desainPreview.src = e.target.result;
+                    desainPreview.classList.remove('d-none');
+                    desainPlaceholder.classList.add('d-none');
+                    desainArea.classList.add('has-image');
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    }
 
     // ── 2. No Produksi → Badge update ──
     const noProduksiInput = document.getElementById('no_produksi_input');
@@ -700,76 +606,27 @@ document.addEventListener('DOMContentLoaded', function() {
     const tahapSelect     = document.getElementById('tahap_saat_ini_select');
 
     function updateProduksiBadge() {
+        if (!noProduksiInput) return;
         const val = noProduksiInput.value.trim();
         if (val === '') {
             produksiBadge.textContent = '🕐 KOSONG = DRAFT';
             produksiBadge.classList.remove('is-filled');
-            tahapSelect.value = 'DRAFT';
+            if (tahapSelect) tahapSelect.value = 'DRAFT';
         } else {
             produksiBadge.textContent = '✅ ' + val;
             produksiBadge.classList.add('is-filled');
-            if (tahapSelect.value === 'DRAFT') {
+            if (tahapSelect && tahapSelect.value === 'DRAFT') {
                 tahapSelect.value = 'Tahap Desain & Mockup';
             }
         }
     }
-    noProduksiInput.addEventListener('input', updateProduksiBadge);
-    updateProduksiBadge();
+    if (noProduksiInput) {
+        noProduksiInput.addEventListener('input', updateProduksiBadge);
+        updateProduksiBadge();
+    }
 
-    // ── 3. Referensi Klien Preview ──
-    const refInput  = document.getElementById('input-referensi');
-    const refZone   = document.getElementById('ref-zone');
-    const refPreview = document.getElementById('ref-preview');
-    const refPlaceholder = document.getElementById('ref-placeholder');
-
-    refInput.addEventListener('change', function() {
-        const file = this.files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = e => {
-                refPreview.src = e.target.result;
-                refPreview.classList.remove('d-none');
-                refPlaceholder.classList.add('d-none');
-                refZone.classList.add('has-file');
-            };
-            reader.readAsDataURL(file);
-        }
-    });
-
-    // ── 4. Mockup Final Preview ──
-    const mockupInput  = document.getElementById('input-mockup');
-    const mockupZone   = document.getElementById('mockup-zone');
-    const mockupPreview = document.getElementById('mockup-preview');
-    const mockupPlaceholder = document.getElementById('mockup-placeholder');
-
-    mockupInput.addEventListener('change', function() {
-        const file = this.files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = e => {
-                mockupPreview.src = e.target.result;
-                mockupPreview.classList.remove('d-none');
-                mockupPlaceholder.classList.add('d-none');
-                mockupZone.classList.add('has-file');
-                mockupZone.style.opacity = '1';
-            };
-            reader.readAsDataURL(file);
-        }
-    });
-
-    // ── 5. Global SKU Kain → auto-fill table rows ──
-    const globalSkuKain = document.getElementById('global_sku_kain');
-    globalSkuKain.addEventListener('input', function() {
-        document.querySelectorAll('.row-sku-kain').forEach(inp => {
-            if (inp.value === '' || inp.dataset.autoFilled === 'true') {
-                inp.value = this.value;
-                inp.dataset.autoFilled = 'true';
-            }
-        });
-    });
-
-    // ── 6. SKU Table Rows ──
-    let skuRowIndex = 0;
+    // ── 3. DYNAMIC RINCIAN PRODUK (SPK) BLOCKS ──
+    let rincianBlockCount = 0;
 
     function buildTailorOptions() {
         let html = '<option value="">— Pilih Penjahit —</option>';
@@ -786,49 +643,190 @@ document.addEventListener('DOMContentLoaded', function() {
             .replace(/"/g, '&quot;').replace(/'/g, '&#039;');
     }
 
-    function addSkuRow() {
-        const idx = skuRowIndex++;
-        const currentSkuKain = globalSkuKain.value;
+    window.addRincianBlock = function() {
+        const rIdx = rincianBlockCount++;
+        const blockNum = rIdx + 1;
+
+        const card = document.createElement('div');
+        card.className = 'rincian-card';
+        card.id = `rincian-card-${rIdx}`;
+        card.dataset.rincianIdx = rIdx;
+
+        card.innerHTML = `
+            <div class="rincian-header">
+                <div>
+                    <span>≡</span>
+                    <span class="ms-1">DETAIL RINCIAN PRODUK (SPK #${blockNum})</span>
+                </div>
+                ${rIdx > 0 ? `
+                    <button type="button" class="btn btn-sm btn-outline-danger py-0 px-2 btn-remove-rincian" style="font-size:11px;">
+                        <i class="fas fa-trash-alt me-1"></i> Hapus Rincian Ini
+                    </button>
+                ` : ''}
+            </div>
+            <div class="rincian-body">
+
+                {{-- PRODUK UMUM + SKU KAIN --}}
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3 p-2 rounded" style="background:#f8fafc; border:1px solid #e2e8f0;">
+                    <div class="d-flex align-items-center gap-2 flex-grow-1" style="max-width:400px;">
+                        <span class="fw-bold text-dark" style="font-size:12px; letter-spacing:.3px; white-space:nowrap;">
+                            🧵 PRODUK / SPK:
+                        </span>
+                        <input type="text" name="rincian[${rIdx}][nama_produk]" class="form-control form-control-sm"
+                            placeholder="Contoh: Kemeja Batik SD, Celana PDL..." style="font-size:12px; font-weight:600;">
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="badge bg-primary fw-bold" style="font-size:11px; padding:6px 10px;">📦 SKU KAIN :</span>
+                        <input type="text" name="rincian[${rIdx}][sku_kain]" class="form-control form-control-sm rincian-sku-kain"
+                            style="width:200px; font-size:12px;" placeholder="Ketik SKU kain..." data-rincian-idx="${rIdx}">
+                    </div>
+                </div>
+
+                <div class="row g-3">
+                    {{-- Left: Upload Areas + G-Drive Link --}}
+                    <div class="col-xl-3 col-lg-4">
+
+                        {{-- 1. Referensi Klien --}}
+                        <div class="mb-3">
+                            <div class="section-label mb-1" style="font-size:10px; font-weight:700; letter-spacing:.7px; text-transform:uppercase; color:#6b7280;">
+                                1. REFERENSI KLIEN (MARKETING)
+                            </div>
+                            <div class="upload-zone ref-zone-${rIdx}">
+                                <input type="file" name="rincian[${rIdx}][referensi_klien]" class="input-ref-${rIdx}" accept="image/*">
+                                <div class="ref-placeholder-${rIdx}">
+                                    <div class="uz-icon">📸</div>
+                                    <div class="uz-label">UPLOAD REFERENSI</div>
+                                    <div class="uz-hint">Foto contoh / referensi dari klien</div>
+                                </div>
+                                <img class="ref-preview-${rIdx} d-none img-fluid rounded" style="max-height:80px;" alt="Referensi">
+                            </div>
+                        </div>
+
+                        {{-- 2. Mockup Final --}}
+                        <div class="mb-3">
+                            <div class="section-label mb-1" style="font-size:10px; font-weight:700; letter-spacing:.7px; text-transform:uppercase; color:#6b7280;">
+                                2. MOCKUP FINAL (DESAIN)
+                            </div>
+                            <div class="upload-zone mockup-zone-${rIdx}" style="opacity:.8;">
+                                <input type="file" name="rincian[${rIdx}][mockup_final]" class="input-mockup-${rIdx}" accept="image/*">
+                                <div class="mockup-placeholder-${rIdx}">
+                                    <div class="uz-icon">🎨</div>
+                                    <div class="uz-label" style="color:#9ca3af;">MENUNGGU DESAINER</div>
+                                    <div class="uz-hint">Upload setelah desain selesai</div>
+                                </div>
+                                <img class="mockup-preview-${rIdx} d-none img-fluid rounded" style="max-height:80px;" alt="Mockup">
+                            </div>
+                        </div>
+
+                        {{-- 3. Link File Mentah --}}
+                        <div>
+                            <div class="section-label mb-1" style="font-size:10px; font-weight:700; letter-spacing:.7px; text-transform:uppercase; color:#16a34a;">
+                                🔗 LINK FILE MENTAH
+                            </div>
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text" style="background:#f0fdf4; border-color:#bbf7d0; color:#16a34a; font-size:14px;">G</span>
+                                <input type="url" name="rincian[${rIdx}][link_file_mentah]" class="form-control"
+                                    style="font-size:12px;" placeholder="Paste link G-Drive / Dropbox...">
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- Right: SKU Table --}}
+                    <div class="col-xl-9 col-lg-8">
+                        <div class="table-responsive" style="border-radius:10px; border:1px solid #e2e8f0; overflow:hidden;">
+                            <table class="table table-sm sku-table-custom mb-0 align-middle">
+                                <thead>
+                                    <tr class="text-uppercase text-center">
+                                        <th rowspan="2" style="width:130px;">SKU PRODUK</th>
+                                        <th rowspan="2" style="width:110px;">SKU KAIN</th>
+                                        <th rowspan="2" style="width:55px;">QTY</th>
+                                        <th colspan="3" class="th-potong">TAHAP PEMOTONGAN</th>
+                                        <th colspan="2" class="th-jahit">TAHAP JAHIT</th>
+                                        <th colspan="1" class="th-lkpk">TAHAP LKPK (KANCING)</th>
+                                        <th rowspan="2" style="width:36px;"></th>
+                                    </tr>
+                                    <tr class="text-uppercase text-center">
+                                        <th class="th-potong" style="width:70px;">EST. KAIN</th>
+                                        <th class="th-potong" style="width:70px;">PAKAI</th>
+                                        <th class="th-potong" style="width:60px;">SISA</th>
+                                        <th class="th-jahit" style="width:100px;">PENJAHIT</th>
+                                        <th class="th-jahit" style="width:55px;">QTY</th>
+                                        <th class="th-lkpk" style="width:110px;">VENDOR KANCING</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="skuTableBody_${rIdx}">
+                                    {{-- SKU Rows --}}
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="mt-2 d-flex align-items-center gap-2">
+                            <button type="button" class="btn btn-outline-primary btn-sm fw-bold px-3 btn-add-sku-row" data-rincian-idx="${rIdx}">
+                                ✚ Baris SKU
+                            </button>
+                            <span class="text-muted small sku-row-count-${rIdx}">0 baris SKU</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.getElementById('rincianContainer').appendChild(card);
+
+        // Bind image previews for this block
+        bindRincianUploads(rIdx);
+
+        // Add 1 default SKU row
+        addSkuRowToBlock(rIdx);
+    };
+
+    let itemCounters = {};
+
+    window.addSkuRowToBlock = function(rIdx, defaultData = null) {
+        if (!itemCounters[rIdx]) itemCounters[rIdx] = 0;
+        const itemIdx = itemCounters[rIdx]++;
+
+        const card = document.getElementById(`rincian-card-${rIdx}`);
+        const skuKainInput = card ? card.querySelector('.rincian-sku-kain') : null;
+        const currentSkuKain = skuKainInput ? skuKainInput.value : '';
 
         const tr = document.createElement('tr');
-        tr.dataset.rowIdx = idx;
         tr.innerHTML = `
             <td>
-                <input type="text" name="items[${idx}][sku_produk]" class="form-control row-sku-produk"
-                    placeholder="SKU Produk" style="font-size:12px;">
+                <input type="text" name="rincian[${rIdx}][items][${itemIdx}][sku_produk]" class="form-control row-sku-produk"
+                    placeholder="SKU Produk" style="font-size:12px;" value="${defaultData ? escHtml(defaultData.sku_produk) : ''}">
             </td>
             <td>
-                <input type="text" name="items[${idx}][sku_kain]" class="form-control row-sku-kain"
-                    placeholder="SKU Kain" value="${escHtml(currentSkuKain)}" data-auto-filled="${currentSkuKain ? 'true' : 'false'}"
+                <input type="text" name="rincian[${rIdx}][items][${itemIdx}][sku_kain]" class="form-control row-sku-kain"
+                    placeholder="SKU Kain" value="${defaultData ? escHtml(defaultData.sku_kain) : escHtml(currentSkuKain)}"
                     style="font-size:12px;">
             </td>
             <td>
-                <input type="number" name="items[${idx}][qty]" class="form-control text-center"
-                    placeholder="0" min="1" value="1" style="font-size:12px; padding:4px;">
+                <input type="number" name="rincian[${rIdx}][items][${itemIdx}][qty]" class="form-control text-center"
+                    placeholder="0" min="1" value="${defaultData ? defaultData.qty : 1}" style="font-size:12px; padding:4px;">
             </td>
             <td>
-                <input type="number" name="items[${idx}][est_kain]" class="form-control text-center"
+                <input type="number" name="rincian[${rIdx}][items][${itemIdx}][est_kain]" class="form-control text-center"
                     placeholder="0.00" min="0" step="0.01" style="font-size:12px; padding:4px;" oninput="calcSisa(this)">
             </td>
             <td>
-                <input type="number" name="items[${idx}][kain_pakai]" class="form-control text-center"
+                <input type="number" name="rincian[${rIdx}][items][${itemIdx}][kain_pakai]" class="form-control text-center"
                     placeholder="0.00" min="0" step="0.01" style="font-size:12px; padding:4px;" oninput="calcSisa(this)">
             </td>
             <td>
-                <input type="number" name="items[${idx}][kain_sisa]" class="form-control text-center bg-light"
+                <input type="number" name="rincian[${rIdx}][items][${itemIdx}][kain_sisa]" class="form-control text-center bg-light"
                     placeholder="auto" readonly tabindex="-1" style="font-size:12px; padding:4px; color:#6b7280;">
             </td>
             <td>
-                <select name="items[${idx}][penjahit]" class="form-select" style="font-size:12px; padding:3px 6px;">
+                <select name="rincian[${rIdx}][items][${itemIdx}][penjahit]" class="form-select" style="font-size:12px; padding:3px 6px;">
                     ${buildTailorOptions()}
                 </select>
             </td>
             <td>
-                <input type="number" name="items[${idx}][qty_jahit]" class="form-control text-center"
+                <input type="number" name="rincian[${rIdx}][items][${itemIdx}][qty_jahit]" class="form-control text-center"
                     placeholder="0" min="0" style="font-size:12px; padding:4px;">
             </td>
             <td>
-                <input type="text" name="items[${idx}][vendor_kancing]" class="form-control"
+                <input type="text" name="rincian[${rIdx}][items][${itemIdx}][vendor_kancing]" class="form-control"
                     placeholder="Vendor" style="font-size:12px;">
             </td>
             <td class="text-center">
@@ -837,8 +835,57 @@ document.addEventListener('DOMContentLoaded', function() {
                 </button>
             </td>
         `;
-        document.getElementById('skuTableBody').appendChild(tr);
-        updateRowCount();
+
+        const tbody = document.getElementById(`skuTableBody_${rIdx}`);
+        if (tbody) {
+            tbody.appendChild(tr);
+            updateRowCount(rIdx);
+        }
+    };
+
+    function bindRincianUploads(rIdx) {
+        // Referensi Klien
+        const refInput = document.querySelector(`.input-ref-${rIdx}`);
+        const refZone  = document.querySelector(`.ref-zone-${rIdx}`);
+        const refPrev  = document.querySelector(`.ref-preview-${rIdx}`);
+        const refHolder= document.querySelector(`.ref-placeholder-${rIdx}`);
+        if (refInput) {
+            refInput.addEventListener('change', function() {
+                const file = this.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = e => {
+                        refPrev.src = e.target.result;
+                        refPrev.classList.remove('d-none');
+                        refHolder.classList.add('d-none');
+                        refZone.classList.add('has-file');
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+        }
+
+        // Mockup Final
+        const mockInput = document.querySelector(`.input-mockup-${rIdx}`);
+        const mockZone  = document.querySelector(`.mockup-zone-${rIdx}`);
+        const mockPrev  = document.querySelector(`.mockup-preview-${rIdx}`);
+        const mockHolder= document.querySelector(`.mockup-placeholder-${rIdx}`);
+        if (mockInput) {
+            mockInput.addEventListener('change', function() {
+                const file = this.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = e => {
+                        mockPrev.src = e.target.result;
+                        mockPrev.classList.remove('d-none');
+                        mockHolder.classList.add('d-none');
+                        mockZone.classList.add('has-file');
+                        mockZone.style.opacity = '1';
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+        }
     }
 
     function calcSisa(input) {
@@ -846,52 +893,71 @@ document.addEventListener('DOMContentLoaded', function() {
         const est   = parseFloat(tr.querySelector('[name$="[est_kain]"]').value) || 0;
         const pakai = parseFloat(tr.querySelector('[name$="[kain_pakai]"]').value) || 0;
         const sisaInp = tr.querySelector('[name$="[kain_sisa]"]');
-        sisaInp.value = Math.max(0, est - pakai).toFixed(2);
+        if (sisaInp) sisaInp.value = Math.max(0, est - pakai).toFixed(2);
     }
     window.calcSisa = calcSisa;
 
-    function updateRowCount() {
-        const count = document.querySelectorAll('#skuTableBody tr').length;
-        document.getElementById('sku-row-count').textContent = count + ' baris SKU';
+    function updateRowCount(rIdx) {
+        const tbody = document.getElementById(`skuTableBody_${rIdx}`);
+        if (tbody) {
+            const count = tbody.querySelectorAll('tr').length;
+            const span = document.querySelector(`.sku-row-count-${rIdx}`);
+            if (span) span.textContent = count + ' baris SKU';
+        }
     }
 
-    document.getElementById('btnAddSkuRow').addEventListener('click', addSkuRow);
+    // Add Block Button Handler
+    document.getElementById('btnAddRincianBlock').addEventListener('click', function() {
+        addRincianBlock();
+    });
 
-    document.getElementById('skuTableBody').addEventListener('click', function(e) {
-        const btn = e.target.closest('.btn-remove-sku-row');
-        if (btn) {
-            btn.closest('tr').remove();
-            updateRowCount();
+    // Delegate Add SKU Row & Remove Block events
+    document.getElementById('rincianContainer').addEventListener('click', function(e) {
+        const btnAddSku = e.target.closest('.btn-add-sku-row');
+        if (btnAddSku) {
+            const rIdx = btnAddSku.dataset.rincianIdx;
+            addSkuRowToBlock(rIdx);
+            return;
+        }
+
+        const btnRemoveRow = e.target.closest('.btn-remove-sku-row');
+        if (btnRemoveRow) {
+            const tr = btnRemoveRow.closest('tr');
+            const tbody = tr.closest('tbody');
+            const rIdx = tbody.id.replace('skuTableBody_', '');
+            tr.remove();
+            updateRowCount(rIdx);
+            return;
+        }
+
+        const btnRemoveRincian = e.target.closest('.btn-remove-rincian');
+        if (btnRemoveRincian) {
+            if (confirm('Hapus seluruh rincian produk ini?')) {
+                btnRemoveRincian.closest('.rincian-card').remove();
+            }
+            return;
         }
     });
 
-    // Auto-fill sku_kain when input changes and user hasn't manually edited
-    document.getElementById('skuTableBody').addEventListener('input', function(e) {
-        if (e.target.classList.contains('row-sku-kain')) {
-            e.target.dataset.autoFilled = 'false';
+    // Delegate SKU Kain auto-fill per block
+    document.getElementById('rincianContainer').addEventListener('input', function(e) {
+        if (e.target.classList.contains('rincian-sku-kain')) {
+            const rIdx = e.target.dataset.rincianIdx;
+            const val = e.target.value;
+            const tbody = document.getElementById(`skuTableBody_${rIdx}`);
+            if (tbody) {
+                tbody.querySelectorAll('.row-sku-kain').forEach(inp => {
+                    if (inp.value === '' || inp.dataset.autoFilled === 'true') {
+                        inp.value = val;
+                        inp.dataset.autoFilled = 'true';
+                    }
+                });
+            }
         }
     });
 
-    // Pre-populate from order if set
-    @if(isset($order) && $order->items->count() > 0)
-        @foreach($order->items as $item)
-            (function() {
-                addSkuRow();
-                const lastRow = document.querySelector('#skuTableBody tr:last-child');
-                if (lastRow) {
-                    const skuInput = lastRow.querySelector('.row-sku-produk');
-                    if (skuInput) skuInput.value = "{{ $item->sku ?? $item->product_name }}";
-                    const qtyInput = lastRow.querySelector('[name$="[qty]"]');
-                    if (qtyInput) qtyInput.value = "{{ $item->quantity }}";
-                }
-            })();
-        @endforeach
-    @else
-        // Add one blank row by default
-        addSkuRow();
-    @endif
-
-    updateRowCount();
+    // Initialize with 1 default Rincian Block
+    addRincianBlock();
 
 }); // end DOMContentLoaded
 </script>

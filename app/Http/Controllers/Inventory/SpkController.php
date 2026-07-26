@@ -198,21 +198,93 @@ class SpkController extends Controller
             $mockupPath = $request->file('mockup_final')->store('spks/mockup', 'public');
         }
 
-        $spk = DB::transaction(function () use ($request, $tenantId, $imagePath, $referensiPath, $mockupPath) {
-            $noSpk = Spk::generateNoSpk();
-
-            // If no_produksi is explicitly provided, use it; otherwise leave null (DRAFT)
+        $spk = DB::transaction(function () use ($request, $tenantId, $imagePath) {
             $noProduksi = trim((string) $request->input('no_produksi'));
             if (empty($noProduksi)) {
                 $noProduksi = null; // DRAFT - no produksi code yet
             }
 
-            // Determine tahap: if no_produksi is empty, force DRAFT
             $tahapSaatIni = $request->input('tahap_saat_ini', 'DRAFT');
             if (empty($noProduksi)) {
                 $tahapSaatIni = 'DRAFT';
             }
 
+            // Check if multiple rincian blocks exist
+            $rincianBlocks = $request->input('rincian', []);
+            if (!empty($rincianBlocks) && is_array($rincianBlocks)) {
+                $firstSpk = null;
+                foreach ($rincianBlocks as $rIdx => $rBlock) {
+                    $noSpk = Spk::generateNoSpk();
+
+                    // Uploads for this rincian block
+                    $refUrl = null;
+                    if ($request->hasFile("rincian.{$rIdx}.referensi_klien")) {
+                        $p = $request->file("rincian.{$rIdx}.referensi_klien")->store('spks/referensi', 'public');
+                        $refUrl = Storage::url($p);
+                    }
+                    $mockUrl = null;
+                    if ($request->hasFile("rincian.{$rIdx}.mockup_final")) {
+                        $p = $request->file("rincian.{$rIdx}.mockup_final")->store('spks/mockup', 'public');
+                        $mockUrl = Storage::url($p);
+                    }
+
+                    $spkRecord = Spk::create([
+                        'tenant_id'           => $tenantId,
+                        'order_id'            => $request->order_id,
+                        'no_produksi'         => $noProduksi,
+                        'no_pesanan'          => $request->no_pesanan,
+                        'no_spk'              => $noSpk,
+                        'tipe_spk'            => $request->input('tipe_spk', 'pesanan_pelanggan'),
+                        'is_urgent'           => $request->boolean('is_urgent'),
+                        'tahap_saat_ini'      => $tahapSaatIni,
+                        'tanggal'             => $request->tanggal,
+                        'deadline'            => $request->deadline ?: null,
+                        'pemesan'             => $request->pemesan,
+                        'no_hp_pemesan'       => $request->no_hp_pemesan,
+                        'instansi'            => $request->instansi,
+                        'nama_pic'            => $request->nama_pic ?: Auth::user()->name,
+                        'tambahan'            => $request->tambahan,
+                        'sku_kain'            => $rBlock['sku_kain'] ?? $request->sku_kain,
+                        'link_file_mentah'    => $rBlock['link_file_mentah'] ?? $request->link_file_mentah,
+                        'image_url'           => $imagePath ? Storage::url($imagePath) : null,
+                        'referensi_klien_url' => $refUrl,
+                        'mockup_url'          => $mockUrl,
+                        'penginput_id'        => Auth::id(),
+                    ]);
+
+                    if (!$firstSpk) $firstSpk = $spkRecord;
+
+                    // Items for this rincian block
+                    $blockItems = $rBlock['items'] ?? [];
+                    if (!empty($blockItems) && is_array($blockItems)) {
+                        foreach ($blockItems as $row) {
+                            $skuProduk = $row['sku_produk'] ?? ($row['sku'] ?? null);
+                            $namaProduk = $row['name'] ?? $skuProduk ?? 'Produk SPK';
+
+                            SpkItem::create([
+                                'spk_id'            => $spkRecord->id,
+                                'nama_produk'       => $namaProduk,
+                                'sku'               => $skuProduk,
+                                'sku_kain'          => $row['sku_kain'] ?? ($rBlock['sku_kain'] ?? null),
+                                'ukuran'            => $row['size'] ?? null,
+                                'catatan'           => $row['catatan'] ?? null,
+                                'quantity'          => (int) ($row['qty'] ?? 1),
+                                'est_kain'          => (float) ($row['est_kain'] ?? 0),
+                                'kain_pakai'        => (float) ($row['kain_pakai'] ?? 0),
+                                'kain_sisa'         => (float) ($row['kain_sisa'] ?? 0),
+                                'penjahit'          => $row['penjahit'] ?? ($row['tailor'] ?? null),
+                                'vendor_kancing'    => $row['vendor_kancing'] ?? null,
+                                'alur_proses'       => $row['alur_proses'] ?? 'Langsung Jahit',
+                                'hpp'               => 0,
+                            ]);
+                        }
+                    }
+                }
+                return $firstSpk;
+            }
+
+            // Fallback single SPK creation
+            $noSpk = Spk::generateNoSpk();
             $spk = Spk::create([
                 'tenant_id'           => $tenantId,
                 'order_id'            => $request->order_id,
@@ -237,7 +309,6 @@ class SpkController extends Controller
                 'penginput_id'        => Auth::id(),
             ]);
 
-            // Process items if provided (optional for DRAFT)
             if (empty($request->items) || !is_array($request->items)) {
                 return $spk;
             }
