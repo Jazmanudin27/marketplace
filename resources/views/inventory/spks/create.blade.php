@@ -244,7 +244,7 @@
         border-spacing: 0;
         font-size: 12px;
     }
-    .sku-table-custom thead tr:first-child th {
+    .sku-table-custom thead tr th {
         background: #f1f5f9;
         border: 1px solid #e2e8f0;
         font-size: 11px;
@@ -253,18 +253,9 @@
         letter-spacing: .4px;
         padding: 8px 6px;
     }
-    .sku-table-custom thead tr:last-child th {
-        background: #f8fafc;
-        border: 1px solid #e2e8f0;
-        font-size: 10px;
-        font-weight: 600;
-        text-align: center;
-        padding: 5px 4px;
-        color: #64748b;
-    }
     .sku-table-custom tbody td {
         border: 1px solid #e2e8f0;
-        padding: 4px 6px;
+        padding: 6px;
         vertical-align: middle;
     }
     .sku-table-custom .form-control, .sku-table-custom .form-select {
@@ -272,11 +263,8 @@
         border-radius: 6px;
         font-size: 12px;
         padding: 4px 8px;
-        height: 30px;
+        height: 32px;
     }
-    .th-potong { color: #3b82f6 !important; }
-    .th-jahit { color: #f59e0b !important; }
-    .th-lkpk { color: #06b6d4 !important; }
 
     /* Bottom bar */
     .spk-submit-bar {
@@ -459,7 +447,7 @@
                         🛒 PESANAN / CUSTOM
                     </label>
 
-                    <input type="radio" name="tipe_stok" class="btn-check" id="tipe_stok" value="stok_gudang"
+                    <input type="radio" name="tipe_spk" class="btn-check" id="tipe_stok" value="stok_gudang"
                         {{ old('tipe_spk') === 'stok_gudang' ? 'checked' : '' }}>
                     <label class="btn btn-outline-secondary" for="tipe_stok">
                         🏬 PRODUKSI STOK
@@ -646,14 +634,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // ── 3. DYNAMIC RINCIAN PRODUK (SPK) BLOCKS ──
     let rincianBlockCount = 0;
 
-    function buildTailorOptions() {
-        let html = '<option value="">— Pilih Penjahit —</option>';
-        tailorsList.forEach(t => {
-            html += `<option value="${escHtml(t.name)}">${escHtml(t.name)}</option>`;
-        });
-        return html;
-    }
-
     function escHtml(str) {
         if (!str) return '';
         return String(str)
@@ -756,21 +736,10 @@ document.addEventListener('DOMContentLoaded', function() {
                             <table class="table table-sm sku-table-custom mb-0 align-middle">
                                 <thead>
                                     <tr class="text-uppercase text-center">
-                                        <th rowspan="2" style="width:130px;">SKU PRODUK</th>
-                                        <th rowspan="2" style="width:120px;">SKU KAIN / BAHAN</th>
-                                        <th rowspan="2" style="width:55px;">QTY</th>
-                                        <th colspan="3" class="th-potong">TAHAP PEMOTONGAN</th>
-                                        <th colspan="2" class="th-jahit">TAHAP JAHIT</th>
-                                        <th colspan="1" class="th-lkpk">TAHAP LKPK (KANCING)</th>
-                                        <th rowspan="2" style="width:36px;"></th>
-                                    </tr>
-                                    <tr class="text-uppercase text-center">
-                                        <th class="th-potong" style="width:70px;">EST. KAIN</th>
-                                        <th class="th-potong" style="width:70px;">PAKAI</th>
-                                        <th class="th-potong" style="width:60px;">SISA</th>
-                                        <th class="th-jahit" style="width:100px;">PENJAHIT</th>
-                                        <th class="th-jahit" style="width:55px;">QTY</th>
-                                        <th class="th-lkpk" style="width:110px;">VENDOR KANCING</th>
+                                        <th style="width:50%;">SKU PRODUK</th>
+                                        <th style="width:35%;">SKU KAIN / BAHAN</th>
+                                        <th style="width:15%;">QTY</th>
+                                        <th style="width:36px;"></th>
                                     </tr>
                                 </thead>
                                 <tbody id="skuTableBody_${rIdx}">
@@ -785,7 +754,6 @@ document.addEventListener('DOMContentLoaded', function() {
                                 </button>
                                 <span class="text-muted small sku-row-count-${rIdx}">0 baris SKU</span>
                             </div>
-                            <small class="text-muted" style="font-size:10px;">💡 Data komponen/bahan terisi otomatis jika ada formula, atau pilih dari Tabel Barang / isi manual.</small>
                         </div>
                     </div>
                 </div>
@@ -817,7 +785,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 <input type="text" name="rincian[${rIdx}][items][${itemIdx}][sku_produk]" class="form-control row-sku-produk"
                     list="master_skus_datalist" autocomplete="off"
                     placeholder="SKU Produk" style="font-size:12px;" value="${defaultData ? escHtml(defaultData.sku_produk) : ''}">
-                <div class="formula-status-badge"></div>
             </td>
             <td>
                 <input type="text" name="rincian[${rIdx}][items][${itemIdx}][sku_kain]" class="form-control row-sku-kain"
@@ -828,31 +795,6 @@ document.addEventListener('DOMContentLoaded', function() {
             <td>
                 <input type="number" name="rincian[${rIdx}][items][${itemIdx}][qty]" class="form-control text-center row-qty"
                     placeholder="0" min="1" value="${defaultData ? defaultData.qty : 1}" style="font-size:12px; padding:4px;">
-            </td>
-            <td>
-                <input type="number" name="rincian[${rIdx}][items][${itemIdx}][est_kain]" class="form-control text-center row-est-kain"
-                    placeholder="0.00" min="0" step="0.01" style="font-size:12px; padding:4px;" oninput="calcSisa(this)">
-            </td>
-            <td>
-                <input type="number" name="rincian[${rIdx}][items][${itemIdx}][kain_pakai]" class="form-control text-center row-kain-pakai"
-                    placeholder="0.00" min="0" step="0.01" style="font-size:12px; padding:4px;" oninput="calcSisa(this)">
-            </td>
-            <td>
-                <input type="number" name="rincian[${rIdx}][items][${itemIdx}][kain_sisa]" class="form-control text-center bg-light row-kain-sisa"
-                    placeholder="auto" readonly tabindex="-1" style="font-size:12px; padding:4px; color:#6b7280;">
-            </td>
-            <td>
-                <select name="rincian[${rIdx}][items][${itemIdx}][penjahit]" class="form-select row-penjahit" style="font-size:12px; padding:3px 6px;">
-                    ${buildTailorOptions()}
-                </select>
-            </td>
-            <td>
-                <input type="number" name="rincian[${rIdx}][items][${itemIdx}][qty_jahit]" class="form-control text-center row-qty-jahit"
-                    placeholder="0" min="0" style="font-size:12px; padding:4px;">
-            </td>
-            <td>
-                <input type="text" name="rincian[${rIdx}][items][${itemIdx}][vendor_kancing]" class="form-control row-vendor-kancing"
-                    placeholder="Vendor / LKPK" style="font-size:12px;">
             </td>
             <td class="text-center">
                 <button type="button" class="btn btn-sm btn-outline-danger btn-remove-sku-row py-0 px-1" title="Hapus baris">
@@ -875,7 +817,6 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!skuVal) return;
         const cleanSku = skuVal.trim().toUpperCase();
         const recipe = recipesMap[cleanSku];
-        const badgeEl = tr.querySelector('.formula-status-badge');
 
         if (recipe && recipe.items && recipe.items.length > 0) {
             const qtyInput = tr.querySelector('.row-qty');
@@ -883,11 +824,12 @@ document.addEventListener('DOMContentLoaded', function() {
             const tbody = tr.closest('tbody');
             const rIdx = tbody ? tbody.id.replace('skuTableBody_', '') : 0;
 
-            // Item 0 for current row
             const item0 = recipe.items[0];
-            populateRowWithItemData(tr, skuVal, item0, recipe, qty);
+            const kainInput = tr.querySelector('.row-sku-kain');
+            if (kainInput && item0.sku_kain) {
+                kainInput.value = item0.sku_kain;
+            }
 
-            // If recipe has multiple items, auto-generate extra rows for Item 1, Item 2, etc.
             if (recipe.items.length > 1 && tbody && !tr.dataset.recipeExpanded) {
                 tr.dataset.recipeExpanded = 'true';
                 for (let i = 1; i < recipe.items.length; i++) {
@@ -899,48 +841,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     });
                     const newTr = tbody.lastElementChild;
                     if (newTr) {
-                        populateRowWithItemData(newTr, skuVal, itemData, recipe, qty);
                         newTr.dataset.recipeExpanded = 'true';
                     }
                 }
             }
-        } else {
-            if (badgeEl) {
-                badgeEl.innerHTML = '<small class="text-muted" style="font-size:9px;">✏️ Manual</small>';
-            }
-        }
-    }
-
-    function populateRowWithItemData(tr, skuVal, itemData, recipe, qty) {
-        const estInput = tr.querySelector('.row-est-kain');
-        const kainInput = tr.querySelector('.row-sku-kain');
-        const tailorSelect = tr.querySelector('.row-penjahit');
-        const vendorInput = tr.querySelector('.row-vendor-kancing');
-        const qtyJahitInput = tr.querySelector('.row-qty-jahit');
-        const badgeEl = tr.querySelector('.formula-status-badge');
-
-        if (estInput && itemData.est_kain > 0) {
-            estInput.value = (itemData.est_kain * qty).toFixed(2);
-            calcSisa(estInput);
-        }
-        if (kainInput && itemData.sku_kain) {
-            kainInput.value = itemData.sku_kain;
-        }
-        if (tailorSelect && recipe.penjahit) {
-            Array.from(tailorSelect.options).forEach(opt => {
-                if (opt.value.toLowerCase().includes(recipe.penjahit.toLowerCase())) {
-                    tailorSelect.value = opt.value;
-                }
-            });
-        }
-        if (qtyJahitInput && (!qtyJahitInput.value || qtyJahitInput.value == '0')) {
-            qtyJahitInput.value = qty;
-        }
-        if (vendorInput && recipe.vendor_kancing && !vendorInput.value) {
-            vendorInput.value = recipe.vendor_kancing;
-        }
-        if (badgeEl) {
-            badgeEl.innerHTML = `<small class="text-success" style="font-size:9px; font-weight:700;" title="${escHtml(itemData.sku_kain)}">✨ Formula (BOM)</small>`;
         }
     }
 
@@ -989,16 +893,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    function calcSisa(input) {
-        const tr = input.closest('tr');
-        if (!tr) return;
-        const est   = parseFloat(tr.querySelector('.row-est-kain')?.value) || 0;
-        const pakai = parseFloat(tr.querySelector('.row-kain-pakai')?.value) || 0;
-        const sisaInp = tr.querySelector('.row-kain-sisa');
-        if (sisaInp) sisaInp.value = Math.max(0, est - pakai).toFixed(2);
-    }
-    window.calcSisa = calcSisa;
-
     function updateRowCount(rIdx) {
         const tbody = document.getElementById(`skuTableBody_${rIdx}`);
         if (tbody) {
@@ -1043,8 +937,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Delegate Auto-Fill from Formula when SKU or QTY changes
     document.getElementById('rincianContainer').addEventListener('input', function(e) {
-        // Auto fill from Formula
-        if (e.target.classList.contains('row-sku-produk') || e.target.classList.contains('row-qty')) {
+        if (e.target.classList.contains('row-sku-produk')) {
             const tr = e.target.closest('tr');
             if (tr) {
                 const skuVal = tr.querySelector('.row-sku-produk')?.value || '';
