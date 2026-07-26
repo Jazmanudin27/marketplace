@@ -623,6 +623,7 @@
     const recipesMap = @json($recipesMap ?? []);
     const allMasterProductsList = @json($allMasterProductsList ?? []);
     const allInventoryItemsList = @json($inventoryItems);
+    const inventoryItemsMap = @json($inventoryItemsMap ?? []);
 
     // Master Products map keyed by SKU and SKU Induk for instantaneous auto-filling
     const masterProductsMap = {};
@@ -1069,7 +1070,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const tr = document.createElement('tr');
         const qtyVal = data ? data.qty_bahan : '1';
-        const hargaVal = data ? data.harga : '0';
+        let hargaVal = data ? data.harga : '0';
+
+        if (data && data.nama_bahan) {
+            const cleanName = data.nama_bahan.trim().toUpperCase();
+            if ((!data.harga || parseFloat(data.harga) === 0) && inventoryItemsMap[cleanName]) {
+                hargaVal = inventoryItemsMap[cleanName].cost_price;
+            }
+        }
+
         const subtotalVal = (parseFloat(qtyVal) || 0) * (parseFloat(hargaVal) || 0);
 
         tr.innerHTML = `
@@ -1081,7 +1090,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <input type="text" class="form-control text-center modal-row-qty-bahan" placeholder="1.5 / 10 pcs" value="${data ? escHtml(data.qty_bahan) : '1'}">
             </td>
             <td>
-                <input type="number" class="form-control text-end modal-row-harga-bahan" placeholder="0" min="0" value="${data ? data.harga : '0'}">
+                <input type="number" class="form-control text-end modal-row-harga-bahan" placeholder="0" min="0" value="${hargaVal}">
             </td>
             <td>
                 <input type="text" class="form-control text-end bg-light modal-row-subtotal-bahan" readonly tabindex="-1" value="${formatRupiah(subtotalVal)}">
@@ -1156,6 +1165,16 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('modalBahanTableBody').addEventListener('input', function(e) {
         if (e.target.classList.contains('modal-row-nama-bahan')) {
             updateInventoryItemsDatalist(e.target.value);
+            const cleanName = e.target.value.trim().toUpperCase();
+            if (cleanName && inventoryItemsMap[cleanName]) {
+                const tr = e.target.closest('tr');
+                if (tr) {
+                    const hInput = tr.querySelector('.modal-row-harga-bahan');
+                    if (hInput) {
+                        hInput.value = inventoryItemsMap[cleanName].cost_price;
+                    }
+                }
+            }
         }
         if (e.target.classList.contains('modal-row-qty-bahan') || e.target.classList.contains('modal-row-harga-bahan') || e.target.classList.contains('modal-row-nama-bahan')) {
             calculateModalTotalBahan();

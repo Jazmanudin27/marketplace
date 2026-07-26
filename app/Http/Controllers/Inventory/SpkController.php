@@ -151,9 +151,24 @@ class SpkController extends Controller
             ->orderByDesc('no_produksi')
             ->pluck('no_produksi');
 
-        $inventoryItems = \App\Models\InventoryItem::where('tenant_id', $tenantId)
+        $inventoryItemsData = \App\Models\InventoryItem::where('tenant_id', $tenantId)
+            ->where('is_active', true)
+            ->select(['id', 'name', 'unit', 'cost_price', 'unit_price'])
             ->orderBy('name')
-            ->pluck('name');
+            ->get();
+
+        $inventoryItems = $inventoryItemsData->pluck('name');
+
+        $inventoryItemsMap = [];
+        foreach ($inventoryItemsData as $inv) {
+            if (!empty($inv->name)) {
+                $inventoryItemsMap[strtoupper(trim($inv->name))] = [
+                    'name'       => $inv->name,
+                    'unit'       => $inv->unit ?? '',
+                    'cost_price' => (float) ($inv->cost_price ?? $inv->unit_price ?? 0),
+                ];
+            }
+        }
 
         $recipesMap = [];
         foreach ($products as $prod) {
@@ -206,7 +221,7 @@ class SpkController extends Controller
 
         $defaultNoProduksi = Spk::generateNoProduksi();
 
-        return view('inventory.spks.create', compact('products', 'tailors', 'laborServices', 'order', 'stores', 'existingNoProduksi', 'defaultNoProduksi', 'recipesMap', 'inventoryItems', 'allMasterProductsList'));
+        return view('inventory.spks.create', compact('products', 'tailors', 'laborServices', 'order', 'stores', 'existingNoProduksi', 'defaultNoProduksi', 'recipesMap', 'inventoryItems', 'inventoryItemsMap', 'allMasterProductsList'));
     }
 
     public function store(Request $request)
