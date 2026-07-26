@@ -556,16 +556,7 @@
     const orderItemsList = @json(isset($order) ? $order->items : []);
     const recipesMap = @json($recipesMap ?? []);
     
-    const allMasterProductsList = @json(
-        $products->map(function($p) {
-            return [
-                'sku' => $p->sku,
-                'sku_induk' => $p->sku_induk,
-                'name' => $p->name,
-                'ukuran' => implode(' / ', array_filter([$p->ukuran, $p->warna])) ?: ($p->ukuran ?? '')
-            ];
-        })
-    );
+    const allMasterProductsList = @json($allMasterProductsList ?? []);
 
     const allInventoryItemsList = @json($inventoryItems);
 
