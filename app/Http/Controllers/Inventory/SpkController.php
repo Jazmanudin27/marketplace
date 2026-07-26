@@ -19,7 +19,7 @@ class SpkController extends Controller
     public function index(Request $request)
     {
         $tenantId = Auth::user()->tenant_id;
-        $query = Spk::with(['penginput', 'items'])
+        $query = Spk::with(['penginput', 'items.masterProduct', 'proses'])
             ->where('tenant_id', $tenantId)
             ->orderByDesc('created_at');
 
@@ -29,8 +29,33 @@ class SpkController extends Controller
                 $q->where('no_spk', 'like', '%' . $search . '%')
                   ->orWhere('no_produksi', 'like', '%' . $search . '%')
                   ->orWhere('pemesan', 'like', '%' . $search . '%')
-                  ->orWhere('instansi', 'like', '%' . $search . '%');
+                  ->orWhere('instansi', 'like', '%' . $search . '%')
+                  ->orWhereHas('items', function ($i) use ($search) {
+                      $i->where('nama_produk', 'like', '%' . $search . '%')
+                        ->orWhere('sku', 'like', '%' . $search . '%');
+                  });
             });
+        }
+
+        if ($request->filled('urgent') && $request->urgent == '1') {
+            $query->where('is_urgent', true);
+        }
+
+        if ($request->filled('stage')) {
+            $stage = strtolower(trim($request->stage));
+            if ($stage === 'pesanan_baru' || $stage === 'perencanaan') {
+                $query->where(function ($q) {
+                    $q->doesntHave('proses')
+                      ->orWhereHas('proses', function ($p) {
+                          $p->whereIn('nama_proses', ['Pesanan Baru', 'Perencanaan'])
+                            ->where('status', '!=', 'Selesai');
+                      });
+                });
+            } else {
+                $query->whereHas('proses', function ($p) use ($stage) {
+                    $p->where('nama_proses', 'like', '%' . $stage . '%');
+                });
+            }
         }
 
         if ($request->filled('date_from')) {
@@ -43,7 +68,7 @@ class SpkController extends Controller
             $query->where('tipe_spk', $request->tipe_spk);
         }
 
-        $spks = $query->paginate(15)->withQueryString();
+        $spks = $query->paginate(12)->withQueryString();
 
         return view('inventory.spks.index', compact('spks'));
     }
@@ -119,7 +144,16 @@ class SpkController extends Controller
             ->orderBy('store_name')
             ->get();
 
-        return view('inventory.spks.create', compact('products', 'tailors', 'laborServices', 'order', 'stores'));
+        $existingNoProduksi = Spk::where('tenant_id', $tenantId)
+            ->whereNotNull('no_produksi')
+            ->where('no_produksi', '!=', '')
+            ->distinct()
+            ->orderByDesc('no_produksi')
+            ->pluck('no_produksi');
+
+        $defaultNoProduksi = Spk::generateNoProduksi();
+
+        return view('inventory.spks.create', compact('products', 'tailors', 'laborServices', 'order', 'stores', 'existingNoProduksi', 'defaultNoProduksi'));
     }
 
     public function store(Request $request)
@@ -148,7 +182,10 @@ class SpkController extends Controller
 
         $spk = DB::transaction(function () use ($request, $tenantId, $imagePath) {
             $noSpk = Spk::generateNoSpk();
-            $noProduksi = Spk::generateNoProduksi();
+            $noProduksi = trim((string) $request->input('no_produksi'));
+            if (empty($noProduksi)) {
+                $noProduksi = Spk::generateNoProduksi();
+            }
 
             $spk = Spk::create([
                 'tenant_id'     => $tenantId,
@@ -156,6 +193,7 @@ class SpkController extends Controller
                 'no_produksi'   => $noProduksi,
                 'no_spk'        => $noSpk,
                 'tipe_spk'      => $request->input('tipe_spk', 'pesanan_pelanggan'),
+                'is_urgent'     => $request->boolean('is_urgent'),
                 'tanggal'       => $request->tanggal,
                 'deadline'      => $request->deadline,
                 'pemesan'       => $request->pemesan,
@@ -923,5 +961,24 @@ class SpkController extends Controller
         $pickup->delete();
 
         return back()->with('success', 'Catatan pengambilan barang berhasil dihapus.');
+    }
+
+    public function toggleUrgent(Spk $spk)
+    {
+        $tenantId = Auth::user()->tenant_id;
+        abort_unless($spk->tenant_id === $tenantId, 403);
+
+        $spk->is_urgent = !$spk->is_urgent;
+        $spk->save();
+
+        if (request()->wantsJson() || request()->ajax()) {
+            return response()->json([
+                'success' => true,
+                'is_urgent' => $spk->is_urgent,
+                'message' => $spk->is_urgent ? 'SPK ditandai sebagai URGENT!' : 'Status URGENT dibatalkan.'
+            ]);
+        }
+
+        return redirect()->back()->with('success', $spk->is_urgent ? 'SPK ditandai sebagai URGENT!' : 'Status URGENT dibatalkan.');
     }
 }

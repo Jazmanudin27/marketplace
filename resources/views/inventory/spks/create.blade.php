@@ -44,14 +44,26 @@
                                 <div class="card-body p-3">
                                     <div class="row g-2">
                                         <div class="col-6">
-                                            <label class="form-label fw-semibold small mb-1">No. Produksi</label>
-                                            <input type="text" class="form-control form-control-sm bg-light text-muted" readonly
-                                                value="[Otomatis: JN{{ date('ym') }}xxx]">
+                                            <label class="form-label fw-semibold small mb-1" title="Pilih Kode Produksi existing untuk gabungkan SPK atau biarkan untuk buat baru">
+                                                No. Produksi <span class="badge bg-info-subtle text-info border border-info-subtle" style="font-size:9px;">1 Kode Banyak SPK</span>
+                                            </label>
+                                            <input type="text" name="no_produksi" id="no_produksi_input" class="form-control form-control-sm font-monospace fw-bold border-primary-subtle" 
+                                                list="existing_no_produksi_list"
+                                                placeholder="{{ $defaultNoProduksi ?? 'JN'.date('ym').'001' }}"
+                                                value="{{ old('no_produksi', request('no_produksi', $defaultNoProduksi ?? '')) }}">
+                                            <datalist id="existing_no_produksi_list">
+                                                @if(isset($existingNoProduksi))
+                                                    @foreach($existingNoProduksi as $existCode)
+                                                        <option value="{{ $existCode }}">{{ $existCode }} (Gabung ke Kode Produksi Ini)</option>
+                                                    @endforeach
+                                                @endif
+                                            </datalist>
+                                            <small class="text-muted d-block" style="font-size: 10px;">Pilih kode ada atau biarkan baru</small>
                                         </div>
                                         <div class="col-6">
                                             <label class="form-label fw-semibold small mb-1">No. SPK</label>
                                             <input type="text" class="form-control form-control-sm bg-light text-muted" readonly
-                                                value="[Otomatis]">
+                                                value="[Otomatis: SPK-{{ date('Ymd') }}-xxxx]">
                                         </div>
                                         <div class="col-6">
                                             <label class="form-label fw-semibold small mb-1">Tanggal Order <span class="text-danger">*</span></label>
@@ -75,6 +87,14 @@
                                                     🏬 Produksi Stok Gudang (Menambah Persediaan Ready Stock)
                                                 </option>
                                             </select>
+                                        </div>
+                                        <div class="col-12">
+                                            <div class="form-check form-switch bg-warning bg-opacity-10 p-2 rounded border border-warning border-opacity-25 ps-5 my-1">
+                                                <input class="form-check-input ms-0 me-2" type="checkbox" name="is_urgent" value="1" id="isUrgentCheck" {{ old('is_urgent') ? 'checked' : '' }}>
+                                                <label class="form-check-label fw-bold text-dark small" for="isUrgentCheck">
+                                                    ⚡ Tandai SPK Ini Sebagai URGENT (Prioritas Utama)
+                                                </label>
+                                            </div>
                                         </div>
                                         <div class="col-12">
                                             <label class="form-label fw-semibold small mb-1">PIC / Pembuat SPK</label>

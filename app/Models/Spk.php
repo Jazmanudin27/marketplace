@@ -14,6 +14,7 @@ class Spk extends Model
         'no_produksi',
         'no_spk',
         'tipe_spk',
+        'is_urgent',
         'tanggal',
         'deadline',
         'pemesan',
@@ -27,7 +28,44 @@ class Spk extends Model
     protected $casts = [
         'tanggal' => 'date',
         'deadline' => 'date',
+        'is_urgent' => 'boolean',
     ];
+
+    public function getCurrentStageNameAttribute(): string
+    {
+        if ($this->relationLoaded('proses') && $this->proses->isNotEmpty()) {
+            // Pick first uncompleted stage or last stage
+            $activeStage = $this->proses->first(function ($p) {
+                return isset($p->status) && $p->status !== 'Selesai';
+            });
+            if ($activeStage) {
+                return strtoupper($activeStage->nama_proses);
+            }
+            return strtoupper($this->proses->last()->nama_proses);
+        }
+        return 'PERENCANAAN';
+    }
+
+    public function getTotalPcsAttribute(): int
+    {
+        if ($this->relationLoaded('items')) {
+            return (int) $this->items->sum('quantity');
+        }
+        return (int) $this->items()->sum('quantity');
+    }
+
+    public function getVariantSummaryAttribute(): string
+    {
+        if (!$this->relationLoaded('items') || $this->items->isEmpty()) {
+            return '—';
+        }
+        $sizes = $this->items->pluck('ukuran')->filter()->unique()->implode(', ');
+        if (!empty($sizes)) {
+            return strtoupper($sizes);
+        }
+        $firstSku = $this->items->first()->sku ?? $this->items->first()->sku_induk;
+        return $firstSku ? strtoupper($firstSku) : 'STANDARD';
+    }
 
     public function tenant(): BelongsTo
     {
