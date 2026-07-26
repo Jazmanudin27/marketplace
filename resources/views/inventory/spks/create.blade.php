@@ -316,6 +316,13 @@
         @endforeach
     </datalist>
 
+    {{-- Datalist Autocomplete Inventory Items (Tabel Barang) --}}
+    <datalist id="inventory_items_datalist">
+        @foreach($inventoryItems as $invItemName)
+            <option value="{{ $invItemName }}"></option>
+        @endforeach
+    </datalist>
+
     {{-- ── PAGE HEADER ── --}}
     <div class="spk-page-header">
         <div>
@@ -452,7 +459,7 @@
                         🛒 PESANAN / CUSTOM
                     </label>
 
-                    <input type="radio" name="tipe_spk" class="btn-check" id="tipe_stok" value="stok_gudang"
+                    <input type="radio" name="tipe_stok" class="btn-check" id="tipe_stok" value="stok_gudang"
                         {{ old('tipe_spk') === 'stok_gudang' ? 'checked' : '' }}>
                     <label class="btn btn-outline-secondary" for="tipe_stok">
                         🏬 PRODUKSI STOK
@@ -687,9 +694,10 @@ document.addEventListener('DOMContentLoaded', function() {
                             placeholder="Contoh: Kemeja Batik SD, Celana PDL..." style="font-size:12px; font-weight:600;">
                     </div>
                     <div class="d-flex align-items-center gap-2">
-                        <span class="badge bg-primary fw-bold" style="font-size:11px; padding:6px 10px;">📦 SKU KAIN :</span>
+                        <span class="badge bg-primary fw-bold" style="font-size:11px; padding:6px 10px;">📦 SKU KAIN / BAHAN :</span>
                         <input type="text" name="rincian[${rIdx}][sku_kain]" class="form-control form-control-sm rincian-sku-kain"
-                            style="width:200px; font-size:12px;" placeholder="Ketik SKU kain..." data-rincian-idx="${rIdx}">
+                            list="inventory_items_datalist" autocomplete="off"
+                            style="width:220px; font-size:12px;" placeholder="Pilih / ketik bahan..." data-rincian-idx="${rIdx}">
                     </div>
                 </div>
 
@@ -749,7 +757,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 <thead>
                                     <tr class="text-uppercase text-center">
                                         <th rowspan="2" style="width:130px;">SKU PRODUK</th>
-                                        <th rowspan="2" style="width:110px;">SKU KAIN</th>
+                                        <th rowspan="2" style="width:120px;">SKU KAIN / BAHAN</th>
                                         <th rowspan="2" style="width:55px;">QTY</th>
                                         <th colspan="3" class="th-potong">TAHAP PEMOTONGAN</th>
                                         <th colspan="2" class="th-jahit">TAHAP JAHIT</th>
@@ -777,7 +785,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 </button>
                                 <span class="text-muted small sku-row-count-${rIdx}">0 baris SKU</span>
                             </div>
-                            <small class="text-muted" style="font-size:10px;">💡 Data tahap potong/jahit/kancing terisi otomatis dari tabel Formula (BOM) jika ada.</small>
+                            <small class="text-muted" style="font-size:10px;">💡 Data komponen/bahan terisi otomatis jika ada formula, atau pilih dari Tabel Barang / isi manual.</small>
                         </div>
                     </div>
                 </div>
@@ -813,7 +821,8 @@ document.addEventListener('DOMContentLoaded', function() {
             </td>
             <td>
                 <input type="text" name="rincian[${rIdx}][items][${itemIdx}][sku_kain]" class="form-control row-sku-kain"
-                    placeholder="SKU Kain" value="${defaultData ? escHtml(defaultData.sku_kain) : escHtml(currentSkuKain)}"
+                    list="inventory_items_datalist" autocomplete="off"
+                    placeholder="Pilih / SKU Kain" value="${defaultData ? escHtml(defaultData.sku_kain) : escHtml(currentSkuKain)}"
                     style="font-size:12px;">
             </td>
             <td>
@@ -868,43 +877,70 @@ document.addEventListener('DOMContentLoaded', function() {
         const recipe = recipesMap[cleanSku];
         const badgeEl = tr.querySelector('.formula-status-badge');
 
-        if (recipe) {
+        if (recipe && recipe.items && recipe.items.length > 0) {
             const qtyInput = tr.querySelector('.row-qty');
             const qty = parseInt(qtyInput ? qtyInput.value : 1) || 1;
-            const estInput = tr.querySelector('.row-est-kain');
-            const kainInput = tr.querySelector('.row-sku-kain');
-            const tailorSelect = tr.querySelector('.row-penjahit');
-            const vendorInput = tr.querySelector('.row-vendor-kancing');
-            const qtyJahitInput = tr.querySelector('.row-qty-jahit');
+            const tbody = tr.closest('tbody');
+            const rIdx = tbody ? tbody.id.replace('skuTableBody_', '') : 0;
 
-            if (estInput && recipe.est_kain > 0) {
-                estInput.value = (recipe.est_kain * qty).toFixed(2);
-                calcSisa(estInput);
-            }
-            if (kainInput && recipe.sku_kain && (!kainInput.value || kainInput.dataset.autoFilled === 'true')) {
-                kainInput.value = recipe.sku_kain;
-                kainInput.dataset.autoFilled = 'true';
-            }
-            if (tailorSelect && recipe.penjahit) {
-                Array.from(tailorSelect.options).forEach(opt => {
-                    if (opt.value.toLowerCase().includes(recipe.penjahit.toLowerCase())) {
-                        tailorSelect.value = opt.value;
+            // Item 0 for current row
+            const item0 = recipe.items[0];
+            populateRowWithItemData(tr, skuVal, item0, recipe, qty);
+
+            // If recipe has multiple items, auto-generate extra rows for Item 1, Item 2, etc.
+            if (recipe.items.length > 1 && tbody && !tr.dataset.recipeExpanded) {
+                tr.dataset.recipeExpanded = 'true';
+                for (let i = 1; i < recipe.items.length; i++) {
+                    const itemData = recipe.items[i];
+                    addSkuRowToBlock(rIdx, {
+                        sku_produk: skuVal,
+                        sku_kain: itemData.sku_kain,
+                        qty: qty
+                    });
+                    const newTr = tbody.lastElementChild;
+                    if (newTr) {
+                        populateRowWithItemData(newTr, skuVal, itemData, recipe, qty);
+                        newTr.dataset.recipeExpanded = 'true';
                     }
-                });
-            }
-            if (qtyJahitInput && (!qtyJahitInput.value || qtyJahitInput.value == '0')) {
-                qtyJahitInput.value = qty;
-            }
-            if (vendorInput && recipe.vendor_kancing && !vendorInput.value) {
-                vendorInput.value = recipe.vendor_kancing;
-            }
-            if (badgeEl) {
-                badgeEl.innerHTML = '<small class="text-success" style="font-size:9px; font-weight:700;">✨ Formula (BOM)</small>';
+                }
             }
         } else {
             if (badgeEl) {
                 badgeEl.innerHTML = '<small class="text-muted" style="font-size:9px;">✏️ Manual</small>';
             }
+        }
+    }
+
+    function populateRowWithItemData(tr, skuVal, itemData, recipe, qty) {
+        const estInput = tr.querySelector('.row-est-kain');
+        const kainInput = tr.querySelector('.row-sku-kain');
+        const tailorSelect = tr.querySelector('.row-penjahit');
+        const vendorInput = tr.querySelector('.row-vendor-kancing');
+        const qtyJahitInput = tr.querySelector('.row-qty-jahit');
+        const badgeEl = tr.querySelector('.formula-status-badge');
+
+        if (estInput && itemData.est_kain > 0) {
+            estInput.value = (itemData.est_kain * qty).toFixed(2);
+            calcSisa(estInput);
+        }
+        if (kainInput && itemData.sku_kain) {
+            kainInput.value = itemData.sku_kain;
+        }
+        if (tailorSelect && recipe.penjahit) {
+            Array.from(tailorSelect.options).forEach(opt => {
+                if (opt.value.toLowerCase().includes(recipe.penjahit.toLowerCase())) {
+                    tailorSelect.value = opt.value;
+                }
+            });
+        }
+        if (qtyJahitInput && (!qtyJahitInput.value || qtyJahitInput.value == '0')) {
+            qtyJahitInput.value = qty;
+        }
+        if (vendorInput && recipe.vendor_kancing && !vendorInput.value) {
+            vendorInput.value = recipe.vendor_kancing;
+        }
+        if (badgeEl) {
+            badgeEl.innerHTML = `<small class="text-success" style="font-size:9px; font-weight:700;" title="${escHtml(itemData.sku_kain)}">✨ Formula (BOM)</small>`;
         }
     }
 

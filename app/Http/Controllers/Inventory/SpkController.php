@@ -151,18 +151,23 @@ class SpkController extends Controller
             ->orderByDesc('no_produksi')
             ->pluck('no_produksi');
 
+        $inventoryItems = \App\Models\InventoryItem::where('tenant_id', $tenantId)
+            ->orderBy('name')
+            ->pluck('name');
+
         $recipesMap = [];
         foreach ($products as $prod) {
             $rec = $prod->activeRecipe;
             if ($rec) {
                 $batchQty = max(1, (int)$rec->batch_qty);
-                $estKain = 0;
-                $skuKain = '';
+                $itemsList = [];
                 foreach ($rec->items as $rItem) {
                     $invName = $rItem->inventoryItem->name ?? '';
-                    if (empty($skuKain) || str_contains(strtolower($invName), 'kain') || str_contains(strtolower($invName), 'fabric')) {
-                        $skuKain = $invName;
-                        $estKain = round((float)$rItem->quantity / $batchQty, 2);
+                    if ($invName !== '') {
+                        $itemsList[] = [
+                            'sku_kain' => $invName,
+                            'est_kain' => round((float)$rItem->quantity / $batchQty, 2),
+                        ];
                     }
                 }
                 $penjahit = '';
@@ -178,8 +183,7 @@ class SpkController extends Controller
                 $recipeData = [
                     'sku' => $prod->sku,
                     'name' => $prod->name,
-                    'sku_kain' => $skuKain,
-                    'est_kain' => $estKain,
+                    'items' => $itemsList,
                     'penjahit' => $penjahit,
                     'vendor_kancing' => $vendorKancing,
                 ];
@@ -194,7 +198,7 @@ class SpkController extends Controller
 
         $defaultNoProduksi = Spk::generateNoProduksi();
 
-        return view('inventory.spks.create', compact('products', 'tailors', 'laborServices', 'order', 'stores', 'existingNoProduksi', 'defaultNoProduksi', 'recipesMap'));
+        return view('inventory.spks.create', compact('products', 'tailors', 'laborServices', 'order', 'stores', 'existingNoProduksi', 'defaultNoProduksi', 'recipesMap', 'inventoryItems'));
     }
 
     public function store(Request $request)
