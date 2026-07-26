@@ -297,46 +297,56 @@ class SpkController extends Controller
 
                     if (!$firstSpk) $firstSpk = $spkRecord;
 
-                    $namaProduk = $rBlock['nama_produk'] ?? 'Produk SPK';
-                    $skuProduk = $rBlock['sku_produk'] ?? ($rBlock['sku'] ?? null);
-                    $qtyProduksi = (int) ($rBlock['qty_produksi'] ?? ($rBlock['quantity'] ?? 1));
-                    $ukuran = $rBlock['ukuran'] ?? null;
-                    $skuKain = $rBlock['sku_kain'] ?? null;
+                    $productRows = $rBlock['produk'] ?? [];
+                    if (empty($productRows)) {
+                        $productRows = [[
+                            'nama_produk'  => $rBlock['nama_produk'] ?? 'Produk SPK',
+                            'sku_produk'   => $rBlock['sku_produk'] ?? ($rBlock['sku'] ?? null),
+                            'ukuran'       => $rBlock['ukuran'] ?? null,
+                            'qty_produksi' => (int) ($rBlock['qty_produksi'] ?? ($rBlock['quantity'] ?? 1)),
+                        ]];
+                    }
 
-                    // Items / Bahan for this rincian block
-                    $bahanList = $rBlock['bahan'] ?? ($rBlock['items'] ?? []);
+                    $bahanList = $rBlock['bahan'] ?? [];
 
-                    $spkItem = SpkItem::create([
-                        'spk_id'            => $spkRecord->id,
-                        'nama_produk'       => $namaProduk,
-                        'sku'               => $skuProduk,
-                        'sku_kain'          => $skuKain ?: ($bahanList[0]['nama_bahan'] ?? $bahanList[0]['sku_kain'] ?? null),
-                        'ukuran'            => $ukuran,
-                        'catatan'           => $rBlock['catatan'] ?? null,
-                        'quantity'          => max(1, $qtyProduksi),
-                        'hpp'               => 0,
-                    ]);
+                    foreach ($productRows as $pRow) {
+                        $namaProduk  = $pRow['nama_produk'] ?? 'Produk SPK';
+                        $skuProduk   = $pRow['sku_produk'] ?? ($pRow['sku'] ?? null);
+                        $qtyProduksi = max(1, (int) ($pRow['qty_produksi'] ?? ($pRow['qty'] ?? 1)));
+                        $ukuran      = $pRow['ukuran'] ?? null;
 
-                    if (!empty($bahanList) && is_array($bahanList)) {
-                        $totalHpp = 0;
-                        foreach ($bahanList as $b) {
-                            $namaBahan = $b['nama_bahan'] ?? ($b['sku_kain'] ?? $b['keterangan'] ?? null);
-                            $qtyBahan  = $b['qty_bahan'] ?? ($b['qty'] ?? 1);
-                            $hargaBahan= floatval($b['harga'] ?? ($b['nominal'] ?? 0));
-                            $subtotal  = floatval($b['subtotal'] ?? ($qtyBahan * $hargaBahan));
+                        $spkItem = SpkItem::create([
+                            'spk_id'            => $spkRecord->id,
+                            'nama_produk'       => $namaProduk,
+                            'sku'               => $skuProduk,
+                            'sku_kain'          => $rBlock['sku_kain'] ?? ($bahanList[0]['nama_bahan'] ?? null),
+                            'ukuran'            => $ukuran,
+                            'catatan'           => $rBlock['catatan'] ?? null,
+                            'quantity'          => $qtyProduksi,
+                            'hpp'               => 0,
+                        ]);
 
-                            if ($namaBahan) {
-                                $keterangan = "{$namaBahan} (Qty: {$qtyBahan})";
-                                SpkItemExtra::create([
-                                    'spk_item_id' => $spkItem->id,
-                                    'keterangan'  => $keterangan,
-                                    'nominal'     => $subtotal,
-                                ]);
-                                $totalHpp += $subtotal;
+                        if (!empty($bahanList) && is_array($bahanList)) {
+                            $totalHpp = 0;
+                            foreach ($bahanList as $b) {
+                                $namaBahan  = $b['nama_bahan'] ?? ($b['keterangan'] ?? null);
+                                $qtyBahan   = $b['qty_bahan'] ?? ($b['qty'] ?? 1);
+                                $hargaBahan = floatval($b['harga'] ?? ($b['nominal'] ?? 0));
+                                $subtotal   = floatval($b['subtotal'] ?? ($qtyBahan * $hargaBahan));
+
+                                if ($namaBahan) {
+                                    $keterangan = "{$namaBahan} (Qty: {$qtyBahan})";
+                                    SpkItemExtra::create([
+                                        'spk_item_id' => $spkItem->id,
+                                        'keterangan'  => $keterangan,
+                                        'nominal'     => $subtotal,
+                                    ]);
+                                    $totalHpp += $subtotal;
+                                }
                             }
-                        }
-                        if ($totalHpp > 0) {
-                            $spkItem->update(['hpp' => $totalHpp]);
+                            if ($totalHpp > 0) {
+                                $spkItem->update(['hpp' => $totalHpp]);
+                            }
                         }
                     }
                 }
