@@ -19,6 +19,7 @@ class StockSyncController extends Controller
             })
             ->with(['store.channel', 'masterProduct']);
 
+        // Filter: search
         if ($request->filled('search')) {
             $query->where(function($q) use ($request) {
                 $q->where('name', 'like', '%' . $request->search . '%')
@@ -32,9 +33,15 @@ class StockSyncController extends Controller
             $query->whereNull('master_product_id');
         }
 
-        // Filter: diff = stok marketplace ≠ (stok lokal - safety_stock)
-        // Ini dilakukan setelah load karena perlu data dari master product
-        // Kita gunakan whereHas + kolom langsung untuk perbandingan di DB
+        // Filter: match = stok sinkron
+        if ($request->filter === 'match') {
+            $query->whereHas('masterProduct')
+                  ->whereRaw('marketplace_products.stock = GREATEST(0, (
+                      SELECT stock FROM master_products WHERE master_products.id = marketplace_products.master_product_id
+                  ) - COALESCE(marketplace_products.safety_stock, 0))');
+        }
+
+        // Filter: diff = stok marketplace ≠ ekspektasi
         if ($request->filter === 'diff') {
             $query->whereHas('masterProduct')
                   ->whereRaw('marketplace_products.stock != GREATEST(0, (
@@ -42,14 +49,39 @@ class StockSyncController extends Controller
                   ) - COALESCE(marketplace_products.safety_stock, 0))');
         }
 
-        $mappedProducts = $query->orderByDesc('last_synced_at')->paginate(25)->withQueryString();
+        // Filter: channel (shopee, tiktok, tokopedia, lazada)
+        if ($request->filled('channel')) {
+            $query->whereHas('store.channel', function($q) use ($request) {
+                $q->where('code', $request->channel);
+            });
+        }
+
+        // Filter: store_id
+        if ($request->filled('store_id')) {
+            $query->where('store_id', $request->store_id);
+        }
+
+        // Filter: sync_status (on/off)
+        if ($request->filled('sync_status')) {
+            $query->where('sync_stock', $request->sync_status === 'on' ? true : false);
+        }
+
+        $mappedProducts = $query->orderByDesc('last_synced_at')->paginate(30)->withQueryString();
 
         $syncLogs = MarketplaceSyncLog::where('tenant_id', $tenantId)
             ->orderBy('created_at', 'desc')
             ->limit(50)
             ->get();
 
-        return view('inventory.stock_sync.index', compact('mappedProducts', 'syncLogs'));
+        // Data untuk dropdown filter
+        $stores = \App\Models\Store::where('tenant_id', $tenantId)
+            ->with('channel')
+            ->orderBy('store_name')
+            ->get(['id', 'store_name', 'channel_id']);
+
+        $channels = \App\Models\Channel::orderBy('name')->get(['id', 'name', 'code']);
+
+        return view('inventory.stock_sync.index', compact('mappedProducts', 'syncLogs', 'stores', 'channels'));
     }
 
     public function forceSyncAll()
