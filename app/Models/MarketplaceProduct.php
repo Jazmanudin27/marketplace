@@ -22,6 +22,7 @@ class MarketplaceProduct extends Model
         'sync_stock',
         'sync_price',
         'safety_stock',
+        'is_pre_order',
         'last_synced_at',
     ];
 
@@ -30,8 +31,30 @@ class MarketplaceProduct extends Model
         'sync_stock' => 'boolean',
         'sync_price' => 'boolean',
         'safety_stock' => 'integer',
+        'is_pre_order' => 'boolean',
         'last_synced_at' => 'datetime',
     ];
+
+    /**
+     * Cek apakah produk ini Pre-Order
+     */
+    public function isPreOrder(): bool
+    {
+        if ($this->is_pre_order) {
+            return true;
+        }
+        if ($this->relationLoaded('masterProduct') && $this->masterProduct && $this->masterProduct->is_preorder) {
+            return true;
+        }
+        $nameUpper = strtoupper($this->name ?? '');
+        if (str_contains($nameUpper, 'PRE ORDER') || str_contains($nameUpper, 'PREORDER') || str_contains($nameUpper, 'PRE-ORDER')) {
+            return true;
+        }
+        if (str_starts_with($nameUpper, 'PO ') || str_contains($nameUpper, ' PO ')) {
+            return true;
+        }
+        return false;
+    }
 
     protected static function booted()
     {

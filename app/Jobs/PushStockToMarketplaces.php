@@ -57,6 +57,11 @@ class PushStockToMarketplaces implements ShouldQueue
                     continue;
                 }
 
+                if ($mpProduct->isPreOrder()) {
+                    Log::info("Skip push stok untuk produk Pre-Order: {$mpProduct->name} (ID: {$mpProduct->marketplace_product_id})");
+                    continue;
+                }
+
                 $accessToken = $store->getValidAccessToken();
 
                 $safetyStock = (int) ($mpProduct->safety_stock ?? 0);

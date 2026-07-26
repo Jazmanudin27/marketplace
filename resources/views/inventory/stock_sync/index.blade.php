@@ -21,6 +21,10 @@
         background:#fff7ed;color:#c2410c;border:1px solid #fed7aa;
         border-radius:20px;font-size:11px;font-weight:700;padding:3px 10px;white-space:nowrap;
     }
+    .stock-badge-po {
+        background:#f3e8ff;color:#6b21a8;border:1px solid #d8b4fe;
+        border-radius:20px;font-size:11px;font-weight:700;padding:3px 10px;white-space:nowrap;
+    }
     .stock-num-local  { font-size:17px;font-weight:800;color:#1e293b;font-family:monospace; }
     .stock-num-market { font-size:17px;font-weight:800;font-family:monospace; }
     .stock-num-market.match { color:#16a34a; }
@@ -32,6 +36,7 @@
     .diff-pill.plus  { background:#fef9c3;color:#92400e; }
     .diff-pill.minus { background:#fee2e2;color:#991b1b; }
     .diff-pill.zero  { background:#f0fdf4;color:#166534; }
+    .diff-pill.po    { background:#f3e8ff;color:#6b21a8; }
 
     /* Summary stat cards */
     .stat-card {
@@ -45,7 +50,8 @@
     .stat-card.s-diff  { background:#fef2f2;border-color:#fecaca;color:#dc2626; }
     .stat-card.s-nomap { background:#fafafa;border-color:#e2e8f0;color:#64748b; }
     .stat-card.s-syncoff{ background:#fff7ed;border-color:#fed7aa;color:#c2410c; }
-    .stat-card .num    { font-size:28px;font-weight:900;line-height:1;display:block; }
+    .stat-card.s-po    { background:#fcf5ff;border-color:#e9d5ff;color:#6b21a8; }
+    .stat-card .num    { font-size:26px;font-weight:900;line-height:1;display:block; }
     .stat-card .lbl    { font-size:11px;font-weight:700;margin-top:2px; }
 
     /* Filter bar */
@@ -90,9 +96,10 @@
 @section('content')
 @php
     $totalAll      = $mappedProducts->total();
-    $totalSinkron  = 0; $totalBeda = 0; $totalTidakMap = 0; $totalSyncOff = 0;
+    $totalSinkron  = 0; $totalBeda = 0; $totalTidakMap = 0; $totalSyncOff = 0; $totalPo = 0;
     foreach ($mappedProducts as $mp) {
-        if (!$mp->masterProduct) { $totalTidakMap++; continue; }
+        if ($mp->isPreOrder())  { $totalPo++; continue; }
+        if (!$mp->masterProduct){ $totalTidakMap++; continue; }
         if (!$mp->sync_stock)   { $totalSyncOff++; continue; }
         $expected = max(0, $mp->masterProduct->stock - ($mp->safety_stock ?? 0));
         ($mp->stock === $expected) ? $totalSinkron++ : $totalBeda++;
@@ -100,7 +107,7 @@
 
     // Active filter labels
     $activeFilters = [];
-    $filterLabels  = ['match'=>'✅ Sinkron','diff'=>'⚠️ Berbeda','nomap'=>'🔗 Belum Map'];
+    $filterLabels  = ['match'=>'✅ Sinkron','diff'=>'⚠️ Berbeda','po'=>'⏳ Pre-Order','nomap'=>'🔗 Belum Map'];
     if (request('filter') && isset($filterLabels[request('filter')])) {
         $activeFilters['filter'] = $filterLabels[request('filter')];
     }
@@ -114,11 +121,12 @@
 <div class="row g-2 mb-3">
     @php
         $statCards = [
-            ['key'=>null,     'val'=>null,     'class'=>'s-all',    'num'=>$totalAll,     'lbl'=>'Total SKU',       'icon'=>'📦'],
-            ['key'=>'filter', 'val'=>'match',  'class'=>'s-sync',   'num'=>$totalSinkron, 'lbl'=>'Sinkron',         'icon'=>'✅'],
-            ['key'=>'filter', 'val'=>'diff',   'class'=>'s-diff',   'num'=>$totalBeda,    'lbl'=>'Berbeda / Perlu Sync', 'icon'=>'⚠️'],
-            ['key'=>'filter', 'val'=>'nomap',  'class'=>'s-nomap',  'num'=>$totalTidakMap,'lbl'=>'Belum Map ke Produk', 'icon'=>'🔗'],
-            ['key'=>'sync_status','val'=>'off','class'=>'s-syncoff','num'=>$totalSyncOff, 'lbl'=>'Sync Dimatikan',  'icon'=>'⏸'],
+            ['key'=>null,     'val'=>null,     'class'=>'s-all',    'num'=>$totalAll,     'lbl'=>'Total SKU',           'icon'=>'📦'],
+            ['key'=>'filter', 'val'=>'match',  'class'=>'s-sync',   'num'=>$totalSinkron, 'lbl'=>'Sinkron',             'icon'=>'✅'],
+            ['key'=>'filter', 'val'=>'diff',   'class'=>'s-diff',   'num'=>$totalBeda,    'lbl'=>'Berbeda / Perlu Sync','icon'=>'⚠️'],
+            ['key'=>'filter', 'val'=>'po',     'class'=>'s-po',     'num'=>$totalPo,      'lbl'=>'Pre-Order (PO)',       'icon'=>'⏳'],
+            ['key'=>'filter', 'val'=>'nomap',  'class'=>'s-nomap',  'num'=>$totalTidakMap,'lbl'=>'Belum Map',           'icon'=>'🔗'],
+            ['key'=>'sync_status','val'=>'off','class'=>'s-syncoff','num'=>$totalSyncOff, 'lbl'=>'Sync Dimatikan',      'icon'=>'⏸'],
         ];
     @endphp
     @foreach($statCards as $sc)
@@ -128,7 +136,7 @@
                 ? request()->fullUrlWithQuery([$sc['key'] => $sc['val'], 'page' => 1])
                 : route('inventory.stock_sync');
         @endphp
-        <div class="col-6 col-sm-4 col-md-2-4" style="flex:1;min-width:120px;">
+        <div class="col-6 col-sm-4 col-md-2" style="flex:1;min-width:110px;">
             <a href="{{ $href }}" class="stat-card {{ $sc['class'] }} {{ $isActive ? 'active' : '' }}">
                 <span class="num">{{ $sc['num'] }}</span>
                 <span class="lbl">{{ $sc['icon'] }} {{ $sc['lbl'] }}</span>
@@ -155,10 +163,10 @@
                 @endif
             </button>
             <form action="{{ route('inventory.stock_sync.all') }}" method="POST"
-                  onsubmit="return confirm('Sinkronisasi semua produk ke marketplace?')">
+                  onsubmit="return confirm('Sinkronisasi semua produk reguler ke marketplace?')">
                 @csrf
                 <button type="submit" class="btn btn-sm btn-primary fw-semibold">
-                    <i class="fas fa-cloud-upload-alt me-1"></i> Sync Massal Semua
+                    <i class="fas fa-cloud-upload-alt me-1"></i> Sync Massal (Reguler)
                 </button>
             </form>
         </div>
@@ -208,9 +216,10 @@
                     <label class="form-label">📊 Status Stok</label>
                     <select name="filter" class="form-select form-select-sm" onchange="this.form.submit()">
                         <option value="">— Semua Status —</option>
-                        <option value="match"  {{ request('filter')==='match'  ? 'selected':'' }}>✅ Sinkron</option>
-                        <option value="diff"   {{ request('filter')==='diff'   ? 'selected':'' }}>⚠️ Berbeda / Perlu Sync</option>
-                        <option value="nomap"  {{ request('filter')==='nomap'  ? 'selected':'' }}>🔗 Belum Map ke Produk</option>
+                        <option value="match" {{ request('filter')==='match' ? 'selected':'' }}>✅ Sinkron</option>
+                        <option value="diff"  {{ request('filter')==='diff'  ? 'selected':'' }}>⚠️ Berbeda / Perlu Sync</option>
+                        <option value="po"    {{ request('filter')==='po'    ? 'selected':'' }}>⏳ Pre-Order (PO)</option>
+                        <option value="nomap" {{ request('filter')==='nomap' ? 'selected':'' }}>🔗 Belum Map ke Produk</option>
                     </select>
                 </div>
 
@@ -290,7 +299,7 @@
         <span>·</span>
         <span><strong>Stok Marketplace</strong> = stok terakhir di-push</span>
         <span>·</span>
-        <span><strong>Selisih</strong> = Marketplace − Ekspektasi</span>
+        <span><strong class="text-purple" style="color:#6b21a8;">⏳ Pre-Order (PO)</strong> = produk custom/PO (bebas dari overwrite stok ERP)</span>
         <span class="ms-auto text-muted">{{ $mappedProducts->total() }} produk ditemukan</span>
     </div>
 
@@ -319,6 +328,7 @@
             <tbody>
                 @forelse($mappedProducts as $mp)
                     @php
+                        $isPo        = $mp->isPreOrder();
                         $localStock  = $mp->masterProduct ? (int)$mp->masterProduct->stock : null;
                         $safetyStock = (int)($mp->safety_stock ?? 0);
                         $expectedMp  = $localStock !== null ? max(0, $localStock - $safetyStock) : null;
@@ -328,8 +338,9 @@
                         $isNoMap     = ($localStock === null);
                         $syncOff     = !$mp->sync_stock;
 
-                        $rowClass = $isNoMap ? 'row-nomap' : (!$isSinkron && !$syncOff ? 'row-diff' : '');
-                        $chCode = strtolower($mp->store->channel->code ?? 'default');
+                        // Highlights: PO row should be normal, not red!
+                        $rowClass = $isPo ? '' : ($isNoMap ? 'row-nomap' : (!$isSinkron && !$syncOff ? 'row-diff' : ''));
+                        $chCode   = strtolower($mp->store->channel->code ?? 'default');
                     @endphp
                     <tr class="{{ $rowClass }}">
 
@@ -351,6 +362,11 @@
                                         {{ strtoupper($chCode) }}
                                     </span>
                                     <span class="text-muted" style="font-size:10px;">{{ $mp->store->store_name }}</span>
+                                    @if($isPo)
+                                        <span class="badge" style="background:#f3e8ff;color:#6b21a8;border:1px solid #d8b4fe;font-size:9px;padding:2px 6px;">
+                                            ⏳ Pre-Order
+                                        </span>
+                                    @endif
                                 </div>
                                 @if(!$mp->masterProduct)
                                     <div class="text-danger mt-1" style="font-size:10px;">
@@ -384,7 +400,10 @@
 
                         {{-- Ekspektasi MP --}}
                         <td class="text-center">
-                            @if($expectedMp !== null)
+                            @if($isPo)
+                                <span class="badge" style="background:#f3e8ff;color:#6b21a8;font-size:10px;padding:3px 8px;">Pre-Order</span>
+                                <div class="safety-note">tidak di-sync</div>
+                            @elseif($expectedMp !== null)
                                 <span class="fw-bold font-monospace" style="font-size:16px;color:#475569;">
                                     {{ number_format($expectedMp) }}
                                 </span>
@@ -396,17 +415,27 @@
 
                         {{-- Stok Marketplace --}}
                         <td class="text-center">
-                            <span class="stock-num-market {{ $isNoMap ? '' : ($isSinkron ? 'match' : 'diff') }}">
-                                {{ number_format($marketStock) }}
-                            </span>
-                            @if(!$mp->last_synced_at)
-                                <div class="safety-note text-warning">belum sync</div>
+                            @if($isPo)
+                                <span class="stock-num-market font-monospace text-dark" style="font-size:17px;font-weight:800;">
+                                    {{ number_format($marketStock) }}
+                                </span>
+                                <div class="safety-note text-purple" style="color:#6b21a8;">stok marketplace</div>
+                            @else
+                                <span class="stock-num-market {{ $isNoMap ? '' : ($isSinkron ? 'match' : 'diff') }}">
+                                    {{ number_format($marketStock) }}
+                                </span>
+                                @if(!$mp->last_synced_at)
+                                    <div class="safety-note text-warning">belum sync</div>
+                                @endif
                             @endif
                         </td>
 
                         {{-- Selisih --}}
                         <td class="text-center">
-                            @if($selisih !== null)
+                            @if($isPo)
+                                <span class="diff-pill po">⏳ PO</span>
+                                <div class="safety-note">custom order</div>
+                            @elseif($selisih !== null)
                                 @if($selisih === 0)
                                     <span class="diff-pill zero">± 0</span>
                                 @elseif($selisih > 0)
@@ -423,7 +452,9 @@
 
                         {{-- Status --}}
                         <td class="text-center">
-                            @if($isNoMap)
+                            @if($isPo)
+                                <span class="stock-badge-po">⏳ Pre-Order</span>
+                            @elseif($isNoMap)
                                 <span class="stock-badge-nomap">🔗 Belum Map</span>
                             @elseif($syncOff)
                                 <span class="stock-badge-syncoff">⏸ Sync Mati</span>
@@ -446,7 +477,12 @@
 
                         {{-- Aksi --}}
                         <td class="text-center">
-                            @if($mp->masterProduct)
+                            @if($isPo)
+                                <button type="button" class="btn btn-sm btn-light border text-muted px-2" disabled
+                                        title="Produk Pre-Order tidak di-push stoknya dari stok lokal ERP">
+                                    <i class="fas fa-lock" style="font-size:11px;"></i> PO
+                                </button>
+                            @elseif($mp->masterProduct)
                                 <form action="{{ route('inventory.stock_sync.product', $mp) }}" method="POST">
                                     @csrf
                                     <button type="submit"
@@ -498,11 +534,7 @@
             <span><strong class="text-dark">Stok Lokal</strong> = stok di gudang ERP Anda</span>
             <span><strong class="text-dark">Safety Stock</strong> = buffer tidak di-push (contoh: lokal=100, safety=10 → push 90)</span>
             <span><strong class="text-dark">Ekspektasi</strong> = Lokal − Safety = yang seharusnya di marketplace</span>
-            <span>
-                <span class="diff-pill zero me-1">±0</span> Sinkron &nbsp;
-                <span class="diff-pill minus me-1">-X</span> MP kurang → tekan <strong>Fix!</strong> &nbsp;
-                <span class="diff-pill plus me-1">+X</span> MP lebih dari ekspektasi
-            </span>
+            <span><strong style="color:#6b21a8;">⏳ Pre-Order (PO)</strong> = produk custom/PO (aman, stok fisik 0 tidak menimpa stok marketplace)</span>
         </div>
     </div>
 </div>

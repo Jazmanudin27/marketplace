@@ -33,17 +33,41 @@ class StockSyncController extends Controller
             $query->whereNull('master_product_id');
         }
 
+        // Filter: po = Pre-Order
+        if ($request->filter === 'po') {
+            $query->where(function($q) {
+                $q->where('is_pre_order', true)
+                  ->orWhereHas('masterProduct', function($mq) {
+                      $mq->where('is_preorder', true);
+                  })
+                  ->orWhere('name', 'like', '%PRE ORDER%')
+                  ->orWhere('name', 'like', '%PREORDER%')
+                  ->orWhere('name', 'like', '%PRE-ORDER%')
+                  ->orWhere('name', 'like', 'PO %');
+            });
+        }
+
         // Filter: match = stok sinkron
         if ($request->filter === 'match') {
             $query->whereHas('masterProduct')
+                  ->where('is_pre_order', false)
+                  ->whereHas('masterProduct', function($mq) { $mq->where('is_preorder', false); })
+                  ->where('name', 'not like', '%PRE ORDER%')
+                  ->where('name', 'not like', '%PREORDER%')
+                  ->where('name', 'not like', '%PRE-ORDER%')
                   ->whereRaw('marketplace_products.stock = GREATEST(0, (
                       SELECT stock FROM master_products WHERE master_products.id = marketplace_products.master_product_id
                   ) - COALESCE(marketplace_products.safety_stock, 0))');
         }
 
-        // Filter: diff = stok marketplace ≠ ekspektasi
+        // Filter: diff = stok marketplace ≠ ekspektasi (bukan PO)
         if ($request->filter === 'diff') {
             $query->whereHas('masterProduct')
+                  ->where('is_pre_order', false)
+                  ->whereHas('masterProduct', function($mq) { $mq->where('is_preorder', false); })
+                  ->where('name', 'not like', '%PRE ORDER%')
+                  ->where('name', 'not like', '%PREORDER%')
+                  ->where('name', 'not like', '%PRE-ORDER%')
                   ->whereRaw('marketplace_products.stock != GREATEST(0, (
                       SELECT stock FROM master_products WHERE master_products.id = marketplace_products.master_product_id
                   ) - COALESCE(marketplace_products.safety_stock, 0))');
