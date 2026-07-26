@@ -188,6 +188,10 @@
             <span style="color: #d97706;">{{ number_format($unmappedCount) }}</span>
         </div>
         <div class="summary-item">
+            <label>Pre-Order (PO)</label>
+            <span style="color: #6b21a8;">{{ number_format($preorderCount ?? 0) }}</span>
+        </div>
+        <div class="summary-item">
             <label>Total Stok Marketplace</label>
             <span style="color: #0d6efd;">{{ number_format($totalStock) }}</span>
         </div>
@@ -201,11 +205,12 @@
         <thead>
             <tr>
                 <th width="4%" class="text-center">NO</th>
-                <th width="34%">NAMA PRODUK MARKETPLACE</th>
-                <th width="12%">CHANNEL</th>
-                <th width="16%">TOKO</th>
+                <th width="26%">NAMA PRODUK MARKETPLACE</th>
+                <th width="10%" class="text-center">PRE-ORDER?</th>
+                <th width="10%">CHANNEL</th>
+                <th width="14%">TOKO</th>
                 <th width="16%">SKU MARKETPLACE</th>
-                <th width="11%" class="text-right">HARGA</th>
+                <th width="13%" class="text-right">HARGA</th>
                 <th width="7%" class="text-center">STOK</th>
             </tr>
         </thead>
@@ -215,6 +220,13 @@
                     <td class="text-center">{{ $index + 1 }}</td>
                     <td>
                         <strong>{{ $p->name }}</strong>
+                    </td>
+                    <td class="text-center">
+                        @if($p->isPreOrder())
+                            <span style="color:#6b21a8; font-weight:bold; background:#f3e8ff; border:1px solid #d8b4fe; padding:2px 5px; border-radius:3px; font-size:8px;">⏳ PRE-ORDER</span>
+                        @else
+                            <span style="color:#6c757d; font-size:9px;">Reguler</span>
+                        @endif
                     </td>
                     <td>
                         <strong>{{ $p->store->channel->name ?? '-' }}</strong>
@@ -230,7 +242,7 @@
                 </tr>
             @empty
                 <tr>
-                    <td colspan="7" class="text-center" style="padding: 15px;">Tidak ada data produk marketplace yang ditemukan.</td>
+                    <td colspan="8" class="text-center" style="padding: 15px;">Tidak ada data produk marketplace yang ditemukan.</td>
                 </tr>
             @endforelse
         </tbody>

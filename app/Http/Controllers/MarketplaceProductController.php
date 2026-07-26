@@ -459,6 +459,7 @@ class MarketplaceProductController extends Controller
         $mappedCount = $products->whereNotNull('master_product_id')->count();
         $unmappedCount = $totalCount - $mappedCount;
         $totalStock = $products->sum('stock');
+        $preorderCount = $products->filter(fn($p) => $p->isPreOrder())->count();
         $totalValue = $products->sum(function ($p) {
             return ($p->price ?? 0) * ($p->stock ?? 0);
         });
@@ -478,6 +479,7 @@ class MarketplaceProductController extends Controller
             'totalCount',
             'mappedCount',
             'unmappedCount',
+            'preorderCount',
             'totalStock',
             'totalValue',
             'selectedChannel',
