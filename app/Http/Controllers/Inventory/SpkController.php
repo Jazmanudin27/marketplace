@@ -151,9 +151,48 @@ class SpkController extends Controller
             ->orderByDesc('no_produksi')
             ->pluck('no_produksi');
 
-        $defaultNoProduksi = Spk::generateNoProduksi();
+        $recipesMap = [];
+        foreach ($products as $prod) {
+            $rec = $prod->activeRecipe;
+            if ($rec) {
+                $batchQty = max(1, (int)$rec->batch_qty);
+                $estKain = 0;
+                $skuKain = '';
+                foreach ($rec->items as $rItem) {
+                    $invName = $rItem->inventoryItem->name ?? '';
+                    if (empty($skuKain) || str_contains(strtolower($invName), 'kain') || str_contains(strtolower($invName), 'fabric')) {
+                        $skuKain = $invName;
+                        $estKain = round((float)$rItem->quantity / $batchQty, 2);
+                    }
+                }
+                $penjahit = '';
+                $vendorKancing = '';
+                foreach ($rec->labors as $rLabor) {
+                    $sName = strtolower($rLabor->service_name);
+                    if (str_contains($sName, 'kancing') || str_contains($sName, 'lkpk')) {
+                        $vendorKancing = $rLabor->service_name;
+                    } elseif (str_contains($sName, 'jahit') || empty($penjahit)) {
+                        $penjahit = $rLabor->service_name;
+                    }
+                }
+                $recipeData = [
+                    'sku' => $prod->sku,
+                    'name' => $prod->name,
+                    'sku_kain' => $skuKain,
+                    'est_kain' => $estKain,
+                    'penjahit' => $penjahit,
+                    'vendor_kancing' => $vendorKancing,
+                ];
+                if (!empty($prod->sku)) {
+                    $recipesMap[strtoupper(trim($prod->sku))] = $recipeData;
+                }
+                if (!empty($prod->sku_induk)) {
+                    $recipesMap[strtoupper(trim($prod->sku_induk))] = $recipeData;
+                }
+            }
+        }
 
-        return view('inventory.spks.create', compact('products', 'tailors', 'laborServices', 'order', 'stores', 'existingNoProduksi', 'defaultNoProduksi'));
+        return view('inventory.spks.create', compact('products', 'tailors', 'laborServices', 'order', 'stores', 'existingNoProduksi', 'defaultNoProduksi', 'recipesMap'));
     }
 
     public function store(Request $request)
