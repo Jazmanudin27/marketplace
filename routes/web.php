@@ -563,6 +563,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/spks/items/{item}/pickup', [\App\Http\Controllers\Inventory\SpkController::class, 'storePickup'])->name('spks.items.store_pickup');
         Route::delete('/spks/pickups/{pickup}', [\App\Http\Controllers\Inventory\SpkController::class, 'destroyPickup'])->name('spks.pickups.destroy');
         Route::post('/spks/{spk}/toggle-urgent', [\App\Http\Controllers\Inventory\SpkController::class, 'toggleUrgent'])->name('spks.toggle_urgent');
+        Route::post('/spks/{spk}/pay-labor', [\App\Http\Controllers\Inventory\SpkController::class, 'payLabor'])->name('spks.pay_labor');
 
         // Stock Sync
         Route::get('/stock-sync', [StockSyncController::class, 'index'])->name('inventory.stock_sync');

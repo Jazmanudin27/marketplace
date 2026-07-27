@@ -852,6 +852,9 @@
         {{-- ── SUBMIT BAR ── --}}
         <div class="spk-submit-bar">
             <a href="{{ route('spks.index') }}" class="btn btn-sm btn-outline-secondary px-4">Batal</a>
+            <button type="button" class="btn btn-sm btn-warning text-dark fw-bold px-3 me-1" data-bs-toggle="modal" data-bs-target="#modalPayLabor">
+                💳 Bayar Ongkos Jasa
+            </button>
             <a href="{{ route('spks.print', $spk) }}" target="_blank" class="btn btn-sm btn-outline-primary fw-bold px-4">
                 🖨️ Cetak Lembar SPK
             </a>
@@ -1071,6 +1074,70 @@
                     </button>
                 </div>
             </div>
+        </div>
+    </div>
+</div>
+
+{{-- POPUP MODAL 3: CATAT PEMBAYARAN ONGKOS JASA SPK --}}
+<div class="modal fade" id="modalPayLabor" tabindex="-1" aria-labelledby="modalPayLaborLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <form action="{{ route('spks.pay_labor', $spk) }}" method="POST">
+                @csrf
+                <div class="modal-header bg-warning text-dark py-3 px-4">
+                    <h6 class="modal-title fw-bold" id="modalPayLaborLabel">
+                        💳 Catat Pembayaran Ongkos Jasa SPK (#{{ $spk->no_produksi ?: $spk->no_spk }})
+                    </h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4" style="background:#f8fafc;">
+                    <div class="alert alert-info py-2 px-3 mb-3 border-0 shadow-sm" style="font-size:12px;">
+                        Catat pembayaran kas out / pengeluaran untuk ongkos Jasa Pemotong, Penjahit, QC, Kancing &amp; Finishing dari SPK ini.
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold text-secondary" style="font-size:12px;">NOMINAL PEMBAYARAN ONGKOS JASA (RP)</label>
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-text bg-white fw-bold">Rp</span>
+                            <input type="number" name="amount" class="form-control form-control-sm fw-bold text-end fs-6" 
+                                value="{{ $totalSpkLaborCost > 0 ? (int)$totalSpkLaborCost : 0 }}" required min="1" step="1">
+                        </div>
+                        <small class="text-muted" style="font-size:11px;">Nominal otomatis terisi dari total estimasi ongkos jasa SPK ini.</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold text-secondary" style="font-size:12px;">SUMBER KAS / REKENING PEMBAYARAN</label>
+                        <select name="payment_source" class="form-select form-select-sm" required>
+                            <option value="kas_kecil">Kas Kecil (Petty Cash)</option>
+                            <option value="kas_besar" selected>Kas Besar (Main Cash)</option>
+                            @if(isset($bankAccounts) && count($bankAccounts) > 0)
+                                <optgroup label="Rekening Bank">
+                                    @foreach($bankAccounts as $bank)
+                                        <option value="{{ $bank->id }}">{{ $bank->bank_name }} - {{ $bank->account_number }} (a.n {{ $bank->account_name }})</option>
+                                    @endforeach
+                                </optgroup>
+                            @endif
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold text-secondary" style="font-size:12px;">TANGGAL PEMBAYARAN</label>
+                        <input type="date" name="expense_date" class="form-control form-control-sm" value="{{ date('Y-m-d') }}" required>
+                    </div>
+
+                    <div class="mb-0">
+                        <label class="form-label fw-semibold text-secondary" style="font-size:12px;">CATATAN / KETERANGAN</label>
+                        <textarea name="description" class="form-control form-control-sm" rows="2" 
+                            placeholder="Catatan pembayaran jasa (opsional)...">Pembayaran Ongkos Jasa SPK #{{ $spk->no_produksi ?: $spk->no_spk }}</textarea>
+                    </div>
+                </div>
+                <div class="modal-footer bg-white border-top py-2 px-4 d-flex justify-content-between">
+                    <button type="button" class="btn btn-sm btn-outline-secondary px-3" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-sm btn-warning fw-bold px-4 text-dark">
+                        💳 Catat Pembayaran Kas
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 </div>

@@ -806,12 +806,20 @@ class SpkController extends Controller
             $siblingSpks = collect([$spk]);
         }
 
+        $bankAccounts = \App\Models\BankAccount::where('tenant_id', $tenantId)->where('is_active', true)->get();
+        $totalSpkLaborCost = 0;
+        foreach ($spk->items as $item) {
+            foreach ($item->extras as $extra) {
+                $totalSpkLaborCost += (float)$extra->nominal;
+            }
+        }
+
         return view('inventory.spks.show', compact(
             'spk', 'grouped', 'statusOptions', 'sizesHeader', 'progresMap',
             'products', 'tailors', 'pemotongList', 'penjahitList', 'vendorKancingList', 'petugasQcList',
             'laborServices', 'stores', 'existingNoProduksi', 'recipesMap',
             'inventoryItems', 'inventoryItemsMap', 'allMasterProductsList',
-            'siblingSpks'
+            'siblingSpks', 'bankAccounts', 'totalSpkLaborCost'
         ));
     }
 
@@ -1885,5 +1893,46 @@ class SpkController extends Controller
                 'is_active' => true,
             ]);
         }
+    }
+
+    /**
+     * Catat Pembayaran Ongkos Jasa SPK ke Pengeluaran Kas (Expense).
+     */
+    public function payLabor(Request $request, Spk $spk)
+    {
+        $tenantId = Auth::user()->tenant_id;
+        abort_unless($spk->tenant_id === $tenantId, 403);
+
+        $request->validate([
+            'amount'         => 'required|numeric|min:1',
+            'payment_source' => 'required|string',
+            'expense_date'   => 'required|date',
+            'description'    => 'nullable|string|max:500',
+        ]);
+
+        $amount = floatval($request->amount);
+        $spkCode = $spk->no_produksi ?: $spk->no_spk;
+        $title = 'Pembayaran Ongkos Jasa SPK #' . $spkCode;
+        $description = $request->description ?: ('Pembayaran Ongkos Jasa Pemotong / Penjahit / QC / Finishing untuk SPK #' . $spkCode);
+
+        $expense = \App\Models\Expense::create([
+            'tenant_id'      => $tenantId,
+            'employee_id'    => Auth::id(),
+            'title'          => $title,
+            'category'       => 'salary',
+            'payment_source' => $request->payment_source,
+            'amount'         => $amount,
+            'expense_date'   => $request->expense_date,
+            'description'    => $description,
+        ]);
+
+        if (is_numeric($request->payment_source)) {
+            $bank = \App\Models\BankAccount::where('tenant_id', $tenantId)->find($request->payment_source);
+            if ($bank) {
+                $bank->decrement('current_balance', $amount);
+            }
+        }
+
+        return redirect()->back()->with('success', '💳 Pembayaran Ongkos Jasa sebesar Rp ' . number_format($amount, 0, ',', '.') . ' berhasil dicatat ke Pengeluaran Kas (#EXP-' . $expense->id . ')!');
     }
 }
