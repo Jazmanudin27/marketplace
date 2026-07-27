@@ -843,32 +843,63 @@ class SpkController extends Controller
                 $noProduksi = null;
             }
 
+            $linkFileMentah = $request->input('link_file_mentah');
+            if (!$linkFileMentah && $request->has('rincian')) {
+                foreach ($request->input('rincian') as $rBlock) {
+                    if (!empty($rBlock['link_file_mentah'])) {
+                        $linkFileMentah = $rBlock['link_file_mentah'];
+                        break;
+                    }
+                }
+            }
+
             $updateData = [
-                'no_produksi'    => $noProduksi,
-                'no_pesanan'     => $request->no_pesanan,
-                'tanggal'        => $request->tanggal,
-                'deadline'       => $request->deadline ?: null,
-                'tipe_spk'       => $request->input('tipe_spk', $spk->tipe_spk ?: 'pesanan_pelanggan'),
-                'kategori'       => $request->kategori,
-                'is_urgent'      => $request->boolean('is_urgent'),
-                'tahap_saat_ini' => $request->input('tahap_saat_ini', $spk->tahap_saat_ini ?: 'DRAFT'),
-                'pemesan'        => $request->pemesan,
-                'no_hp_pemesan'  => $request->no_hp_pemesan,
-                'instansi'       => $request->instansi,
-                'nama_pic'       => $request->nama_pic,
-                'tambahan'       => $request->tambahan,
+                'no_produksi'      => $noProduksi,
+                'no_pesanan'       => $request->no_pesanan,
+                'tanggal'          => $request->tanggal,
+                'deadline'         => $request->deadline ?: null,
+                'tipe_spk'         => $request->input('tipe_spk', $spk->tipe_spk ?: 'pesanan_pelanggan'),
+                'kategori'         => $request->kategori,
+                'is_urgent'        => $request->boolean('is_urgent'),
+                'tahap_saat_ini'   => $request->input('tahap_saat_ini', $spk->tahap_saat_ini ?: 'DRAFT'),
+                'pemesan'          => $request->pemesan,
+                'no_hp_pemesan'    => $request->no_hp_pemesan,
+                'instansi'         => $request->instansi,
+                'nama_pic'         => $request->nama_pic,
+                'tambahan'         => $request->tambahan,
+                'link_file_mentah' => $linkFileMentah,
             ];
 
             if ($request->hasFile('image')) {
                 $p = $request->file('image')->store('spks', 'public');
                 $updateData['image_url'] = Storage::url($p);
             }
-            if ($request->hasFile('referensi_klien')) {
-                $p = $request->file('referensi_klien')->store('spks/referensi', 'public');
+
+            $referensiFile = $request->file('referensi_klien') ?? $request->file('rincian.0.referensi_klien');
+            if (!$referensiFile && $request->hasFile('rincian')) {
+                foreach ((array)$request->file('rincian') as $rFile) {
+                    if (!empty($rFile['referensi_klien'])) {
+                        $referensiFile = $rFile['referensi_klien'];
+                        break;
+                    }
+                }
+            }
+            if ($referensiFile) {
+                $p = $referensiFile->store('spks/referensi', 'public');
                 $updateData['referensi_klien_url'] = Storage::url($p);
             }
-            if ($request->hasFile('mockup_final')) {
-                $p = $request->file('mockup_final')->store('spks/mockup', 'public');
+
+            $mockupFile = $request->file('mockup_final') ?? $request->file('rincian.0.mockup_final');
+            if (!$mockupFile && $request->hasFile('rincian')) {
+                foreach ((array)$request->file('rincian') as $rFile) {
+                    if (!empty($rFile['mockup_final'])) {
+                        $mockupFile = $rFile['mockup_final'];
+                        break;
+                    }
+                }
+            }
+            if ($mockupFile) {
+                $p = $mockupFile->store('spks/mockup', 'public');
                 $updateData['mockup_url'] = Storage::url($p);
             }
 

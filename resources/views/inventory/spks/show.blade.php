@@ -645,28 +645,26 @@
                     <div class="row g-3 mb-4">
                         <div class="col-md-6">
                             <div class="section-label">REFERENSI KLIEN (FOTO / SKETSA)</div>
-                            <div class="upload-zone {{ $spk->referensi_klien_url ? 'has-file' : '' }}">
-                                <input type="file" name="rincian[{{ $rIdx }}][referensi_klien]" class="input-referensi" accept="image/*">
-                                @if($spk->referensi_klien_url)
-                                    <img src="{{ $spk->referensi_klien_url }}" alt="Referensi Klien" style="max-height:80px; border-radius:6px; object-fit:contain;">
-                                @else
+                            <div class="upload-zone {{ $spk->referensi_klien_url ? 'has-file' : '' }}" id="ref-drop-zone">
+                                <input type="file" name="referensi_klien" id="input-referensi-klien" class="input-referensi" accept="image/*">
+                                <img id="ref-preview-img" src="{{ $spk->referensi_klien_url ?: '' }}" alt="Referensi Klien" class="{{ $spk->referensi_klien_url ? '' : 'd-none' }}" style="max-height:80px; border-radius:6px; object-fit:contain;">
+                                <div id="ref-placeholder-content" class="{{ $spk->referensi_klien_url ? 'd-none' : '' }}">
                                     <div class="uz-icon">🖼️</div>
                                     <div class="uz-label">Upload foto referensi / sketsa pakaian</div>
                                     <small class="text-muted" style="font-size:10px;">Format JPG/PNG maks 8MB</small>
-                                @endif
+                                </div>
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="section-label">MOCKUP FINAL (ACC KLIEN)</div>
-                            <div class="upload-zone {{ $spk->mockup_url ? 'has-file' : '' }}">
-                                <input type="file" name="rincian[{{ $rIdx }}][mockup_final]" class="input-mockup" accept="image/*">
-                                @if($spk->mockup_url)
-                                    <img src="{{ $spk->mockup_url }}" alt="Mockup Final" style="max-height:80px; border-radius:6px; object-fit:contain;">
-                                @else
+                            <div class="upload-zone {{ $spk->mockup_url ? 'has-file' : '' }}" id="mockup-drop-zone">
+                                <input type="file" name="mockup_final" id="input-mockup-final" class="input-mockup" accept="image/*">
+                                <img id="mockup-preview-img" src="{{ $spk->mockup_url ?: '' }}" alt="Mockup Final" class="{{ $spk->mockup_url ? '' : 'd-none' }}" style="max-height:80px; border-radius:6px; object-fit:contain;">
+                                <div id="mockup-placeholder-content" class="{{ $spk->mockup_url ? 'd-none' : '' }}">
                                     <div class="uz-icon">✨</div>
                                     <div class="uz-label">Upload gambar mockup hasil desain final</div>
                                     <small class="text-muted" style="font-size:10px;">Format JPG/PNG maks 8MB</small>
-                                @endif
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -1140,6 +1138,50 @@
                         previewImg.classList.remove('d-none');
                         if (placeholder) placeholder.classList.add('d-none');
                         dropArea.classList.add('has-image');
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+        }
+
+        // 1b. Referensi Klien Preview
+        const refInput = document.getElementById('input-referensi-klien');
+        const refPreview = document.getElementById('ref-preview-img');
+        const refPlaceholder = document.getElementById('ref-placeholder-content');
+        const refDropZone = document.getElementById('ref-drop-zone');
+
+        if (refInput && refPreview) {
+            refInput.addEventListener('change', function () {
+                const file = this.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function (e) {
+                        refPreview.src = e.target.result;
+                        refPreview.classList.remove('d-none');
+                        if (refPlaceholder) refPlaceholder.classList.add('d-none');
+                        if (refDropZone) refDropZone.classList.add('has-file');
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+        }
+
+        // 1c. Mockup Final Preview
+        const mockupInput = document.getElementById('input-mockup-final');
+        const mockupPreview = document.getElementById('mockup-preview-img');
+        const mockupPlaceholder = document.getElementById('mockup-placeholder-content');
+        const mockupDropZone = document.getElementById('mockup-drop-zone');
+
+        if (mockupInput && mockupPreview) {
+            mockupInput.addEventListener('change', function () {
+                const file = this.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function (e) {
+                        mockupPreview.src = e.target.result;
+                        mockupPreview.classList.remove('d-none');
+                        if (mockupPlaceholder) mockupPlaceholder.classList.add('d-none');
+                        if (mockupDropZone) mockupDropZone.classList.add('has-file');
                     };
                     reader.readAsDataURL(file);
                 }
