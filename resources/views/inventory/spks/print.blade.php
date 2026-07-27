@@ -339,106 +339,115 @@
                         | ADMIN: {{ strtoupper($currentSpk->nama_pic ?: ($currentSpk->penginput->name ?? 'SYSTEM')) }}
                     </div>
 
-                    <!-- 1. Table Rincian Varian Produk -->
-                    <div class="banner-blue">
-                        RINCIAN VARIAN PRODUK ({{ strtoupper($firstVarName) }})
-                    </div>
-                    <table class="grid-table">
-                        <thead>
-                            <tr>
-                                <th rowspan="2" style="width: 26%;">Model Varian</th>
-                                <th colspan="6">Size Target / Potong</th>
-                                <th rowspan="2" style="width: 10%; background: #dc2626; color: #fff;">Total QTY</th>
-                                <th colspan="2">Quality Control</th>
-                                <th rowspan="2" style="width: 16%;">Finishing / Packing</th>
-                            </tr>
-                            <tr>
-                                <th style="width: 6.5%;">S</th>
-                                <th style="width: 6.5%;">M</th>
-                                <th style="width: 6.5%;">L</th>
-                                <th style="width: 6.5%;">XL</th>
-                                <th style="width: 6.5%;">XXL</th>
-                                <th style="width: 6.5%;">3XL</th>
-                                <th style="width: 9%;">Lolos</th>
-                                <th style="width: 9%;">Reject</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @forelse($variantRows as $varRow)
-                                <tr>
-                                    <td style="text-align: left; font-weight: bold; padding-left: 4px;">{{ $varRow['name'] }}</td>
-                                    <td style="{{ !empty($varRow['sizes']['S']) ? 'color:#dc2626; font-weight:bold;' : '' }}">{{ $varRow['sizes']['S'] ?? '' }}</td>
-                                    <td style="{{ !empty($varRow['sizes']['M']) ? 'color:#dc2626; font-weight:bold;' : '' }}">{{ $varRow['sizes']['M'] ?? '' }}</td>
-                                    <td style="{{ !empty($varRow['sizes']['L']) ? 'color:#dc2626; font-weight:bold;' : '' }}">{{ $varRow['sizes']['L'] ?? '' }}</td>
-                                    <td style="{{ !empty($varRow['sizes']['XL']) ? 'color:#dc2626; font-weight:bold;' : '' }}">{{ $varRow['sizes']['XL'] ?? '' }}</td>
-                                    <td style="{{ !empty($varRow['sizes']['XXL']) ? 'color:#dc2626; font-weight:bold;' : '' }}">{{ $varRow['sizes']['XXL'] ?? '' }}</td>
-                                    <td style="{{ !empty($varRow['sizes']['3XL']) ? 'color:#dc2626; font-weight:bold;' : '' }}">{{ $varRow['sizes']['3XL'] ?? '' }}</td>
-                                    <td style="background: #dc2626; color: #fff; font-weight: 900; font-size: 11px;">
-                                        {{ $varRow['total'] }}
-                                    </td>
-                                    <td></td>
-                                    <td></td>
-                                    <td></td>
-                                </tr>
-                            @empty
-                                <tr>
-                                    <td colspan="11" class="text-center text-muted">Tidak ada rincian varian produk.</td>
-                                </tr>
-                            @endforelse
-                        </tbody>
-                    </table>
+                    <!-- Table Layout: Col 8 (Rincian Varian) & Col 4 (Rekap Bahan) -->
+                    <table style="width: 100%; border-collapse: collapse; margin-bottom: 3px;">
+                        <tr>
+                            <!-- COL 8: RINCIAN VARIAN PRODUK -->
+                            <td style="width: 66%; vertical-align: top; padding-right: 4px;">
+                                <div class="banner-blue">
+                                    RINCIAN VARIAN PRODUK ({{ strtoupper($firstVarName) }})
+                                </div>
+                                <table class="grid-table">
+                                    <thead>
+                                        <tr>
+                                            <th rowspan="2" style="width: 26%;">Model Varian</th>
+                                            <th colspan="6">Size Target / Potong</th>
+                                            <th rowspan="2" style="width: 10%; background: #dc2626; color: #fff;">Total QTY</th>
+                                            <th colspan="2">Quality Control</th>
+                                            <th rowspan="2" style="width: 16%;">Finishing / Packing</th>
+                                        </tr>
+                                        <tr>
+                                            <th style="width: 6.5%;">S</th>
+                                            <th style="width: 6.5%;">M</th>
+                                            <th style="width: 6.5%;">L</th>
+                                            <th style="width: 6.5%;">XL</th>
+                                            <th style="width: 6.5%;">XXL</th>
+                                            <th style="width: 6.5%;">3XL</th>
+                                            <th style="width: 9%;">Lolos</th>
+                                            <th style="width: 9%;">Reject</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @forelse($variantRows as $varRow)
+                                            <tr>
+                                                <td style="text-align: left; font-weight: bold; padding-left: 4px;">{{ $varRow['name'] }}</td>
+                                                <td style="{{ !empty($varRow['sizes']['S']) ? 'color:#dc2626; font-weight:bold;' : '' }}">{{ $varRow['sizes']['S'] ?? '' }}</td>
+                                                <td style="{{ !empty($varRow['sizes']['M']) ? 'color:#dc2626; font-weight:bold;' : '' }}">{{ $varRow['sizes']['M'] ?? '' }}</td>
+                                                <td style="{{ !empty($varRow['sizes']['L']) ? 'color:#dc2626; font-weight:bold;' : '' }}">{{ $varRow['sizes']['L'] ?? '' }}</td>
+                                                <td style="{{ !empty($varRow['sizes']['XL']) ? 'color:#dc2626; font-weight:bold;' : '' }}">{{ $varRow['sizes']['XL'] ?? '' }}</td>
+                                                <td style="{{ !empty($varRow['sizes']['XXL']) ? 'color:#dc2626; font-weight:bold;' : '' }}">{{ $varRow['sizes']['XXL'] ?? '' }}</td>
+                                                <td style="{{ !empty($varRow['sizes']['3XL']) ? 'color:#dc2626; font-weight:bold;' : '' }}">{{ $varRow['sizes']['3XL'] ?? '' }}</td>
+                                                <td style="background: #dc2626; color: #fff; font-weight: 900; font-size: 11px;">
+                                                    {{ $varRow['total'] }}
+                                                </td>
+                                                <td></td>
+                                                <td></td>
+                                                <td></td>
+                                            </tr>
+                                        @empty
+                                            <tr>
+                                                <td colspan="11" class="text-center text-muted">Tidak ada rincian varian produk.</td>
+                                            </tr>
+                                        @endforelse
+                                    </tbody>
+                                </table>
+                            </td>
 
-                    <!-- 2. Table Rekap Kebutuhan & Pemakaian Kain (Hanya Munculkan 1 Bahan Pertama) -->
-                    @php
-                        $firstBazaItem = !empty($bazaItems) ? reset($bazaItems) : null;
-                    @endphp
-                    <div class="banner-slate">
-                        REKAP KEBUTUHAN &amp; PEMAKAIAN KAIN
-                    </div>
-                    <table class="grid-table mb-1">
-                        <thead>
-                            <tr>
-                                <th style="width: 40%; text-align: left; padding-left: 6px;">SKU Kain / Bahan</th>
-                                <th style="width: 15%;">Estimasi (m)</th>
-                                <th style="width: 15%;">Ready (m)</th>
-                                <th style="width: 15%;">Pakai (m)</th>
-                                <th style="width: 15%;">Sisa (m)</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @if($firstBazaItem)
+                            <!-- COL 4: REKAP KEBUTUHAN & PEMAKAIAN KAIN -->
+                            <td style="width: 34%; vertical-align: top; padding-left: 4px;">
                                 @php
-                                    $rawQty = $firstBazaItem['qty'];
-                                    if (is_numeric($rawQty)) {
-                                        $num = (float) $rawQty;
-                                        if ($num > 15) {
-                                            $num = $num / 100;
-                                        }
-                                        $formattedQty = number_format($num, 3, ',', '.');
-                                        $formattedQty = rtrim(rtrim($formattedQty, '0'), ',');
-                                    } else {
-                                        $formattedQty = $rawQty;
-                                    }
+                                    $firstBazaItem = !empty($bazaItems) ? reset($bazaItems) : null;
                                 @endphp
-                                <tr>
-                                    <td style="text-align: left; font-weight: bold; padding-left: 6px;">{{ $firstBazaItem['name'] }}</td>
-                                    <td>{{ $formattedQty }}</td>
-                                    <td></td>
-                                    <td></td>
-                                    <td></td>
-                                </tr>
-                            @else
-                                <tr>
-                                    <td style="text-align: left; font-weight: bold; padding-left: 6px;">
-                                        {{ $currentSpk->sku_kain ?: 'BAHAN UMUM / KAIN UTAMA' }}
-                                    </td>
-                                    <td>—</td>
-                                    <td></td>
-                                    <td></td>
-                                    <td></td>
-                                </tr>
-                            @endif
-                        </tbody>
+                                <div class="banner-slate">
+                                    REKAP KEBUTUHAN &amp; PEMAKAIAN KAIN
+                                </div>
+                                <table class="grid-table">
+                                    <thead>
+                                        <tr style="height: 25px;">
+                                            <th style="width: 40%; text-align: left; padding-left: 4px; vertical-align: middle;">SKU Kain / Bahan</th>
+                                            <th style="width: 15%; vertical-align: middle;">Estimasi (m)</th>
+                                            <th style="width: 15%; vertical-align: middle;">Ready (m)</th>
+                                            <th style="width: 15%; vertical-align: middle;">Pakai (m)</th>
+                                            <th style="width: 15%; vertical-align: middle;">Sisa (m)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @if($firstBazaItem)
+                                            @php
+                                                $rawQty = $firstBazaItem['qty'];
+                                                if (is_numeric($rawQty)) {
+                                                    $num = (float) $rawQty;
+                                                    if ($num > 15) {
+                                                        $num = $num / 100;
+                                                    }
+                                                    $formattedQty = number_format($num, 3, ',', '.');
+                                                    $formattedQty = rtrim(rtrim($formattedQty, '0'), ',');
+                                                } else {
+                                                    $formattedQty = $rawQty;
+                                                }
+                                            @endphp
+                                            <tr>
+                                                <td style="text-align: left; font-weight: bold; padding-left: 4px;">{{ $firstBazaItem['name'] }}</td>
+                                                <td>{{ $formattedQty }}</td>
+                                                <td></td>
+                                                <td></td>
+                                                <td></td>
+                                            </tr>
+                                        @else
+                                            <tr>
+                                                <td style="text-align: left; font-weight: bold; padding-left: 4px;">
+                                                    {{ $currentSpk->sku_kain ?: 'BAHAN UMUM / KAIN UTAMA' }}
+                                                </td>
+                                                <td>—</td>
+                                                <td></td>
+                                                <td></td>
+                                                <td></td>
+                                            </tr>
+                                        @endif
+                                    </tbody>
+                                </table>
+                            </td>
+                        </tr>
                     </table>
 
                     <!-- Catatan / Keterangan Box -->
