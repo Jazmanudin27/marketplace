@@ -41,8 +41,8 @@
         /* ── Half A4 Slip Card ── */
         .spk-slip-card {
             width: 100%;
-            height: 140mm;
-            max-height: 142mm;
+            height: 144mm;
+            max-height: 146mm;
             padding: 2px 4px;
             position: relative;
             overflow: hidden;
@@ -154,7 +154,7 @@
             text-align: center;
             margin-bottom: 3px;
             background: #fff;
-            height: 180px;
+            height: 245px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -162,7 +162,7 @@
         }
 
         .design-img {
-            max-height: 172px;
+            max-height: 236px;
             max-width: 98%;
             object-fit: contain;
         }
