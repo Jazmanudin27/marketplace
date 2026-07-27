@@ -72,11 +72,13 @@ class SpkController extends Controller
             $query->where('tipe_spk', $request->tipe_spk);
         }
 
-        // Group SQL query by Nomor Produksi (or no_spk if no_produksi is empty)
+        // Group SQL query by Nomor Produksi (or no_pesanan / created_at timestamp if no_produksi is empty)
+        $groupExpr = DB::raw("COALESCE(NULLIF(TRIM(no_produksi), ''), NULLIF(TRIM(no_pesanan), ''), DATE_FORMAT(created_at, '%Y-%m-%d %H:%i:%s'))");
+
         $subQuery = (clone $query)
             ->reorder()
-            ->select(DB::raw("COALESCE(NULLIF(TRIM(no_produksi), ''), no_spk) as prod_group"), DB::raw('MAX(id) as max_id'))
-            ->groupBy(DB::raw("COALESCE(NULLIF(TRIM(no_produksi), ''), no_spk)"));
+            ->select($groupExpr, DB::raw('MAX(id) as max_id'))
+            ->groupBy($groupExpr);
 
         $groupedMaxIds = $subQuery->pluck('max_id');
 
@@ -102,7 +104,13 @@ class SpkController extends Controller
             if (!empty($spkItem->no_produksi) && isset($siblingSpksMap[$spkItem->no_produksi])) {
                 $spkItem->sub_spks = $siblingSpksMap[$spkItem->no_produksi];
             } else {
-                $spkItem->sub_spks = collect([$spkItem]);
+                // If no_produksi is empty, find siblings created in the exact same transaction (same created_at down to minute)
+                $siblings = Spk::with(['items.masterProduct', 'proses'])
+                    ->where('tenant_id', $tenantId)
+                    ->where('created_at', $spkItem->created_at)
+                    ->orderBy('id')
+                    ->get();
+                $spkItem->sub_spks = $siblings->isNotEmpty() ? $siblings : collect([$spkItem]);
             }
         }
 
@@ -310,7 +318,7 @@ class SpkController extends Controller
         $spk = DB::transaction(function () use ($request, $tenantId, $imagePath) {
             $noProduksi = trim((string) $request->input('no_produksi'));
             if (empty($noProduksi)) {
-                $noProduksi = null; // DRAFT - no produksi code yet
+                $noProduksi = Spk::generateNoProduksi();
             }
 
             $tahapSaatIni = $request->input('tahap_saat_ini', 'DRAFT');
