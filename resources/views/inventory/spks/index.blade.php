@@ -211,6 +211,7 @@
                     $spkCount = $spkGroup->count();
                     $totalPcsGroup = $spkGroup->sum(fn($s) => $s->total_pcs);
                     $isUrgentGroup = $spkGroup->contains('is_urgent', true);
+                    $isDraftGroup = $spkGroup->contains(fn($s) => str_contains(strtoupper($s->current_stage_name), 'DRAFT') || str_contains(strtoupper($s->tahap_saat_ini ?? ''), 'DRAFT'));
 
                     // CRITICAL REQUIREMENT: Take main image specifically from SPK 1 (first SPK in group)
                     $firstSpk = $spkGroup->first() ?? $row;
@@ -269,6 +270,13 @@
                             </div>
 
                             <div class="d-flex align-items-center gap-1">
+                                @if ($isDraftGroup)
+                                    <span class="badge bg-secondary bg-opacity-15 text-dark border border-secondary border-opacity-25 rounded-pill px-2 py-0.5 fw-bold"
+                                        style="font-size: 9.5px;">
+                                        📝 DRAFT (Belum Deal)
+                                    </span>
+                                @endif
+
                                 @if ($spkCount > 1)
                                     <span
                                         class="badge bg-success bg-opacity-15 text-white rounded-pill px-2 py-0.5 fw-bold"
@@ -389,10 +397,16 @@
                                         @php
                                             // Stage color mapping
                                             $stageName = strtoupper($subSpk->current_stage_name);
+                                            $stageDisplayName = $stageName;
                                             $badgeBg = '#eff6ff';
                                             $badgeFg = '#2563eb';
                                             $badgeBorder = '#dbeafe';
-                                            if (str_contains($stageName, 'POTONG')) {
+                                            if (str_contains($stageName, 'DRAFT')) {
+                                                $badgeBg = '#f1f5f9';
+                                                $badgeFg = '#475569';
+                                                $badgeBorder = '#cbd5e1';
+                                                $stageDisplayName = '📝 DRAFT (BELUM DEAL)';
+                                            } elseif (str_contains($stageName, 'POTONG')) {
                                                 $badgeBg = '#e0f2fe';
                                                 $badgeFg = '#0369a1';
                                                 $badgeBorder = '#bae6fd';
@@ -427,7 +441,7 @@
                                                 <span
                                                     class="badge rounded-2 px-1.5 py-0.5 fw-extrabold text-uppercase flex-shrink-0"
                                                     style="font-size: 9px; background-color: {{ $badgeBg }}; color: {{ $badgeFg }}; border: 1px solid {{ $badgeBorder }};">
-                                                    {{ $stageName }}
+                                                    {{ $stageDisplayName }}
                                                 </span>
                                             </div>
                                             {{-- Line 2: Qty & Varian --}}
