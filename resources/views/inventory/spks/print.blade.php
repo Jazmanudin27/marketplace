@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8">
     <title>Cetak SPK Perintah Kerja - {{ $spk->no_produksi ?: $spk->no_spk }}</title>
@@ -149,11 +150,11 @@
         .design-box-frame {
             border: 1.5px dashed #64748b;
             border-radius: 8px;
-            padding: 3px;
+            padding: 4px;
             text-align: center;
             margin-bottom: 3px;
             background: #fff;
-            height: 135px;
+            height: 180px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -161,7 +162,7 @@
         }
 
         .design-img {
-            max-height: 128px;
+            max-height: 172px;
             max-width: 98%;
             object-fit: contain;
         }
@@ -221,7 +222,8 @@
             margin-bottom: 4px;
         }
 
-        .grid-table th, .grid-table td {
+        .grid-table th,
+        .grid-table td {
             border: 1px solid #000;
             padding: 2px 3px;
             text-align: center;
@@ -260,11 +262,18 @@
         }
 
         @media print {
-            .no-print { display: none !important; }
-            body { margin: 0; padding: 0; }
+            .no-print {
+                display: none !important;
+            }
+
+            body {
+                margin: 0;
+                padding: 0;
+            }
         }
     </style>
 </head>
+
 <body onload="window.print()">
 
     @php
@@ -272,19 +281,19 @@
         $totalBlocks = count($spkBlocks);
     @endphp
 
-    @foreach($spkBlocks as $bIdx => $block)
+    @foreach ($spkBlocks as $bIdx => $block)
         @php
-            $currentSpk  = $block['spk'];
+            $currentSpk = $block['spk'];
             $variantRows = $block['variantRows'];
-            $bazaItems   = $block['bazaItems'];
+            $bazaItems = $block['bazaItems'];
             $firstVarName = !empty($variantRows) ? array_key_first($variantRows) : 'MODEL VARIAN';
         @endphp
 
         {{-- Print 2 Copies per SPK (Lembar 1: Tim Produksi, Lembar 2: Arsip Kantor/Finishing) --}}
-        @foreach([1, 2] as $copyNum)
+        @foreach ([1, 2] as $copyNum)
             @php
                 $globalSlipCount++;
-                $isEvenSlip = ($globalSlipCount % 2 === 0);
+                $isEvenSlip = $globalSlipCount % 2 === 0;
             @endphp
 
             <div class="spk-slip-card">
@@ -298,19 +307,26 @@
                     <table class="header-table">
                         <tr>
                             <td class="header-left">
-                                <div><span style="color:#475569;">NO PRODUKSI :</span> <span class="val-mono">{{ $currentSpk->no_produksi ?: '—' }}</span></div>
-                                <div style="margin-top: 2px;"><span style="color:#475569;">NO PESANAN :</span> <span class="val-mono">{{ $currentSpk->no_spk }}</span></div>
+                                <div><span style="color:#475569;">NO PRODUKSI :</span> <span
+                                        class="val-mono">{{ $currentSpk->no_produksi ?: '—' }}</span></div>
+                                <div style="margin-top: 2px;"><span style="color:#475569;">NO PESANAN :</span> <span
+                                        class="val-mono">{{ $currentSpk->no_spk }}</span></div>
                             </td>
                             <td class="header-center">
                                 <h1 class="spk-title-main">S P K</h1>
                                 <div class="spk-sub-main">SURAT PERINTAH KERJA</div>
                             </td>
                             <td class="header-right">
-                                <div><span style="color:#475569;">ORDER DATE :</span> <strong>{{ $currentSpk->tanggal ? $currentSpk->tanggal->format('Y-m-d') : date('Y-m-d') }}</strong></div>
-                                <div style="margin-top: 2px;"><span style="color:#475569;">DEADLINE :</span> <span class="text-danger fw-bold">{{ $currentSpk->deadline ? $currentSpk->deadline->format('Y-m-d') : '—' }}</span></div>
+                                <div><span style="color:#475569;">ORDER DATE :</span>
+                                    <strong>{{ $currentSpk->tanggal ? $currentSpk->tanggal->format('Y-m-d') : date('Y-m-d') }}</strong>
+                                </div>
+                                <div style="margin-top: 2px;"><span style="color:#475569;">DEADLINE :</span> <span
+                                        class="text-danger fw-bold">{{ $currentSpk->deadline ? $currentSpk->deadline->format('Y-m-d') : '—' }}</span>
+                                </div>
                             </td>
                             <td class="header-qr">
-                                <img src="https://api.qrserver.com/v1/create-qr-code/?size=48x48&data={{ $currentSpk->no_spk }}" alt="QR" style="width: 40px; height: 40px; display:block;">
+                                <img src="https://api.qrserver.com/v1/create-qr-code/?size=48x48&data={{ $currentSpk->no_spk }}"
+                                    alt="QR" style="width: 40px; height: 40px; display:block;">
                             </td>
                         </tr>
                     </table>
@@ -320,9 +336,10 @@
                     <!-- Design Box Frame -->
                     <div class="design-box-frame">
                         @php
-                            $imgSrc = $currentSpk->mockup_url ?: ($currentSpk->image_url ?: $currentSpk->referensi_klien_url);
+                            $imgSrc =
+                                $currentSpk->mockup_url ?: ($currentSpk->image_url ?: $currentSpk->referensi_klien_url);
                         @endphp
-                        @if($imgSrc)
+                        @if ($imgSrc)
                             <img src="{{ $imgSrc }}" class="design-img" alt="Desain SPK">
                         @else
                             <div class="design-placeholder-text">
@@ -334,9 +351,11 @@
                     <!-- Client & Admin Bar -->
                     <div class="pemesan-info-bar">
                         PEMESAN: {{ strtoupper($currentSpk->pemesan ?: 'INTERNAL / STOK GUDANG') }}
-                        @if($currentSpk->no_hp_pemesan) ({{ $currentSpk->no_hp_pemesan }}) @endif
+                        @if ($currentSpk->no_hp_pemesan)
+                            ({{ $currentSpk->no_hp_pemesan }})
+                        @endif
                         | INSTANSI: {{ strtoupper($currentSpk->instansi ?: '—') }}
-                        | ADMIN: {{ strtoupper($currentSpk->nama_pic ?: ($currentSpk->penginput->name ?? 'SYSTEM')) }}
+                        | ADMIN: {{ strtoupper($currentSpk->nama_pic ?: $currentSpk->penginput->name ?? 'SYSTEM') }}
                     </div>
 
                     <!-- Table Layout: Col 8 (Rincian Varian) & Col 4 (Rekap Bahan) -->
@@ -352,7 +371,8 @@
                                         <tr>
                                             <th rowspan="2" style="width: 26%;">Model Varian</th>
                                             <th colspan="6">Size Target / Potong</th>
-                                            <th rowspan="2" style="width: 10%; background: #dc2626; color: #fff;">Total QTY</th>
+                                            <th rowspan="2" style="width: 10%; background: #dc2626; color: #fff;">
+                                                Total QTY</th>
                                             <th colspan="2">Quality Control</th>
                                             <th rowspan="2" style="width: 16%;">Finishing / Packing</th>
                                         </tr>
@@ -370,14 +390,28 @@
                                     <tbody>
                                         @forelse($variantRows as $varRow)
                                             <tr>
-                                                <td style="text-align: left; font-weight: bold; padding-left: 4px;">{{ $varRow['name'] }}</td>
-                                                <td style="{{ !empty($varRow['sizes']['S']) ? 'color:#dc2626; font-weight:bold;' : '' }}">{{ $varRow['sizes']['S'] ?? '' }}</td>
-                                                <td style="{{ !empty($varRow['sizes']['M']) ? 'color:#dc2626; font-weight:bold;' : '' }}">{{ $varRow['sizes']['M'] ?? '' }}</td>
-                                                <td style="{{ !empty($varRow['sizes']['L']) ? 'color:#dc2626; font-weight:bold;' : '' }}">{{ $varRow['sizes']['L'] ?? '' }}</td>
-                                                <td style="{{ !empty($varRow['sizes']['XL']) ? 'color:#dc2626; font-weight:bold;' : '' }}">{{ $varRow['sizes']['XL'] ?? '' }}</td>
-                                                <td style="{{ !empty($varRow['sizes']['XXL']) ? 'color:#dc2626; font-weight:bold;' : '' }}">{{ $varRow['sizes']['XXL'] ?? '' }}</td>
-                                                <td style="{{ !empty($varRow['sizes']['3XL']) ? 'color:#dc2626; font-weight:bold;' : '' }}">{{ $varRow['sizes']['3XL'] ?? '' }}</td>
-                                                <td style="background: #dc2626; color: #fff; font-weight: 900; font-size: 11px;">
+                                                <td style="text-align: left; font-weight: bold; padding-left: 4px;">
+                                                    {{ $varRow['name'] }}</td>
+                                                <td
+                                                    style="{{ !empty($varRow['sizes']['S']) ? 'color:#dc2626; font-weight:bold;' : '' }}">
+                                                    {{ $varRow['sizes']['S'] ?? '' }}</td>
+                                                <td
+                                                    style="{{ !empty($varRow['sizes']['M']) ? 'color:#dc2626; font-weight:bold;' : '' }}">
+                                                    {{ $varRow['sizes']['M'] ?? '' }}</td>
+                                                <td
+                                                    style="{{ !empty($varRow['sizes']['L']) ? 'color:#dc2626; font-weight:bold;' : '' }}">
+                                                    {{ $varRow['sizes']['L'] ?? '' }}</td>
+                                                <td
+                                                    style="{{ !empty($varRow['sizes']['XL']) ? 'color:#dc2626; font-weight:bold;' : '' }}">
+                                                    {{ $varRow['sizes']['XL'] ?? '' }}</td>
+                                                <td
+                                                    style="{{ !empty($varRow['sizes']['XXL']) ? 'color:#dc2626; font-weight:bold;' : '' }}">
+                                                    {{ $varRow['sizes']['XXL'] ?? '' }}</td>
+                                                <td
+                                                    style="{{ !empty($varRow['sizes']['3XL']) ? 'color:#dc2626; font-weight:bold;' : '' }}">
+                                                    {{ $varRow['sizes']['3XL'] ?? '' }}</td>
+                                                <td
+                                                    style="background: #dc2626; color: #fff; font-weight: 900; font-size: 11px;">
                                                     {{ $varRow['total'] }}
                                                 </td>
                                                 <td></td>
@@ -386,7 +420,8 @@
                                             </tr>
                                         @empty
                                             <tr>
-                                                <td colspan="11" class="text-center text-muted">Tidak ada rincian varian produk.</td>
+                                                <td colspan="11" class="text-center text-muted">Tidak ada rincian
+                                                    varian produk.</td>
                                             </tr>
                                         @endforelse
                                     </tbody>
@@ -404,7 +439,9 @@
                                 <table class="grid-table">
                                     <thead>
                                         <tr style="height: 25px;">
-                                            <th style="width: 40%; text-align: left; padding-left: 4px; vertical-align: middle;">SKU Kain / Bahan</th>
+                                            <th
+                                                style="width: 40%; text-align: left; padding-left: 4px; vertical-align: middle;">
+                                                SKU Kain / Bahan</th>
                                             <th style="width: 15%; vertical-align: middle;">Estimasi (m)</th>
                                             <th style="width: 15%; vertical-align: middle;">Ready (m)</th>
                                             <th style="width: 15%; vertical-align: middle;">Pakai (m)</th>
@@ -412,7 +449,7 @@
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        @if($firstBazaItem)
+                                        @if ($firstBazaItem)
                                             @php
                                                 $rawQty = $firstBazaItem['qty'];
                                                 if (is_numeric($rawQty)) {
@@ -427,7 +464,8 @@
                                                 }
                                             @endphp
                                             <tr>
-                                                <td style="text-align: left; font-weight: bold; padding-left: 4px;">{{ $firstBazaItem['name'] }}</td>
+                                                <td style="text-align: left; font-weight: bold; padding-left: 4px;">
+                                                    {{ $firstBazaItem['name'] }}</td>
                                                 <td>{{ $formattedQty }}</td>
                                                 <td></td>
                                                 <td></td>
@@ -461,14 +499,14 @@
             </div>
 
             {{-- Separator or Page Break Logic --}}
-            @if(!$isEvenSlip)
+            @if (!$isEvenSlip)
                 <div class="slip-separator"></div>
             @else
                 <div class="page-break"></div>
             @endif
-
         @endforeach
     @endforeach
 
 </body>
+
 </html>
