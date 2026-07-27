@@ -388,42 +388,7 @@
                         </tbody>
                     </table>
 
-                    <!-- 2. Table Rekap Kebutuhan & Pemakaian Kain -->
-                    <div class="banner-slate">
-                        REKAP KEBUTUHAN &amp; PEMAKAIAN KAIN
-                    </div>
-                    <table class="grid-table mb-1">
-                        <thead>
-                            <tr>
-                                <th style="width: 40%; text-align: left; padding-left: 6px;">SKU Kain / Bahan</th>
-                                <th style="width: 15%;">Estimasi (m)</th>
-                                <th style="width: 15%;">Ready (m)</th>
-                                <th style="width: 15%;">Pakai (m)</th>
-                                <th style="width: 15%;">Sisa (m)</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @forelse($bazaItems as $bItem)
-                                <tr>
-                                    <td style="text-align: left; font-weight: bold; padding-left: 6px;">{{ $bItem['name'] }}</td>
-                                    <td>{{ $bItem['qty'] }}</td>
-                                    <td></td>
-                                    <td></td>
-                                    <td></td>
-                                </tr>
-                            @empty
-                                <tr>
-                                    <td style="text-align: left; font-weight: bold; padding-left: 6px;">
-                                        {{ $currentSpk->sku_kain ?: 'BAHAN UMUM / KAIN UTAMA' }}
-                                    </td>
-                                    <td>—</td>
-                                    <td></td>
-                                    <td></td>
-                                    <td></td>
-                                </tr>
-                            @endforelse
-                        </tbody>
-                    </table>
+
 
                     <!-- Catatan / Keterangan Box -->
                     <div class="catatan-box">
