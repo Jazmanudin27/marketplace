@@ -74,6 +74,7 @@ class SpkController extends Controller
 
         // Group SQL query by Nomor Produksi (or no_spk if no_produksi is empty)
         $subQuery = (clone $query)
+            ->reorder()
             ->select(DB::raw("COALESCE(NULLIF(TRIM(no_produksi), ''), no_spk) as prod_group"), DB::raw('MAX(id) as max_id'))
             ->groupBy(DB::raw("COALESCE(NULLIF(TRIM(no_produksi), ''), no_spk)"));
 
