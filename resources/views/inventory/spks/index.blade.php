@@ -118,18 +118,10 @@
 
     {{-- SPK CARDS GRID CONTAINER --}}
     <div class="row g-3 mb-4">
-        @php
-            $groupedSpks = $spks->getCollection()->groupBy(function($item) {
-                return !empty($item->no_produksi) ? 'PROD:' . trim($item->no_produksi) : 'SPK:' . $item->id;
-            });
-            $cardCounter = 0;
-        @endphp
-
-        @forelse($groupedSpks as $groupKey => $spkGroup)
+        @forelse($spks as $index => $row)
             @php
-                $cardCounter++;
-                $queueNo = ($spks->currentPage() - 1) * $spks->perPage() + $cardCounter;
-                $row = $spkGroup->first();
+                $queueNo = ($spks->currentPage() - 1) * $spks->perPage() + $index + 1;
+                $spkGroup = $row->sub_spks ?? collect([$row]);
                 $spkCount = $spkGroup->count();
                 $totalPcsGroup = $spkGroup->sum(fn($s) => $s->total_pcs);
                 $isUrgentGroup = $spkGroup->contains('is_urgent', true);

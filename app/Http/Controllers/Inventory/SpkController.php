@@ -72,7 +72,38 @@ class SpkController extends Controller
             $query->where('tipe_spk', $request->tipe_spk);
         }
 
-        $spks = $query->paginate(12)->withQueryString();
+        // Group SQL query by Nomor Produksi (or no_spk if no_produksi is empty)
+        $subQuery = (clone $query)
+            ->select(DB::raw("COALESCE(NULLIF(TRIM(no_produksi), ''), no_spk) as prod_group"), DB::raw('MAX(id) as max_id'))
+            ->groupBy(DB::raw("COALESCE(NULLIF(TRIM(no_produksi), ''), no_spk)"));
+
+        $groupedMaxIds = $subQuery->pluck('max_id');
+
+        $spks = Spk::with(['penginput', 'items.masterProduct', 'proses'])
+            ->whereIn('id', $groupedMaxIds)
+            ->orderByDesc('id')
+            ->paginate(12)
+            ->withQueryString();
+
+        // Attach sub_spks collection to each production group item
+        $noProduksiList = $spks->getCollection()->pluck('no_produksi')->filter()->unique()->toArray();
+        $siblingSpksMap = [];
+        if (!empty($noProduksiList)) {
+            $allSiblings = Spk::with(['items.masterProduct', 'proses'])
+                ->where('tenant_id', $tenantId)
+                ->whereIn('no_produksi', $noProduksiList)
+                ->orderBy('id')
+                ->get();
+            $siblingSpksMap = $allSiblings->groupBy('no_produksi');
+        }
+
+        foreach ($spks->getCollection() as $spkItem) {
+            if (!empty($spkItem->no_produksi) && isset($siblingSpksMap[$spkItem->no_produksi])) {
+                $spkItem->sub_spks = $siblingSpksMap[$spkItem->no_produksi];
+            } else {
+                $spkItem->sub_spks = collect([$spkItem]);
+            }
+        }
 
         return view('inventory.spks.index', compact('spks'));
     }
