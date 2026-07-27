@@ -57,11 +57,26 @@ class Spk extends Model
     public function getCurrentStageNameAttribute(): string
     {
         if ($this->relationLoaded('proses') && $this->proses->isNotEmpty()) {
-            // Determine active stage by checking item progress (qty_done vs total_qty) for each process in urutan order
             if ($this->relationLoaded('items') && $this->items->isNotEmpty()) {
                 $totalPcs = (int) $this->items->sum('quantity');
 
                 if ($totalPcs > 0) {
+                    // Check total qty_done across all processes for all items
+                    $totalQtyDoneAcrossAllProses = 0;
+                    foreach ($this->items as $item) {
+                        if ($item->relationLoaded('progres') && $item->progres->isNotEmpty()) {
+                            $totalQtyDoneAcrossAllProses += (int) $item->progres->sum('qty_done');
+                        }
+                    }
+
+                    // If zero progress has been logged yet, return initial tahap_saat_ini
+                    if ($totalQtyDoneAcrossAllProses === 0) {
+                        if (!empty($this->tahap_saat_ini)) {
+                            return strtoupper($this->tahap_saat_ini);
+                        }
+                        return 'PERANCANGAN PRODUKSI (SPK)';
+                    }
+
                     foreach ($this->proses as $p) {
                         $qtyDoneForProses = 0;
                         foreach ($this->items as $item) {
@@ -87,6 +102,15 @@ class Spk extends Model
                 $totalPcs = (int) $this->items()->sum('quantity');
                 if ($totalPcs > 0) {
                     $itemIds = $this->items()->pluck('id');
+                    $totalQtyDoneAcrossAllProses = (int) \App\Models\SpkItemProgres::whereIn('spk_item_id', $itemIds)->sum('qty_done');
+
+                    if ($totalQtyDoneAcrossAllProses === 0) {
+                        if (!empty($this->tahap_saat_ini)) {
+                            return strtoupper($this->tahap_saat_ini);
+                        }
+                        return 'PERANCANGAN PRODUKSI (SPK)';
+                    }
+
                     foreach ($this->proses as $p) {
                         $qtyDoneForProses = (int) \App\Models\SpkItemProgres::whereIn('spk_item_id', $itemIds)
                             ->where('spk_proses_id', $p->id)
@@ -101,6 +125,9 @@ class Spk extends Model
             }
 
             // Fallback if totalPcs is 0
+            if (!empty($this->tahap_saat_ini)) {
+                return strtoupper($this->tahap_saat_ini);
+            }
             return strtoupper($this->proses->first()->nama_proses);
         }
 
@@ -108,7 +135,7 @@ class Spk extends Model
             return strtoupper($this->tahap_saat_ini);
         }
 
-        return 'PERENCANAAN';
+        return 'PERANCANGAN PRODUKSI (SPK)';
     }
 
     public function getTotalPcsAttribute(): int

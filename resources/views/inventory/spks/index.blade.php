@@ -313,20 +313,15 @@
                                             $badgeBg = '#fef3c7'; $badgeFg = '#b45309'; $badgeBorder = '#fde68a';
                                         }
                                     @endphp
-                                    <div class="d-flex justify-content-between align-items-center {{ !$loop->last ? 'border-bottom pb-1.5 mb-1.5 border-light-subtle' : '' }}" style="font-size: 0.8rem;">
-                                        <div class="min-w-0 me-2 d-flex align-items-center gap-1 flex-wrap">
-                                            <span class="font-monospace fw-extrabold text-dark text-truncate" style="font-size: 11.5px; max-width: 100px;" title="{{ $subSpk->no_spk }}">
-                                                #{{ $subSpk->no_spk }}
-                                            </span>
-                                            @if($subSpk->kategori)
-                                                <span class="badge rounded-2 px-1.5 py-0.5 fw-bold text-truncate" style="font-size: 9px; background-color: #fce7f3; color: #be185d; border: 1px solid #fbcfe8; max-width: 80px;" title="{{ $subSpk->kategori }}">
-                                                    🏷️ {{ $subSpk->kategori }}
+                                        <div class="d-flex justify-content-between align-items-center {{ !$loop->last ? 'border-bottom pb-1.5 mb-1.5 border-light-subtle' : '' }}" style="font-size: 0.8rem;">
+                                            <div class="min-w-0 me-2 d-flex align-items-center gap-1 flex-wrap">
+                                                <span class="badge rounded-2 px-1.5 py-0.5 fw-bold text-truncate" style="font-size: 9px; background-color: #fce7f3; color: #be185d; border: 1px solid #fbcfe8; max-width: 120px;" title="{{ $subSpk->kategori ?: 'SPK ' . ($loop->index + 1) }}">
+                                                    🏷️ {{ $subSpk->kategori ?: 'SPK ' . ($loop->index + 1) }}
                                                 </span>
-                                            @endif
-                                            <span class="badge rounded-2 px-1.5 py-0.5 fw-extrabold text-uppercase" style="font-size: 9px; background-color: {{ $badgeBg }}; color: {{ $badgeFg }}; border: 1px solid {{ $badgeBorder }};">
-                                                {{ $stageName }}
-                                            </span>
-                                        </div>
+                                                <span class="badge rounded-2 px-1.5 py-0.5 fw-extrabold text-uppercase" style="font-size: 9px; background-color: {{ $badgeBg }}; color: {{ $badgeFg }}; border: 1px solid {{ $badgeBorder }};">
+                                                    {{ $stageName }}
+                                                </span>
+                                            </div>
                                         <div class="fw-extrabold text-end flex-shrink-0 ms-1" style="font-size: 11.5px;">
                                             <span class="text-primary">{{ number_format($subSpk->total_pcs) }} Pcs</span>
                                             <span class="text-muted fw-normal ms-1" style="font-size: 10px;">| {{ $subSpk->variant_summary }}</span>
