@@ -1109,7 +1109,11 @@ class SpkController extends Controller
                     $sizesHeader[] = $sz;
                 }
 
-                $modelName = $item->nama_produk ?: ($item->sku ?: 'MODEL VARIAN');
+                $skuInduk = $item->sku_induk;
+                if (!$skuInduk && !empty($item->sku)) {
+                    $skuInduk = preg_replace('/[_\-\s]+(S|M|L|XL|XXL|3XL|XXXL|ALLSIZE|ALL SIZE)$/i', '', trim($item->sku));
+                }
+                $modelName = $skuInduk ?: ($item->sku ?: ($item->nama_produk ?: 'MODEL VARIAN'));
                 $szKey = strtoupper(trim($item->ukuran)) ?: 'S';
 
                 if (!isset($variantRows[$modelName])) {
