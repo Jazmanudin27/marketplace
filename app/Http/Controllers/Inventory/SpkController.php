@@ -1119,6 +1119,7 @@ class SpkController extends Controller
                 if (!isset($variantRows[$modelName])) {
                     $variantRows[$modelName] = [
                         'name'  => $modelName,
+                        'sku'   => $modelName,
                         'sizes' => [],
                         'total' => 0,
                     ];
