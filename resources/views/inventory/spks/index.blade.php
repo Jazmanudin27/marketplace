@@ -265,28 +265,40 @@
                                 </div>
                             </div>
 
-                            {{-- Row 2: Cetak SPK & Ambil Urgent --}}
+                            {{-- Row 2: Cetak SPK, Ambil Urgent & Hapus Produksi --}}
                             <div class="row g-2">
-                                <div class="col-6">
+                                <div class="col-5">
                                     <a href="{{ route('spks.print', $row->id) }}" target="_blank"
-                                       class="btn btn-sm rounded-3 fw-bold py-1.5 w-100 d-inline-flex align-items-center justify-content-center gap-1 transition-all"
-                                       style="font-size: 0.78rem; background-color: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe;"
+                                       class="btn btn-sm rounded-3 fw-bold py-1.5 w-100 d-inline-flex align-items-center justify-content-center gap-1 transition-all text-truncate"
+                                       style="font-size: 0.75rem; background-color: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe;"
                                        title="Cetak SPK Perintah Kerja (A4 Half-Page)">
                                         <i class="fas fa-print text-primary"></i>
                                         <span>Cetak SPK</span>
                                     </a>
                                 </div>
-                                <div class="col-6">
+                                <div class="col-5">
                                     <button type="button" 
-                                            class="btn btn-sm w-100 rounded-3 fw-extrabold py-1.5 d-inline-flex align-items-center justify-content-center gap-1 transition-all toggle-urgent-btn"
+                                            class="btn btn-sm w-100 rounded-3 fw-extrabold py-1.5 d-inline-flex align-items-center justify-content-center gap-1 transition-all text-truncate toggle-urgent-btn"
                                             data-id="{{ $row->id }}"
                                             data-url="{{ route('spks.toggle_urgent', $row->id) }}"
-                                            style="font-size: 0.78rem; background-color: #fff7ed; color: #ea580c; border: 1px solid #ffedd5;">
+                                            style="font-size: 0.75rem; background-color: #fff7ed; color: #ea580c; border: 1px solid #ffedd5;">
                                         <i class="fas fa-bolt text-warning"></i>
                                         <span id="urgent-btn-text-{{ $row->id }}">
-                                            {{ $isUrgentGroup ? 'BATAL URGENT' : 'AMBIL URGENT' }}
+                                            {{ $isUrgentGroup ? 'URGENT' : 'AMBIL URGENT' }}
                                         </span>
                                     </button>
+                                </div>
+                                <div class="col-2">
+                                    <form action="{{ route('spks.destroy', $row) }}" method="POST" class="m-0"
+                                        onsubmit="return confirm('Apakah Anda yakin ingin menghapus seluruh data Produksi {{ $row->no_produksi ?: $row->no_spk }} ini?')">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="btn btn-sm rounded-3 fw-bold py-1.5 w-100 d-inline-flex align-items-center justify-content-center text-danger transition-all"
+                                            style="font-size: 0.78rem; background-color: #fef2f2; border: 1px solid #fecaca;"
+                                            title="Hapus Produksi Ini">
+                                            <i class="fas fa-trash-alt"></i>
+                                        </button>
+                                    </form>
                                 </div>
                             </div>
                         </div>

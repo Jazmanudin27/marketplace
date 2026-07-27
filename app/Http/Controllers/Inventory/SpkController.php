@@ -932,6 +932,39 @@ class SpkController extends Controller
             ->with('success', 'Perubahan SPK #' . $spk->no_spk . ' berhasil disimpan.');
     }
 
+    public function destroy(Spk $spk)
+    {
+        $tenantId = Auth::user()->tenant_id;
+        abort_unless($spk->tenant_id === $tenantId, 403);
+
+        $noProduksi = $spk->no_produksi;
+
+        DB::transaction(function () use ($spk, $tenantId, $noProduksi) {
+            if (!empty($noProduksi)) {
+                $spkList = Spk::where('tenant_id', $tenantId)
+                    ->where('no_produksi', $noProduksi)
+                    ->get();
+            } else {
+                $spkList = collect([$spk]);
+            }
+
+            foreach ($spkList as $itemSpk) {
+                foreach ($itemSpk->items as $item) {
+                    SpkItemExtra::where('spk_item_id', $item->id)->delete();
+                    SpkItemProgres::where('spk_item_id', $item->id)->delete();
+                    \App\Models\SpkItemPickup::where('spk_item_id', $item->id)->delete();
+                    $item->delete();
+                }
+                SpkProses::where('spk_id', $itemSpk->id)->delete();
+                $itemSpk->delete();
+            }
+        });
+
+        $prodLabel = !empty($noProduksi) ? 'Produksi ' . $noProduksi : 'SPK #' . $spk->no_spk;
+        return redirect()->route('spks.index')
+            ->with('success', 'Data ' . $prodLabel . ' berhasil dihapus.');
+    }
+
     public function print(Spk $spk)
     {
         $tenantId = Auth::user()->tenant_id;
@@ -1163,22 +1196,6 @@ class SpkController extends Controller
         });
 
         return redirect()->back()->with('success', 'Status item "' . $item->nama_produk . '" berhasil diubah.');
-    }
-
-    public function destroy(Spk $spk)
-    {
-        abort_unless($spk->tenant_id === Auth::user()->tenant_id, 403);
-
-        DB::transaction(function () use ($spk) {
-            if ($spk->image_url) {
-                $relative = str_replace(asset('storage/'), '', $spk->image_url);
-                Storage::disk('public')->delete($relative);
-            }
-            $spk->delete();
-        });
-
-        return redirect()->route('spks.index')
-            ->with('success', 'Data SPK berhasil dihapus.');
     }
 
     private function getGroupedItems(Spk $spk)
