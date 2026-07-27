@@ -291,7 +291,7 @@
 
                             {{-- SUB-SPK BREAKDOWN CONTAINER --}}
                             <div class="bg-light bg-opacity-60 rounded-3 p-2 my-2 border border-light-subtle shadow-2xs">
-                                <div class="text-muted fw-bold mb-1.5 text-uppercase d-flex justify-content-between align-items-center" style="font-size: 9px; letter-spacing: 0.4px;">
+                                <div class="text-muted fw-semibold mb-1 text-uppercase d-flex justify-content-between align-items-center opacity-75" style="font-size: 7.5px; letter-spacing: 0.3px;">
                                     <span>Rincian Jenis SPK dalam Produksi</span>
                                     <span>Qty &amp; Varian</span>
                                 </div>
