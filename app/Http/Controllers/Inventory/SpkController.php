@@ -114,7 +114,17 @@ class SpkController extends Controller
             }
         }
 
-        return view('inventory.spks.index', compact('spks'));
+        // Summary stats for top dashboard cards
+        $stats = [
+            'total_produksi' => $spks->total(),
+            'total_urgent'   => Spk::where('tenant_id', $tenantId)->where('is_urgent', true)->count(),
+            'total_pcs'      => (int) DB::table('spk_items')
+                                    ->join('spks', 'spk_items.spk_id', '=', 'spks.id')
+                                    ->where('spks.tenant_id', $tenantId)
+                                    ->sum('spk_items.quantity'),
+        ];
+
+        return view('inventory.spks.index', compact('spks', 'stats'));
     }
 
     public function create(Request $request)
