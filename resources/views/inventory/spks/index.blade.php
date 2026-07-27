@@ -349,19 +349,21 @@
                                         </div>
 
                                         {{-- Tipe SPK Badge --}}
-                                        <div class="mb-1.5">
-                                            @if (($row->tipe_spk ?? '') === 'stok_gudang')
+                                        @if (($row->tipe_spk ?? '') === 'stok_gudang' && !str_contains(strtoupper($row->pemesan ?? ''), 'STOK GUDANG'))
+                                            <div class="mb-1.5">
                                                 <span class="badge rounded-2 px-2 py-0.5 fw-bold"
                                                     style="font-size: 9px; background-color: #ecfdf5; color: #047857; border: 1px solid #a7f3d0;">
                                                     🏬 Stok Gudang
                                                 </span>
-                                            @else
+                                            </div>
+                                        @elseif (($row->tipe_spk ?? '') !== 'stok_gudang')
+                                            <div class="mb-1.5">
                                                 <span class="badge rounded-2 px-2 py-0.5 fw-bold"
                                                     style="font-size: 9px; background-color: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe;">
                                                     🛒 Pesanan Pelanggan
                                                 </span>
-                                            @endif
-                                        </div>
+                                            </div>
+                                        @endif
 
                                         {{-- Total Volume Pcs Pill --}}
                                         <div class="fw-bold text-dark d-flex align-items-center gap-1 flex-wrap">

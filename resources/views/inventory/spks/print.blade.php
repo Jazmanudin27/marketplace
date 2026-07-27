@@ -41,8 +41,8 @@
         /* ── Half A4 Slip Card ── */
         .spk-slip-card {
             width: 100%;
-            height: 144mm;
-            max-height: 146mm;
+            height: 136mm;
+            max-height: 138mm;
             padding: 2px 4px;
             position: relative;
             overflow: hidden;
@@ -54,13 +54,16 @@
 
         .slip-separator {
             border-top: 1.5px dashed #94a3b8;
-            margin: 3mm 0;
+            margin: 2mm 0;
             width: 100%;
         }
 
         .page-break {
             page-break-after: always;
-            break-after: always;
+            break-after: page;
+            height: 0;
+            margin: 0;
+            padding: 0;
         }
 
         /* Header Layout */
@@ -501,7 +504,7 @@
             {{-- Separator or Page Break Logic --}}
             @if (!$isEvenSlip)
                 <div class="slip-separator"></div>
-            @else
+            @elseif ($globalSlipCount < $totalBlocks * 2)
                 <div class="page-break"></div>
             @endif
         @endforeach
