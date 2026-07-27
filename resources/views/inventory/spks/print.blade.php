@@ -265,19 +265,7 @@
         }
     </style>
 </head>
-<body>
-
-    <div class="no-print">
-        <div>
-            <strong>🖨️ Pratinjau Cetak SPK (Format A4 Bagi 2 / 2 Slips per Halaman)</strong>
-            <div style="font-size:11px; opacity:0.8; margin-top:2px;">
-                Total SPK: {{ count($spkBlocks) }} produk · Dicetak 2 rangkap per SPK (Tim Produksi &amp; Arsip)
-            </div>
-        </div>
-        <button type="button" onclick="window.print()" style="padding: 6px 16px; background: #2563eb; color: #fff; border: none; border-radius: 6px; font-weight: bold; font-size: 12px; cursor: pointer;">
-            🖨️ Cetak SPK (Ctrl + P)
-        </button>
-    </div>
+<body onload="window.print()">
 
     @php
         $globalSlipCount = 0;
