@@ -1078,63 +1078,92 @@
     </div>
 </div>
 
-{{-- POPUP MODAL 3: CATAT PEMBAYARAN ONGKOS JASA SPK --}}
+{{-- POPUP MODAL 3: CATAT PEMBAYARAN ONGKOS JASA SPK PER VENDOR --}}
 <div class="modal fade" id="modalPayLabor" tabindex="-1" aria-labelledby="modalPayLaborLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content border-0 shadow">
             <form action="{{ route('spks.pay_labor', $spk) }}" method="POST">
                 @csrf
                 <div class="modal-header bg-warning text-dark py-3 px-4">
                     <h6 class="modal-title fw-bold" id="modalPayLaborLabel">
-                        💳 Catat Pembayaran Ongkos Jasa SPK (#{{ $spk->no_produksi ?: $spk->no_spk }})
+                        💳 Catat Pembayaran Ongkos Jasa Per Vendor SPK (#{{ $spk->no_produksi ?: $spk->no_spk }})
                     </h6>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body p-4" style="background:#f8fafc;">
                     <div class="alert alert-info py-2 px-3 mb-3 border-0 shadow-sm" style="font-size:12px;">
-                        Catat pembayaran kas out / pengeluaran untuk ongkos Jasa Pemotong, Penjahit, QC, Kancing &amp; Finishing dari SPK ini.
+                        Pilih item ongkos jasa vendor/pekerja yang ingin dibayar. Sistem akan membuat <strong>pencatatan pengeluaran kas terpisah (per vendor)</strong> secara otomatis.
                     </div>
 
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold text-secondary" style="font-size:12px;">NOMINAL PEMBAYARAN ONGKOS JASA (RP)</label>
-                        <div class="input-group input-group-sm">
-                            <span class="input-group-text bg-white fw-bold">Rp</span>
-                            <input type="number" name="amount" class="form-control form-control-sm fw-bold text-end fs-6" 
-                                value="{{ $totalSpkLaborCost > 0 ? (int)$totalSpkLaborCost : 0 }}" required min="1" step="1">
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold text-secondary" style="font-size:12px;">SUMBER KAS / REKENING PEMBAYARAN</label>
+                            <select name="payment_source" class="form-select form-select-sm" required>
+                                <option value="kas_kecil">Kas Kecil (Petty Cash)</option>
+                                <option value="kas_besar" selected>Kas Besar (Main Cash)</option>
+                                @if(isset($bankAccounts) && count($bankAccounts) > 0)
+                                    <optgroup label="Rekening Bank">
+                                        @foreach($bankAccounts as $bank)
+                                            <option value="{{ $bank->id }}">{{ $bank->bank_name }} - {{ $bank->account_number }} (a.n {{ $bank->account_name }})</option>
+                                        @endforeach
+                                    </optgroup>
+                                @endif
+                            </select>
                         </div>
-                        <small class="text-muted" style="font-size:11px;">Nominal otomatis terisi dari total estimasi ongkos jasa SPK ini.</small>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold text-secondary" style="font-size:12px;">TANGGAL PEMBAYARAN</label>
+                            <input type="date" name="expense_date" class="form-control form-control-sm" value="{{ date('Y-m-d') }}" required>
+                        </div>
                     </div>
 
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold text-secondary" style="font-size:12px;">SUMBER KAS / REKENING PEMBAYARAN</label>
-                        <select name="payment_source" class="form-select form-select-sm" required>
-                            <option value="kas_kecil">Kas Kecil (Petty Cash)</option>
-                            <option value="kas_besar" selected>Kas Besar (Main Cash)</option>
-                            @if(isset($bankAccounts) && count($bankAccounts) > 0)
-                                <optgroup label="Rekening Bank">
-                                    @foreach($bankAccounts as $bank)
-                                        <option value="{{ $bank->id }}">{{ $bank->bank_name }} - {{ $bank->account_number }} (a.n {{ $bank->account_name }})</option>
-                                    @endforeach
-                                </optgroup>
-                            @endif
-                        </select>
+                    <label class="form-label fw-semibold text-secondary mb-2" style="font-size:12px;">RINCIAN ONGKOS JASA VENDOR / TIM OPERASIONAL</label>
+                    <div class="table-responsive bg-white rounded border shadow-sm mb-3">
+                        <table class="table table-sm table-hover align-middle mb-0" style="font-size:12px;">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width: 40px;" class="text-center">
+                                        <input type="checkbox" id="checkAllPayItems" class="form-check-input" checked>
+                                    </th>
+                                    <th>Rincian Jasa &amp; Nama Vendor</th>
+                                    <th style="width: 25%;">Produk SPK</th>
+                                    <th style="width: 30%;" class="text-end">Nominal Dibayar (Rp)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse($laborBreakdown as $lIdx => $lItem)
+                                    <tr>
+                                        <td class="text-center">
+                                            <input type="checkbox" name="payments[{{ $lIdx }}][checked_val]" value="1" class="form-check-input pay-item-checkbox" checked>
+                                        </td>
+                                        <td>
+                                            <input type="hidden" name="payments[{{ $lIdx }}][title]" value="{{ $lItem['keterangan'] }}">
+                                            <span class="fw-bold text-dark">{{ $lItem['keterangan'] }}</span>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-secondary-subtle text-secondary">{{ $lItem['produk'] }}</span>
+                                        </td>
+                                        <td class="text-end">
+                                            <input type="number" name="payments[{{ $lIdx }}][amount]" class="form-control form-control-sm text-end fw-bold pay-item-amount" value="{{ (int)$lItem['nominal'] }}" min="1" step="1">
+                                        </td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="4" class="text-center text-muted py-3">Belum ada data ongkos jasa yang disetting pada SPK ini. Silakan atur di tombol <strong>✂️ Atur Tahap</strong> terlebih dahulu.</td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
                     </div>
 
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold text-secondary" style="font-size:12px;">TANGGAL PEMBAYARAN</label>
-                        <input type="date" name="expense_date" class="form-control form-control-sm" value="{{ date('Y-m-d') }}" required>
-                    </div>
-
-                    <div class="mb-0">
-                        <label class="form-label fw-semibold text-secondary" style="font-size:12px;">CATATAN / KETERANGAN</label>
-                        <textarea name="description" class="form-control form-control-sm" rows="2" 
-                            placeholder="Catatan pembayaran jasa (opsional)...">Pembayaran Ongkos Jasa SPK #{{ $spk->no_produksi ?: $spk->no_spk }}</textarea>
+                    <div class="d-flex justify-content-between align-items-center bg-warning-subtle text-warning-emphasis p-3 rounded-3 border border-warning-subtle">
+                        <span class="fw-bold">Total Pembayaran Terpilih:</span>
+                        <span class="fw-extrabold fs-6" id="displayTotalSelectedPay">Rp 0</span>
                     </div>
                 </div>
                 <div class="modal-footer bg-white border-top py-2 px-4 d-flex justify-content-between">
                     <button type="button" class="btn btn-sm btn-outline-secondary px-3" data-bs-dismiss="modal">Batal</button>
-                    <button type="submit" class="btn btn-sm btn-warning fw-bold px-4 text-dark">
-                        💳 Catat Pembayaran Kas
+                    <button type="submit" class="btn btn-sm btn-warning fw-bold px-4 text-dark" {{ count($laborBreakdown) == 0 ? 'disabled' : '' }}>
+                        💳 Proses &amp; Catat Transaksi Per Vendor
                     </button>
                 </div>
             </form>
@@ -1748,6 +1777,39 @@
                 openTahapModalForProduct(rIdx, pIdx);
             }
         });
+        // Modal Pembayaran Ongkos Jasa Per Vendor calculation
+        function calculateTotalPaySelected() {
+            let grandTotal = 0;
+            document.querySelectorAll('#modalPayLabor tbody tr').forEach(tr => {
+                const cb = tr.querySelector('.pay-item-checkbox');
+                const amtInput = tr.querySelector('.pay-item-amount');
+                if (cb && cb.checked && amtInput) {
+                    grandTotal += parseFloat(amtInput.value) || 0;
+                }
+            });
+            const disp = document.getElementById('displayTotalSelectedPay');
+            if (disp) disp.textContent = formatRupiah(grandTotal);
+        }
+
+        const checkAllCb = document.getElementById('checkAllPayItems');
+        if (checkAllCb) {
+            checkAllCb.addEventListener('change', function() {
+                document.querySelectorAll('.pay-item-checkbox').forEach(cb => {
+                    cb.checked = checkAllCb.checked;
+                });
+                calculateTotalPaySelected();
+            });
+        }
+
+        document.querySelectorAll('.pay-item-checkbox, .pay-item-amount').forEach(el => {
+            el.addEventListener('input', calculateTotalPaySelected);
+            el.addEventListener('change', calculateTotalPaySelected);
+        });
+
+        const modalPayLaborEl = document.getElementById('modalPayLabor');
+        if (modalPayLaborEl) {
+            modalPayLaborEl.addEventListener('shown.bs.modal', calculateTotalPaySelected);
+        }
     });
 </script>
 @endpush

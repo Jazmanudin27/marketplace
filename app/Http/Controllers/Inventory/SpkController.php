@@ -808,9 +808,20 @@ class SpkController extends Controller
 
         $bankAccounts = \App\Models\BankAccount::where('tenant_id', $tenantId)->where('is_active', true)->get();
         $totalSpkLaborCost = 0;
+        $laborBreakdown = [];
         foreach ($spk->items as $item) {
+            $pName = $item->sku_induk ?: ($item->sku ?: $item->nama_produk);
             foreach ($item->extras as $extra) {
-                $totalSpkLaborCost += (float)$extra->nominal;
+                $nom = (float)$extra->nominal;
+                $totalSpkLaborCost += $nom;
+                if ($nom > 0) {
+                    $laborBreakdown[] = [
+                        'id'         => $extra->id,
+                        'produk'     => $pName,
+                        'keterangan' => $extra->keterangan,
+                        'nominal'    => $nom,
+                    ];
+                }
             }
         }
 
@@ -819,7 +830,7 @@ class SpkController extends Controller
             'products', 'tailors', 'pemotongList', 'penjahitList', 'vendorKancingList', 'petugasQcList',
             'laborServices', 'stores', 'existingNoProduksi', 'recipesMap',
             'inventoryItems', 'inventoryItemsMap', 'allMasterProductsList',
-            'siblingSpks', 'bankAccounts', 'totalSpkLaborCost'
+            'siblingSpks', 'bankAccounts', 'totalSpkLaborCost', 'laborBreakdown'
         ));
     }
 
@@ -1896,7 +1907,7 @@ class SpkController extends Controller
     }
 
     /**
-     * Catat Pembayaran Ongkos Jasa SPK ke Pengeluaran Kas (Expense).
+     * Catat Pembayaran Ongkos Jasa SPK ke Pengeluaran Kas (Expense) Terpisah per Vendor.
      */
     public function payLabor(Request $request, Spk $spk)
     {
@@ -1904,35 +1915,55 @@ class SpkController extends Controller
         abort_unless($spk->tenant_id === $tenantId, 403);
 
         $request->validate([
-            'amount'         => 'required|numeric|min:1',
             'payment_source' => 'required|string',
             'expense_date'   => 'required|date',
-            'description'    => 'nullable|string|max:500',
+            'payments'       => 'required|array|min:1',
+            'payments.*.title'  => 'required|string',
+            'payments.*.amount' => 'required|numeric|min:1',
         ]);
 
-        $amount = floatval($request->amount);
         $spkCode = $spk->no_produksi ?: $spk->no_spk;
-        $title = 'Pembayaran Ongkos Jasa SPK #' . $spkCode;
-        $description = $request->description ?: ('Pembayaran Ongkos Jasa Pemotong / Penjahit / QC / Finishing untuk SPK #' . $spkCode);
+        $paymentSource = $request->payment_source;
+        $expenseDate = $request->expense_date;
 
-        $expense = \App\Models\Expense::create([
-            'tenant_id'      => $tenantId,
-            'employee_id'    => Auth::id(),
-            'title'          => $title,
-            'category'       => 'salary',
-            'payment_source' => $request->payment_source,
-            'amount'         => $amount,
-            'expense_date'   => $request->expense_date,
-            'description'    => $description,
-        ]);
+        $createdCount = 0;
+        $grandTotalPaid = 0;
 
-        if (is_numeric($request->payment_source)) {
-            $bank = \App\Models\BankAccount::where('tenant_id', $tenantId)->find($request->payment_source);
-            if ($bank) {
-                $bank->decrement('current_balance', $amount);
+        foreach ($request->payments as $pData) {
+            if (!isset($pData['checked_val']) && empty($pData['checked'])) {
+                continue;
             }
+
+            $title = trim($pData['title']);
+            $amount = floatval($pData['amount']);
+            if ($amount <= 0) continue;
+
+            $expense = \App\Models\Expense::create([
+                'tenant_id'      => $tenantId,
+                'employee_id'    => Auth::id(),
+                'title'          => "Ongkos Jasa SPK #{$spkCode}: {$title}",
+                'category'       => 'salary',
+                'payment_source' => $paymentSource,
+                'amount'         => $amount,
+                'expense_date'   => $expenseDate,
+                'description'    => "Pembayaran Ongkos Jasa Vendor/Pekerja [{$title}] untuk SPK #{$spkCode}",
+            ]);
+
+            if (is_numeric($paymentSource)) {
+                $bank = \App\Models\BankAccount::where('tenant_id', $tenantId)->find($paymentSource);
+                if ($bank) {
+                    $bank->decrement('current_balance', $amount);
+                }
+            }
+
+            $createdCount++;
+            $grandTotalPaid += $amount;
         }
 
-        return redirect()->back()->with('success', '💳 Pembayaran Ongkos Jasa sebesar Rp ' . number_format($amount, 0, ',', '.') . ' berhasil dicatat ke Pengeluaran Kas (#EXP-' . $expense->id . ')!');
+        if ($createdCount === 0) {
+            return redirect()->back()->with('error', '⚠️ Tidak ada item pembayaran vendor yang dicentang.');
+        }
+
+        return redirect()->back()->with('success', "💳 Berhasil mencatat {$createdCount} transaksi pembayaran ongkos jasa vendor (Total: Rp " . number_format($grandTotalPaid, 0, ',', '.') . ") ke Pengeluaran Kas!");
     }
 }
