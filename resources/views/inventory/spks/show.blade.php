@@ -58,7 +58,7 @@
     .desain-drop-area {
         border: 2.5px dashed #d1d5db;
         border-radius: 14px;
-        min-height: 140px;
+        min-height: 250px;
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -68,12 +68,13 @@
         position: relative;
         overflow: hidden;
         background: #fafafa;
+        padding: 10px;
     }
     .desain-drop-area:hover {
         border-color: #3b82f6;
         background: #eff6ff;
     }
-    .desain-drop-area.has-image { border-style: solid; border-color: #3b82f6; }
+    .desain-drop-area.has-image { border-style: solid; border-color: #3b82f6; background: #fff; }
     .desain-drop-area input[type=file] {
         position: absolute;
         inset: 0;
@@ -82,7 +83,7 @@
         z-index: 2;
     }
     .desain-drop-area .desain-label {
-        font-size: 2.2rem;
+        font-size: 2.5rem;
         font-weight: 900;
         letter-spacing: 6px;
         color: #d1d5db;
@@ -90,13 +91,14 @@
         line-height: 1;
     }
     .desain-drop-area .desain-hint {
-        font-size: 11px;
+        font-size: 12px;
         color: #9ca3af;
         margin-top: 6px;
     }
     .desain-drop-area #desain-preview-img {
-        max-height: 130px;
-        border-radius: 8px;
+        max-height: 240px;
+        width: 100%;
+        border-radius: 10px;
         object-fit: contain;
     }
 
@@ -190,8 +192,8 @@
     /* Upload Areas */
     .upload-zone {
         border: 2px dashed #d1d5db;
-        border-radius: 10px;
-        min-height: 90px;
+        border-radius: 12px;
+        min-height: 220px;
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -201,18 +203,24 @@
         position: relative;
         background: #fafafa;
         text-align: center;
-        padding: 10px;
+        padding: 12px;
     }
     .upload-zone:hover { border-color: #3b82f6; background: #eff6ff; }
-    .upload-zone.has-file { border-style: solid; border-color: #10b981; background: #ecfdf5; }
+    .upload-zone.has-file { border-style: solid; border-color: #10b981; background: #fff; }
     .upload-zone input[type=file] {
         position: absolute;
         inset: 0;
         opacity: 0;
         cursor: pointer;
     }
-    .upload-zone .uz-icon { font-size: 20px; opacity: .4; }
-    .upload-zone .uz-label { font-size: 10px; font-weight: 700; color: #6b7280; margin-top: 2px; }
+    .upload-zone img {
+        max-height: 200px;
+        width: 100%;
+        border-radius: 8px;
+        object-fit: contain;
+    }
+    .upload-zone .uz-icon { font-size: 28px; opacity: .4; }
+    .upload-zone .uz-label { font-size: 11px; font-weight: 700; color: #6b7280; margin-top: 4px; }
 
     /* Tables in Rincian Card */
     .product-table-custom, .bahan-modal-table {
@@ -478,7 +486,7 @@
                                 <small class="badge bg-light text-secondary border" style="font-size:10px;">JPEG / PNG / JPG · maks 4MB</small>
                             </div>
                         </div>
-                        <img id="desain-preview-img" src="{{ $displayDesainUrl ?: '' }}" alt="Preview Desain" class="{{ $displayDesainUrl ? '' : 'd-none' }}" style="max-height:130px; border-radius:8px; object-fit:contain;">
+                        <img id="desain-preview-img" src="{{ $displayDesainUrl ?: '' }}" alt="Preview Desain" class="{{ $displayDesainUrl ? '' : 'd-none' }}" style="max-height:240px; width:100%; border-radius:10px; object-fit:contain;">
                     </div>
                 </div>
 
@@ -650,7 +658,7 @@
                             <div class="section-label">REFERENSI KLIEN (FOTO / SKETSA)</div>
                             <div class="upload-zone {{ $spk->referensi_klien_url ? 'has-file' : '' }}" id="ref-drop-zone">
                                 <input type="file" name="referensi_klien" id="input-referensi-klien" class="input-referensi" accept="image/*">
-                                <img id="ref-preview-img" src="{{ $spk->referensi_klien_url ?: '' }}" alt="Referensi Klien" class="{{ $spk->referensi_klien_url ? '' : 'd-none' }}" style="max-height:80px; border-radius:6px; object-fit:contain;">
+                                <img id="ref-preview-img" src="{{ $spk->referensi_klien_url ?: '' }}" alt="Referensi Klien" class="{{ $spk->referensi_klien_url ? '' : 'd-none' }}" style="max-height:200px; width:100%; border-radius:8px; object-fit:contain;">
                                 <div id="ref-placeholder-content" class="{{ $spk->referensi_klien_url ? 'd-none' : '' }}">
                                     <div class="uz-icon">🖼️</div>
                                     <div class="uz-label">Upload foto referensi / sketsa pakaian</div>
@@ -662,7 +670,7 @@
                             <div class="section-label">MOCKUP FINAL (ACC KLIEN)</div>
                             <div class="upload-zone {{ $spk->mockup_url ? 'has-file' : '' }}" id="mockup-drop-zone">
                                 <input type="file" name="mockup_final" id="input-mockup-final" class="input-mockup" accept="image/*">
-                                <img id="mockup-preview-img" src="{{ $spk->mockup_url ?: '' }}" alt="Mockup Final" class="{{ $spk->mockup_url ? '' : 'd-none' }}" style="max-height:80px; border-radius:6px; object-fit:contain;">
+                                <img id="mockup-preview-img" src="{{ $spk->mockup_url ?: '' }}" alt="Mockup Final" class="{{ $spk->mockup_url ? '' : 'd-none' }}" style="max-height:200px; width:100%; border-radius:8px; object-fit:contain;">
                                 <div id="mockup-placeholder-content" class="{{ $spk->mockup_url ? 'd-none' : '' }}">
                                     <div class="uz-icon">✨</div>
                                     <div class="uz-label">Upload gambar mockup hasil desain final</div>
