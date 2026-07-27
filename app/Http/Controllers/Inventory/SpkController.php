@@ -975,6 +975,23 @@ class SpkController extends Controller
                                     ]);
                                 }
 
+                                // Finishing
+                                $petugasFinishing = trim($pRow['petugas_finishing'] ?? '');
+                                if ($petugasFinishing !== '') {
+                                    $this->processAutoSaveVendor($tenantId, $petugasFinishing, 'Finishing');
+                                }
+                                $qtyFinishing = (int) ($pRow['qty_finishing'] ?? 0);
+                                $qtyFgood = (int) ($pRow['qty_fgood'] ?? 0);
+                                $tarifFinishing = floatval($pRow['tarif_finishing'] ?? 0);
+                                if ($petugasFinishing !== '' || $qtyFinishing > 0 || $qtyFgood > 0) {
+                                    $sub = $qtyFinishing * $tarifFinishing;
+                                    SpkItemExtra::create([
+                                        'spk_item_id' => $spkItem->id,
+                                        'keterangan'  => "Ongkos Finishing: {$petugasFinishing} ({$qtyFinishing} pcs, F.Good: {$qtyFgood} pcs" . ($tarifFinishing > 0 ? " @ Rp " . number_format($tarifFinishing) : "") . ")",
+                                        'nominal'     => $sub,
+                                    ]);
+                                }
+
                                 // Bahan List
                                 $bahanList = $pRow['bahan'] ?? [];
                                 if (!empty($bahanList) && is_array($bahanList)) {

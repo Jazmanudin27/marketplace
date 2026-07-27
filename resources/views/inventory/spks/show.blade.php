@@ -704,15 +704,17 @@
                                         $tarifQcVal = 0;
                                         $qtyFinishingVal = 0;
                                         $qtyFgoodVal = 0;
+                                        $petugasFinishingVal = '';
+                                        $tarifFinishingVal = 0;
 
                                         foreach($item->extras as $ex) {
                                             $desc = $ex->keterangan;
                                             if (str_contains($desc, 'Bahan:')) {
                                                 $bName = trim(str_replace('Bahan:', '', $desc));
                                                 $bQty = '1';
-                                                if (preg_match('/^(.*?)\s*\(Qty:\s*([\d\.]+)\)$/i', $bName, $mQ)) {
+                                                if (preg_match('/^(.*?)\s*\(Qty:\s*([\d\.,]+)\)$/i', $bName, $mQ)) {
                                                     $bName = trim($mQ[1]);
-                                                    $bQty = $mQ[2];
+                                                    $bQty = str_replace(['.', ','], '', $mQ[2]);
                                                 }
                                                 $materials[] = [
                                                     'nama_bahan' => $bName,
@@ -724,22 +726,27 @@
                                                 $laborCost += (float)$ex->nominal;
                                                 if (str_contains($desc, 'Ongkos Potong:')) {
                                                     if (preg_match('/Ongkos Potong:\s*(.*?)\s*\(/i', $desc, $m)) $pemotongVal = trim($m[1]);
-                                                    if (preg_match('/@ Rp\s*([\d\.]+)/i', $desc, $mTar)) $tarifPotongVal = (float)str_replace('.', '', $mTar[1]);
+                                                    if (preg_match('/@ Rp\s*([\d\.,]+)/i', $desc, $mTar)) $tarifPotongVal = (float)str_replace(['.', ','], '', $mTar[1]);
+                                                    if (preg_match('/\(\s*([\d\.,]+)\s*pcs/i', $desc, $mQty)) $qtyPotongVal = (int)str_replace(['.', ','], '', $mQty[1]);
                                                 } elseif (str_contains($desc, 'Ongkos Jahit:')) {
                                                     if (preg_match('/Ongkos Jahit:\s*(.*?)\s*\(/i', $desc, $m)) $penjahitVal = trim($m[1]);
-                                                    if (preg_match('/@ Rp\s*([\d\.]+)/i', $desc, $mTar)) $tarifJahitVal = (float)str_replace('.', '', $mTar[1]);
+                                                    if (preg_match('/@ Rp\s*([\d\.,]+)/i', $desc, $mTar)) $tarifJahitVal = (float)str_replace(['.', ','], '', $mTar[1]);
+                                                    if (preg_match('/\(\s*([\d\.,]+)\s*pcs/i', $desc, $mQty)) $qtyJahitVal = (int)str_replace(['.', ','], '', $mQty[1]);
                                                 } elseif (str_contains($desc, 'Ongkos Kancing')) {
                                                     if (preg_match('/Ongkos Kancing\/LKPK:\s*(.*?)\s*\(/i', $desc, $m)) $vendorKancingVal = trim($m[1]);
-                                                    if (preg_match('/@ Rp\s*([\d\.]+)/i', $desc, $mTar)) $tarifKancingVal = (float)str_replace('.', '', $mTar[1]);
+                                                    if (preg_match('/@ Rp\s*([\d\.,]+)/i', $desc, $mTar)) $tarifKancingVal = (float)str_replace(['.', ','], '', $mTar[1]);
+                                                    if (preg_match('/\(\s*([\d\.,]+)\s*pcs/i', $desc, $mQty)) $qtyKancingVal = (int)str_replace(['.', ','], '', $mQty[1]);
                                                 } elseif (str_contains($desc, 'Ongkos QC:')) {
                                                     if (preg_match('/Ongkos QC:\s*(.*?)\s*\(/i', $desc, $m)) $petugasQcVal = trim($m[1]);
-                                                    if (preg_match('/Lolos:\s*(\d+)/i', $desc, $mLol)) $qcLolosVal = (int)$mLol[1];
-                                                    if (preg_match('/Reject:\s*(\d+)/i', $desc, $mRej)) $qcRejectVal = (int)$mRej[1];
-                                                    if (preg_match('/@ Rp\s*([\d\.]+)/i', $desc, $mTar)) $tarifQcVal = (float)str_replace('.', '', $mTar[1]);
+                                                    if (preg_match('/Lolos:\s*([\d\.,]+)/i', $desc, $mLol)) $qcLolosVal = (int)str_replace(['.', ','], '', $mLol[1]);
+                                                    if (preg_match('/Reject:\s*([\d\.,]+)/i', $desc, $mRej)) $qcRejectVal = (int)str_replace(['.', ','], '', $mRej[1]);
+                                                    if (preg_match('/@ Rp\s*([\d\.,]+)/i', $desc, $mTar)) $tarifQcVal = (float)str_replace(['.', ','], '', $mTar[1]);
                                                 } elseif (str_contains($desc, 'Ongkos Finishing:')) {
-                                                    if (preg_match('/(\d+)\s*pcs,\s*F.Good:\s*(\d+)/i', $desc, $mFin)) {
-                                                        $qtyFinishingVal = (int)$mFin[1];
-                                                        $qtyFgoodVal = (int)$mFin[2];
+                                                    if (preg_match('/Ongkos Finishing:\s*(.*?)\s*\(/i', $desc, $m)) $petugasFinishingVal = trim($m[1]);
+                                                    if (preg_match('/@ Rp\s*([\d\.,]+)/i', $desc, $mTar)) $tarifFinishingVal = (float)str_replace(['.', ','], '', $mTar[1]);
+                                                    if (preg_match('/([\d\.,]+)\s*pcs,\s*F.Good:\s*([\d\.,]+)/i', $desc, $mFin)) {
+                                                        $qtyFinishingVal = (int)str_replace(['.', ','], '', $mFin[1]);
+                                                        $qtyFgoodVal = (int)str_replace(['.', ','], '', $mFin[2]);
                                                     }
                                                 }
                                             }
@@ -809,8 +816,9 @@
                                                 <input type="hidden" class="h-qc-lolos" name="rincian[{{ $rIdx }}][produk][{{ $pIdx }}][qc_lolos]" value="{{ $qcLolosVal }}">
                                                 <input type="hidden" class="h-qc-reject" name="rincian[{{ $rIdx }}][produk][{{ $pIdx }}][qc_reject]" value="{{ $qcRejectVal }}">
                                                 <input type="hidden" class="h-tarif-qc" name="rincian[{{ $rIdx }}][produk][{{ $pIdx }}][tarif_qc]" value="{{ $tarifQcVal }}">
-
+                                                <input type="hidden" class="h-petugas-finishing" name="rincian[{{ $rIdx }}][produk][{{ $pIdx }}][petugas_finishing]" value="{{ $petugasFinishingVal }}">
                                                 <input type="hidden" class="h-qty-finishing" name="rincian[{{ $rIdx }}][produk][{{ $pIdx }}][qty_finishing]" value="{{ $qtyFinishingVal }}">
+                                                <input type="hidden" class="h-tarif-finishing" name="rincian[{{ $rIdx }}][produk][{{ $pIdx }}][tarif_finishing]" value="{{ $tarifFinishingVal }}">
                                                 <input type="hidden" class="h-qty-fgood" name="rincian[{{ $rIdx }}][produk][{{ $pIdx }}][qty_fgood]" value="{{ $qtyFgoodVal }}">
                                             </div>
                                             <button type="button" class="btn btn-sm {{ ($penjahitVal || $pemotongVal || $laborCost > 0) ? 'btn-primary-subtle text-primary border border-primary-subtle' : 'btn-outline-primary' }} btn-tahap-trigger btn-open-tahap-modal"
