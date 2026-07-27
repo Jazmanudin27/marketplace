@@ -2,298 +2,460 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>SPK Perintah Kerja - {{ $spk->no_spk }}</title>
+    <title>Cetak SPK Perintah Kerja - {{ $spk->no_produksi ?: $spk->no_spk }}</title>
     <style>
-        body { font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 11px; color: #000; margin: 10px 25px; line-height: 1.3; }
-        .page-header { text-align: right; font-size: 8px; color: #555; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 5px; }
-        
-        /* Layout Grid Header */
-        .header-table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
-        .header-table td { vertical-align: top; padding: 0; }
-        .header-left { width: 35%; font-size: 11px; }
-        .header-center { width: 40%; text-align: center; }
-        .header-right { width: 25%; text-align: right; font-size: 11px; }
-        
-        .spk-title { font-size: 24px; font-weight: 900; letter-spacing: 4px; margin: 0; line-height: 1; }
-        .spk-subtitle { font-size: 10px; font-weight: bold; letter-spacing: 2px; margin: 2px 0 0 0; text-transform: uppercase; }
-        
-        .badge-tipe { font-size: 9px; font-weight: bold; padding: 2px 8px; border-radius: 4px; display: inline-block; margin-top: 4px; text-transform: uppercase; }
-        .badge-stok { background: #dcfce7; color: #15803d; border: 1px solid #86efac; }
-        .badge-klien { background: #dbeafe; color: #1e40af; border: 1px solid #93c5fd; }
+        @page {
+            size: A4 portrait;
+            margin: 5mm 8mm;
+        }
 
-        .info-label { font-weight: bold; }
-        .info-val-red { color: #d11a2a; font-weight: bold; }
-        
-        /* Image Box Container */
-        .design-box { border: 2px dashed #000; border-radius: 8px; padding: 18px; text-align: center; position: relative; margin-bottom: 15px; min-height: 250px; display: flex; flex-direction: column; justify-content: center; align-items: center; }
-        .design-image-container { display: flex; justify-content: center; gap: 20px; margin-top: 8px; width: 100%; }
-        .design-image { max-height: 280px; max-width: 90%; object-fit: contain; border: 1px solid #94a3b8; padding: 4px; background: #fff; border-radius: 4px; }
-        .design-label { font-size: 12px; font-weight: bold; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 1px; }
-        
-        /* Bar Pemesan */
-        .pemesan-bar { border-top: 1px dashed #000; border-bottom: 1px dashed #000; padding: 6px 0; font-size: 10px; font-weight: bold; margin-bottom: 12px; }
-        
-        /* Table Rincian Produk & Common Tables */
-        .table-section-title { background: #0f172a; color: #fff; font-size: 10px; font-weight: bold; text-align: left; padding: 5px 8px; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 12px; margin-bottom: 0; }
-        .product-table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
-        .product-table th, .product-table td { border: 1px solid #000; padding: 5px 6px; text-align: center; font-size: 10px; }
-        .product-table th { background: #f1f5f9; font-size: 9px; font-weight: bold; text-transform: uppercase; }
-        .product-table td.align-left { text-align: left; font-weight: bold; }
-        .bg-red-light { background: #fee2e2; color: #991b1b; font-weight: bold; }
-        .bg-gray-light { background: #f8fafc; font-weight: bold; }
-        
-        /* Accessories & Additional Attributes */
-        .attrib-box { border: 1px solid #000; padding: 8px 10px; margin-bottom: 12px; background: #f8fafc; }
-        .attrib-title { font-weight: bold; color: #b91c1c; text-transform: uppercase; font-size: 9px; margin-bottom: 3px; letter-spacing: 0.5px; }
-        .attrib-content { font-size: 10px; font-weight: bold; }
-        
-        /* Documentation Checklist */
-        .doc-checklist { display: flex; border: 1px solid #000; margin-bottom: 12px; font-weight: bold; font-size: 10px; }
-        .doc-title { width: 30%; border-right: 1px solid #000; padding: 5px 8px; background: #f8fafc; }
-        .doc-item { width: 35%; padding: 5px 8px; display: flex; align-items: center; justify-content: center; }
-        .doc-item:not(:last-child) { border-right: 1px solid #000; }
-        .checkbox-square { border: 1px solid #000; width: 11px; height: 11px; margin-right: 6px; display: inline-block; }
-        
-        /* Signatures Grid */
-        .signature-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        .signature-table td { border: 1px solid #000; width: 50%; vertical-align: top; padding: 8px 12px; height: 80px; }
-        .signature-title { font-weight: bold; text-transform: uppercase; font-size: 9px; margin-bottom: 35px; border-bottom: 1px solid #000; padding-bottom: 4px; }
-        
-        .page-num { text-align: right; font-size: 9px; color: #555; margin-top: 10px; font-weight: bold; }
-        
+        * {
+            box-sizing: border-box;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            font-size: 9.5px;
+            color: #0f172a;
+            margin: 0;
+            padding: 0;
+            background: #fff;
+            line-height: 1.2;
+        }
+
+        .no-print {
+            margin: 10px 15px;
+            padding: 10px 16px;
+            background: #1e293b;
+            color: #fff;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+        }
+
+        /* ── Half A4 Slip Card ── */
+        .spk-slip-card {
+            width: 100%;
+            height: 135mm;
+            max-height: 137mm;
+            padding: 3px 4px;
+            position: relative;
+            overflow: hidden;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .slip-separator {
+            border-top: 1.5px dashed #94a3b8;
+            margin: 3mm 0;
+            width: 100%;
+        }
+
+        .page-break {
+            page-break-after: always;
+            break-after: always;
+        }
+
+        /* Header Layout */
+        .page-copy-tag {
+            text-align: right;
+            font-size: 7.5px;
+            font-weight: 700;
+            color: #475569;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 2px;
+        }
+
+        .header-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 3px;
+        }
+
+        .header-table td {
+            vertical-align: top;
+            padding: 0;
+        }
+
+        .header-left {
+            width: 32%;
+            font-size: 9px;
+            font-weight: 700;
+        }
+
+        .header-center {
+            width: 36%;
+            text-align: center;
+        }
+
+        .header-right {
+            width: 24%;
+            text-align: right;
+            font-size: 9px;
+        }
+
+        .header-qr {
+            width: 8%;
+            text-align: right;
+            padding-left: 4px;
+        }
+
+        .spk-title-main {
+            font-size: 22px;
+            font-weight: 900;
+            letter-spacing: 5px;
+            line-height: 1;
+            margin: 0;
+            color: #000;
+        }
+
+        .spk-sub-main {
+            font-size: 8.5px;
+            font-weight: 800;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            color: #1e293b;
+            margin-top: 1px;
+        }
+
+        .val-mono {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-weight: 800;
+        }
+
+        .text-danger {
+            color: #dc2626;
+        }
+
+        .fw-bold {
+            font-weight: 700;
+        }
+
+        .header-divider-bar {
+            width: 100%;
+            height: 2.5px;
+            background: #000;
+            margin-bottom: 4px;
+        }
+
+        /* Mockup / Image Frame Box */
+        .design-box-frame {
+            border: 1.5px dashed #64748b;
+            border-radius: 8px;
+            padding: 4px;
+            text-align: center;
+            margin-bottom: 4px;
+            background: #fff;
+            height: 105px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .design-img {
+            max-height: 98px;
+            max-width: 95%;
+            object-fit: contain;
+        }
+
+        .design-placeholder-text {
+            color: #94a3b8;
+            font-size: 10px;
+            font-weight: 700;
+            border: 1px dashed #cbd5e1;
+            padding: 25px 40px;
+            border-radius: 6px;
+            background: #f8fafc;
+        }
+
+        /* Pemesan & Admin Bar */
+        .pemesan-info-bar {
+            border-top: 1px dashed #475569;
+            border-bottom: 1px dashed #475569;
+            padding: 3px 0;
+            font-size: 8.5px;
+            font-weight: 700;
+            margin-bottom: 4px;
+            color: #0f172a;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Tables & Section Banners */
+        .banner-blue {
+            background: #2563eb;
+            color: #fff;
+            font-size: 8.5px;
+            font-weight: 800;
+            text-align: center;
+            padding: 2px 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-radius: 2px 2px 0 0;
+        }
+
+        .banner-slate {
+            background: #475569;
+            color: #fff;
+            font-size: 8.5px;
+            font-weight: 800;
+            text-align: center;
+            padding: 2px 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-radius: 2px 2px 0 0;
+        }
+
+        .grid-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 4px;
+        }
+
+        .grid-table th, .grid-table td {
+            border: 1px solid #000;
+            padding: 2px 3px;
+            text-align: center;
+            font-size: 8.5px;
+        }
+
+        .grid-table th {
+            background: #fff;
+            font-weight: 800;
+            text-transform: uppercase;
+            font-size: 8px;
+        }
+
+        /* Catatan / Keterangan Box */
+        .catatan-box {
+            border: 1.5px solid #000;
+            border-radius: 6px;
+            padding: 4px 6px;
+            background: #fff;
+            margin-top: 2px;
+            min-height: 32px;
+        }
+
+        .catatan-title {
+            font-weight: 800;
+            font-size: 8px;
+            text-transform: uppercase;
+            color: #0f172a;
+            margin-bottom: 1px;
+        }
+
+        .catatan-text {
+            font-size: 8.5px;
+            font-weight: 700;
+            color: #0f172a;
+        }
+
         @media print {
-            body { margin: 0; }
-            .no-print { display: none; }
-            @page { size: A4; margin: 10mm 12mm; }
+            .no-print { display: none !important; }
+            body { margin: 0; padding: 0; }
         }
     </style>
 </head>
 <body>
-    <div class="no-print" style="margin-bottom: 12px; padding: 8px 12px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px; display: flex; justify-content: space-between; align-items: center;">
-        <span style="font-size: 11px; font-weight: bold; color: #334155;">
-            💡 Pratinjau Dokumen SPK. Tekan <strong>Ctrl + P</strong> atau klik tombol di samping untuk mencetak.
-        </span>
-        <button type="button" onclick="window.print()" style="padding: 5px 12px; background: #2563eb; color: #fff; border: none; border-radius: 4px; font-weight: bold; font-size: 11px; cursor: pointer;">
-            🖨️ Cetak SPK (Ctrl+P)
+
+    <div class="no-print">
+        <div>
+            <strong>🖨️ Pratinjau Cetak SPK (Format A4 Bagi 2 / 2 Slips per Halaman)</strong>
+            <div style="font-size:11px; opacity:0.8; margin-top:2px;">
+                Total SPK: {{ count($spkBlocks) }} produk · Dicetak 2 rangkap per SPK (Tim Produksi &amp; Arsip)
+            </div>
+        </div>
+        <button type="button" onclick="window.print()" style="padding: 6px 16px; background: #2563eb; color: #fff; border: none; border-radius: 6px; font-weight: bold; font-size: 12px; cursor: pointer;">
+            🖨️ Cetak SPK (Ctrl + P)
         </button>
     </div>
-    
-    <div class="page-header">Arsip Lembar SPK Kantor</div>
 
-    <!-- Header Grid -->
-    <table class="header-table">
-        <tr>
-            <td class="header-left">
-                <div><span class="info-label">NO PRODUKSI :</span> <span style="font-family:monospace; font-weight:bold;">{{ $spk->no_produksi ?: '—' }}</span></div>
-                <div style="margin-top: 3px;"><span class="info-label">NO PESANAN :</span> <span style="font-family:monospace; font-weight:bold;">{{ $spk->no_spk }}</span></div>
-            </td>
-            <td class="header-center">
-                <h1 class="spk-title">S P K</h1>
-                <div class="spk-subtitle">Surat Perintah Kerja</div>
-                @if(($spk->tipe_spk ?? 'pesanan_pelanggan') === 'stok_gudang')
-                    <div class="badge-tipe badge-stok">🏬 PRODUKSI STOK GUDANG</div>
-                @else
-                    <div class="badge-tipe badge-klien">🛒 PESANAN PELANGGAN</div>
-                @endif
-            </td>
-            <td class="header-right">
-                <div><span class="info-label">TANGGAL :</span> <strong>{{ $spk->tanggal ? $spk->tanggal->format('d F Y') : '—' }}</strong></div>
-                <div style="margin-top: 3px;"><span class="info-label">JATUH TEMPO :</span> <span class="info-val-red">{{ $spk->deadline ? $spk->deadline->format('d F Y') : '—' }}</span></div>
-            </td>
-            <td style="width: 60px; padding-left: 15px;">
-                <img src="https://api.qrserver.com/v1/create-qr-code/?size=55x55&data={{ $spk->no_spk }}" alt="QR Code" style="display:block;">
-            </td>
-        </tr>
-    </table>
-
-    <!-- Design Box -->
-    <div class="design-box">
-        <div class="design-label">Desain Model / Bordir Logo</div>
-        <div class="design-image-container">
-            @if($spk->image_url)
-                <img class="design-image" src="{{ $spk->image_url }}" alt="Desain">
-            @else
-                <div style="color:#64748b; font-size:12px; font-weight:bold; border:2px dashed #cbd5e1; padding: 45px 80px; border-radius: 6px; background:#f8fafc;">
-                    📷 TEMPEL GAMBAR DESAIN DI SINI
-                </div>
-            @endif
-        </div>
-    </div>
-
-    <!-- Client / Order Bar -->
-    <div class="pemesan-bar">
-        PEMESAN: {{ strtoupper($spk->pemesan ?: 'INTERNAL STOCK') }} 
-        | NO HP PEMESAN: {{ $spk->no_hp_pemesan ?: '—' }}
-        | INSTANSI / TOKO: {{ strtoupper($spk->instansi ?: '—') }}
-        | PENGINPUT: {{ strtoupper($spk->penginput->name ?? 'SYSTEM') }}
-    </div>
-
-    <!-- 1. Status Pengambilan Barang (Partial Handover) -->
-    <div class="table-section-title">1. Status Pengambilan Barang (Partial Handover)</div>
-    <table class="product-table">
-        <thead>
-            <tr>
-                <th style="width: 40%; text-align: left; padding-left: 8px;">SKU Produk &amp; Ukuran</th>
-                <th style="width: 20%;">Total Qty SPK</th>
-                <th style="width: 20%;">Sudah Diambil</th>
-                <th style="width: 20%;">Sisa Belum Diambil</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach($spk->items as $item)
-                @php
-                    $diambil = $item->qty_diambil;
-                    $sisa = $item->sisa_qty;
-                @endphp
-                <tr>
-                    <td style="text-align: left; font-weight: bold; font-family: monospace; padding-left: 8px;">
-                        {{ $item->sku ?: ($item->sku_induk ?: $item->nama_produk) }} ({{ $item->ukuran ?: 'All Size' }})
-                    </td>
-                    <td style="font-weight: bold;">{{ $item->quantity }} pcs</td>
-                    <td style="font-weight: bold; color: #0284c7;">{{ $diambil }} pcs</td>
-                    <td style="font-weight: bold; color: {{ $sisa == 0 ? '#16a34a' : '#dc2626' }};">
-                        {{ $sisa == 0 ? 'Lunas / Selesai (0 pcs)' : $sisa . ' pcs lagi' }}
-                    </td>
-                </tr>
-            @endforeach
-            <tr class="bg-gray-light">
-                <td style="text-align: right; padding-right: 8px;">TOTAL QTY SPK:</td>
-                <td style="font-size: 11px;">{{ $spk->items->sum('quantity') }} pcs</td>
-                <td style="color: #0284c7;">{{ $spk->items->sum('qty_diambil') }} pcs</td>
-                <td style="color: #dc2626;">{{ $spk->items->sum('sisa_qty') }} pcs</td>
-            </tr>
-        </tbody>
-    </table>
-
-    <!-- 2. Tracking Progress Tahapan Produksi -->
-    @if($spk->proses && $spk->proses->count() > 0)
-    <div class="table-section-title">2. Tracking Progress Tahapan Produksi</div>
-    <table class="product-table">
-        <thead>
-            <tr>
-                <th style="width: 30%; text-align: left; padding-left: 8px;">SKU Produk &amp; Ukuran</th>
-                <th style="width: 12%;">Total Qty</th>
-                @foreach($spk->proses as $proses)
-                    <th>{{ $proses->nama_proses }}</th>
-                @endforeach
-            </tr>
-        </thead>
-        <tbody>
-            @php
-                $prosesTotals = [];
-                foreach($spk->proses as $p) { $prosesTotals[$p->id] = 0; }
-            @endphp
-            @foreach($spk->items as $item)
-                <tr>
-                    <td style="text-align: left; font-weight: bold; font-family: monospace; padding-left: 8px;">
-                        {{ $item->sku ?: ($item->sku_induk ?: $item->nama_produk) }} ({{ $item->ukuran ?: 'All Size' }})
-                    </td>
-                    <td style="font-weight: bold;">{{ $item->quantity }} pcs</td>
-                    @foreach($spk->proses as $proses)
-                        @php
-                            $pg = $progresMap[$item->id][$proses->id] ?? null;
-                            $qtyDone = $pg ? $pg->qty_selesai : 0;
-                            $prosesTotals[$proses->id] += $qtyDone;
-                        @endphp
-                        <td style="font-weight: bold; font-family: monospace;">
-                            {{ $qtyDone }} / {{ $item->quantity }}
-                        </td>
-                    @endforeach
-                </tr>
-            @endforeach
-            <tr class="bg-gray-light">
-                <td style="text-align: right; padding-right: 8px;">Total Selesai Tahapan:</td>
-                <td style="font-size: 11px;">{{ $spk->items->sum('quantity') }} pcs</td>
-                @foreach($spk->proses as $proses)
-                    <td style="font-weight: bold; font-family: monospace;">
-                        {{ $prosesTotals[$proses->id] ?? 0 }} / {{ $spk->items->sum('quantity') }} pcs
-                    </td>
-                @endforeach
-            </tr>
-        </tbody>
-    </table>
-    @endif
-
-    {{-- Sub-table Riwayat Log Pengambilan (jika ada) --}}
     @php
-        $allPickups = collect();
-        foreach($spk->items as $it) {
-            foreach($it->pickups as $pk) {
-                $allPickups->push($pk);
-            }
-        }
-        $allPickups = $allPickups->sortByDesc('tanggal_ambil');
+        $globalSlipCount = 0;
+        $totalBlocks = count($spkBlocks);
     @endphp
-    @if($allPickups->isNotEmpty())
-        <div style="font-weight: bold; font-size: 9px; margin-top: 4px; margin-bottom: 4px; text-transform: uppercase;">
-            Log Catatan Pengambilan Barang:
-        </div>
-        <table class="product-table" style="margin-bottom: 10px;">
-            <thead>
-                <tr>
-                    <th style="width: 20%;">Waktu Ambil</th>
-                    <th style="width: 25%; text-align: left; padding-left: 6px;">SKU Produk / Ukuran</th>
-                    <th style="width: 10%;">Qty</th>
-                    <th style="width: 22%;">Yang Mengambil</th>
-                    <th style="width: 23%;">Yang Input Data</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach($allPickups as $pk)
-                    <tr>
-                        <td style="font-family: monospace;">{{ $pk->tanggal_ambil ? $pk->tanggal_ambil->format('d/m/Y H:i') : '—' }}</td>
-                        <td style="text-align: left; font-weight: bold; padding-left: 6px;">
-                            {{ $pk->item->sku ?: $pk->item->nama_produk }} ({{ $pk->item->ukuran ?: 'All Size' }})
-                        </td>
-                        <td style="font-weight: bold; color: #2563eb;">+{{ $pk->qty_diambil }} pcs</td>
-                        <td style="font-weight: bold;">{{ $pk->nama_pengambil }}</td>
-                        <td>{{ $pk->pemberi->name ?? 'SYSTEM' }}</td>
-                    </tr>
-                @endforeach
-            </tbody>
-        </table>
-    @endif
 
+    @foreach($spkBlocks as $bIdx => $block)
+        @php
+            $currentSpk  = $block['spk'];
+            $variantRows = $block['variantRows'];
+            $bazaItems   = $block['bazaItems'];
+            $firstVarName = !empty($variantRows) ? array_key_first($variantRows) : 'MODEL VARIAN';
+        @endphp
 
+        {{-- Print 2 Copies per SPK (Lembar 1: Tim Produksi, Lembar 2: Arsip Kantor/Finishing) --}}
+        @foreach([1, 2] as $copyNum)
+            @php
+                $globalSlipCount++;
+                $isEvenSlip = ($globalSlipCount % 2 === 0);
+            @endphp
 
-    <!-- Additional Attributes -->
-    <div class="attrib-box">
-        <div class="attrib-title">Atribut &amp; Aksesoris Tambahan:</div>
-        <div class="attrib-content">
-            @if($spk->tambahan)
-                {!! nl2br(e($spk->tambahan)) !!}
+            <div class="spk-slip-card">
+                <div>
+                    <!-- Copy Tag Header -->
+                    <div class="page-copy-tag">
+                        HALAMAN {{ $copyNum }}: {{ $copyNum === 1 ? 'TIM PRODUKSI' : 'ARSIP KANTOR / FINISHING' }}
+                    </div>
+
+                    <!-- Header Grid -->
+                    <table class="header-table">
+                        <tr>
+                            <td class="header-left">
+                                <div><span style="color:#475569;">NO PRODUKSI :</span> <span class="val-mono">{{ $currentSpk->no_produksi ?: '—' }}</span></div>
+                                <div style="margin-top: 2px;"><span style="color:#475569;">NO PESANAN :</span> <span class="val-mono">{{ $currentSpk->no_spk }}</span></div>
+                            </td>
+                            <td class="header-center">
+                                <h1 class="spk-title-main">S P K</h1>
+                                <div class="spk-sub-main">SURAT PERINTAH KERJA</div>
+                            </td>
+                            <td class="header-right">
+                                <div><span style="color:#475569;">ORDER DATE :</span> <strong>{{ $currentSpk->tanggal ? $currentSpk->tanggal->format('Y-m-d') : date('Y-m-d') }}</strong></div>
+                                <div style="margin-top: 2px;"><span style="color:#475569;">DEADLINE :</span> <span class="text-danger fw-bold">{{ $currentSpk->deadline ? $currentSpk->deadline->format('Y-m-d') : '—' }}</span></div>
+                            </td>
+                            <td class="header-qr">
+                                <img src="https://api.qrserver.com/v1/create-qr-code/?size=48x48&data={{ $currentSpk->no_spk }}" alt="QR" style="width: 40px; height: 40px; display:block;">
+                            </td>
+                        </tr>
+                    </table>
+
+                    <div class="header-divider-bar"></div>
+
+                    <!-- Design Box Frame -->
+                    <div class="design-box-frame">
+                        @php
+                            $imgSrc = $currentSpk->mockup_url ?: ($currentSpk->image_url ?: $currentSpk->referensi_klien_url);
+                        @endphp
+                        @if($imgSrc)
+                            <img src="{{ $imgSrc }}" class="design-img" alt="Desain SPK">
+                        @else
+                            <div class="design-placeholder-text">
+                                👕 TEMPEL GAMBAR DESAIN / MOCKUP DI SINI
+                            </div>
+                        @endif
+                    </div>
+
+                    <!-- Client & Admin Bar -->
+                    <div class="pemesan-info-bar">
+                        PEMESAN: {{ strtoupper($currentSpk->pemesan ?: 'INTERNAL / STOK GUDANG') }}
+                        @if($currentSpk->no_hp_pemesan) ({{ $currentSpk->no_hp_pemesan }}) @endif
+                        | INSTANSI: {{ strtoupper($currentSpk->instansi ?: '—') }}
+                        | ADMIN: {{ strtoupper($currentSpk->nama_pic ?: ($currentSpk->penginput->name ?? 'SYSTEM')) }}
+                    </div>
+
+                    <!-- 1. Table Rincian Varian Produk -->
+                    <div class="banner-blue">
+                        RINCIAN VARIAN PRODUK ({{ strtoupper($firstVarName) }})
+                    </div>
+                    <table class="grid-table">
+                        <thead>
+                            <tr>
+                                <th rowspan="2" style="width: 26%;">Model Varian</th>
+                                <th colspan="6">Size Target / Potong</th>
+                                <th rowspan="2" style="width: 10%; background: #dc2626; color: #fff;">Total QTY</th>
+                                <th colspan="2">Quality Control</th>
+                                <th rowspan="2" style="width: 16%;">Finishing / Packing</th>
+                            </tr>
+                            <tr>
+                                <th style="width: 6.5%;">S</th>
+                                <th style="width: 6.5%;">M</th>
+                                <th style="width: 6.5%;">L</th>
+                                <th style="width: 6.5%;">XL</th>
+                                <th style="width: 6.5%;">XXL</th>
+                                <th style="width: 6.5%;">3XL</th>
+                                <th style="width: 9%;">Lolos</th>
+                                <th style="width: 9%;">Reject</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse($variantRows as $varRow)
+                                <tr>
+                                    <td style="text-align: left; font-weight: bold; padding-left: 4px;">{{ $varRow['name'] }}</td>
+                                    <td style="{{ !empty($varRow['sizes']['S']) ? 'color:#dc2626; font-weight:bold;' : '' }}">{{ $varRow['sizes']['S'] ?? '' }}</td>
+                                    <td style="{{ !empty($varRow['sizes']['M']) ? 'color:#dc2626; font-weight:bold;' : '' }}">{{ $varRow['sizes']['M'] ?? '' }}</td>
+                                    <td style="{{ !empty($varRow['sizes']['L']) ? 'color:#dc2626; font-weight:bold;' : '' }}">{{ $varRow['sizes']['L'] ?? '' }}</td>
+                                    <td style="{{ !empty($varRow['sizes']['XL']) ? 'color:#dc2626; font-weight:bold;' : '' }}">{{ $varRow['sizes']['XL'] ?? '' }}</td>
+                                    <td style="{{ !empty($varRow['sizes']['XXL']) ? 'color:#dc2626; font-weight:bold;' : '' }}">{{ $varRow['sizes']['XXL'] ?? '' }}</td>
+                                    <td style="{{ !empty($varRow['sizes']['3XL']) ? 'color:#dc2626; font-weight:bold;' : '' }}">{{ $varRow['sizes']['3XL'] ?? '' }}</td>
+                                    <td style="background: #dc2626; color: #fff; font-weight: 900; font-size: 11px;">
+                                        {{ $varRow['total'] }}
+                                    </td>
+                                    <td></td>
+                                    <td></td>
+                                    <td></td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="11" class="text-center text-muted">Tidak ada rincian varian produk.</td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+
+                    <!-- 2. Table Rekap Kebutuhan & Pemakaian Kain -->
+                    <div class="banner-slate">
+                        REKAP KEBUTUHAN &amp; PEMAKAIAN KAIN
+                    </div>
+                    <table class="grid-table mb-1">
+                        <thead>
+                            <tr>
+                                <th style="width: 40%; text-align: left; padding-left: 6px;">SKU Kain / Bahan</th>
+                                <th style="width: 15%;">Estimasi (m)</th>
+                                <th style="width: 15%;">Ready (m)</th>
+                                <th style="width: 15%;">Pakai (m)</th>
+                                <th style="width: 15%;">Sisa (m)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse($bazaItems as $bItem)
+                                <tr>
+                                    <td style="text-align: left; font-weight: bold; padding-left: 6px;">{{ $bItem['name'] }}</td>
+                                    <td>{{ $bItem['qty'] }}</td>
+                                    <td></td>
+                                    <td></td>
+                                    <td></td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td style="text-align: left; font-weight: bold; padding-left: 6px;">
+                                        {{ $currentSpk->sku_kain ?: 'BAHAN UMUM / KAIN UTAMA' }}
+                                    </td>
+                                    <td>—</td>
+                                    <td></td>
+                                    <td></td>
+                                    <td></td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+
+                    <!-- Catatan / Keterangan Box -->
+                    <div class="catatan-box">
+                        <div class="catatan-title">CATATAN / KETERANGAN:</div>
+                        <div class="catatan-text">
+                            {{ $currentSpk->tambahan ?: '—' }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {{-- Separator or Page Break Logic --}}
+            @if(!$isEvenSlip)
+                <div class="slip-separator"></div>
             @else
-                Tidak ada aksesoris tambahan.
+                <div class="page-break"></div>
             @endif
-        </div>
-    </div>
 
-    <!-- Documentation Checklist -->
-    <div class="doc-checklist">
-        <div class="doc-title">BUKTI DOKUMENTASI KLIEN :</div>
-        <div class="doc-item">
-            <span class="checkbox-square"></span> SUDAH FOTO
-        </div>
-        <div class="doc-item">
-            <span class="checkbox-square"></span> SUDAH VIDEO
-        </div>
-    </div>
-
-    <!-- Signatures -->
-    <table class="signature-table">
-        <tr>
-            <td>
-                <div class="signature-title">Paraf QC / Gudang</div>
-                <div style="font-size:10px; color:#777;">( .................................... )</div>
-            </td>
-            <td>
-                <div class="signature-title">Project Selesai</div>
-                <div style="font-size:10px; color:#777; font-weight:bold;">( Paraf / Cap Tim Marketing )</div>
-            </td>
-        </tr>
-    </table>
-
-    <div class="page-num">Dokumen Cetak SPK</div>
+        @endforeach
+    @endforeach
 
 </body>
 </html>

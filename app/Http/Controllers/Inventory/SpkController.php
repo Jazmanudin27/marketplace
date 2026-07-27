@@ -647,26 +647,67 @@ class SpkController extends Controller
 
     public function print(Spk $spk)
     {
-        abort_unless($spk->tenant_id === Auth::user()->tenant_id, 403);
-        $spk->load(['penginput', 'items.extras', 'items.progres', 'items.pickups.pemberi', 'proses']);
-        $grouped = $this->getGroupedItems($spk);
+        $tenantId = Auth::user()->tenant_id;
+        abort_unless($spk->tenant_id === $tenantId, 403);
+
+        $spkQuery = Spk::with(['penginput', 'items.extras', 'items.progres', 'proses', 'order'])
+            ->where('tenant_id', $tenantId);
+
+        if (!empty($spk->no_produksi)) {
+            $spkList = $spkQuery->where('no_produksi', $spk->no_produksi)->orderBy('id')->get();
+        } else {
+            $spkList = collect([$spk]);
+        }
+
+        if ($spkList->isEmpty()) {
+            $spk->load(['penginput', 'items.extras', 'items.progres', 'proses', 'order']);
+            $spkList = collect([$spk]);
+        }
+
         $sizesHeader = ['S', 'M', 'L', 'XL', 'XXL', '3XL'];
 
-        foreach ($spk->items as $item) {
-            $sz = strtoupper(trim($item->ukuran));
-            if ($sz && !in_array($sz, ['S', 'M', 'L', 'XL', 'XXL', '3XL', 'XXXL']) && !in_array($sz, $sizesHeader)) {
-                $sizesHeader[] = $sz;
+        $spkBlocks = [];
+        foreach ($spkList as $currentSpk) {
+            $variantRows = [];
+            $bazaItems = [];
+
+            foreach ($currentSpk->items as $item) {
+                $sz = strtoupper(trim($item->ukuran));
+                if ($sz && !in_array($sz, ['S', 'M', 'L', 'XL', 'XXL', '3XL', 'XXXL']) && !in_array($sz, $sizesHeader)) {
+                    $sizesHeader[] = $sz;
+                }
+
+                $modelName = $item->nama_produk ?: ($item->sku ?: 'MODEL VARIAN');
+                $szKey = strtoupper(trim($item->ukuran)) ?: 'S';
+
+                if (!isset($variantRows[$modelName])) {
+                    $variantRows[$modelName] = [
+                        'name'  => $modelName,
+                        'sizes' => [],
+                        'total' => 0,
+                    ];
+                }
+                $variantRows[$modelName]['sizes'][$szKey] = ($variantRows[$modelName]['sizes'][$szKey] ?? 0) + $item->quantity;
+                $variantRows[$modelName]['total'] += $item->quantity;
+
+                foreach ($item->extras as $extra) {
+                    if (str_contains($extra->keterangan, 'Bahan:')) {
+                        $bazaItems[] = [
+                            'name' => trim(str_replace('Bahan:', '', $extra->keterangan)),
+                            'qty'  => $extra->nominal > 0 ? 'Rp ' . number_format($extra->nominal) : '—',
+                        ];
+                    }
+                }
             }
+
+            $spkBlocks[] = [
+                'spk'         => $currentSpk,
+                'variantRows' => $variantRows,
+                'bazaItems'   => $bazaItems,
+            ];
         }
 
-        $progresMap = [];
-        foreach ($spk->items as $item) {
-            foreach ($item->progres as $pg) {
-                $progresMap[$item->id][$pg->spk_proses_id] = $pg;
-            }
-        }
-
-        return view('inventory.spks.print', compact('spk', 'grouped', 'sizesHeader', 'progresMap'));
+        return view('inventory.spks.print', compact('spk', 'spkList', 'spkBlocks', 'sizesHeader'));
     }
 
     public function updateItemStatus(Request $request, $itemId)
