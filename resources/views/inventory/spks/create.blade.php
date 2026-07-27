@@ -1275,8 +1275,9 @@ document.addEventListener('DOMContentLoaded', function() {
             container.innerHTML = '';
             let totalCost = 0;
             recipe.items.forEach((item, bIdx) => {
-                const calcQty = (item.qty_unit * qtyProd).toFixed(2);
-                const subtotal = calcQty * item.harga;
+                const rawQty = item.qty_unit * qtyProd;
+                const calcQty = (rawQty % 1 === 0) ? Math.round(rawQty).toString() : Number(rawQty.toFixed(4)).toString();
+                const subtotal = rawQty * item.harga;
                 totalCost += subtotal;
 
                 container.appendChild(createHiddenBahanRow(rIdx, pIdx, bIdx, {
@@ -1592,46 +1593,32 @@ document.addEventListener('DOMContentLoaded', function() {
         const qtyFgood = document.getElementById('modal_qty_fgood').value || '0';
 
         // Hidden input sets
-        container.querySelector('.h-pemotong').value = pemotong;
-        container.querySelector('.h-qty-potong').value = qtyPotong;
-        container.querySelector('.h-tarif-potong').value = tarifPotong;
+        if (container.querySelector('.h-pemotong')) container.querySelector('.h-pemotong').value = pemotong;
+        if (container.querySelector('.h-qty-potong')) container.querySelector('.h-qty-potong').value = qtyPotong;
+        if (container.querySelector('.h-tarif-potong')) container.querySelector('.h-tarif-potong').value = tarifPotong;
 
-        container.querySelector('.h-penjahit').value = penjahit;
-        container.querySelector('.h-qty-jahit').value = qtyJahit;
-        container.querySelector('.h-tarif-jahit').value = tarifJahit;
+        if (container.querySelector('.h-penjahit')) container.querySelector('.h-penjahit').value = penjahit;
+        if (container.querySelector('.h-qty-jahit')) container.querySelector('.h-qty-jahit').value = qtyJahit;
+        if (container.querySelector('.h-tarif-jahit')) container.querySelector('.h-tarif-jahit').value = tarifJahit;
 
-        container.querySelector('.h-vendor-kancing').value = vendorKancing;
-        container.querySelector('.h-qty-kancing').value = qtyKancing;
-        container.querySelector('.h-tarif-kancing').value = tarifKancing;
+        if (container.querySelector('.h-vendor-kancing')) container.querySelector('.h-vendor-kancing').value = vendorKancing;
+        if (container.querySelector('.h-qty-kancing')) container.querySelector('.h-qty-kancing').value = qtyKancing;
+        if (container.querySelector('.h-tarif-kancing')) container.querySelector('.h-tarif-kancing').value = tarifKancing;
 
-        container.querySelector('.h-petugas-qc').value = petugasQc;
-        container.querySelector('.h-qc-lolos').value = qcLolos;
-        container.querySelector('.h-qc-reject').value = qcReject;
-        container.querySelector('.h-tarif-qc').value = tarifQc;
+        if (container.querySelector('.h-petugas-qc')) container.querySelector('.h-petugas-qc').value = petugasQc;
+        if (container.querySelector('.h-qc-lolos')) container.querySelector('.h-qc-lolos').value = qcLolos;
+        if (container.querySelector('.h-qc-reject')) container.querySelector('.h-qc-reject').value = qcReject;
+        if (container.querySelector('.h-tarif-qc')) container.querySelector('.h-tarif-qc').value = tarifQc;
 
-        container.querySelector('.h-qty-finishing').value = qtyFinishing;
-        container.querySelector('.h-qty-fgood').value = qtyFgood;
-
-        container.querySelector('.h-vendor-kancing').value = vendorKancing;
-        container.querySelector('.h-qty-kancing').value = qtyKancing;
-        container.querySelector('.h-tarif-kancing').value = tarifKancing;
-
-        container.querySelector('.h-petugas-qc').value = petugasQc;
-        container.querySelector('.h-qc-lolos').value = qcLolos;
-        container.querySelector('.h-qc-reject').value = qcReject;
-        container.querySelector('.h-tarif-qc').value = tarifQc;
-
-        container.querySelector('.h-petugas-finishing').value = petugasFinishing;
-        container.querySelector('.h-qty-finishing').value = qtyFinishing;
-        container.querySelector('.h-qty-fgood').value = qtyFgood;
-        container.querySelector('.h-tarif-finishing').value = tarifFinishing;
+        if (container.querySelector('.h-qty-finishing')) container.querySelector('.h-qty-finishing').value = qtyFinishing;
+        if (container.querySelector('.h-qty-fgood')) container.querySelector('.h-qty-fgood').value = qtyFgood;
 
         const totalLaborCost = calculateModalTahapLaborTotal();
 
         // Update button text badge on main product row table
         const btnTahap = tr.querySelector('.btn-tahap-trigger');
         if (btnTahap) {
-            if (pemotong || penjahit || vendorKancing || petugasQc || petugasFinishing || totalLaborCost > 0) {
+            if (pemotong || penjahit || vendorKancing || petugasQc || totalLaborCost > 0) {
                 btnTahap.className = 'btn btn-sm btn-primary-subtle text-primary border border-primary-subtle btn-tahap-trigger btn-open-tahap-modal';
                 let labelText = '';
                 if (penjahit) labelText = `${penjahit}`;

@@ -630,12 +630,11 @@ class SpkController extends Controller
 
     public function show(Spk $spk)
     {
-        abort_unless($spk->tenant_id === Auth::user()->tenant_id, 403);
+        $tenantId = Auth::user()->tenant_id;
+        abort_unless($spk->tenant_id === $tenantId, 403);
         $spk->load(['penginput', 'items.extras', 'items.progres', 'items.pickups.pemberi', 'proses']);
         
-        // Auto-load master production stages if SPK has no custom processes yet
         $this->ensureDefaultProses($spk);
-        
         $grouped = $this->getGroupedItems($spk);
 
         $sizesHeader = ['S', 'M', 'L', 'XL', 'XXL', '3XL'];
@@ -646,10 +645,8 @@ class SpkController extends Controller
             }
         }
 
-        // Fetch dynamic production status options (Master Tahapan / SPK Proses)
         $statusOptions = $this->getStatusOptions($spk);
 
-        // Build progres map: [item_id][proses_id] => qty_done
         $progresMap = [];
         foreach ($spk->items as $item) {
             foreach ($item->progres as $pg) {
@@ -657,7 +654,282 @@ class SpkController extends Controller
             }
         }
 
-        return view('inventory.spks.show', compact('spk', 'grouped', 'statusOptions', 'sizesHeader', 'progresMap'));
+        // Form autocompletion datasets matching create()
+        $products = MasterProduct::where('tenant_id', $tenantId)
+            ->where('is_active', true)
+            ->with(['activeRecipe.items.inventoryItem'])
+            ->orderBy('name')
+            ->get();
+
+        $vendorsData = \App\Models\Tailor::where('tenant_id', $tenantId)
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get(['id', 'name', 'category']);
+
+        $pemotongList = $vendorsData->where('category', 'Pemotong')->pluck('name')->values();
+        $penjahitList = $vendorsData->filter(fn($v) => in_array($v->category, ['Penjahit', null, ''], true))->pluck('name')->values();
+        $vendorKancingList = $vendorsData->where('category', 'Vendor Kancing')->pluck('name')->values();
+        $petugasQcList = $vendorsData->where('category', 'Petugas QC')->pluck('name')->values();
+        $tailors = $vendorsData->pluck('name')->values();
+
+        $laborServices = \App\Models\LaborService::where('tenant_id', $tenantId)
+            ->orderBy('name')
+            ->get(['name', 'default_cost']);
+
+        $stores = \App\Models\Store::with('channel')
+            ->where('tenant_id', $tenantId)
+            ->orderBy('store_name')
+            ->get();
+
+        $existingNoProduksi = Spk::where('tenant_id', $tenantId)
+            ->whereNotNull('no_produksi')
+            ->where('no_produksi', '!=', '')
+            ->distinct()
+            ->orderByDesc('no_produksi')
+            ->pluck('no_produksi');
+
+        $inventoryItemsData = \App\Models\InventoryItem::where('tenant_id', $tenantId)
+            ->where('is_active', true)
+            ->select(['id', 'name', 'unit', 'cost_price'])
+            ->orderBy('name')
+            ->get();
+
+        $inventoryItems = $inventoryItemsData->pluck('name');
+
+        $inventoryItemsMap = [];
+        foreach ($inventoryItemsData as $inv) {
+            if (!empty($inv->name)) {
+                $inventoryItemsMap[strtoupper(trim($inv->name))] = [
+                    'name'       => $inv->name,
+                    'unit'       => $inv->unit ?? '',
+                    'cost_price' => (float) ($inv->cost_price ?? 0),
+                ];
+            }
+        }
+
+        $recipesMap = [];
+        foreach ($products as $prod) {
+            $rec = $prod->activeRecipe;
+            if ($rec) {
+                $batchQty = max(1, (int)$rec->batch_qty);
+                $itemsList = [];
+                foreach ($rec->items as $rItem) {
+                    $invItem = $rItem->inventoryItem;
+                    if ($invItem && !empty($invItem->name)) {
+                        $itemsList[] = [
+                            'nama_bahan' => $invItem->name,
+                            'unit'       => $invItem->unit ?? '',
+                            'qty_unit'   => round((float)$rItem->quantity / $batchQty, 4),
+                            'harga'      => (float)($invItem->cost_price ?? 0),
+                        ];
+                    }
+                }
+
+                $recipeData = [
+                    'product_id' => $prod->id,
+                    'name'       => $prod->name,
+                    'sku'        => $prod->sku,
+                    'sku_induk'  => $prod->sku_induk,
+                    'ukuran'     => $prod->ukuran,
+                    'items'      => $itemsList,
+                ];
+
+                if (!empty($prod->name)) {
+                    $recipesMap[strtoupper(trim($prod->name))] = $recipeData;
+                }
+                if (!empty($prod->sku)) {
+                    $recipesMap[strtoupper(trim($prod->sku))] = $recipeData;
+                }
+                if (!empty($prod->sku_induk)) {
+                    $recipesMap[strtoupper(trim($prod->sku_induk))] = $recipeData;
+                }
+            }
+        }
+
+        $allMasterProductsList = $products->map(function($p) {
+            return [
+                'sku'       => $p->sku,
+                'sku_induk' => $p->sku_induk,
+                'name'      => $p->name,
+                'ukuran'    => $p->ukuran ?? '',
+            ];
+        });
+
+        return view('inventory.spks.show', compact(
+            'spk', 'grouped', 'statusOptions', 'sizesHeader', 'progresMap',
+            'products', 'tailors', 'pemotongList', 'penjahitList', 'vendorKancingList', 'petugasQcList',
+            'laborServices', 'stores', 'existingNoProduksi', 'recipesMap',
+            'inventoryItems', 'inventoryItemsMap', 'allMasterProductsList'
+        ));
+    }
+
+    public function update(Request $request, Spk $spk)
+    {
+        $tenantId = Auth::user()->tenant_id;
+        abort_unless($spk->tenant_id === $tenantId, 403);
+
+        $request->validate([
+            'no_produksi'       => 'nullable|string|max:255',
+            'no_pesanan'        => 'nullable|string|max:255',
+            'tanggal'           => 'required|date',
+            'deadline'          => 'nullable|date',
+            'tipe_spk'          => 'nullable|string|in:pesanan_pelanggan,stok_gudang',
+            'tahap_saat_ini'    => 'nullable|string|max:100',
+            'pemesan'           => 'nullable|string|max:255',
+            'no_hp_pemesan'     => 'nullable|string|max:100',
+            'instansi'          => 'nullable|string|max:255',
+            'nama_pic'          => 'nullable|string|max:255',
+            'tambahan'          => 'nullable|string',
+            'image'             => 'nullable|image|max:4096',
+            'referensi_klien'   => 'nullable|image|max:8192',
+            'mockup_final'      => 'nullable|image|max:8192',
+        ]);
+
+        DB::transaction(function () use ($request, $spk, $tenantId) {
+            $noProduksi = trim((string) $request->input('no_produksi'));
+            if (empty($noProduksi)) {
+                $noProduksi = null;
+            }
+
+            $updateData = [
+                'no_produksi'    => $noProduksi,
+                'no_pesanan'     => $request->no_pesanan,
+                'tanggal'        => $request->tanggal,
+                'deadline'       => $request->deadline ?: null,
+                'tipe_spk'       => $request->input('tipe_spk', $spk->tipe_spk ?: 'pesanan_pelanggan'),
+                'is_urgent'      => $request->boolean('is_urgent'),
+                'tahap_saat_ini' => $request->input('tahap_saat_ini', $spk->tahap_saat_ini ?: 'DRAFT'),
+                'pemesan'        => $request->pemesan,
+                'no_hp_pemesan'  => $request->no_hp_pemesan,
+                'instansi'       => $request->instansi,
+                'nama_pic'       => $request->nama_pic,
+                'tambahan'       => $request->tambahan,
+            ];
+
+            if ($request->hasFile('image')) {
+                $p = $request->file('image')->store('spks', 'public');
+                $updateData['image_url'] = Storage::url($p);
+            }
+            if ($request->hasFile('referensi_klien')) {
+                $p = $request->file('referensi_klien')->store('spks/referensi', 'public');
+                $updateData['referensi_klien_url'] = Storage::url($p);
+            }
+            if ($request->hasFile('mockup_final')) {
+                $p = $request->file('mockup_final')->store('spks/mockup', 'public');
+                $updateData['mockup_url'] = Storage::url($p);
+            }
+
+            $spk->update($updateData);
+
+            // Update item details if provided in request
+            $rincianBlocks = $request->input('rincian', []);
+            if (!empty($rincianBlocks) && is_array($rincianBlocks)) {
+                foreach ($rincianBlocks as $rIdx => $rBlock) {
+                    $prodList = $rBlock['produk'] ?? [];
+                    if (!empty($prodList) && is_array($prodList)) {
+                        foreach ($prodList as $pIdx => $pRow) {
+                            $spkItem = $spk->items->first();
+                            if ($spkItem) {
+                                $namaProduk = trim($pRow['nama_produk'] ?? '') ?: $spkItem->nama_produk;
+                                $skuProduk  = trim($pRow['sku_produk'] ?? '') ?: $spkItem->sku;
+                                $ukuran     = trim($pRow['ukuran'] ?? '') ?: $spkItem->ukuran;
+                                $qtyProd    = max(1, (int) ($pRow['qty_produksi'] ?? $spkItem->quantity));
+
+                                $spkItem->update([
+                                    'nama_produk' => $namaProduk,
+                                    'sku'         => $skuProduk,
+                                    'ukuran'      => $ukuran,
+                                    'quantity'    => $qtyProd,
+                                    'pemotong'    => $pRow['pemotong'] ?? $spkItem->pemotong,
+                                    'penjahit'    => $pRow['penjahit'] ?? $spkItem->penjahit,
+                                    'vendor_kancing' => $pRow['vendor_kancing'] ?? $spkItem->vendor_kancing,
+                                ]);
+
+                                // Clean old extras for this item and rebuild
+                                SpkItemExtra::where('spk_item_id', $spkItem->id)->delete();
+
+                                // Pemotong
+                                $pemotong = trim($pRow['pemotong'] ?? '');
+                                if ($pemotong !== '') {
+                                    $this->processAutoSaveVendor($tenantId, $pemotong, 'Pemotong');
+                                }
+                                $qtyPotong = (int) ($pRow['qty_potong'] ?? 0);
+                                $tarifPotong = floatval($pRow['tarif_potong'] ?? 0);
+                                if ($pemotong !== '' || $qtyPotong > 0) {
+                                    $sub = $qtyPotong * $tarifPotong;
+                                    SpkItemExtra::create([
+                                        'spk_item_id' => $spkItem->id,
+                                        'keterangan'  => "Ongkos Potong: {$pemotong} ({$qtyPotong} pcs" . ($tarifPotong > 0 ? " @ Rp " . number_format($tarifPotong) : "") . ")",
+                                        'nominal'     => $sub,
+                                    ]);
+                                }
+
+                                // Penjahit
+                                $penjahit = trim($pRow['penjahit'] ?? '');
+                                if ($penjahit !== '') {
+                                    $this->processAutoSaveVendor($tenantId, $penjahit, 'Penjahit');
+                                }
+                                $qtyJahit = (int) ($pRow['qty_jahit'] ?? 0);
+                                $tarifJahit = floatval($pRow['tarif_jahit'] ?? 0);
+                                if ($penjahit !== '' || $qtyJahit > 0) {
+                                    $sub = $qtyJahit * $tarifJahit;
+                                    SpkItemExtra::create([
+                                        'spk_item_id' => $spkItem->id,
+                                        'keterangan'  => "Ongkos Jahit: {$penjahit} ({$qtyJahit} pcs" . ($tarifJahit > 0 ? " @ Rp " . number_format($tarifJahit) : "") . ")",
+                                        'nominal'     => $sub,
+                                    ]);
+                                }
+
+                                // Vendor Kancing
+                                $vendorKancing = trim($pRow['vendor_kancing'] ?? '');
+                                if ($vendorKancing !== '') {
+                                    $this->processAutoSaveVendor($tenantId, $vendorKancing, 'Vendor Kancing');
+                                }
+                                $qtyKancing = (int) ($pRow['qty_kancing'] ?? 0);
+                                $tarifKancing = floatval($pRow['tarif_kancing'] ?? 0);
+                                if ($vendorKancing !== '' || $qtyKancing > 0) {
+                                    $sub = $qtyKancing * $tarifKancing;
+                                    SpkItemExtra::create([
+                                        'spk_item_id' => $spkItem->id,
+                                        'keterangan'  => "Ongkos Kancing/LKPK: {$vendorKancing} ({$qtyKancing} pcs" . ($tarifKancing > 0 ? " @ Rp " . number_format($tarifKancing) : "") . ")",
+                                        'nominal'     => $sub,
+                                    ]);
+                                }
+
+                                // Petugas QC
+                                $petugasQc = trim($pRow['petugas_qc'] ?? '');
+                                if ($petugasQc !== '') {
+                                    $this->processAutoSaveVendor($tenantId, $petugasQc, 'Petugas QC');
+                                }
+                                $qcLolos = (int) ($pRow['qc_lolos'] ?? 0);
+                                $qcReject = (int) ($pRow['qc_reject'] ?? 0);
+                                $tarifQc = floatval($pRow['tarif_qc'] ?? 0);
+                                if ($petugasQc !== '' || $qcLolos > 0 || $qcReject > 0) {
+                                    $sub = $qcLolos * $tarifQc;
+                                    SpkItemExtra::create([
+                                        'spk_item_id' => $spkItem->id,
+                                        'keterangan'  => "Ongkos QC: {$petugasQc} (Lolos: {$qcLolos} pcs, Reject: {$qcReject} pcs" . ($tarifQc > 0 ? " @ Rp " . number_format($tarifQc) : "") . ")",
+                                        'nominal'     => $sub,
+                                    ]);
+                                }
+
+                                // Bahan List
+                                $bahanList = $pRow['bahan'] ?? [];
+                                if (!empty($bahanList) && is_array($bahanList)) {
+                                    $totalHpp = $this->processAutoSaveBahanAndRecipe($tenantId, $namaProduk, $skuProduk, $qtyProd, $bahanList, $spkItem);
+                                    if ($totalHpp > 0) {
+                                        $spkItem->update(['hpp' => $totalHpp]);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        return redirect()->route('spks.show', $spk)
+            ->with('success', 'Perubahan SPK #' . $spk->no_spk . ' berhasil disimpan.');
     }
 
     public function print(Spk $spk)
@@ -707,9 +979,17 @@ class SpkController extends Controller
 
                 foreach ($item->extras as $extra) {
                     if (str_contains($extra->keterangan, 'Bahan:')) {
+                        $ket = $extra->keterangan;
+                        $bName = trim(str_replace('Bahan:', '', $ket));
+                        $bQty = '—';
+                        if (preg_match('/^(.*?)\s*\(Qty:\s*([\d\.]+)\)$/i', $bName, $mQty)) {
+                            $bName = trim($mQty[1]);
+                            $nVal = (float) $mQty[2];
+                            $bQty = ($nVal == (int)$nVal) ? (int)$nVal : (float)$nVal;
+                        }
                         $bazaItems[] = [
-                            'name' => trim(str_replace('Bahan:', '', $extra->keterangan)),
-                            'qty'  => $extra->nominal > 0 ? 'Rp ' . number_format($extra->nominal) : '—',
+                            'name' => $bName,
+                            'qty'  => $bQty,
                         ];
                     }
                 }
@@ -1399,9 +1679,10 @@ class SpkController extends Controller
             }
 
             if ($spkItem) {
+                $cleanQtyStr = ($qtyBahan == (int)$qtyBahan) ? (int)$qtyBahan : (float)$qtyBahan;
                 SpkItemExtra::create([
                     'spk_item_id' => $spkItem->id,
-                    'keterangan'  => "Bahan: {$rawNama} (Qty: {$qtyBahan})",
+                    'keterangan'  => "Bahan: {$rawNama} (Qty: {$cleanQtyStr})",
                     'nominal'     => $subtotal,
                 ]);
             }
