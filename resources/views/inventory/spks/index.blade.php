@@ -290,8 +290,8 @@
                             </div>
 
                             {{-- SUB-SPK BREAKDOWN CONTAINER --}}
-                            <div class="bg-light bg-opacity-60 rounded-3 p-2.5 my-2.5 border border-light-subtle shadow-2xs">
-                                <div class="text-muted fw-bold mb-1.5 text-uppercase d-flex justify-content-between align-items-center" style="font-size: 9.5px; letter-spacing: 0.4px;">
+                            <div class="bg-light bg-opacity-60 rounded-3 p-2 my-2 border border-light-subtle shadow-2xs">
+                                <div class="text-muted fw-bold mb-1.5 text-uppercase d-flex justify-content-between align-items-center" style="font-size: 9px; letter-spacing: 0.4px;">
                                     <span>Rincian Jenis SPK dalam Produksi</span>
                                     <span>Qty &amp; Varian</span>
                                 </div>
@@ -313,18 +313,24 @@
                                             $badgeBg = '#fef3c7'; $badgeFg = '#b45309'; $badgeBorder = '#fde68a';
                                         }
                                     @endphp
-                                        <div class="d-flex justify-content-between align-items-center {{ !$loop->last ? 'border-bottom pb-1.5 mb-1.5 border-light-subtle' : '' }}" style="font-size: 0.8rem;">
-                                            <div class="min-w-0 me-2 d-flex align-items-center gap-1 flex-wrap">
-                                                <span class="badge rounded-2 px-1.5 py-0.5 fw-bold text-truncate" style="font-size: 9px; background-color: #fce7f3; color: #be185d; border: 1px solid #fbcfe8; max-width: 120px;" title="{{ $subSpk->kategori ?: 'SPK ' . ($loop->index + 1) }}">
-                                                    🏷️ {{ $subSpk->kategori ?: 'SPK ' . ($loop->index + 1) }}
-                                                </span>
-                                                <span class="badge rounded-2 px-1.5 py-0.5 fw-extrabold text-uppercase" style="font-size: 9px; background-color: {{ $badgeBg }}; color: {{ $badgeFg }}; border: 1px solid {{ $badgeBorder }};">
-                                                    {{ $stageName }}
-                                                </span>
-                                            </div>
-                                        <div class="fw-extrabold text-end flex-shrink-0 ms-1" style="font-size: 11.5px;">
-                                            <span class="text-primary">{{ number_format($subSpk->total_pcs) }} Pcs</span>
-                                            <span class="text-muted fw-normal ms-1" style="font-size: 10px;">| {{ $subSpk->variant_summary }}</span>
+                                    <div class="bg-white rounded-3 p-2 mb-1.5 border border-light-subtle shadow-2xs">
+                                        {{-- Line 1: Full Kategori badge (NO TRUNCATION) & Stage Badge --}}
+                                        <div class="d-flex justify-content-between align-items-center gap-1 mb-1">
+                                            <span class="badge rounded-2 px-2 py-1 fw-bold text-wrap text-start" style="font-size: 9.5px; background-color: #fce7f3; color: #be185d; border: 1px solid #fbcfe8; line-height: 1.2;">
+                                                🏷️ {{ $subSpk->kategori ?: 'SPK ' . ($loop->index + 1) }}
+                                            </span>
+                                            <span class="badge rounded-2 px-1.5 py-0.5 fw-extrabold text-uppercase flex-shrink-0" style="font-size: 9px; background-color: {{ $badgeBg }}; color: {{ $badgeFg }}; border: 1px solid {{ $badgeBorder }};">
+                                                {{ $stageName }}
+                                            </span>
+                                        </div>
+                                        {{-- Line 2: Qty & Varian --}}
+                                        <div class="d-flex justify-content-between align-items-center" style="font-size: 10.5px;">
+                                            <span class="fw-extrabold text-primary">
+                                                {{ number_format($subSpk->total_pcs) }} Pcs
+                                            </span>
+                                            <span class="text-muted fw-semibold text-truncate ms-1" style="font-size: 10px;" title="{{ $subSpk->variant_summary }}">
+                                                {{ $subSpk->variant_summary }}
+                                            </span>
                                         </div>
                                     </div>
                                 @endforeach
@@ -541,6 +547,9 @@ document.addEventListener('DOMContentLoaded', function () {
 </script>
 
 <style>
+.spk-card {
+    zoom: 0.90;
+}
 .scrollbar-hidden::-webkit-scrollbar {
     display: none;
 }
