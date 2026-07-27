@@ -57,15 +57,57 @@ class Spk extends Model
     public function getCurrentStageNameAttribute(): string
     {
         if ($this->relationLoaded('proses') && $this->proses->isNotEmpty()) {
-            // Pick first uncompleted stage or last stage
-            $activeStage = $this->proses->first(function ($p) {
-                return isset($p->status) && $p->status !== 'Selesai';
-            });
-            if ($activeStage) {
-                return strtoupper($activeStage->nama_proses);
+            // Determine active stage by checking item progress (qty_done vs total_qty) for each process in urutan order
+            if ($this->relationLoaded('items') && $this->items->isNotEmpty()) {
+                $totalPcs = (int) $this->items->sum('quantity');
+
+                if ($totalPcs > 0) {
+                    foreach ($this->proses as $p) {
+                        $qtyDoneForProses = 0;
+                        foreach ($this->items as $item) {
+                            if ($item->relationLoaded('progres') && $item->progres->isNotEmpty()) {
+                                $pg = $item->progres->firstWhere('spk_proses_id', $p->id);
+                                if ($pg) {
+                                    $qtyDoneForProses += (int) $pg->qty_done;
+                                }
+                            }
+                        }
+
+                        // First stage that is not 100% completed across all items is the active stage
+                        if ($qtyDoneForProses < $totalPcs) {
+                            return strtoupper($p->nama_proses);
+                        }
+                    }
+
+                    // All stages are 100% completed
+                    return 'SELESAI';
+                }
+            } else {
+                // If items/progres relations are not preloaded, perform fallback check
+                $totalPcs = (int) $this->items()->sum('quantity');
+                if ($totalPcs > 0) {
+                    $itemIds = $this->items()->pluck('id');
+                    foreach ($this->proses as $p) {
+                        $qtyDoneForProses = (int) \App\Models\SpkItemProgres::whereIn('spk_item_id', $itemIds)
+                            ->where('spk_proses_id', $p->id)
+                            ->sum('qty_done');
+
+                        if ($qtyDoneForProses < $totalPcs) {
+                            return strtoupper($p->nama_proses);
+                        }
+                    }
+                    return 'SELESAI';
+                }
             }
-            return strtoupper($this->proses->last()->nama_proses);
+
+            // Fallback if totalPcs is 0
+            return strtoupper($this->proses->first()->nama_proses);
         }
+
+        if (!empty($this->tahap_saat_ini)) {
+            return strtoupper($this->tahap_saat_ini);
+        }
+
         return 'PERENCANAAN';
     }
 

@@ -23,7 +23,7 @@ class SpkController extends Controller
     public function index(Request $request)
     {
         $tenantId = Auth::user()->tenant_id;
-        $query = Spk::with(['penginput', 'items.masterProduct', 'proses'])
+        $query = Spk::with(['penginput', 'items.masterProduct', 'items.progres', 'proses'])
             ->where('tenant_id', $tenantId)
             ->orderByDesc('created_at');
 
@@ -82,7 +82,7 @@ class SpkController extends Controller
 
         $groupedMaxIds = $subQuery->pluck('max_id');
 
-        $spks = Spk::with(['penginput', 'items.masterProduct', 'proses'])
+        $spks = Spk::with(['penginput', 'items.masterProduct', 'items.progres', 'proses'])
             ->whereIn('id', $groupedMaxIds)
             ->orderByDesc('id')
             ->paginate(12)
@@ -92,7 +92,7 @@ class SpkController extends Controller
         $noProduksiList = $spks->getCollection()->pluck('no_produksi')->filter()->unique()->toArray();
         $siblingSpksMap = [];
         if (!empty($noProduksiList)) {
-            $allSiblings = Spk::with(['items.masterProduct', 'proses'])
+            $allSiblings = Spk::with(['items.masterProduct', 'items.progres', 'proses'])
                 ->where('tenant_id', $tenantId)
                 ->whereIn('no_produksi', $noProduksiList)
                 ->orderBy('id')
@@ -105,7 +105,7 @@ class SpkController extends Controller
                 $spkItem->sub_spks = $siblingSpksMap[$spkItem->no_produksi];
             } else {
                 // If no_produksi is empty, find siblings created in the exact same transaction (same created_at down to minute)
-                $siblings = Spk::with(['items.masterProduct', 'proses'])
+                $siblings = Spk::with(['items.masterProduct', 'items.progres', 'proses'])
                     ->where('tenant_id', $tenantId)
                     ->where('created_at', $spkItem->created_at)
                     ->orderBy('id')
