@@ -153,7 +153,7 @@
             text-align: center;
             margin-bottom: 4px;
             background: #fff;
-            height: 105px;
+            height: 90px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -161,7 +161,7 @@
         }
 
         .design-img {
-            max-height: 98px;
+            max-height: 84px;
             max-width: 95%;
             object-fit: contain;
         }
@@ -388,7 +388,45 @@
                         </tbody>
                     </table>
 
-
+                    <!-- 2. Table Rekap Kebutuhan & Pemakaian Kain (Hanya Munculkan 1 Bahan Pertama) -->
+                    @php
+                        $firstBazaItem = !empty($bazaItems) ? reset($bazaItems) : null;
+                    @endphp
+                    <div class="banner-slate">
+                        REKAP KEBUTUHAN &amp; PEMAKAIAN KAIN
+                    </div>
+                    <table class="grid-table mb-1">
+                        <thead>
+                            <tr>
+                                <th style="width: 40%; text-align: left; padding-left: 6px;">SKU Kain / Bahan</th>
+                                <th style="width: 15%;">Estimasi (m)</th>
+                                <th style="width: 15%;">Ready (m)</th>
+                                <th style="width: 15%;">Pakai (m)</th>
+                                <th style="width: 15%;">Sisa (m)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if($firstBazaItem)
+                                <tr>
+                                    <td style="text-align: left; font-weight: bold; padding-left: 6px;">{{ $firstBazaItem['name'] }}</td>
+                                    <td>{{ $firstBazaItem['qty'] }}</td>
+                                    <td></td>
+                                    <td></td>
+                                    <td></td>
+                                </tr>
+                            @else
+                                <tr>
+                                    <td style="text-align: left; font-weight: bold; padding-left: 6px;">
+                                        {{ $currentSpk->sku_kain ?: 'BAHAN UMUM / KAIN UTAMA' }}
+                                    </td>
+                                    <td>—</td>
+                                    <td></td>
+                                    <td></td>
+                                    <td></td>
+                                </tr>
+                            @endif
+                        </tbody>
+                    </table>
 
                     <!-- Catatan / Keterangan Box -->
                     <div class="catatan-box">
