@@ -407,9 +407,22 @@
                         </thead>
                         <tbody>
                             @if($firstBazaItem)
+                                @php
+                                    $rawQty = $firstBazaItem['qty'];
+                                    if (is_numeric($rawQty)) {
+                                        $num = (float) $rawQty;
+                                        if ($num > 15) {
+                                            $num = $num / 100;
+                                        }
+                                        $formattedQty = number_format($num, 3, ',', '.');
+                                        $formattedQty = rtrim(rtrim($formattedQty, '0'), ',');
+                                    } else {
+                                        $formattedQty = $rawQty;
+                                    }
+                                @endphp
                                 <tr>
                                     <td style="text-align: left; font-weight: bold; padding-left: 6px;">{{ $firstBazaItem['name'] }}</td>
-                                    <td>{{ $firstBazaItem['qty'] }}</td>
+                                    <td>{{ $formattedQty }}</td>
                                     <td></td>
                                     <td></td>
                                     <td></td>
