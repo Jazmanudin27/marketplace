@@ -198,6 +198,11 @@
                                         <span class="font-monospace fw-bold text-dark text-truncate d-inline-block align-middle" style="font-size: 11px; max-width: 95px;" title="{{ $subSpk->no_spk }}">
                                             #{{ $subSpk->no_spk }}
                                         </span>
+                                        @if($subSpk->kategori)
+                                            <span class="badge rounded-2 px-1.5 py-0.5 fw-bold d-inline-block align-middle me-1" style="font-size: 9px; background-color: #f3e8ff; color: #7e22ce; border: 1px solid #e9d5ff;" title="{{ $subSpk->kategori }}">
+                                                🏷️ {{ $subSpk->kategori }}
+                                            </span>
+                                        @endif
                                         <span class="badge rounded-2 px-1.5 py-0.5 fw-bold text-uppercase d-inline-block align-middle" style="font-size: 9px; background-color: #eff6ff; color: #3b82f6; border: 1px solid #dbeafe;">
                                             {{ $subSpk->current_stage_name }}
                                         </span>

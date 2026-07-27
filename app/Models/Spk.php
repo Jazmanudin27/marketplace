@@ -15,6 +15,7 @@ class Spk extends Model
         'no_pesanan',
         'no_spk',
         'tipe_spk',
+        'kategori',
         'is_urgent',
         'tahap_saat_ini',
         'tanggal',

@@ -327,6 +327,18 @@
         @endforeach
     </datalist>
 
+    <datalist id="kategori_datalist">
+        <option value="Baju Olah Raga"></option>
+        <option value="Seragam Sekolah"></option>
+        <option value="Jaket & Outer"></option>
+        <option value="Kaos / T-Shirt"></option>
+        <option value="Kemeja & PDH"></option>
+        <option value="Almamater & Jas"></option>
+        <option value="Gamis & Busana Muslim"></option>
+        <option value="Jersey Printing"></option>
+        <option value="Topi & Aksesoris"></option>
+    </datalist>
+
     {{-- ── PAGE HEADER ── --}}
     <div class="spk-page-header">
         <div>
@@ -606,6 +618,24 @@
                     <span>📋 DETAIL RINCIAN PRODUK (SPK #{{ $spk->no_spk }})</span>
                 </div>
                 <div class="rincian-body">
+
+                    {{-- Kategori Produk & Link File Mentah --}}
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <div class="section-label mb-1" style="font-size:10px; font-weight:700; letter-spacing:.7px; text-transform:uppercase; color:#4f46e5;">
+                                🏷️ KATEGORI PRODUK
+                            </div>
+                            <input type="text" name="kategori" class="form-control form-control-sm"
+                                list="kategori_datalist" style="font-size:12px;" value="{{ old('kategori', $spk->kategori) }}" placeholder="Contoh: Baju Olah Raga, Jaket, Seragam...">
+                        </div>
+                        <div class="col-md-6">
+                            <div class="section-label mb-1" style="font-size:10px; font-weight:700; letter-spacing:.7px; text-transform:uppercase; color:#16a34a;">
+                                🔗 LINK FILE MENTAH (G-DRIVE / DROPBOX)
+                            </div>
+                            <input type="url" name="link_file_mentah" class="form-control form-control-sm"
+                                style="font-size:12px;" value="{{ old('link_file_mentah', $spk->link_file_mentah) }}" placeholder="Paste link G-Drive / Dropbox...">
+                        </div>
+                    </div>
 
                     {{-- Upload Foto Referensi & Mockup Final --}}
                     <div class="row g-3 mb-4">

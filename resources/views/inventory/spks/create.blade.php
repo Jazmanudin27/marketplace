@@ -327,6 +327,18 @@
         @endforeach
     </datalist>
 
+    <datalist id="kategori_datalist">
+        <option value="Baju Olah Raga"></option>
+        <option value="Seragam Sekolah"></option>
+        <option value="Jaket & Outer"></option>
+        <option value="Kaos / T-Shirt"></option>
+        <option value="Kemeja & PDH"></option>
+        <option value="Almamater & Jas"></option>
+        <option value="Gamis & Busana Muslim"></option>
+        <option value="Jersey Printing"></option>
+        <option value="Topi & Aksesoris"></option>
+    </datalist>
+
     {{-- ── PAGE HEADER ── --}}
     <div class="spk-page-header">
         <div>
@@ -1010,7 +1022,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         </div>
 
                         {{-- 3. Link File Mentah --}}
-                        <div>
+                        <div class="mb-3">
                             <div class="section-label mb-1" style="font-size:10px; font-weight:700; letter-spacing:.7px; text-transform:uppercase; color:#16a34a;">
                                 🔗 LINK FILE MENTAH
                             </div>
@@ -1019,6 +1031,15 @@ document.addEventListener('DOMContentLoaded', function() {
                                 <input type="url" name="rincian[${rIdx}][link_file_mentah]" class="form-control"
                                     style="font-size:12px;" placeholder="Paste link G-Drive / Dropbox...">
                             </div>
+                        </div>
+
+                        {{-- 4. Kategori Produk --}}
+                        <div>
+                            <div class="section-label mb-1" style="font-size:10px; font-weight:700; letter-spacing:.7px; text-transform:uppercase; color:#4f46e5;">
+                                🏷️ KATEGORI PRODUK
+                            </div>
+                            <input type="text" name="rincian[${rIdx}][kategori]" class="form-control form-control-sm"
+                                list="kategori_datalist" style="font-size:12px;" placeholder="Contoh: Baju Olah Raga, Jaket...">
                         </div>
                     </div>
 
