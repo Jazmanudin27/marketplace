@@ -1037,16 +1037,25 @@
                 <div class="card border-0 shadow-sm rounded-3 mb-0">
                     <div class="card-header bg-success-subtle text-success-emphasis fw-bold py-2 px-3 d-flex justify-content-between align-items-center" style="font-size:12px;">
                         <span>✨ FINISHING &amp; F.GOOD (FINISHED GOOD)</span>
+                        <span class="text-muted subtotal-finishing-display">Subtotal: Rp 0</span>
                     </div>
                     <div class="card-body p-3">
                         <div class="row g-3">
-                            <div class="col-md-6">
+                            <div class="col-md-4">
+                                <label class="form-label mb-1 fw-semibold text-secondary" style="font-size:11px;">PETUGAS FINISHING</label>
+                                <input type="text" id="modal_petugas_finishing" class="form-control form-control-sm modal-op-field" list="finishing_datalist" placeholder="Pilih / Ketik Petugas Finishing">
+                            </div>
+                            <div class="col-md-2">
                                 <label class="form-label mb-1 fw-semibold text-secondary" style="font-size:11px;">FINISHING (PCS)</label>
                                 <input type="number" id="modal_qty_finishing" class="form-control form-control-sm text-center modal-op-field" min="0" placeholder="0">
                             </div>
-                            <div class="col-md-6">
-                                <label class="form-label mb-1 fw-semibold text-success" style="font-size:11px;">F.GOOD / FINISHED GOOD (PCS)</label>
+                            <div class="col-md-2">
+                                <label class="form-label mb-1 fw-semibold text-success" style="font-size:11px;">F.GOOD (PCS)</label>
                                 <input type="number" id="modal_qty_fgood" class="form-control form-control-sm text-center border-success fw-bold modal-op-field" min="0" placeholder="0">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label mb-1 fw-semibold text-secondary" style="font-size:11px;">TARIF FINISHING / PCS (RP)</label>
+                                <input type="text" id="modal_tarif_finishing" class="form-control form-control-sm text-end modal-op-field numeric-dot-format" placeholder="0">
                             </div>
                         </div>
                     </div>
@@ -1540,8 +1549,10 @@
                 document.getElementById('modal_qc_reject').value = container.querySelector('.h-qc-reject')?.value || '';
                 document.getElementById('modal_tarif_qc').value = formatNumberWithDots(container.querySelector('.h-tarif-qc')?.value || '');
 
+                document.getElementById('modal_petugas_finishing').value = container.querySelector('.h-petugas-finishing')?.value || '';
                 document.getElementById('modal_qty_finishing').value = container.querySelector('.h-qty-finishing')?.value || '';
                 document.getElementById('modal_qty_fgood').value = container.querySelector('.h-qty-fgood')?.value || '';
+                document.getElementById('modal_tarif_finishing').value = formatNumberWithDots(container.querySelector('.h-tarif-finishing')?.value || '');
             }
 
             calculateModalTahapLaborTotal();
@@ -1569,7 +1580,13 @@
             const subQc = qQc * tQc;
             document.querySelector('.subtotal-qc-display').textContent = 'Subtotal: ' + formatRupiah(subQc);
 
-            const totalLabor = subPotong + subJahit + subKancing + subQc;
+            const qFinishing = parseFloat(document.getElementById('modal_qty_finishing').value) || 0;
+            const tFinishing = cleanNumberFromDots(document.getElementById('modal_tarif_finishing').value);
+            const subFinishing = qFinishing * tFinishing;
+            const subFinishingDisplay = document.querySelector('.subtotal-finishing-display');
+            if (subFinishingDisplay) subFinishingDisplay.textContent = 'Subtotal: ' + formatRupiah(subFinishing);
+
+            const totalLabor = subPotong + subJahit + subKancing + subQc + subFinishing;
             document.getElementById('modalTotalLaborDisplay').textContent = 'Total Ongkos Jasa: ' + formatRupiah(totalLabor);
             return totalLabor;
         }
@@ -1603,8 +1620,10 @@
             const qcReject = document.getElementById('modal_qc_reject').value || '0';
             const tarifQc = cleanNumberFromDots(document.getElementById('modal_tarif_qc').value);
 
+            const petugasFinishing = document.getElementById('modal_petugas_finishing').value.trim();
             const qtyFinishing = document.getElementById('modal_qty_finishing').value || '0';
             const qtyFgood = document.getElementById('modal_qty_fgood').value || '0';
+            const tarifFinishing = cleanNumberFromDots(document.getElementById('modal_tarif_finishing').value);
 
             if (container.querySelector('.h-pemotong')) container.querySelector('.h-pemotong').value = pemotong;
             if (container.querySelector('.h-qty-potong')) container.querySelector('.h-qty-potong').value = qtyPotong;
@@ -1630,7 +1649,7 @@
 
             const btnTahap = tr.querySelector('.btn-tahap-trigger');
             if (btnTahap) {
-                if (pemotong || penjahit || vendorKancing || petugasQc || totalLaborCost > 0) {
+                if (pemotong || penjahit || vendorKancing || petugasQc || petugasFinishing || totalLaborCost > 0) {
                     btnTahap.className = 'btn btn-sm btn-primary-subtle text-primary border border-primary-subtle btn-tahap-trigger btn-open-tahap-modal';
                     let labelText = '';
                     if (penjahit) labelText = `${penjahit}`;
