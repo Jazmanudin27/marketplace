@@ -347,20 +347,23 @@ class SpkController extends Controller
                             'ukuran'            => $ukuran,
                             'catatan'           => $rBlock['catatan'] ?? null,
                             'quantity'          => $qtyProduksi,
+                            'pemotong'          => $pRow['pemotong'] ?? null,
                             'penjahit'          => $pRow['penjahit'] ?? null,
                             'vendor_kancing'    => $pRow['vendor_kancing'] ?? null,
                             'hpp'               => 0,
                         ]);
 
                         // Save initial operational progress if filled
+                        $qtyPotong = (int) ($pRow['qty_potong'] ?? 0);
                         $qcLolos = (int) ($pRow['qc_lolos'] ?? 0);
                         $qcReject = (int) ($pRow['qc_reject'] ?? 0);
                         $qtyFinishing = (int) ($pRow['qty_finishing'] ?? 0);
                         $qtyFgood = (int) ($pRow['qty_fgood'] ?? 0);
                         $qtyJahit = (int) ($pRow['qty_jahit'] ?? 0);
 
-                        if ($qcLolos > 0 || $qcReject > 0 || $qtyFinishing > 0 || $qtyFgood > 0 || $qtyJahit > 0) {
+                        if ($qtyPotong > 0 || $qcLolos > 0 || $qcReject > 0 || $qtyFinishing > 0 || $qtyFgood > 0 || $qtyJahit > 0) {
                             $opInfo = [];
+                            if ($qtyPotong > 0) $opInfo[] = "Potong: {$qtyPotong} pcs";
                             if ($qtyJahit > 0) $opInfo[] = "Jahit: {$qtyJahit} pcs";
                             if ($qcLolos > 0) $opInfo[] = "QC Lolos: {$qcLolos} pcs";
                             if ($qcReject > 0) $opInfo[] = "QC Reject: {$qcReject} pcs";

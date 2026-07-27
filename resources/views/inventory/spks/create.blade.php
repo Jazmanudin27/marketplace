@@ -623,7 +623,7 @@
 </div>
 
 {{-- ══════════════════════════════════════════════════════════════════
-     POPUP MODAL 2: TAHAP OPERASIONAL & TIM PRODUKSI (Jahit, LKPK, QC, Finishing, F.Good)
+     POPUP MODAL 2: TAHAP OPERASIONAL & TIM PRODUKSI (Potong, Jahit, LKPK, QC, Finishing, F.Good)
 ══════════════════════════════════════════════════════════════════ --}}
 <div class="modal fade" id="modalTahapOperasional" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
     <div class="modal-dialog modal-lg modal-dialog-centered">
@@ -641,7 +641,26 @@
             </div>
             <div class="modal-body p-4" style="background:#f8fafc;">
                 
-                {{-- 1. TAHAP JAHIT --}}
+                {{-- 1. TAHAP PEMOTONGAN (POTONG) --}}
+                <div class="card border-0 shadow-sm rounded-3 mb-3">
+                    <div class="card-header bg-danger-subtle text-danger-emphasis fw-bold py-2 px-3" style="font-size:12px;">
+                        ✂️ TAHAP PEMOTONGAN
+                    </div>
+                    <div class="card-body p-3">
+                        <div class="row g-3">
+                            <div class="col-md-7">
+                                <label class="form-label mb-1 fw-semibold text-secondary" style="font-size:11px;">PEMOTONG / TUKANG POTONG</label>
+                                <input type="text" id="modal_pemotong" class="form-control form-control-sm" placeholder="Pilih / Ketik Nama Pemotong (Contoh: Pak Jaja)">
+                            </div>
+                            <div class="col-md-5">
+                                <label class="form-label mb-1 fw-semibold text-secondary" style="font-size:11px;">QTY POTONG (PCS)</label>
+                                <input type="number" id="modal_qty_potong" class="form-control form-control-sm text-center" min="0" placeholder="0">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- 2. TAHAP JAHIT --}}
                 <div class="card border-0 shadow-sm rounded-3 mb-3">
                     <div class="card-header bg-warning-subtle text-warning-emphasis fw-bold py-2 px-3" style="font-size:12px;">
                         🧵 TAHAP JAHIT
@@ -660,7 +679,7 @@
                     </div>
                 </div>
 
-                {{-- 2. TAHAP LKPK (KANCING) --}}
+                {{-- 3. TAHAP LKPK (KANCING) --}}
                 <div class="card border-0 shadow-sm rounded-3 mb-3">
                     <div class="card-header bg-info-subtle text-info-emphasis fw-bold py-2 px-3" style="font-size:12px;">
                         🔘 TAHAP LKPK (KANCING)
@@ -679,7 +698,7 @@
                     </div>
                 </div>
 
-                {{-- 3. TAHAP QC (QUALITY CONTROL) --}}
+                {{-- 4. TAHAP QC (QUALITY CONTROL) --}}
                 <div class="card border-0 shadow-sm rounded-3 mb-3">
                     <div class="card-header bg-secondary-subtle text-secondary-emphasis fw-bold py-2 px-3" style="font-size:12px;">
                         🔍 TAHAP QC (QUALITY CONTROL)
@@ -698,7 +717,7 @@
                     </div>
                 </div>
 
-                {{-- 4. TAHAP FINISHING & F.GOOD --}}
+                {{-- 5. TAHAP FINISHING & F.GOOD --}}
                 <div class="card border-0 shadow-sm rounded-3 mb-0">
                     <div class="card-header bg-success-subtle text-success-emphasis fw-bold py-2 px-3" style="font-size:12px;">
                         ✨ FINISHING &amp; F.GOOD (FINISHED GOOD)
@@ -979,6 +998,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     ✂️ Atur Tahap
                 </button>
                 <div class="hidden-tahap-container-${rIdx}-${pIdx}">
+                    <input type="hidden" name="rincian[${rIdx}][produk][${pIdx}][pemotong]" class="h-pemotong" value="">
+                    <input type="hidden" name="rincian[${rIdx}][produk][${pIdx}][qty_potong]" class="h-qty-potong" value="0">
                     <input type="hidden" name="rincian[${rIdx}][produk][${pIdx}][penjahit]" class="h-penjahit" value="">
                     <input type="hidden" name="rincian[${rIdx}][produk][${pIdx}][qty_jahit]" class="h-qty-jahit" value="0">
                     <input type="hidden" name="rincian[${rIdx}][produk][${pIdx}][vendor_kancing]" class="h-vendor-kancing" value="">
@@ -1340,6 +1361,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const container = tr.querySelector(`.hidden-tahap-container-${rIdx}-${pIdx}`);
         if (container) {
+            document.getElementById('modal_pemotong').value = container.querySelector('.h-pemotong')?.value || '';
+            document.getElementById('modal_qty_potong').value = container.querySelector('.h-qty-potong')?.value || qtyVal;
             document.getElementById('modal_penjahit').value = container.querySelector('.h-penjahit')?.value || '';
             document.getElementById('modal_qty_jahit').value = container.querySelector('.h-qty-jahit')?.value || qtyVal;
             document.getElementById('modal_vendor_kancing').value = container.querySelector('.h-vendor-kancing')?.value || '';
@@ -1361,6 +1384,8 @@ document.addEventListener('DOMContentLoaded', function() {
         const container = tr.querySelector(`.hidden-tahap-container-${activeTahapRIdx}-${activeTahapPIdx}`);
         if (!container) return;
 
+        const pemotong = document.getElementById('modal_pemotong').value.trim();
+        const qtyPotong = document.getElementById('modal_qty_potong').value || '0';
         const penjahit = document.getElementById('modal_penjahit').value.trim();
         const qtyJahit = document.getElementById('modal_qty_jahit').value || '0';
         const vendorKancing = document.getElementById('modal_vendor_kancing').value.trim();
@@ -1370,6 +1395,8 @@ document.addEventListener('DOMContentLoaded', function() {
         const qtyFinishing = document.getElementById('modal_qty_finishing').value || '0';
         const qtyFgood = document.getElementById('modal_qty_fgood').value || '0';
 
+        container.querySelector('.h-pemotong').value = pemotong;
+        container.querySelector('.h-qty-potong').value = qtyPotong;
         container.querySelector('.h-penjahit').value = penjahit;
         container.querySelector('.h-qty-jahit').value = qtyJahit;
         container.querySelector('.h-vendor-kancing').value = vendorKancing;
@@ -1382,9 +1409,12 @@ document.addEventListener('DOMContentLoaded', function() {
         // Update button text badge on main product row table
         const btnTahap = tr.querySelector('.btn-tahap-trigger');
         if (btnTahap) {
-            if (penjahit || parseInt(qtyJahit) > 0 || parseInt(qcLolos) > 0) {
+            if (pemotong || penjahit || parseInt(qtyPotong) > 0 || parseInt(qtyJahit) > 0 || parseInt(qcLolos) > 0) {
                 btnTahap.className = 'btn btn-sm btn-primary-subtle text-primary border border-primary-subtle btn-tahap-trigger btn-open-tahap-modal';
-                const labelText = penjahit ? `${penjahit} (${qtyJahit})` : `Jahit: ${qtyJahit}`;
+                let labelText = '';
+                if (pemotong) labelText = `Potong: ${pemotong}`;
+                else if (penjahit) labelText = `Jahit: ${penjahit}`;
+                else labelText = `Potong: ${qtyPotong} | Jahit: ${qtyJahit}`;
                 btnTahap.innerHTML = `✂️ ${escHtml(labelText)}`;
             } else {
                 btnTahap.className = 'btn btn-sm btn-outline-primary btn-tahap-trigger btn-open-tahap-modal';
