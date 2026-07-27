@@ -367,6 +367,9 @@ class SpkController extends Controller
 
                         // 1. Pemotong
                         $pemotong = trim($pRow['pemotong'] ?? '');
+                        if ($pemotong !== '') {
+                            $this->processAutoSaveVendor($tenantId, $pemotong, 'Pemotong');
+                        }
                         $qtyPotong = (int) ($pRow['qty_potong'] ?? 0);
                         $tarifPotong = floatval($pRow['tarif_potong'] ?? 0);
                         if ($pemotong !== '' || $qtyPotong > 0) {
@@ -381,6 +384,9 @@ class SpkController extends Controller
 
                         // 2. Penjahit
                         $penjahit = trim($pRow['penjahit'] ?? '');
+                        if ($penjahit !== '') {
+                            $this->processAutoSaveVendor($tenantId, $penjahit, 'Penjahit');
+                        }
                         $qtyJahit = (int) ($pRow['qty_jahit'] ?? 0);
                         $tarifJahit = floatval($pRow['tarif_jahit'] ?? 0);
                         if ($penjahit !== '' || $qtyJahit > 0) {
@@ -395,6 +401,9 @@ class SpkController extends Controller
 
                         // 3. Vendor Kancing
                         $vendorKancing = trim($pRow['vendor_kancing'] ?? '');
+                        if ($vendorKancing !== '') {
+                            $this->processAutoSaveVendor($tenantId, $vendorKancing, 'Vendor Kancing');
+                        }
                         $qtyKancing = (int) ($pRow['qty_kancing'] ?? 0);
                         $tarifKancing = floatval($pRow['tarif_kancing'] ?? 0);
                         if ($vendorKancing !== '' || $qtyKancing > 0) {
@@ -409,6 +418,9 @@ class SpkController extends Controller
 
                         // 4. Petugas QC
                         $petugasQc = trim($pRow['petugas_qc'] ?? '');
+                        if ($petugasQc !== '') {
+                            $this->processAutoSaveVendor($tenantId, $petugasQc, 'Petugas QC');
+                        }
                         $qcLolos = (int) ($pRow['qc_lolos'] ?? 0);
                         $qcReject = (int) ($pRow['qc_reject'] ?? 0);
                         $tarifQc = floatval($pRow['tarif_qc'] ?? 0);
@@ -424,6 +436,9 @@ class SpkController extends Controller
 
                         // 5. Finishing
                         $petugasFinishing = trim($pRow['petugas_finishing'] ?? '');
+                        if ($petugasFinishing !== '') {
+                            $this->processAutoSaveVendor($tenantId, $petugasFinishing, 'Finishing');
+                        }
                         $qtyFinishing = (int) ($pRow['qty_finishing'] ?? 0);
                         $qtyFgood = (int) ($pRow['qty_fgood'] ?? 0);
                         $tarifFinishing = floatval($pRow['tarif_finishing'] ?? 0);
@@ -1431,5 +1446,29 @@ class SpkController extends Controller
         }
 
         return $totalHpp;
+    }
+
+    /**
+     * Auto-save vendor/mitra operasional baru ke Master Data Tailors jika belum terdaftar.
+     */
+    private function processAutoSaveVendor(int $tenantId, string $name, string $category): void
+    {
+        $cleanName = trim($name);
+        if ($cleanName === '' || in_array(strtoupper($cleanName), ['—', '-', 'NO', 'NONE', 'N/A'], true)) {
+            return;
+        }
+
+        $exists = \App\Models\Tailor::where('tenant_id', $tenantId)
+            ->whereRaw('LOWER(name) = ?', [strtolower($cleanName)])
+            ->exists();
+
+        if (!$exists) {
+            \App\Models\Tailor::create([
+                'tenant_id' => $tenantId,
+                'name'      => $cleanName,
+                'category'  => $category,
+                'is_active' => true,
+            ]);
+        }
     }
 }
