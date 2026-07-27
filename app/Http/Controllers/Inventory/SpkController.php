@@ -1942,7 +1942,7 @@ class SpkController extends Controller
 
             $expense = \App\Models\Expense::create([
                 'tenant_id'      => $tenantId,
-                'employee_id'    => Auth::id(),
+                'employee_id'    => Auth::user()->employee_id ?? null,
                 'title'          => "Ongkos Jasa SPK #{$spkCode}: {$title}",
                 'category'       => 'salary',
                 'payment_source' => $paymentSource,
