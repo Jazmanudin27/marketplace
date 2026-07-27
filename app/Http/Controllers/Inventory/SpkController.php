@@ -210,12 +210,11 @@ class SpkController extends Controller
         }
 
         $allMasterProductsList = $products->map(function($p) {
-            $uk = implode(' / ', array_filter([$p->ukuran, $p->warna])) ?: ($p->ukuran ?? '');
             return [
                 'sku'       => $p->sku,
                 'sku_induk' => $p->sku_induk,
                 'name'      => $p->name,
-                'ukuran'    => $uk,
+                'ukuran'    => $p->ukuran ?? '',
             ];
         });
 

@@ -288,6 +288,13 @@
         @endforeach
     </datalist>
 
+    {{-- Datalist Autocomplete Nama Produk Master (Limit 10 untuk cegah lag) --}}
+    <datalist id="master_product_names_datalist">
+        @foreach($products->take(10) as $p)
+            <option value="{{ $p->name }}">{{ $p->sku ? $p->sku . ' — ' : '' }}@if($p->ukuran)(Ukuran: {{ $p->ukuran }})@endif</option>
+        @endforeach
+    </datalist>
+
     {{-- Datalist Autocomplete Inventory Items (Limit 10 untuk cegah lag) --}}
     <datalist id="inventory_items_datalist">
         @foreach($inventoryItems->take(10) as $invItemName)
@@ -800,7 +807,7 @@
             $prodInfo = [
                 'name' => $p->name,
                 'sku' => $p->sku,
-                'ukuran' => implode(' / ', array_filter([$p->ukuran, $p->warna])) ?: ($p->ukuran ?? ''),
+                'ukuran' => $p->ukuran ?? '',
             ];
         @endphp
         @if(!empty($p->sku))
@@ -1140,33 +1147,60 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function handleSkuSelection(tr) {
-        const skuInput = tr.querySelector('.row-sku-produk');
-        if (!skuInput) return;
-        const cleanSku = skuInput.value.trim().toUpperCase();
-        if (!cleanSku) return;
+        const skuInput  = tr.querySelector('.row-sku-produk');
+        const nameInput = tr.querySelector('.row-nama-produk');
+        const ukInput   = tr.querySelector('.row-ukuran');
 
-        const masterProd = masterProductsMap[cleanSku];
-        if (masterProd) {
-            const nameInput = tr.querySelector('.row-nama-produk');
-            const ukInput   = tr.querySelector('.row-ukuran');
-            if (nameInput && !nameInput.value) nameInput.value = masterProd.name;
-            if (ukInput && !ukInput.value) ukInput.value = masterProd.ukuran;
+        const cleanSku  = skuInput ? skuInput.value.trim().toUpperCase() : '';
+        const cleanName = nameInput ? nameInput.value.trim().toUpperCase() : '';
+
+        let masterProd = null;
+        if (cleanSku && masterProductsMap[cleanSku]) {
+            masterProd = masterProductsMap[cleanSku];
+        } else if (cleanName && masterProductsMap[cleanName]) {
+            masterProd = masterProductsMap[cleanName];
+        } else if (cleanName) {
+            const found = allMasterProductsList.find(p => p.name && p.name.trim().toUpperCase() === cleanName);
+            if (found && found.sku) {
+                masterProd = masterProductsMap[found.sku.toUpperCase()];
+            }
         }
 
-        // Apply recipe formula if available
+        if (masterProd) {
+            if (nameInput && !nameInput.value) nameInput.value = masterProd.name;
+            if (skuInput && !skuInput.value && masterProd.sku) skuInput.value = masterProd.sku;
+            if (ukInput && masterProd.ukuran) ukInput.value = masterProd.ukuran;
+        }
+
         applyRecipeToProductRow(tr);
     }
 
     function applyRecipeToProductRow(tr) {
         const rIdx = tr.dataset.rIdx;
         const pIdx = tr.dataset.pIdx;
-        const skuVal = tr.querySelector('.row-sku-produk')?.value?.trim()?.toUpperCase();
-        const nameVal = tr.querySelector('.row-nama-produk')?.value?.trim()?.toUpperCase();
-        const qtyProd = parseInt(tr.querySelector('.row-qty-produksi')?.value || 1) || 1;
+        const skuInput  = tr.querySelector('.row-sku-produk');
+        const nameInput = tr.querySelector('.row-nama-produk');
+        const skuVal    = skuInput?.value?.trim()?.toUpperCase();
+        const nameVal   = nameInput?.value?.trim()?.toUpperCase();
+        const qtyProd   = parseInt(tr.querySelector('.row-qty-produksi')?.value || 1) || 1;
 
         let recipe = null;
-        if (skuVal && recipesMap[skuVal]) recipe = recipesMap[skuVal];
-        else if (nameVal && recipesMap[nameVal]) recipe = recipesMap[nameVal];
+        if (skuVal && recipesMap[skuVal]) {
+            recipe = recipesMap[skuVal];
+        } else if (nameVal && recipesMap[nameVal]) {
+            recipe = recipesMap[nameVal];
+        } else if (skuVal || nameVal) {
+            const masterProd = (skuVal && masterProductsMap[skuVal]) || (nameVal && masterProductsMap[nameVal]);
+            if (masterProd) {
+                if (masterProd.sku && recipesMap[masterProd.sku.toUpperCase()]) {
+                    recipe = recipesMap[masterProd.sku.toUpperCase()];
+                } else if (masterProd.sku_induk && recipesMap[masterProd.sku_induk.toUpperCase()]) {
+                    recipe = recipesMap[masterProd.sku_induk.toUpperCase()];
+                } else if (masterProd.name && recipesMap[masterProd.name.toUpperCase()]) {
+                    recipe = recipesMap[masterProd.name.toUpperCase()];
+                }
+            }
+        }
 
         const container = tr.querySelector(`.hidden-bahan-container-${rIdx}-${pIdx}`);
         if (!container) return;
@@ -1643,16 +1677,45 @@ document.addEventListener('DOMContentLoaded', function() {
         datalist.innerHTML = html;
     }
 
-    // Delegate input changes for SKU lookup, calculation & recipe lookup
-    document.getElementById('rincianContainer').addEventListener('input', function(e) {
-        // Dynamic datalist filter capped at 10 items max to prevent lag
+    function updateMasterProductNameDatalist(query) {
+        const datalist = document.getElementById('master_product_names_datalist');
+        if (!datalist) return;
+        const cleanQ = (query || '').trim().toLowerCase();
+
+        let matches = [];
+        if (!cleanQ) {
+            matches = allMasterProductsList.slice(0, 10);
+        } else {
+            matches = allMasterProductsList.filter(p => {
+                return (p.sku && p.sku.toLowerCase().includes(cleanQ)) ||
+                       (p.sku_induk && p.sku_induk.toLowerCase().includes(cleanQ)) ||
+                       (p.name && p.name.toLowerCase().includes(cleanQ));
+            }).slice(0, 10);
+        }
+
+        let html = '';
+        matches.forEach(p => {
+            if (p.name) {
+                html += `<option value="${escHtml(p.name)}">${p.sku ? escHtml(p.sku) + ' — ' : ''}${p.ukuran ? 'Ukuran: ' + escHtml(p.ukuran) : ''}</option>`;
+            }
+        });
+        datalist.innerHTML = html;
+    }
+
+    // Delegate input & change changes for SKU lookup, calculation & recipe lookup
+    const handleProductRowInputChange = function(e) {
         if (e.target.classList.contains('row-sku-produk')) {
             updateMasterSkuDatalist(e.target.value);
             const tr = e.target.closest('tr');
             if (tr) handleSkuSelection(tr);
         }
 
-        // Product Table Inputs -> trigger total Qty & Recipe lookup
+        if (e.target.classList.contains('row-nama-produk')) {
+            updateMasterProductNameDatalist(e.target.value);
+            const tr = e.target.closest('tr');
+            if (tr) handleSkuSelection(tr);
+        }
+
         if (e.target.classList.contains('row-sku-produk') || e.target.classList.contains('row-nama-produk') || e.target.classList.contains('row-qty-produksi')) {
             const tr = e.target.closest('tr');
             const tbody = tr ? tr.closest('tbody') : null;
@@ -1662,7 +1725,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 applyRecipeToProductRow(tr);
             }
         }
-    });
+    };
+
+    document.getElementById('rincianContainer').addEventListener('input', handleProductRowInputChange);
+    document.getElementById('rincianContainer').addEventListener('change', handleProductRowInputChange);
 
     // Initialize with 1 default Rincian Block
     addRincianBlock();
