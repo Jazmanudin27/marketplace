@@ -631,7 +631,7 @@
             <div class="modal-header bg-primary text-white py-3 px-4">
                 <div>
                     <h5 class="modal-title fw-bold fs-6 mb-0 d-flex align-items-center gap-2">
-                        ✂️ TAHAP OPERASIONAL &amp; TIM PRODUKSI
+                        ✂️ TAHAP OPERASIONAL, TIM &amp; ONGKOS JASA
                     </h5>
                     <small class="text-white opacity-75" style="font-size:11px;" id="modalTahapProductSubtitle">
                         Produk SPK
@@ -643,18 +643,23 @@
                 
                 {{-- 1. TAHAP PEMOTONGAN (POTONG) --}}
                 <div class="card border-0 shadow-sm rounded-3 mb-3">
-                    <div class="card-header bg-danger-subtle text-danger-emphasis fw-bold py-2 px-3" style="font-size:12px;">
-                        ✂️ TAHAP PEMOTONGAN
+                    <div class="card-header bg-danger-subtle text-danger-emphasis fw-bold py-2 px-3 d-flex justify-content-between align-items-center" style="font-size:12px;">
+                        <span>✂️ TAHAP PEMOTONGAN</span>
+                        <span class="text-muted subtotal-potong-display">Subtotal: Rp 0</span>
                     </div>
                     <div class="card-body p-3">
                         <div class="row g-3">
-                            <div class="col-md-7">
-                                <label class="form-label mb-1 fw-semibold text-secondary" style="font-size:11px;">PEMOTONG / TUKANG POTONG</label>
-                                <input type="text" id="modal_pemotong" class="form-control form-control-sm" placeholder="Pilih / Ketik Nama Pemotong (Contoh: Pak Jaja)">
-                            </div>
                             <div class="col-md-5">
+                                <label class="form-label mb-1 fw-semibold text-secondary" style="font-size:11px;">PEMOTONG / TUKANG POTONG</label>
+                                <input type="text" id="modal_pemotong" class="form-control form-control-sm modal-op-field" placeholder="Pilih / Ketik Nama Pemotong">
+                            </div>
+                            <div class="col-md-3">
                                 <label class="form-label mb-1 fw-semibold text-secondary" style="font-size:11px;">QTY POTONG (PCS)</label>
-                                <input type="number" id="modal_qty_potong" class="form-control form-control-sm text-center" min="0" placeholder="0">
+                                <input type="number" id="modal_qty_potong" class="form-control form-control-sm text-center modal-op-field" min="0" placeholder="0">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label mb-1 fw-semibold text-secondary" style="font-size:11px;">TARIF ONGKOS / PCS (RP)</label>
+                                <input type="number" id="modal_tarif_potong" class="form-control form-control-sm text-end modal-op-field" min="0" placeholder="0">
                             </div>
                         </div>
                     </div>
@@ -662,18 +667,23 @@
 
                 {{-- 2. TAHAP JAHIT --}}
                 <div class="card border-0 shadow-sm rounded-3 mb-3">
-                    <div class="card-header bg-warning-subtle text-warning-emphasis fw-bold py-2 px-3" style="font-size:12px;">
-                        🧵 TAHAP JAHIT
+                    <div class="card-header bg-warning-subtle text-warning-emphasis fw-bold py-2 px-3 d-flex justify-content-between align-items-center" style="font-size:12px;">
+                        <span>🧵 TAHAP JAHIT</span>
+                        <span class="text-muted subtotal-jahit-display">Subtotal: Rp 0</span>
                     </div>
                     <div class="card-body p-3">
                         <div class="row g-3">
-                            <div class="col-md-7">
-                                <label class="form-label mb-1 fw-semibold text-secondary" style="font-size:11px;">PENJAHIT</label>
-                                <input type="text" id="modal_penjahit" class="form-control form-control-sm" list="tailors_datalist" placeholder="Pilih / Ketik Penjahit (Contoh: Mang Acep)">
-                            </div>
                             <div class="col-md-5">
+                                <label class="form-label mb-1 fw-semibold text-secondary" style="font-size:11px;">PENJAHIT</label>
+                                <input type="text" id="modal_penjahit" class="form-control form-control-sm modal-op-field" list="tailors_datalist" placeholder="Pilih / Ketik Penjahit">
+                            </div>
+                            <div class="col-md-3">
                                 <label class="form-label mb-1 fw-semibold text-secondary" style="font-size:11px;">QTY JAHIT (PCS)</label>
-                                <input type="number" id="modal_qty_jahit" class="form-control form-control-sm text-center" min="0" placeholder="0">
+                                <input type="number" id="modal_qty_jahit" class="form-control form-control-sm text-center modal-op-field" min="0" placeholder="0">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label mb-1 fw-semibold text-secondary" style="font-size:11px;">TARIF ONGKOS / PCS (RP)</label>
+                                <input type="number" id="modal_tarif_jahit" class="form-control form-control-sm text-end modal-op-field" min="0" placeholder="0">
                             </div>
                         </div>
                     </div>
@@ -681,18 +691,23 @@
 
                 {{-- 3. TAHAP LKPK (KANCING) --}}
                 <div class="card border-0 shadow-sm rounded-3 mb-3">
-                    <div class="card-header bg-info-subtle text-info-emphasis fw-bold py-2 px-3" style="font-size:12px;">
-                        🔘 TAHAP LKPK (KANCING)
+                    <div class="card-header bg-info-subtle text-info-emphasis fw-bold py-2 px-3 d-flex justify-content-between align-items-center" style="font-size:12px;">
+                        <span>🔘 TAHAP LKPK (KANCING)</span>
+                        <span class="text-muted subtotal-kancing-display">Subtotal: Rp 0</span>
                     </div>
                     <div class="card-body p-3">
                         <div class="row g-3">
-                            <div class="col-md-7">
-                                <label class="form-label mb-1 fw-semibold text-secondary" style="font-size:11px;">VENDOR KANCING</label>
-                                <input type="text" id="modal_vendor_kancing" class="form-control form-control-sm" placeholder="Pilih / Ketik Vendor Kancing">
-                            </div>
                             <div class="col-md-5">
+                                <label class="form-label mb-1 fw-semibold text-secondary" style="font-size:11px;">VENDOR KANCING</label>
+                                <input type="text" id="modal_vendor_kancing" class="form-control form-control-sm modal-op-field" placeholder="Pilih / Ketik Vendor Kancing">
+                            </div>
+                            <div class="col-md-3">
                                 <label class="form-label mb-1 fw-semibold text-secondary" style="font-size:11px;">QTY KANCING (PCS)</label>
-                                <input type="number" id="modal_qty_kancing" class="form-control form-control-sm text-center" min="0" placeholder="0">
+                                <input type="number" id="modal_qty_kancing" class="form-control form-control-sm text-center modal-op-field" min="0" placeholder="0">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label mb-1 fw-semibold text-secondary" style="font-size:11px;">TARIF ONGKOS / PCS (RP)</label>
+                                <input type="number" id="modal_tarif_kancing" class="form-control form-control-sm text-end modal-op-field" min="0" placeholder="0">
                             </div>
                         </div>
                     </div>
@@ -700,18 +715,27 @@
 
                 {{-- 4. TAHAP QC (QUALITY CONTROL) --}}
                 <div class="card border-0 shadow-sm rounded-3 mb-3">
-                    <div class="card-header bg-secondary-subtle text-secondary-emphasis fw-bold py-2 px-3" style="font-size:12px;">
-                        🔍 TAHAP QC (QUALITY CONTROL)
+                    <div class="card-header bg-secondary-subtle text-secondary-emphasis fw-bold py-2 px-3 d-flex justify-content-between align-items-center" style="font-size:12px;">
+                        <span>🔍 TAHAP QC (QUALITY CONTROL)</span>
+                        <span class="text-muted subtotal-qc-display">Subtotal: Rp 0</span>
                     </div>
                     <div class="card-body p-3">
                         <div class="row g-3">
-                            <div class="col-md-6">
-                                <label class="form-label mb-1 fw-semibold text-success" style="font-size:11px;">LOLOS QC (PCS)</label>
-                                <input type="number" id="modal_qc_lolos" class="form-control form-control-sm text-center border-success" min="0" placeholder="0">
+                            <div class="col-md-4">
+                                <label class="form-label mb-1 fw-semibold text-secondary" style="font-size:11px;">PETUGAS QC</label>
+                                <input type="text" id="modal_petugas_qc" class="form-control form-control-sm modal-op-field" placeholder="Pilih / Ketik Petugas QC">
                             </div>
-                            <div class="col-md-6">
-                                <label class="form-label mb-1 fw-semibold text-danger" style="font-size:11px;">REJECT QC (PCS)</label>
-                                <input type="number" id="modal_qc_reject" class="form-control form-control-sm text-center border-danger" min="0" placeholder="0">
+                            <div class="col-md-2">
+                                <label class="form-label mb-1 fw-semibold text-success" style="font-size:11px;">LOLOS (PCS)</label>
+                                <input type="number" id="modal_qc_lolos" class="form-control form-control-sm text-center border-success modal-op-field" min="0" placeholder="0">
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label mb-1 fw-semibold text-danger" style="font-size:11px;">REJECT (PCS)</label>
+                                <input type="number" id="modal_qc_reject" class="form-control form-control-sm text-center border-danger modal-op-field" min="0" placeholder="0">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label mb-1 fw-semibold text-secondary" style="font-size:11px;">TARIF QC / PCS (RP)</label>
+                                <input type="number" id="modal_tarif_qc" class="form-control form-control-sm text-end modal-op-field" min="0" placeholder="0">
                             </div>
                         </div>
                     </div>
@@ -719,29 +743,41 @@
 
                 {{-- 5. TAHAP FINISHING & F.GOOD --}}
                 <div class="card border-0 shadow-sm rounded-3 mb-0">
-                    <div class="card-header bg-success-subtle text-success-emphasis fw-bold py-2 px-3" style="font-size:12px;">
-                        ✨ FINISHING &amp; F.GOOD (FINISHED GOOD)
+                    <div class="card-header bg-success-subtle text-success-emphasis fw-bold py-2 px-3 d-flex justify-content-between align-items-center" style="font-size:12px;">
+                        <span>✨ FINISHING &amp; F.GOOD (FINISHED GOOD)</span>
+                        <span class="text-muted subtotal-finishing-display">Subtotal: Rp 0</span>
                     </div>
                     <div class="card-body p-3">
                         <div class="row g-3">
-                            <div class="col-md-6">
-                                <label class="form-label mb-1 fw-semibold text-secondary" style="font-size:11px;">FINISHING (PCS)</label>
-                                <input type="number" id="modal_qty_finishing" class="form-control form-control-sm text-center" min="0" placeholder="0">
+                            <div class="col-md-4">
+                                <label class="form-label mb-1 fw-semibold text-secondary" style="font-size:11px;">PETUGAS FINISHING</label>
+                                <input type="text" id="modal_petugas_finishing" class="form-control form-control-sm modal-op-field" placeholder="Pilih / Ketik Petugas Finishing">
                             </div>
-                            <div class="col-md-6">
-                                <label class="form-label mb-1 fw-semibold text-success" style="font-size:11px;">F.GOOD / SIAP GUDANG (PCS)</label>
-                                <input type="number" id="modal_qty_fgood" class="form-control form-control-sm text-center border-success fw-bold" min="0" placeholder="0">
+                            <div class="col-md-2">
+                                <label class="form-label mb-1 fw-semibold text-secondary" style="font-size:11px;">FINISHING</label>
+                                <input type="number" id="modal_qty_finishing" class="form-control form-control-sm text-center modal-op-field" min="0" placeholder="0">
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label mb-1 fw-semibold text-success" style="font-size:11px;">F.GOOD (PCS)</label>
+                                <input type="number" id="modal_qty_fgood" class="form-control form-control-sm text-center border-success fw-bold modal-op-field" min="0" placeholder="0">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label mb-1 fw-semibold text-secondary" style="font-size:11px;">TARIF ONGKOS / PCS (RP)</label>
+                                <input type="number" id="modal_tarif_finishing" class="form-control form-control-sm text-end modal-op-field" min="0" placeholder="0">
                             </div>
                         </div>
                     </div>
                 </div>
 
             </div>
-            <div class="modal-footer bg-white border-top py-2 px-4 d-flex justify-content-between">
-                <button type="button" class="btn btn-sm btn-outline-secondary px-3" data-bs-dismiss="modal">Batal</button>
-                <button type="button" class="btn btn-sm btn-primary fw-bold px-4" id="btnSaveModalTahap">
-                    ✅ Simpan Tahapan
-                </button>
+            <div class="modal-footer bg-white border-top py-2 px-4 d-flex justify-content-between align-items-center">
+                <span class="fw-bold text-primary fs-6" id="modalTotalLaborDisplay">Total Ongkos Jasa: Rp 0</span>
+                <div>
+                    <button type="button" class="btn btn-sm btn-outline-secondary px-3 me-2" data-bs-dismiss="modal">Batal</button>
+                    <button type="button" class="btn btn-sm btn-primary fw-bold px-4" id="btnSaveModalTahap">
+                        ✅ Simpan Tahapan
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -1000,14 +1036,25 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div class="hidden-tahap-container-${rIdx}-${pIdx}">
                     <input type="hidden" name="rincian[${rIdx}][produk][${pIdx}][pemotong]" class="h-pemotong" value="">
                     <input type="hidden" name="rincian[${rIdx}][produk][${pIdx}][qty_potong]" class="h-qty-potong" value="0">
+                    <input type="hidden" name="rincian[${rIdx}][produk][${pIdx}][tarif_potong]" class="h-tarif-potong" value="0">
+
                     <input type="hidden" name="rincian[${rIdx}][produk][${pIdx}][penjahit]" class="h-penjahit" value="">
                     <input type="hidden" name="rincian[${rIdx}][produk][${pIdx}][qty_jahit]" class="h-qty-jahit" value="0">
+                    <input type="hidden" name="rincian[${rIdx}][produk][${pIdx}][tarif_jahit]" class="h-tarif-jahit" value="0">
+
                     <input type="hidden" name="rincian[${rIdx}][produk][${pIdx}][vendor_kancing]" class="h-vendor-kancing" value="">
                     <input type="hidden" name="rincian[${rIdx}][produk][${pIdx}][qty_kancing]" class="h-qty-kancing" value="0">
+                    <input type="hidden" name="rincian[${rIdx}][produk][${pIdx}][tarif_kancing]" class="h-tarif-kancing" value="0">
+
+                    <input type="hidden" name="rincian[${rIdx}][produk][${pIdx}][petugas_qc]" class="h-petugas-qc" value="">
                     <input type="hidden" name="rincian[${rIdx}][produk][${pIdx}][qc_lolos]" class="h-qc-lolos" value="0">
                     <input type="hidden" name="rincian[${rIdx}][produk][${pIdx}][qc_reject]" class="h-qc-reject" value="0">
+                    <input type="hidden" name="rincian[${rIdx}][produk][${pIdx}][tarif_qc]" class="h-tarif-qc" value="0">
+
+                    <input type="hidden" name="rincian[${rIdx}][produk][${pIdx}][petugas_finishing]" class="h-petugas-finishing" value="">
                     <input type="hidden" name="rincian[${rIdx}][produk][${pIdx}][qty_finishing]" class="h-qty-finishing" value="0">
                     <input type="hidden" name="rincian[${rIdx}][produk][${pIdx}][qty_fgood]" class="h-qty-fgood" value="0">
+                    <input type="hidden" name="rincian[${rIdx}][produk][${pIdx}][tarif_finishing]" class="h-tarif-finishing" value="0">
                 </div>
             </td>
             <td class="text-center">
@@ -1363,18 +1410,65 @@ document.addEventListener('DOMContentLoaded', function() {
         if (container) {
             document.getElementById('modal_pemotong').value = container.querySelector('.h-pemotong')?.value || '';
             document.getElementById('modal_qty_potong').value = container.querySelector('.h-qty-potong')?.value || qtyVal;
+            document.getElementById('modal_tarif_potong').value = container.querySelector('.h-tarif-potong')?.value || '';
+
             document.getElementById('modal_penjahit').value = container.querySelector('.h-penjahit')?.value || '';
             document.getElementById('modal_qty_jahit').value = container.querySelector('.h-qty-jahit')?.value || qtyVal;
+            document.getElementById('modal_tarif_jahit').value = container.querySelector('.h-tarif-jahit')?.value || '';
+
             document.getElementById('modal_vendor_kancing').value = container.querySelector('.h-vendor-kancing')?.value || '';
             document.getElementById('modal_qty_kancing').value = container.querySelector('.h-qty-kancing')?.value || '';
+            document.getElementById('modal_tarif_kancing').value = container.querySelector('.h-tarif-kancing')?.value || '';
+
+            document.getElementById('modal_petugas_qc').value = container.querySelector('.h-petugas-qc')?.value || '';
             document.getElementById('modal_qc_lolos').value = container.querySelector('.h-qc-lolos')?.value || '';
             document.getElementById('modal_qc_reject').value = container.querySelector('.h-qc-reject')?.value || '';
+            document.getElementById('modal_tarif_qc').value = container.querySelector('.h-tarif-qc')?.value || '';
+
+            document.getElementById('modal_petugas_finishing').value = container.querySelector('.h-petugas-finishing')?.value || '';
             document.getElementById('modal_qty_finishing').value = container.querySelector('.h-qty-finishing')?.value || '';
             document.getElementById('modal_qty_fgood').value = container.querySelector('.h-qty-fgood')?.value || '';
+            document.getElementById('modal_tarif_finishing').value = container.querySelector('.h-tarif-finishing')?.value || '';
         }
 
+        calculateModalTahapLaborTotal();
         tahapModal.show();
     }
+
+    function calculateModalTahapLaborTotal() {
+        const qPotong = parseFloat(document.getElementById('modal_qty_potong').value) || 0;
+        const tPotong = parseFloat(document.getElementById('modal_tarif_potong').value) || 0;
+        const subPotong = qPotong * tPotong;
+        document.querySelector('.subtotal-potong-display').textContent = 'Subtotal: ' + formatRupiah(subPotong);
+
+        const qJahit = parseFloat(document.getElementById('modal_qty_jahit').value) || 0;
+        const tJahit = parseFloat(document.getElementById('modal_tarif_jahit').value) || 0;
+        const subJahit = qJahit * tJahit;
+        document.querySelector('.subtotal-jahit-display').textContent = 'Subtotal: ' + formatRupiah(subJahit);
+
+        const qKancing = parseFloat(document.getElementById('modal_qty_kancing').value) || 0;
+        const tKancing = parseFloat(document.getElementById('modal_tarif_kancing').value) || 0;
+        const subKancing = qKancing * tKancing;
+        document.querySelector('.subtotal-kancing-display').textContent = 'Subtotal: ' + formatRupiah(subKancing);
+
+        const qQc = parseFloat(document.getElementById('modal_qc_lolos').value) || 0;
+        const tQc = parseFloat(document.getElementById('modal_tarif_qc').value) || 0;
+        const subQc = qQc * tQc;
+        document.querySelector('.subtotal-qc-display').textContent = 'Subtotal: ' + formatRupiah(subQc);
+
+        const qFin = parseFloat(document.getElementById('modal_qty_finishing').value) || 0;
+        const tFin = parseFloat(document.getElementById('modal_tarif_finishing').value) || 0;
+        const subFin = qFin * tFin;
+        document.querySelector('.subtotal-finishing-display').textContent = 'Subtotal: ' + formatRupiah(subFin);
+
+        const totalLabor = subPotong + subJahit + subKancing + subQc + subFin;
+        document.getElementById('modalTotalLaborDisplay').textContent = 'Total Ongkos Jasa: ' + formatRupiah(totalLabor);
+        return totalLabor;
+    }
+
+    document.querySelectorAll('.modal-op-field').forEach(field => {
+        field.addEventListener('input', calculateModalTahapLaborTotal);
+    });
 
     document.getElementById('btnSaveModalTahap').addEventListener('click', function() {
         if (activeTahapRIdx === null || activeTahapPIdx === null) return;
@@ -1386,36 +1480,61 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const pemotong = document.getElementById('modal_pemotong').value.trim();
         const qtyPotong = document.getElementById('modal_qty_potong').value || '0';
+        const tarifPotong = document.getElementById('modal_tarif_potong').value || '0';
+
         const penjahit = document.getElementById('modal_penjahit').value.trim();
         const qtyJahit = document.getElementById('modal_qty_jahit').value || '0';
+        const tarifJahit = document.getElementById('modal_tarif_jahit').value || '0';
+
         const vendorKancing = document.getElementById('modal_vendor_kancing').value.trim();
         const qtyKancing = document.getElementById('modal_qty_kancing').value || '0';
+        const tarifKancing = document.getElementById('modal_tarif_kancing').value || '0';
+
+        const petugasQc = document.getElementById('modal_petugas_qc').value.trim();
         const qcLolos = document.getElementById('modal_qc_lolos').value || '0';
         const qcReject = document.getElementById('modal_qc_reject').value || '0';
+        const tarifQc = document.getElementById('modal_tarif_qc').value || '0';
+
+        const petugasFinishing = document.getElementById('modal_petugas_finishing').value.trim();
         const qtyFinishing = document.getElementById('modal_qty_finishing').value || '0';
         const qtyFgood = document.getElementById('modal_qty_fgood').value || '0';
+        const tarifFinishing = document.getElementById('modal_tarif_finishing').value || '0';
 
+        // Hidden input sets
         container.querySelector('.h-pemotong').value = pemotong;
         container.querySelector('.h-qty-potong').value = qtyPotong;
+        container.querySelector('.h-tarif-potong').value = tarifPotong;
+
         container.querySelector('.h-penjahit').value = penjahit;
         container.querySelector('.h-qty-jahit').value = qtyJahit;
+        container.querySelector('.h-tarif-jahit').value = tarifJahit;
+
         container.querySelector('.h-vendor-kancing').value = vendorKancing;
         container.querySelector('.h-qty-kancing').value = qtyKancing;
+        container.querySelector('.h-tarif-kancing').value = tarifKancing;
+
+        container.querySelector('.h-petugas-qc').value = petugasQc;
         container.querySelector('.h-qc-lolos').value = qcLolos;
         container.querySelector('.h-qc-reject').value = qcReject;
+        container.querySelector('.h-tarif-qc').value = tarifQc;
+
+        container.querySelector('.h-petugas-finishing').value = petugasFinishing;
         container.querySelector('.h-qty-finishing').value = qtyFinishing;
         container.querySelector('.h-qty-fgood').value = qtyFgood;
+        container.querySelector('.h-tarif-finishing').value = tarifFinishing;
+
+        const totalLaborCost = calculateModalTahapLaborTotal();
 
         // Update button text badge on main product row table
         const btnTahap = tr.querySelector('.btn-tahap-trigger');
         if (btnTahap) {
-            if (pemotong || penjahit || parseInt(qtyPotong) > 0 || parseInt(qtyJahit) > 0 || parseInt(qcLolos) > 0) {
+            if (pemotong || penjahit || vendorKancing || petugasQc || petugasFinishing || totalLaborCost > 0) {
                 btnTahap.className = 'btn btn-sm btn-primary-subtle text-primary border border-primary-subtle btn-tahap-trigger btn-open-tahap-modal';
                 let labelText = '';
-                if (pemotong) labelText = `Potong: ${pemotong}`;
-                else if (penjahit) labelText = `Jahit: ${penjahit}`;
-                else labelText = `Potong: ${qtyPotong} | Jahit: ${qtyJahit}`;
-                btnTahap.innerHTML = `✂️ ${escHtml(labelText)}`;
+                if (penjahit) labelText = `${penjahit}`;
+                else if (pemotong) labelText = `Potong: ${pemotong}`;
+                else labelText = `Jasa SPK`;
+                btnTahap.innerHTML = `✂️ ${escHtml(labelText)} (${formatRupiah(totalLaborCost)})`;
             } else {
                 btnTahap.className = 'btn btn-sm btn-outline-primary btn-tahap-trigger btn-open-tahap-modal';
                 btnTahap.innerHTML = `✂️ Atur Tahap`;

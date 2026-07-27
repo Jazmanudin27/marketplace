@@ -353,30 +353,79 @@ class SpkController extends Controller
                             'hpp'               => 0,
                         ]);
 
-                        // Save initial operational progress if filled
+                        // Save operational labor details and tariffs into SpkItemExtra for payment/payroll tracking
+                        $laborTotal = 0;
+
+                        // 1. Pemotong
+                        $pemotong = trim($pRow['pemotong'] ?? '');
                         $qtyPotong = (int) ($pRow['qty_potong'] ?? 0);
+                        $tarifPotong = floatval($pRow['tarif_potong'] ?? 0);
+                        if ($pemotong !== '' || $qtyPotong > 0) {
+                            $subtotal = $qtyPotong * $tarifPotong;
+                            $laborTotal += $subtotal;
+                            SpkItemExtra::create([
+                                'spk_item_id' => $spkItem->id,
+                                'keterangan'  => "Ongkos Potong: {$pemotong} ({$qtyPotong} pcs" . ($tarifPotong > 0 ? " @ Rp " . number_format($tarifPotong) : "") . ")",
+                                'nominal'     => $subtotal,
+                            ]);
+                        }
+
+                        // 2. Penjahit
+                        $penjahit = trim($pRow['penjahit'] ?? '');
+                        $qtyJahit = (int) ($pRow['qty_jahit'] ?? 0);
+                        $tarifJahit = floatval($pRow['tarif_jahit'] ?? 0);
+                        if ($penjahit !== '' || $qtyJahit > 0) {
+                            $subtotal = $qtyJahit * $tarifJahit;
+                            $laborTotal += $subtotal;
+                            SpkItemExtra::create([
+                                'spk_item_id' => $spkItem->id,
+                                'keterangan'  => "Ongkos Jahit: {$penjahit} ({$qtyJahit} pcs" . ($tarifJahit > 0 ? " @ Rp " . number_format($tarifJahit) : "") . ")",
+                                'nominal'     => $subtotal,
+                            ]);
+                        }
+
+                        // 3. Vendor Kancing
+                        $vendorKancing = trim($pRow['vendor_kancing'] ?? '');
+                        $qtyKancing = (int) ($pRow['qty_kancing'] ?? 0);
+                        $tarifKancing = floatval($pRow['tarif_kancing'] ?? 0);
+                        if ($vendorKancing !== '' || $qtyKancing > 0) {
+                            $subtotal = $qtyKancing * $tarifKancing;
+                            $laborTotal += $subtotal;
+                            SpkItemExtra::create([
+                                'spk_item_id' => $spkItem->id,
+                                'keterangan'  => "Ongkos Kancing/LKPK: {$vendorKancing} ({$qtyKancing} pcs" . ($tarifKancing > 0 ? " @ Rp " . number_format($tarifKancing) : "") . ")",
+                                'nominal'     => $subtotal,
+                            ]);
+                        }
+
+                        // 4. Petugas QC
+                        $petugasQc = trim($pRow['petugas_qc'] ?? '');
                         $qcLolos = (int) ($pRow['qc_lolos'] ?? 0);
                         $qcReject = (int) ($pRow['qc_reject'] ?? 0);
+                        $tarifQc = floatval($pRow['tarif_qc'] ?? 0);
+                        if ($petugasQc !== '' || $qcLolos > 0 || $qcReject > 0) {
+                            $subtotal = $qcLolos * $tarifQc;
+                            $laborTotal += $subtotal;
+                            SpkItemExtra::create([
+                                'spk_item_id' => $spkItem->id,
+                                'keterangan'  => "Ongkos QC: {$petugasQc} (Lolos: {$qcLolos} pcs, Reject: {$qcReject} pcs" . ($tarifQc > 0 ? " @ Rp " . number_format($tarifQc) : "") . ")",
+                                'nominal'     => $subtotal,
+                            ]);
+                        }
+
+                        // 5. Finishing
+                        $petugasFinishing = trim($pRow['petugas_finishing'] ?? '');
                         $qtyFinishing = (int) ($pRow['qty_finishing'] ?? 0);
                         $qtyFgood = (int) ($pRow['qty_fgood'] ?? 0);
-                        $qtyJahit = (int) ($pRow['qty_jahit'] ?? 0);
-
-                        if ($qtyPotong > 0 || $qcLolos > 0 || $qcReject > 0 || $qtyFinishing > 0 || $qtyFgood > 0 || $qtyJahit > 0) {
-                            $opInfo = [];
-                            if ($qtyPotong > 0) $opInfo[] = "Potong: {$qtyPotong} pcs";
-                            if ($qtyJahit > 0) $opInfo[] = "Jahit: {$qtyJahit} pcs";
-                            if ($qcLolos > 0) $opInfo[] = "QC Lolos: {$qcLolos} pcs";
-                            if ($qcReject > 0) $opInfo[] = "QC Reject: {$qcReject} pcs";
-                            if ($qtyFinishing > 0) $opInfo[] = "Finishing: {$qtyFinishing} pcs";
-                            if ($qtyFgood > 0) $opInfo[] = "F.Good: {$qtyFgood} pcs";
-
-                            if (!empty($opInfo)) {
-                                SpkItemExtra::create([
-                                    'spk_item_id' => $spkItem->id,
-                                    'keterangan'  => 'Tahap Operasional: ' . implode(', ', $opInfo),
-                                    'nominal'     => 0,
-                                ]);
-                            }
+                        $tarifFinishing = floatval($pRow['tarif_finishing'] ?? 0);
+                        if ($petugasFinishing !== '' || $qtyFinishing > 0 || $qtyFgood > 0) {
+                            $subtotal = $qtyFinishing * $tarifFinishing;
+                            $laborTotal += $subtotal;
+                            SpkItemExtra::create([
+                                'spk_item_id' => $spkItem->id,
+                                'keterangan'  => "Ongkos Finishing: {$petugasFinishing} ({$qtyFinishing} pcs, F.Good: {$qtyFgood} pcs" . ($tarifFinishing > 0 ? " @ Rp " . number_format($tarifFinishing) : "") . ")",
+                                'nominal'     => $subtotal,
+                            ]);
                         }
 
                         if (!empty($bahanList) && is_array($bahanList)) {
