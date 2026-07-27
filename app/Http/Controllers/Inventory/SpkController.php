@@ -347,8 +347,34 @@ class SpkController extends Controller
                             'ukuran'            => $ukuran,
                             'catatan'           => $rBlock['catatan'] ?? null,
                             'quantity'          => $qtyProduksi,
+                            'penjahit'          => $pRow['penjahit'] ?? null,
+                            'vendor_kancing'    => $pRow['vendor_kancing'] ?? null,
                             'hpp'               => 0,
                         ]);
+
+                        // Save initial operational progress if filled
+                        $qcLolos = (int) ($pRow['qc_lolos'] ?? 0);
+                        $qcReject = (int) ($pRow['qc_reject'] ?? 0);
+                        $qtyFinishing = (int) ($pRow['qty_finishing'] ?? 0);
+                        $qtyFgood = (int) ($pRow['qty_fgood'] ?? 0);
+                        $qtyJahit = (int) ($pRow['qty_jahit'] ?? 0);
+
+                        if ($qcLolos > 0 || $qcReject > 0 || $qtyFinishing > 0 || $qtyFgood > 0 || $qtyJahit > 0) {
+                            $opInfo = [];
+                            if ($qtyJahit > 0) $opInfo[] = "Jahit: {$qtyJahit} pcs";
+                            if ($qcLolos > 0) $opInfo[] = "QC Lolos: {$qcLolos} pcs";
+                            if ($qcReject > 0) $opInfo[] = "QC Reject: {$qcReject} pcs";
+                            if ($qtyFinishing > 0) $opInfo[] = "Finishing: {$qtyFinishing} pcs";
+                            if ($qtyFgood > 0) $opInfo[] = "F.Good: {$qtyFgood} pcs";
+
+                            if (!empty($opInfo)) {
+                                SpkItemExtra::create([
+                                    'spk_item_id' => $spkItem->id,
+                                    'keterangan'  => 'Tahap Operasional: ' . implode(', ', $opInfo),
+                                    'nominal'     => 0,
+                                ]);
+                            }
+                        }
 
                         if (!empty($bahanList) && is_array($bahanList)) {
                             $totalHpp = 0;

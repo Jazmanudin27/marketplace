@@ -265,7 +265,7 @@
     .colon-label label { font-size: 10px; font-weight: 700; letter-spacing: .7px; text-transform: uppercase; color: #6b7280; white-space: nowrap; }
     .colon-label .colon { font-weight: 700; color: #9ca3af; text-align: center; }
 
-    .btn-bahan-trigger {
+    .btn-bahan-trigger, .btn-tahap-trigger {
         font-size: 11px;
         font-weight: 700;
         padding: 4px 10px;
@@ -292,6 +292,13 @@
     <datalist id="inventory_items_datalist">
         @foreach($inventoryItems->take(10) as $invItemName)
             <option value="{{ $invItemName }}"></option>
+        @endforeach
+    </datalist>
+
+    {{-- Datalist Autocomplete Penjahit --}}
+    <datalist id="tailors_datalist">
+        @foreach($tailors as $tailorName)
+            <option value="{{ $tailorName }}"></option>
         @endforeach
     </datalist>
 
@@ -558,7 +565,7 @@
 </div>
 
 {{-- ══════════════════════════════════════════════════════════════════
-     POPUP MODAL: RINCIAN BAHAN & BARANG KOMPONEN
+     POPUP MODAL 1: RINCIAN BAHAN & BARANG KOMPONEN
 ══════════════════════════════════════════════════════════════════ --}}
 <div class="modal fade" id="modalBahanProduk" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
     <div class="modal-dialog modal-lg modal-dialog-centered">
@@ -609,6 +616,112 @@
             <div class="modal-footer bg-white border-top py-2 px-4">
                 <button type="button" class="btn btn-sm btn-primary fw-bold px-4" data-bs-dismiss="modal">
                     ✅ Selesai
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{-- ══════════════════════════════════════════════════════════════════
+     POPUP MODAL 2: TAHAP OPERASIONAL & TIM PRODUKSI (Jahit, LKPK, QC, Finishing, F.Good)
+══════════════════════════════════════════════════════════════════ --}}
+<div class="modal fade" id="modalTahapOperasional" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content shadow-lg border-0" style="border-radius:16px; overflow:hidden;">
+            <div class="modal-header bg-primary text-white py-3 px-4">
+                <div>
+                    <h5 class="modal-title fw-bold fs-6 mb-0 d-flex align-items-center gap-2">
+                        ✂️ TAHAP OPERASIONAL &amp; TIM PRODUKSI
+                    </h5>
+                    <small class="text-white opacity-75" style="font-size:11px;" id="modalTahapProductSubtitle">
+                        Produk SPK
+                    </small>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4" style="background:#f8fafc;">
+                
+                {{-- 1. TAHAP JAHIT --}}
+                <div class="card border-0 shadow-sm rounded-3 mb-3">
+                    <div class="card-header bg-warning-subtle text-warning-emphasis fw-bold py-2 px-3" style="font-size:12px;">
+                        🧵 TAHAP JAHIT
+                    </div>
+                    <div class="card-body p-3">
+                        <div class="row g-3">
+                            <div class="col-md-7">
+                                <label class="form-label mb-1 fw-semibold text-secondary" style="font-size:11px;">PENJAHIT</label>
+                                <input type="text" id="modal_penjahit" class="form-control form-control-sm" list="tailors_datalist" placeholder="Pilih / Ketik Penjahit (Contoh: Mang Acep)">
+                            </div>
+                            <div class="col-md-5">
+                                <label class="form-label mb-1 fw-semibold text-secondary" style="font-size:11px;">QTY JAHIT (PCS)</label>
+                                <input type="number" id="modal_qty_jahit" class="form-control form-control-sm text-center" min="0" placeholder="0">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- 2. TAHAP LKPK (KANCING) --}}
+                <div class="card border-0 shadow-sm rounded-3 mb-3">
+                    <div class="card-header bg-info-subtle text-info-emphasis fw-bold py-2 px-3" style="font-size:12px;">
+                        🔘 TAHAP LKPK (KANCING)
+                    </div>
+                    <div class="card-body p-3">
+                        <div class="row g-3">
+                            <div class="col-md-7">
+                                <label class="form-label mb-1 fw-semibold text-secondary" style="font-size:11px;">VENDOR KANCING</label>
+                                <input type="text" id="modal_vendor_kancing" class="form-control form-control-sm" placeholder="Pilih / Ketik Vendor Kancing">
+                            </div>
+                            <div class="col-md-5">
+                                <label class="form-label mb-1 fw-semibold text-secondary" style="font-size:11px;">QTY KANCING (PCS)</label>
+                                <input type="number" id="modal_qty_kancing" class="form-control form-control-sm text-center" min="0" placeholder="0">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- 3. TAHAP QC (QUALITY CONTROL) --}}
+                <div class="card border-0 shadow-sm rounded-3 mb-3">
+                    <div class="card-header bg-secondary-subtle text-secondary-emphasis fw-bold py-2 px-3" style="font-size:12px;">
+                        🔍 TAHAP QC (QUALITY CONTROL)
+                    </div>
+                    <div class="card-body p-3">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label mb-1 fw-semibold text-success" style="font-size:11px;">LOLOS QC (PCS)</label>
+                                <input type="number" id="modal_qc_lolos" class="form-control form-control-sm text-center border-success" min="0" placeholder="0">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label mb-1 fw-semibold text-danger" style="font-size:11px;">REJECT QC (PCS)</label>
+                                <input type="number" id="modal_qc_reject" class="form-control form-control-sm text-center border-danger" min="0" placeholder="0">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- 4. TAHAP FINISHING & F.GOOD --}}
+                <div class="card border-0 shadow-sm rounded-3 mb-0">
+                    <div class="card-header bg-success-subtle text-success-emphasis fw-bold py-2 px-3" style="font-size:12px;">
+                        ✨ FINISHING &amp; F.GOOD (FINISHED GOOD)
+                    </div>
+                    <div class="card-body p-3">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label mb-1 fw-semibold text-secondary" style="font-size:11px;">FINISHING (PCS)</label>
+                                <input type="number" id="modal_qty_finishing" class="form-control form-control-sm text-center" min="0" placeholder="0">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label mb-1 fw-semibold text-success" style="font-size:11px;">F.GOOD / SIAP GUDANG (PCS)</label>
+                                <input type="number" id="modal_qty_fgood" class="form-control form-control-sm text-center border-success fw-bold" min="0" placeholder="0">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+            <div class="modal-footer bg-white border-top py-2 px-4 d-flex justify-content-between">
+                <button type="button" class="btn btn-sm btn-outline-secondary px-3" data-bs-dismiss="modal">Batal</button>
+                <button type="button" class="btn btn-sm btn-primary fw-bold px-4" id="btnSaveModalTahap">
+                    ✅ Simpan Tahapan
                 </button>
             </div>
         </div>
@@ -793,11 +906,12 @@ document.addEventListener('DOMContentLoaded', function() {
                             <table class="table table-sm product-table-custom mb-0 align-middle">
                                 <thead>
                                     <tr class="text-uppercase text-center">
-                                        <th style="width:25%;">SKU PRODUK</th>
-                                        <th style="width:30%;">NAMA PRODUK</th>
-                                        <th style="width:15%;">UKURAN</th>
-                                        <th style="width:12%;">QTY (PCS)</th>
-                                        <th style="width:18%;">RINCIAN BAHAN</th>
+                                        <th style="width:20%;">SKU PRODUK</th>
+                                        <th style="width:25%;">NAMA PRODUK</th>
+                                        <th style="width:12%;">UKURAN</th>
+                                        <th style="width:10%;">QTY</th>
+                                        <th style="width:16%;">RINCIAN BAHAN</th>
+                                        <th style="width:17%;">TAHAP OPERASIONAL</th>
                                         <th style="width:36px;"></th>
                                     </tr>
                                 </thead>
@@ -839,7 +953,7 @@ document.addEventListener('DOMContentLoaded', function() {
             <td>
                 <input type="text" name="rincian[${rIdx}][produk][${pIdx}][sku_produk]" class="form-control row-sku-produk font-monospace fw-bold text-primary"
                     list="master_skus_datalist" autocomplete="off"
-                    placeholder="Pilih / Ketik SKU" value="${defaultData ? escHtml(defaultData.sku_produk) : ''}">
+                    placeholder="Pilih SKU" value="${defaultData ? escHtml(defaultData.sku_produk) : ''}">
             </td>
             <td>
                 <input type="text" name="rincian[${rIdx}][produk][${pIdx}][nama_produk]" class="form-control row-nama-produk"
@@ -858,8 +972,21 @@ document.addEventListener('DOMContentLoaded', function() {
                 <button type="button" class="btn btn-sm btn-outline-secondary btn-bahan-trigger btn-open-bahan-modal" data-r-idx="${rIdx}" data-p-idx="${pIdx}">
                     📦 Atur Bahan <span class="badge bg-secondary rounded-pill ms-1 bahan-count-badge">0</span>
                 </button>
-                <div class="hidden-bahan-container-${rIdx}-${pIdx}">
-                    {{-- Hidden bahan inputs for this product --}}
+                <div class="hidden-bahan-container-${rIdx}-${pIdx}"></div>
+            </td>
+            <td class="text-center">
+                <button type="button" class="btn btn-sm btn-outline-primary btn-tahap-trigger btn-open-tahap-modal" data-r-idx="${rIdx}" data-p-idx="${pIdx}">
+                    ✂️ Atur Tahap
+                </button>
+                <div class="hidden-tahap-container-${rIdx}-${pIdx}">
+                    <input type="hidden" name="rincian[${rIdx}][produk][${pIdx}][penjahit]" class="h-penjahit" value="">
+                    <input type="hidden" name="rincian[${rIdx}][produk][${pIdx}][qty_jahit]" class="h-qty-jahit" value="0">
+                    <input type="hidden" name="rincian[${rIdx}][produk][${pIdx}][vendor_kancing]" class="h-vendor-kancing" value="">
+                    <input type="hidden" name="rincian[${rIdx}][produk][${pIdx}][qty_kancing]" class="h-qty-kancing" value="0">
+                    <input type="hidden" name="rincian[${rIdx}][produk][${pIdx}][qc_lolos]" class="h-qc-lolos" value="0">
+                    <input type="hidden" name="rincian[${rIdx}][produk][${pIdx}][qc_reject]" class="h-qc-reject" value="0">
+                    <input type="hidden" name="rincian[${rIdx}][produk][${pIdx}][qty_finishing]" class="h-qty-finishing" value="0">
+                    <input type="hidden" name="rincian[${rIdx}][produk][${pIdx}][qty_fgood]" class="h-qty-fgood" value="0">
                 </div>
             </td>
             <td class="text-center">
@@ -1190,6 +1317,84 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
+    // ── 5. POPUP MODAL TAHAP OPERASIONAL LOGIC ──
+    let activeTahapRIdx = null;
+    let activeTahapPIdx = null;
+    const tahapModal = new bootstrap.Modal(document.getElementById('modalTahapOperasional'));
+
+    function openTahapModalForProduct(rIdx, pIdx) {
+        activeTahapRIdx = rIdx;
+        activeTahapPIdx = pIdx;
+
+        const tr = document.getElementById(`product-row-${rIdx}-${pIdx}`);
+        if (!tr) return;
+
+        const skuVal = tr.querySelector('.row-sku-produk')?.value || '-';
+        const nameVal = tr.querySelector('.row-nama-produk')?.value || 'Produk';
+        const ukVal = tr.querySelector('.row-ukuran')?.value || '-';
+        const qtyVal = tr.querySelector('.row-qty-produksi')?.value || '1';
+
+        document.getElementById('modalTahapProductSubtitle').innerHTML = `
+            <strong>SKU:</strong> ${escHtml(skuVal)} · <strong>${escHtml(nameVal)}</strong> (Ukuran: ${escHtml(ukVal)}) · <strong>Qty Produksi:</strong> ${escHtml(qtyVal)} pcs
+        `;
+
+        const container = tr.querySelector(`.hidden-tahap-container-${rIdx}-${pIdx}`);
+        if (container) {
+            document.getElementById('modal_penjahit').value = container.querySelector('.h-penjahit')?.value || '';
+            document.getElementById('modal_qty_jahit').value = container.querySelector('.h-qty-jahit')?.value || qtyVal;
+            document.getElementById('modal_vendor_kancing').value = container.querySelector('.h-vendor-kancing')?.value || '';
+            document.getElementById('modal_qty_kancing').value = container.querySelector('.h-qty-kancing')?.value || '';
+            document.getElementById('modal_qc_lolos').value = container.querySelector('.h-qc-lolos')?.value || '';
+            document.getElementById('modal_qc_reject').value = container.querySelector('.h-qc-reject')?.value || '';
+            document.getElementById('modal_qty_finishing').value = container.querySelector('.h-qty-finishing')?.value || '';
+            document.getElementById('modal_qty_fgood').value = container.querySelector('.h-qty-fgood')?.value || '';
+        }
+
+        tahapModal.show();
+    }
+
+    document.getElementById('btnSaveModalTahap').addEventListener('click', function() {
+        if (activeTahapRIdx === null || activeTahapPIdx === null) return;
+        const tr = document.getElementById(`product-row-${activeTahapRIdx}-${activeTahapPIdx}`);
+        if (!tr) return;
+
+        const container = tr.querySelector(`.hidden-tahap-container-${activeTahapRIdx}-${activeTahapPIdx}`);
+        if (!container) return;
+
+        const penjahit = document.getElementById('modal_penjahit').value.trim();
+        const qtyJahit = document.getElementById('modal_qty_jahit').value || '0';
+        const vendorKancing = document.getElementById('modal_vendor_kancing').value.trim();
+        const qtyKancing = document.getElementById('modal_qty_kancing').value || '0';
+        const qcLolos = document.getElementById('modal_qc_lolos').value || '0';
+        const qcReject = document.getElementById('modal_qc_reject').value || '0';
+        const qtyFinishing = document.getElementById('modal_qty_finishing').value || '0';
+        const qtyFgood = document.getElementById('modal_qty_fgood').value || '0';
+
+        container.querySelector('.h-penjahit').value = penjahit;
+        container.querySelector('.h-qty-jahit').value = qtyJahit;
+        container.querySelector('.h-vendor-kancing').value = vendorKancing;
+        container.querySelector('.h-qty-kancing').value = qtyKancing;
+        container.querySelector('.h-qc-lolos').value = qcLolos;
+        container.querySelector('.h-qc-reject').value = qcReject;
+        container.querySelector('.h-qty-finishing').value = qtyFinishing;
+        container.querySelector('.h-qty-fgood').value = qtyFgood;
+
+        // Update button text badge on main product row table
+        const btnTahap = tr.querySelector('.btn-tahap-trigger');
+        if (btnTahap) {
+            if (penjahit || parseInt(qtyJahit) > 0 || parseInt(qcLolos) > 0) {
+                btnTahap.className = 'btn btn-sm btn-primary-subtle text-primary border border-primary-subtle btn-tahap-trigger btn-open-tahap-modal';
+                const labelText = penjahit ? `${penjahit} (${qtyJahit})` : `Jahit: ${qtyJahit}`;
+                btnTahap.innerHTML = `✂️ ${escHtml(labelText)}`;
+            } else {
+                btnTahap.className = 'btn btn-sm btn-outline-primary btn-tahap-trigger btn-open-tahap-modal';
+                btnTahap.innerHTML = `✂️ Atur Tahap`;
+            }
+        }
+
+        tahapModal.hide();
+    });
+
     // Add Block Button Handler
     document.getElementById('btnAddRincianBlock').addEventListener('click', function() {
         addRincianBlock();
@@ -1202,6 +1407,14 @@ document.addEventListener('DOMContentLoaded', function() {
             const rIdx = btnOpenBahan.dataset.rIdx;
             const pIdx = btnOpenBahan.dataset.pIdx;
             openBahanModalForProduct(rIdx, pIdx);
+            return;
+        }
+
+        const btnOpenTahap = e.target.closest('.btn-open-tahap-modal');
+        if (btnOpenTahap) {
+            const rIdx = btnOpenTahap.dataset.rIdx;
+            const pIdx = btnOpenTahap.dataset.pIdx;
+            openTahapModalForProduct(rIdx, pIdx);
             return;
         }
 
