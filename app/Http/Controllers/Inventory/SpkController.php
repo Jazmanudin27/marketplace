@@ -880,9 +880,18 @@ class SpkController extends Controller
                 foreach ($rincianBlocks as $rIdx => $rBlock) {
                     $prodList = $rBlock['produk'] ?? [];
                     if (!empty($prodList) && is_array($prodList)) {
+                        // Build a flat array of item IDs in order (to map by pIdx)
+                        $itemsOrdered = $spk->items->values();
+
                         foreach ($prodList as $pIdx => $pRow) {
-                            $spkItem = $spk->items->first();
-                            if ($spkItem) {
+                            // Match item by position index
+                            $spkItem = $itemsOrdered->get((int)$pIdx);
+                            if (!$spkItem) {
+                                // If no existing item at this index, use first available item (fallback)
+                                $spkItem = $itemsOrdered->first();
+                            }
+                            if (!$spkItem) continue;
+
                                 $namaProduk = trim($pRow['nama_produk'] ?? '') ?: $spkItem->nama_produk;
                                 $skuProduk  = trim($pRow['sku_produk'] ?? '') ?: $spkItem->sku;
                                 $ukuran     = trim($pRow['ukuran'] ?? '') ?: $spkItem->ukuran;
@@ -974,8 +983,7 @@ class SpkController extends Controller
                                         $spkItem->update(['hpp' => $totalHpp]);
                                     }
                                 }
-                            }
-                        }
+                        } // end foreach prodList
                     }
                 }
             }
