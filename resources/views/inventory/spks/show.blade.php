@@ -1050,7 +1050,7 @@
 </div>
 @endsection
 
-@section('scripts')
+@push('scripts')
 <script>
     const tailorsList = @json($tailors);
     const existingNoProduksiList = @json($existingNoProduksi);
@@ -1566,4 +1566,4 @@
         });
     });
 </script>
-@endsection
+@endpush

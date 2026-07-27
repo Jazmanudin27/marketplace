@@ -194,7 +194,7 @@
                         <strong>{{ $p->sku }}</strong>
                     </td>
                     <td class="font-mono">
-                        @if($p->sku_induk)
+                        @if ($p->sku_induk)
                             <strong>{{ $p->sku_induk }}</strong>
                         @else
                             <span style="color: #888;">-</span>
