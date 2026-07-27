@@ -118,24 +118,37 @@
 
     {{-- SPK CARDS GRID CONTAINER --}}
     <div class="row g-3 mb-4">
-        @forelse($spks as $index => $row)
+        @php
+            $groupedSpks = $spks->getCollection()->groupBy(function($item) {
+                return !empty($item->no_produksi) ? 'PROD:' . trim($item->no_produksi) : 'SPK:' . $item->id;
+            });
+            $cardCounter = 0;
+        @endphp
+
+        @forelse($groupedSpks as $groupKey => $spkGroup)
             @php
-                $queueNo = ($spks->currentPage() - 1) * $spks->perPage() + $index + 1;
+                $cardCounter++;
+                $queueNo = ($spks->currentPage() - 1) * $spks->perPage() + $cardCounter;
+                $row = $spkGroup->first();
+                $spkCount = $spkGroup->count();
+                $totalPcsGroup = $spkGroup->sum(fn($s) => $s->total_pcs);
+                $isUrgentGroup = $spkGroup->contains('is_urgent', true);
+
                 $trackingUrl = route('mobile.spk.detail', $row->id);
-                $waText = rawurlencode("Halo " . ($row->pemesan ?: 'Pelanggan') . ", berikut link tracking status produksi SPK " . $row->no_spk . ": " . $trackingUrl);
+                $waText = rawurlencode("Halo " . ($row->pemesan ?: 'Pelanggan') . ", berikut link tracking status produksi SPK " . ($row->no_produksi ?: $row->no_spk) . ": " . $trackingUrl);
             @endphp
             <div class="col-12 col-md-6 col-lg-4">
                 <div class="card h-100 border-0 shadow-sm rounded-4 overflow-hidden bg-white transition-hover position-relative" style="border: 1px solid rgba(0,0,0,0.06) !important;">
                     
                     {{-- Urgent Ribbon Badge --}}
-                    <div id="urgent-badge-{{ $row->id }}" class="position-absolute top-0 end-0 me-3 mt-2 {{ $row->is_urgent ? '' : 'd-none' }}">
+                    <div id="urgent-badge-{{ $row->id }}" class="position-absolute top-0 end-0 me-3 mt-2 {{ $isUrgentGroup ? '' : 'd-none' }}">
                         <span class="badge bg-danger shadow-sm rounded-pill px-2 py-1 small fw-bold"><i class="fas fa-bolt me-1"></i>URGENT</span>
                     </div>
 
                     <div class="card-body p-3.5 d-flex flex-column justify-content-between">
                         
                         {{-- CARD HEADER ROW: Image + Info --}}
-                        <div class="d-flex gap-3 mb-3">
+                        <div class="d-flex gap-3 mb-2">
                             {{-- Product Image Thumbnail --}}
                             <div class="flex-shrink-0">
                                 @if($row->image_url)
@@ -153,12 +166,17 @@
 
                             {{-- Info Meta --}}
                             <div class="flex-grow-1 min-w-0">
-                                {{-- Kode Produksi & Queue Badge --}}
-                                <div class="d-flex align-items-center gap-2 mb-1">
+                                {{-- Kode Produksi & Queue Badge & Count Badge --}}
+                                <div class="d-flex align-items-center gap-1.5 flex-wrap mb-1">
                                     <span class="font-monospace text-muted fw-bold small opacity-75">{{ $row->no_produksi ?: 'NO-PROD' }}</span>
                                     <span class="badge bg-primary bg-opacity-10 text-primary rounded-2 px-2 py-0.5 fw-bold" style="font-size: 10px;">
                                         ANTRIAN #{{ $queueNo }}
                                     </span>
+                                    @if($spkCount > 1)
+                                        <span class="badge bg-success bg-opacity-15 text-success rounded-2 px-2 py-0.5 fw-bold" style="font-size: 10px;">
+                                            📦 {{ $spkCount }} SPK
+                                        </span>
+                                    @endif
                                 </div>
 
                                 {{-- Customer Name --}}
@@ -167,26 +185,37 @@
                                 </h6>
 
                                 {{-- Instansi / Toko --}}
-                                <div class="text-muted text-truncate mb-2" style="font-size: 0.78rem;">
+                                <div class="text-muted text-truncate mb-1" style="font-size: 0.78rem;">
                                     <i class="fas fa-home me-1 opacity-50"></i>{{ $row->instansi ?: '-' }}
                                 </div>
 
-                                {{-- Current Stage Status Pill --}}
-                                <div class="mb-1">
-                                    <span class="badge rounded-2 px-2 py-1 fw-bold text-uppercase d-inline-flex align-items-center gap-1 shadow-2xs" 
-                                          style="font-size: 10px; background-color: #eff6ff; color: #3b82f6; border: 1px solid #dbeafe;">
-                                        <i class="fas fa-clipboard-list"></i>
-                                        <span>{{ $row->current_stage_name }}</span>
-                                    </span>
-                                </div>
-
-                                {{-- Quantity & Variant --}}
-                                <div class="fw-bold text-dark d-flex align-items-center gap-1 mt-1" style="font-size: 0.82rem;">
+                                {{-- Total Pcs Summary --}}
+                                <div class="fw-bold text-dark d-flex align-items-center gap-1" style="font-size: 0.82rem;">
                                     <i class="fas fa-tshirt text-primary" style="font-size: 11px;"></i>
-                                    <span class="text-primary">{{ $row->total_pcs }} Pcs</span>
-                                    <span class="text-muted fw-normal ms-1">| {{ $row->variant_summary }}</span>
+                                    <span class="text-primary fw-extrabold">{{ $totalPcsGroup }} Pcs</span>
+                                    <span class="text-muted fw-normal ms-1" style="font-size: 11px;">({{ $spkCount }} SPK)</span>
                                 </div>
                             </div>
+                        </div>
+
+                        {{-- SUB-SPK BREAKDOWN CONTAINER --}}
+                        <div class="bg-light bg-opacity-75 rounded-3 p-2 my-2 border border-light-subtle">
+                            @foreach($spkGroup as $subSpk)
+                                <div class="d-flex justify-content-between align-items-center {{ !$loop->last ? 'border-bottom pb-1.5 mb-1.5 border-light-subtle' : '' }}" style="font-size: 0.78rem;">
+                                    <div class="min-w-0 me-2">
+                                        <span class="font-monospace fw-bold text-dark text-truncate d-inline-block align-middle" style="font-size: 11px; max-width: 95px;" title="{{ $subSpk->no_spk }}">
+                                            #{{ $subSpk->no_spk }}
+                                        </span>
+                                        <span class="badge rounded-2 px-1.5 py-0.5 fw-bold text-uppercase d-inline-block align-middle" style="font-size: 9px; background-color: #eff6ff; color: #3b82f6; border: 1px solid #dbeafe;">
+                                            {{ $subSpk->current_stage_name }}
+                                        </span>
+                                    </div>
+                                    <div class="fw-bold text-end flex-shrink-0" style="font-size: 11px;">
+                                        <span class="text-primary">{{ $subSpk->total_pcs }} Pcs</span>
+                                        <span class="text-muted fw-normal ms-1" style="font-size: 10px;">| {{ $subSpk->variant_summary }}</span>
+                                    </div>
+                                </div>
+                            @endforeach
                         </div>
 
                         {{-- DATES ROW (MASUK & DEADLINE) --}}
@@ -255,7 +284,7 @@
                                             style="font-size: 0.78rem; background-color: #fff7ed; color: #ea580c; border: 1px solid #ffedd5;">
                                         <i class="fas fa-bolt text-warning"></i>
                                         <span id="urgent-btn-text-{{ $row->id }}">
-                                            {{ $row->is_urgent ? 'BATAL URGENT' : 'AMBIL URGENT' }}
+                                            {{ $isUrgentGroup ? 'BATAL URGENT' : 'AMBIL URGENT' }}
                                         </span>
                                     </button>
                                 </div>
