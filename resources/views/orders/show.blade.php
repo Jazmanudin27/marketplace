@@ -356,9 +356,14 @@
                                     <div class="list-group-item px-0 py-2 border-0 border-bottom">
                                         <div class="d-flex justify-content-between align-items-center mb-1">
                                             @can('spks.show')
-                                            <a href="{{ route('spks.show', $spk->id) }}" class="fw-bold text-primary text-decoration-none">
-                                                {{ $spk->no_spk }}
-                                            </a>
+                                            <div class="d-flex align-items-center gap-2">
+                                                <a href="{{ route('spks.show', $spk->id) }}" class="fw-bold text-primary text-decoration-none">
+                                                    {{ $spk->no_spk }}
+                                                </a>
+                                                <a href="{{ route('spks.print', $spk->id) }}" target="_blank" class="btn btn-sm btn-outline-primary py-0 px-2 rounded-2" style="font-size: 11px;" title="Cetak SPK">
+                                                    <i class="fas fa-print me-1"></i> Cetak
+                                                </a>
+                                            </div>
                                             @else
                                             <span class="fw-bold text-dark">{{ $spk->no_spk }}</span>
                                             @endcan

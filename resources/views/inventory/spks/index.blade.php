@@ -236,17 +236,30 @@
                                 </div>
                             </div>
 
-                            {{-- Row 2: Ambil Urgent --}}
-                            <button type="button" 
-                                    class="btn btn-sm w-100 rounded-3 fw-extrabold py-2 d-inline-flex align-items-center justify-content-center gap-1.5 transition-all toggle-urgent-btn"
-                                    data-id="{{ $row->id }}"
-                                    data-url="{{ route('spks.toggle_urgent', $row->id) }}"
-                                    style="font-size: 0.78rem; background-color: #fff7ed; color: #ea580c; border: 1px solid #ffedd5;">
-                                <i class="fas fa-bolt text-warning"></i>
-                                <span id="urgent-btn-text-{{ $row->id }}">
-                                    {{ $row->is_urgent ? 'BATAL URGENT' : 'AMBIL URGENT' }}
-                                </span>
-                            </button>
+                            {{-- Row 2: Cetak SPK & Ambil Urgent --}}
+                            <div class="row g-2">
+                                <div class="col-6">
+                                    <a href="{{ route('spks.print', $row->id) }}" target="_blank"
+                                       class="btn btn-sm rounded-3 fw-bold py-1.5 w-100 d-inline-flex align-items-center justify-content-center gap-1 transition-all"
+                                       style="font-size: 0.78rem; background-color: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe;"
+                                       title="Cetak SPK Perintah Kerja (A4 Half-Page)">
+                                        <i class="fas fa-print text-primary"></i>
+                                        <span>Cetak SPK</span>
+                                    </a>
+                                </div>
+                                <div class="col-6">
+                                    <button type="button" 
+                                            class="btn btn-sm w-100 rounded-3 fw-extrabold py-1.5 d-inline-flex align-items-center justify-content-center gap-1 transition-all toggle-urgent-btn"
+                                            data-id="{{ $row->id }}"
+                                            data-url="{{ route('spks.toggle_urgent', $row->id) }}"
+                                            style="font-size: 0.78rem; background-color: #fff7ed; color: #ea580c; border: 1px solid #ffedd5;">
+                                        <i class="fas fa-bolt text-warning"></i>
+                                        <span id="urgent-btn-text-{{ $row->id }}">
+                                            {{ $row->is_urgent ? 'BATAL URGENT' : 'AMBIL URGENT' }}
+                                        </span>
+                                    </button>
+                                </div>
+                            </div>
                         </div>
 
                     </div>
