@@ -6,7 +6,7 @@
     <style>
         @page {
             size: A4 portrait;
-            margin: 5mm 8mm;
+            margin: 4mm 6mm;
         }
 
         * {
@@ -40,9 +40,9 @@
         /* ── Half A4 Slip Card ── */
         .spk-slip-card {
             width: 100%;
-            height: 135mm;
-            max-height: 137mm;
-            padding: 3px 4px;
+            height: 140mm;
+            max-height: 142mm;
+            padding: 2px 4px;
             position: relative;
             overflow: hidden;
             box-sizing: border-box;
@@ -149,11 +149,11 @@
         .design-box-frame {
             border: 1.5px dashed #64748b;
             border-radius: 8px;
-            padding: 4px;
+            padding: 3px;
             text-align: center;
-            margin-bottom: 4px;
+            margin-bottom: 3px;
             background: #fff;
-            height: 90px;
+            height: 135px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -161,8 +161,8 @@
         }
 
         .design-img {
-            max-height: 84px;
-            max-width: 95%;
+            max-height: 128px;
+            max-width: 98%;
             object-fit: contain;
         }
 
