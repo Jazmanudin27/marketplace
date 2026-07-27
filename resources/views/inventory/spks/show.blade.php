@@ -465,17 +465,20 @@
                 </div>
 
                 {{-- Center: DESAIN area --}}
+                @php
+                    $displayDesainUrl = $spk->image_url ?: ($spk->mockup_url ?: $spk->referensi_klien_url);
+                @endphp
                 <div class="col-lg-6 col-md-4">
-                    <div class="desain-drop-area {{ $spk->image_url ? 'has-image' : '' }}" id="desain-drop-area">
+                    <div class="desain-drop-area {{ $displayDesainUrl ? 'has-image' : '' }}" id="desain-drop-area">
                         <input type="file" name="image" id="input-spk-image" accept="image/*">
-                        <div id="desain-placeholder-content" class="{{ $spk->image_url ? 'd-none' : '' }}">
+                        <div id="desain-placeholder-content" class="{{ $displayDesainUrl ? 'd-none' : '' }}">
                             <div class="desain-label">DESAIN</div>
                             <div class="desain-hint">Klik atau seret foto desain/mockup ke sini</div>
                             <div class="mt-2">
                                 <small class="badge bg-light text-secondary border" style="font-size:10px;">JPEG / PNG / JPG · maks 4MB</small>
                             </div>
                         </div>
-                        <img id="desain-preview-img" src="{{ $spk->image_url ?: '#' }}" alt="Preview Desain" class="{{ $spk->image_url ? '' : 'd-none' }}" style="max-height:130px; border-radius:8px; object-fit:contain;">
+                        <img id="desain-preview-img" src="{{ $displayDesainUrl ?: '' }}" alt="Preview Desain" class="{{ $displayDesainUrl ? '' : 'd-none' }}" style="max-height:130px; border-radius:8px; object-fit:contain;">
                     </div>
                 </div>
 
@@ -1182,6 +1185,16 @@
                         mockupPreview.classList.remove('d-none');
                         if (mockupPlaceholder) mockupPlaceholder.classList.add('d-none');
                         if (mockupDropZone) mockupDropZone.classList.add('has-file');
+
+                        // Also sync to top DESAIN box preview if no explicit main image file selected
+                        if (fileInput && !fileInput.files.length) {
+                            if (previewImg) {
+                                previewImg.src = e.target.result;
+                                previewImg.classList.remove('d-none');
+                            }
+                            if (placeholder) placeholder.classList.add('d-none');
+                            if (dropArea) dropArea.classList.add('has-image');
+                        }
                     };
                     reader.readAsDataURL(file);
                 }

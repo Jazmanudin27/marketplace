@@ -901,6 +901,9 @@ class SpkController extends Controller
             if ($mockupFile) {
                 $p = $mockupFile->store('spks/mockup', 'public');
                 $updateData['mockup_url'] = Storage::url($p);
+                if (empty($spk->image_url) && !isset($updateData['image_url'])) {
+                    $updateData['image_url'] = Storage::url($p);
+                }
             }
 
             $spk->update($updateData);
