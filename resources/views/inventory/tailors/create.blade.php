@@ -1,13 +1,13 @@
 @extends('layouts.app')
-@section('title', 'Tambah Tukang Jahit')
-@section('page-title', 'Tambah Tukang Jahit')
+@section('title', 'Tambah Master Vendor / Mitra')
+@section('page-title', 'Tambah Master Vendor / Mitra')
 
 @section('content')
 <div class="mx-auto" style="max-width: 600px;">
     <div class="card border-0 shadow-sm rounded-3 bg-white">
         <div class="card-header bg-primary text-white py-3 px-4 d-flex justify-content-between align-items-center border-0">
             <div>
-                <h5 class="fw-bold mb-0"><i class="fas fa-user-plus me-2"></i>Tambah Tukang Jahit</h5>
+                <h5 class="fw-bold mb-0"><i class="fas fa-user-plus me-2"></i>Tambah Master Vendor / Mitra</h5>
             </div>
             <a href="{{ route('tailors.index') }}" class="btn btn-sm btn-light fw-semibold px-3">
                 <i class="fas fa-arrow-left me-1"></i> Kembali
@@ -28,8 +28,18 @@
                 @endif
 
                 <div class="mb-3">
-                    <label class="form-label fw-semibold small">Nama Lengkap <span class="text-danger">*</span></label>
-                    <input type="text" name="name" class="form-control form-control-sm" required placeholder="Contoh: Pak Slamet" value="{{ old('name') }}">
+                    <label class="form-label fw-semibold small">Nama Vendor / Operator <span class="text-danger">*</span></label>
+                    <input type="text" name="name" class="form-control form-control-sm" required placeholder="Contoh: Rita, Pak Slamet, Vendor Kancing ABC" value="{{ old('name') }}">
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold small">Kategori Operasional <span class="text-danger">*</span></label>
+                    <select name="category" class="form-select form-select-sm" required>
+                        @foreach($categories as $key => $label)
+                            <option value="{{ $key }}" {{ old('category') === $key ? 'selected' : '' }}>{{ $label }}</option>
+                        @endforeach
+                    </select>
+                    <div class="form-text small">Pilih peran utama vendor ini dalam proses operasional produksi.</div>
                 </div>
 
                 <div class="mb-3">
@@ -38,8 +48,8 @@
                 </div>
 
                 <div class="mb-3">
-                    <label class="form-label fw-semibold small">Alamat</label>
-                    <textarea name="address" class="form-control form-control-sm" rows="3" placeholder="Alamat lengkap penjahit...">{{ old('address') }}</textarea>
+                    <label class="form-label fw-semibold small">Alamat / Catatan</label>
+                    <textarea name="address" class="form-control form-control-sm" rows="3" placeholder="Alamat atau catatan khusus vendor...">{{ old('address') }}</textarea>
                 </div>
 
                 <div class="mb-0">
@@ -57,7 +67,7 @@
 
             <div class="card-footer bg-light py-3 px-4 d-flex justify-content-end gap-2">
                 <a href="{{ route('tailors.index') }}" class="btn btn-sm btn-outline-secondary px-3">Batal</a>
-                <button type="submit" class="btn btn-sm btn-primary px-4 fw-bold">Simpan</button>
+                <button type="submit" class="btn btn-sm btn-primary px-4 fw-bold">Simpan Vendor</button>
             </div>
         </form>
     </div>

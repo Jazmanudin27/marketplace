@@ -302,10 +302,28 @@
         @endforeach
     </datalist>
 
-    {{-- Datalist Autocomplete Penjahit --}}
-    <datalist id="tailors_datalist">
-        @foreach($tailors as $tailorName)
-            <option value="{{ $tailorName }}"></option>
+    {{-- Datalist Autocomplete Vendors per Role --}}
+    <datalist id="pemotong_datalist">
+        @foreach($pemotongList as $vName)
+            <option value="{{ $vName }}"></option>
+        @endforeach
+    </datalist>
+
+    <datalist id="penjahit_datalist">
+        @foreach($penjahitList as $vName)
+            <option value="{{ $vName }}"></option>
+        @endforeach
+    </datalist>
+
+    <datalist id="vendor_kancing_datalist">
+        @foreach($vendorKancingList as $vName)
+            <option value="{{ $vName }}"></option>
+        @endforeach
+    </datalist>
+
+    <datalist id="petugas_qc_datalist">
+        @foreach($petugasQcList as $vName)
+            <option value="{{ $vName }}"></option>
         @endforeach
     </datalist>
 
@@ -658,7 +676,7 @@
                         <div class="row g-3">
                             <div class="col-md-5">
                                 <label class="form-label mb-1 fw-semibold text-secondary" style="font-size:11px;">PEMOTONG / TUKANG POTONG</label>
-                                <input type="text" id="modal_pemotong" class="form-control form-control-sm modal-op-field" placeholder="Pilih / Ketik Nama Pemotong">
+                                <input type="text" id="modal_pemotong" class="form-control form-control-sm modal-op-field" list="pemotong_datalist" placeholder="Pilih / Ketik Nama Pemotong">
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label mb-1 fw-semibold text-secondary" style="font-size:11px;">QTY POTONG (PCS)</label>
@@ -682,7 +700,7 @@
                         <div class="row g-3">
                             <div class="col-md-5">
                                 <label class="form-label mb-1 fw-semibold text-secondary" style="font-size:11px;">PENJAHIT</label>
-                                <input type="text" id="modal_penjahit" class="form-control form-control-sm modal-op-field" list="tailors_datalist" placeholder="Pilih / Ketik Penjahit">
+                                <input type="text" id="modal_penjahit" class="form-control form-control-sm modal-op-field" list="penjahit_datalist" placeholder="Pilih / Ketik Penjahit">
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label mb-1 fw-semibold text-secondary" style="font-size:11px;">QTY JAHIT (PCS)</label>
@@ -706,7 +724,7 @@
                         <div class="row g-3">
                             <div class="col-md-5">
                                 <label class="form-label mb-1 fw-semibold text-secondary" style="font-size:11px;">VENDOR KANCING</label>
-                                <input type="text" id="modal_vendor_kancing" class="form-control form-control-sm modal-op-field" placeholder="Pilih / Ketik Vendor Kancing">
+                                <input type="text" id="modal_vendor_kancing" class="form-control form-control-sm modal-op-field" list="vendor_kancing_datalist" placeholder="Pilih / Ketik Vendor Kancing">
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label mb-1 fw-semibold text-secondary" style="font-size:11px;">QTY KANCING (PCS)</label>
@@ -730,7 +748,7 @@
                         <div class="row g-3">
                             <div class="col-md-4">
                                 <label class="form-label mb-1 fw-semibold text-secondary" style="font-size:11px;">PETUGAS QC</label>
-                                <input type="text" id="modal_petugas_qc" class="form-control form-control-sm modal-op-field" placeholder="Pilih / Ketik Petugas QC">
+                                <input type="text" id="modal_petugas_qc" class="form-control form-control-sm modal-op-field" list="petugas_qc_datalist" placeholder="Pilih / Ketik Petugas QC">
                             </div>
                             <div class="col-md-2">
                                 <label class="form-label mb-1 fw-semibold text-success" style="font-size:11px;">LOLOS (PCS)</label>
@@ -752,25 +770,16 @@
                 <div class="card border-0 shadow-sm rounded-3 mb-0">
                     <div class="card-header bg-success-subtle text-success-emphasis fw-bold py-2 px-3 d-flex justify-content-between align-items-center" style="font-size:12px;">
                         <span>✨ FINISHING &amp; F.GOOD (FINISHED GOOD)</span>
-                        <span class="text-muted subtotal-finishing-display">Subtotal: Rp 0</span>
                     </div>
                     <div class="card-body p-3">
                         <div class="row g-3">
-                            <div class="col-md-4">
-                                <label class="form-label mb-1 fw-semibold text-secondary" style="font-size:11px;">PETUGAS FINISHING</label>
-                                <input type="text" id="modal_petugas_finishing" class="form-control form-control-sm modal-op-field" placeholder="Pilih / Ketik Petugas Finishing">
-                            </div>
-                            <div class="col-md-2">
-                                <label class="form-label mb-1 fw-semibold text-secondary" style="font-size:11px;">FINISHING</label>
+                            <div class="col-md-6">
+                                <label class="form-label mb-1 fw-semibold text-secondary" style="font-size:11px;">FINISHING (PCS)</label>
                                 <input type="number" id="modal_qty_finishing" class="form-control form-control-sm text-center modal-op-field" min="0" placeholder="0">
                             </div>
-                            <div class="col-md-2">
-                                <label class="form-label mb-1 fw-semibold text-success" style="font-size:11px;">F.GOOD (PCS)</label>
+                            <div class="col-md-6">
+                                <label class="form-label mb-1 fw-semibold text-success" style="font-size:11px;">F.GOOD / FINISHED GOOD (PCS)</label>
                                 <input type="number" id="modal_qty_fgood" class="form-control form-control-sm text-center border-success fw-bold modal-op-field" min="0" placeholder="0">
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label mb-1 fw-semibold text-secondary" style="font-size:11px;">TARIF ONGKOS / PCS (RP)</label>
-                                <input type="number" id="modal_tarif_finishing" class="form-control form-control-sm text-end modal-op-field" min="0" placeholder="0">
                             </div>
                         </div>
                     </div>
@@ -1459,10 +1468,8 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('modal_qc_reject').value = container.querySelector('.h-qc-reject')?.value || '';
             document.getElementById('modal_tarif_qc').value = container.querySelector('.h-tarif-qc')?.value || '';
 
-            document.getElementById('modal_petugas_finishing').value = container.querySelector('.h-petugas-finishing')?.value || '';
             document.getElementById('modal_qty_finishing').value = container.querySelector('.h-qty-finishing')?.value || '';
             document.getElementById('modal_qty_fgood').value = container.querySelector('.h-qty-fgood')?.value || '';
-            document.getElementById('modal_tarif_finishing').value = container.querySelector('.h-tarif-finishing')?.value || '';
         }
 
         calculateModalTahapLaborTotal();
@@ -1490,12 +1497,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const subQc = qQc * tQc;
         document.querySelector('.subtotal-qc-display').textContent = 'Subtotal: ' + formatRupiah(subQc);
 
-        const qFin = parseFloat(document.getElementById('modal_qty_finishing').value) || 0;
-        const tFin = parseFloat(document.getElementById('modal_tarif_finishing').value) || 0;
-        const subFin = qFin * tFin;
-        document.querySelector('.subtotal-finishing-display').textContent = 'Subtotal: ' + formatRupiah(subFin);
-
-        const totalLabor = subPotong + subJahit + subKancing + subQc + subFin;
+        const totalLabor = subPotong + subJahit + subKancing + subQc;
         document.getElementById('modalTotalLaborDisplay').textContent = 'Total Ongkos Jasa: ' + formatRupiah(totalLabor);
         return totalLabor;
     }
@@ -1529,10 +1531,8 @@ document.addEventListener('DOMContentLoaded', function() {
         const qcReject = document.getElementById('modal_qc_reject').value || '0';
         const tarifQc = document.getElementById('modal_tarif_qc').value || '0';
 
-        const petugasFinishing = document.getElementById('modal_petugas_finishing').value.trim();
         const qtyFinishing = document.getElementById('modal_qty_finishing').value || '0';
         const qtyFgood = document.getElementById('modal_qty_fgood').value || '0';
-        const tarifFinishing = document.getElementById('modal_tarif_finishing').value || '0';
 
         // Hidden input sets
         container.querySelector('.h-pemotong').value = pemotong;
@@ -1542,6 +1542,18 @@ document.addEventListener('DOMContentLoaded', function() {
         container.querySelector('.h-penjahit').value = penjahit;
         container.querySelector('.h-qty-jahit').value = qtyJahit;
         container.querySelector('.h-tarif-jahit').value = tarifJahit;
+
+        container.querySelector('.h-vendor-kancing').value = vendorKancing;
+        container.querySelector('.h-qty-kancing').value = qtyKancing;
+        container.querySelector('.h-tarif-kancing').value = tarifKancing;
+
+        container.querySelector('.h-petugas-qc').value = petugasQc;
+        container.querySelector('.h-qc-lolos').value = qcLolos;
+        container.querySelector('.h-qc-reject').value = qcReject;
+        container.querySelector('.h-tarif-qc').value = tarifQc;
+
+        container.querySelector('.h-qty-finishing').value = qtyFinishing;
+        container.querySelector('.h-qty-fgood').value = qtyFgood;
 
         container.querySelector('.h-vendor-kancing').value = vendorKancing;
         container.querySelector('.h-qty-kancing').value = qtyKancing;

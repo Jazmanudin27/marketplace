@@ -10,6 +10,7 @@ class Tailor extends Model
     protected $fillable = [
         'tenant_id',
         'name',
+        'category',
         'phone',
         'address',
         'is_active',
@@ -18,6 +19,18 @@ class Tailor extends Model
     protected $casts = [
         'is_active' => 'boolean',
     ];
+
+    public static function categories(): array
+    {
+        return [
+            'Pemotong'       => 'Pemotong / Tukang Potong',
+            'Penjahit'       => 'Penjahit / Tukang Jahit',
+            'Vendor Kancing' => 'Vendor Kancing / LKPK',
+            'Petugas QC'     => 'Petugas QC',
+            'Finishing'      => 'Petugas Finishing',
+            'Lainnya'        => 'Vendor Operasional Lainnya',
+        ];
+    }
 
     public function tenant(): BelongsTo
     {

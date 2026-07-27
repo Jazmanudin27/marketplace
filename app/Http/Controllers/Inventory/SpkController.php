@@ -9,6 +9,10 @@ use App\Models\SpkItemExtra;
 use App\Models\SpkProses;
 use App\Models\SpkItemProgres;
 use App\Models\MasterProduct;
+use App\Models\InventoryItem;
+use App\Models\ProductRecipe;
+use App\Models\ProductRecipeItem;
+use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -125,10 +129,16 @@ class SpkController extends Controller
             }
         }
 
-        $tailors = \App\Models\Tailor::where('tenant_id', $tenantId)
+        $vendorsData = \App\Models\Tailor::where('tenant_id', $tenantId)
             ->where('is_active', true)
             ->orderBy('name')
-            ->get(['id', 'name']);
+            ->get(['id', 'name', 'category']);
+
+        $pemotongList = $vendorsData->where('category', 'Pemotong')->pluck('name')->values();
+        $penjahitList = $vendorsData->filter(fn($v) => in_array($v->category, ['Penjahit', null, ''], true))->pluck('name')->values();
+        $vendorKancingList = $vendorsData->where('category', 'Vendor Kancing')->pluck('name')->values();
+        $petugasQcList = $vendorsData->where('category', 'Petugas QC')->pluck('name')->values();
+        $tailors = $vendorsData->pluck('name')->values();
 
         $laborServices = \App\Models\LaborService::where('tenant_id', $tenantId)
             ->orderBy('name')
@@ -220,7 +230,7 @@ class SpkController extends Controller
 
         $defaultNoProduksi = Spk::generateNoProduksi();
 
-        return view('inventory.spks.create', compact('products', 'tailors', 'laborServices', 'order', 'stores', 'existingNoProduksi', 'defaultNoProduksi', 'recipesMap', 'inventoryItems', 'inventoryItemsMap', 'allMasterProductsList'));
+        return view('inventory.spks.create', compact('products', 'tailors', 'pemotongList', 'penjahitList', 'vendorKancingList', 'petugasQcList', 'laborServices', 'order', 'stores', 'existingNoProduksi', 'defaultNoProduksi', 'recipesMap', 'inventoryItems', 'inventoryItemsMap', 'allMasterProductsList'));
     }
 
     public function store(Request $request)
@@ -428,23 +438,7 @@ class SpkController extends Controller
                         }
 
                         if (!empty($bahanList) && is_array($bahanList)) {
-                            $totalHpp = 0;
-                            foreach ($bahanList as $b) {
-                                $namaBahan  = $b['nama_bahan'] ?? ($b['keterangan'] ?? null);
-                                $qtyBahan   = $b['qty_bahan'] ?? ($b['qty'] ?? 1);
-                                $hargaBahan = floatval($b['harga'] ?? ($b['nominal'] ?? 0));
-                                $subtotal   = floatval($b['subtotal'] ?? ($qtyBahan * $hargaBahan));
-
-                                if ($namaBahan) {
-                                    $keterangan = "{$namaBahan} (Qty: {$qtyBahan})";
-                                    SpkItemExtra::create([
-                                        'spk_item_id' => $spkItem->id,
-                                        'keterangan'  => $keterangan,
-                                        'nominal'     => $subtotal,
-                                    ]);
-                                    $totalHpp += $subtotal;
-                                }
-                            }
+                            $totalHpp = $this->processAutoSaveBahanAndRecipe($tenantId, $namaProduk, $skuProduk, $qtyProduksi, $bahanList, $spkItem);
                             if ($totalHpp > 0) {
                                 $spkItem->update(['hpp' => $totalHpp]);
                             }
@@ -1269,5 +1263,132 @@ class SpkController extends Controller
         }
 
         return redirect()->back()->with('success', $spk->is_urgent ? 'SPK ditandai sebagai URGENT!' : 'Status URGENT dibatalkan.');
+    }
+
+    /**
+     * Auto-save new materials into InventoryItems (Master Barang)
+     * and automatically save/update the ProductRecipe (Formula Produk) for future orders.
+     */
+    private function processAutoSaveBahanAndRecipe(int $tenantId, ?string $namaProduk, ?string $skuProduk, int $qtyProduksi, array $bahanList, ?SpkItem $spkItem = null): float
+    {
+        if (empty($bahanList)) {
+            return 0.0;
+        }
+
+        // 1. Find matching MasterProduct
+        $masterProd = null;
+        if (!empty($skuProduk)) {
+            $masterProd = MasterProduct::where('tenant_id', $tenantId)
+                ->where(function ($q) use ($skuProduk) {
+                    $q->where('sku', $skuProduk)->orWhere('sku_induk', $skuProduk);
+                })->first();
+        }
+        if (!$masterProd && !empty($namaProduk)) {
+            $masterProd = MasterProduct::where('tenant_id', $tenantId)
+                ->where('name', $namaProduk)
+                ->first();
+        }
+
+        if ($spkItem && $masterProd) {
+            $spkItem->update(['master_product_id' => $masterProd->id]);
+        }
+
+        $totalHpp = 0.0;
+        $recipeItemsToSave = [];
+
+        foreach ($bahanList as $b) {
+            $rawNama = trim($b['nama_bahan'] ?? ($b['keterangan'] ?? ''));
+            if (empty($rawNama)) continue;
+
+            $qtyBahan   = floatval($b['qty_bahan'] ?? ($b['qty'] ?? 1));
+            $hargaBahan = floatval($b['harga'] ?? ($b['nominal'] ?? 0));
+            $subtotal   = floatval($b['subtotal'] ?? ($qtyBahan * $hargaBahan));
+
+            // Extract unit from parenthetical e.g. "Kain Cotton (Meter)" -> name: "Kain Cotton", unit: "Meter"
+            $cleanName = $rawNama;
+            $extractedUnit = 'pcs';
+            if (preg_match('/^(.*?)\s*\((.*?)\)$/', $rawNama, $m)) {
+                $cleanName = trim($m[1]);
+                $extractedUnit = trim($m[2]);
+            }
+
+            // A. Auto-Save to Master Barang (InventoryItem) if not exists
+            $invItem = InventoryItem::where('tenant_id', $tenantId)
+                ->whereRaw('LOWER(TRIM(name)) = ?', [mb_strtolower(trim($cleanName))])
+                ->first();
+
+            if (!$invItem) {
+                $invItem = InventoryItem::where('tenant_id', $tenantId)
+                    ->whereRaw('LOWER(TRIM(name)) = ?', [mb_strtolower(trim($rawNama))])
+                    ->first();
+            }
+
+            if (!$invItem) {
+                $skuCode = 'INV-' . strtoupper(Str::random(6));
+                $invItem = InventoryItem::create([
+                    'tenant_id'  => $tenantId,
+                    'sku'        => $skuCode,
+                    'name'       => $cleanName,
+                    'type'       => 'raw', // Bahan Baku
+                    'unit'       => $extractedUnit,
+                    'stock'      => 0,
+                    'min_stock'  => 0,
+                    'cost_price' => $hargaBahan,
+                    'is_active'  => true,
+                ]);
+            } else {
+                if ($invItem->cost_price <= 0 && $hargaBahan > 0) {
+                    $invItem->update(['cost_price' => $hargaBahan]);
+                }
+            }
+
+            if ($spkItem) {
+                SpkItemExtra::create([
+                    'spk_item_id' => $spkItem->id,
+                    'keterangan'  => "Bahan: {$rawNama} (Qty: {$qtyBahan})",
+                    'nominal'     => $subtotal,
+                ]);
+            }
+
+            $totalHpp += $subtotal;
+
+            if ($invItem) {
+                $recipeItemsToSave[] = [
+                    'inventory_item_id' => $invItem->id,
+                    'qty_bahan'         => $qtyBahan,
+                    'harga'             => $hargaBahan,
+                ];
+            }
+        }
+
+        // B. Auto-Save/Update Formula/Resep Produk (ProductRecipe)
+        if ($masterProd && !empty($recipeItemsToSave)) {
+            $recipe = ProductRecipe::where('tenant_id', $tenantId)
+                ->where('master_product_id', $masterProd->id)
+                ->where('is_active', true)
+                ->first();
+
+            if (!$recipe) {
+                $recipe = ProductRecipe::create([
+                    'tenant_id'         => $tenantId,
+                    'master_product_id' => $masterProd->id,
+                    'name'              => 'Resep Utama - ' . $masterProd->name,
+                    'batch_qty'         => 1,
+                    'is_active'         => true,
+                ]);
+            }
+
+            // Sync recipe items: unit qty per 1 pcs produced = qty_bahan / qty_produksi
+            $recipe->items()->delete();
+            foreach ($recipeItemsToSave as $rData) {
+                $unitQtyNeeded = round($rData['qty_bahan'] / max(1, $qtyProduksi), 4);
+                $recipe->items()->create([
+                    'inventory_item_id' => $rData['inventory_item_id'],
+                    'quantity'          => max(0.0001, $unitQtyNeeded),
+                ]);
+            }
+        }
+
+        return $totalHpp;
     }
 }
