@@ -206,96 +206,112 @@
                 }
             @endphp
             <div class="col-12 col-md-6 col-xl-4">
-                <div class="card h-100 border-0 shadow-sm rounded-4 overflow-hidden bg-white transition-hover position-relative spk-card" style="border: 1px solid rgba(0,0,0,0.07) !important;">
+                <div class="card h-100 border-0 shadow-sm rounded-4 overflow-hidden bg-white transition-hover position-relative spk-card" style="border: 1px solid rgba(0,0,0,0.08) !important;">
                     
-                    {{-- Urgent Glowing Ribbon Badge --}}
-                    <div id="urgent-badge-{{ $row->id }}" class="position-absolute top-0 end-0 me-3 mt-2.5 z-3 {{ $isUrgentGroup ? '' : 'd-none' }}">
-                        <span class="badge bg-danger shadow-sm rounded-pill px-2.5 py-1.5 small fw-bold d-inline-flex align-items-center gap-1 pulse-urgent">
-                            <i class="fas fa-bolt text-warning"></i>
-                            <span>URGENT</span>
-                        </span>
+                    {{-- CARD TOP HEADER BAR --}}
+                    <div class="d-flex align-items-center justify-content-between px-3 py-2 bg-light bg-opacity-75 border-bottom border-light-subtle flex-wrap gap-1">
+                        <div class="d-flex align-items-center gap-1.5">
+                            <span class="font-monospace fw-extrabold text-dark px-2 py-0.5 rounded-2 bg-white border border-slate-200 shadow-2xs" style="font-size: 12px; letter-spacing: -0.2px;">
+                                <i class="fas fa-hashtag text-primary me-0.5" style="font-size: 10px;"></i>{{ $row->no_produksi ?: 'NO-PROD' }}
+                            </span>
+                            <span class="badge bg-primary bg-opacity-10 text-primary rounded-pill px-2 py-0.5 fw-bold" style="font-size: 9.5px;">
+                                ANTRIAN #{{ $queueNo }}
+                            </span>
+                        </div>
+                        
+                        <div class="d-flex align-items-center gap-1">
+                            @if($spkCount > 1)
+                                <span class="badge bg-success bg-opacity-15 text-success rounded-pill px-2 py-0.5 fw-bold" style="font-size: 9.5px;">
+                                    📦 {{ $spkCount }} SPK
+                                </span>
+                            @endif
+
+                            @if($isUrgentGroup)
+                                <span id="urgent-badge-{{ $row->id }}" class="badge bg-danger text-white rounded-pill px-2 py-0.5 fw-bold pulse-urgent" style="font-size: 9.5px;">
+                                    <i class="fas fa-bolt text-warning me-0.5"></i>URGENT
+                                </span>
+                            @else
+                                <span id="urgent-badge-{{ $row->id }}" class="badge bg-danger text-white rounded-pill px-2 py-0.5 fw-bold pulse-urgent d-none" style="font-size: 9.5px;">
+                                    <i class="fas fa-bolt text-warning me-0.5"></i>URGENT
+                                </span>
+                            @endif
+                        </div>
                     </div>
 
-                    <div class="card-body p-3.5 d-flex flex-column justify-content-between">
+                    <div class="card-body p-3 d-flex flex-column justify-content-between">
                         
                         <div>
-                            {{-- CARD HEADER ROW: Image SPK 1 + Meta Info --}}
-                            <div class="d-flex gap-3 mb-2.5">
+                            {{-- MAIN BODY (IMAGE SPK 1 + PEMESAN & VOLUME) --}}
+                            <div class="d-flex gap-3 align-items-start mb-2.5">
                                 
                                 {{-- SPK 1 Image Thumbnail Container --}}
                                 <div class="flex-shrink-0 position-relative group-image-wrapper">
                                     @if($mainImageUrl)
-                                        <div class="position-relative overflow-hidden rounded-3 border bg-light shadow-sm cursor-pointer image-preview-trigger"
+                                        <div class="position-relative overflow-hidden rounded-3 border border-slate-200 bg-white shadow-2xs cursor-pointer image-preview-trigger"
                                              data-image="{{ $mainImageUrl }}"
                                              data-title="{{ $row->no_produksi ?: $row->no_spk }} - {{ $row->pemesan }}"
                                              title="Klik untuk memperbesar foto desain SPK 1">
                                             <img src="{{ $mainImageUrl }}" alt="Desain SPK 1" 
                                                  class="object-fit-cover transition-scale" 
-                                                 style="width: 90px; height: 90px;">
+                                                 style="width: 92px; height: 92px;">
                                             <div class="image-overlay d-flex align-items-center justify-content-center">
                                                 <i class="fas fa-search-plus text-white fs-5 opacity-90"></i>
                                             </div>
-                                            <span class="position-absolute bottom-0 start-0 w-100 text-center bg-dark bg-opacity-75 text-white fw-bold py-0.5" style="font-size: 8.5px; letter-spacing: 0.3px;">
+                                            <span class="position-absolute top-0 start-0 bg-primary text-white fw-bold px-1.5 py-0.5" style="font-size: 8px; letter-spacing: 0.3px; border-bottom-right-radius: 6px;">
                                                 SPK 1
                                             </span>
                                         </div>
                                     @else
-                                        <div class="rounded-3 border bg-light d-flex flex-column align-items-center justify-content-center text-muted shadow-sm position-relative" 
-                                             style="width: 90px; height: 90px; background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);">
+                                        <div class="rounded-3 border border-slate-200 bg-white d-flex flex-column align-items-center justify-content-center text-muted shadow-2xs position-relative" 
+                                             style="width: 92px; height: 92px; background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);">
                                             <i class="fas fa-tshirt fs-3 opacity-30 mb-1 text-primary"></i>
                                             <span style="font-size: 8px;" class="fw-bold text-uppercase text-muted">No Image</span>
-                                            <span class="position-absolute bottom-0 start-0 w-100 text-center bg-secondary bg-opacity-50 text-white fw-bold py-0.5" style="font-size: 8px;">
+                                            <span class="position-absolute top-0 start-0 bg-secondary text-white fw-bold px-1.5 py-0.5" style="font-size: 8px; border-bottom-right-radius: 6px;">
                                                 SPK 1
                                             </span>
                                         </div>
                                     @endif
                                 </div>
 
-                                {{-- Info Meta Header --}}
+                                {{-- Customer & Order Info --}}
                                 <div class="flex-grow-1 min-w-0">
-                                    {{-- Production Code & Queue Badge --}}
-                                    <div class="d-flex align-items-center gap-1.5 flex-wrap mb-1">
-                                        <span class="font-monospace text-dark fw-extrabold fs-6 tracking-tight">
-                                            {{ $row->no_produksi ?: 'NO-PROD' }}
-                                        </span>
-                                        <span class="badge bg-primary bg-opacity-10 text-primary rounded-2 px-2 py-0.5 fw-bold" style="font-size: 10px;">
-                                            ANTRIAN #{{ $queueNo }}
-                                        </span>
-                                        @if($spkCount > 1)
-                                            <span class="badge bg-success bg-opacity-15 text-success rounded-2 px-2 py-0.5 fw-bold" style="font-size: 10px;">
-                                                📦 {{ $spkCount }} SPK
+                                    {{-- Customer Name --}}
+                                    <h6 class="fw-extrabold text-dark mb-0.5 text-truncate font-sans d-flex align-items-center gap-1" style="font-size: 0.98rem; letter-spacing: -0.2px;" title="{{ $row->pemesan }}">
+                                        <i class="fas fa-user-circle text-primary opacity-80" style="font-size: 13px;"></i>
+                                        <span>{{ strtoupper($row->pemesan ?: 'GUEST') }}</span>
+                                    </h6>
+
+                                    {{-- Instansi / Store --}}
+                                    <div class="text-muted text-truncate mb-1.5" style="font-size: 0.78rem;">
+                                        <i class="fas fa-building me-1 opacity-50 text-secondary" style="font-size: 11px;"></i>{{ $row->instansi ?: '-' }}
+                                    </div>
+
+                                    {{-- Tipe SPK Badge --}}
+                                    <div class="mb-1.5">
+                                        @if(($row->tipe_spk ?? '') === 'stok_gudang')
+                                            <span class="badge rounded-2 px-2 py-0.5 fw-bold" style="font-size: 9px; background-color: #ecfdf5; color: #047857; border: 1px solid #a7f3d0;">
+                                                🏬 Stok Gudang
+                                            </span>
+                                        @else
+                                            <span class="badge rounded-2 px-2 py-0.5 fw-bold" style="font-size: 9px; background-color: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe;">
+                                                🛒 Pesanan Pelanggan
                                             </span>
                                         @endif
                                     </div>
 
-                                    {{-- Customer Name --}}
-                                    <h6 class="fw-extrabold text-dark mb-0 text-truncate font-sans" style="font-size: 1rem; letter-spacing: -0.2px;" title="{{ $row->pemesan }}">
-                                        {{ strtoupper($row->pemesan ?: 'GUEST') }}
-                                    </h6>
-
-                                    {{-- Instansi / Store --}}
-                                    <div class="text-muted text-truncate mb-1.5" style="font-size: 0.8rem;">
-                                        <i class="fas fa-building me-1 opacity-60 text-secondary"></i>{{ $row->instansi ?: '-' }}
-                                    </div>
-
-                                    {{-- Total Volume Pcs --}}
-                                    <div class="fw-bold text-dark d-flex align-items-center gap-1.5" style="font-size: 0.84rem;">
-                                        <span class="badge bg-primary rounded-pill px-2.5 py-1 text-white fw-extrabold d-inline-flex align-items-center gap-1">
-                                            <i class="fas fa-tshirt" style="font-size: 10px;"></i>
+                                    {{-- Total Volume Pcs Pill --}}
+                                    <div class="fw-bold text-dark d-flex align-items-center gap-1 flex-wrap">
+                                        <span class="badge rounded-pill px-2.5 py-1 text-white fw-extrabold d-inline-flex align-items-center gap-1 shadow-2xs" style="background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); font-size: 11px;">
+                                            <i class="fas fa-tshirt" style="font-size: 9.5px;"></i>
                                             <span>{{ number_format($totalPcsGroup) }} Pcs</span>
                                         </span>
-                                        <span class="text-muted fw-semibold ms-1" style="font-size: 11px;">({{ $spkCount }} Jenis SPK)</span>
+                                        <span class="text-muted fw-semibold" style="font-size: 10.5px;">({{ $spkCount }} Jenis SPK)</span>
                                     </div>
                                 </div>
                             </div>
 
                             {{-- SUB-SPK BREAKDOWN CONTAINER --}}
                             <div class="bg-light bg-opacity-60 rounded-3 p-2 my-2 border border-light-subtle shadow-2xs">
-                                <div class="text-muted fw-semibold mb-1 text-uppercase d-flex justify-content-between align-items-center opacity-75" style="font-size: 7.5px; letter-spacing: 0.3px;">
-                                    <span>Rincian Jenis SPK dalam Produksi</span>
-                                    <span>Qty &amp; Varian</span>
-                                </div>
-
                                 @foreach($spkGroup as $subSpk)
                                     @php
                                         // Stage color mapping
