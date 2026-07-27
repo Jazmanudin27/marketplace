@@ -801,7 +801,7 @@ class SpkController extends Controller
             $siblingSpks = Spk::where('tenant_id', $tenantId)
                 ->where('no_produksi', $spk->no_produksi)
                 ->orderBy('id')
-                ->get(['id', 'no_spk', 'no_produksi']);
+                ->get(['id', 'no_spk', 'no_produksi', 'kategori']);
         } else {
             $siblingSpks = collect([$spk]);
         }

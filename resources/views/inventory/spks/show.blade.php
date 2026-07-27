@@ -373,11 +373,15 @@
             <span class="text-muted fw-semibold" style="font-size:12px; white-space:nowrap">
                 📦 Produksi <strong>{{ $spk->no_produksi }}</strong> — {{ $siblingSpks->count() }} SPK:
             </span>
-            @foreach($siblingSpks as $sib)
+            @foreach($siblingSpks as $idx => $sib)
+                @php
+                    $tabTitle = !empty($sib->kategori) ? $sib->kategori : 'SPK #' . ($idx + 1);
+                @endphp
                 <a href="{{ route('spks.show', $sib->id) }}"
                    class="btn btn-sm fw-bold px-3 rounded-pill {{ $sib->id === $spk->id ? 'btn-primary' : 'btn-outline-secondary' }}"
-                   style="font-size:12px;">
-                    {{ $sib->no_spk }}
+                   style="font-size:12px;"
+                   title="{{ $sib->no_spk }}">
+                    🏷️ {{ $tabTitle }}
                 </a>
             @endforeach
         </div>
