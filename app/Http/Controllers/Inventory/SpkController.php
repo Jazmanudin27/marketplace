@@ -795,11 +795,22 @@ class SpkController extends Controller
             ];
         });
 
+        // Fetch all sibling SPKs under the same no_produksi
+        if (!empty($spk->no_produksi)) {
+            $siblingSpks = Spk::where('tenant_id', $tenantId)
+                ->where('no_produksi', $spk->no_produksi)
+                ->orderBy('id')
+                ->get(['id', 'no_spk', 'no_produksi']);
+        } else {
+            $siblingSpks = collect([$spk]);
+        }
+
         return view('inventory.spks.show', compact(
             'spk', 'grouped', 'statusOptions', 'sizesHeader', 'progresMap',
             'products', 'tailors', 'pemotongList', 'penjahitList', 'vendorKancingList', 'petugasQcList',
             'laborServices', 'stores', 'existingNoProduksi', 'recipesMap',
-            'inventoryItems', 'inventoryItemsMap', 'allMasterProductsList'
+            'inventoryItems', 'inventoryItemsMap', 'allMasterProductsList',
+            'siblingSpks'
         ));
     }
 

@@ -354,6 +354,24 @@
         </div>
     </div>
 
+    {{-- ── SPK SIBLING TABS (semua SPK dalam 1 Nomor Produksi) ── --}}
+    @if($siblingSpks->count() > 1)
+    <div class="mb-3">
+        <div class="d-flex align-items-center gap-2 flex-wrap p-3 rounded-3 border bg-white shadow-sm" style="border-color:#e5e7eb!important">
+            <span class="text-muted fw-semibold" style="font-size:12px; white-space:nowrap">
+                📦 Produksi <strong>{{ $spk->no_produksi }}</strong> — {{ $siblingSpks->count() }} SPK:
+            </span>
+            @foreach($siblingSpks as $sib)
+                <a href="{{ route('spks.show', $sib->id) }}"
+                   class="btn btn-sm fw-bold px-3 rounded-pill {{ $sib->id === $spk->id ? 'btn-primary' : 'btn-outline-secondary' }}"
+                   style="font-size:12px;">
+                    {{ $sib->no_spk }}
+                </a>
+            @endforeach
+        </div>
+    </div>
+    @endif
+
     @if (session('success'))
         <div class="alert alert-success alert-dismissible fade show rounded-3 mb-3" role="alert">
             <i class="fas fa-check-circle me-2"></i>{{ session('success') }}
