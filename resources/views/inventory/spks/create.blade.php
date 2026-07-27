@@ -463,7 +463,7 @@
                         🛒 PESANAN / CUSTOM
                     </label>
 
-                    <input type="radio" name="tipe_stok" class="btn-check" id="tipe_stok" value="stok_gudang"
+                    <input type="radio" name="tipe_spk" class="btn-check" id="tipe_stok" value="stok_gudang"
                         {{ old('tipe_spk') === 'stok_gudang' ? 'checked' : '' }}>
                     <label class="btn btn-outline-secondary" for="tipe_stok">
                         🏬 PRODUKSI STOK
@@ -877,6 +877,63 @@ document.addEventListener('DOMContentLoaded', function() {
         noProduksiInput.addEventListener('input', updateProduksiBadge);
         updateProduksiBadge();
     }
+
+    // ── 2b. Tipe SPK Switch (Pesanan / Custom vs Produksi Stok) ──
+    function handleTipeSpkChange() {
+        const tipeStokRadio = document.getElementById('tipe_stok');
+        if (!tipeStokRadio) return;
+
+        const isStok = tipeStokRadio.checked;
+        const pemesanInput = document.querySelector('input[name="pemesan"]');
+        const instansiSelect = document.querySelector('select[name="instansi"]');
+        const noHpInput = document.querySelector('input[name="no_hp_pemesan"]');
+
+        if (isStok) {
+            if (pemesanInput) {
+                if (!pemesanInput.dataset.prevVal) pemesanInput.dataset.prevVal = pemesanInput.value;
+                pemesanInput.value = 'STOK GUDANG';
+                pemesanInput.readOnly = true;
+                pemesanInput.classList.add('bg-light', 'fw-bold', 'text-primary');
+            }
+            if (instansiSelect) {
+                if (!instansiSelect.dataset.prevVal) instansiSelect.dataset.prevVal = instansiSelect.value;
+                instansiSelect.value = 'POS / Penjualan Offline';
+                instansiSelect.classList.add('bg-light');
+            }
+            if (noHpInput) {
+                if (!noHpInput.dataset.prevVal) noHpInput.dataset.prevVal = noHpInput.value;
+                noHpInput.value = '-';
+                noHpInput.readOnly = true;
+                noHpInput.classList.add('bg-light');
+            }
+        } else {
+            if (pemesanInput) {
+                pemesanInput.readOnly = false;
+                pemesanInput.classList.remove('bg-light', 'fw-bold', 'text-primary');
+                if (pemesanInput.value === 'STOK GUDANG') {
+                    pemesanInput.value = pemesanInput.dataset.prevVal || '';
+                }
+            }
+            if (instansiSelect) {
+                instansiSelect.classList.remove('bg-light');
+                if (instansiSelect.value === 'POS / Penjualan Offline' && instansiSelect.dataset.prevVal) {
+                    instansiSelect.value = instansiSelect.dataset.prevVal;
+                }
+            }
+            if (noHpInput) {
+                noHpInput.readOnly = false;
+                noHpInput.classList.remove('bg-light');
+                if (noHpInput.value === '-') {
+                    noHpInput.value = noHpInput.dataset.prevVal || '';
+                }
+            }
+        }
+    }
+
+    document.querySelectorAll('input[name="tipe_spk"]').forEach(radio => {
+        radio.addEventListener('change', handleTipeSpkChange);
+    });
+    handleTipeSpkChange();
 
     // ── 3. DYNAMIC RINCIAN PRODUK (SPK) BLOCKS ──
     let rincianBlockCount = 0;
