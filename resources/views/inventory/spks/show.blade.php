@@ -942,7 +942,7 @@
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label mb-1 fw-semibold text-secondary" style="font-size:11px;">TARIF ONGKOS / PCS (RP)</label>
-                                <input type="number" id="modal_tarif_potong" class="form-control form-control-sm text-end modal-op-field" min="0" placeholder="0">
+                                <input type="text" id="modal_tarif_potong" class="form-control form-control-sm text-end modal-op-field numeric-dot-format" placeholder="0">
                             </div>
                         </div>
                     </div>
@@ -966,7 +966,7 @@
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label mb-1 fw-semibold text-secondary" style="font-size:11px;">TARIF ONGKOS / PCS (RP)</label>
-                                <input type="number" id="modal_tarif_jahit" class="form-control form-control-sm text-end modal-op-field" min="0" placeholder="0">
+                                <input type="text" id="modal_tarif_jahit" class="form-control form-control-sm text-end modal-op-field numeric-dot-format" placeholder="0">
                             </div>
                         </div>
                     </div>
@@ -990,7 +990,7 @@
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label mb-1 fw-semibold text-secondary" style="font-size:11px;">TARIF ONGKOS / PCS (RP)</label>
-                                <input type="number" id="modal_tarif_kancing" class="form-control form-control-sm text-end modal-op-field" min="0" placeholder="0">
+                                <input type="text" id="modal_tarif_kancing" class="form-control form-control-sm text-end modal-op-field numeric-dot-format" placeholder="0">
                             </div>
                         </div>
                     </div>
@@ -1018,7 +1018,7 @@
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label mb-1 fw-semibold text-secondary" style="font-size:11px;">TARIF QC / PCS (RP)</label>
-                                <input type="number" id="modal_tarif_qc" class="form-control form-control-sm text-end modal-op-field" min="0" placeholder="0">
+                                <input type="text" id="modal_tarif_qc" class="form-control form-control-sm text-end modal-op-field numeric-dot-format" placeholder="0">
                             </div>
                         </div>
                     </div>
@@ -1240,6 +1240,33 @@
             return 'Rp ' + (parseFloat(val) || 0).toLocaleString('id-ID');
         }
 
+        function formatNumberWithDots(val) {
+            if (val === null || val === undefined) return '';
+            let clean = val.toString().replace(/\D/g, '');
+            return clean.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+        }
+
+        function cleanNumberFromDots(val) {
+            if (!val) return 0;
+            return parseFloat(val.toString().replace(/\./g, '')) || 0;
+        }
+
+        // Auto-format numeric inputs with dots on typing
+        document.addEventListener('input', function(e) {
+            if (e.target.classList.contains('numeric-dot-format')) {
+                let cursorPosition = e.target.selectionStart;
+                let oldLength = e.target.value.length;
+                
+                let formatted = formatNumberWithDots(e.target.value);
+                e.target.value = formatted;
+                
+                let newLength = formatted.length;
+                let newPosition = cursorPosition + (newLength - oldLength);
+                if (newPosition < 0) newPosition = 0;
+                e.target.setSelectionRange(newPosition, newPosition);
+            }
+        });
+
         window.openBahanModalForProduct = function(rIdx, pIdx) {
             activeModalRIdx = rIdx;
             activeModalPIdx = pIdx;
@@ -1303,7 +1330,7 @@
                     <input type="text" class="form-control text-center modal-row-qty-bahan" placeholder="1.5 / 10 pcs" value="${data ? escHtml(data.qty_bahan) : '1'}">
                 </td>
                 <td>
-                    <input type="number" class="form-control text-end modal-row-harga-bahan" placeholder="0" min="0" value="${hargaVal}">
+                    <input type="text" class="form-control text-end modal-row-harga-bahan numeric-dot-format" placeholder="0" value="${formatNumberWithDots(hargaVal)}">
                 </td>
                 <td>
                     <input type="text" class="form-control text-end bg-light modal-row-subtotal-bahan" readonly tabindex="-1" value="${formatRupiah(subtotalVal)}">
@@ -1326,7 +1353,7 @@
             tbody.querySelectorAll('tr').forEach(tr => {
                 const qtyStr = tr.querySelector('.modal-row-qty-bahan')?.value || '0';
                 const qty = parseFloat(qtyStr) || 1;
-                const harga = parseFloat(tr.querySelector('.modal-row-harga-bahan')?.value) || 0;
+                const harga = cleanNumberFromDots(tr.querySelector('.modal-row-harga-bahan')?.value || '0');
                 const subtotal = qty * harga;
                 const subInp = tr.querySelector('.modal-row-subtotal-bahan');
                 if (subInp) subInp.value = formatRupiah(subtotal);
@@ -1352,8 +1379,8 @@
             modalTbody.querySelectorAll('tr').forEach((tr, bIdx) => {
                 const nBahan = tr.querySelector('.modal-row-nama-bahan')?.value?.trim();
                 const qBahan = tr.querySelector('.modal-row-qty-bahan')?.value || '1';
-                const hBahan = tr.querySelector('.modal-row-harga-bahan')?.value || '0';
-                const subtotal = (parseFloat(qBahan) || 1) * (parseFloat(hBahan) || 0);
+                const hBahanVal = cleanNumberFromDots(tr.querySelector('.modal-row-harga-bahan')?.value || '0');
+                const subtotal = (parseFloat(qBahan) || 1) * hBahanVal;
 
                 if (nBahan) {
                     const hiddenDiv = document.createElement('div');
@@ -1361,8 +1388,8 @@
                     hiddenDiv.innerHTML = `
                         <input type="hidden" name="rincian[${activeModalRIdx}][produk][${activeModalPIdx}][bahan][${bIdx}][nama_bahan]" value="${escHtml(nBahan)}">
                         <input type="hidden" name="rincian[${activeModalRIdx}][produk][${activeModalPIdx}][bahan][${bIdx}][qty_bahan]" value="${escHtml(qBahan)}">
-                        <input type="hidden" name="rincian[${activeModalRIdx}][produk][${activeModalPIdx}][bahan][${bIdx}][harga]" value="${escHtml(hBahan)}">
-                        <input type="hidden" name="rincian[${activeModalRIdx}][produk][${activeModalPIdx}][bahan][${bIdx}][subtotal]" value="${escHtml(subtotal)}">
+                        <input type="hidden" name="rincian[${activeModalRIdx}][produk][${activeModalPIdx}][bahan][${bIdx}][harga]" value="${hBahanVal}">
+                        <input type="hidden" name="rincian[${activeModalRIdx}][produk][${activeModalPIdx}][bahan][${bIdx}][subtotal]" value="${subtotal}">
                     `;
                     container.appendChild(hiddenDiv);
                     count++;
@@ -1394,7 +1421,7 @@
                     if (tr) {
                         const hInput = tr.querySelector('.modal-row-harga-bahan');
                         if (hInput) {
-                            hInput.value = inventoryItemsMap[cleanName].cost_price;
+                            hInput.value = formatNumberWithDots(inventoryItemsMap[cleanName].cost_price);
                         }
                     }
                 }
@@ -1435,20 +1462,20 @@
             if (container) {
                 document.getElementById('modal_pemotong').value = container.querySelector('.h-pemotong')?.value || '';
                 document.getElementById('modal_qty_potong').value = container.querySelector('.h-qty-potong')?.value || qtyVal;
-                document.getElementById('modal_tarif_potong').value = container.querySelector('.h-tarif-potong')?.value || '';
+                document.getElementById('modal_tarif_potong').value = formatNumberWithDots(container.querySelector('.h-tarif-potong')?.value || '');
 
                 document.getElementById('modal_penjahit').value = container.querySelector('.h-penjahit')?.value || '';
                 document.getElementById('modal_qty_jahit').value = container.querySelector('.h-qty-jahit')?.value || qtyVal;
-                document.getElementById('modal_tarif_jahit').value = container.querySelector('.h-tarif-jahit')?.value || '';
+                document.getElementById('modal_tarif_jahit').value = formatNumberWithDots(container.querySelector('.h-tarif-jahit')?.value || '');
 
                 document.getElementById('modal_vendor_kancing').value = container.querySelector('.h-vendor-kancing')?.value || '';
                 document.getElementById('modal_qty_kancing').value = container.querySelector('.h-qty-kancing')?.value || '';
-                document.getElementById('modal_tarif_kancing').value = container.querySelector('.h-tarif-kancing')?.value || '';
+                document.getElementById('modal_tarif_kancing').value = formatNumberWithDots(container.querySelector('.h-tarif-kancing')?.value || '');
 
                 document.getElementById('modal_petugas_qc').value = container.querySelector('.h-petugas-qc')?.value || '';
                 document.getElementById('modal_qc_lolos').value = container.querySelector('.h-qc-lolos')?.value || '';
                 document.getElementById('modal_qc_reject').value = container.querySelector('.h-qc-reject')?.value || '';
-                document.getElementById('modal_tarif_qc').value = container.querySelector('.h-tarif-qc')?.value || '';
+                document.getElementById('modal_tarif_qc').value = formatNumberWithDots(container.querySelector('.h-tarif-qc')?.value || '');
 
                 document.getElementById('modal_qty_finishing').value = container.querySelector('.h-qty-finishing')?.value || '';
                 document.getElementById('modal_qty_fgood').value = container.querySelector('.h-qty-fgood')?.value || '';
@@ -1460,22 +1487,22 @@
 
         function calculateModalTahapLaborTotal() {
             const qPotong = parseFloat(document.getElementById('modal_qty_potong').value) || 0;
-            const tPotong = parseFloat(document.getElementById('modal_tarif_potong').value) || 0;
+            const tPotong = cleanNumberFromDots(document.getElementById('modal_tarif_potong').value);
             const subPotong = qPotong * tPotong;
             document.querySelector('.subtotal-potong-display').textContent = 'Subtotal: ' + formatRupiah(subPotong);
 
             const qJahit = parseFloat(document.getElementById('modal_qty_jahit').value) || 0;
-            const tJahit = parseFloat(document.getElementById('modal_tarif_jahit').value) || 0;
+            const tJahit = cleanNumberFromDots(document.getElementById('modal_tarif_jahit').value);
             const subJahit = qJahit * tJahit;
             document.querySelector('.subtotal-jahit-display').textContent = 'Subtotal: ' + formatRupiah(subJahit);
 
             const qKancing = parseFloat(document.getElementById('modal_qty_kancing').value) || 0;
-            const tKancing = parseFloat(document.getElementById('modal_tarif_kancing').value) || 0;
+            const tKancing = cleanNumberFromDots(document.getElementById('modal_tarif_kancing').value);
             const subKancing = qKancing * tKancing;
             document.querySelector('.subtotal-kancing-display').textContent = 'Subtotal: ' + formatRupiah(subKancing);
 
             const qQc = parseFloat(document.getElementById('modal_qc_lolos').value) || 0;
-            const tQc = parseFloat(document.getElementById('modal_tarif_qc').value) || 0;
+            const tQc = cleanNumberFromDots(document.getElementById('modal_tarif_qc').value);
             const subQc = qQc * tQc;
             document.querySelector('.subtotal-qc-display').textContent = 'Subtotal: ' + formatRupiah(subQc);
 
@@ -1498,20 +1525,20 @@
 
             const pemotong = document.getElementById('modal_pemotong').value.trim();
             const qtyPotong = document.getElementById('modal_qty_potong').value || '0';
-            const tarifPotong = document.getElementById('modal_tarif_potong').value || '0';
+            const tarifPotong = cleanNumberFromDots(document.getElementById('modal_tarif_potong').value);
 
             const penjahit = document.getElementById('modal_penjahit').value.trim();
             const qtyJahit = document.getElementById('modal_qty_jahit').value || '0';
-            const tarifJahit = document.getElementById('modal_tarif_jahit').value || '0';
+            const tarifJahit = cleanNumberFromDots(document.getElementById('modal_tarif_jahit').value);
 
             const vendorKancing = document.getElementById('modal_vendor_kancing').value.trim();
             const qtyKancing = document.getElementById('modal_qty_kancing').value || '0';
-            const tarifKancing = document.getElementById('modal_tarif_kancing').value || '0';
+            const tarifKancing = cleanNumberFromDots(document.getElementById('modal_tarif_kancing').value);
 
             const petugasQc = document.getElementById('modal_petugas_qc').value.trim();
             const qcLolos = document.getElementById('modal_qc_lolos').value || '0';
             const qcReject = document.getElementById('modal_qc_reject').value || '0';
-            const tarifQc = document.getElementById('modal_tarif_qc').value || '0';
+            const tarifQc = cleanNumberFromDots(document.getElementById('modal_tarif_qc').value);
 
             const qtyFinishing = document.getElementById('modal_qty_finishing').value || '0';
             const qtyFgood = document.getElementById('modal_qty_fgood').value || '0';
