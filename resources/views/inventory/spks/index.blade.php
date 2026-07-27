@@ -99,84 +99,86 @@
         {{-- FILTER TABS & SEARCH BAR CONTAINER --}}
         <div class="card border-0 shadow-sm rounded-4 bg-white mb-4">
             <div class="card-body p-3">
-                <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
+                <div class="row g-3 align-items-center justify-content-between">
+                    
+                    {{-- SCROLLABLE STAGE TABS (COL 9) --}}
+                    <div class="col-12 col-md-9">
+                        <div class="d-flex align-items-center gap-2 overflow-auto py-1 scrollbar-hidden"
+                            style="white-space: nowrap; -webkit-overflow-scrolling: touch;">
+                            @php
+                                $currStage = request('stage');
+                                $isUrgent = request('urgent') == '1';
+                                $hasFilter = request()->anyFilled([
+                                    'search',
+                                    'stage',
+                                    'urgent',
+                                    'tipe_spk',
+                                    'date_from',
+                                    'date_to',
+                                ]);
+                            @endphp
 
-                    {{-- SCROLLABLE STAGE TABS --}}
-                    <div class="d-flex align-items-center gap-2 overflow-auto py-1 scrollbar-hidden"
-                        style="white-space: nowrap; -webkit-overflow-scrolling: touch;">
-                        @php
-                            $currStage = request('stage');
-                            $isUrgent = request('urgent') == '1';
-                            $hasFilter = request()->anyFilled([
-                                'search',
-                                'stage',
-                                'urgent',
-                                'tipe_spk',
-                                'date_from',
-                                'date_to',
-                            ]);
-                        @endphp
+                            {{-- Tab: Semua SPK --}}
+                            <a href="{{ route('spks.index') }}"
+                                class="btn btn-sm rounded-pill fw-bold px-3 py-2 d-inline-flex align-items-center gap-1.5 transition-all {{ !$currStage && !$isUrgent ? 'btn-primary text-white shadow-sm' : 'btn-light text-secondary border-0' }}">
+                                <i class="fas fa-layer-group"></i>
+                                <span>Semua SPK</span>
+                            </a>
 
-                        {{-- Tab: Semua SPK --}}
-                        <a href="{{ route('spks.index') }}"
-                            class="btn btn-sm rounded-pill fw-bold px-3 py-2 d-inline-flex align-items-center gap-1.5 transition-all {{ !$currStage && !$isUrgent ? 'btn-primary text-white shadow-sm' : 'btn-light text-secondary border-0' }}">
-                            <i class="fas fa-layer-group"></i>
-                            <span>Semua SPK</span>
-                        </a>
+                            {{-- Tab: Urgent --}}
+                            <a href="{{ route('spks.index', array_merge(request()->query(), ['urgent' => $isUrgent ? null : '1'])) }}"
+                                class="btn btn-sm rounded-pill fw-bold px-3 py-2 d-inline-flex align-items-center gap-1.5 transition-all {{ $isUrgent ? 'btn-warning text-dark shadow-sm' : 'btn-light text-secondary border-0' }}">
+                                <i class="fas fa-bolt text-warning"></i>
+                                <span>Urgent</span>
+                            </a>
 
-                        {{-- Tab: Urgent --}}
-                        <a href="{{ route('spks.index', array_merge(request()->query(), ['urgent' => $isUrgent ? null : '1'])) }}"
-                            class="btn btn-sm rounded-pill fw-bold px-3 py-2 d-inline-flex align-items-center gap-1.5 transition-all {{ $isUrgent ? 'btn-warning text-dark shadow-sm' : 'btn-light text-secondary border-0' }}">
-                            <i class="fas fa-bolt text-warning"></i>
-                            <span>Urgent</span>
-                        </a>
+                            {{-- Tab: Pesanan Baru --}}
+                            <a href="{{ route('spks.index', array_merge(request()->query(), ['stage' => 'pesanan_baru', 'urgent' => null])) }}"
+                                class="btn btn-sm rounded-pill fw-bold px-3 py-2 d-inline-flex align-items-center gap-1.5 transition-all {{ $currStage === 'pesanan_baru' ? 'btn-danger text-white shadow-sm' : 'btn-light text-secondary border-0' }}">
+                                <i class="fas fa-clock text-danger"></i>
+                                <span>Pesanan Baru</span>
+                            </a>
 
-                        {{-- Tab: Pesanan Baru --}}
-                        <a href="{{ route('spks.index', array_merge(request()->query(), ['stage' => 'pesanan_baru', 'urgent' => null])) }}"
-                            class="btn btn-sm rounded-pill fw-bold px-3 py-2 d-inline-flex align-items-center gap-1.5 transition-all {{ $currStage === 'pesanan_baru' ? 'btn-danger text-white shadow-sm' : 'btn-light text-secondary border-0' }}">
-                            <i class="fas fa-clock text-danger"></i>
-                            <span>Pesanan Baru</span>
-                        </a>
+                            {{-- Tab: Potong --}}
+                            <a href="{{ route('spks.index', array_merge(request()->query(), ['stage' => 'potong', 'urgent' => null])) }}"
+                                class="btn btn-sm rounded-pill fw-bold px-3 py-2 d-inline-flex align-items-center gap-1.5 transition-all {{ $currStage === 'potong' ? 'btn-primary text-white shadow-sm' : 'btn-light text-secondary border-0' }}">
+                                <i class="fas fa-scissors text-info"></i>
+                                <span>Potong</span>
+                            </a>
 
-                        {{-- Tab: Potong --}}
-                        <a href="{{ route('spks.index', array_merge(request()->query(), ['stage' => 'potong', 'urgent' => null])) }}"
-                            class="btn btn-sm rounded-pill fw-bold px-3 py-2 d-inline-flex align-items-center gap-1.5 transition-all {{ $currStage === 'potong' ? 'btn-primary text-white shadow-sm' : 'btn-light text-secondary border-0' }}">
-                            <i class="fas fa-scissors text-info"></i>
-                            <span>Potong</span>
-                        </a>
+                            {{-- Tab: Jahit --}}
+                            <a href="{{ route('spks.index', array_merge(request()->query(), ['stage' => 'jahit', 'urgent' => null])) }}"
+                                class="btn btn-sm rounded-pill fw-bold px-3 py-2 d-inline-flex align-items-center gap-1.5 transition-all {{ $currStage === 'jahit' ? 'btn-purple text-white shadow-sm' : 'btn-light text-secondary border-0' }}"
+                                style="{{ $currStage === 'jahit' ? 'background-color: #8b5cf6;' : '' }}">
+                                <i class="fas fa-tshirt text-purple" style="color:#a855f7;"></i>
+                                <span>Jahit</span>
+                            </a>
 
-                        {{-- Tab: Jahit --}}
-                        <a href="{{ route('spks.index', array_merge(request()->query(), ['stage' => 'jahit', 'urgent' => null])) }}"
-                            class="btn btn-sm rounded-pill fw-bold px-3 py-2 d-inline-flex align-items-center gap-1.5 transition-all {{ $currStage === 'jahit' ? 'btn-purple text-white shadow-sm' : 'btn-light text-secondary border-0' }}"
-                            style="{{ $currStage === 'jahit' ? 'background-color: #8b5cf6;' : '' }}">
-                            <i class="fas fa-tshirt text-purple" style="color:#a855f7;"></i>
-                            <span>Jahit</span>
-                        </a>
+                            {{-- Tab: LKPK --}}
+                            <a href="{{ route('spks.index', array_merge(request()->query(), ['stage' => 'lkpk', 'urgent' => null])) }}"
+                                class="btn btn-sm rounded-pill fw-bold px-3 py-2 d-inline-flex align-items-center gap-1.5 transition-all {{ $currStage === 'lkpk' ? 'btn-success text-white shadow-sm' : 'btn-light text-secondary border-0' }}">
+                                <i class="fas fa-gem text-emerald" style="color:#10b981;"></i>
+                                <span>LKPK</span>
+                            </a>
 
-                        {{-- Tab: LKPK --}}
-                        <a href="{{ route('spks.index', array_merge(request()->query(), ['stage' => 'lkpk', 'urgent' => null])) }}"
-                            class="btn btn-sm rounded-pill fw-bold px-3 py-2 d-inline-flex align-items-center gap-1.5 transition-all {{ $currStage === 'lkpk' ? 'btn-success text-white shadow-sm' : 'btn-light text-secondary border-0' }}">
-                            <i class="fas fa-gem text-emerald" style="color:#10b981;"></i>
-                            <span>LKPK</span>
-                        </a>
+                            {{-- Tab: QC --}}
+                            <a href="{{ route('spks.index', array_merge(request()->query(), ['stage' => 'qc', 'urgent' => null])) }}"
+                                class="btn btn-sm rounded-pill fw-bold px-3 py-2 d-inline-flex align-items-center gap-1.5 transition-all {{ $currStage === 'qc' ? 'btn-info text-white shadow-sm' : 'btn-light text-secondary border-0' }}">
+                                <i class="fas fa-magnifying-glass text-primary"></i>
+                                <span>QC</span>
+                            </a>
 
-                        {{-- Tab: QC --}}
-                        <a href="{{ route('spks.index', array_merge(request()->query(), ['stage' => 'qc', 'urgent' => null])) }}"
-                            class="btn btn-sm rounded-pill fw-bold px-3 py-2 d-inline-flex align-items-center gap-1.5 transition-all {{ $currStage === 'qc' ? 'btn-info text-white shadow-sm' : 'btn-light text-secondary border-0' }}">
-                            <i class="fas fa-magnifying-glass text-primary"></i>
-                            <span>QC</span>
-                        </a>
-
-                        {{-- Tab: Packing & Send --}}
-                        <a href="{{ route('spks.index', array_merge(request()->query(), ['stage' => 'packing', 'urgent' => null])) }}"
-                            class="btn btn-sm rounded-pill fw-bold px-3 py-2 d-inline-flex align-items-center gap-1.5 transition-all {{ $currStage === 'packing' ? 'btn-dark text-white shadow-sm' : 'btn-light text-secondary border-0' }}">
-                            <i class="fas fa-box-open text-warning"></i>
-                            <span>Packing &amp; Send</span>
-                        </a>
+                            {{-- Tab: Packing & Send --}}
+                            <a href="{{ route('spks.index', array_merge(request()->query(), ['stage' => 'packing', 'urgent' => null])) }}"
+                                class="btn btn-sm rounded-pill fw-bold px-3 py-2 d-inline-flex align-items-center gap-1.5 transition-all {{ $currStage === 'packing' ? 'btn-dark text-white shadow-sm' : 'btn-light text-secondary border-0' }}">
+                                <i class="fas fa-box-open text-warning"></i>
+                                <span>Packing &amp; Send</span>
+                            </a>
+                        </div>
                     </div>
 
-                    {{-- SEARCH BOX --}}
-                    <div class="w-100 w-lg-auto" style="min-width: 280px;">
+                    {{-- SEARCH BOX (COL 3) --}}
+                    <div class="col-12 col-md-3">
                         <form action="{{ route('spks.index') }}" method="GET" class="m-0">
                             @if ($currStage)
                                 <input type="hidden" name="stage" value="{{ $currStage }}">
@@ -189,12 +191,13 @@
                                 <i
                                     class="fas fa-search position-absolute top-50 start-0 translate-middle-y ms-3 text-muted opacity-75"></i>
                                 <input type="text" name="search"
-                                    class="form-control form-control-sm rounded-pill ps-5 pe-3 py-2 bg-light border-0 shadow-none text-dark"
+                                    class="form-control form-control-sm rounded-pill ps-5 pe-3 py-2 bg-light border-0 shadow-none text-dark w-100"
                                     placeholder="Cari SPK / Pemesan / Instansi..." value="{{ request('search') }}"
                                     onchange="this.form.submit()">
                             </div>
                         </form>
                     </div>
+
                 </div>
             </div>
         </div>
