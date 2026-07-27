@@ -813,12 +813,14 @@ class SpkController extends Controller
             $pName = $item->sku_induk ?: ($item->sku ?: $item->nama_produk);
             foreach ($item->extras as $extra) {
                 $nom = (float)$extra->nominal;
-                $totalSpkLaborCost += $nom;
-                if ($nom > 0) {
+                $ket = $extra->keterangan ?? '';
+                // Only include labor service items (exclude materials starting with 'Bahan:')
+                if ($nom > 0 && !str_starts_with($ket, 'Bahan:') && !str_contains($ket, 'Bahan:')) {
+                    $totalSpkLaborCost += $nom;
                     $laborBreakdown[] = [
                         'id'         => $extra->id,
                         'produk'     => $pName,
-                        'keterangan' => $extra->keterangan,
+                        'keterangan' => $ket,
                         'nominal'    => $nom,
                     ];
                 }
