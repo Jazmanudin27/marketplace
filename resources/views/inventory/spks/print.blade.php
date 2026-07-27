@@ -391,7 +391,7 @@
                                         @forelse($variantRows as $varRow)
                                             <tr>
                                                 <td style="text-align: left; font-weight: bold; padding-left: 4px;">
-                                                    {{ $varRow['name'] }}</td>
+                                                    {{ $varRow['sku'] }}</td>
                                                 <td
                                                     style="{{ !empty($varRow['sizes']['S']) ? 'color:#dc2626; font-weight:bold;' : '' }}">
                                                     {{ $varRow['sizes']['S'] ?? '' }}</td>
