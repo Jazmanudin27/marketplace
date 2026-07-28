@@ -11,6 +11,7 @@
             --primary-blue: #2563eb;
             --header-blue: #1d4ed8;
             --green-success: #10b981;
+            --purple-sampling: #8b5cf6;
             --bg-canvas: #f8fafc;
         }
 
@@ -146,7 +147,41 @@
             cursor: pointer;
         }
 
-        /* ── Sub-Section: Antrian & Sampling ── */
+        /* ── TAHAP SAMPLING UI (Match Latest Screenshot) ── */
+        .panel-sampling-banner {
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            border-radius: 18px;
+            padding: 20px;
+            box-shadow: 0 4px 15px rgba(139, 92, 246, 0.25);
+            margin-bottom: 16px;
+        }
+
+        .sample-dropzone-box {
+            border: 2px dashed #c084fc;
+            border-radius: 16px;
+            padding: 30px 20px;
+            background: #faf5ff;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .sample-dropzone-box:hover {
+            background: #f3e8ff;
+            border-color: #a855f7;
+        }
+
+        .user-avatar-badge {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: #e0e7ff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* ── Sub-Section: Antrian ── */
         .sub-card-title {
             font-size: 11px;
             font-weight: 900;
@@ -423,7 +458,7 @@
             Akses Produksi Dibuka!
         </div>
 
-        <form id="simpleTrackingForm" action="{{ route('spks.mobile_update_tracking', $spk->id) }}" method="POST">
+        <form id="simpleTrackingForm" action="{{ route('spks.mobile_update_tracking', $spk->id) }}" method="POST" enctype="multipart/form-data">
             @csrf
 
             <!-- ── CARD 1: PRODUCT & FABRIC ── -->
@@ -467,7 +502,62 @@
                 </div>
             </div>
 
-            <!-- ── CARD DYNAMIC SUB-CONTENT 1: RINCIAN ANTRIAN & SAMPLING ── -->
+            <!-- ── CARD DYNAMIC SUB-CONTENT: TAHAP SAMPLING (MATCH LATEST SCREENSHOT) ── -->
+            <div id="cardSamplingArea" style="display: none;">
+                <!-- 1. Panel Sampling Banner Card -->
+                <div class="panel-sampling-banner">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="fs-2 text-white"><i class="fas fa-flask"></i></div>
+                        <div>
+                            <h5 class="fw-bold text-white mb-1">Panel Sampling</h5>
+                            <div class="small text-white-50">Isi data sample &amp; status per-kain.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. Dokumentasi Sample Fisik (Global) Card -->
+                <div class="app-card">
+                    <div class="card-body-padding">
+                        <div class="sub-card-title mb-3">
+                            <i class="fas fa-camera text-primary"></i> DOKUMENTASI SAMPLE FISIK (GLOBAL)
+                        </div>
+                        <div class="sample-dropzone-box" onclick="document.getElementById('sampleCameraInput').click()">
+                            <input type="file" id="sampleCameraInput" name="sample_photo" accept="image/*" capture="environment" style="display:none;" onchange="previewSamplePhoto(this)">
+                            <div id="samplePreviewPlaceholder" class="text-center">
+                                <i class="fas fa-camera fs-1 text-primary mb-2"></i>
+                                <div class="fw-bold text-secondary">Jepret Baju Sample</div>
+                            </div>
+                            <img id="samplePreviewImg" src="" style="display:none; max-height: 180px; width:100%; object-fit:contain; border-radius:10px;">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. Pembuat Sample & Konversi SKU Kain Card -->
+                <div class="app-card">
+                    <div class="card-body-padding" style="background: #f5f3ff;">
+                        <div class="d-flex align-items-center gap-3 mb-3">
+                            <div class="user-avatar-badge">
+                                <i class="fas fa-user-tag text-primary fs-5"></i>
+                            </div>
+                            <div class="flex-grow-1">
+                                <div class="small fw-bold text-primary font-monospace" style="font-size: 11px;">
+                                    PEMBUAT SAMPLE ({{ strtoupper($fabricName) }})
+                                </div>
+                                <input type="text" name="pembuat_sample" class="form-control form-control-sm border-0 border-bottom bg-transparent font-monospace fw-bold text-dark p-0" placeholder="Ketik nama...">
+                            </div>
+                        </div>
+                        
+                        <div class="bg-white p-3 rounded-3 border d-flex align-items-center justify-content-between cursor-pointer">
+                            <div class="fw-bold text-secondary small d-flex align-items-center gap-2">
+                                <i class="fas fa-random text-primary"></i> KONVERSI SKU KAIN
+                            </div>
+                            <i class="fas fa-chevron-right text-muted"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ── CARD DYNAMIC SUB-CONTENT: RINCIAN ANTRIAN & SAMPLING ── -->
             <div id="cardAntrianArea" class="app-card" style="display: none;">
                 <div class="card-body-padding">
                     <div class="sub-card-title mb-2">
@@ -488,7 +578,7 @@
                 </div>
             </div>
 
-            <!-- ── CARD DYNAMIC SUB-CONTENT 2: MATRIKS LOLOS QC / PRODUKSI ── -->
+            <!-- ── CARD DYNAMIC SUB-CONTENT: MATRIKS LOLOS QC / PRODUKSI ── -->
             <div id="cardMatriksArea" class="app-card">
                 <div class="matriks-header-bar">
                     <i class="fas fa-check-circle me-1"></i> MATRIKS LOLOS QC
@@ -517,7 +607,7 @@
                 </div>
             </div>
 
-            <!-- ── CARD DYNAMIC SUB-CONTENT 3: DATA REJECT / CACAT ── -->
+            <!-- ── CARD DYNAMIC SUB-CONTENT: DATA REJECT / CACAT ── -->
             <div id="cardRejectArea" class="app-card">
                 <div class="reject-header-bar">
                     <i class="fas fa-exclamation-triangle me-1"></i> DATA REJECT / CACAT
@@ -561,22 +651,44 @@
 
         function toggleTahapanSubCards() {
             const val = document.getElementById('tahapanSelect').value;
+            const samplingArea = document.getElementById('cardSamplingArea');
             const antrianArea = document.getElementById('cardAntrianArea');
             const matriksArea = document.getElementById('cardMatriksArea');
             const rejectArea = document.getElementById('cardRejectArea');
 
-            if (val === 'Antrian & Sampling' || val === 'Tahap Sampling') {
+            if (val === 'Tahap Sampling') {
+                samplingArea.style.display = 'block';
+                antrianArea.style.display = 'none';
+                matriksArea.style.display = 'none';
+                rejectArea.style.display = 'none';
+            } else if (val === 'Antrian & Sampling') {
+                samplingArea.style.display = 'none';
                 antrianArea.style.display = 'block';
                 matriksArea.style.display = 'none';
                 rejectArea.style.display = 'none';
             } else if (val === 'Perencanaan') {
+                samplingArea.style.display = 'none';
                 antrianArea.style.display = 'none';
                 matriksArea.style.display = 'none';
                 rejectArea.style.display = 'none';
             } else {
+                samplingArea.style.display = 'none';
                 antrianArea.style.display = 'none';
                 matriksArea.style.display = 'block';
                 rejectArea.style.display = 'block';
+            }
+        }
+
+        function previewSamplePhoto(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('samplePreviewPlaceholder').style.display = 'none';
+                    const img = document.getElementById('samplePreviewImg');
+                    img.src = e.target.result;
+                    img.style.display = 'block';
+                };
+                reader.readAsDataURL(input.files[0]);
             }
         }
 
