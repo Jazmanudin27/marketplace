@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kartu / Riwayat Mutasi Stok - {{ $product->name }}</title>
+    <title>Kartu Stok - {{ $product->name }}</title>
     <style>
         @page {
             size: A4 landscape;
@@ -21,20 +21,22 @@
             font-family: Arial, sans-serif;
             color: #0f172a;
             margin: 0;
-            padding: 12px 15px;
+            padding: 15px;
             font-size: 10px;
             background: #fff;
             line-height: 1.2;
         }
 
-        /* Top Title Header */
-        .title-header {
+        /* ERP Header Standard */
+        .header {
             text-align: center;
-            margin-bottom: 8px;
+            margin-bottom: 12px;
+            border-bottom: 2px solid #0f172a;
+            padding-bottom: 8px;
         }
 
-        .title-header h1 {
-            margin: 0;
+        .header h1 {
+            margin: 0 0 4px 0;
             font-size: 20px;
             font-weight: 900;
             letter-spacing: 0.5px;
@@ -42,37 +44,31 @@
             text-transform: uppercase;
         }
 
-        .title-header h2 {
-            margin: 4px 0 2px 0;
-            font-size: 15px;
-            font-weight: 800;
-            color: #1e293b;
-            text-transform: uppercase;
-        }
-
-        .title-header .sku-code {
-            color: #475569;
-            font-weight: 700;
-        }
-
-        .title-header .subtitle-period {
-            font-size: 10.5px;
-            font-weight: 700;
-            color: #475569;
-            margin-top: 2px;
-        }
-
-        .title-header .subtitle-printed {
-            font-size: 9.5px;
+        .header p {
+            margin: 0;
+            font-size: 11px;
             color: #64748b;
-            margin-top: 1px;
         }
 
-        /* Dashed Separator Line */
-        .dashed-divider {
-            border-top: 2px dashed #475569;
-            margin: 8px 0 12px 0;
+        /* ERP Info Box Standard */
+        .info-box {
+            border: 1px solid #0f172a;
+            padding: 8px 12px;
+            margin-bottom: 12px;
+            background: #f8fafc;
+        }
+
+        .info-box table {
             width: 100%;
+            border: none;
+            border-collapse: collapse;
+        }
+
+        .info-box table td {
+            border: none;
+            padding: 3px 6px;
+            font-size: 11px;
+            color: #0f172a;
         }
 
         /* Ledger Main Table */
@@ -164,7 +160,7 @@
 
     <div class="no-print">
         <div style="font-weight: 700; font-size: 13px;">
-            📊 Kartu / Riwayat Mutasi Stok Barang
+            📊 Laporan Kartu Stok (Bin Card)
         </div>
         <div>
             <button onclick="window.print()" style="padding: 6px 16px; background:#22c55e; color:#fff; border:none; border-radius:6px; cursor:pointer; font-weight:800; font-size:12px;">
@@ -176,26 +172,37 @@
         </div>
     </div>
 
-    {{-- Title Header --}}
-    <div class="title-header">
-        <h1>KARTU / RIWAYAT MUTASI STOK BARANG</h1>
-        <h2>{{ strtoupper($product->name) }} <span class="sku-code">({{ $product->sku ?: 'NO-SKU' }})</span></h2>
-        <div class="subtitle-period">
-            Periode:
-            @if (request('start_date') || request('end_date'))
-                {{ request('start_date') ? \Carbon\Carbon::parse(request('start_date'))->format('d/m/Y') : 'Awal' }}
-                s/d
-                {{ request('end_date') ? \Carbon\Carbon::parse(request('end_date'))->format('d/m/Y') : 'Sekarang' }}
-            @else
-                Semua Periode Transaksi
-            @endif
-        </div>
-        <div class="subtitle-printed">
-            Tanggal Cetak: {{ date('d/m/Y H:i:s') }}
-        </div>
+    {{-- ERP Header Standard --}}
+    <div class="header">
+        <h1>LAPORAN KARTU STOK (BIN CARD)</h1>
+        <p>Tanggal Dicetak: {{ date('d-m-Y H:i:s') }}</p>
     </div>
 
-    <div class="dashed-divider"></div>
+    {{-- ERP Info Box Standard --}}
+    <div class="info-box">
+        <table>
+            <tr>
+                <td width="15%"><strong>SKU / Kode</strong></td>
+                <td width="35%">: {{ $product->sku ?: '—' }}</td>
+                <td width="15%"><strong>Periode</strong></td>
+                <td width="35%">:
+                    @if (request('start_date') || request('end_date'))
+                        {{ request('start_date') ? \Carbon\Carbon::parse(request('start_date'))->format('d-m-Y') : 'Awal' }}
+                        s/d
+                        {{ request('end_date') ? \Carbon\Carbon::parse(request('end_date'))->format('d-m-Y') : 'Sekarang' }}
+                    @else
+                        Semua Periode Transaksi
+                    @endif
+                </td>
+            </tr>
+            <tr>
+                <td><strong>Nama Barang</strong></td>
+                <td>: {{ $product->name }}</td>
+                <td><strong>Total Stok Terkini</strong></td>
+                <td>: <strong>{{ number_format($product->stock) }} {{ strtoupper($product->unit ?: 'Pcs') }}</strong></td>
+            </tr>
+        </table>
+    </div>
 
     <table class="ledger-table">
         <thead>
