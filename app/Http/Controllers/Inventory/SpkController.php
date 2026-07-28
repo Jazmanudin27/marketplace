@@ -865,6 +865,7 @@ class SpkController extends Controller
             $siblingSpks = collect([$spk]);
         }
 
+        $bankAccounts = \App\Models\BankAccount::where('tenant_id', $tenantId)->where('is_active', true)->get();
         $spkCode = $spk->no_produksi ?: $spk->no_spk;
         $spkExpenses = \App\Models\Expense::where('tenant_id', $tenantId)
             ->where(function ($q) use ($spkCode, $spk) {
