@@ -626,7 +626,7 @@
                     <select name="tahap_saat_ini" id="tahap_saat_ini_select" class="form-select tahap-select">
                         @php
                             $tahapanList = \App\Models\Spk::TAHAPAN;
-                            $selectedTahap = old('tahap_saat_ini', $spk->tahap_saat_ini ?: 'DRAFT');
+                            $selectedTahap = old('tahap_saat_ini', $spk->status ?: ($spk->tahap_saat_ini ?: 'Perencanaan'));
                         @endphp
                         @foreach($tahapanList as $key => $info)
                             <option value="{{ $key }}" {{ $selectedTahap === $key ? 'selected' : '' }}>
@@ -862,6 +862,11 @@
                                 @endforeach
                             </tbody>
                         </table>
+                        <div class="p-2 bg-light border-top text-start">
+                            <button type="button" class="btn btn-sm btn-success fw-bold px-3 py-1 text-uppercase rounded-3" onclick="addNewProductRow({{ $rIdx }})">
+                                <i class="fas fa-plus-circle me-1"></i> + Tambah Produk / Varian Baru
+                            </button>
+                        </div>
                     </div>
 
                 </div>
@@ -1331,6 +1336,80 @@
             masterProductsMap[@json(strtoupper(trim($p->sku_induk)))] = @json($prodInfo);
         @endif
     @endforeach
+
+    function addNewProductRow(rIdx) {
+        const tbody = document.getElementById(`product-tbody-${rIdx}`);
+        if (!tbody) return;
+
+        const pIdx = tbody.querySelectorAll('tr').length;
+        const tr = document.createElement('tr');
+        tr.id = `prod-row-${rIdx}-${pIdx}`;
+
+        tr.innerHTML = `
+            <td>
+                <input type="text" name="rincian[${rIdx}][produk][${pIdx}][sku_produk]" 
+                       class="form-control form-control-sm font-monospace fw-bold input-sku-produk" 
+                       placeholder="Contoh: BB-BR-BIRU-LPJ" 
+                       oninput="onSkuInputChanged(this)"
+                       onblur="onSkuInputBlur(this)">
+            </td>
+            <td>
+                <input type="text" name="rincian[${rIdx}][produk][${pIdx}][nama_produk]" 
+                       class="form-control form-control-sm input-nama-produk" 
+                       placeholder="Nama Produk / Varian" 
+                       list="master_product_names_datalist"
+                       oninput="onProductNameInputChanged(this)">
+            </td>
+            <td>
+                <input type="text" name="rincian[${rIdx}][produk][${pIdx}][ukuran]" 
+                       class="form-control form-control-sm text-center fw-bold input-ukuran-produk" 
+                       placeholder="S, M, L, XL..." 
+                       list="ukuran_datalist">
+            </td>
+            <td>
+                <input type="number" name="rincian[${rIdx}][produk][${pIdx}][qty_produksi]" 
+                       class="form-control form-control-sm text-center fw-bold input-qty-produksi" 
+                       value="1" min="1">
+            </td>
+            <td class="text-center">
+                <button type="button" class="btn btn-sm btn-outline-secondary btn-bahan-trigger btn-open-bahan-modal" 
+                        data-r-idx="${rIdx}" data-p-idx="${pIdx}">
+                    📦 Atur Bahan
+                </button>
+            </td>
+            <td class="text-center">
+                <div class="hidden-op-inputs">
+                    <input type="hidden" class="h-pemotong" name="rincian[${rIdx}][produk][${pIdx}][pemotong]" value="">
+                    <input type="hidden" class="h-qty-potong" name="rincian[${rIdx}][produk][${pIdx}][qty_potong]" value="0">
+                    <input type="hidden" class="h-tarif-potong" name="rincian[${rIdx}][produk][${pIdx}][tarif_potong]" value="0">
+                    <input type="hidden" class="h-penjahit" name="rincian[${rIdx}][produk][${pIdx}][penjahit]" value="">
+                    <input type="hidden" class="h-qty-jahit" name="rincian[${rIdx}][produk][${pIdx}][qty_jahit]" value="0">
+                    <input type="hidden" class="h-tarif-jahit" name="rincian[${rIdx}][produk][${pIdx}][tarif_jahit]" value="0">
+                    <input type="hidden" class="h-vendor-kancing" name="rincian[${rIdx}][produk][${pIdx}][vendor_kancing]" value="">
+                    <input type="hidden" class="h-qty-kancing" name="rincian[${rIdx}][produk][${pIdx}][qty_kancing]" value="0">
+                    <input type="hidden" class="h-tarif-kancing" name="rincian[${rIdx}][produk][${pIdx}][tarif_kancing]" value="0">
+                </div>
+                <button type="button" class="btn btn-sm btn-outline-primary btn-tahap-trigger btn-open-tahap-modal" 
+                        data-r-idx="${rIdx}" data-p-idx="${pIdx}">
+                    ✂️ Atur Tahap
+                </button>
+            </td>
+            <td class="text-center">
+                <button type="button" class="btn btn-sm btn-link text-danger p-0" onclick="removeProductRow('${rIdx}-${pIdx}')" title="Hapus Varian">
+                    ❌
+                </button>
+            </td>
+        `;
+
+        tbody.appendChild(tr);
+    }
+
+    function removeProductRow(rowId) {
+        const row = document.getElementById(`prod-row-${rowId}`);
+        if (row) {
+            row.remove();
+        }
+    }
 
     function updateInventoryItemsDatalist(queryStr = '') {
         const datalist = document.getElementById('inventory_items_datalist');

@@ -563,7 +563,7 @@
                     <select name="tahap_saat_ini" id="tahap_saat_ini_select" class="form-select tahap-select">
                         @php
                             $tahapanList = \App\Models\Spk::TAHAPAN;
-                            $selectedTahap = old('tahap_saat_ini', 'DRAFT');
+                            $selectedTahap = old('tahap_saat_ini', 'Perencanaan');
                         @endphp
                         @foreach($tahapanList as $key => $info)
                             <option value="{{ $key }}" {{ $selectedTahap === $key ? 'selected' : '' }}>

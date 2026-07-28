@@ -41,17 +41,16 @@ class Spk extends Model
 
     /** List of available production stages */
     public const TAHAPAN = [
-        'DRAFT'                      => ['label' => 'DRAFT (Menunggu DP)',         'emoji' => '🕐', 'color' => 'secondary'],
-        'Tahap Desain & Mockup'      => ['label' => 'Tahap Desain & Mockup',        'emoji' => '🎨', 'color' => 'warning'],
-        'Perencanaan Produksi (SPK)' => ['label' => 'Perencanaan Produksi (SPK)',   'emoji' => '📋', 'color' => 'info'],
-        'Antrian & Sampling'         => ['label' => 'Antrian & Sampling',           'emoji' => '⏳', 'color' => 'primary'],
-        'Tahap Pemotongan'           => ['label' => 'Tahap Pemotongan',             'emoji' => '✂️', 'color' => 'primary'],
-        'Tahap Jahit'                => ['label' => 'Tahap Jahit',                  'emoji' => '🪡', 'color' => 'purple'],
-        'Tahap LKPK (Kancing)'       => ['label' => 'Tahap LKPK (Kancing)',         'emoji' => '💿', 'color' => 'dark'],
-        'Quality Control'            => ['label' => 'Quality Control',              'emoji' => '🔍', 'color' => 'success'],
-        'Packing / Finishing'        => ['label' => 'Packing / Finishing',          'emoji' => '📦', 'color' => 'warning'],
-        'Selesai (Finished Good)'    => ['label' => 'Selesai (Finished Good)',      'emoji' => '✅', 'color' => 'success'],
-        'Telah Dikirim (Shipped)'    => ['label' => 'Telah Dikirim (Shipped)',      'emoji' => '🚀', 'color' => 'dark'],
+        'Perencanaan'             => ['label' => 'Perencanaan',                 'emoji' => '📋', 'color' => 'info'],
+        'Antrian & Sampling'      => ['label' => 'Antrian & Sampling',           'emoji' => '⏳', 'color' => 'primary'],
+        'Tahap Sampling'          => ['label' => 'Tahap Sampling',               'emoji' => '🧪', 'color' => 'purple'],
+        'Tahap Print Kain'        => ['label' => 'Tahap Print Kain',             'emoji' => '🖨️', 'color' => 'info'],
+        'Tahap Pemotongan'        => ['label' => 'Tahap Pemotongan',             'emoji' => '✂️', 'color' => 'warning'],
+        'Tahap Jahit'             => ['label' => 'Tahap Jahit',                  'emoji' => '🪡', 'color' => 'purple'],
+        'Tahap LKPK'              => ['label' => 'Tahap LKPK',                   'emoji' => '🧮', 'color' => 'success'],
+        'Quality Control'         => ['label' => 'Quality Control',              'emoji' => '🔍', 'color' => 'success'],
+        'Packing / Finishing'     => ['label' => 'Packing / Finishing',          'emoji' => '📦', 'color' => 'warning'],
+        'Selesai (Finished Good)' => ['label' => 'Selesai (Finished Good)',      'emoji' => '✅', 'color' => 'success'],
     ];
 
     public function getCurrentStageNameAttribute(): string
