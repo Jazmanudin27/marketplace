@@ -9,10 +9,8 @@
     <style>
         :root {
             --primary-blue: #2563eb;
-            --header-blue-start: #1d4ed8;
-            --header-blue-end: #3b82f6;
-            --green-matriks: #059669;
-            --red-reject: #dc2626;
+            --header-blue: #1d4ed8;
+            --green-success: #10b981;
             --bg-canvas: #f8fafc;
         }
 
@@ -20,16 +18,16 @@
             background-color: var(--bg-canvas);
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             color: #1e293b;
-            padding-bottom: 100px;
+            padding-bottom: 110px;
             margin: 0;
         }
 
-        /* ── Top Header Banner (Match Screenshot) ── */
+        /* ── Top Header Banner (Match Screenshots) ── */
         .panel-header-container {
             background: linear-gradient(135deg, #1e40af 0%, #2563eb 60%, #3b82f6 100%);
             color: #ffffff;
             padding: 20px 24px;
-            box-shadow: 0 4px 20px rgba(37, 99, 235, 0.25);
+            box-shadow: 0 4px 18px rgba(37, 99, 235, 0.2);
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -58,13 +56,27 @@
             border-radius: 50%;
             background: rgba(255, 255, 255, 0.2);
             backdrop-filter: blur(5px);
-            border: 1px solid rgba(255, 255, 255, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.35);
             color: #ffffff;
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 18px;
             cursor: pointer;
+        }
+
+        /* ── Banner Status "Akses Produksi Dibuka!" ── */
+        .alert-akses-dibuka {
+            background-color: #ecfdf5;
+            border: 1.5px solid #a7f3d0;
+            color: #047857;
+            font-size: 16px;
+            font-weight: 800;
+            text-align: center;
+            padding: 14px 20px;
+            border-radius: 16px;
+            margin-bottom: 16px;
+            box-shadow: 0 2px 8px rgba(16, 185, 129, 0.08);
         }
 
         /* ── Card Containers ── */
@@ -83,12 +95,20 @@
 
         /* ── Product & Fabric Card ── */
         .product-thumb-box {
-            width: 64px;
-            height: 64px;
-            border-radius: 12px;
+            width: 68px;
+            height: 68px;
+            border-radius: 14px;
             border: 1px solid #e2e8f0;
             object-fit: cover;
             background: #f1f5f9;
+        }
+
+        .product-title-name {
+            font-size: 16px;
+            font-weight: 900;
+            color: #0f172a;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
         }
 
         .fabric-badge {
@@ -96,12 +116,12 @@
             align-items: center;
             background: #fff7ed;
             color: #ea580c;
-            border: 1px solid #ffedd5;
             font-size: 11px;
-            font-weight: 700;
+            font-weight: 800;
             padding: 4px 10px;
             border-radius: 8px;
             text-transform: uppercase;
+            gap: 6px;
         }
 
         /* ── Tahapan Saat Ini Select ── */
@@ -111,23 +131,57 @@
             letter-spacing: 1px;
             color: #64748b;
             text-transform: uppercase;
-            margin-bottom: 8px;
+            margin-bottom: 10px;
         }
 
         .select-tahapan-custom {
-            border: 2px solid #2563eb !important;
-            border-radius: 12px !important;
+            border: 2.5px solid #2563eb !important;
+            border-radius: 14px !important;
             font-size: 16px !important;
             font-weight: 800 !important;
             color: #1e3a8a !important;
-            padding: 12px 16px !important;
+            padding: 14px 16px !important;
             background-color: #ffffff !important;
-            box-shadow: 0 2px 6px rgba(37, 99, 235, 0.08) !important;
+            box-shadow: 0 3px 10px rgba(37, 99, 235, 0.08) !important;
+            cursor: pointer;
+        }
+
+        /* ── Sub-Section: Antrian & Sampling ── */
+        .sub-card-title {
+            font-size: 11px;
+            font-weight: 900;
+            letter-spacing: 1px;
+            color: #475569;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .select-antrian-cream {
+            background-color: #fffbeb !important;
+            border: 1.5px solid #fde68a !important;
+            color: #92400e !important;
+            font-size: 14px !important;
+            font-weight: 800 !important;
+            border-radius: 12px !important;
+            padding: 12px 14px !important;
+            text-align: center;
+        }
+
+        .textarea-catatan-proses {
+            border: 1.5px solid #cbd5e1 !important;
+            border-radius: 12px !important;
+            font-size: 14px !important;
+            color: #334155 !important;
+            padding: 12px !important;
+            min-height: 80px;
         }
 
         /* ── Matriks Lolos QC Card (Green Theme) ── */
         .matriks-header-bar {
-            background: #10b981;
+            background: #059669;
             color: #ffffff;
             font-size: 12px;
             font-weight: 900;
@@ -137,12 +191,12 @@
         }
 
         .matriks-body-area {
-            background: #f0fdf4;
+            background: #ecfdf5;
             padding: 16px;
         }
 
         .sku-header-title {
-            font-size: 13px;
+            font-size: 14px;
             font-weight: 900;
             color: #064e3b;
             font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
@@ -150,7 +204,6 @@
             letter-spacing: 0.5px;
         }
 
-        /* Grid Box Size (Match Screenshot) */
         .size-boxes-grid {
             display: flex;
             flex-wrap: wrap;
@@ -159,13 +212,13 @@
         }
 
         .size-box-item {
-            width: 72px;
+            width: 74px;
             border: 1px solid #cbd5e1;
             border-radius: 12px;
             background: #ffffff;
             overflow: hidden;
             text-align: center;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
         }
 
         .size-box-label {
@@ -188,11 +241,6 @@
             padding: 8px 0;
             background: transparent;
             font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
-        }
-
-        .size-box-input:focus {
-            outline: none;
-            background: #ecfdf5;
         }
 
         /* ── Reject / Cacat Card (Red Theme) ── */
@@ -221,10 +269,9 @@
             padding: 8px 20px;
             border-radius: 10px;
             box-shadow: 0 2px 6px rgba(239, 68, 68, 0.08);
-            transition: all 0.2s;
         }
 
-        /* ── Sticky Bottom Bar ── */
+        /* ── Sticky Bottom Bar (Match Screenshots) ── */
         .sticky-footer-bar {
             position: fixed;
             bottom: 0;
@@ -260,7 +307,7 @@
             gap: 8px;
         }
 
-        /* ── PIN Lock Screen Overlay ── */
+        /* ── PIN Overlay Lock Screen ── */
         .pin-overlay-screen {
             position: fixed;
             inset: 0;
@@ -370,10 +417,16 @@
     </div>
 
     <div class="container-fluid px-3 pt-3">
+
+        <!-- ── BANNER STATUS "Akses Produksi Dibuka!" ── -->
+        <div class="alert-akses-dibuka">
+            Akses Produksi Dibuka!
+        </div>
+
         <form id="simpleTrackingForm" action="{{ route('spks.mobile_update_tracking', $spk->id) }}" method="POST">
             @csrf
 
-            <!-- ── CARD 1: PRODUCT MOCKUP & FABRIC ── -->
+            <!-- ── CARD 1: PRODUCT & FABRIC ── -->
             <div class="app-card">
                 <div class="card-body-padding d-flex align-items-center gap-3">
                     @php
@@ -387,35 +440,58 @@
                         </div>
                     @endif
                     <div>
-                        <div class="fabric-badge mb-1">
-                            <i class="fas fa-scroll me-1"></i> {{ strtoupper($fabricName) }}
-                        </div>
-                        <div class="small fw-bold text-secondary">
-                            Pemesan: <strong class="text-dark">{{ $spk->pemesan ?: 'INTERNAL / GUDANG' }}</strong>
+                        <div class="product-title-name">{{ strtoupper($spk->pemesan ?: 'OFFICE') }}</div>
+                        <div class="fabric-badge">
+                            <i class="fas fa-folder text-warning"></i> {{ strtoupper($fabricName) }}
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- ── CARD 2: TAHAPAN SAAT INI (DROPDOWN) ── -->
+            <!-- ── CARD 2: TAHAPAN SAAT INI (DROPDOWN EXACT OPTIONS) ── -->
             <div class="app-card">
                 <div class="card-body-padding">
                     <div class="select-label-title">TAHAPAN SAAT INI:</div>
-                    <select name="spk_status" class="form-select select-tahapan-custom">
-                        <option value="DRAFT" {{ $spk->status === 'DRAFT' ? 'selected' : '' }}>Persiapan / Draft</option>
-                        <option value="DIPROSES" {{ $spk->status === 'DIPROSES' ? 'selected' : '' }}>Tahap Pemotongan (Potong)</option>
-                        <option value="DIPROSES" {{ str_contains(strtoupper($spk->status), 'JAHIT') ? 'selected' : '' }}>Tahap Penjahitan (Jahit)</option>
-                        <option value="DIPROSES" {{ str_contains(strtoupper($spk->status), 'QC') ? 'selected' : '' }}>Quality Control (QC)</option>
-                        <option value="DIPROSES" {{ str_contains(strtoupper($spk->status), 'FINISHING') ? 'selected' : '' }}>Finishing & Packing</option>
-                        <option value="SELESAI" {{ $spk->status === 'SELESAI' ? 'selected' : '' }}>Selesai / Ready Stock</option>
+                    <select name="spk_status" id="tahapanSelect" class="form-select select-tahapan-custom" onchange="toggleTahapanSubCards()">
+                        <option value="Perencanaan" {{ $spk->status === 'Perencanaan' || $spk->status === 'DRAFT' ? 'selected' : '' }}>Perencanaan</option>
+                        <option value="Antrian & Sampling" {{ $spk->status === 'Antrian & Sampling' ? 'selected' : '' }}>Antrian &amp; Sampling</option>
+                        <option value="Tahap Sampling" {{ $spk->status === 'Tahap Sampling' ? 'selected' : '' }}>Tahap Sampling</option>
+                        <option value="Tahap Print Kain" {{ $spk->status === 'Tahap Print Kain' ? 'selected' : '' }}>Tahap Print Kain</option>
+                        <option value="Tahap Pemotongan" {{ $spk->status === 'Tahap Pemotongan' || $spk->status === 'DIPROSES' ? 'selected' : '' }}>Tahap Pemotongan</option>
+                        <option value="Tahap Jahit" {{ $spk->status === 'Tahap Jahit' ? 'selected' : '' }}>Tahap Jahit</option>
+                        <option value="Tahap LKPK" {{ $spk->status === 'Tahap LKPK' ? 'selected' : '' }}>Tahap LKPK</option>
+                        <option value="Quality Control" {{ $spk->status === 'Quality Control' || $spk->status === 'QC' ? 'selected' : '' }}>Quality Control</option>
+                        <option value="Packing / Finishing" {{ $spk->status === 'Packing / Finishing' || $spk->status === 'FINISHING' ? 'selected' : '' }}>Packing / Finishing</option>
+                        <option value="Selesai (Finished Good)" {{ $spk->status === 'Selesai (Finished Good)' || $spk->status === 'SELESAI' ? 'selected' : '' }}>Selesai (Finished Good)</option>
                     </select>
                 </div>
             </div>
 
-            <!-- ── CARD 3: MATRIKS LOLOS QC / TARGET (GREEN THEME) ── -->
-            <div class="app-card">
+            <!-- ── CARD DYNAMIC SUB-CONTENT 1: RINCIAN ANTRIAN & SAMPLING ── -->
+            <div id="cardAntrianArea" class="app-card" style="display: none;">
+                <div class="card-body-padding">
+                    <div class="sub-card-title mb-2">
+                        <i class="fas fa-hourglass-half text-warning"></i> RINCIAN STATUS ANTRIAN
+                    </div>
+                    <select name="rincian_antrian" class="form-select select-antrian-cream mb-3">
+                        <option value="">-- Pilih Rincian Antrian --</option>
+                        <option value="Kain Belum Datang">Kain Belum Datang</option>
+                        <option value="Menunggu Antrian Potong">Menunggu Antrian Potong</option>
+                        <option value="Proses Approval Sample">Proses Approval Sample</option>
+                        <option value="Revisi Sample">Revisi Sample</option>
+                    </select>
+
+                    <div class="sub-card-title mb-2">
+                        <i class="fas fa-edit text-primary"></i> CATATAN PROSES ANTRIAN
+                    </div>
+                    <textarea name="catatan_antrian" class="form-control textarea-catatan-proses" placeholder="Tuliskan kendala bahan / detail sample di sini..."></textarea>
+                </div>
+            </div>
+
+            <!-- ── CARD DYNAMIC SUB-CONTENT 2: MATRIKS LOLOS QC / PRODUKSI ── -->
+            <div id="cardMatriksArea" class="app-card">
                 <div class="matriks-header-bar">
-                    <i class="fas fa-check-circle me-1"></i> MATRIKS LOLOS QC / PRODUKSI
+                    <i class="fas fa-check-circle me-1"></i> MATRIKS LOLOS QC
                 </div>
                 <div class="matriks-body-area">
                     @foreach($variantRows as $modelName => $row)
@@ -424,7 +500,6 @@
                             @foreach($row['sizes'] as $szItem)
                                 @php
                                     $item = $szItem['item'];
-                                    // Take first process or item quantity
                                     $pg = $item->progres->first();
                                     $valQty = $pg ? $pg->qty_done : $item->quantity;
                                 @endphp
@@ -442,18 +517,17 @@
                 </div>
             </div>
 
-            <!-- ── CARD 4: DATA REJECT / CACAT (RED THEME) ── -->
-            <div class="app-card">
+            <!-- ── CARD DYNAMIC SUB-CONTENT 3: DATA REJECT / CACAT ── -->
+            <div id="cardRejectArea" class="app-card">
                 <div class="reject-header-bar">
                     <i class="fas fa-exclamation-triangle me-1"></i> DATA REJECT / CACAT
                 </div>
                 <div class="reject-body-area">
                     <div id="rejectListArea" class="mb-2">
-                        <!-- Reject Items Container -->
                         @foreach($spk->items as $item)
                             @if(($item->qc_reject ?? 0) > 0)
                                 <div class="d-flex justify-content-between align-items-center bg-white p-2 rounded-3 border mb-2">
-                                    <span class="small fw-bold font-monospace">{{ $item->sku ?: $item->nama_produk }} ({{ $item->ukuran }})</span>
+                                    <span class="small fw-bold font-monospace text-dark">{{ $item->sku ?: $item->nama_produk }} ({{ $item->ukuran }})</span>
                                     <span class="badge bg-danger fs-6">{{ $item->qc_reject }} Pcs Cacat</span>
                                 </div>
                             @endif
@@ -465,7 +539,7 @@
                 </div>
             </div>
 
-            <!-- ── STICKY FOOTER ACTION BAR ── -->
+            <!-- ── STICKY FOOTER ACTION BAR (Match Screenshots) ── -->
             <div class="sticky-footer-bar">
                 <div class="footer-update-text">
                     Last Update:<br>
@@ -484,6 +558,27 @@
         let enterPin = '';
         const correctPin = '{{ $correctPin }}';
         const verifyPinUrl = '{{ route("spks.mobile_verify_pin", $spk->id) }}';
+
+        function toggleTahapanSubCards() {
+            const val = document.getElementById('tahapanSelect').value;
+            const antrianArea = document.getElementById('cardAntrianArea');
+            const matriksArea = document.getElementById('cardMatriksArea');
+            const rejectArea = document.getElementById('cardRejectArea');
+
+            if (val === 'Antrian & Sampling' || val === 'Perencanaan' || val === 'Tahap Sampling') {
+                antrianArea.style.display = 'block';
+                matriksArea.style.display = 'none';
+                rejectArea.style.display = 'none';
+            } else {
+                antrianArea.style.display = 'none';
+                matriksArea.style.display = 'block';
+                rejectArea.style.display = 'block';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            toggleTahapanSubCards();
+        });
 
         function pressDigit(val) {
             if (enterPin.length < 4) {
