@@ -153,20 +153,23 @@
         .design-box-frame {
             border: 1.5px dashed #64748b;
             border-radius: 6px;
-            padding: 4px;
+            padding: 2px;
             text-align: center;
             margin-bottom: 0;
             background: #fff;
-            height: 175px;
+            min-height: 220px;
+            height: 100%;
             display: flex;
             align-items: center;
             justify-content: center;
             overflow: hidden;
+            width: 100%;
         }
 
         .design-img {
-            max-height: 168px;
-            max-width: 98%;
+            width: 100%;
+            height: 215px;
+            max-height: 230px;
             object-fit: contain;
         }
 
@@ -376,9 +379,9 @@
                                         $imgSrc = $currentSpk->mockup_url ?: ($currentSpk->image_url ?: $currentSpk->referensi_klien_url);
                                     @endphp
                                     @if ($imgSrc)
-                                        <img src="{{ $imgSrc }}" class="design-img" alt="Desain SPK">
+                                        <img src="{{ $imgSrc }}" class="design-img" alt="Desain SPK" style="width: 100%; height: 215px; object-fit: contain;">
                                     @else
-                                        <div class="design-placeholder-text">
+                                        <div class="design-placeholder-text" style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;">
                                             👕 TEMPEL GAMBAR DESAIN / MOCKUP DI SINI
                                         </div>
                                     @endif
