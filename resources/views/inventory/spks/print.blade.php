@@ -173,7 +173,7 @@
             text-align: center;
             margin-bottom: 0;
             background: #fff;
-            min-height: 235px;
+            min-height: 220px;
             height: 100%;
             display: flex;
             align-items: center;
@@ -184,8 +184,8 @@
 
         .design-img {
             width: 100%;
-            height: 250px;
-            max-height: 275px;
+            height: 100%;
+            max-height: 100%;
             object-fit: contain;
         }
 
@@ -401,7 +401,7 @@
                         | ADMIN: {{ strtoupper($currentSpk->nama_pic ?: $currentSpk->penginput->name ?? 'SYSTEM') }}
                     </div>
 
-                    <!-- 2-Column Layout: Col 6 (Gambar Desain 50%) & Col 6 (Rincian Varian & Kain 50%) -->
+                    <!-- 2-Column Layout: Col 5 (Gambar Desain) & Col 7 (Rincian Varian & Kain) -->
                     @php
                         $firstBazaItem = !empty($bazaItems) ? reset($bazaItems) : null;
                         $formattedQty = '—';
@@ -421,8 +421,8 @@
                     @endphp
                     <table style="width: 100%; border-collapse: collapse; margin-bottom: 4px;">
                         <tr>
-                            <!-- COL 6 (Width 50%): GAMBAR DESAIN / MOCKUP -->
-                            <td style="width: 50%; vertical-align: top; padding-right: 4px;">
+                            <!-- COL 5 (Width 40%): GAMBAR DESAIN / MOCKUP -->
+                            <td style="width: 40%; vertical-align: top; padding-right: 4px;">
                                 <div class="banner-slate">
                                     🖼️ GAMBAR DESAIN / MOCKUP
                                 </div>
@@ -435,7 +435,7 @@
                                     @endphp
                                     @if ($imgSrc)
                                         <img src="{{ $imgSrc }}" class="design-img" alt="Desain SPK"
-                                            style="width: 100%; height: 230px; object-fit: contain;">
+                                            style="width: 100%; height: 215px; object-fit: contain;">
                                     @else
                                         <div class="design-placeholder-text"
                                             style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;">
@@ -445,8 +445,8 @@
                                 </div>
                             </td>
 
-                            <!-- COL 6 (Width 50%): RINCIAN VARIAN PRODUK & KEBUTUHAN KAIN -->
-                            <td style="width: 50%; vertical-align: top; padding-left: 4px;">
+                            <!-- COL 7 (Width 60%): RINCIAN VARIAN PRODUK & KEBUTUHAN KAIN -->
+                            <td style="width: 60%; vertical-align: top; padding-left: 4px;">
                                 <div class="banner-blue">
                                     RINCIAN VARIAN PRODUK &amp; KEBUTUHAN KAIN
                                 </div>
