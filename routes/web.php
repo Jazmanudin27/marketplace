@@ -134,6 +134,11 @@ Route::get('/terms-of-service', function () {
     return view('terms-of-service');
 })->name('terms-of-service');
 
+// Public Mobile HP SPK Scan & PIN-protected Production Tracking (Tanpa Login Username/Password)
+Route::get('/spk-scan/{spk}', [\App\Http\Controllers\Inventory\SpkController::class, 'mobileScan'])->name('spks.mobile_scan');
+Route::post('/spk-scan/{spk}/verify-pin', [\App\Http\Controllers\Inventory\SpkController::class, 'verifyMobilePin'])->name('spks.mobile_verify_pin');
+Route::post('/spk-scan/{spk}/update-tracking', [\App\Http\Controllers\Inventory\SpkController::class, 'updateMobileTracking'])->name('spks.mobile_update_tracking');
+
 // Petunjuk Penghapusan Data (Tanpa Login)
 Route::get('/data-deletion', function () {
     return view('data-deletion');
@@ -568,11 +573,6 @@ Route::middleware('auth')->group(function () {
         Route::delete('/spks/pickups/{pickup}', [\App\Http\Controllers\Inventory\SpkController::class, 'destroyPickup'])->name('spks.pickups.destroy');
         Route::post('/spks/{spk}/toggle-urgent', [\App\Http\Controllers\Inventory\SpkController::class, 'toggleUrgent'])->name('spks.toggle_urgent');
         Route::post('/spks/{spk}/pay-labor', [\App\Http\Controllers\Inventory\SpkController::class, 'payLabor'])->name('spks.pay_labor');
-
-        // Mobile HP SPK Scan & PIN-protected Production Tracking
-        Route::get('/spk-scan/{spk}', [\App\Http\Controllers\Inventory\SpkController::class, 'mobileScan'])->name('spks.mobile_scan');
-        Route::post('/spk-scan/{spk}/verify-pin', [\App\Http\Controllers\Inventory\SpkController::class, 'verifyMobilePin'])->name('spks.mobile_verify_pin');
-        Route::post('/spk-scan/{spk}/update-tracking', [\App\Http\Controllers\Inventory\SpkController::class, 'updateMobileTracking'])->name('spks.mobile_update_tracking');
 
         // Stock Sync
         Route::get('/stock-sync', [StockSyncController::class, 'index'])->name('inventory.stock_sync');
