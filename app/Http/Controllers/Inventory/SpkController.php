@@ -2148,34 +2148,90 @@ class SpkController extends Controller
     }
 
     /**
-     * Simpan pembaruan tracking tahap produksi via Mobile HP
+     * Simpan pembaruan tracking tahap produksi via Mobile HP (Semua Tahapan)
      */
     public function updateMobileTracking(Request $request, Spk $spk)
     {
         $spk->load(['items', 'proses']);
 
+        // 1. Update Status SPK & Tahap Saat Ini
         if ($request->has('spk_status')) {
-            $spk->update(['status' => $request->input('spk_status')]);
+            $newStatus = $request->input('spk_status');
+            $spk->status = $newStatus;
+            $spk->tahap_saat_ini = $newStatus;
         }
 
-        // Update items details (pemotong, penjahit, status item)
+        // 2. Handle Checkbox "Serahkan ke QC" (Khusus Tahap Jahit)
+        if ($request->input('serahkan_ke_qc') == '1') {
+            $spk->status = 'Quality Control';
+            $spk->tahap_saat_ini = 'Quality Control';
+        }
+
+        // 3. Handle File Uploads (Foto Bukti Kamera per Tahap)
+        $photoField = null;
+        if ($request->hasFile('sample_photo')) {
+            $photoField = $request->file('sample_photo');
+        } elseif ($request->hasFile('print_photo')) {
+            $photoField = $request->file('print_photo');
+        } elseif ($request->hasFile('potong_photo')) {
+            $photoField = $request->file('potong_photo');
+        }
+
+        if ($photoField) {
+            $path = $photoField->store('spk_tracking', 'public');
+            $spk->image_url = \Illuminate\Support\Facades\Storage::url($path);
+        }
+
+        // 4. Update SKU Kain Konversi (Jika Diisi di Tahap Sampling / Print)
+        if ($request->filled('sku_kain_suffix')) {
+            $spk->sku_kain = $request->input('sku_kain_suffix');
+        } elseif ($request->filled('sku_kain_print_suffix')) {
+            $spk->sku_kain = $request->input('sku_kain_print_suffix');
+        }
+
+        // 5. Update Items (Pemotong, Penjahit, Vendor LKPK, Est/Pakai Meter Kain)
+        $pemotong = $request->input('pemotong');
+        $penjahit = $request->input('penjahit');
+        $vendorLkpk = $request->input('vendor_lkpk');
+        $estKainPotong = $request->input('est_kain_potong');
+        $pkiKainPotong = $request->input('pki_kain_potong');
+        $sisaKainPotong = $request->input('sisa_kain_potong');
+
         if ($request->has('items') && is_array($request->input('items'))) {
             foreach ($request->input('items') as $itemId => $itemData) {
                 $item = $spk->items->find($itemId);
                 if (!$item) continue;
 
                 $updatePayload = [];
-                if (isset($itemData['pemotong'])) $updatePayload['pemotong'] = $itemData['pemotong'];
-                if (isset($itemData['penjahit'])) $updatePayload['penjahit'] = $itemData['penjahit'];
+                if ($pemotong) $updatePayload['pemotong'] = $pemotong;
+                if ($penjahit) $updatePayload['penjahit'] = $penjahit;
+                if ($vendorLkpk) $updatePayload['vendor_kancing'] = $vendorLkpk;
+                if ($estKainPotong) $updatePayload['est_kain'] = $estKainPotong;
+                if ($pkiKainPotong) $updatePayload['kain_pakai'] = $pkiKainPotong;
+                if ($sisaKainPotong) $updatePayload['kain_sisa'] = $sisaKainPotong;
+
                 if (isset($itemData['status'])) $updatePayload['status'] = $itemData['status'];
 
                 if (!empty($updatePayload)) {
                     $item->update($updatePayload);
                 }
             }
+        } else {
+            // Apply global fields to all items in SPK
+            $globalPayload = [];
+            if ($pemotong) $globalPayload['pemotong'] = $pemotong;
+            if ($penjahit) $globalPayload['penjahit'] = $penjahit;
+            if ($vendorLkpk) $globalPayload['vendor_kancing'] = $vendorLkpk;
+            if ($estKainPotong) $globalPayload['est_kain'] = $estKainPotong;
+            if ($pkiKainPotong) $globalPayload['kain_pakai'] = $pkiKainPotong;
+            if ($sisaKainPotong) $globalPayload['kain_sisa'] = $sisaKainPotong;
+
+            if (!empty($globalPayload)) {
+                $spk->items()->update($globalPayload);
+            }
         }
 
-        // Update proses progres (qty_done per item & proses)
+        // 6. Update Proses Progres (qty_done per item & proses)
         if ($request->has('progres') && is_array($request->input('progres'))) {
             foreach ($request->input('progres') as $progresId => $qtyDone) {
                 $pg = \App\Models\SpkItemProgres::find($progresId);
@@ -2185,10 +2241,28 @@ class SpkController extends Controller
             }
         }
 
+        // 7. Simpan Catatan Tambahan (Log Histori Catatan per Tahap)
+        $catatanNotes = [];
+        if ($request->filled('catatan_antrian')) $catatanNotes[] = "Antrian: " . $request->input('catatan_antrian');
+        if ($request->filled('pembuat_sample')) $catatanNotes[] = "Pembuat Sample: " . $request->input('pembuat_sample');
+        if ($request->filled('status_acc')) $catatanNotes[] = "Status ACC: " . $request->input('status_acc');
+        if ($request->filled('catatan_revisi_kain')) $catatanNotes[] = "Revisi: " . $request->input('catatan_revisi_kain');
+        if ($request->filled('vendor_print')) $catatanNotes[] = "Vendor Print: " . $request->input('vendor_print');
+        if ($request->filled('catatan_pemotongan')) $catatanNotes[] = "Potong: " . $request->input('catatan_pemotongan');
+        if ($request->filled('catatan_jahit')) $catatanNotes[] = "Jahit: " . $request->input('catatan_jahit');
+
+        if (!empty($catatanNotes)) {
+            $catatanSummary = implode(' | ', $catatanNotes);
+            $spk->tambahan = $spk->tambahan ? ($spk->tambahan . ' || ' . $catatanSummary) : $catatanSummary;
+        }
+
+        $spk->save();
+
         if ($request->expectsJson() || $request->ajax()) {
             return response()->json([
                 'success' => true,
-                'message' => '✅ Tracking Tahap Produksi SPK #' . $spk->no_spk . ' Berhasil Diperbarui!',
+                'message' => '✅ Data Tracking SPK #' . ($spk->no_produksi ?: $spk->no_spk) . ' Berhasil Disimpan ke Database!',
+                'status'  => $spk->status
             ]);
         }
 

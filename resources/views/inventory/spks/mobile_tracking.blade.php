@@ -12,6 +12,8 @@
             --header-blue: #1d4ed8;
             --green-success: #10b981;
             --purple-sampling: #8b5cf6;
+            --cyan-print: #0284c7;
+            --emerald-lkpk: #059669;
             --bg-canvas: #f8fafc;
         }
 
@@ -147,7 +149,129 @@
             cursor: pointer;
         }
 
-        /* ── TAHAP SAMPLING UI (Match Latest Screenshot) ── */
+        /* ── TAHAP LKPK UI ── */
+        .panel-bom-banner {
+            background: linear-gradient(135deg, #059669 0%, #0d9488 100%);
+            border-radius: 18px;
+            padding: 20px;
+            box-shadow: 0 4px 15px rgba(5, 150, 105, 0.25);
+            margin-bottom: 16px;
+        }
+
+        .lkpk-avatar-badge {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: #d1fae5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-tambah-lkpk {
+            background: #ecfdf5;
+            color: #059669;
+            border: 1.5px solid #a7f3d0;
+            font-size: 14px;
+            font-weight: 800;
+            padding: 12px;
+            border-radius: 14px;
+            box-shadow: 0 2px 6px rgba(5, 150, 105, 0.06);
+        }
+
+        .btn-tambah-lkpk:hover {
+            background: #d1fae5;
+            color: #047857;
+        }
+
+        /* ── TAHAP JAHIT UI ── */
+        .tailor-avatar-badge {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: #f3e8ff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-tambah-penjahit {
+            background: #faf5ff;
+            color: #9333ea;
+            border: 1.5px solid #e9d5ff;
+            font-size: 14px;
+            font-weight: 800;
+            padding: 12px;
+            border-radius: 14px;
+            box-shadow: 0 2px 6px rgba(147, 51, 234, 0.06);
+        }
+
+        .btn-tambah-penjahit:hover {
+            background: #f3e8ff;
+            color: #7e22ce;
+        }
+
+        /* ── TAHAP PEMOTONGAN UI ── */
+        .potong-dropzone-box {
+            border: 2px dashed #93c5fd;
+            border-radius: 16px;
+            padding: 30px 20px;
+            background: #eff6ff;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .potong-dropzone-box:hover {
+            background: #dbeafe;
+            border-color: #2563eb;
+        }
+
+        .cutter-avatar-badge {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: #dbeafe;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* ── TAHAP PRINT KAIN UI ── */
+        .panel-print-banner {
+            background: linear-gradient(135deg, #0284c7 0%, #06b6d4 100%);
+            border-radius: 18px;
+            padding: 20px;
+            box-shadow: 0 4px 15px rgba(2, 132, 199, 0.25);
+            margin-bottom: 16px;
+        }
+
+        .print-dropzone-box {
+            border: 2px dashed #38bdf8;
+            border-radius: 16px;
+            padding: 30px 20px;
+            background: #f0f9ff;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .print-dropzone-box:hover {
+            background: #e0f2fe;
+            border-color: #0284c7;
+        }
+
+        .vendor-avatar-badge {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: #cff4fc;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* ── TAHAP SAMPLING UI ── */
         .panel-sampling-banner {
             background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
             border-radius: 18px;
@@ -179,6 +303,27 @@
             display: flex;
             align-items: center;
             justify-content: center;
+        }
+
+        /* Status ACC Radio Group Buttons */
+        .btn-check:checked + .btn-outline-warning {
+            background-color: #fffbeb !important;
+            color: #d97706 !important;
+            border: 2px solid #f59e0b !important;
+            box-shadow: 0 2px 6px rgba(245, 158, 11, 0.2) !important;
+        }
+
+        .btn-check:checked + .btn-outline-secondary {
+            background-color: #f8fafc !important;
+            color: #475569 !important;
+            border: 2px solid #64748b !important;
+        }
+
+        .btn-check:checked + .btn-outline-success {
+            background-color: #ecfdf5 !important;
+            color: #059669 !important;
+            border: 2px solid #10b981 !important;
+            box-shadow: 0 2px 6px rgba(16, 185, 129, 0.2) !important;
         }
 
         /* ── Sub-Section: Antrian ── */
@@ -502,9 +647,334 @@
                 </div>
             </div>
 
-            <!-- ── CARD DYNAMIC SUB-CONTENT: TAHAP SAMPLING (MATCH LATEST SCREENSHOT) ── -->
+            <!-- ── CARD DYNAMIC SUB-CONTENT: TAHAP LKPK (MATCH SCREENSHOT 100%) ── -->
+            <div id="cardLkpkArea" style="display: none;">
+                <!-- 1. Kalkulator Aksesoris (BOM) Banner Card -->
+                <div class="panel-bom-banner mb-3">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="fs-2 text-white"><i class="fas fa-calculator"></i></div>
+                        <div>
+                            <h5 class="fw-bold text-white mb-1">Kalkulator Aksesoris (BOM)</h5>
+                            <div class="small text-white-50" style="font-size: 11px; line-height: 1.4;">
+                                Input jumlah baju yang dikerjakan, sistem akan otomatis menghitung total pemakaian Kancing &amp; Jasa Lubang berdasarkan resep HPP.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. Nama Vendor LKPK & Matriks Kalkulator BOM Card -->
+                <div class="app-card mb-3">
+                    <div class="card-body-padding" style="background: #f0fdf4;">
+                        <!-- Nama Vendor LKPK Header Row -->
+                        <div class="d-flex align-items-center gap-3 mb-3 p-3 bg-white rounded-3 border">
+                            <div class="lkpk-avatar-badge">
+                                <i class="fas fa-user-cog fs-5" style="color: #059669;"></i>
+                            </div>
+                            <div class="flex-grow-1">
+                                <div class="small fw-bold font-monospace mb-1" style="font-size: 11px; color: #059669;">
+                                    NAMA VENDOR LKPK
+                                </div>
+                                <input type="text" name="vendor_lkpk" class="form-control form-control-sm border-0 border-bottom bg-transparent font-monospace fw-bold text-dark p-0" placeholder="Ketik nama vendor..." value="YUDI">
+                            </div>
+                        </div>
+
+                        <!-- List per-Item SKU + Size with BOM Recipe -->
+                        <div class="bg-white p-3 rounded-3 border mb-2">
+                            @foreach($spk->items as $item)
+                                @php
+                                    $size = $item->ukuran ?: 'ALL';
+                                    $resepKancing = str_contains(strtolower($size), 'xl') ? 11 : (str_contains(strtolower($size), 'lpk') ? 7 : 9);
+                                    $resepLubang = $resepKancing;
+                                @endphp
+                                <div class="lkpk-item-row mb-3 pb-3 border-bottom">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <div>
+                                            <span class="fw-bold font-monospace text-dark" style="font-size: 13px;">{{ $item->sku ?: $item->nama_produk }}</span>
+                                            <span class="badge bg-secondary font-monospace ms-1">{{ $size }}</span>
+                                        </div>
+                                        <span class="badge font-monospace" style="background: #fef3c7; color: #92400e; font-size: 10px;">
+                                            Resep: {{ $resepKancing }} Kancing | {{ $resepLubang }} Lubang
+                                        </span>
+                                    </div>
+
+                                    <div class="row g-2">
+                                        <div class="col-4 text-center">
+                                            <label class="form-label form-label-sm mb-1 fw-bold" style="font-size: 10px; color: #059669;">Qty Baju</label>
+                                            <input type="number" 
+                                                   id="qty_baju_{{ $item->id }}"
+                                                   name="items[{{ $item->id }}][qty_baju]" 
+                                                   class="form-control form-control-sm text-center fw-bold font-monospace py-2" 
+                                                   value="{{ $item->quantity }}" 
+                                                   oninput="hitungBomLkpk({{ $item->id }}, {{ $resepKancing }}, {{ $resepLubang }})"
+                                                   style="background: #ecfdf5; border: 1.5px solid #a7f3d0 !important;">
+                                        </div>
+                                        <div class="col-4 text-center">
+                                            <label class="form-label form-label-sm mb-1 fw-bold text-secondary" style="font-size: 10px;">Tot Kancing</label>
+                                            <input type="number" 
+                                                   id="tot_kancing_{{ $item->id }}"
+                                                   name="items[{{ $item->id }}][tot_kancing]" 
+                                                   class="form-control form-control-sm text-center fw-bold font-monospace bg-light py-2" 
+                                                   value="0" 
+                                                   readonly>
+                                        </div>
+                                        <div class="col-4 text-center">
+                                            <label class="form-label form-label-sm mb-1 fw-bold text-secondary" style="font-size: 10px;">Tot Lubang</label>
+                                            <input type="number" 
+                                                   id="tot_lubang_{{ $item->id }}"
+                                                   name="items[{{ $item->id }}][tot_lubang]" 
+                                                   class="form-control form-control-sm text-center fw-bold font-monospace bg-light py-2" 
+                                                   value="0" 
+                                                   readonly>
+                                        </div>
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. Tambah Vendor LKPK Button -->
+                <button type="button" class="btn btn-tambah-lkpk w-100 mb-3" onclick="tambahRowLkpk()">
+                    <i class="fas fa-user-plus me-1"></i> Tambah Vendor LKPK
+                </button>
+            </div>
+
+            <!-- ── CARD DYNAMIC SUB-CONTENT: TAHAP JAHIT (MATCH SCREENSHOT 100%) ── -->
+            <div id="cardJahitArea" style="display: none;">
+                <div class="app-card mb-3">
+                    <div class="card-body-padding" style="background: #fdf4ff;">
+                        <div class="d-flex align-items-center gap-3 mb-3 p-3 bg-white rounded-3 border">
+                            <div class="tailor-avatar-badge">
+                                <i class="fas fa-user-tag fs-5" style="color: #c084fc;"></i>
+                            </div>
+                            <div class="flex-grow-1">
+                                <div class="small fw-bold font-monospace mb-1" style="font-size: 11px; color: #a855f7;">
+                                    NAMA PENJAHIT / VENDOR JAHIT
+                                </div>
+                                <input type="text" name="penjahit" class="form-control form-control-sm border-0 border-bottom bg-transparent font-monospace fw-bold text-dark p-0" placeholder="Ketik nama penjahit...">
+                            </div>
+                        </div>
+
+                        <div id="jahitMatriksContainer" class="bg-white p-3 rounded-3 border mb-3">
+                            @foreach($variantRows as $modelName => $row)
+                                <div class="sku-header-title text-dark">{{ $modelName }}</div>
+                                <div class="size-boxes-grid">
+                                    @foreach($row['sizes'] as $szItem)
+                                        @php
+                                            $item = $szItem['item'];
+                                            $pg = $item->progres->first();
+                                            $valQty = $pg ? $pg->qty_done : $item->quantity;
+                                        @endphp
+                                        <div class="size-box-item">
+                                            <div class="size-box-label">{{ $szItem['size'] }}</div>
+                                            <input type="number" 
+                                                   name="{{ $pg ? 'progres['.$pg->id.']' : 'items['.$item->id.'][quantity_done]' }}" 
+                                                   class="size-box-input" 
+                                                   value="{{ $valQty }}" 
+                                                   min="0">
+                                        </div>
+                                    @endforeach
+                                </div>
+                            @endforeach
+
+                            <div class="form-check mt-3 pt-2 border-top">
+                                <input class="form-check-input" type="checkbox" name="serahkan_ke_qc" id="chkSerahkanQC" value="1">
+                                <label class="form-check-label fw-bold text-dark small" for="chkSerahkanQC">
+                                    Serahkan ke QC
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="button" class="btn btn-tambah-penjahit w-100 mb-3" onclick="tambahRowPenjahit()">
+                    <i class="fas fa-user-plus me-1"></i> Tambah Penjahit
+                </button>
+
+                <div class="app-card mb-3">
+                    <div class="card-body-padding">
+                        <textarea name="catatan_jahit" class="form-control textarea-catatan-proses" placeholder="Catatan jahit..."></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ── CARD DYNAMIC SUB-CONTENT: TAHAP PEMOTONGAN (MATCH SCREENSHOT 100%) ── -->
+            <div id="cardPotongArea" style="display: none;">
+                <div class="app-card mb-3">
+                    <div class="card-body-padding">
+                        <div class="sub-card-title mb-3">
+                            <i class="fas fa-camera text-primary"></i> BUKTI POTONG (GLOBAL)
+                        </div>
+                        <div class="potong-dropzone-box" onclick="document.getElementById('potongCameraInput').click()">
+                            <input type="file" id="potongCameraInput" name="potong_photo" accept="image/*" capture="environment" style="display:none;" onchange="previewPotongPhoto(this)">
+                            <div id="potongPreviewPlaceholder" class="text-center">
+                                <i class="fas fa-camera fs-1 text-primary mb-2"></i>
+                                <div class="fw-bold text-secondary">Jepret Kamera</div>
+                            </div>
+                            <img id="potongPreviewImg" src="" style="display:none; max-height: 180px; width:100%; object-fit:contain; border-radius:10px;">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="app-card mb-3">
+                    <div class="card-body-padding" style="background: #f8fafc;">
+                        <div class="d-flex align-items-center gap-3 mb-3 p-3 bg-white rounded-3 border">
+                            <div class="cutter-avatar-badge">
+                                <i class="fas fa-cut text-primary fs-5"></i>
+                            </div>
+                            <div class="flex-grow-1">
+                                <div class="small fw-bold text-primary font-monospace" style="font-size: 11px;">
+                                    PEMOTONG KAIN INI
+                                </div>
+                                <input type="text" name="pemotong" class="form-control form-control-sm border-0 border-bottom bg-transparent font-monospace fw-bold text-dark p-0" placeholder="Ketik nama...">
+                            </div>
+                        </div>
+
+                        <div class="bg-white p-3 rounded-3 border mb-3">
+                            <label class="form-label form-label-sm mb-1 fw-bold text-secondary" style="font-size: 11px;">Acuan Potong (Material)</label>
+                            <input type="text" class="form-control form-control-sm font-monospace fw-bold bg-light mb-3" value="{{ strtoupper($fabricName) }}" readonly>
+
+                            <div class="row g-2">
+                                <div class="col-3 text-center">
+                                    <label class="form-label form-label-sm mb-1 fw-bold text-secondary" style="font-size: 10px;">Est(m)</label>
+                                    <input type="number" name="est_kain_potong" class="form-control form-control-sm text-center fw-bold font-monospace bg-light py-2" value="84" readonly>
+                                </div>
+                                <div class="col-3 text-center">
+                                    <label class="form-label form-label-sm mb-1 fw-bold text-secondary" style="font-size: 10px;">Rdy(m)</label>
+                                    <input type="number" name="rdy_kain_potong" class="form-control form-control-sm text-center fw-bold font-monospace py-2" placeholder="" step="0.01">
+                                </div>
+                                <div class="col-3 text-center">
+                                    <label class="form-label form-label-sm mb-1 fw-bold text-primary" style="font-size: 10px;">Pki(m)</label>
+                                    <input type="number" name="pki_kain_potong" class="form-control form-control-sm text-center fw-bold font-monospace border-primary py-2" placeholder="" step="0.01">
+                                </div>
+                                <div class="col-3 text-center">
+                                    <label class="form-label form-label-sm mb-1 fw-bold text-warning" style="font-size: 10px;">Sisa(m)</label>
+                                    <input type="number" name="sisa_kain_potong" class="form-control form-control-sm text-center fw-bold font-monospace border-warning py-2" placeholder="" step="0.01" style="border-color: #f97316 !important;">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-white p-3 rounded-3 border mb-3">
+                            <div class="sub-card-title mb-3">
+                                <i class="fas fa-scissors text-primary me-1"></i> HASIL POTONG (KAIN INI)
+                            </div>
+                            @foreach($variantRows as $modelName => $row)
+                                <div class="sku-header-title text-primary">SKU: {{ $modelName }}</div>
+                                <div class="size-boxes-grid">
+                                    @foreach($row['sizes'] as $szItem)
+                                        @php
+                                            $item = $szItem['item'];
+                                            $pg = $item->progres->first();
+                                            $valQty = $pg ? $pg->qty_done : $item->quantity;
+                                        @endphp
+                                        <div class="size-box-item">
+                                            <div class="size-box-label">{{ $szItem['size'] }}</div>
+                                            <input type="number" 
+                                                   name="{{ $pg ? 'progres['.$pg->id.']' : 'items['.$item->id.'][quantity_done]' }}" 
+                                                   class="size-box-input" 
+                                                   value="{{ $valQty }}" 
+                                                   min="0">
+                                        </div>
+                                    @endforeach
+                                </div>
+                            @endforeach
+                        </div>
+
+                        <div>
+                            <textarea name="catatan_pemotongan" class="form-control textarea-catatan-proses" placeholder="Catatan pemotongan..."></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ── CARD DYNAMIC SUB-CONTENT: TAHAP PRINT KAIN ── -->
+            <div id="cardPrintKainArea" style="display: none;">
+                <div class="panel-print-banner mb-3">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="fs-2 text-white"><i class="fas fa-print"></i></div>
+                            <div>
+                                <h5 class="fw-bold text-white mb-1">Panel Print Motif</h5>
+                                <div class="small text-white-50">Input vendor &amp; konversi SKU per-bahan.</div>
+                            </div>
+                        </div>
+                        <div class="fs-1 text-white opacity-25"><i class="fas fa-tint"></i></div>
+                    </div>
+                </div>
+
+                <div class="app-card mb-3">
+                    <div class="card-body-padding">
+                        <div class="sub-card-title mb-3 text-cyan">
+                            <i class="fas fa-camera text-info"></i> BUKTI PRINT / ROLL KAIN (GLOBAL)
+                        </div>
+                        <div class="print-dropzone-box" onclick="document.getElementById('printCameraInput').click()">
+                            <input type="file" id="printCameraInput" name="print_photo" accept="image/*" capture="environment" style="display:none;" onchange="previewPrintPhoto(this)">
+                            <div id="printPreviewPlaceholder" class="text-center">
+                                <i class="fas fa-camera fs-1 text-info mb-2"></i>
+                                <div class="fw-bold text-secondary">Jepret Hasil Print</div>
+                            </div>
+                            <img id="printPreviewImg" src="" style="display:none; max-height: 180px; width:100%; object-fit:contain; border-radius:10px;">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="app-card mb-3">
+                    <div class="card-body-padding" style="background: #ecfeff;">
+                        <div class="d-flex align-items-center gap-3 mb-3 p-3 bg-white rounded-3 border">
+                            <div class="vendor-avatar-badge">
+                                <i class="fas fa-industry text-info fs-5"></i>
+                            </div>
+                            <div class="flex-grow-1">
+                                <div class="small fw-bold text-info font-monospace" style="font-size: 11px;">
+                                    VENDOR PRINT ({{ strtoupper($fabricName) }})
+                                </div>
+                                <input type="text" name="vendor_print" class="form-control form-control-sm border-0 border-bottom bg-transparent font-monospace fw-bold text-dark p-0" placeholder="Ketik nama vendor...">
+                            </div>
+                        </div>
+
+                        <div class="bg-white p-3 rounded-3 border mb-2">
+                            <div class="sub-card-title mb-3 text-info">
+                                <i class="fas fa-magic text-info me-1"></i> KELAHIRAN SKU BARU
+                            </div>
+                            
+                            <div class="row g-2 align-items-center mb-2">
+                                <div class="col-3 text-end fw-bold text-secondary small">DARI:</div>
+                                <div class="col-9">
+                                    <input type="text" class="form-control form-control-sm font-monospace fw-bold bg-light" value="{{ strtoupper($fabricName) }}" readonly>
+                                </div>
+                            </div>
+
+                            <div class="row g-2 align-items-center mb-3">
+                                <div class="col-3 text-end fw-bold text-info small">SUFFIX:</div>
+                                <div class="col-9">
+                                    <div class="input-group input-group-sm">
+                                        <span class="input-group-text bg-light font-monospace small" style="font-size: 10.5px;">{{ strtoupper($fabricName) }}-</span>
+                                        <input type="text" name="sku_kain_print_suffix" class="form-control font-monospace fw-bold text-info" placeholder="KODE BARU">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row g-2">
+                                <div class="col-6 text-center">
+                                    <label class="form-label form-label-sm mb-1 fw-bold text-secondary" style="font-size: 10px;">ESTIMASI HPP (M)</label>
+                                    <input type="number" name="est_hpp_print" class="form-control form-control-sm text-center fw-bold font-monospace py-2" value="84" step="any">
+                                </div>
+                                <div class="col-6 text-center">
+                                    <label class="form-label form-label-sm mb-1 fw-bold text-secondary" style="font-size: 10px;">KAIN TERPAKAI (M)</label>
+                                    <input type="number" name="kain_terpakai_print" class="form-control form-control-sm text-center fw-bold font-monospace py-2" value="0.00" step="0.01">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="small text-muted fst-italic px-1" style="font-size: 10.5px; color: #0284c7 !important;">
+                            <i class="fas fa-info-circle me-1"></i> Jika Anda merubah SKU di sini, nama SKU kain di Tahap Potong akan ikut berubah secara otomatis.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ── CARD DYNAMIC SUB-CONTENT: TAHAP SAMPLING ── -->
             <div id="cardSamplingArea" style="display: none;">
-                <!-- 1. Panel Sampling Banner Card -->
                 <div class="panel-sampling-banner">
                     <div class="d-flex align-items-center gap-3">
                         <div class="fs-2 text-white"><i class="fas fa-flask"></i></div>
@@ -515,7 +985,6 @@
                     </div>
                 </div>
 
-                <!-- 2. Dokumentasi Sample Fisik (Global) Card -->
                 <div class="app-card">
                     <div class="card-body-padding">
                         <div class="sub-card-title mb-3">
@@ -532,10 +1001,9 @@
                     </div>
                 </div>
 
-                <!-- 3. Pembuat Sample & Konversi SKU Kain Card -->
                 <div class="app-card">
-                    <div class="card-body-padding" style="background: #f5f3ff;">
-                        <div class="d-flex align-items-center gap-3 mb-3">
+                    <div class="card-body-padding" style="background: #f8fafc;">
+                        <div class="d-flex align-items-center gap-3 mb-3 p-3 bg-white rounded-3 border">
                             <div class="user-avatar-badge">
                                 <i class="fas fa-user-tag text-primary fs-5"></i>
                             </div>
@@ -546,12 +1014,67 @@
                                 <input type="text" name="pembuat_sample" class="form-control form-control-sm border-0 border-bottom bg-transparent font-monospace fw-bold text-dark p-0" placeholder="Ketik nama...">
                             </div>
                         </div>
-                        
-                        <div class="bg-white p-3 rounded-3 border d-flex align-items-center justify-content-between cursor-pointer">
-                            <div class="fw-bold text-secondary small d-flex align-items-center gap-2">
+
+                        <div class="bg-white p-3 rounded-3 border mb-3">
+                            <div class="sub-card-title mb-3">
                                 <i class="fas fa-random text-primary"></i> KONVERSI SKU KAIN
                             </div>
-                            <i class="fas fa-chevron-right text-muted"></i>
+                            
+                            <div class="row g-2 align-items-center mb-2">
+                                <div class="col-3 text-end fw-bold text-secondary small">DARI:</div>
+                                <div class="col-9">
+                                    <input type="text" class="form-control form-control-sm font-monospace fw-bold bg-light" value="{{ strtoupper($fabricName) }}" readonly>
+                                </div>
+                            </div>
+
+                            <div class="row g-2 align-items-center mb-3">
+                                <div class="col-3 text-end fw-bold text-primary small">SUFFIX:</div>
+                                <div class="col-9">
+                                    <div class="input-group input-group-sm">
+                                        <span class="input-group-text bg-light font-monospace small" style="font-size: 10.5px;">{{ strtoupper($fabricName) }}-</span>
+                                        <input type="text" name="sku_kain_suffix" class="form-control font-monospace fw-bold text-primary" placeholder="KODE BARU">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row g-2 mb-3">
+                            <div class="col-4 text-center">
+                                <label class="form-label form-label-sm mb-1 fw-bold text-secondary" style="font-size: 10px;">ESTIMASI HPP (M)</label>
+                                <input type="number" name="est_hpp_kain" class="form-control form-control-sm text-center fw-bold font-monospace py-2" value="84" step="any">
+                            </div>
+                            <div class="col-4 text-center">
+                                <label class="form-label form-label-sm mb-1 fw-bold text-secondary" style="font-size: 10px;">TERPAKAI (M)</label>
+                                <input type="number" name="terpakai_kain" class="form-control form-control-sm text-center fw-bold font-monospace py-2" value="0.00" step="0.01">
+                            </div>
+                            <div class="col-4 text-center">
+                                <label class="form-label form-label-sm mb-1 fw-bold text-secondary" style="font-size: 10px;">JENIS</label>
+                                <select name="jenis_kain" class="form-select form-select-sm text-center fw-bold py-2">
+                                    <option value="">-- Pilih --</option>
+                                    <option value="Cotton Combed">Cotton Combed</option>
+                                    <option value="Polyester">Polyester</option>
+                                    <option value="Drill">Drill</option>
+                                    <option value="Kuningan">Kuningan</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <div class="sub-card-title mb-2">STATUS ACC</div>
+                            <div class="btn-group w-100 p-1 bg-white border rounded-3" role="group">
+                                <input type="radio" class="btn-check" name="status_acc" id="acc_menunggu" value="MENUNGGU" checked>
+                                <label class="btn btn-sm btn-outline-warning fw-bold border-0 rounded-2 py-2" for="acc_menunggu">MENUNGGU</label>
+
+                                <input type="radio" class="btn-check" name="status_acc" id="acc_revisi" value="REVISI">
+                                <label class="btn btn-sm btn-outline-secondary fw-bold border-0 rounded-2 py-2" for="acc_revisi">REVISI</label>
+
+                                <input type="radio" class="btn-check" name="status_acc" id="acc_ok" value="ACC">
+                                <label class="btn btn-sm btn-outline-success fw-bold border-0 rounded-2 py-2" for="acc_ok">ACC</label>
+                            </div>
+                        </div>
+
+                        <div>
+                            <textarea name="catatan_revisi_kain" class="form-control textarea-catatan-proses" placeholder="Catatan revisi bahan ini..."></textarea>
                         </div>
                     </div>
                 </div>
@@ -651,31 +1174,74 @@
 
         function toggleTahapanSubCards() {
             const val = document.getElementById('tahapanSelect').value;
+            const lkpkArea = document.getElementById('cardLkpkArea');
+            const jahitArea = document.getElementById('cardJahitArea');
+            const potongArea = document.getElementById('cardPotongArea');
+            const printKainArea = document.getElementById('cardPrintKainArea');
             const samplingArea = document.getElementById('cardSamplingArea');
             const antrianArea = document.getElementById('cardAntrianArea');
             const matriksArea = document.getElementById('cardMatriksArea');
             const rejectArea = document.getElementById('cardRejectArea');
 
-            if (val === 'Tahap Sampling') {
+            // Hide all sub-cards first
+            lkpkArea.style.display = 'none';
+            jahitArea.style.display = 'none';
+            potongArea.style.display = 'none';
+            printKainArea.style.display = 'none';
+            samplingArea.style.display = 'none';
+            antrianArea.style.display = 'none';
+            matriksArea.style.display = 'none';
+            rejectArea.style.display = 'none';
+
+            if (val === 'Tahap LKPK') {
+                lkpkArea.style.display = 'block';
+            } else if (val === 'Tahap Jahit') {
+                jahitArea.style.display = 'block';
+            } else if (val === 'Tahap Pemotongan') {
+                potongArea.style.display = 'block';
+            } else if (val === 'Tahap Print Kain') {
+                printKainArea.style.display = 'block';
+            } else if (val === 'Tahap Sampling') {
                 samplingArea.style.display = 'block';
-                antrianArea.style.display = 'none';
-                matriksArea.style.display = 'none';
-                rejectArea.style.display = 'none';
             } else if (val === 'Antrian & Sampling') {
-                samplingArea.style.display = 'none';
                 antrianArea.style.display = 'block';
-                matriksArea.style.display = 'none';
-                rejectArea.style.display = 'none';
-            } else if (val === 'Perencanaan') {
-                samplingArea.style.display = 'none';
-                antrianArea.style.display = 'none';
-                matriksArea.style.display = 'none';
-                rejectArea.style.display = 'none';
-            } else {
-                samplingArea.style.display = 'none';
-                antrianArea.style.display = 'none';
-                matriksArea.style.display = 'block';
-                rejectArea.style.display = 'block';
+            }
+            // Perencanaan, Quality Control, Packing / Finishing, Selesai (Finished Good) -> Clean view!
+        }
+
+        function hitungBomLkpk(itemId, kancingPerPcs, lubangPerPcs) {
+            const qtyInput = document.getElementById('qty_baju_' + itemId);
+            const totKancing = document.getElementById('tot_kancing_' + itemId);
+            const totLubang = document.getElementById('tot_lubang_' + itemId);
+            const qty = parseInt(qtyInput.value) || 0;
+
+            if (totKancing) totKancing.value = qty * kancingPerPcs;
+            if (totLubang) totLubang.value = qty * lubangPerPcs;
+        }
+
+        function previewPotongPhoto(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('potongPreviewPlaceholder').style.display = 'none';
+                    const img = document.getElementById('potongPreviewImg');
+                    img.src = e.target.result;
+                    img.style.display = 'block';
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        function previewPrintPhoto(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('printPreviewPlaceholder').style.display = 'none';
+                    const img = document.getElementById('printPreviewImg');
+                    img.src = e.target.result;
+                    img.style.display = 'block';
+                };
+                reader.readAsDataURL(input.files[0]);
             }
         }
 
@@ -690,6 +1256,38 @@
                 };
                 reader.readAsDataURL(input.files[0]);
             }
+        }
+
+        function tambahRowPenjahit() {
+            Swal.fire({
+                title: 'Tambah Penjahit Baru',
+                html: `<input type="text" id="namaPenjahitBaru" class="form-control" placeholder="Nama Penjahit / Vendor Jahit">`,
+                showCancelButton: true,
+                confirmButtonText: 'Tambah',
+                preConfirm: () => {
+                    return document.getElementById('namaPenjahitBaru').value;
+                }
+            }).then((res) => {
+                if (res.isConfirmed && res.value) {
+                    Swal.fire('Ditambahkan', 'Penjahit ' + res.value + ' berhasil ditambahkan.', 'success');
+                }
+            });
+        }
+
+        function tambahRowLkpk() {
+            Swal.fire({
+                title: 'Tambah Vendor LKPK Baru',
+                html: `<input type="text" id="namaLkpkBaru" class="form-control" placeholder="Nama Vendor LKPK">`,
+                showCancelButton: true,
+                confirmButtonText: 'Tambah',
+                preConfirm: () => {
+                    return document.getElementById('namaLkpkBaru').value;
+                }
+            }).then((res) => {
+                if (res.isConfirmed && res.value) {
+                    Swal.fire('Ditambahkan', 'Vendor LKPK ' + res.value + ' berhasil ditambahkan.', 'success');
+                }
+            });
         }
 
         document.addEventListener('DOMContentLoaded', function() {
