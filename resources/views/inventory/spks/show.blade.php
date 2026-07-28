@@ -1309,6 +1309,19 @@
         </div>
     </div>
 </div>
+
+{{-- DATALISTS FOR SKU AND PRODUCT NAME AUTOCOMPLETE --}}
+<datalist id="master_skus_datalist"></datalist>
+<datalist id="master_product_names_datalist"></datalist>
+<datalist id="ukuran_datalist">
+    <option value="S">
+    <option value="M">
+    <option value="L">
+    <option value="XL">
+    <option value="XXL">
+    <option value="3XL">
+    <option value="ALL SIZE">
+</datalist>
 @endsection
 
 @push('scripts')
@@ -1410,6 +1423,104 @@
             row.remove();
         }
     }
+
+    function updateMasterSkuDatalist(queryStr = '') {
+        const datalist = document.getElementById('master_skus_datalist');
+        if (!datalist) return;
+        const cleanQ = queryStr.trim().toLowerCase();
+        datalist.innerHTML = '';
+        let count = 0;
+        for (const prod of allMasterProductsList) {
+            const skuStr = (prod.sku || '').toLowerCase();
+            const skuIndukStr = (prod.sku_induk || '').toLowerCase();
+            const nameStr = (prod.name || '').toLowerCase();
+            if (cleanQ === '' || skuStr.includes(cleanQ) || skuIndukStr.includes(cleanQ) || nameStr.includes(cleanQ)) {
+                if (prod.sku) {
+                    const opt = document.createElement('option');
+                    opt.value = prod.sku;
+                    opt.textContent = prod.name + (prod.ukuran ? ' (' + prod.ukuran + ')' : '');
+                    datalist.appendChild(opt);
+                    count++;
+                }
+                if (count >= 15) break;
+            }
+        }
+    }
+
+    function onSkuInputChanged(inputEl) {
+        updateMasterSkuDatalist(inputEl.value);
+
+        const val = inputEl.value.trim().toUpperCase();
+        if (!val) return;
+
+        const row = inputEl.closest('tr');
+        if (!row) return;
+
+        // Try exact match in masterProductsMap or allMasterProductsList
+        let prod = masterProductsMap[val];
+        if (!prod) {
+            prod = allMasterProductsList.find(p => 
+                (p.sku && p.sku.toUpperCase() === val) || 
+                (p.sku_induk && p.sku_induk.toUpperCase() === val)
+            );
+        }
+
+        if (prod) {
+            const nameInput = row.querySelector('.row-nama-produk, .input-nama-produk');
+            const ukuranInput = row.querySelector('.row-ukuran, .input-ukuran-produk');
+
+            if (nameInput && (!nameInput.value || nameInput.value === 'PRODUK BARU')) {
+                nameInput.value = prod.name;
+            }
+            if (ukuranInput && !ukuranInput.value && prod.ukuran) {
+                ukuranInput.value = prod.ukuran;
+            }
+        }
+    }
+
+    function onSkuInputBlur(inputEl) {
+        onSkuInputChanged(inputEl);
+    }
+
+    function onProductNameInputChanged(inputEl) {
+        updateMasterProductNameDatalist(inputEl.value);
+
+        const val = inputEl.value.trim().toLowerCase();
+        if (!val) return;
+
+        const row = inputEl.closest('tr');
+        if (!row) return;
+
+        const prod = allMasterProductsList.find(p => (p.name || '').toLowerCase() === val);
+        if (prod) {
+            const skuInput = row.querySelector('.row-sku-produk, .input-sku-produk');
+            const ukuranInput = row.querySelector('.row-ukuran, .input-ukuran-produk');
+
+            if (skuInput && !skuInput.value && prod.sku) {
+                skuInput.value = prod.sku;
+            }
+            if (ukuranInput && !ukuranInput.value && prod.ukuran) {
+                ukuranInput.value = prod.ukuran;
+            }
+        }
+    }
+
+    // Event delegation for dynamically added and static row inputs
+    document.addEventListener('input', function(e) {
+        if (e.target.classList.contains('row-sku-produk') || e.target.classList.contains('input-sku-produk')) {
+            onSkuInputChanged(e.target);
+        } else if (e.target.classList.contains('row-nama-produk') || e.target.classList.contains('input-nama-produk')) {
+            onProductNameInputChanged(e.target);
+        }
+    });
+
+    document.addEventListener('focusin', function(e) {
+        if (e.target.classList.contains('row-sku-produk') || e.target.classList.contains('input-sku-produk')) {
+            updateMasterSkuDatalist(e.target.value);
+        } else if (e.target.classList.contains('row-nama-produk') || e.target.classList.contains('input-nama-produk')) {
+            updateMasterProductNameDatalist(e.target.value);
+        }
+    });
 
     function updateInventoryItemsDatalist(queryStr = '') {
         const datalist = document.getElementById('inventory_items_datalist');
