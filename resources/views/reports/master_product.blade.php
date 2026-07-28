@@ -147,16 +147,18 @@
                             <th style="width: 120px;">KATEGORI / MERK</th>
                             <th class="text-end" style="width: 110px;">HPP (MODAL)</th>
                             <th class="text-end" style="width: 110px;">HARGA JUAL</th>
-                            <th class="text-center" style="width: 80px;">STOK</th>
+                            <th class="text-center" style="width: 85px;">STOK ERP</th>
+                            <th class="text-center" style="width: 85px;">STOK MP</th>
                             <th class="text-center" style="width: 80px;">STATUS</th>
                             <th class="text-center" style="width: 90px;">JML TAUTAN</th>
-                            <th style="width: 170px;">CHANNEL / TOKO MARKETPLACE</th>
+                            <th style="width: 190px;">CHANNEL / TOKO MARKETPLACE</th>
                         </tr>
                     </thead>
                     <tbody>
                         @forelse($products as $index => $product)
                             @php
                                 $mpCount = $product->marketplaceProducts->count();
+                                $mpStock = $product->marketplaceProducts->sum('stock');
                             @endphp
                             <tr>
                                 <td class="text-center fw-semibold text-muted">{{ $index + 1 }}</td>
@@ -224,8 +226,13 @@
                                     Rp {{ number_format($product->price, 0, ',', '.') }}
                                 </td>
                                 <td class="text-center">
-                                    <span class="badge {{ $product->stock <= $product->min_stock ? 'bg-danger' : 'bg-success' }} font-monospace">
+                                    <span class="badge {{ $product->stock <= $product->min_stock ? 'bg-danger' : 'bg-success' }} font-monospace px-2 py-1" title="Stok Fisik Gudang ERP">
                                         {{ number_format($product->stock) }}
+                                    </span>
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge bg-info-subtle text-info border border-info-subtle font-monospace px-2 py-1" title="Total Stok Terhubung di Marketplace" style="background-color: #e0f2fe; color: #0369a1 !important; border-color: #bae6fd !important;">
+                                        {{ number_format($mpStock) }}
                                     </span>
                                 </td>
                                 <td class="text-center">
@@ -237,7 +244,7 @@
                                 </td>
                                 <td class="text-center">
                                     @if($mpCount > 0)
-                                        <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1" style="font-size: 11px;">
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1" style="font-size: 11px; background-color: #dcfce7; color: #15803d !important; border-color: #86efac !important;">
                                             <i class="fas fa-link me-1"></i>{{ $mpCount }} MP
                                         </span>
                                     @else
@@ -249,9 +256,10 @@
                                 <td>
                                     @if($mpCount > 0)
                                         <div class="d-flex flex-wrap gap-1">
-                                            @foreach($product->marketplaceProducts->unique('store_id') as $mp)
-                                                <span class="badge bg-light text-dark border" style="font-size: 10px;">
+                                            @foreach($product->marketplaceProducts as $mp)
+                                                <span class="badge bg-light text-dark border p-1" style="font-size: 10px;" title="SKU MP: {{ $mp->marketplace_sku ?? '—' }}">
                                                     <i class="fas fa-store me-1 text-primary"></i>{{ $mp->store->channel->name ?? '' }}: {{ $mp->store->store_name ?? '' }}
+                                                    <span class="badge bg-secondary ms-1" style="font-size: 9px;">Stok: {{ number_format($mp->stock) }}</span>
                                                 </span>
                                             @endforeach
                                         </div>

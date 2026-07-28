@@ -259,20 +259,34 @@ class Order extends Model
 
     /**
      * Pendapatan Bersih (Escrow).
+     * Jika ada financial_breakdown['escrow_amount'] > 0, gunakan escrow_amount resmi marketplace.
+     * Jika ada rincian biaya TikTok (net_platform_commission, dynamic_commission, dll), hitung net_amount presisi.
      * Jika net_amount tersimpan > 0, gunakan nilainya.
-     * Jika 0 tapi ada financial_breakdown['escrow_amount'] > 0, gunakan escrow_amount.
-     * Fallback (pesanan belum cair / berjalan): hitung estimasi (total_amount - discount_amount - marketplace_fee).
+     * Fallback: hitung estimasi (total_amount - discount_amount - marketplace_fee).
      */
     public function getNetAmountAttribute($value): float
     {
+        $fb = $this->financial_breakdown;
+
+        if (!empty($fb['escrow_amount']) && (float) $fb['escrow_amount'] > 0) {
+            return (float) $fb['escrow_amount'];
+        }
+
+        if (!empty($fb['net_platform_commission']) || !empty($fb['growth_xtra_fee']) || !empty($fb['preorder_service_fee'])) {
+            $subtotal = (float) ($fb['subtotal_after_seller_discounts'] ?? ($this->total_amount - $this->discount_amount));
+            $fees = (float) ($fb['net_platform_commission'] ?? 0)
+                  + (float) ($fb['preorder_service_fee'] ?? 0)
+                  + (float) ($fb['dynamic_commission'] ?? 0)
+                  + (float) ($fb['growth_xtra_fee'] ?? 0)
+                  + (float) ($fb['order_processing_fee'] ?? 0);
+            if ($fees > 0) {
+                return max(0.0, $subtotal - $fees);
+            }
+        }
+
         $val = (float) $value;
         if ($val > 0) {
             return $val;
-        }
-
-        $fb = $this->financial_breakdown;
-        if (!empty($fb['escrow_amount']) && (float) $fb['escrow_amount'] > 0) {
-            return (float) $fb['escrow_amount'];
         }
 
         $total = (float) $this->total_amount;

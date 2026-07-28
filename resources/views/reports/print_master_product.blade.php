@@ -170,21 +170,23 @@
                 <th width="15%">KOMPONEN SET</th>
                 <th width="7%" class="text-right">HPP</th>
                 <th width="7%" class="text-right">JUAL</th>
-                <th width="4%" class="text-center">STOK</th>
+                <th width="4%" class="text-center">STOK ERP</th>
+                <th width="4%" class="text-center">STOK MP</th>
                 <th width="5%" class="text-center">JML TAUTAN</th>
-                <th width="12%">CHANNEL / TOKO MARKETPLACE</th>
+                <th width="14%">CHANNEL / TOKO MARKETPLACE</th>
             </tr>
         </thead>
         <tbody>
             @forelse($products as $index => $p)
                 @php
                     $mpCount = $p->marketplaceProducts->count();
+                    $mpStockTotal = $p->marketplaceProducts->sum('stock');
                     $mpStores = $p->marketplaceProducts
-                        ->unique('store_id')
                         ->map(function ($m) {
                             $ch = $m->store->channel->name ?? '';
                             $st = $m->store->store_name ?? '';
-                            return $ch ? "{$ch} ({$st})" : $st;
+                            $stk = number_format($m->stock);
+                            return $ch ? "{$ch} ({$st}: {$stk} Pcs)" : "{$st} ({$stk} Pcs)";
                         })
                         ->implode(', ');
                 @endphp
@@ -227,6 +229,7 @@
                     <td class="text-right font-mono">Rp {{ number_format($p->cost_price, 0, ',', '.') }}</td>
                     <td class="text-right font-mono">Rp {{ number_format($p->price, 0, ',', '.') }}</td>
                     <td class="text-center font-mono"><strong>{{ number_format($p->stock) }}</strong></td>
+                    <td class="text-center font-mono" style="color: #0284c7;"><strong>{{ number_format($mpStockTotal) }}</strong></td>
                     <td class="text-center font-mono">
                         @if ($mpCount > 0)
                             <strong style="color: #198754;">{{ $mpCount }}</strong>
@@ -236,9 +239,9 @@
                     </td>
                     <td>
                         @if ($mpCount > 0)
-                            <span style="color: #333; font-size: 9.5px;">{{ $mpStores }}</span>
+                            <span style="color: #333; font-size: 9px;">{{ $mpStores }}</span>
                         @else
-                            <span style="color: #888; font-style: italic;">Belum Ditautkan</span>
+                            <span style="color: #888; font-style: italic; font-size: 9px;">Belum Ditautkan</span>
                         @endif
                     </td>
                 </tr>
