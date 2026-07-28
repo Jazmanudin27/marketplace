@@ -96,6 +96,9 @@ class MasterProductController extends Controller
         $stores = \App\Models\Store::with('channel')->where('tenant_id', $tenantId)->where('status', 'connected')->get();
         $channels = \App\Models\Channel::all();
 
+        $poCount = MasterProduct::where('tenant_id', $tenantId)->where('is_preorder', true)->count();
+        $readyCount = MasterProduct::where('tenant_id', $tenantId)->where('is_preorder', false)->count();
+
         return view('products.index', compact(
             'products',
             'connectedStoresCount',
@@ -104,7 +107,9 @@ class MasterProductController extends Controller
             'brandMappings',
             'brands',
             'stores',
-            'channels'
+            'channels',
+            'poCount',
+            'readyCount'
         ));
     }
 

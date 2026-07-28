@@ -32,7 +32,26 @@
 
     <div class="card-body p-3">
         <div class="card border shadow-sm mb-3">
-            <div class="card-body py-2 px-3">
+            <div class="card-body py-2.5 px-3">
+
+                {{-- Quick Filter Pills: PO vs Ready Stock --}}
+                <div class="d-flex flex-wrap align-items-center gap-2 mb-2.5 pb-2 border-bottom">
+                    <span class="fw-bold small text-muted me-1"><i class="fas fa-filter text-primary me-1"></i>Filter Cepat Status PO:</span>
+                    <a href="{{ route('products.index', request()->except('is_preorder')) }}"
+                        class="btn btn-xs rounded-pill {{ !request()->has('is_preorder') || request('is_preorder') === '' ? 'btn-primary fw-bold' : 'btn-outline-secondary' }} px-3 py-1">
+                        🌐 Semua Produk <span class="badge bg-white text-dark ms-1">{{ number_format($products->total()) }}</span>
+                    </a>
+                    <a href="{{ route('products.index', array_merge(request()->query(), ['is_preorder' => '1'])) }}"
+                        class="btn btn-xs rounded-pill {{ request('is_preorder') === '1' ? 'btn-purple text-white fw-bold' : 'btn-outline-purple' }} px-3 py-1"
+                        style="{{ request('is_preorder') === '1' ? 'background-color:#8b5cf6; border-color:#8b5cf6; color:#fff;' : 'color:#8b5cf6; border-color:#8b5cf6;' }}">
+                        📦 Pre-Order (PO) <span class="badge bg-white text-dark ms-1">{{ number_format($poCount ?? 0) }}</span>
+                    </a>
+                    <a href="{{ route('products.index', array_merge(request()->query(), ['is_preorder' => '0'])) }}"
+                        class="btn btn-xs rounded-pill {{ request('is_preorder') === '0' ? 'btn-success fw-bold' : 'btn-outline-success' }} px-3 py-1">
+                        ⚡ Ready Stock <span class="badge bg-white text-dark ms-1">{{ number_format($readyCount ?? 0) }}</span>
+                    </a>
+                </div>
+
                 <form method="GET" action="{{ route('products.index') }}" id="filterProdukForm">
                     <div class="row g-2 align-items-end">
                         <div class="col-md-3">
@@ -133,14 +152,14 @@
                         <th class="text-center">VARIASI</th>
                         <th class="text-end">HARGA (HPP / JUAL)</th>
                         <th class="text-center">STOK</th>
-                        <th class="text-center">STATUS</th>
+                        <th class="text-center">STATUS & PO</th>
                         <th>MARKETPLACE</th>
                         <th class="text-center">AKSI</th>
                     </tr>
                 </thead>
                 <tbody>
                     @forelse($products as $product)
-                        <tr>
+                        <tr style="border-left: 4px solid {{ $product->is_preorder ? '#8b5cf6' : '#22c55e' }} !important;">
                             <td class="text-center">
                                 <input type="checkbox" value="{{ $product->id }}" class="form-check-input product-select-checkbox">
                             </td>
@@ -164,9 +183,20 @@
                                         <div class="text-dark fw-semibold text-wrap lh-sm" title="{{ $product->name }}">
                                             {{ $product->name }}
                                         </div>
-                                        @if ($product->sub_kategori)
-                                            <small class="text-muted d-block mt-1">{{ $product->sub_kategori }}</small>
-                                        @endif
+                                        <div class="mt-1 d-flex align-items-center gap-1 flex-wrap">
+                                            @if ($product->is_preorder)
+                                                <span class="badge text-white px-2 py-0.5 fw-bold" style="background-color: #8b5cf6; font-size: 0.68rem;">
+                                                    <i class="fas fa-clock me-1"></i>PO ({{ $product->preorder_days ?? 7 }} Hari)
+                                                </span>
+                                            @else
+                                                <span class="badge bg-success bg-opacity-15 text-success border border-success border-opacity-25 px-2 py-0.5 fw-bold" style="font-size: 0.68rem;">
+                                                    <i class="fas fa-bolt me-1"></i>Ready Stock
+                                                </span>
+                                            @endif
+                                            @if ($product->sub_kategori)
+                                                <small class="text-muted">{{ $product->sub_kategori }}</small>
+                                            @endif
+                                        </div>
                                     </div>
                                 </div>
                             </td>
