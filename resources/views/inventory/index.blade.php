@@ -158,14 +158,21 @@
                     <thead class="table-light">
                         <tr>
                             <th class="ps-3">Detail Produk</th>
-                            <th class="text-end" style="width:14%">Harga Modal (HPP)</th>
-                            <th class="text-end" style="width:14%">Harga Jual</th>
-                            <th class="text-center" style="width:18%">Stok Tersedia</th>
-                            <th class="text-center pe-3" style="width:13%">Aksi</th>
+                            <th class="text-end" style="width:12%">Harga HPP</th>
+                            <th class="text-end" style="width:12%">Harga Jual</th>
+                            <th class="text-center" style="width:13%">Stok Gudang</th>
+                            <th class="text-center" style="width:14%">Stok Marketplace</th>
+                            <th class="text-center" style="width:12%">Total Stok</th>
+                            <th class="text-center pe-3" style="width:11%">Aksi</th>
                         </tr>
                     </thead>
                     <tbody>
                         @forelse($products as $product)
+                            @php
+                                $stokGudang = (int) $product->stock;
+                                $stokMp = (int) $product->marketplaceProducts->sum('stock');
+                                $totalStok = $stokGudang + $stokMp;
+                            @endphp
                             <tr>
                                 <td class="ps-3 py-2">
                                     <div class="d-flex align-items-center gap-3">
@@ -224,28 +231,58 @@
                                 <td class="text-end fw-bold small font-monospace">
                                     Rp {{ number_format($product->price, 0, ',', '.') }}
                                 </td>
+                                {{-- Stok Gudang (Fisik/ERP) --}}
                                 <td class="text-center">
-                                    @if ($product->stock <= 0)
+                                    @if ($stokGudang <= 0)
                                         <span
                                             class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 px-2 py-1 small">
                                             <i class="fas fa-times-circle me-1"></i>Habis (0)
                                         </span>
-                                    @elseif ($product->stock <= $product->min_stock)
+                                    @elseif ($stokGudang <= $product->min_stock)
                                         <span
                                             class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25 px-2 py-1 small">
                                             <i class="fas fa-exclamation-triangle me-1"></i>Menipis
-                                            ({{ number_format($product->stock) }})
+                                            ({{ number_format($stokGudang) }})
                                         </span>
                                     @else
                                         <span
                                             class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-2 py-1 small">
-                                            <i class="fas fa-check-circle me-1"></i>Aman
-                                            ({{ number_format($product->stock) }})
+                                            <i class="fas fa-check-circle me-1"></i>{{ number_format($stokGudang) }}
                                         </span>
                                     @endif
-                                    <div class="text-muted mt-1" style="font-size:.7rem">Min. Stok:
+                                    <div class="text-muted mt-1" style="font-size:.7rem">Min:
                                         {{ number_format($product->min_stock) }}</div>
                                 </td>
+
+                                {{-- Stok Marketplace --}}
+                                <td class="text-center">
+                                    @if ($product->marketplaceProducts->isNotEmpty())
+                                        @php
+                                            $mpTooltip = '';
+                                            foreach($product->marketplaceProducts as $mp) {
+                                                $ch = $mp->store->channel->name ?? 'MP';
+                                                $st = $mp->store->store_name ?? '-';
+                                                $mpTooltip .= "{$ch} ({$st}): " . number_format($mp->stock) . "\n";
+                                            }
+                                        @endphp
+                                        <span class="badge bg-info bg-opacity-15 text-info border border-info border-opacity-25 px-2 py-1 small fw-bold"
+                                            title="{{ trim($mpTooltip) }}" style="cursor: pointer;">
+                                            <i class="fas fa-store me-1"></i>{{ number_format($stokMp) }}
+                                        </span>
+                                        <div class="text-muted mt-1" style="font-size:.7rem">{{ $product->marketplaceProducts->count() }} Toko Linked</div>
+                                    @else
+                                        <span class="text-muted small">—</span>
+                                    @endif
+                                </td>
+
+                                {{-- Total Stok --}}
+                                <td class="text-center font-monospace">
+                                    <span class="fw-bold fs-6 {{ $totalStok <= 0 ? 'text-danger' : 'text-primary' }}">
+                                        {{ number_format($totalStok) }}
+                                    </span>
+                                </td>
+
+                                {{-- Aksi --}}
                                 <td class="text-center pe-3">
                                     <a href="{{ route('inventory.ledger', $product->id) }}"
                                         class="btn btn-outline-primary btn-sm d-inline-flex align-items-center gap-1">
@@ -255,7 +292,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="5" class="text-center text-muted py-5">
+                                <td colspan="7" class="text-center text-muted py-5">
                                     <i class="fas fa-boxes fa-2x mb-3 d-block opacity-25"></i>
                                     <div class="fw-semibold mb-1">Tidak Ada Produk Ditemukan</div>
                                     <div class="small">Sesuaikan filter atau tambah produk baru.</div>

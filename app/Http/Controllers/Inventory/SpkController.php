@@ -124,8 +124,10 @@ class SpkController extends Controller
                     $currName = strtolower($s->current_stage_name);
                     if ($stage === 'draft') {
                         return str_contains($currName, 'draft') || strtolower($s->tahap_saat_ini ?? '') === 'draft';
+                    } elseif ($stage === 'desain' || $stage === 'design' || $stage === 'mockup') {
+                        return str_contains($currName, 'desain') || str_contains($currName, 'design') || str_contains($currName, 'mockup') || str_contains(strtolower($s->tahap_saat_ini ?? ''), 'desain');
                     } elseif ($stage === 'pesanan_baru' || $stage === 'perencanaan') {
-                        return (str_contains($currName, 'pesanan') || str_contains($currName, 'perencanaan') || str_contains($currName, 'perancangan') || str_contains($currName, 'desain')) && !str_contains($currName, 'draft');
+                        return (str_contains($currName, 'pesanan') || str_contains($currName, 'perencanaan') || str_contains($currName, 'perancangan')) && !str_contains($currName, 'draft') && !str_contains($currName, 'desain');
                     } elseif ($stage === 'sampling') {
                         return str_contains($currName, 'sampling') || str_contains($currName, 'antrian');
                     } elseif ($stage === 'potong') {

@@ -120,10 +120,9 @@
                                         (Semua Status)</option>
                                     <option value="urgent" {{ $selectedFilter === 'urgent' ? 'selected' : '' }}>⚡ Pesanan
                                         Urgent</option>
-                                    <option value="draft" {{ $selectedFilter === 'draft' ? 'selected' : '' }}>📝 DRAFT
-                                        (Belum Deal / Menunggu DP)</option>
-                                    <option value="pesanan_baru" {{ $selectedFilter === 'pesanan_baru' ? 'selected' : '' }}>
-                                        📋 Pesanan Baru / Perencanaan</option>
+                                    <option value="draft" {{ $selectedFilter === 'draft' ? 'selected' : '' }}>📝 DRAFT (Belum Deal / Menunggu DP)</option>
+                                    <option value="desain" {{ $selectedFilter === 'desain' ? 'selected' : '' }}>🎨 Tahap Desain &amp; Mockup</option>
+                                    <option value="pesanan_baru" {{ $selectedFilter === 'pesanan_baru' ? 'selected' : '' }}>📋 Pesanan Baru / Perencanaan</option>
                                     <option value="sampling" {{ $selectedFilter === 'sampling' ? 'selected' : '' }}>⏳
                                         Antrian &amp; Sampling</option>
                                     <option value="potong" {{ $selectedFilter === 'potong' ? 'selected' : '' }}>✂️ Tahap

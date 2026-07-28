@@ -13,7 +13,7 @@ class InventoryController extends Controller
     {
         $tenantId = Auth::user()->tenant_id;
 
-        $query = MasterProduct::with('category', 'brand')
+        $query = MasterProduct::with(['category', 'brand', 'marketplaceProducts.store.channel'])
             ->where('tenant_id', $tenantId);
 
         if ($request->has('search') && $request->search !== null) {
