@@ -1085,14 +1085,37 @@
             <form action="{{ route('spks.pay_labor', $spk) }}" method="POST">
                 @csrf
                 <div class="modal-header bg-warning text-dark py-3 px-4">
-                    <h6 class="modal-title fw-bold" id="modalPayLaborLabel">
+                    <h6 class="modal-title fw-bold d-flex align-items-center gap-1.5" id="modalPayLaborLabel">
                         💳 Catat Pembayaran Ongkos Jasa Per Vendor SPK (#{{ $spk->no_produksi ?: $spk->no_spk }})
                     </h6>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body p-4" style="background:#f8fafc;">
+                    
+                    {{-- TOP SUMMARY CARDS FOR LABOR COSTS & UNPAID BALANCE --}}
+                    <div class="row g-2 mb-3">
+                        <div class="col-4">
+                            <div class="bg-white p-2.5 rounded-3 border shadow-2xs text-center">
+                                <span class="text-muted d-block text-uppercase fw-bold" style="font-size: 9px; letter-spacing: 0.5px;">Total Ongkos Jasa</span>
+                                <span class="fw-extrabold text-dark fs-6">Rp {{ number_format($totalSpkLaborCost, 0, ',', '.') }}</span>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="bg-white p-2.5 rounded-3 border border-success-subtle shadow-2xs text-center" style="background-color: #f0fdf4 !important;">
+                                <span class="text-success d-block text-uppercase fw-bold" style="font-size: 9px; letter-spacing: 0.5px;">Sudah Dibayar</span>
+                                <span class="fw-extrabold text-success fs-6">Rp {{ number_format($totalSpkLaborPaid, 0, ',', '.') }}</span>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="bg-white p-2.5 rounded-3 border border-warning-subtle shadow-2xs text-center" style="background-color: #fffbeb !important;">
+                                <span class="text-warning-emphasis d-block text-uppercase fw-bold" style="font-size: 9px; letter-spacing: 0.5px;">Sisa Belum Dibayar</span>
+                                <span class="fw-extrabold text-danger fs-6">Rp {{ number_format($totalSpkLaborUnpaid, 0, ',', '.') }}</span>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="alert alert-info py-2 px-3 mb-3 border-0 shadow-sm" style="font-size:12px;">
-                        Pilih item ongkos jasa vendor/pekerja yang ingin dibayar. Sistem akan membuat <strong>pencatatan pengeluaran kas terpisah (per vendor)</strong> secara otomatis.
+                        Pilih item ongkos jasa vendor/pekerja yang ingin dibayar. Sistem akan membuat <strong>pencatatan pengeluaran kas terpisah (per vendor)</strong> dan menyimpan histori transaksi pembayaran.
                     </div>
 
                     <div class="row g-3 mb-3">
@@ -1118,51 +1141,133 @@
 
                     <label class="form-label fw-semibold text-secondary mb-2" style="font-size:12px;">RINCIAN ONGKOS JASA VENDOR / TIM OPERASIONAL</label>
                     <div class="table-responsive bg-white rounded border shadow-sm mb-3">
-                        <table class="table table-sm table-hover align-middle mb-0" style="font-size:12px;">
+                        <table class="table table-sm table-hover align-middle mb-0" style="font-size:11.5px;">
                             <thead class="table-light">
                                 <tr>
-                                    <th style="width: 40px;" class="text-center">
-                                        <input type="checkbox" id="checkAllPayItems" class="form-check-input" checked>
+                                    <th style="width: 35px;" class="text-center">
+                                        <input type="checkbox" id="checkAllPayItems" class="form-check-input">
                                     </th>
-                                    <th>Rincian Jasa &amp; Nama Vendor</th>
-                                    <th style="width: 25%;">Produk SPK</th>
-                                    <th style="width: 30%;" class="text-end">Nominal Dibayar (Rp)</th>
+                                    <th>Rincian Jasa &amp; Vendor</th>
+                                    <th style="width: 18%;">Produk SPK</th>
+                                    <th style="width: 16%;" class="text-end">Total Tarif</th>
+                                    <th style="width: 16%;" class="text-end">Sisa Tagihan</th>
+                                    <th style="width: 24%;" class="text-end">Nominal Dibayar (Rp)</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 @forelse($laborBreakdown as $lIdx => $lItem)
-                                    <tr>
+                                    @php
+                                        $sisaVal = (float)$lItem['sisa_bayar'];
+                                        $isLunas = $lItem['is_lunas'];
+                                    @endphp
+                                    <tr class="{{ $isLunas ? 'bg-light bg-opacity-50 text-muted' : '' }}">
                                         <td class="text-center">
-                                            <input type="checkbox" name="payments[{{ $lIdx }}][checked_val]" value="1" class="form-check-input pay-item-checkbox" checked>
+                                            <input type="checkbox" name="payments[{{ $lIdx }}][checked_val]" value="1" 
+                                                class="form-check-input pay-item-checkbox" 
+                                                {{ !$isLunas ? 'checked' : '' }} {{ $isLunas ? 'disabled' : '' }}>
                                         </td>
                                         <td>
                                             <input type="hidden" name="payments[{{ $lIdx }}][title]" value="{{ $lItem['keterangan'] }}">
-                                            <span class="fw-bold text-dark">{{ $lItem['keterangan'] }}</span>
+                                            <span class="fw-bold {{ $isLunas ? 'text-muted' : 'text-dark' }}">{{ $lItem['keterangan'] }}</span>
                                         </td>
                                         <td>
                                             <span class="badge bg-secondary-subtle text-secondary">{{ $lItem['produk'] }}</span>
                                         </td>
+                                        <td class="text-end fw-semibold">
+                                            Rp {{ number_format($lItem['nominal'], 0, ',', '.') }}
+                                        </td>
                                         <td class="text-end">
-                                            <input type="number" name="payments[{{ $lIdx }}][amount]" class="form-control form-control-sm text-end fw-bold pay-item-amount" value="{{ (int)$lItem['nominal'] }}" min="1" step="1">
+                                            @if($isLunas)
+                                                <span class="badge bg-success-subtle text-success border border-success-subtle fw-bold">
+                                                    ✅ LUNAS
+                                                </span>
+                                            @elseif($lItem['sudah_dibayar'] > 0)
+                                                <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle fw-bold d-block text-end">
+                                                    Sisa: Rp {{ number_format($sisaVal, 0, ',', '.') }}
+                                                </span>
+                                            @else
+                                                <span class="fw-extrabold text-danger">
+                                                    Rp {{ number_format($sisaVal, 0, ',', '.') }}
+                                                </span>
+                                            @endif
+                                        </td>
+                                        <td class="text-end">
+                                            <input type="number" name="payments[{{ $lIdx }}][amount]" 
+                                                class="form-control form-control-sm text-end fw-bold pay-item-amount" 
+                                                value="{{ (int)$sisaVal }}" 
+                                                min="1" max="{{ (int)$sisaVal }}" step="1"
+                                                {{ $isLunas ? 'disabled' : '' }}>
                                         </td>
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="4" class="text-center text-muted py-3">Belum ada data ongkos jasa yang disetting pada SPK ini. Silakan atur di tombol <strong>✂️ Atur Tahap</strong> terlebih dahulu.</td>
+                                        <td colspan="6" class="text-center text-muted py-3">Belum ada data ongkos jasa yang disetting pada SPK ini. Silakan atur di tombol <strong>✂️ Atur Tahap</strong> terlebih dahulu.</td>
                                     </tr>
                                 @endforelse
                             </tbody>
                         </table>
                     </div>
 
-                    <div class="d-flex justify-content-between align-items-center bg-warning-subtle text-warning-emphasis p-3 rounded-3 border border-warning-subtle">
-                        <span class="fw-bold">Total Pembayaran Terpilih:</span>
+                    <div class="d-flex justify-content-between align-items-center bg-warning-subtle text-warning-emphasis p-3 rounded-3 border border-warning-subtle mb-4">
+                        <span class="fw-bold">Total Pembayaran Terpilih Saat Ini:</span>
                         <span class="fw-extrabold fs-6" id="displayTotalSelectedPay">Rp 0</span>
                     </div>
+
+                    {{-- HISTORI PEMBAYARAN ONGKOS JASA TABLE --}}
+                    <div class="bg-white rounded border p-3 shadow-2xs">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <h6 class="fw-bold text-dark m-0 d-flex align-items-center gap-1.5" style="font-size: 13px;">
+                                📜 Histori Transaksi Pembayaran Ongkos Jasa SPK
+                            </h6>
+                            <span class="badge bg-secondary bg-opacity-10 text-secondary border fw-bold" style="font-size: 10px;">
+                                {{ count($spkExpenses) }} Transaksi Pembayaran
+                            </span>
+                        </div>
+                        <div class="table-responsive rounded border">
+                            <table class="table table-sm table-striped table-hover align-middle mb-0" style="font-size: 11px;">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th style="width: 15%;">Tanggal</th>
+                                        <th>Rincian Jasa &amp; Vendor</th>
+                                        <th style="width: 25%;">Sumber Kas / Bank</th>
+                                        <th style="width: 22%;" class="text-end">Nominal Dibayar</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @forelse($spkExpenses as $exp)
+                                        <tr>
+                                            <td class="fw-semibold text-secondary">
+                                                {{ $exp->expense_date ? $exp->expense_date->format('d M Y') : date('d M Y') }}
+                                            </td>
+                                            <td>
+                                                <div class="fw-bold text-dark">{{ $exp->title }}</div>
+                                                <small class="text-muted" style="font-size: 10px;">{{ $exp->description }}</small>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-light text-dark border fw-bold">
+                                                    {{ strtoupper(str_replace('_', ' ', $exp->payment_source)) }}
+                                                </span>
+                                            </td>
+                                            <td class="text-end fw-extrabold text-success">
+                                                + Rp {{ number_format($exp->amount, 0, ',', '.') }}
+                                            </td>
+                                        </tr>
+                                    @empty
+                                        <tr>
+                                            <td colspan="4" class="text-center text-muted py-3">
+                                                Belum ada riwayat transaksi pembayaran ongkos jasa yang dicatat untuk SPK ini.
+                                            </td>
+                                        </tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
                 </div>
                 <div class="modal-footer bg-white border-top py-2 px-4 d-flex justify-content-between">
                     <button type="button" class="btn btn-sm btn-outline-secondary px-3" data-bs-dismiss="modal">Batal</button>
-                    <button type="submit" class="btn btn-sm btn-warning fw-bold px-4 text-dark" {{ count($laborBreakdown) == 0 ? 'disabled' : '' }}>
+                    <button type="submit" class="btn btn-sm btn-warning fw-bold px-4 text-dark" {{ count($laborBreakdown) == 0 || $totalSpkLaborUnpaid <= 0 ? 'disabled' : '' }}>
                         💳 Proses &amp; Catat Transaksi Per Vendor
                     </button>
                 </div>

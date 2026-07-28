@@ -865,33 +865,64 @@ class SpkController extends Controller
             $siblingSpks = collect([$spk]);
         }
 
-        $bankAccounts = \App\Models\BankAccount::where('tenant_id', $tenantId)->where('is_active', true)->get();
+        $spkCode = $spk->no_produksi ?: $spk->no_spk;
+        $spkExpenses = \App\Models\Expense::where('tenant_id', $tenantId)
+            ->where(function ($q) use ($spkCode, $spk) {
+                $q->where('description', 'like', "%#{$spkCode}%")
+                    ->orWhere('title', 'like', "%#{$spkCode}%");
+                if (!empty($spk->no_spk)) {
+                    $q->orWhere('description', 'like', "%{$spk->no_spk}%")
+                        ->orWhere('title', 'like', "%{$spk->no_spk}%");
+                }
+            })
+            ->orderByDesc('expense_date')
+            ->orderByDesc('id')
+            ->get();
+
         $totalSpkLaborCost = 0;
+        $totalSpkLaborPaid = 0;
         $laborBreakdown = [];
         foreach ($spk->items as $item) {
             $pName = $item->sku_induk ?: ($item->sku ?: $item->nama_produk);
             foreach ($item->extras as $extra) {
-                $nom = (float)$extra->nominal;
+                $nom = (float) $extra->nominal;
                 $ket = $extra->keterangan ?? '';
                 // Only include labor service items (exclude materials starting with 'Bahan:')
                 if ($nom > 0 && !str_starts_with($ket, 'Bahan:') && !str_contains($ket, 'Bahan:')) {
                     $totalSpkLaborCost += $nom;
+
+                    $cleanKet = trim(explode('(', $ket)[0]);
+                    $alreadyPaid = $spkExpenses->filter(function ($exp) use ($ket, $cleanKet) {
+                        return str_contains($exp->title ?? '', $ket)
+                            || str_contains($exp->description ?? '', $ket)
+                            || (!empty($cleanKet) && (str_contains($exp->title ?? '', $cleanKet) || str_contains($exp->description ?? '', $cleanKet)));
+                    })->sum('amount');
+
+                    $totalSpkLaborPaid += $alreadyPaid;
+                    $sisa = max(0, $nom - $alreadyPaid);
+
                     $laborBreakdown[] = [
-                        'id'         => $extra->id,
-                        'produk'     => $pName,
-                        'keterangan' => $ket,
-                        'nominal'    => $nom,
+                        'id'            => $extra->id,
+                        'produk'        => $pName,
+                        'keterangan'    => $ket,
+                        'nominal'       => $nom,
+                        'sudah_dibayar' => $alreadyPaid,
+                        'sisa_bayar'    => $sisa,
+                        'is_lunas'      => ($sisa <= 0),
                     ];
                 }
             }
         }
+
+        $totalSpkLaborUnpaid = max(0, $totalSpkLaborCost - $totalSpkLaborPaid);
 
         return view('inventory.spks.show', compact(
             'spk', 'grouped', 'statusOptions', 'sizesHeader', 'progresMap',
             'products', 'tailors', 'pemotongList', 'penjahitList', 'vendorKancingList', 'petugasQcList',
             'laborServices', 'stores', 'existingNoProduksi', 'recipesMap',
             'inventoryItems', 'inventoryItemsMap', 'allMasterProductsList',
-            'siblingSpks', 'bankAccounts', 'totalSpkLaborCost', 'laborBreakdown'
+            'siblingSpks', 'bankAccounts', 'totalSpkLaborCost', 'totalSpkLaborPaid', 'totalSpkLaborUnpaid',
+            'laborBreakdown', 'spkExpenses'
         ));
     }
 
