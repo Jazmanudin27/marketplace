@@ -101,7 +101,7 @@
             <div class="card-body p-3">
                 <form action="{{ route('spks.index') }}" method="GET" class="m-0">
                     <div class="row g-2.5 align-items-center">
-                        
+
                         {{-- STAGE & STATUS SELECT DROPDOWN (COL 12 / COL MD 5) --}}
                         <div class="col-12 col-md-5 col-lg-5">
                             @php
@@ -113,42 +113,63 @@
                                 <span class="input-group-text bg-light border-0 text-muted fw-bold ps-3 pe-2">
                                     <i class="fas fa-filter text-primary"></i>
                                 </span>
-                                <select name="stage" class="form-select form-select-sm border-0 bg-light fw-bold text-dark rounded-end pe-4" style="height: 38px; cursor: pointer;" onchange="this.form.submit()">
-                                    <option value="" {{ $selectedFilter === '' ? 'selected' : '' }}>🌐 Semua SPK (Semua Status)</option>
-                                    <option value="urgent" {{ $selectedFilter === 'urgent' ? 'selected' : '' }}>⚡ Pesanan Urgent</option>
-                                    <option value="draft" {{ $selectedFilter === 'draft' ? 'selected' : '' }}>📝 DRAFT (Belum Deal / Menunggu DP)</option>
-                                    <option value="pesanan_baru" {{ $selectedFilter === 'pesanan_baru' ? 'selected' : '' }}>📋 Pesanan Baru / Perencanaan</option>
-                                    <option value="sampling" {{ $selectedFilter === 'sampling' ? 'selected' : '' }}>⏳ Antrian &amp; Sampling</option>
-                                    <option value="potong" {{ $selectedFilter === 'potong' ? 'selected' : '' }}>✂️ Tahap Pemotongan (Potong)</option>
-                                    <option value="sablon_bordir" {{ $selectedFilter === 'sablon_bordir' ? 'selected' : '' }}>🎨 Sablon / Bordir</option>
-                                    <option value="jahit" {{ $selectedFilter === 'jahit' ? 'selected' : '' }}>🪡 Tahap Jahit</option>
-                                    <option value="lkpk" {{ $selectedFilter === 'lkpk' ? 'selected' : '' }}>💿 Tahap LKPK (Kancing)</option>
-                                    <option value="qc" {{ $selectedFilter === 'qc' ? 'selected' : '' }}>🔍 Quality Control (QC)</option>
-                                    <option value="packing" {{ $selectedFilter === 'packing' ? 'selected' : '' }}>📦 Packing / Finishing</option>
-                                    <option value="selesai" {{ $selectedFilter === 'selesai' ? 'selected' : '' }}>✅ Selesai (Finished Good)</option>
-                                    <option value="dikirim" {{ $selectedFilter === 'dikirim' ? 'selected' : '' }}>🚀 Telah Dikirim (Shipped)</option>
+                                <select name="stage"
+                                    class="form-select form-select-sm border-0 bg-light fw-bold text-dark rounded-end pe-4"
+                                    style="height: 38px; cursor: pointer;" onchange="this.form.submit()">
+                                    <option value="" {{ $selectedFilter === '' ? 'selected' : '' }}>🌐 Semua SPK
+                                        (Semua Status)</option>
+                                    <option value="urgent" {{ $selectedFilter === 'urgent' ? 'selected' : '' }}>⚡ Pesanan
+                                        Urgent</option>
+                                    <option value="draft" {{ $selectedFilter === 'draft' ? 'selected' : '' }}>📝 DRAFT
+                                        (Belum Deal / Menunggu DP)</option>
+                                    <option value="pesanan_baru" {{ $selectedFilter === 'pesanan_baru' ? 'selected' : '' }}>
+                                        📋 Pesanan Baru / Perencanaan</option>
+                                    <option value="sampling" {{ $selectedFilter === 'sampling' ? 'selected' : '' }}>⏳
+                                        Antrian &amp; Sampling</option>
+                                    <option value="potong" {{ $selectedFilter === 'potong' ? 'selected' : '' }}>✂️ Tahap
+                                        Pemotongan (Potong)</option>
+                                    <option value="sablon_bordir"
+                                        {{ $selectedFilter === 'sablon_bordir' ? 'selected' : '' }}>🎨 Sablon / Bordir
+                                    </option>
+                                    <option value="jahit" {{ $selectedFilter === 'jahit' ? 'selected' : '' }}>🪡 Tahap
+                                        Jahit</option>
+                                    <option value="lkpk" {{ $selectedFilter === 'lkpk' ? 'selected' : '' }}>💿 Tahap LKPK
+                                        (Kancing)</option>
+                                    <option value="qc" {{ $selectedFilter === 'qc' ? 'selected' : '' }}>🔍 Quality
+                                        Control (QC)</option>
+                                    <option value="packing" {{ $selectedFilter === 'packing' ? 'selected' : '' }}>📦
+                                        Packing / Finishing</option>
+                                    <option value="selesai" {{ $selectedFilter === 'selesai' ? 'selected' : '' }}>✅ Selesai
+                                        (Finished Good)</option>
+                                    <option value="dikirim" {{ $selectedFilter === 'dikirim' ? 'selected' : '' }}>🚀 Telah
+                                        Dikirim (Shipped)</option>
                                 </select>
                             </div>
                         </div>
 
                         {{-- TIPE SPK FILTER (COL 12 / COL MD 3) --}}
                         <div class="col-12 col-md-3 col-lg-3">
-                            <select name="tipe_spk" class="form-select form-select-sm border-0 bg-light fw-bold text-dark rounded-3" style="height: 38px; cursor: pointer;" onchange="this.form.submit()">
+                            <select name="tipe_spk"
+                                class="form-select form-select-sm border-0 bg-light fw-bold text-dark rounded-3"
+                                style="height: 38px; cursor: pointer;" onchange="this.form.submit()">
                                 <option value="">🏢 Semua Tipe SPK</option>
-                                <option value="stok_gudang" {{ request('tipe_spk') === 'stok_gudang' ? 'selected' : '' }}>🏬 Stok Gudang</option>
-                                <option value="pesanan_pelanggan" {{ request('tipe_spk') === 'pesanan_pelanggan' ? 'selected' : '' }}>🛒 Pesanan Pelanggan</option>
+                                <option value="stok_gudang" {{ request('tipe_spk') === 'stok_gudang' ? 'selected' : '' }}>
+                                    🏬 Stok Gudang</option>
+                                <option value="pesanan_pelanggan"
+                                    {{ request('tipe_spk') === 'pesanan_pelanggan' ? 'selected' : '' }}>🛒 Pesanan
+                                    Pelanggan</option>
                             </select>
                         </div>
 
                         {{-- SEARCH BOX (COL 12 / COL MD 4) --}}
                         <div class="col-12 col-md-4 col-lg-4">
                             <div class="position-relative">
-                                <i class="fas fa-search position-absolute top-50 start-0 translate-middle-y ms-3 text-muted opacity-75"></i>
+                                <i
+                                    class="fas fa-search position-absolute top-50 start-0 translate-middle-y ms-3 text-muted opacity-75"></i>
                                 <input type="text" name="search"
                                     class="form-control form-control-sm rounded-3 ps-5 pe-3 py-2 bg-light border-0 shadow-none text-dark w-100"
-                                    style="height: 38px;"
-                                    placeholder="Cari SPK / Pemesan / Instansi..." value="{{ request('search') }}"
-                                    onchange="this.form.submit()">
+                                    style="height: 38px;" placeholder="Cari SPK / Pemesan / Instansi..."
+                                    value="{{ request('search') }}" onchange="this.form.submit()">
                             </div>
                         </div>
 
@@ -166,7 +187,10 @@
                     $spkCount = $spkGroup->count();
                     $totalPcsGroup = $spkGroup->sum(fn($s) => $s->total_pcs);
                     $isUrgentGroup = $spkGroup->contains('is_urgent', true);
-                    $isDraftGroup = $spkGroup->contains(fn($s) => str_contains(strtoupper($s->current_stage_name), 'DRAFT') || str_contains(strtoupper($s->tahap_saat_ini ?? ''), 'DRAFT'));
+                    $isDraftGroup = $spkGroup->contains(
+                        fn($s) => str_contains(strtoupper($s->current_stage_name), 'DRAFT') ||
+                            str_contains(strtoupper($s->tahap_saat_ini ?? ''), 'DRAFT'),
+                    );
 
                     // CRITICAL REQUIREMENT: Take main image specifically from SPK 1 (first SPK in group)
                     $firstSpk = $spkGroup->first() ?? $row;
@@ -226,7 +250,8 @@
 
                             <div class="d-flex align-items-center gap-1">
                                 @if ($isDraftGroup)
-                                    <span class="badge bg-secondary bg-opacity-15 text-dark border border-secondary border-opacity-25 rounded-pill px-2 py-0.5 fw-bold"
+                                    <span
+                                        class="badge bg-secondary bg-opacity-15 text-dark border border-secondary border-opacity-25 rounded-pill px-2 py-0.5 fw-bold"
                                         style="font-size: 9.5px;">
                                         📝 DRAFT (Belum Deal)
                                     </span>
@@ -474,7 +499,8 @@
                                         </a>
                                     </div>
                                     <div class="col-6">
-                                        <form action="{{ route('spks.destroy', $row) }}" method="POST" class="m-0 w-100"
+                                        <form action="{{ route('spks.destroy', $row) }}" method="POST"
+                                            class="m-0 w-100"
                                             onsubmit="return confirm('Apakah Anda yakin ingin menghapus seluruh data Produksi {{ $row->no_produksi ?: $row->no_spk }} ini?')">
                                             @csrf
                                             @method('DELETE')
