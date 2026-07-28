@@ -182,11 +182,26 @@ class PullOrdersFromTiktok implements ShouldQueue
         $totalAmount = (float) ($paymentInfo['total_amount'] ?? $paymentInfo['total'] ?? 0);
         $shippingFee = (float) ($paymentInfo['shipping_fee'] ?? $paymentInfo['shipping_amount'] ?? 0);
         $discountAmount = (float) ($paymentInfo['seller_discount'] ?? $paymentInfo['discount_amount'] ?? 0);
-        $escrowAmount = (float) ($paymentInfo['escrow_amount'] ?? $paymentInfo['net_amount'] ?? 0);
+        $escrowAmount = (float) ($paymentInfo['escrow_amount'] ?? $paymentInfo['net_amount'] ?? $paymentInfo['settlement_amount'] ?? 0);
+
+        $subtotalAfterSeller = (float) ($paymentInfo['subtotal_after_seller_discounts'] ?? $paymentInfo['sub_total'] ?? max(0.0, $totalAmount - $shippingFee));
+        $platformCommission = (float) ($paymentInfo['platform_commission'] ?? $paymentInfo['commission_before_discount'] ?? 0);
+        $platformCommissionDiscount = (float) ($paymentInfo['platform_commission_discount'] ?? $paymentInfo['commission_discount'] ?? 0);
+        $netPlatformCommission = (float) ($paymentInfo['net_platform_commission'] ?? ($platformCommission > 0 ? max(0.0, $platformCommission - $platformCommissionDiscount) : 0));
+        
+        $preorderServiceFee = (float) ($paymentInfo['preorder_service_fee'] ?? $paymentInfo['preorder_fee'] ?? 0);
+        $dynamicCommission = (float) ($paymentInfo['dynamic_commission'] ?? $paymentInfo['affiliate_commission'] ?? 0);
+        $growthXtraFee = (float) ($paymentInfo['growth_xtra_fee'] ?? $paymentInfo['growth_program_fee'] ?? 0);
+        $orderProcessingFee = (float) ($paymentInfo['order_processing_fee'] ?? $paymentInfo['transaction_fee'] ?? 0);
+
+        $totalTiktokFees = $netPlatformCommission + $preorderServiceFee + $dynamicCommission + $growthXtraFee + $orderProcessingFee;
         
         if ($escrowAmount > 0) {
             $netAmount = $escrowAmount;
             $marketplaceFee = max(0.0, $totalAmount - $shippingFee - $netAmount);
+        } elseif ($totalTiktokFees > 0) {
+            $marketplaceFee = $totalTiktokFees;
+            $netAmount = max(0.0, $subtotalAfterSeller - $totalTiktokFees);
         } else {
             $marketplaceFee = round($totalAmount * 0.05);
             $netAmount = max(0.0, $totalAmount - $discountAmount - $marketplaceFee);
@@ -194,11 +209,22 @@ class PullOrdersFromTiktok implements ShouldQueue
 
         $financialBreakdown = [
             'original_price' => max(0.0, $totalAmount - $shippingFee),
+            'subtotal_after_seller_discounts' => $subtotalAfterSeller,
             'actual_shipping_fee' => $shippingFee,
-            'service_fee' => $marketplaceFee,
-            'commission_fee' => 0,
+            'platform_commission' => $platformCommission,
+            'platform_commission_discount' => $platformCommissionDiscount,
+            'net_platform_commission' => $netPlatformCommission,
+            'preorder_service_fee' => $preorderServiceFee,
+            'dynamic_commission' => $dynamicCommission,
+            'growth_xtra_fee' => $growthXtraFee,
+            'order_processing_fee' => $orderProcessingFee,
+            'service_fee' => $totalTiktokFees > 0 ? $totalTiktokFees : $marketplaceFee,
+            'commission_fee' => $dynamicCommission,
+            'seller_transaction_fee' => $orderProcessingFee,
+            'voucher_from_seller' => $discountAmount,
             'voucher_from_shopee' => $paymentInfo['platform_discount'] ?? 0,
-            'adjustment_amount' => 0,
+            'adjustment_amount' => $paymentInfo['adjustment_amount'] ?? 0,
+            'escrow_amount' => $escrowAmount > 0 ? $escrowAmount : $netAmount,
         ];
 
         $courier = $tiktokOrder['shipping_provider'] ?? $tiktokOrder['shipping_provider_name'] ?? null;
