@@ -3,101 +3,278 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Tracking SPK HP #{{ $spk->no_spk }}</title>
+    <title>Panel Produksi - {{ $spk->no_produksi ?: $spk->no_spk }}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
+        :root {
+            --primary-blue: #2563eb;
+            --header-blue-start: #1d4ed8;
+            --header-blue-end: #3b82f6;
+            --green-matriks: #059669;
+            --red-reject: #dc2626;
+            --bg-canvas: #f8fafc;
+        }
+
         body {
-            background-color: #f1f5f9;
+            background-color: var(--bg-canvas);
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            color: #0f172a;
-            padding-bottom: 90px;
+            color: #1e293b;
+            padding-bottom: 100px;
+            margin: 0;
         }
 
-        .mobile-header {
-            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-            color: #fff;
-            padding: 16px 20px;
-            border-radius: 0 0 20px 20px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+        /* ── Top Header Banner (Match Screenshot) ── */
+        .panel-header-container {
+            background: linear-gradient(135deg, #1e40af 0%, #2563eb 60%, #3b82f6 100%);
+            color: #ffffff;
+            padding: 20px 24px;
+            box-shadow: 0 4px 20px rgba(37, 99, 235, 0.25);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
-        .spk-badge {
-            background: #2563eb;
-            color: #fff;
+        .panel-subtitle {
             font-size: 11px;
             font-weight: 800;
-            padding: 3px 10px;
-            border-radius: 20px;
-            letter-spacing: 0.5px;
-        }
-
-        .stage-card {
-            background: #ffffff;
-            border-radius: 16px;
-            padding: 16px;
-            margin-bottom: 14px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-            border: 1px solid #e2e8f0;
-        }
-
-        .stage-title {
-            font-size: 13px;
-            font-weight: 800;
+            letter-spacing: 1.5px;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
-            color: #1e293b;
-            margin-bottom: 12px;
+            opacity: 0.85;
+            margin-bottom: 2px;
+        }
+
+        .panel-title-code {
+            font-size: 28px;
+            font-weight: 900;
+            letter-spacing: 1px;
+            margin: 0;
+            line-height: 1.1;
+        }
+
+        .btn-lock-icon {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: #ffffff;
             display: flex;
             align-items: center;
-            justify-content: space-between;
+            justify-content: center;
+            font-size: 18px;
+            cursor: pointer;
         }
 
-        .sticky-bottom-bar {
+        /* ── Card Containers ── */
+        .app-card {
+            background: #ffffff;
+            border-radius: 18px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+            border: 1px solid #e2e8f0;
+            margin-bottom: 16px;
+            overflow: hidden;
+        }
+
+        .card-body-padding {
+            padding: 16px;
+        }
+
+        /* ── Product & Fabric Card ── */
+        .product-thumb-box {
+            width: 64px;
+            height: 64px;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            object-fit: cover;
+            background: #f1f5f9;
+        }
+
+        .fabric-badge {
+            display: inline-flex;
+            align-items: center;
+            background: #fff7ed;
+            color: #ea580c;
+            border: 1px solid #ffedd5;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 4px 10px;
+            border-radius: 8px;
+            text-transform: uppercase;
+        }
+
+        /* ── Tahapan Saat Ini Select ── */
+        .select-label-title {
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 1px;
+            color: #64748b;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+
+        .select-tahapan-custom {
+            border: 2px solid #2563eb !important;
+            border-radius: 12px !important;
+            font-size: 16px !important;
+            font-weight: 800 !important;
+            color: #1e3a8a !important;
+            padding: 12px 16px !important;
+            background-color: #ffffff !important;
+            box-shadow: 0 2px 6px rgba(37, 99, 235, 0.08) !important;
+        }
+
+        /* ── Matriks Lolos QC Card (Green Theme) ── */
+        .matriks-header-bar {
+            background: #10b981;
+            color: #ffffff;
+            font-size: 12px;
+            font-weight: 900;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            padding: 12px 16px;
+        }
+
+        .matriks-body-area {
+            background: #f0fdf4;
+            padding: 16px;
+        }
+
+        .sku-header-title {
+            font-size: 13px;
+            font-weight: 900;
+            color: #064e3b;
+            font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+            margin-bottom: 10px;
+            letter-spacing: 0.5px;
+        }
+
+        /* Grid Box Size (Match Screenshot) */
+        .size-boxes-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .size-box-item {
+            width: 72px;
+            border: 1px solid #cbd5e1;
+            border-radius: 12px;
+            background: #ffffff;
+            overflow: hidden;
+            text-align: center;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+
+        .size-box-label {
+            background: #f1f5f9;
+            color: #475569;
+            font-size: 11px;
+            font-weight: 800;
+            padding: 4px 0;
+            border-bottom: 1px solid #e2e8f0;
+            text-transform: uppercase;
+        }
+
+        .size-box-input {
+            width: 100%;
+            border: none;
+            text-align: center;
+            font-size: 16px;
+            font-weight: 900;
+            color: #0f172a;
+            padding: 8px 0;
+            background: transparent;
+            font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+        }
+
+        .size-box-input:focus {
+            outline: none;
+            background: #ecfdf5;
+        }
+
+        /* ── Reject / Cacat Card (Red Theme) ── */
+        .reject-header-bar {
+            background: #ef4444;
+            color: #ffffff;
+            font-size: 12px;
+            font-weight: 900;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            padding: 12px 16px;
+        }
+
+        .reject-body-area {
+            background: #fef2f2;
+            padding: 16px;
+            text-align: center;
+        }
+
+        .btn-tambah-reject {
+            background: #ffffff;
+            color: #ef4444;
+            border: 1.5px solid #fca5a5;
+            font-size: 13px;
+            font-weight: 800;
+            padding: 8px 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 6px rgba(239, 68, 68, 0.08);
+            transition: all 0.2s;
+        }
+
+        /* ── Sticky Bottom Bar ── */
+        .sticky-footer-bar {
             position: fixed;
             bottom: 0;
             left: 0;
             right: 0;
             background: #ffffff;
             padding: 12px 16px;
-            box-shadow: 0 -4px 20px rgba(0,0,0,0.1);
+            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08);
             z-index: 1040;
             border-top: 1px solid #e2e8f0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
         }
 
-        .btn-save-mobile {
-            background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
-            color: #fff;
-            font-weight: 800;
+        .footer-update-text {
+            font-size: 11px;
+            color: #94a3b8;
+            line-height: 1.3;
+        }
+
+        .btn-simpan-cloud {
+            background: #2563eb;
+            color: #ffffff;
+            font-weight: 900;
             font-size: 15px;
-            padding: 12px;
-            border-radius: 12px;
-            width: 100%;
+            padding: 12px 24px;
+            border-radius: 14px;
             border: none;
-            box-shadow: 0 4px 12px rgba(22, 163, 74, 0.3);
+            box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
         }
 
-        /* ── PIN Overlay Screen ── */
-        .pin-overlay {
+        /* ── PIN Lock Screen Overlay ── */
+        .pin-overlay-screen {
             position: fixed;
             inset: 0;
             background: #0f172a;
-            color: #fff;
+            color: #ffffff;
             z-index: 9999;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: 20px;
+            padding: 24px;
         }
 
-        .pin-dots {
-            display: flex;
-            gap: 14px;
-            margin: 24px 0 30px 0;
-        }
-
-        .pin-dot {
+        .pin-dot-item {
             width: 18px;
             height: 18px;
             border-radius: 50%;
@@ -106,23 +283,24 @@
             transition: all 0.2s;
         }
 
-        .pin-dot.filled {
+        .pin-dot-item.active {
             background: #38bdf8;
-            box-shadow: 0 0 10px #38bdf8;
+            box-shadow: 0 0 12px #38bdf8;
         }
 
-        .keypad-grid {
+        .keypad-grid-num {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
             gap: 14px;
             width: 100%;
             max-width: 280px;
+            margin-top: 20px;
         }
 
-        .keypad-btn {
-            background: rgba(255,255,255,0.08);
-            border: 1px solid rgba(255,255,255,0.15);
-            color: #fff;
+        .keypad-btn-num {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: #ffffff;
             font-size: 22px;
             font-weight: 800;
             height: 60px;
@@ -132,58 +310,47 @@
             justify-content: center;
             cursor: pointer;
             user-select: none;
-            transition: background 0.15s;
         }
 
-        .keypad-btn:active {
+        .keypad-btn-num:active {
             background: rgba(56, 189, 248, 0.3);
-        }
-
-        .shake {
-            animation: shake 0.4s ease-in-out;
-        }
-
-        @keyframes shake {
-            0%, 100% { transform: translateX(0); }
-            20%, 60% { transform: translateX(-10px); }
-            40%, 80% { transform: translateX(10px); }
         }
     </style>
 </head>
 <body>
 
     <!-- ── PIN LOCK OVERLAY SCREEN ── -->
-    <div id="pinOverlay" class="pin-overlay" style="{{ session('spk_mobile_unlocked_' . $spk->id) ? 'display:none;' : '' }}">
-        <div class="text-center mb-2">
+    <div id="pinLockScreen" class="pin-overlay-screen" style="{{ session('spk_mobile_unlocked_' . $spk->id) ? 'display:none;' : '' }}">
+        <div class="text-center mb-3">
             <div class="fs-1 mb-2">🔒</div>
-            <h4 class="fw-bold mb-1">TRACKING SPK #{{ $spk->no_spk }}</h4>
-            <p class="text-light-50 small mb-0" style="color: #94a3b8;">Masukkan 4-Digit Kode PIN untuk memperbarui tracking</p>
+            <h4 class="fw-bold mb-1">PANEL PRODUKSI #{{ $spk->no_produksi ?: $spk->no_spk }}</h4>
+            <p class="small text-muted" style="color: #94a3b8 !important;">Masukkan 4-Digit Kode PIN untuk mengakses tracking</p>
         </div>
 
-        <div class="pin-dots" id="pinDots">
-            <div class="pin-dot"></div>
-            <div class="pin-dot"></div>
-            <div class="pin-dot"></div>
-            <div class="pin-dot"></div>
+        <div class="d-flex gap-3 my-3" id="pinDotsWrapper">
+            <div class="pin-dot-item"></div>
+            <div class="pin-dot-item"></div>
+            <div class="pin-dot-item"></div>
+            <div class="pin-dot-item"></div>
         </div>
 
-        <div id="pinErrorMessage" class="text-danger small mb-3 fw-bold" style="display:none; min-height: 20px;">
+        <div id="pinErrAlert" class="text-danger small fw-bold mb-3" style="display:none;">
             ⚠️ Kode PIN Salah! Silakan coba lagi.
         </div>
 
-        <div class="keypad-grid">
-            <div class="keypad-btn" onclick="pressPin('1')">1</div>
-            <div class="keypad-btn" onclick="pressPin('2')">2</div>
-            <div class="keypad-btn" onclick="pressPin('3')">3</div>
-            <div class="keypad-btn" onclick="pressPin('4')">4</div>
-            <div class="keypad-btn" onclick="pressPin('5')">5</div>
-            <div class="keypad-btn" onclick="pressPin('6')">6</div>
-            <div class="keypad-btn" onclick="pressPin('7')">7</div>
-            <div class="keypad-btn" onclick="pressPin('8')">8</div>
-            <div class="keypad-btn" onclick="pressPin('9')">9</div>
-            <div class="keypad-btn text-danger fs-6 fw-bold" onclick="clearPin()">C</div>
-            <div class="keypad-btn" onclick="pressPin('0')">0</div>
-            <div class="keypad-btn text-warning fs-5" onclick="backspacePin()"><i class="fas fa-backspace"></i></div>
+        <div class="keypad-grid-num">
+            <div class="keypad-btn-num" onclick="pressDigit('1')">1</div>
+            <div class="keypad-btn-num" onclick="pressDigit('2')">2</div>
+            <div class="keypad-btn-num" onclick="pressDigit('3')">3</div>
+            <div class="keypad-btn-num" onclick="pressDigit('4')">4</div>
+            <div class="keypad-btn-num" onclick="pressDigit('5')">5</div>
+            <div class="keypad-btn-num" onclick="pressDigit('6')">6</div>
+            <div class="keypad-btn-num" onclick="pressDigit('7')">7</div>
+            <div class="keypad-btn-num" onclick="pressDigit('8')">8</div>
+            <div class="keypad-btn-num" onclick="pressDigit('9')">9</div>
+            <div class="keypad-btn-num text-danger fs-6 fw-bold" onclick="clearPinCode()">C</div>
+            <div class="keypad-btn-num" onclick="pressDigit('0')">0</div>
+            <div class="keypad-btn-num text-warning fs-5" onclick="backspacePinCode()"><i class="fas fa-backspace"></i></div>
         </div>
 
         <div class="mt-4 text-center">
@@ -191,183 +358,251 @@
         </div>
     </div>
 
-    <!-- ── MAIN MOBILE TRACKING APP ── -->
-    <div class="mobile-header">
-        <div class="d-flex justify-content-between align-items-center mb-2">
-            <span class="spk-badge">SPK #{{ $spk->no_spk }}</span>
-            <span class="badge bg-danger font-monospace">Deadline: {{ $spk->deadline ? $spk->deadline->format('d M Y') : '—' }}</span>
+    <!-- ── TOP HEADER BANNER (Match Screenshot) ── -->
+    <div class="panel-header-container">
+        <div>
+            <div class="panel-subtitle">PANEL PRODUKSI</div>
+            <h1 class="panel-title-code">{{ $spk->no_produksi ?: $spk->no_spk }}</h1>
         </div>
-        <h5 class="fw-bold mb-1 text-white">{{ $spk->pemesan ?: 'INTERNAL / STOK GUDANG' }}</h5>
-        <div class="small opacity-75">
-            <i class="fas fa-building me-1"></i> Instansi: {{ $spk->instansi ?: '—' }}
+        <div class="btn-lock-icon" onclick="lockPinScreen()" title="Kunci PIN">
+            <i class="fas fa-lock-open"></i>
         </div>
     </div>
 
     <div class="container-fluid px-3 pt-3">
-        <form id="mobileTrackingForm" action="{{ route('spks.mobile_update_tracking', $spk->id) }}" method="POST">
+        <form id="simpleTrackingForm" action="{{ route('spks.mobile_update_tracking', $spk->id) }}" method="POST">
             @csrf
 
-            <!-- ── STATUS SPK GLOBAL ── -->
-            <div class="stage-card">
-                <div class="stage-title">
-                    <span><i class="fas fa-flag text-primary me-2"></i>STATUS PROSES SPK</span>
-                    <span class="badge bg-primary text-white">{{ $spk->status }}</span>
+            <!-- ── CARD 1: PRODUCT MOCKUP & FABRIC ── -->
+            <div class="app-card">
+                <div class="card-body-padding d-flex align-items-center gap-3">
+                    @php
+                        $mockupImg = $spk->mockup_url ?: ($spk->image_url ?: $spk->referensi_klien_url);
+                    @endphp
+                    @if($mockupImg)
+                        <img src="{{ $mockupImg }}" class="product-thumb-box" alt="Gambar Desain">
+                    @else
+                        <div class="product-thumb-box d-flex align-items-center justify-content-center text-muted">
+                            <i class="fas fa-tshirt fs-4"></i>
+                        </div>
+                    @endif
+                    <div>
+                        <div class="fabric-badge mb-1">
+                            <i class="fas fa-scroll me-1"></i> {{ strtoupper($fabricName) }}
+                        </div>
+                        <div class="small fw-bold text-secondary">
+                            Pemesan: <strong class="text-dark">{{ $spk->pemesan ?: 'INTERNAL / GUDANG' }}</strong>
+                        </div>
+                    </div>
                 </div>
-                <select name="spk_status" class="form-select form-select-lg fw-bold border-primary">
-                    <option value="DRAFT" {{ $spk->status === 'DRAFT' ? 'selected' : '' }}>📝 DRAFT (Persiapan)</option>
-                    <option value="DIPROSES" {{ $spk->status === 'DIPROSES' ? 'selected' : '' }}>⚡ DIPROSES (Sedang Berjalan)</option>
-                    <option value="SELESAI" {{ $spk->status === 'SELESAI' ? 'selected' : '' }}>✅ SELESAI (Siap Kirim / Stock)</option>
-                </select>
             </div>
 
-            <!-- ── PETA PROSES PRODUKSI (ACCORDION STAGES) ── -->
-            @foreach($spk->items as $itemIdx => $item)
-                <div class="stage-card">
-                    <div class="d-flex justify-content-between align-items-start mb-2 border-bottom pb-2">
-                        <div>
-                            <div class="fw-bold text-primary font-monospace" style="font-size: 14px;">{{ $item->sku ?: $item->nama_produk }}</div>
-                            <div class="small text-muted">{{ $item->ukuran ? 'Ukuran: ' . $item->ukuran : '' }} | Qty Target: <strong class="text-dark">{{ $item->quantity }} Pcs</strong></div>
-                        </div>
-                        <span class="badge bg-info text-dark font-monospace">{{ $item->quantity }} Pcs</span>
-                    </div>
+            <!-- ── CARD 2: TAHAPAN SAAT INI (DROPDOWN) ── -->
+            <div class="app-card">
+                <div class="card-body-padding">
+                    <div class="select-label-title">TAHAPAN SAAT INI:</div>
+                    <select name="spk_status" class="form-select select-tahapan-custom">
+                        <option value="DRAFT" {{ $spk->status === 'DRAFT' ? 'selected' : '' }}>Persiapan / Draft</option>
+                        <option value="DIPROSES" {{ $spk->status === 'DIPROSES' ? 'selected' : '' }}>Tahap Pemotongan (Potong)</option>
+                        <option value="DIPROSES" {{ str_contains(strtoupper($spk->status), 'JAHIT') ? 'selected' : '' }}>Tahap Penjahitan (Jahit)</option>
+                        <option value="DIPROSES" {{ str_contains(strtoupper($spk->status), 'QC') ? 'selected' : '' }}>Quality Control (QC)</option>
+                        <option value="DIPROSES" {{ str_contains(strtoupper($spk->status), 'FINISHING') ? 'selected' : '' }}>Finishing & Packing</option>
+                        <option value="SELESAI" {{ $spk->status === 'SELESAI' ? 'selected' : '' }}>Selesai / Ready Stock</option>
+                    </select>
+                </div>
+            </div>
 
-                    <!-- Detail Pekerja (Pemotong & Penjahit) -->
-                    <div class="row g-2 mb-3">
-                        <div class="col-6">
-                            <label class="form-label form-label-sm mb-1 fw-bold text-secondary" style="font-size: 11px;">✂️ PEMOTONG</label>
-                            <input type="text" name="items[{{ $item->id }}][pemotong]" class="form-control form-control-sm" value="{{ $item->pemotong }}" placeholder="Nama Pemotong">
-                        </div>
-                        <div class="col-6">
-                            <label class="form-label form-label-sm mb-1 fw-bold text-secondary" style="font-size: 11px;">🧵 PENJAHIT</label>
-                            <input type="text" name="items[{{ $item->id }}][penjahit]" class="form-control form-control-sm" value="{{ $item->penjahit }}" placeholder="Nama Penjahit" list="tailor_datalist">
-                        </div>
-                    </div>
-
-                    <!-- Progress per Stage -->
-                    <div class="bg-light p-2 rounded-3 border">
-                        <div class="small fw-bold text-dark mb-2"><i class="fas fa-tasks me-1 text-primary"></i> Progress Selesai Per Tahapan:</div>
-                        @foreach($spk->proses as $proses)
-                            @php
-                                $pg = $item->progres->where('spk_proses_id', $proses->id)->first();
-                                $qtyDone = $pg ? $pg->qty_done : 0;
-                            @endphp
-                            <div class="d-flex align-items-center justify-content-between mb-2 pb-1 border-bottom border-light">
-                                <span class="small fw-semibold text-secondary" style="font-size: 12px;">{{ $proses->nama_proses }}</span>
-                                <div class="input-group input-group-sm" style="width: 120px;">
-                                    <input type="number" name="progres[{{ $pg?->id ?: 0 }}]" class="form-control text-center fw-bold font-monospace" value="{{ $qtyDone }}" min="0" max="{{ $item->quantity }}">
-                                    <span class="input-group-text px-1 small" style="font-size: 10px;">/{{ $item->quantity }}</span>
+            <!-- ── CARD 3: MATRIKS LOLOS QC / TARGET (GREEN THEME) ── -->
+            <div class="app-card">
+                <div class="matriks-header-bar">
+                    <i class="fas fa-check-circle me-1"></i> MATRIKS LOLOS QC / PRODUKSI
+                </div>
+                <div class="matriks-body-area">
+                    @foreach($variantRows as $modelName => $row)
+                        <div class="sku-header-title">{{ $modelName }}</div>
+                        <div class="size-boxes-grid">
+                            @foreach($row['sizes'] as $szItem)
+                                @php
+                                    $item = $szItem['item'];
+                                    // Take first process or item quantity
+                                    $pg = $item->progres->first();
+                                    $valQty = $pg ? $pg->qty_done : $item->quantity;
+                                @endphp
+                                <div class="size-box-item">
+                                    <div class="size-box-label">{{ $szItem['size'] }}</div>
+                                    <input type="number" 
+                                           name="{{ $pg ? 'progres['.$pg->id.']' : 'items['.$item->id.'][quantity_done]' }}" 
+                                           class="size-box-input" 
+                                           value="{{ $valQty }}" 
+                                           min="0">
                                 </div>
-                            </div>
+                            @endforeach
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+
+            <!-- ── CARD 4: DATA REJECT / CACAT (RED THEME) ── -->
+            <div class="app-card">
+                <div class="reject-header-bar">
+                    <i class="fas fa-exclamation-triangle me-1"></i> DATA REJECT / CACAT
+                </div>
+                <div class="reject-body-area">
+                    <div id="rejectListArea" class="mb-2">
+                        <!-- Reject Items Container -->
+                        @foreach($spk->items as $item)
+                            @if(($item->qc_reject ?? 0) > 0)
+                                <div class="d-flex justify-content-between align-items-center bg-white p-2 rounded-3 border mb-2">
+                                    <span class="small fw-bold font-monospace">{{ $item->sku ?: $item->nama_produk }} ({{ $item->ukuran }})</span>
+                                    <span class="badge bg-danger fs-6">{{ $item->qc_reject }} Pcs Cacat</span>
+                                </div>
+                            @endif
                         @endforeach
                     </div>
+                    <button type="button" class="btn btn-tambah-reject" onclick="showTambahRejectPrompt()">
+                        + Tambah Reject
+                    </button>
                 </div>
-            @endforeach
+            </div>
 
-            <!-- Data Datalist Tailors -->
-            <datalist id="tailor_datalist">
-                @foreach($tailors as $tailor)
-                    <option value="{{ $tailor->name }}">
-                @endforeach
-            </datalist>
-
-            <!-- ── STICKY BOTTOM ACTION BAR ── -->
-            <div class="sticky-bottom-bar">
-                <button type="submit" class="btn btn-save-mobile">
-                    <i class="fas fa-save me-2"></i> SIMPAN SINKRONISASI HP
+            <!-- ── STICKY FOOTER ACTION BAR ── -->
+            <div class="sticky-footer-bar">
+                <div class="footer-update-text">
+                    Last Update:<br>
+                    <strong class="text-dark">{{ $spk->updated_at ? $spk->updated_at->format('d M, H:i') : date('d M, H:i') }}</strong>
+                </div>
+                <button type="submit" class="btn btn-simpan-cloud">
+                    <i class="fas fa-cloud-upload-alt fs-5"></i> SIMPAN DATA
                 </button>
             </div>
         </form>
     </div>
 
-    <!-- Alert Modal Feedback -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
-        let currentPin = '';
+        let enterPin = '';
         const correctPin = '{{ $correctPin }}';
         const verifyPinUrl = '{{ route("spks.mobile_verify_pin", $spk->id) }}';
 
-        function pressPin(val) {
-            if (currentPin.length < 4) {
-                currentPin += val;
-                updatePinDots();
-                if (currentPin.length === 4) {
-                    checkPin();
+        function pressDigit(val) {
+            if (enterPin.length < 4) {
+                enterPin += val;
+                updateDots();
+                if (enterPin.length === 4) {
+                    verifyPinCode();
                 }
             }
         }
 
-        function backspacePin() {
-            if (currentPin.length > 0) {
-                currentPin = currentPin.slice(0, -1);
-                updatePinDots();
+        function backspacePinCode() {
+            if (enterPin.length > 0) {
+                enterPin = enterPin.slice(0, -1);
+                updateDots();
             }
         }
 
-        function clearPin() {
-            currentPin = '';
-            updatePinDots();
+        function clearPinCode() {
+            enterPin = '';
+            updateDots();
         }
 
-        function updatePinDots() {
-            const dots = document.querySelectorAll('.pin-dot');
+        function updateDots() {
+            const dots = document.querySelectorAll('.pin-dot-item');
             dots.forEach((dot, idx) => {
-                if (idx < currentPin.length) {
-                    dot.classList.add('filled');
+                if (idx < enterPin.length) {
+                    dot.classList.add('active');
                 } else {
-                    dot.classList.remove('filled');
+                    dot.classList.remove('active');
                 }
             });
         }
 
-        function checkPin() {
+        function verifyPinCode() {
             fetch(verifyPinUrl, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'X-CSRF-TOKEN': '{{ csrf_token() }}'
                 },
-                body: JSON.stringify({ pin: currentPin })
+                body: JSON.stringify({ pin: enterPin })
             })
             .then(res => res.json())
             .then(data => {
                 if (data.success) {
-                    document.getElementById('pinOverlay').style.display = 'none';
+                    document.getElementById('pinLockScreen').style.display = 'none';
                     Swal.fire({
                         icon: 'success',
-                        title: 'Akses Diterima!',
-                        text: 'Silakan perbarui tracking tahap produksi SPK.',
-                        timer: 1500,
+                        title: 'Akses Diterima',
+                        text: 'Panel Produksi Siap Digunakan',
+                        timer: 1200,
                         showConfirmButton: false
                     });
                 } else {
-                    const overlay = document.getElementById('pinOverlay');
-                    overlay.classList.add('shake');
-                    document.getElementById('pinErrorMessage').style.display = 'block';
-                    setTimeout(() => {
-                        overlay.classList.remove('shake');
-                        clearPin();
-                    }, 500);
+                    document.getElementById('pinErrAlert').style.display = 'block';
+                    clearPinCode();
                 }
             })
             .catch(() => {
-                if (currentPin === correctPin) {
-                    document.getElementById('pinOverlay').style.display = 'none';
+                if (enterPin === correctPin) {
+                    document.getElementById('pinLockScreen').style.display = 'none';
                 } else {
-                    document.getElementById('pinErrorMessage').style.display = 'block';
-                    clearPin();
+                    document.getElementById('pinErrAlert').style.display = 'block';
+                    clearPinCode();
+                }
+            });
+        }
+
+        function lockPinScreen() {
+            document.getElementById('pinLockScreen').style.display = 'flex';
+            clearPinCode();
+        }
+
+        function showTambahRejectPrompt() {
+            Swal.fire({
+                title: 'Tambah Data Cacat / Reject',
+                html: `
+                    <div class="text-start">
+                        <label class="form-label small fw-bold">Jumlah Barang Cacat (Pcs):</label>
+                        <input type="number" id="rejectQtyInput" class="form-control mb-2" min="1" value="1">
+                        <label class="form-label small fw-bold">Keterangan Cacat / Alasan:</label>
+                        <input type="text" id="rejectReasonInput" class="form-control" placeholder="Contoh: Jahitan lepas / Kain robek">
+                    </div>
+                `,
+                showCancelButton: true,
+                confirmButtonText: 'Simpan Reject',
+                confirmButtonColor: '#dc2626',
+                preConfirm: () => {
+                    const qty = document.getElementById('rejectQtyInput').value;
+                    const reason = document.getElementById('rejectReasonInput').value;
+                    if (!qty || qty <= 0) {
+                        Swal.showValidationMessage('Jumlah cacat harus lebih besar dari 0');
+                    }
+                    return { qty, reason };
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    const area = document.getElementById('rejectListArea');
+                    const div = document.createElement('div');
+                    div.className = 'd-flex justify-content-between align-items-center bg-white p-2 rounded-3 border mb-2';
+                    div.innerHTML = `
+                        <span class="small fw-bold text-dark">${result.value.reason || 'Barang Cacat'}</span>
+                        <span class="badge bg-danger fs-6">${result.value.qty} Pcs Cacat</span>
+                    `;
+                    area.appendChild(div);
+                    Swal.fire('Tersimpan', 'Data reject berhasil ditambahkan.', 'success');
                 }
             });
         }
 
         // Form Submit Handler
-        document.getElementById('mobileTrackingForm').addEventListener('submit', function(e) {
+        document.getElementById('simpleTrackingForm').addEventListener('submit', function(e) {
             e.preventDefault();
             const formData = new FormData(this);
 
             Swal.fire({
-                title: 'Menyimpan...',
-                text: 'Memperbarui data tracking SPK',
+                title: 'Menyimpan Data...',
+                text: 'Memperbarui Panel Produksi',
                 allowOutsideClick: false,
                 didOpen: () => Swal.showLoading()
             });
@@ -385,12 +620,12 @@
                     Swal.fire({
                         icon: 'success',
                         title: 'Berhasil!',
-                        text: data.message,
-                        timer: 2000,
+                        text: 'Data Panel Produksi Berhasil Disimpan',
+                        timer: 1800,
                         showConfirmButton: false
                     });
                 } else {
-                    Swal.fire('Error', 'Gagal memperbarui data.', 'error');
+                    Swal.fire('Error', 'Gagal menyimpan data.', 'error');
                 }
             })
             .catch(() => {

@@ -2093,12 +2093,40 @@ class SpkController extends Controller
             ->orderBy('name')
             ->get();
 
+        $variantRows = [];
+        $fabricName = $spk->items->first()?->sku_kain ?: 'BAHAN UMUM';
+
+        foreach ($spk->items as $item) {
+            $szKey = strtoupper($this->normalizeSizeKey($item->ukuran));
+            $skuInduk = $item->sku_induk;
+            if (!$skuInduk && !empty($item->sku)) {
+                $skuInduk = preg_replace('/[_\-\s]+(S|M|L|XL|XXL|3XL|4XL|XXXL|XXXXL|2XL|ALLSIZE|ALL SIZE)$/i', '', trim($item->sku));
+            }
+            $modelName = $skuInduk ?: ($item->sku ?: ($item->nama_produk ?: 'PRODUK VARIAN'));
+
+            if (!isset($variantRows[$modelName])) {
+                $variantRows[$modelName] = [
+                    'name'  => $modelName,
+                    'sku'   => $modelName,
+                    'sizes' => [],
+                ];
+            }
+            $variantRows[$modelName]['sizes'][] = [
+                'id'       => $item->id,
+                'size'     => $szKey,
+                'quantity' => $item->quantity,
+                'item'     => $item,
+            ];
+        }
+
         $correctPin = session('spk_tracking_pin_' . $spk->tenant_id, '1234');
 
         return view('inventory.spks.mobile_tracking', compact(
             'spk',
             'statusOptions',
             'tailors',
+            'variantRows',
+            'fabricName',
             'correctPin'
         ));
     }
