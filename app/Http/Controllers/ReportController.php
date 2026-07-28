@@ -150,7 +150,7 @@ class ReportController extends Controller
             'product_id' => 'required|exists:master_products,id',
         ]);
 
-        $product = \App\Models\MasterProduct::where('tenant_id', $tenantId)->findOrFail($request->product_id);
+        $product = \App\Models\MasterProduct::with('components')->where('tenant_id', $tenantId)->findOrFail($request->product_id);
 
         $query = \App\Models\StockMovement::with('user')
             ->where('master_product_id', $product->id)

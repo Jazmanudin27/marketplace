@@ -204,6 +204,27 @@
         </table>
     </div>
 
+    @if ($product->is_bundle)
+        <div style="border: 1.5px dashed #6f42c1; background: #f3f0ff; color: #4c1d95; padding: 10px 14px; border-radius: 6px; margin-bottom: 12px; font-size: 10.5px; line-height: 1.4;">
+            <strong>📦 PRODUK SET / BUNDLE (VIRTUAL PRODUCT):</strong><br>
+            Produk ini adalah paket/gabungan. Stok fisik <strong>({{ number_format($product->stock) }} Pcs)</strong> dihitung secara otomatis dari stok terkecil komponen penyusunnya.<br>
+            Seluruh riwayat mutasi stok (masuk/keluar) dicatat langsung pada <strong>Kartu Stok Produk Single Penyusunnya</strong>:
+            <ul style="margin: 4px 0 0 16px; padding: 0;">
+                @foreach ($product->components as $comp)
+                    <li>
+                        <strong>[{{ $comp->sku }}] {{ $comp->name }}</strong> (Dibutuhkan {{ $comp->pivot->quantity }}x) — Stok Fisik Gudang: 
+                        <strong style="{{ $comp->stock < 0 ? 'color: #dc2626;' : 'color: #16a34a;' }}">
+                            {{ number_format($comp->stock) }} Pcs
+                        </strong>
+                        @if ($comp->stock < 0)
+                            <span style="color: #dc2626; font-weight: bold;">(⚠️ STOK MINUS MENGATASI STOK BUNDLE BEKERJA MINUS)</span>
+                        @endif
+                    </li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
+
     <table class="ledger-table">
         <thead>
             <tr>

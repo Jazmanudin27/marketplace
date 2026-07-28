@@ -179,9 +179,9 @@
             text-align: center;
             margin-bottom: 0;
             background: #fff;
-            height: 220px;
-            min-height: 200px;
-            max-height: 235px;
+            height: 280px;
+            min-height: 280px;
+            max-height: 300px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -192,7 +192,7 @@
         .design-img {
             width: 100%;
             height: 100%;
-            max-height: 230px;
+            max-height: 280px;
             object-fit: contain;
         }
 
@@ -300,7 +300,8 @@
                 display: none !important;
             }
 
-            html, body {
+            html,
+            body {
                 width: 210mm !important;
                 height: 297mm !important;
                 background: #fff !important;
@@ -518,14 +519,13 @@
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="{{ count($sizesHeader) + 4 }}"
-                                            class="text-center text-muted">Tidak ada rincian varian produk.</td>
+                                        <td colspan="{{ count($sizesHeader) + 4 }}" class="text-center text-muted">
+                                            Tidak ada rincian varian produk.</td>
                                     </tr>
                                 @endforelse
 
                                 @if (!empty($variantRows))
-                                    <tr
-                                        style="background: #f1f5f9; font-weight: bold; border-top: 2px solid #000;">
+                                    <tr style="background: #f1f5f9; font-weight: bold; border-top: 2px solid #000;">
                                         <td style="text-align: center; font-weight: 900; background: #e2e8f0;">
                                             TOTAL</td>
                                         @foreach ($sizesHeader as $szH)

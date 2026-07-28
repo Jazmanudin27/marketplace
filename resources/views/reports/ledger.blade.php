@@ -17,11 +17,13 @@
                                 <option value="">-- Cari & Pilih Produk --</option>
                                 @foreach ($products as $product)
                                     <option value="{{ $product->id }}" {{ request('product_id') == $product->id ? 'selected' : '' }}>
-                                        [{{ $product->sku }}] {{ $product->name }}
+                                        [{{ $product->sku }}] {{ $product->name }} {{ $product->is_bundle ? ' (SET / BUNDLE)' : '' }}
                                     </option>
                                 @endforeach
                             </select>
-                            <div class="form-text small">Kartu stok hanya bisa dicetak per satu produk.</div>
+                            <div class="form-text small text-muted">
+                                <i class="fas fa-info-circle me-1 text-primary"></i> <strong>Catatan Produk Set / Bundle:</strong> Mutasi stok barang fisik dicatat langsung pada <strong>Kartu Stok Produk Single Penyusunnya</strong>.
+                            </div>
                         </div>
                         <div class="row">
                             <div class="col-md-6 mb-3">
