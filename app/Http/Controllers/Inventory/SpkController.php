@@ -47,12 +47,12 @@ class SpkController extends Controller
 
         if ($request->filled('stage')) {
             $stage = strtolower(trim($request->stage));
-            if ($stage === 'pesanan_baru' || $stage === 'perencanaan') {
+            if (in_array($stage, ['pesanan_baru', 'perencanaan', 'draft'])) {
                 $query->where(function ($q) {
                     $q->doesntHave('proses')
-                      ->orWhereHas('proses', function ($p) {
-                          $p->whereIn('nama_proses', ['Pesanan Baru', 'Perencanaan'])
-                            ->where('status', '!=', 'Selesai');
+                      ->orWhereIn(DB::raw('LOWER(tahap_saat_ini)'), ['draft', 'pesanan baru', 'perencanaan', 'perancangan produksi (spk)', 'tahap desain & mockup'])
+                      ->orWhereDoesntHave('items.progres', function ($pg) {
+                          $pg->where('qty_done', '>', 0);
                       });
                 });
             } else {
