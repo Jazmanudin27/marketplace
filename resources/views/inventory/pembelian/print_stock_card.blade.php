@@ -200,22 +200,21 @@
         <thead>
             <tr>
                 <th class="th-blue" rowspan="2" style="width: 3%;">No</th>
-                <th class="th-blue" rowspan="2" style="width: 8%;">Tanggal</th>
-                <th class="th-blue" rowspan="2" style="width: 10%;">No Faktur</th>
-                <th class="th-blue" rowspan="2" style="width: 12%;">Pelanggan / Supplier</th>
-                <th class="th-blue" rowspan="2" style="width: 8%;">Wilayah</th>
-                <th class="th-blue" rowspan="2" style="width: 7%;">Kode Sales</th>
-                <th class="th-blue" rowspan="2" style="width: 8%;">Nama Sales / User</th>
+                <th class="th-blue" rowspan="2" style="width: 9%;">Tanggal &amp; Jam</th>
+                <th class="th-blue" rowspan="2" style="width: 12%;">No Faktur / Ref</th>
+                <th class="th-blue" rowspan="2" style="width: 10%;">Channel / Sumber</th>
+                <th class="th-blue" rowspan="2" style="width: 11%;">Toko / Gudang</th>
                 <th class="th-blue" rowspan="2" style="width: 14%;">Keterangan</th>
 
                 <!-- PENERIMAAN HEADER -->
-                <th class="th-green" colspan="4">PENERIMAAN</th>
+                <th class="th-green" colspan="4">PENERIMAAN (STOK MASUK)</th>
 
                 <!-- PENGELUARAN HEADER -->
-                <th class="th-red" colspan="3">PENGELUARAN</th>
+                <th class="th-red" colspan="3">PENGELUARAN (STOK KELUAR)</th>
 
                 <!-- SALDO HEADER -->
-                <th class="th-blue" rowspan="2" style="width: 8%;">Saldo</th>
+                <th class="th-blue" rowspan="2" style="width: 7%;">Saldo</th>
+                <th class="th-blue" rowspan="2" style="width: 7%;">User PIC</th>
             </tr>
             <tr>
                 <!-- Sub-headers under PENERIMAAN -->
@@ -245,9 +244,7 @@
                 <td>{{ \Carbon\Carbon::parse($dateFrom)->format('d M Y') }}</td>
                 <td>—</td>
                 <td>—</td>
-                <td>—</td>
-                <td>—</td>
-                <td>—</td>
+                <td>Gudang Bahan</td>
                 <td style="text-align: left; padding-left: 6px; font-weight: bold;">SALDO AWAL PERIODE</td>
                 <!-- Penerimaan -->
                 <td class="td-muted">-</td>
@@ -258,13 +255,14 @@
                 <td class="td-muted">-</td>
                 <td class="td-muted">-</td>
                 <td class="td-muted">-</td>
-                <!-- Saldo -->
+                <!-- Saldo & PIC -->
                 <td class="td-balance" style="background: #e2e8f0;">{{ number_format($saldoAwal) }} {{ $unitName }}</td>
+                <td>System</td>
             </tr>
 
             @forelse($movements as $idx => $mov)
                 @php
-                    $movDate = $mov->created_at ? $mov->created_at->format('d M Y') : '—';
+                    $movDate = $mov->created_at ? $mov->created_at->format('d/m/Y H:i') : '—';
                     $qty = (float)$mov->quantity;
                     $ref = $mov->reference ?? '';
 
@@ -274,11 +272,18 @@
                         $noFaktur = trim(end($parts));
                     }
 
-                    $pelanggan = '—';
-                    $wilayah = '—';
-                    $kodeSales = '—';
-                    $namaSales = $mov->user->name ?? 'System';
+                    $channelName = 'Pembelian / Bahan';
+                    $storeName = 'Gudang Utama';
+
+                    if (str_contains(strtolower($ref), 'opname')) {
+                        $channelName = 'Stock Opname';
+                    } elseif (str_contains(strtolower($ref), 'spk') || str_contains(strtolower($ref), 'produksi')) {
+                        $channelName = 'Pemakaian Produksi';
+                        $storeName = 'Tim Produksi';
+                    }
+
                     $keterangan = $ref;
+                    $picUser = $mov->user->name ?? 'System';
 
                     // Classify into columns
                     $pembelian = '-';
@@ -314,12 +319,10 @@
                 @endphp
                 <tr>
                     <td>{{ $idx + 2 }}</td>
-                    <td>{{ $movDate }}</td>
-                    <td style="font-weight: 700;">{{ $noFaktur }}</td>
-                    <td style="text-align: left; padding-left: 4px;">{{ $pelanggan }}</td>
-                    <td>{{ $wilayah }}</td>
-                    <td>{{ $kodeSales }}</td>
-                    <td>{{ $namaSales }}</td>
+                    <td style="white-space: nowrap;">{{ $movDate }}</td>
+                    <td style="font-weight: 700; font-family: monospace;">{{ $noFaktur }}</td>
+                    <td style="font-weight: 700;">{{ $channelName }}</td>
+                    <td style="text-align: left; padding-left: 4px;">{{ $storeName }}</td>
                     <td style="text-align: left; padding-left: 4px;">{{ $keterangan }}</td>
 
                     <!-- PENERIMAAN -->
@@ -335,10 +338,13 @@
 
                     <!-- SALDO -->
                     <td class="td-balance">{{ number_format($mov->balance_after) }} {{ $unitName }}</td>
+
+                    <!-- USER PIC -->
+                    <td>{{ $picUser }}</td>
                 </tr>
             @empty
                 <tr>
-                    <td colspan="16" style="padding: 20px;" class="td-muted">
+                    <td colspan="15" style="padding: 20px;" class="td-muted">
                         Tidak ada riwayat pergerakan stok untuk bahan ini pada periode terpilih.
                     </td>
                 </tr>
