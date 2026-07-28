@@ -158,12 +158,11 @@
                     <thead class="table-light">
                         <tr>
                             <th class="ps-3">Detail Produk</th>
-                            <th class="text-end" style="width:12%">Harga HPP</th>
-                            <th class="text-end" style="width:12%">Harga Jual</th>
-                            <th class="text-center" style="width:13%">Stok Gudang</th>
-                            <th class="text-center" style="width:14%">Stok Marketplace</th>
-                            <th class="text-center" style="width:12%">Total Stok</th>
-                            <th class="text-center pe-3" style="width:11%">Aksi</th>
+                            <th class="text-end" style="width:14%">Harga HPP</th>
+                            <th class="text-end" style="width:14%">Harga Jual</th>
+                            <th class="text-center" style="width:15%">Stok Gudang</th>
+                            <th class="text-center" style="width:16%">Stok Marketplace</th>
+                            <th class="text-center pe-3" style="width:13%">Aksi</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -171,7 +170,6 @@
                             @php
                                 $stokGudang = (int) $product->stock;
                                 $stokMp = (int) $product->marketplaceProducts->sum('stock');
-                                $totalStok = $stokGudang + $stokMp;
                             @endphp
                             <tr>
                                 <td class="ps-3 py-2">
@@ -266,22 +264,15 @@
                                             }
                                         @endphp
                                         <span
-                                            class="badge bg-info bg-opacity-15 border border-info border-opacity-25 px-2 py-1 small fw-bold"
-                                            title="{{ trim($mpTooltip) }}" style="cursor: pointer;">
-                                            <i class="fas fa-store me-1"></i>{{ number_format($stokMp) }}
+                                            class="badge bg-info text-white px-2.5 py-1.5 small fw-extrabold shadow-sm"
+                                            title="{{ trim($mpTooltip) }}" style="cursor: pointer; background-color: #0284c7 !important;">
+                                            <i class="fas fa-store me-1"></i>{{ number_format($stokMp) }} MP
                                         </span>
                                         <div class="text-muted mt-1" style="font-size:.7rem">
                                             {{ $product->marketplaceProducts->count() }} Toko Linked</div>
                                     @else
                                         <span class="text-muted small">—</span>
                                     @endif
-                                </td>
-
-                                {{-- Total Stok --}}
-                                <td class="text-center font-monospace">
-                                    <span class="fw-bold fs-6 {{ $totalStok <= 0 ? 'text-danger' : 'text-primary' }}">
-                                        {{ number_format($totalStok) }}
-                                    </span>
                                 </td>
 
                                 {{-- Aksi --}}
@@ -294,7 +285,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="7" class="text-center text-muted py-5">
+                                <td colspan="6" class="text-center text-muted py-5">
                                     <i class="fas fa-boxes fa-2x mb-3 d-block opacity-25"></i>
                                     <div class="fw-semibold mb-1">Tidak Ada Produk Ditemukan</div>
                                     <div class="small">Sesuaikan filter atau tambah produk baru.</div>
