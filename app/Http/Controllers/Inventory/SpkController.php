@@ -1229,10 +1229,12 @@ class SpkController extends Controller
 
                 if (!isset($variantRows[$modelName])) {
                     $variantRows[$modelName] = [
-                        'name'  => $modelName,
-                        'sku'   => $modelName,
-                        'sizes' => [],
-                        'total' => 0,
+                        'name'        => $modelName,
+                        'sku'         => $modelName,
+                        'sizes'       => [],
+                        'total'       => 0,
+                        'fabric_qty'  => 0,
+                        'fabric_name' => '',
                     ];
                 }
                 $variantRows[$modelName]['sizes'][$szKey] = ($variantRows[$modelName]['sizes'][$szKey] ?? 0) + $item->quantity;
@@ -1242,15 +1244,23 @@ class SpkController extends Controller
                     if (str_contains($extra->keterangan, 'Bahan:')) {
                         $ket = $extra->keterangan;
                         $bName = trim(str_replace('Bahan:', '', $ket));
-                        $bQty = '—';
-                        if (preg_match('/^(.*?)\s*\(Qty:\s*([\d\.]+)\)$/i', $bName, $mQty)) {
+                        $nVal = 0;
+                        if (preg_match('/^(.*?)\s*\(Qty:\s*([\d\.,]+)\)$/i', $bName, $mQty)) {
                             $bName = trim($mQty[1]);
-                            $nVal = (float) $mQty[2];
-                            $bQty = ($nVal == (int)$nVal) ? (int)$nVal : (float)$nVal;
+                            $rawVal = str_replace(',', '.', $mQty[2]);
+                            $nVal = (float) $rawVal;
                         }
+                        if ($nVal > 150) {
+                            $nVal = $nVal / 100;
+                        }
+                        $variantRows[$modelName]['fabric_qty'] += $nVal;
+                        if (empty($variantRows[$modelName]['fabric_name'])) {
+                            $variantRows[$modelName]['fabric_name'] = $bName;
+                        }
+
                         $bazaItems[] = [
                             'name' => $bName,
-                            'qty'  => $bQty,
+                            'qty'  => $nVal,
                         ];
                     }
                 }

@@ -414,11 +414,19 @@
                                             {{ $varRow['total'] }}
                                         </td>
                                         <td style="font-weight: bold;">
-                                            @if($loop->first)
-                                                {{ $formattedQty }}
-                                            @else
-                                                —
-                                            @endif
+                                            @php
+                                                $rowFabQty = (float)($varRow['fabric_qty'] ?? 0);
+                                                if ($rowFabQty <= 0 && $loop->first && !empty($formattedQty) && $formattedQty !== '—') {
+                                                    $rowFabQty = (float) str_replace(',', '.', $formattedQty);
+                                                }
+                                                if ($rowFabQty > 0) {
+                                                    $dispQty = number_format($rowFabQty, 2, ',', '.');
+                                                    $dispQty = rtrim(rtrim($dispQty, '0'), ',');
+                                                    echo $dispQty;
+                                                } else {
+                                                    echo '—';
+                                                }
+                                            @endphp
                                         </td>
                                         <td></td>
                                     </tr>
