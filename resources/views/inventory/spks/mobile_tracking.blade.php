@@ -565,8 +565,12 @@
             const matriksArea = document.getElementById('cardMatriksArea');
             const rejectArea = document.getElementById('cardRejectArea');
 
-            if (val === 'Antrian & Sampling' || val === 'Perencanaan' || val === 'Tahap Sampling') {
+            if (val === 'Antrian & Sampling' || val === 'Tahap Sampling') {
                 antrianArea.style.display = 'block';
+                matriksArea.style.display = 'none';
+                rejectArea.style.display = 'none';
+            } else if (val === 'Perencanaan') {
+                antrianArea.style.display = 'none';
                 matriksArea.style.display = 'none';
                 rejectArea.style.display = 'none';
             } else {
