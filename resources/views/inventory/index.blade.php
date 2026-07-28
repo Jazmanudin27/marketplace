@@ -259,17 +259,19 @@
                                     @if ($product->marketplaceProducts->isNotEmpty())
                                         @php
                                             $mpTooltip = '';
-                                            foreach($product->marketplaceProducts as $mp) {
+                                            foreach ($product->marketplaceProducts as $mp) {
                                                 $ch = $mp->store->channel->name ?? 'MP';
                                                 $st = $mp->store->store_name ?? '-';
                                                 $mpTooltip .= "{$ch} ({$st}): " . number_format($mp->stock) . "\n";
                                             }
                                         @endphp
-                                        <span class="badge bg-info bg-opacity-15 text-info border border-info border-opacity-25 px-2 py-1 small fw-bold"
+                                        <span
+                                            class="badge bg-info bg-opacity-15 text-white border border-info border-opacity-25 px-2 py-1 small fw-bold"
                                             title="{{ trim($mpTooltip) }}" style="cursor: pointer;">
                                             <i class="fas fa-store me-1"></i>{{ number_format($stokMp) }}
                                         </span>
-                                        <div class="text-muted mt-1" style="font-size:.7rem">{{ $product->marketplaceProducts->count() }} Toko Linked</div>
+                                        <div class="text-muted mt-1" style="font-size:.7rem">
+                                            {{ $product->marketplaceProducts->count() }} Toko Linked</div>
                                     @else
                                         <span class="text-muted small">—</span>
                                     @endif
