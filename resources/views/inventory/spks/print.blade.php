@@ -383,8 +383,18 @@
                                 </div>
                             </td>
                             <td class="header-qr">
-                                <img src="https://api.qrserver.com/v1/create-qr-code/?size=48x48&data={{ $currentSpk->no_spk }}"
-                                    alt="QR" style="width: 40px; height: 40px; display:block;">
+                                @php
+                                    $spkTrackUrl = route('spks.mobile_scan', $currentSpk->id);
+                                @endphp
+                                <a href="{{ $spkTrackUrl }}" target="_blank" title="Scan / Update Tracking SPK">
+                                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=120x120&data={{ urlencode($spkTrackUrl) }}"
+                                        alt="QR Tracking SPK"
+                                        style="width: 44px; height: 44px; display:block; margin: 0 auto;">
+                                </a>
+                                <div
+                                    style="font-size: 6px; text-align: center; color: #475569; font-weight: 800; margin-top: 1.5px; line-height: 1; letter-spacing: 0.2px;">
+                                    SCAN TRACKING HP
+                                </div>
                             </td>
                         </tr>
                     </table>

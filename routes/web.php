@@ -569,6 +569,11 @@ Route::middleware('auth')->group(function () {
         Route::post('/spks/{spk}/toggle-urgent', [\App\Http\Controllers\Inventory\SpkController::class, 'toggleUrgent'])->name('spks.toggle_urgent');
         Route::post('/spks/{spk}/pay-labor', [\App\Http\Controllers\Inventory\SpkController::class, 'payLabor'])->name('spks.pay_labor');
 
+        // Mobile HP SPK Scan & PIN-protected Production Tracking
+        Route::get('/spk-scan/{spk}', [\App\Http\Controllers\Inventory\SpkController::class, 'mobileScan'])->name('spks.mobile_scan');
+        Route::post('/spk-scan/{spk}/verify-pin', [\App\Http\Controllers\Inventory\SpkController::class, 'verifyMobilePin'])->name('spks.mobile_verify_pin');
+        Route::post('/spk-scan/{spk}/update-tracking', [\App\Http\Controllers\Inventory\SpkController::class, 'updateMobileTracking'])->name('spks.mobile_update_tracking');
+
         // Stock Sync
         Route::get('/stock-sync', [StockSyncController::class, 'index'])->name('inventory.stock_sync');
         Route::post('/stock-sync/all', [StockSyncController::class, 'forceSyncAll'])->name('inventory.stock_sync.all');

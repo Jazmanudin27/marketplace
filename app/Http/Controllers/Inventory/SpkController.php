@@ -2079,6 +2079,94 @@ class SpkController extends Controller
         return redirect()->back()->with('success', "💳 Berhasil mencatat {$createdCount} transaksi pembayaran ongkos jasa vendor (Total: Rp " . number_format($grandTotalPaid, 0, ',', '.') . ") ke Pengeluaran Kas!");
     }
 
+    /**
+     * Tampilan Khusus Mobile HP Scan & Tracking Tahap Produksi SPK dengan Proteksi PIN
+     */
+    public function mobileScan(Request $request, Spk $spk)
+    {
+        $spk->load(['penginput', 'items.extras', 'items.progres', 'proses']);
+        $this->ensureDefaultProses($spk);
+
+        $statusOptions = $this->getStatusOptions($spk);
+        $tailors = \App\Models\Tailor::where('tenant_id', $spk->tenant_id)
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get();
+
+        $correctPin = session('spk_tracking_pin_' . $spk->tenant_id, '1234');
+
+        return view('inventory.spks.mobile_tracking', compact(
+            'spk',
+            'statusOptions',
+            'tailors',
+            'correctPin'
+        ));
+    }
+
+    /**
+     * Verifikasi PIN secara AJAX untuk Mobile Tracking SPK
+     */
+    public function verifyMobilePin(Request $request, Spk $spk)
+    {
+        $correctPin = session('spk_tracking_pin_' . $spk->tenant_id, '1234');
+        $inputPin = trim((string) $request->input('pin'));
+
+        if ($inputPin === $correctPin) {
+            session(['spk_mobile_unlocked_' . $spk->id => true]);
+            return response()->json(['success' => true, 'message' => 'PIN Benar!']);
+        }
+
+        return response()->json(['success' => false, 'message' => 'Kode PIN salah. Silakan coba lagi.'], 422);
+    }
+
+    /**
+     * Simpan pembaruan tracking tahap produksi via Mobile HP
+     */
+    public function updateMobileTracking(Request $request, Spk $spk)
+    {
+        $spk->load(['items', 'proses']);
+
+        if ($request->has('spk_status')) {
+            $spk->update(['status' => $request->input('spk_status')]);
+        }
+
+        // Update items details (pemotong, penjahit, status item)
+        if ($request->has('items') && is_array($request->input('items'))) {
+            foreach ($request->input('items') as $itemId => $itemData) {
+                $item = $spk->items->find($itemId);
+                if (!$item) continue;
+
+                $updatePayload = [];
+                if (isset($itemData['pemotong'])) $updatePayload['pemotong'] = $itemData['pemotong'];
+                if (isset($itemData['penjahit'])) $updatePayload['penjahit'] = $itemData['penjahit'];
+                if (isset($itemData['status'])) $updatePayload['status'] = $itemData['status'];
+
+                if (!empty($updatePayload)) {
+                    $item->update($updatePayload);
+                }
+            }
+        }
+
+        // Update proses progres (qty_done per item & proses)
+        if ($request->has('progres') && is_array($request->input('progres'))) {
+            foreach ($request->input('progres') as $progresId => $qtyDone) {
+                $pg = \App\Models\SpkItemProgres::find($progresId);
+                if ($pg && $pg->item->spk_id === $spk->id) {
+                    $pg->update(['qty_done' => max(0, (int) $qtyDone)]);
+                }
+            }
+        }
+
+        if ($request->expectsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => '✅ Tracking Tahap Produksi SPK #' . $spk->no_spk . ' Berhasil Diperbarui!',
+            ]);
+        }
+
+        return redirect()->back()->with('success', '✅ Tracking SPK berhasil diperbarui via Mobile!');
+    }
+
     private function normalizeSizeKey(?string $size): string
     {
         $sz = strtoupper(trim((string) $size));
