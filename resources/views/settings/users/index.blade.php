@@ -210,7 +210,15 @@
                                             <td class="small text-dark">{{ $u->tenant?->name ?? '-' }}</td>
                                         @endif
                                         <td class="text-center">
-                                            <div class="d-flex gap-1 justify-content-center">
+                                            <div class="d-flex gap-1 justify-content-center flex-wrap">
+                                                @if ($u->id !== Auth::id())
+                                                    <form action="{{ route('impersonate', $u->id) }}" method="POST" class="d-inline">
+                                                        @csrf
+                                                        <button type="submit" class="btn btn-sm text-white fw-semibold" style="background-color:#8b5cf6;" title="Masuk & Simulasi Hak Akses Sebagai {{ $u->name }}">
+                                                            <i class="fas fa-user-secret me-1"></i> Simulasi User
+                                                        </button>
+                                                    </form>
+                                                @endif
                                                 <button type="button" class="btn btn-warning btn-sm edit-user-btn"
                                                     title="Edit Profil" data-id="{{ $u->id }}"
                                                     data-name="{{ $u->name }}" data-email="{{ $u->email }}"

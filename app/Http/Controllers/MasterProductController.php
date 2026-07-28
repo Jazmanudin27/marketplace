@@ -79,6 +79,16 @@ class MasterProductController extends Controller
             }
         }
 
+        if ($request->filled('is_bundle')) {
+            if ($request->is_bundle === '1') {
+                $query->where('is_bundle', true);
+            } elseif ($request->is_bundle === '0') {
+                $query->where(function($q) {
+                    $q->where('is_bundle', false)->orWhereNull('is_bundle');
+                });
+            }
+        }
+
         $products = $query->orderBy('name')->paginate(25)->withQueryString();
 
         $publicationLogs = PublicationLog::with(['masterProduct', 'store.channel'])
@@ -98,6 +108,10 @@ class MasterProductController extends Controller
 
         $poCount = MasterProduct::where('tenant_id', $tenantId)->where('is_preorder', true)->count();
         $readyCount = MasterProduct::where('tenant_id', $tenantId)->where('is_preorder', false)->count();
+        $bundleCount = MasterProduct::where('tenant_id', $tenantId)->where('is_bundle', true)->count();
+        $singleCount = MasterProduct::where('tenant_id', $tenantId)->where(function($q) {
+            $q->where('is_bundle', false)->orWhereNull('is_bundle');
+        })->count();
 
         return view('products.index', compact(
             'products',
@@ -109,7 +123,9 @@ class MasterProductController extends Controller
             'stores',
             'channels',
             'poCount',
-            'readyCount'
+            'readyCount',
+            'bundleCount',
+            'singleCount'
         ));
     }
 

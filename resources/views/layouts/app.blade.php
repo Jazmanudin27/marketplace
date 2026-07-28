@@ -63,6 +63,34 @@
         <div class="row">
             <!-- Main Content Area -->
             <main class="col-12 p-0 d-flex flex-column min-vh-100">
+                {{-- Floating Sticky Banner for Impersonation / Simulasi Mode --}}
+                @if (session()->has('impersonator_id'))
+                    @php
+                        $impersonatorUser = \App\Models\User::find(session('impersonator_id'));
+                        $currentRole = Auth::user()->roles->first()?->name ?? Auth::user()->role ?? 'User';
+                    @endphp
+                    <div class="bg-warning text-dark px-3 py-2 border-bottom shadow-sm d-flex justify-content-between align-items-center position-sticky top-0 w-100"
+                        style="z-index: 9999; background-color: #fef08a !important; border-bottom: 2px solid #eab308 !important;">
+                        <div class="d-flex align-items-center gap-2 small">
+                            <span class="badge bg-dark text-warning fw-bold px-2 py-1 shadow-sm">
+                                <i class="fas fa-user-secret me-1"></i>MODE SIMULASI USER
+                            </span>
+                            <span class="fw-bold text-dark">
+                                Anda sedang tes masuk sebagai: <u class="text-primary">{{ Auth::user()->name }}</u> (Role: <span class="badge bg-primary text-capitalize">{{ $currentRole }}</span>)
+                            </span>
+                            <span class="text-muted d-none d-md-inline ms-2">
+                                (Akun Asli Admin: <strong>{{ $impersonatorUser->name ?? 'Admin' }}</strong>)
+                            </span>
+                        </div>
+                        <form action="{{ route('impersonate.leave') }}" method="POST" class="m-0">
+                            @csrf
+                            <button type="submit" class="btn btn-dark btn-sm fw-bold rounded-pill px-3 py-1 shadow-sm">
+                                <i class="fas fa-undo me-1 text-warning"></i> Kembali ke Akun Admin Saya
+                            </button>
+                        </form>
+                    </div>
+                @endif
+
                 <!-- Navbar -->
                 <nav id="main-navbar" class="navbar navbar-expand-lg navbar-dark bg-primary border-bottom sticky-top py-2 px-3 shadow-sm">
                     <div class="container-fluid p-0">

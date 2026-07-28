@@ -34,20 +34,37 @@
         <div class="card border shadow-sm mb-3">
             <div class="card-body py-2.5 px-3">
 
-                {{-- Quick Filter Pills: PO vs Ready Stock --}}
+                {{-- Quick Filter Pills: Jenis & Status --}}
                 <div class="d-flex flex-wrap align-items-center gap-2 mb-2.5 pb-2 border-bottom">
-                    <span class="fw-bold small text-muted me-1"><i class="fas fa-filter text-primary me-1"></i>Filter Cepat Status PO:</span>
-                    <a href="{{ route('products.index', request()->except('is_preorder')) }}"
-                        class="btn btn-xs rounded-pill {{ !request()->has('is_preorder') || request('is_preorder') === '' ? 'btn-primary fw-bold' : 'btn-outline-secondary' }} px-3 py-1">
+                    <span class="fw-bold small text-muted me-1"><i class="fas fa-filter text-primary me-1"></i>Filter Cepat:</span>
+                    <a href="{{ route('products.index', request()->except(['is_preorder', 'is_bundle'])) }}"
+                        class="btn btn-xs rounded-pill {{ (!request()->has('is_preorder') || request('is_preorder') === '') && (!request()->has('is_bundle') || request('is_bundle') === '') ? 'btn-primary fw-bold' : 'btn-outline-secondary' }} px-3 py-1">
                         🌐 Semua Produk <span class="badge bg-white text-dark ms-1">{{ number_format($products->total()) }}</span>
                     </a>
+                    
+                    {{-- Filter Single vs Bundle --}}
+                    <a href="{{ route('products.index', array_merge(request()->query(), ['is_bundle' => '0'])) }}"
+                        class="btn btn-xs rounded-pill fw-bold px-3 py-1"
+                        style="{{ request('is_bundle') === '0' ? 'background-color:#0284c7; border-color:#0284c7; color:#fff;' : 'color:#0284c7; border-color:#0284c7;' }}">
+                        🏷️ Single <span class="badge bg-white text-dark ms-1">{{ number_format($singleCount ?? 0) }}</span>
+                    </a>
+                    <a href="{{ route('products.index', array_merge(request()->query(), ['is_bundle' => '1'])) }}"
+                        class="btn btn-xs rounded-pill fw-bold px-3 py-1"
+                        style="{{ request('is_bundle') === '1' ? 'background-color:#e11d48; border-color:#e11d48; color:#fff;' : 'color:#e11d48; border-color:#e11d48;' }}">
+                        📦 BUNDLE / Set <span class="badge bg-white text-dark ms-1">{{ number_format($bundleCount ?? 0) }}</span>
+                    </a>
+
+                    <span class="text-muted opacity-25 mx-1">|</span>
+
+                    {{-- Filter PO vs Ready --}}
                     <a href="{{ route('products.index', array_merge(request()->query(), ['is_preorder' => '1'])) }}"
                         class="btn btn-xs rounded-pill {{ request('is_preorder') === '1' ? 'btn-purple text-white fw-bold' : 'btn-outline-purple' }} px-3 py-1"
                         style="{{ request('is_preorder') === '1' ? 'background-color:#8b5cf6; border-color:#8b5cf6; color:#fff;' : 'color:#8b5cf6; border-color:#8b5cf6;' }}">
                         📦 Pre-Order (PO) <span class="badge bg-white text-dark ms-1">{{ number_format($poCount ?? 0) }}</span>
                     </a>
                     <a href="{{ route('products.index', array_merge(request()->query(), ['is_preorder' => '0'])) }}"
-                        class="btn btn-xs rounded-pill {{ request('is_preorder') === '0' ? 'btn-success fw-bold' : 'btn-outline-success' }} px-3 py-1">
+                        class="btn btn-xs rounded-pill fw-bold px-3 py-1"
+                        style="{{ request('is_preorder') === '0' ? 'background-color:#16a34a; border-color:#16a34a; color:#fff;' : 'color:#15803d; border-color:#16a34a;' }}">
                         ⚡ Ready Stock <span class="badge bg-white text-dark ms-1">{{ number_format($readyCount ?? 0) }}</span>
                     </a>
                 </div>
@@ -113,6 +130,16 @@
                         </div>
                         <div class="col-md-2">
                             <label class="form-label form-label-sm fw-semibold mb-1">
+                                <i class="fas fa-boxes text-muted me-1"></i>Jenis Produk
+                            </label>
+                            <select name="is_bundle" class="form-select form-select-sm">
+                                <option value="">-- Semua Jenis --</option>
+                                <option value="0" {{ request('is_bundle') === '0' ? 'selected' : '' }}>Single</option>
+                                <option value="1" {{ request('is_bundle') === '1' ? 'selected' : '' }}>BUNDLE / Set</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label form-label-sm fw-semibold mb-1">
                                 <i class="fas fa-clock text-muted me-1"></i>Tipe PO
                             </label>
                             <select name="is_preorder" class="form-select form-select-sm">
@@ -125,7 +152,7 @@
                             <button type="submit" class="btn btn-primary btn-sm px-3">
                                 <i class="fas fa-search me-1"></i>Terapkan
                             </button>
-                            @if (request()->anyFilled(['channel_id', 'store_id', 'link_status', 'name', 'sku', 'is_preorder']))
+                            @if (request()->anyFilled(['channel_id', 'store_id', 'link_status', 'name', 'sku', 'is_preorder', 'is_bundle']))
                                 <a href="{{ route('products.index') }}" class="btn btn-secondary btn-sm px-3 ms-1">
                                     <i class="fas fa-times me-1"></i>Reset
                                 </a>
@@ -184,12 +211,22 @@
                                             {{ $product->name }}
                                         </div>
                                         <div class="mt-1 d-flex align-items-center gap-1 flex-wrap">
+                                            @if ($product->is_bundle)
+                                                <span class="badge text-white px-2 py-0.5 fw-bold" style="background-color: #e11d48; font-size: 0.68rem;" title="Produk Bundling / Paket">
+                                                    <i class="fas fa-boxes me-1"></i>BUNDLE
+                                                </span>
+                                            @else
+                                                <span class="badge px-2 py-0.5 fw-bold" style="background-color: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; font-size: 0.68rem;">
+                                                    <i class="fas fa-box me-1"></i>Single
+                                                </span>
+                                            @endif
+
                                             @if ($product->is_preorder)
                                                 <span class="badge text-white px-2 py-0.5 fw-bold" style="background-color: #8b5cf6; font-size: 0.68rem;">
                                                     <i class="fas fa-clock me-1"></i>PO ({{ $product->preorder_days ?? 7 }} Hari)
                                                 </span>
                                             @else
-                                                <span class="badge bg-success bg-opacity-15 text-success border border-success border-opacity-25 px-2 py-0.5 fw-bold" style="font-size: 0.68rem;">
+                                                <span class="badge px-2 py-0.5 fw-bold" style="background-color: #dcfce7; color: #15803d; border: 1px solid #86efac; font-size: 0.68rem;">
                                                     <i class="fas fa-bolt me-1"></i>Ready Stock
                                                 </span>
                                             @endif
@@ -296,7 +333,7 @@
                                                 data-is-preorder="0"
                                                 data-preorder-days="{{ $product->preorder_days ?? 7 }}"
                                                 title="Klik untuk ubah status PO">
-                                                <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1" style="font-size: 0.68rem;">
+                                                <span class="badge px-2 py-1" style="background-color: #dcfce7; color: #15803d; border: 1px solid #86efac; font-size: 0.68rem;">
                                                     <i class="fas fa-check-circle me-1"></i>Ready <i class="fas fa-edit ms-1 opacity-50"></i>
                                                 </span>
                                             </button>
@@ -580,7 +617,7 @@
                                     data-is-preorder="0"
                                     data-preorder-days="${res.preorder_days || 7}"
                                     title="Klik untuk ubah status PO">
-                                    <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1" style="font-size: 0.68rem;">
+                                    <span class="badge px-2 py-1" style="background-color: #dcfce7; color: #15803d; border: 1px solid #86efac; font-size: 0.68rem;">
                                         <i class="fas fa-check-circle me-1"></i>Ready <i class="fas fa-edit ms-1 opacity-50"></i>
                                     </span>
                                 </button>

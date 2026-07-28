@@ -484,4 +484,53 @@ class UserController extends Controller
         $user->delete();
         return back()->with('success', 'Pengguna berhasil dihapus.');
     }
+
+    /**
+     * Start impersonating another user (Simulasi Hak Akses User)
+     */
+    public function impersonate(Request $request, User $user)
+    {
+        $currentUser = Auth::user();
+
+        $actualAdmin = session()->has('impersonator_id')
+            ? User::find(session('impersonator_id'))
+            : $currentUser;
+
+        if (!$actualAdmin || (!$actualAdmin->isSuperAdmin() && $actualAdmin->role !== 'admin' && !$actualAdmin->can('manage-users'))) {
+            abort(403, 'Anda tidak memiliki hak untuk melakukan simulasi user.');
+        }
+
+        if ($currentUser->id === $user->id) {
+            return redirect()->back()->with('error', 'Anda sudah berada di akun pengguna ini.');
+        }
+
+        if (!session()->has('impersonator_id')) {
+            session(['impersonator_id' => $actualAdmin->id]);
+        }
+
+        Auth::login($user);
+
+        $roleLabel = $user->roles->first()?->name ?? $user->role ?? 'User';
+        return redirect()->route('dashboard')->with('success', "Simulasi Mode Aktif: Anda sekarang masuk sebagai {$user->name} (" . ucfirst($roleLabel) . ").");
+    }
+
+    /**
+     * Stop impersonating and return to original admin account
+     */
+    public function leaveImpersonate(Request $request)
+    {
+        if (!session()->has('impersonator_id')) {
+            return redirect()->route('dashboard');
+        }
+
+        $adminId = session()->pull('impersonator_id');
+        $adminUser = User::find($adminId);
+
+        if ($adminUser) {
+            Auth::login($adminUser);
+            return redirect()->route('users.index')->with('success', 'Kembali ke akun Admin ' . $adminUser->name . '.');
+        }
+
+        return redirect()->route('dashboard');
+    }
 }

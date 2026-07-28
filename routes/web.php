@@ -293,13 +293,17 @@ Route::middleware('auth')->group(function () {
         });
     });
 
-    // Users & Roles (Hak Akses)
+    // Users & Roles (Hak Akses) & Simulasi User
     Route::middleware('permission:manage-users')->group(function () {
         Route::get('users/{user}/permissions', [UserController::class, 'editPermissions'])->name('users.permissions.edit');
         Route::put('users/{user}/permissions', [UserController::class, 'updatePermissions'])->name('users.permissions.update');
+        Route::post('users/{user}/impersonate', [UserController::class, 'impersonate'])->name('impersonate');
         Route::resource('users', UserController::class)->except(['create', 'show', 'edit']);
         Route::resource('roles', RoleController::class)->except(['create', 'show', 'edit']);
     });
+
+    Route::post('impersonate-leave', [UserController::class, 'leaveImpersonate'])->name('impersonate.leave');
+    Route::get('impersonate-leave', [UserController::class, 'leaveImpersonate'])->name('impersonate.leave.get');
 
     // Pengaturan Perusahaan (Tenant Settings)
     Route::middleware('permission:settings.tenant.edit')->group(function () {

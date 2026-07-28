@@ -335,9 +335,9 @@
                                                         <div class="small font-monospace text-primary fw-semibold mt-1" style="font-size: 0.68rem;">#{{ $order->spks->first()->no_spk }}</div>
                                                     @endif
                                                 @else
-                                                    <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1 small fw-bold" title="Barang Ready Stock">
-                                                        <i class="fas fa-check-circle me-1"></i> READY
-                                                    </span>
+                                                     <span class="badge px-2 py-1 small fw-bold" style="background-color: #dcfce7; color: #15803d; border: 1px solid #86efac;" title="Barang Ready Stock">
+                                                         <i class="fas fa-check-circle me-1"></i> READY
+                                                     </span>
                                                 @endif
                                             </td>
                                             <td>

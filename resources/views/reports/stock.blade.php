@@ -143,9 +143,9 @@
                                             📦 PO ({{ $row->preorder_days ?: 7 }}hr)
                                         </span>
                                     @else
-                                        <span class="badge bg-success bg-opacity-15 text-success border border-success-subtle rounded-pill px-2 py-1 fw-bold" style="font-size: 9px;">
-                                            ⚡ Ready Stock
-                                        </span>
+                                         <span class="badge rounded-pill px-2 py-1 fw-bold" style="background-color: #dcfce7; color: #15803d; border: 1px solid #86efac; font-size: 9px;">
+                                             ⚡ Ready Stock
+                                         </span>
                                     @endif
                                 </td>
                                 <td class="text-end">
