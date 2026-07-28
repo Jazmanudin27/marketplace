@@ -152,12 +152,12 @@
         /* Mockup / Image Frame Box */
         .design-box-frame {
             border: 1.5px dashed #64748b;
-            border-radius: 8px;
+            border-radius: 6px;
             padding: 4px;
             text-align: center;
-            margin-bottom: 3px;
+            margin-bottom: 0;
             background: #fff;
-            height: 245px;
+            height: 175px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -165,7 +165,7 @@
         }
 
         .design-img {
-            max-height: 236px;
+            max-height: 168px;
             max-width: 98%;
             object-fit: contain;
         }
@@ -336,21 +336,6 @@
 
                     <div class="header-divider-bar"></div>
 
-                    <!-- Design Box Frame -->
-                    <div class="design-box-frame">
-                        @php
-                            $imgSrc =
-                                $currentSpk->mockup_url ?: ($currentSpk->image_url ?: $currentSpk->referensi_klien_url);
-                        @endphp
-                        @if ($imgSrc)
-                            <img src="{{ $imgSrc }}" class="design-img" alt="Desain SPK">
-                        @else
-                            <div class="design-placeholder-text">
-                                👕 TEMPEL GAMBAR DESAIN / MOCKUP DI SINI
-                            </div>
-                        @endif
-                    </div>
-
                     <!-- Client & Admin Bar -->
                     <div class="pemesan-info-bar">
                         PEMESAN: {{ strtoupper($currentSpk->pemesan ?: 'INTERNAL / STOK GUDANG') }}
@@ -361,7 +346,7 @@
                         | ADMIN: {{ strtoupper($currentSpk->nama_pic ?: $currentSpk->penginput->name ?? 'SYSTEM') }}
                     </div>
 
-                    <!-- Single Full Width Table Layout: Rincian Varian & Kebutuhan Kain -->
+                    <!-- 2-Column Layout: Col 5 (Gambar Desain) & Col 7 (Rincian Varian & Kain) -->
                     @php
                         $firstBazaItem = !empty($bazaItems) ? reset($bazaItems) : null;
                         $formattedQty = '—';
@@ -379,107 +364,131 @@
                             }
                         }
                     @endphp
-                    <div style="margin-bottom: 4px;">
-                        <div class="banner-blue">
-                            RINCIAN VARIAN PRODUK &amp; KEBUTUHAN KAIN
-                        </div>
-                        <table class="grid-table" style="width: 100%;">
-                            <thead>
-                                <tr>
-                                    <th rowspan="2" style="width: 25%;">Model Varian</th>
-                                    <th colspan="{{ count($sizesHeader) }}">Size Target / Potong</th>
-                                    <th rowspan="2" style="width: 10%; background: #dc2626; color: #fff;">Total QTY</th>
-                                    <th rowspan="2" style="width: 12.5%;">Estimasi Kain (m)</th>
-                                    <th rowspan="2" style="width: 12.5%;">Sisa Kain (m)</th>
-                                </tr>
-                                <tr>
-                                    @php $szColWidth = count($sizesHeader) > 0 ? round(40 / count($sizesHeader), 2) : 5; @endphp
-                                    @foreach($sizesHeader as $szH)
-                                        <th style="width: {{ $szColWidth }}%;">{{ $szH }}</th>
-                                    @endforeach
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @php
-                                    $sizeTotals = [];
-                                    $grandTotalQty = 0;
-                                    $grandTotalFabric = 0;
-                                    foreach($sizesHeader as $szH) {
-                                        $sizeTotals[$szH] = 0;
-                                    }
-                                @endphp
-
-                                @forelse($variantRows as $varRowIdx => $varRow)
+                    <table style="width: 100%; border-collapse: collapse; margin-bottom: 4px;">
+                        <tr>
+                            <!-- COL 5 (Width 40%): GAMBAR DESAIN / MOCKUP -->
+                            <td style="width: 40%; vertical-align: top; padding-right: 4px;">
+                                <div class="banner-slate">
+                                    🖼️ GAMBAR DESAIN / MOCKUP
+                                </div>
+                                <div class="design-box-frame">
                                     @php
-                                        $rowFabQty = (float)($varRow['fabric_qty'] ?? 0);
-                                        if ($rowFabQty <= 0 && $loop->first && !empty($formattedQty) && $formattedQty !== '—') {
-                                            $rowFabQty = (float) str_replace(',', '.', $formattedQty);
-                                        }
-                                        $grandTotalFabric += $rowFabQty;
-                                        $grandTotalQty += (int)($varRow['total'] ?? 0);
-                                        foreach($sizesHeader as $szH) {
-                                            $sizeTotals[$szH] += (int)($varRow['sizes'][$szH] ?? 0);
-                                        }
+                                        $imgSrc = $currentSpk->mockup_url ?: ($currentSpk->image_url ?: $currentSpk->referensi_klien_url);
                                     @endphp
-                                    <tr>
-                                        <td style="text-align: left; font-weight: bold; padding-left: 4px;">
-                                            {{ $varRow['sku'] ?? ($varRow['name'] ?? '—') }}
-                                        </td>
-                                        @foreach($sizesHeader as $szH)
-                                            <td style="{{ !empty($varRow['sizes'][$szH]) ? 'color:#dc2626; font-weight:bold;' : '' }}">
-                                                {{ $varRow['sizes'][$szH] ?? '' }}
-                                            </td>
-                                        @endforeach
-                                        <td style="background: #dc2626; color: #fff; font-weight: 900; font-size: 11px;">
-                                            {{ $varRow['total'] }}
-                                        </td>
-                                        <td style="font-weight: bold;">
-                                            @php
-                                                if ($rowFabQty > 0) {
-                                                    $dispQty = number_format($rowFabQty, 2, ',', '.');
-                                                    $dispQty = rtrim(rtrim($dispQty, '0'), ',');
-                                                    echo $dispQty;
-                                                } else {
-                                                    echo '—';
-                                                }
-                                            @endphp
-                                        </td>
-                                        <td></td>
-                                    </tr>
-                                @empty
-                                    <tr>
-                                        <td colspan="{{ count($sizesHeader) + 4 }}" class="text-center text-muted">Tidak ada rincian varian produk.</td>
-                                    </tr>
-                                @endforelse
+                                    @if ($imgSrc)
+                                        <img src="{{ $imgSrc }}" class="design-img" alt="Desain SPK">
+                                    @else
+                                        <div class="design-placeholder-text">
+                                            👕 TEMPEL GAMBAR DESAIN / MOCKUP DI SINI
+                                        </div>
+                                    @endif
+                                </div>
+                            </td>
 
-                                @if(!empty($variantRows))
-                                    <tr style="background: #f1f5f9; font-weight: bold; border-top: 2px solid #000;">
-                                        <td style="text-align: center; font-weight: 900; background: #e2e8f0;">TOTAL</td>
-                                        @foreach($sizesHeader as $szH)
-                                            <td style="{{ $sizeTotals[$szH] > 0 ? 'color:#dc2626; font-weight:900;' : '' }}">
-                                                {{ $sizeTotals[$szH] > 0 ? $sizeTotals[$szH] : '' }}
-                                            </td>
-                                        @endforeach
-                                        <td style="background: #dc2626; color: #fff; font-weight: 900; font-size: 11px;">
-                                            {{ $grandTotalQty }}
-                                        </td>
-                                        <td style="font-weight: 900; background: #e2e8f0;">
+                            <!-- COL 7 (Width 60%): RINCIAN VARIAN PRODUK & KEBUTUHAN KAIN -->
+                            <td style="width: 60%; vertical-align: top; padding-left: 4px;">
+                                <div class="banner-blue">
+                                    RINCIAN VARIAN PRODUK &amp; KEBUTUHAN KAIN
+                                </div>
+                                <table class="grid-table" style="width: 100%;">
+                                    <thead>
+                                        <tr>
+                                            <th rowspan="2" style="width: 25%;">Model Varian</th>
+                                            <th colspan="{{ count($sizesHeader) }}">Size Target / Potong</th>
+                                            <th rowspan="2" style="width: 10%; background: #dc2626; color: #fff;">Total QTY</th>
+                                            <th rowspan="2" style="width: 12.5%;">Estimasi Kain (m)</th>
+                                            <th rowspan="2" style="width: 12.5%;">Sisa Kain (m)</th>
+                                        </tr>
+                                        <tr>
+                                            @php $szColWidth = count($sizesHeader) > 0 ? round(40 / count($sizesHeader), 2) : 5; @endphp
+                                            @foreach($sizesHeader as $szH)
+                                                <th style="width: {{ $szColWidth }}%;">{{ $szH }}</th>
+                                            @endforeach
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @php
+                                            $sizeTotals = [];
+                                            $grandTotalQty = 0;
+                                            $grandTotalFabric = 0;
+                                            foreach($sizesHeader as $szH) {
+                                                $sizeTotals[$szH] = 0;
+                                            }
+                                        @endphp
+
+                                        @forelse($variantRows as $varRowIdx => $varRow)
                                             @php
-                                                if ($grandTotalFabric > 0) {
-                                                    $dispGQty = number_format($grandTotalFabric, 2, ',', '.');
-                                                    $dispGQty = rtrim(rtrim($dispGQty, '0'), ',');
-                                                    echo $dispGQty;
-                                                } else {
-                                                    echo '—';
+                                                $rowFabQty = (float)($varRow['fabric_qty'] ?? 0);
+                                                if ($rowFabQty <= 0 && $loop->first && !empty($formattedQty) && $formattedQty !== '—') {
+                                                    $rowFabQty = (float) str_replace(',', '.', $formattedQty);
+                                                }
+                                                $grandTotalFabric += $rowFabQty;
+                                                $grandTotalQty += (int)($varRow['total'] ?? 0);
+                                                foreach($sizesHeader as $szH) {
+                                                    $sizeTotals[$szH] += (int)($varRow['sizes'][$szH] ?? 0);
                                                 }
                                             @endphp
-                                        </td>
-                                        <td style="background: #e2e8f0;"></td>
-                                    </tr>
-                                @endif
-                            </tbody>
-                        </table>
-                    </div>
+                                            <tr>
+                                                <td style="text-align: left; font-weight: bold; padding-left: 4px;">
+                                                    {{ $varRow['sku'] ?? ($varRow['name'] ?? '—') }}
+                                                </td>
+                                                @foreach($sizesHeader as $szH)
+                                                    <td style="{{ !empty($varRow['sizes'][$szH]) ? 'color:#dc2626; font-weight:bold;' : '' }}">
+                                                        {{ $varRow['sizes'][$szH] ?? '' }}
+                                                    </td>
+                                                @endforeach
+                                                <td style="background: #dc2626; color: #fff; font-weight: 900; font-size: 11px;">
+                                                    {{ $varRow['total'] }}
+                                                </td>
+                                                <td style="font-weight: bold;">
+                                                    @php
+                                                        if ($rowFabQty > 0) {
+                                                            $dispQty = number_format($rowFabQty, 2, ',', '.');
+                                                            $dispQty = rtrim(rtrim($dispQty, '0'), ',');
+                                                            echo $dispQty;
+                                                        } else {
+                                                            echo '—';
+                                                        }
+                                                    @endphp
+                                                </td>
+                                                <td></td>
+                                            </tr>
+                                        @empty
+                                            <tr>
+                                                <td colspan="{{ count($sizesHeader) + 4 }}" class="text-center text-muted">Tidak ada rincian varian produk.</td>
+                                            </tr>
+                                        @endforelse
+
+                                        @if(!empty($variantRows))
+                                            <tr style="background: #f1f5f9; font-weight: bold; border-top: 2px solid #000;">
+                                                <td style="text-align: center; font-weight: 900; background: #e2e8f0;">TOTAL</td>
+                                                @foreach($sizesHeader as $szH)
+                                                    <td style="{{ $sizeTotals[$szH] > 0 ? 'color:#dc2626; font-weight:900;' : '' }}">
+                                                        {{ $sizeTotals[$szH] > 0 ? $sizeTotals[$szH] : '' }}
+                                                    </td>
+                                                @endforeach
+                                                <td style="background: #dc2626; color: #fff; font-weight: 900; font-size: 11px;">
+                                                    {{ $grandTotalQty }}
+                                                </td>
+                                                <td style="font-weight: 900; background: #e2e8f0;">
+                                                    @php
+                                                        if ($grandTotalFabric > 0) {
+                                                            $dispGQty = number_format($grandTotalFabric, 2, ',', '.');
+                                                            $dispGQty = rtrim(rtrim($dispGQty, '0'), ',');
+                                                            echo $dispGQty;
+                                                        } else {
+                                                            echo '—';
+                                                        }
+                                                    @endphp
+                                                </td>
+                                                <td style="background: #e2e8f0;"></td>
+                                            </tr>
+                                        @endif
+                                    </tbody>
+                                </table>
+                            </td>
+                        </tr>
+                    </table>
 
                     <!-- Catatan / Keterangan Box -->
                     <div class="catatan-box">
