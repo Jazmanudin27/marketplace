@@ -22,20 +22,36 @@
             color: #0f172a;
             margin: 0;
             padding: 0;
-            background: #fff;
+            background: #cbd5e1;
             line-height: 1.2;
         }
 
+        /* ── Real A4 Paper Sheet Container ── */
+        .a4-sheet-container {
+            width: 210mm;
+            min-height: 297mm;
+            margin: 20px auto;
+            padding: 5mm 6mm;
+            background: #ffffff;
+            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.25), 0 8px 10px -6px rgba(0,0,0,0.15);
+            border-radius: 4px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+        }
+
         .no-print {
-            margin: 10px 15px;
-            padding: 10px 16px;
-            background: #1e293b;
+            margin: 0;
+            padding: 10px 24px;
+            background: #0f172a;
             color: #fff;
-            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
             display: flex;
             justify-content: space-between;
             align-items: center;
-            font-size: 12px;
+            font-size: 13px;
         }
 
         /* ── Half A4 Slip Card ── */
@@ -273,14 +289,41 @@
             }
 
             body {
-                margin: 0;
-                padding: 0;
+                background: #fff !important;
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+
+            .a4-sheet-container {
+                width: 100% !important;
+                min-height: auto !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                box-shadow: none !important;
+                border-radius: 0 !important;
+                background: transparent !important;
             }
         }
     </style>
 </head>
 
 <body onload="window.print()">
+
+    {{-- Top Sticky Control Bar for Review & Actions --}}
+    <div class="no-print" style="position: sticky; top: 0; z-index: 9999; font-family: sans-serif;">
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <span style="font-size: 15px; font-weight: 800; color: #38bdf8;">📄 PREVIEW SPK (UKURAN KERTAS A4 PORTRAIT)</span>
+            <span style="background: #2563eb; color: #fff; font-size: 11px; padding: 3px 8px; border-radius: 4px; font-weight: 700;">A4 Portrait (210mm × 297mm)</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+            <button onclick="window.print()" style="background: #22c55e; color: #fff; border: none; padding: 7px 16px; border-radius: 6px; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 13px;">
+                🖨️ Cetak Dokumen Sekarang
+            </button>
+            <button onclick="window.close()" style="background: #475569; color: #fff; border: none; padding: 7px 14px; border-radius: 6px; font-weight: 700; cursor: pointer; font-size: 13px;">
+                ✖️ Tutup Preview
+            </button>
+        </div>
+    </div>
 
     @php
         $globalSlipCount = 0;
@@ -295,12 +338,16 @@
             $firstVarName = !empty($variantRows) ? array_key_first($variantRows) : 'MODEL VARIAN';
         @endphp
 
-        {{-- Print 2 Copies per SPK (Lembar 1: Tim Produksi, Lembar 2: Arsip Kantor/Finishing) --}}
         @foreach ([1, 2] as $copyNum)
             @php
                 $globalSlipCount++;
                 $isEvenSlip = $globalSlipCount % 2 === 0;
             @endphp
+
+            @if ($globalSlipCount % 2 === 1)
+                <!-- START REAL A4 SHEET CONTAINER -->
+                <div class="a4-sheet-container">
+            @endif
 
             <div class="spk-slip-card">
                 <div>
@@ -524,8 +571,11 @@
             {{-- Separator or Page Break Logic --}}
             @if (!$isEvenSlip)
                 <div class="slip-separator"></div>
-            @elseif ($globalSlipCount < $totalBlocks * 2)
-                <div class="page-break"></div>
+            @endif
+
+            @if ($isEvenSlip || $globalSlipCount === $totalBlocks * 2)
+                </div>
+                <!-- END REAL A4 SHEET CONTAINER -->
             @endif
         @endforeach
     @endforeach
