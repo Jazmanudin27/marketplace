@@ -82,14 +82,13 @@ class SpkController extends Controller
 
         $groupedMaxIds = $subQuery->pluck('max_id');
 
-        $spks = Spk::with(['penginput', 'items.masterProduct', 'items.progres', 'proses'])
+        $allGroupedSpks = Spk::with(['penginput', 'items.masterProduct', 'items.progres', 'proses'])
             ->whereIn('id', $groupedMaxIds)
             ->orderByDesc('id')
-            ->paginate(12)
-            ->withQueryString();
+            ->get();
 
         // Attach sub_spks collection to each production group item
-        $noProduksiList = $spks->getCollection()->pluck('no_produksi')->filter()->unique()->toArray();
+        $noProduksiList = $allGroupedSpks->pluck('no_produksi')->filter()->unique()->toArray();
         $siblingSpksMap = [];
         if (!empty($noProduksiList)) {
             $allSiblings = Spk::with(['items.masterProduct', 'items.progres', 'proses'])
@@ -100,11 +99,10 @@ class SpkController extends Controller
             $siblingSpksMap = $allSiblings->groupBy('no_produksi');
         }
 
-        foreach ($spks->getCollection() as $spkItem) {
+        foreach ($allGroupedSpks as $spkItem) {
             if (!empty($spkItem->no_produksi) && isset($siblingSpksMap[$spkItem->no_produksi])) {
                 $spkItem->sub_spks = $siblingSpksMap[$spkItem->no_produksi];
             } else {
-                // If no_produksi is empty, find siblings created in the exact same transaction (same created_at down to minute)
                 $siblings = Spk::with(['items.masterProduct', 'items.progres', 'proses'])
                     ->where('tenant_id', $tenantId)
                     ->where('created_at', $spkItem->created_at)
@@ -113,6 +111,46 @@ class SpkController extends Controller
                 $spkItem->sub_spks = $siblings->isNotEmpty() ? $siblings : collect([$spkItem]);
             }
         }
+
+        // Exact active stage filter matching current_stage_name attribute
+        if ($request->filled('stage')) {
+            $stage = strtolower(trim($request->stage));
+            $allGroupedSpks = $allGroupedSpks->filter(function ($row) use ($stage) {
+                $spkGroup = $row->sub_spks ?? collect([$row]);
+                return $spkGroup->contains(function ($s) use ($stage) {
+                    $currName = strtolower($s->current_stage_name);
+                    if ($stage === 'draft') {
+                        return str_contains($currName, 'draft') || strtolower($s->tahap_saat_ini ?? '') === 'draft';
+                    } elseif ($stage === 'pesanan_baru' || $stage === 'perencanaan') {
+                        return (str_contains($currName, 'pesanan') || str_contains($currName, 'perencanaan') || str_contains($currName, 'perancangan') || str_contains($currName, 'desain')) && !str_contains($currName, 'draft');
+                    } elseif ($stage === 'potong') {
+                        return str_contains($currName, 'potong');
+                    } elseif ($stage === 'jahit') {
+                        return str_contains($currName, 'jahit');
+                    } elseif ($stage === 'lkpk') {
+                        return str_contains($currName, 'lkpk');
+                    } elseif ($stage === 'qc') {
+                        return str_contains($currName, 'qc') || str_contains($currName, 'quality');
+                    } elseif ($stage === 'packing') {
+                        return str_contains($currName, 'packing') || str_contains($currName, 'finishing') || str_contains($currName, 'selesai');
+                    }
+                    return str_contains($currName, $stage);
+                });
+            });
+        }
+
+        // Manual Pagination for the filtered collection
+        $page = \Illuminate\Pagination\Paginator::resolveCurrentPage() ?: 1;
+        $perPage = 12;
+        $paginatedItems = $allGroupedSpks->slice(($page - 1) * $perPage, $perPage)->values();
+
+        $spks = new \Illuminate\Pagination\LengthAwarePaginator(
+            $paginatedItems,
+            $allGroupedSpks->count(),
+            $perPage,
+            $page,
+            ['path' => \Illuminate\Pagination\Paginator::resolveCurrentPath(), 'query' => $request->query()]
+        );
 
         // Summary stats for top dashboard cards
         $stats = [

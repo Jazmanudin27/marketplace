@@ -132,6 +132,13 @@
                                 <span>Urgent</span>
                             </a>
 
+                            {{-- Tab: Draft (Belum Deal) --}}
+                            <a href="{{ route('spks.index', array_merge(request()->query(), ['stage' => 'draft', 'urgent' => null])) }}"
+                                class="btn btn-sm rounded-pill fw-bold px-3 py-2 d-inline-flex align-items-center gap-1.5 transition-all {{ $currStage === 'draft' ? 'btn-secondary text-white shadow-sm' : 'btn-light text-secondary border-0' }}">
+                                <i class="fas fa-file-signature text-secondary"></i>
+                                <span>Draft</span>
+                            </a>
+
                             {{-- Tab: Pesanan Baru --}}
                             <a href="{{ route('spks.index', array_merge(request()->query(), ['stage' => 'pesanan_baru', 'urgent' => null])) }}"
                                 class="btn btn-sm rounded-pill fw-bold px-3 py-2 d-inline-flex align-items-center gap-1.5 transition-all {{ $currStage === 'pesanan_baru' ? 'btn-danger text-white shadow-sm' : 'btn-light text-secondary border-0' }}">
