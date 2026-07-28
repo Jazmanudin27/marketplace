@@ -1033,25 +1033,34 @@ class SpkController extends Controller
                             // Match item by position index
                             $spkItem = $itemsOrdered->get((int)$pIdx);
                             if (!$spkItem) {
-                                // If no existing item at this index, use first available item (fallback)
-                                $spkItem = $itemsOrdered->first();
+                                // Create new item if index exceeds existing count
+                                $spkItem = SpkItem::create([
+                                    'spk_id'         => $spk->id,
+                                    'nama_produk'    => trim($pRow['nama_produk'] ?? '') ?: 'PRODUK BARU',
+                                    'sku'            => trim($pRow['sku_produk'] ?? ''),
+                                    'ukuran'         => trim($pRow['ukuran'] ?? '') ?: 'ALL SIZE',
+                                    'quantity'       => max(1, (int) ($pRow['qty_produksi'] ?? 1)),
+                                    'pemotong'       => $pRow['pemotong'] ?? '',
+                                    'penjahit'       => $pRow['penjahit'] ?? '',
+                                    'vendor_kancing' => $pRow['vendor_kancing'] ?? '',
+                                ]);
                             }
                             if (!$spkItem) continue;
 
-                                $namaProduk = trim($pRow['nama_produk'] ?? '') ?: $spkItem->nama_produk;
-                                $skuProduk  = trim($pRow['sku_produk'] ?? '') ?: $spkItem->sku;
-                                $ukuran     = trim($pRow['ukuran'] ?? '') ?: $spkItem->ukuran;
-                                $qtyProd    = max(1, (int) ($pRow['qty_produksi'] ?? $spkItem->quantity));
+                            $namaProduk = trim($pRow['nama_produk'] ?? '') ?: $spkItem->nama_produk;
+                            $skuProduk  = trim($pRow['sku_produk'] ?? '') ?: $spkItem->sku;
+                            $ukuran     = trim($pRow['ukuran'] ?? '') ?: $spkItem->ukuran;
+                            $qtyProd    = max(1, (int) ($pRow['qty_produksi'] ?? $spkItem->quantity));
 
-                                $spkItem->update([
-                                    'nama_produk' => $namaProduk,
-                                    'sku'         => $skuProduk,
-                                    'ukuran'      => $ukuran,
-                                    'quantity'    => $qtyProd,
-                                    'pemotong'    => $pRow['pemotong'] ?? $spkItem->pemotong,
-                                    'penjahit'    => $pRow['penjahit'] ?? $spkItem->penjahit,
-                                    'vendor_kancing' => $pRow['vendor_kancing'] ?? $spkItem->vendor_kancing,
-                                ]);
+                            $spkItem->update([
+                                'nama_produk'    => $namaProduk,
+                                'sku'            => $skuProduk,
+                                'ukuran'         => $ukuran,
+                                'quantity'       => $qtyProd,
+                                'pemotong'       => $pRow['pemotong'] ?? $spkItem->pemotong,
+                                'penjahit'       => $pRow['penjahit'] ?? $spkItem->penjahit,
+                                'vendor_kancing' => $pRow['vendor_kancing'] ?? $spkItem->vendor_kancing,
+                            ]);
 
                                 // Clean old extras for this item and rebuild
                                 SpkItemExtra::where('spk_item_id', $spkItem->id)->delete();

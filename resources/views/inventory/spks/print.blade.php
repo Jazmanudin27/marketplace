@@ -33,7 +33,7 @@
             margin: 20px auto;
             padding: 5mm 6mm;
             background: #ffffff;
-            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.25), 0 8px 10px -6px rgba(0,0,0,0.15);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.25), 0 8px 10px -6px rgba(0, 0, 0, 0.15);
             border-radius: 4px;
             box-sizing: border-box;
             display: flex;
@@ -47,7 +47,7 @@
             padding: 10px 24px;
             background: #0f172a;
             color: #fff;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -173,7 +173,7 @@
             text-align: center;
             margin-bottom: 0;
             background: #fff;
-            min-height: 250px;
+            min-height: 220px;
             height: 100%;
             display: flex;
             align-items: center;
@@ -312,14 +312,19 @@
     {{-- Top Sticky Control Bar for Review & Actions --}}
     <div class="no-print" style="position: sticky; top: 0; z-index: 9999; font-family: sans-serif;">
         <div style="display: flex; align-items: center; gap: 12px;">
-            <span style="font-size: 15px; font-weight: 800; color: #38bdf8;">📄 PREVIEW SPK (UKURAN KERTAS A4 PORTRAIT)</span>
-            <span style="background: #2563eb; color: #fff; font-size: 11px; padding: 3px 8px; border-radius: 4px; font-weight: 700;">A4 Portrait (210mm × 297mm)</span>
+            <span style="font-size: 15px; font-weight: 800; color: #38bdf8;">📄 PREVIEW SPK (UKURAN KERTAS A4
+                PORTRAIT)</span>
+            <span
+                style="background: #2563eb; color: #fff; font-size: 11px; padding: 3px 8px; border-radius: 4px; font-weight: 700;">A4
+                Portrait (210mm × 297mm)</span>
         </div>
         <div style="display: flex; align-items: center; gap: 8px;">
-            <button onclick="window.print()" style="background: #22c55e; color: #fff; border: none; padding: 7px 16px; border-radius: 6px; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 13px;">
+            <button onclick="window.print()"
+                style="background: #22c55e; color: #fff; border: none; padding: 7px 16px; border-radius: 6px; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 13px;">
                 🖨️ Cetak Dokumen Sekarang
             </button>
-            <button onclick="window.close()" style="background: #475569; color: #fff; border: none; padding: 7px 14px; border-radius: 6px; font-weight: 700; cursor: pointer; font-size: 13px;">
+            <button onclick="window.close()"
+                style="background: #475569; color: #fff; border: none; padding: 7px 14px; border-radius: 6px; font-weight: 700; cursor: pointer; font-size: 13px;">
                 ✖️ Tutup Preview
             </button>
         </div>

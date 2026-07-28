@@ -357,6 +357,16 @@
             <a href="{{ route('spks.index') }}" class="btn btn-sm btn-outline-secondary fw-semibold">
                 ← Kembali
             </a>
+            <a href="{{ route('spks.create', [
+                'no_produksi'   => $spk->no_produksi ?: $spk->no_spk,
+                'no_pesanan'    => $spk->no_pesanan,
+                'pemesan'       => $spk->pemesan,
+                'no_hp_pemesan' => $spk->no_hp_pemesan,
+                'instansi'      => $spk->instansi,
+                'order_id'      => $spk->order_id,
+            ]) }}" class="btn btn-sm btn-success fw-bold px-3">
+                ✚ Tambah SPK Baru
+            </a>
             <a href="{{ route('spks.print', $spk) }}" target="_blank" class="btn btn-sm btn-outline-primary fw-bold px-3">
                 🖨️ Cetak Lembar SPK
             </a>
@@ -375,11 +385,10 @@
     </div>
 
     {{-- ── SPK SIBLING TABS (semua SPK dalam 1 Nomor Produksi) ── --}}
-    @if($siblingSpks->count() > 1)
     <div class="mb-3">
         <div class="d-flex align-items-center gap-2 flex-wrap p-3 rounded-3 border bg-white shadow-sm" style="border-color:#e5e7eb!important">
             <span class="text-muted fw-semibold" style="font-size:12px; white-space:nowrap">
-                📦 Produksi <strong>{{ $spk->no_produksi }}</strong> — {{ $siblingSpks->count() }} SPK:
+                📦 Produksi <strong>{{ $spk->no_produksi ?: $spk->no_spk }}</strong> — {{ $siblingSpks->count() }} SPK:
             </span>
             @foreach($siblingSpks as $idx => $sib)
                 @php
@@ -392,9 +401,18 @@
                     🏷️ {{ $tabTitle }}
                 </a>
             @endforeach
+            <a href="{{ route('spks.create', [
+                'no_produksi'   => $spk->no_produksi ?: $spk->no_spk,
+                'no_pesanan'    => $spk->no_pesanan,
+                'pemesan'       => $spk->pemesan,
+                'no_hp_pemesan' => $spk->no_hp_pemesan,
+                'instansi'      => $spk->instansi,
+                'order_id'      => $spk->order_id,
+            ]) }}" class="btn btn-sm btn-success fw-bold px-3 rounded-pill" style="font-size:12px;">
+                ✚ Tambah SPK Baru
+            </a>
         </div>
     </div>
-    @endif
 
     @if (session('success'))
         <div class="alert alert-success alert-dismissible fade show rounded-3 mb-3" role="alert">
@@ -691,6 +709,7 @@
                                     <th style="width: 12%;">QTY PRODUKSI</th>
                                     <th style="width: 15%;">PAKAI BAHAN / REKAP</th>
                                     <th style="width: 18%;">TAHAP OPERASIONAL &amp; TIM</th>
+                                    <th style="width: 36px;"></th>
                                 </tr>
                             </thead>
                             <tbody id="product-tbody-{{ $rIdx }}">
@@ -855,7 +874,17 @@
             <button type="button" class="btn btn-sm btn-warning text-dark fw-bold px-3 me-1" data-bs-toggle="modal" data-bs-target="#modalPayLabor">
                 💳 Bayar Ongkos Jasa
             </button>
-            <a href="{{ route('spks.print', $spk) }}" target="_blank" class="btn btn-sm btn-outline-primary fw-bold px-4">
+            <a href="{{ route('spks.create', [
+                'no_produksi'   => $spk->no_produksi ?: $spk->no_spk,
+                'no_pesanan'    => $spk->no_pesanan,
+                'pemesan'       => $spk->pemesan,
+                'no_hp_pemesan' => $spk->no_hp_pemesan,
+                'instansi'      => $spk->instansi,
+                'order_id'      => $spk->order_id,
+            ]) }}" class="btn btn-sm btn-success fw-bold px-3 me-1">
+                ✚ Tambah SPK Baru
+            </a>
+            <a href="{{ route('spks.print', $spk) }}" target="_blank" class="btn btn-sm btn-outline-primary fw-bold px-4 me-1">
                 🖨️ Cetak Lembar SPK
             </a>
             <button type="submit" class="btn btn-sm btn-success fw-bold px-4">
@@ -1909,6 +1938,95 @@
         document.querySelectorAll('.pay-item-checkbox, .pay-item-amount').forEach(el => {
             el.addEventListener('input', calculateTotalPaySelected);
             el.addEventListener('change', calculateTotalPaySelected);
+        });
+
+        // Handle Tambah Baris Varian / Produk
+        document.addEventListener('click', function(e) {
+            const btnAddRow = e.target.closest('.btn-add-product-row');
+            if (btnAddRow) {
+                const rIdx = btnAddRow.dataset.rIdx || '0';
+                const tbody = document.getElementById(`product-tbody-${rIdx}`);
+                if (tbody) {
+                    const nextPIdx = tbody.querySelectorAll('tr').length;
+                    const newRow = document.createElement('tr');
+                    newRow.id = `product-row-${rIdx}-${nextPIdx}`;
+                    newRow.innerHTML = `
+                        <td>
+                            <input type="text" name="rincian[${rIdx}][produk][${nextPIdx}][sku_produk]"
+                                class="form-control font-monospace fw-bold row-sku-produk"
+                                list="master_skus_datalist" autocomplete="off"
+                                placeholder="Pilih SKU...">
+                        </td>
+                        <td>
+                            <input type="text" name="rincian[${rIdx}][produk][${nextPIdx}][nama_produk]"
+                                class="form-control row-nama-produk"
+                                list="master_product_names_datalist" autocomplete="off"
+                                placeholder="Nama produk...">
+                        </td>
+                        <td>
+                            <input type="text" name="rincian[${rIdx}][produk][${nextPIdx}][ukuran]"
+                                class="form-control text-center row-ukuran"
+                                placeholder="S, M, L...">
+                        </td>
+                        <td>
+                            <input type="number" name="rincian[${rIdx}][produk][${nextPIdx}][qty_produksi]"
+                                class="form-control text-center fw-bold row-qty-produksi"
+                                min="1" value="1">
+                        </td>
+                        <td>
+                            <div class="hidden-bahan-container-${rIdx}-${nextPIdx}"></div>
+                            <button type="button" class="btn btn-sm btn-outline-secondary btn-bahan-trigger btn-open-bahan-modal"
+                                data-r-idx="${rIdx}" data-p-idx="${nextPIdx}">
+                                📦 Atur Bahan <span class="badge bg-secondary rounded-pill ms-1">0</span>
+                            </button>
+                        </td>
+                        <td>
+                            <div class="hidden-tahap-container-${rIdx}-${nextPIdx}">
+                                <input type="hidden" class="h-pemotong" name="rincian[${rIdx}][produk][${nextPIdx}][pemotong]" value="">
+                                <input type="hidden" class="h-qty-potong" name="rincian[${rIdx}][produk][${nextPIdx}][qty_potong]" value="1">
+                                <input type="hidden" class="h-tarif-potong" name="rincian[${rIdx}][produk][${nextPIdx}][tarif_potong]" value="0">
+                                <input type="hidden" class="h-penjahit" name="rincian[${rIdx}][produk][${nextPIdx}][penjahit]" value="">
+                                <input type="hidden" class="h-qty-jahit" name="rincian[${rIdx}][produk][${nextPIdx}][qty_jahit]" value="1">
+                                <input type="hidden" class="h-tarif-jahit" name="rincian[${rIdx}][produk][${nextPIdx}][tarif_jahit]" value="0">
+                                <input type="hidden" class="h-vendor-kancing" name="rincian[${rIdx}][produk][${nextPIdx}][vendor_kancing]" value="">
+                                <input type="hidden" class="h-qty-kancing" name="rincian[${rIdx}][produk][${nextPIdx}][qty_kancing]" value="0">
+                                <input type="hidden" class="h-tarif-kancing" name="rincian[${rIdx}][produk][${nextPIdx}][tarif_kancing]" value="0">
+                                <input type="hidden" class="h-petugas-qc" name="rincian[${rIdx}][produk][${nextPIdx}][petugas_qc]" value="">
+                                <input type="hidden" class="h-qc-lolos" name="rincian[${rIdx}][produk][${nextPIdx}][qc_lolos]" value="0">
+                                <input type="hidden" class="h-qc-reject" name="rincian[${rIdx}][produk][${nextPIdx}][qc_reject]" value="0">
+                                <input type="hidden" class="h-tarif-qc" name="rincian[${rIdx}][produk][${nextPIdx}][tarif_qc]" value="0">
+                                <input type="hidden" class="h-petugas-finishing" name="rincian[${rIdx}][produk][${nextPIdx}][petugas_finishing]" value="">
+                                <input type="hidden" class="h-qty-finishing" name="rincian[${rIdx}][produk][${nextPIdx}][qty_finishing]" value="0">
+                                <input type="hidden" class="h-tarif-finishing" name="rincian[${rIdx}][produk][${nextPIdx}][tarif_finishing]" value="0">
+                                <input type="hidden" class="h-qty-fgood" name="rincian[${rIdx}][produk][${nextPIdx}][qty_fgood]" value="0">
+                            </div>
+                            <button type="button" class="btn btn-sm btn-outline-primary btn-tahap-trigger btn-open-tahap-modal"
+                                data-r-idx="${rIdx}" data-p-idx="${nextPIdx}">
+                                ✂️ Atur Tahap
+                            </button>
+                        </td>
+                        <td style="width: 36px;" class="text-center">
+                            <button type="button" class="btn btn-sm btn-outline-danger border-0 btn-remove-product-row" title="Hapus Varian">
+                                🗑️
+                            </button>
+                        </td>
+                    `;
+                    tbody.appendChild(newRow);
+                }
+            }
+
+            const btnRemoveRow = e.target.closest('.btn-remove-product-row');
+            if (btnRemoveRow) {
+                const tr = btnRemoveRow.closest('tr');
+                if (tr) {
+                    const tbody = tr.closest('tbody');
+                    if (tbody.querySelectorAll('tr').length > 1) {
+                        tr.remove();
+                    } else {
+                        alert('Minimal 1 varian produk harus ada dalam SPK.');
+                    }
+                }
+            }
         });
 
         const modalPayLaborEl = document.getElementById('modalPayLabor');
