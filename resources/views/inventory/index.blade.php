@@ -266,7 +266,7 @@
                                             }
                                         @endphp
                                         <span
-                                            class="badge bg-info bg-opacity-15 text-white border border-info border-opacity-25 px-2 py-1 small fw-bold"
+                                            class="badge bg-info bg-opacity-15 border border-info border-opacity-25 px-2 py-1 small fw-bold"
                                             title="{{ trim($mpTooltip) }}" style="cursor: pointer;">
                                             <i class="fas fa-store me-1"></i>{{ number_format($stokMp) }}
                                         </span>
