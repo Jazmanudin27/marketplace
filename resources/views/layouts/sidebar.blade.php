@@ -141,15 +141,6 @@
         </a>
         @endif
 
-        <!-- 2. Kelola Toko -->
-        @can('manage-stores')
-            <a href="{{ route('stores.index') }}"
-                class="nav-link d-flex align-items-center gap-2 {{ request()->routeIs('stores.*') ? 'active text-white' : 'text-dark' }}">
-                <i class="bi bi-shop"></i>
-                <span>Kelola Toko</span>
-            </a>
-        @endcan
-
         <!-- 3. Master Produk -->
         @can('products.index')
             <a href="{{ route('products.index') }}"
@@ -757,6 +748,16 @@
             </div>
         @endif
 
+
+        <!-- KELOLA TOKO (DI PALING BAWAH) -->
+        @can('manage-stores')
+            <div class="text-uppercase text-muted fw-bold mb-1 mt-3 small">Toko Marketplace</div>
+            <a href="{{ route('stores.index') }}"
+                class="nav-link d-flex align-items-center gap-2 {{ request()->routeIs('stores.*') ? 'active text-white' : 'text-dark' }}">
+                <i class="bi bi-shop"></i>
+                <span>Kelola Toko</span>
+            </a>
+        @endcan
 
         <!-- BANTUAN -->
         <div class="text-uppercase text-muted fw-bold mb-1 mt-3 small">Bantuan</div>
