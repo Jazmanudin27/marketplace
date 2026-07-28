@@ -381,7 +381,7 @@
                     @endphp
                     <div style="margin-bottom: 4px;">
                         <div class="banner-blue">
-                            RINCIAN VARIAN PRODUK &amp; KEBUTUHAN KAIN ({{ strtoupper($firstVarName) }})
+                            RINCIAN VARIAN PRODUK &amp; KEBUTUHAN KAIN
                         </div>
                         <table class="grid-table" style="width: 100%;">
                             <thead>
@@ -400,7 +400,27 @@
                                 </tr>
                             </thead>
                             <tbody>
+                                @php
+                                    $sizeTotals = [];
+                                    $grandTotalQty = 0;
+                                    $grandTotalFabric = 0;
+                                    foreach($sizesHeader as $szH) {
+                                        $sizeTotals[$szH] = 0;
+                                    }
+                                @endphp
+
                                 @forelse($variantRows as $varRowIdx => $varRow)
+                                    @php
+                                        $rowFabQty = (float)($varRow['fabric_qty'] ?? 0);
+                                        if ($rowFabQty <= 0 && $loop->first && !empty($formattedQty) && $formattedQty !== '—') {
+                                            $rowFabQty = (float) str_replace(',', '.', $formattedQty);
+                                        }
+                                        $grandTotalFabric += $rowFabQty;
+                                        $grandTotalQty += (int)($varRow['total'] ?? 0);
+                                        foreach($sizesHeader as $szH) {
+                                            $sizeTotals[$szH] += (int)($varRow['sizes'][$szH] ?? 0);
+                                        }
+                                    @endphp
                                     <tr>
                                         <td style="text-align: left; font-weight: bold; padding-left: 4px;">
                                             {{ $varRow['sku'] ?? ($varRow['name'] ?? '—') }}
@@ -415,10 +435,6 @@
                                         </td>
                                         <td style="font-weight: bold;">
                                             @php
-                                                $rowFabQty = (float)($varRow['fabric_qty'] ?? 0);
-                                                if ($rowFabQty <= 0 && $loop->first && !empty($formattedQty) && $formattedQty !== '—') {
-                                                    $rowFabQty = (float) str_replace(',', '.', $formattedQty);
-                                                }
                                                 if ($rowFabQty > 0) {
                                                     $dispQty = number_format($rowFabQty, 2, ',', '.');
                                                     $dispQty = rtrim(rtrim($dispQty, '0'), ',');
@@ -435,6 +451,32 @@
                                         <td colspan="{{ count($sizesHeader) + 4 }}" class="text-center text-muted">Tidak ada rincian varian produk.</td>
                                     </tr>
                                 @endforelse
+
+                                @if(!empty($variantRows))
+                                    <tr style="background: #f1f5f9; font-weight: bold; border-top: 2px solid #000;">
+                                        <td style="text-align: center; font-weight: 900; background: #e2e8f0;">TOTAL</td>
+                                        @foreach($sizesHeader as $szH)
+                                            <td style="{{ $sizeTotals[$szH] > 0 ? 'color:#dc2626; font-weight:900;' : '' }}">
+                                                {{ $sizeTotals[$szH] > 0 ? $sizeTotals[$szH] : '' }}
+                                            </td>
+                                        @endforeach
+                                        <td style="background: #dc2626; color: #fff; font-weight: 900; font-size: 11px;">
+                                            {{ $grandTotalQty }}
+                                        </td>
+                                        <td style="font-weight: 900; background: #e2e8f0;">
+                                            @php
+                                                if ($grandTotalFabric > 0) {
+                                                    $dispGQty = number_format($grandTotalFabric, 2, ',', '.');
+                                                    $dispGQty = rtrim(rtrim($dispGQty, '0'), ',');
+                                                    echo $dispGQty;
+                                                } else {
+                                                    echo '—';
+                                                }
+                                            @endphp
+                                        </td>
+                                        <td style="background: #e2e8f0;"></td>
+                                    </tr>
+                                @endif
                             </tbody>
                         </table>
                     </div>
