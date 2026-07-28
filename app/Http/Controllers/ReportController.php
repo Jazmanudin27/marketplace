@@ -38,6 +38,17 @@ class ReportController extends Controller
             $query->where('id', $request->product_id);
         }
 
+        if ($request->filled('is_preorder')) {
+            if ($request->is_preorder === '1') {
+                $query->where('is_preorder', true);
+            } elseif ($request->is_preorder === '0') {
+                $query->where(function ($q) {
+                    $q->where('is_preorder', false)
+                        ->orWhereNull('is_preorder');
+                });
+            }
+        }
+
         $products = $query->orderBy('name')->get();
 
         return view('reports.print_stock', compact('products'));

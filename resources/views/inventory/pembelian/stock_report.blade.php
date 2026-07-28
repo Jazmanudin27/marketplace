@@ -31,7 +31,7 @@
             </div>
             <div class="col-12 col-md-3">
                 <label class="form-label small fw-semibold text-muted">Kategori Tipe</label>
-                <select name="type" class="form-select form-select-sm">
+                <select name="type" class="form-select form-select-sm select2">
                     <option value="all" {{ request('type') === 'all' ? 'selected' : '' }}>Semua Tipe</option>
                     <option value="bahan" {{ request('type') === 'bahan' ? 'selected' : '' }}>Bahan Baku</option>
                     <option value="kemasan" {{ request('type') === 'kemasan' ? 'selected' : '' }}>Kemasan</option>
@@ -120,3 +120,15 @@
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+    $(document).ready(function() {
+        $('.select2').select2({
+            theme: 'bootstrap-5',
+            width: '100%',
+            allowClear: true
+        });
+    });
+</script>
+@endpush

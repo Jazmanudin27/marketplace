@@ -83,11 +83,13 @@
 
     <div class="info">
         @if (request('category_id'))
-            <p><strong>Filter Kategori:</strong> {{ App\Models\Category::find(request('category_id'))->name ?? '-' }}
-            </p>
+            <p><strong>Filter Kategori:</strong> {{ App\Models\Category::find(request('category_id'))->name ?? '-' }}</p>
         @endif
         @if (request('brand_id'))
             <p><strong>Filter Merk:</strong> {{ App\Models\Brand::find(request('brand_id'))->name ?? '-' }}</p>
+        @endif
+        @if (request()->filled('is_preorder'))
+            <p><strong>Status Order:</strong> {{ request('is_preorder') === '1' ? '📦 Pre-Order (PO)' : '⚡ Ready Stock (Bukan PO)' }}</p>
         @endif
     </div>
 
@@ -95,12 +97,12 @@
         <thead>
             <tr>
                 <th width="5%" class="text-center">No</th>
-                <th width="15%">SKU</th>
-                <th width="35%">Nama Produk</th>
-                <th width="15%">Kategori</th>
-                <th width="10%">Merk</th>
-                <th width="10%" class="text-right">Stok</th>
-                <th width="10%" class="text-center">Satuan</th>
+                <th width="14%">SKU</th>
+                <th width="30%">Nama Produk</th>
+                <th width="14%">Kategori</th>
+                <th width="12%">Merk</th>
+                <th width="13%" class="text-center">Tipe Order</th>
+                <th width="12%" class="text-right">Stok</th>
             </tr>
         </thead>
         <tbody>
@@ -111,13 +113,18 @@
                     <td>{{ $product->name }}</td>
                     <td>{{ $product->category->name ?? '-' }}</td>
                     <td>{{ $product->brand->name ?? '-' }}</td>
+                    <td class="text-center">
+                        @if($product->is_preorder)
+                            <strong style="color: #c2410c;">📦 PO ({{ $product->preorder_days ?: 7 }}hr)</strong>
+                        @else
+                            <span style="color: #15803d;">⚡ Ready Stock</span>
+                        @endif
+                    </td>
                     <td class="text-right"><strong>{{ number_format($product->stock, 0, ',', '.') }}</strong></td>
-                    <td class="text-center">{{ $product->unit ?? 'Pcs' }}</td>
                 </tr>
             @empty
                 <tr>
-                    <td colspan="7" class="text-center" style="padding: 20px;">Tidak ada data barang yang sesuai
-                        dengan filter.</td>
+                    <td colspan="7" class="text-center" style="padding: 20px;">Tidak ada data barang yang sesuai dengan filter.</td>
                 </tr>
             @endforelse
         </tbody>
