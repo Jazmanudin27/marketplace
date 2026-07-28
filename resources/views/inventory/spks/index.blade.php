@@ -462,39 +462,28 @@
                                     </div>
                                 </div>
 
-                                {{-- Row 2: Cetak SPK, Ambil Urgent & Hapus --}}
+                                {{-- Row 2: Cetak SPK & Hapus SPK --}}
                                 <div class="row g-2">
-                                    <div class="col-5">
+                                    <div class="col-6">
                                         <a href="{{ route('spks.print', $row->id) }}" target="_blank"
-                                            class="btn btn-sm rounded-3 fw-bold py-1.5 w-100 d-inline-flex align-items-center justify-content-center gap-1 transition-all text-truncate hover-shadow"
-                                            style="font-size: 0.76rem; background-color: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe;"
+                                            class="btn btn-sm rounded-3 fw-bold py-1.5 w-100 d-inline-flex align-items-center justify-content-center gap-1.5 transition-all text-truncate hover-shadow"
+                                            style="font-size: 0.8rem; background-color: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe;"
                                             title="Cetak Perintah Kerja (A4 Half-Page)">
                                             <i class="fas fa-print text-primary"></i>
                                             <span>Cetak SPK</span>
                                         </a>
                                     </div>
-                                    <div class="col-5">
-                                        <button type="button"
-                                            class="btn btn-sm w-100 rounded-3 fw-extrabold py-1.5 d-inline-flex align-items-center justify-content-center gap-1 transition-all text-truncate toggle-urgent-btn hover-shadow"
-                                            data-id="{{ $row->id }}"
-                                            data-url="{{ route('spks.toggle_urgent', $row->id) }}"
-                                            style="font-size: 0.76rem; background-color: #fff7ed; color: #c2410c; border: 1px solid #ffedd5;">
-                                            <i class="fas fa-bolt text-warning"></i>
-                                            <span id="urgent-btn-text-{{ $row->id }}">
-                                                {{ $isUrgentGroup ? 'URGENT' : 'AMBIL URGENT' }}
-                                            </span>
-                                        </button>
-                                    </div>
-                                    <div class="col-2">
-                                        <form action="{{ route('spks.destroy', $row) }}" method="POST" class="m-0"
+                                    <div class="col-6">
+                                        <form action="{{ route('spks.destroy', $row) }}" method="POST" class="m-0 w-100"
                                             onsubmit="return confirm('Apakah Anda yakin ingin menghapus seluruh data Produksi {{ $row->no_produksi ?: $row->no_spk }} ini?')">
                                             @csrf
                                             @method('DELETE')
                                             <button type="submit"
-                                                class="btn btn-sm rounded-3 fw-bold py-1.5 w-100 d-inline-flex align-items-center justify-content-center text-danger transition-all hover-shadow"
-                                                style="font-size: 0.8rem; background-color: #fef2f2; border: 1px solid #fecaca;"
+                                                class="btn btn-sm rounded-3 fw-bold py-1.5 w-100 d-inline-flex align-items-center justify-content-center gap-1.5 text-danger transition-all hover-shadow"
+                                                style="font-size: 0.8rem; background-color: #fef2f2; color: #dc2626; border: 1px solid #fecaca;"
                                                 title="Hapus Produksi Ini">
                                                 <i class="fas fa-trash-alt"></i>
+                                                <span>Hapus SPK</span>
                                             </button>
                                         </form>
                                     </div>
