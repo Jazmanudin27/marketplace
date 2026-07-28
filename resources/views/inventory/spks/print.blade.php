@@ -361,117 +361,75 @@
                         | ADMIN: {{ strtoupper($currentSpk->nama_pic ?: $currentSpk->penginput->name ?? 'SYSTEM') }}
                     </div>
 
-                    <!-- Table Layout: Col 8 (Rincian Varian) & Col 4 (Rekap Bahan) -->
-                    <table style="width: 100%; border-collapse: collapse; margin-bottom: 3px;">
-                        <tr>
-                            <!-- COL 8: RINCIAN VARIAN PRODUK -->
-                            <td style="width: 66%; vertical-align: top; padding-right: 4px;">
-                                <div class="banner-blue">
-                                    RINCIAN VARIAN PRODUK ({{ strtoupper($firstVarName) }})
-                                </div>
-                                <table class="grid-table">
-                                    <thead>
-                                        <tr>
-                                            <th rowspan="2" style="width: 24%;">Model Varian</th>
-                                            <th colspan="{{ count($sizesHeader) }}">Size Target / Potong</th>
-                                            <th rowspan="2" style="width: 10%; background: #dc2626; color: #fff;">Total QTY</th>
-                                            <th colspan="2">Quality Control</th>
-                                            <th rowspan="2" style="width: 14%;">Finishing / Packing</th>
-                                        </tr>
-                                        <tr>
-                                            @php $szColWidth = count($sizesHeader) > 0 ? round(38 / count($sizesHeader), 2) : 5; @endphp
-                                            @foreach($sizesHeader as $szH)
-                                                <th style="width: {{ $szColWidth }}%;">{{ $szH }}</th>
-                                            @endforeach
-                                            <th style="width: 7%;">Lolos</th>
-                                            <th style="width: 7%;">Reject</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        @forelse($variantRows as $varRow)
-                                            <tr>
-                                                <td style="text-align: left; font-weight: bold; padding-left: 4px;">
-                                                    {{ $varRow['sku'] ?? ($varRow['name'] ?? '—') }}</td>
-                                                @foreach($sizesHeader as $szH)
-                                                    <td style="{{ !empty($varRow['sizes'][$szH]) ? 'color:#dc2626; font-weight:bold;' : '' }}">
-                                                        {{ $varRow['sizes'][$szH] ?? '' }}
-                                                    </td>
-                                                @endforeach
-                                                <td style="background: #dc2626; color: #fff; font-weight: 900; font-size: 11px;">
-                                                    {{ $varRow['total'] }}
-                                                </td>
-                                                <td></td>
-                                                <td></td>
-                                                <td></td>
-                                            </tr>
-                                        @empty
-                                            <tr>
-                                                <td colspan="{{ count($sizesHeader) + 5 }}" class="text-center text-muted">Tidak ada rincian varian produk.</td>
-                                            </tr>
-                                        @endforelse
-                                    </tbody>
-                                </table>
-                            </td>
-
-                            <!-- COL 4: REKAP KEBUTUHAN & PEMAKAIAN KAIN -->
-                            <td style="width: 34%; vertical-align: top; padding-left: 4px;">
-                                @php
-                                    $firstBazaItem = !empty($bazaItems) ? reset($bazaItems) : null;
-                                @endphp
-                                <div class="banner-slate">
-                                    REKAP KEBUTUHAN &amp; PEMAKAIAN KAIN
-                                </div>
-                                <table class="grid-table">
-                                    <thead>
-                                        <tr style="height: 25px;">
-                                            <th
-                                                style="width: 40%; text-align: left; padding-left: 4px; vertical-align: middle;">
-                                                SKU Kain / Bahan</th>
-                                            <th style="width: 15%; vertical-align: middle;">Estimasi (m)</th>
-                                            <th style="width: 15%; vertical-align: middle;">Ready (m)</th>
-                                            <th style="width: 15%; vertical-align: middle;">Pakai (m)</th>
-                                            <th style="width: 15%; vertical-align: middle;">Sisa (m)</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        @if ($firstBazaItem)
-                                            @php
-                                                $rawQty = $firstBazaItem['qty'];
-                                                if (is_numeric($rawQty)) {
-                                                    $num = (float) $rawQty;
-                                                    if ($num > 15) {
-                                                        $num = $num / 100;
-                                                    }
-                                                    $formattedQty = number_format($num, 3, ',', '.');
-                                                    $formattedQty = rtrim(rtrim($formattedQty, '0'), ',');
-                                                } else {
-                                                    $formattedQty = $rawQty;
-                                                }
-                                            @endphp
-                                            <tr>
-                                                <td style="text-align: left; font-weight: bold; padding-left: 4px;">
-                                                    {{ $firstBazaItem['name'] }}</td>
-                                                <td>{{ $formattedQty }}</td>
-                                                <td></td>
-                                                <td></td>
-                                                <td></td>
-                                            </tr>
-                                        @else
-                                            <tr>
-                                                <td style="text-align: left; font-weight: bold; padding-left: 4px;">
-                                                    {{ $currentSpk->sku_kain ?: 'BAHAN UMUM / KAIN UTAMA' }}
-                                                </td>
-                                                <td>—</td>
-                                                <td></td>
-                                                <td></td>
-                                                <td></td>
-                                            </tr>
-                                        @endif
-                                    </tbody>
-                                </table>
-                            </td>
-                        </tr>
-                    </table>
+                    <!-- Single Full Width Table Layout: Rincian Varian & Kebutuhan Kain -->
+                    @php
+                        $firstBazaItem = !empty($bazaItems) ? reset($bazaItems) : null;
+                        $formattedQty = '—';
+                        if ($firstBazaItem) {
+                            $rawQty = $firstBazaItem['qty'];
+                            if (is_numeric($rawQty)) {
+                                $num = (float) $rawQty;
+                                if ($num > 15) {
+                                    $num = $num / 100;
+                                }
+                                $formattedQty = number_format($num, 3, ',', '.');
+                                $formattedQty = rtrim(rtrim($formattedQty, '0'), ',');
+                            } else {
+                                $formattedQty = $rawQty;
+                            }
+                        }
+                    @endphp
+                    <div style="margin-bottom: 4px;">
+                        <div class="banner-blue">
+                            RINCIAN VARIAN PRODUK &amp; KEBUTUHAN KAIN ({{ strtoupper($firstVarName) }})
+                        </div>
+                        <table class="grid-table" style="width: 100%;">
+                            <thead>
+                                <tr>
+                                    <th rowspan="2" style="width: 25%;">Model Varian</th>
+                                    <th colspan="{{ count($sizesHeader) }}">Size Target / Potong</th>
+                                    <th rowspan="2" style="width: 10%; background: #dc2626; color: #fff;">Total QTY</th>
+                                    <th rowspan="2" style="width: 12.5%;">Estimasi Kain (m)</th>
+                                    <th rowspan="2" style="width: 12.5%;">Sisa Kain (m)</th>
+                                </tr>
+                                <tr>
+                                    @php $szColWidth = count($sizesHeader) > 0 ? round(40 / count($sizesHeader), 2) : 5; @endphp
+                                    @foreach($sizesHeader as $szH)
+                                        <th style="width: {{ $szColWidth }}%;">{{ $szH }}</th>
+                                    @endforeach
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse($variantRows as $varRowIdx => $varRow)
+                                    <tr>
+                                        <td style="text-align: left; font-weight: bold; padding-left: 4px;">
+                                            {{ $varRow['sku'] ?? ($varRow['name'] ?? '—') }}
+                                        </td>
+                                        @foreach($sizesHeader as $szH)
+                                            <td style="{{ !empty($varRow['sizes'][$szH]) ? 'color:#dc2626; font-weight:bold;' : '' }}">
+                                                {{ $varRow['sizes'][$szH] ?? '' }}
+                                            </td>
+                                        @endforeach
+                                        <td style="background: #dc2626; color: #fff; font-weight: 900; font-size: 11px;">
+                                            {{ $varRow['total'] }}
+                                        </td>
+                                        <td style="font-weight: bold;">
+                                            @if($loop->first)
+                                                {{ $formattedQty }}
+                                            @else
+                                                —
+                                            @endif
+                                        </td>
+                                        <td></td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="{{ count($sizesHeader) + 4 }}" class="text-center text-muted">Tidak ada rincian varian produk.</td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
 
                     <!-- Catatan / Keterangan Box -->
                     <div class="catatan-box">
