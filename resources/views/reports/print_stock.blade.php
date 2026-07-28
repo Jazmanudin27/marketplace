@@ -96,23 +96,31 @@
     <table>
         <thead>
             <tr>
-                <th width="5%" class="text-center">No</th>
-                <th width="14%">SKU</th>
-                <th width="30%">Nama Produk</th>
-                <th width="14%">Kategori</th>
-                <th width="12%">Merk</th>
-                <th width="13%" class="text-center">Tipe Order</th>
-                <th width="12%" class="text-right">Stok</th>
+                <th width="4%" class="text-center">No</th>
+                <th width="13%">SKU</th>
+                <th width="28%">Nama Produk</th>
+                <th width="13%">Kategori / Merk</th>
+                <th width="12%" class="text-center">Tipe Order</th>
+                <th width="10%" class="text-right">Stok Gudang</th>
+                <th width="10%" class="text-right">Stok MP</th>
+                <th width="10%" class="text-right">Total Stok</th>
             </tr>
         </thead>
         <tbody>
             @forelse($products as $index => $product)
+                @php
+                    $stokGudang = (int) $product->stock;
+                    $stokMp = (int) $product->marketplaceProducts->sum('stock');
+                    $totalStok = $stokGudang + $stokMp;
+                @endphp
                 <tr>
                     <td class="text-center">{{ $index + 1 }}</td>
                     <td>{{ $product->sku ?? '-' }}</td>
                     <td>{{ $product->name }}</td>
-                    <td>{{ $product->category->name ?? '-' }}</td>
-                    <td>{{ $product->brand->name ?? '-' }}</td>
+                    <td>
+                        {{ $product->category->name ?? '-' }}
+                        <small style="color: #666; display: block;">{{ $product->brand->name ?? '-' }}</small>
+                    </td>
                     <td class="text-center">
                         @if($product->is_preorder)
                             <strong style="color: #c2410c;">📦 PO ({{ $product->preorder_days ?: 7 }}hr)</strong>
@@ -120,11 +128,13 @@
                             <span style="color: #15803d;">⚡ Ready Stock</span>
                         @endif
                     </td>
-                    <td class="text-right"><strong>{{ number_format($product->stock, 0, ',', '.') }}</strong></td>
+                    <td class="text-right"><strong>{{ number_format($stokGudang, 0, ',', '.') }}</strong></td>
+                    <td class="text-right">{{ number_format($stokMp, 0, ',', '.') }}</td>
+                    <td class="text-right"><strong>{{ number_format($totalStok, 0, ',', '.') }}</strong></td>
                 </tr>
             @empty
                 <tr>
-                    <td colspan="7" class="text-center" style="padding: 20px;">Tidak ada data barang yang sesuai dengan filter.</td>
+                    <td colspan="8" class="text-center" style="padding: 20px;">Tidak ada data barang yang sesuai dengan filter.</td>
                 </tr>
             @endforelse
         </tbody>

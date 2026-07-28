@@ -372,22 +372,19 @@
                                 <table class="grid-table">
                                     <thead>
                                         <tr>
-                                            <th rowspan="2" style="width: 26%;">Model Varian</th>
-                                            <th colspan="6">Size Target / Potong</th>
-                                            <th rowspan="2" style="width: 10%; background: #dc2626; color: #fff;">
-                                                Total QTY</th>
+                                            <th rowspan="2" style="width: 24%;">Model Varian</th>
+                                            <th colspan="{{ count($sizesHeader) }}">Size Target / Potong</th>
+                                            <th rowspan="2" style="width: 10%; background: #dc2626; color: #fff;">Total QTY</th>
                                             <th colspan="2">Quality Control</th>
-                                            <th rowspan="2" style="width: 16%;">Finishing / Packing</th>
+                                            <th rowspan="2" style="width: 14%;">Finishing / Packing</th>
                                         </tr>
                                         <tr>
-                                            <th style="width: 6.5%;">S</th>
-                                            <th style="width: 6.5%;">M</th>
-                                            <th style="width: 6.5%;">L</th>
-                                            <th style="width: 6.5%;">XL</th>
-                                            <th style="width: 6.5%;">XXL</th>
-                                            <th style="width: 6.5%;">3XL</th>
-                                            <th style="width: 9%;">Lolos</th>
-                                            <th style="width: 9%;">Reject</th>
+                                            @php $szColWidth = count($sizesHeader) > 0 ? round(38 / count($sizesHeader), 2) : 5; @endphp
+                                            @foreach($sizesHeader as $szH)
+                                                <th style="width: {{ $szColWidth }}%;">{{ $szH }}</th>
+                                            @endforeach
+                                            <th style="width: 7%;">Lolos</th>
+                                            <th style="width: 7%;">Reject</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -395,26 +392,12 @@
                                             <tr>
                                                 <td style="text-align: left; font-weight: bold; padding-left: 4px;">
                                                     {{ $varRow['sku'] ?? ($varRow['name'] ?? '—') }}</td>
-                                                <td
-                                                    style="{{ !empty($varRow['sizes']['S']) ? 'color:#dc2626; font-weight:bold;' : '' }}">
-                                                    {{ $varRow['sizes']['S'] ?? '' }}</td>
-                                                <td
-                                                    style="{{ !empty($varRow['sizes']['M']) ? 'color:#dc2626; font-weight:bold;' : '' }}">
-                                                    {{ $varRow['sizes']['M'] ?? '' }}</td>
-                                                <td
-                                                    style="{{ !empty($varRow['sizes']['L']) ? 'color:#dc2626; font-weight:bold;' : '' }}">
-                                                    {{ $varRow['sizes']['L'] ?? '' }}</td>
-                                                <td
-                                                    style="{{ !empty($varRow['sizes']['XL']) ? 'color:#dc2626; font-weight:bold;' : '' }}">
-                                                    {{ $varRow['sizes']['XL'] ?? '' }}</td>
-                                                <td
-                                                    style="{{ !empty($varRow['sizes']['XXL']) ? 'color:#dc2626; font-weight:bold;' : '' }}">
-                                                    {{ $varRow['sizes']['XXL'] ?? '' }}</td>
-                                                <td
-                                                    style="{{ !empty($varRow['sizes']['3XL']) ? 'color:#dc2626; font-weight:bold;' : '' }}">
-                                                    {{ $varRow['sizes']['3XL'] ?? '' }}</td>
-                                                <td
-                                                    style="background: #dc2626; color: #fff; font-weight: 900; font-size: 11px;">
+                                                @foreach($sizesHeader as $szH)
+                                                    <td style="{{ !empty($varRow['sizes'][$szH]) ? 'color:#dc2626; font-weight:bold;' : '' }}">
+                                                        {{ $varRow['sizes'][$szH] ?? '' }}
+                                                    </td>
+                                                @endforeach
+                                                <td style="background: #dc2626; color: #fff; font-weight: 900; font-size: 11px;">
                                                     {{ $varRow['total'] }}
                                                 </td>
                                                 <td></td>
@@ -423,8 +406,7 @@
                                             </tr>
                                         @empty
                                             <tr>
-                                                <td colspan="11" class="text-center text-muted">Tidak ada rincian
-                                                    varian produk.</td>
+                                                <td colspan="{{ count($sizesHeader) + 5 }}" class="text-center text-muted">Tidak ada rincian varian produk.</td>
                                             </tr>
                                         @endforelse
                                     </tbody>

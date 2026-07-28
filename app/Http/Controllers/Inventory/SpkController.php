@@ -737,10 +737,10 @@ class SpkController extends Controller
         $this->ensureDefaultProses($spk);
         $grouped = $this->getGroupedItems($spk);
 
-        $sizesHeader = ['S', 'M', 'L', 'XL', 'XXL', '3XL'];
+        $sizesHeader = ['S', 'M', 'L', 'XL', 'XXL', '3XL', '4XL'];
         foreach ($spk->items as $item) {
-            $sz = strtoupper(trim($item->ukuran));
-            if ($sz && !in_array($sz, ['S', 'M', 'L', 'XL', 'XXL', '3XL', 'XXXL']) && !in_array($sz, $sizesHeader)) {
+            $sz = $this->normalizeSizeKey($item->ukuran);
+            if (!in_array($sz, $sizesHeader)) {
                 $sizesHeader[] = $sz;
             }
         }
@@ -1208,7 +1208,7 @@ class SpkController extends Controller
             $spkList = collect([$spk]);
         }
 
-        $sizesHeader = ['S', 'M', 'L', 'XL', 'XXL', '3XL'];
+        $sizesHeader = ['S', 'M', 'L', 'XL', 'XXL', '3XL', '4XL'];
 
         $spkBlocks = [];
         foreach ($spkList as $currentSpk) {
@@ -1216,17 +1216,16 @@ class SpkController extends Controller
             $bazaItems = [];
 
             foreach ($currentSpk->items as $item) {
-                $sz = strtoupper(trim($item->ukuran));
-                if ($sz && !in_array($sz, ['S', 'M', 'L', 'XL', 'XXL', '3XL', 'XXXL']) && !in_array($sz, $sizesHeader)) {
-                    $sizesHeader[] = $sz;
+                $szKey = $this->normalizeSizeKey($item->ukuran);
+                if (!in_array($szKey, $sizesHeader)) {
+                    $sizesHeader[] = $szKey;
                 }
 
                 $skuInduk = $item->sku_induk;
                 if (!$skuInduk && !empty($item->sku)) {
-                    $skuInduk = preg_replace('/[_\-\s]+(S|M|L|XL|XXL|3XL|XXXL|ALLSIZE|ALL SIZE)$/i', '', trim($item->sku));
+                    $skuInduk = preg_replace('/[_\-\s]+(S|M|L|XL|XXL|3XL|4XL|XXXL|XXXXL|2XL|ALLSIZE|ALL SIZE)$/i', '', trim($item->sku));
                 }
                 $modelName = $skuInduk ?: ($item->sku ?: ($item->nama_produk ?: 'MODEL VARIAN'));
-                $szKey = strtoupper(trim($item->ukuran)) ?: 'S';
 
                 if (!isset($variantRows[$modelName])) {
                     $variantRows[$modelName] = [
@@ -1442,13 +1441,12 @@ class SpkController extends Controller
                     'name'      => $item->nama_produk,
                     'sku_induk' => $item->sku_induk ?: '—',
                     'tailors'   => [],
-                    'sizes'     => ['S' => 0, 'M' => 0, 'L' => 0, 'XL' => 0, 'XXL' => 0, '3XL' => 0],
+                    'sizes'     => ['S' => 0, 'M' => 0, 'L' => 0, 'XL' => 0, 'XXL' => 0, '3XL' => 0, '4XL' => 0],
                     'total'     => 0,
                 ];
             }
 
-            $sz = strtoupper(trim($item->ukuran));
-            if ($sz === 'XXXL') $sz = '3XL';
+            $sz = $this->normalizeSizeKey($item->ukuran);
 
             if (array_key_exists($sz, $grouped[$modelKey]['sizes'])) {
                 $grouped[$modelKey]['sizes'][$sz] += $item->quantity;
@@ -2058,5 +2056,20 @@ class SpkController extends Controller
         }
 
         return redirect()->back()->with('success', "💳 Berhasil mencatat {$createdCount} transaksi pembayaran ongkos jasa vendor (Total: Rp " . number_format($grandTotalPaid, 0, ',', '.') . ") ke Pengeluaran Kas!");
+    }
+
+    private function normalizeSizeKey(?string $size): string
+    {
+        $sz = strtoupper(trim((string) $size));
+        if ($sz === 'XXXL' || $sz === '3 XL' || $sz === '3-XL' || $sz === '3_XL') {
+            return '3XL';
+        }
+        if ($sz === 'XXXXL' || $sz === '4 XL' || $sz === '4-XL' || $sz === '4_XL') {
+            return '4XL';
+        }
+        if ($sz === '2XL' || $sz === '2 XL' || $sz === '2-XL' || $sz === '2_XL') {
+            return 'XXL';
+        }
+        return $sz ?: 'S';
     }
 }
