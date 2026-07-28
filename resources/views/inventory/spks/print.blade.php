@@ -173,7 +173,7 @@
             text-align: center;
             margin-bottom: 0;
             background: #fff;
-            min-height: 220px;
+            min-height: 100%;
             height: 100%;
             display: flex;
             align-items: center;
