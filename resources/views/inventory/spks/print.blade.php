@@ -105,24 +105,25 @@
         }
 
         .header-left {
-            width: 32%;
+            width: 30%;
             font-size: 9px;
             font-weight: 700;
         }
 
         .header-center {
-            width: 36%;
+            width: 34%;
             text-align: center;
         }
 
         .header-right {
-            width: 24%;
+            width: 26%;
             text-align: right;
             font-size: 9px;
+            padding-right: 16px;
         }
 
         .header-qr {
-            width: 8%;
+            width: 10%;
             text-align: right;
             padding-left: 4px;
         }
