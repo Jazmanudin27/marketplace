@@ -52,7 +52,9 @@
         request()->routeIs('stores.*') ||
         request()->routeIs('orders.*') ||
         request()->routeIs('returns.*') ||
-        request()->routeIs('offline_sales.*');
+        request()->routeIs('offline_sales.*') ||
+        request()->routeIs('spks.*') ||
+        request()->routeIs('product_recipes.*');
 
     $isHrdActive = request()->routeIs('hr.*') || request()->routeIs('employees.*');
 
@@ -141,17 +143,26 @@
         </a>
         @endif
 
+        <!-- 2. Pesanan Masuk -->
+        @can('orders.index')
+            <a href="{{ route('orders.index') }}"
+                class="nav-link d-flex align-items-center justify-content-between pe-3 {{ (request()->routeIs('orders.*') && !request()->routeIs('orders.create')) ? 'active text-white' : 'text-dark' }}">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="bi bi-cart-check"></i>
+                    <span>Pesanan Masuk</span>
+                </div>
+                @if (isset($pendingOrdersCount) && $pendingOrdersCount > 0)
+                    <span class="badge bg-danger rounded-pill small">{{ $pendingOrdersCount }}</span>
+                @endif
+            </a>
+        @endcan
+
         <!-- 3. Master Produk -->
         @can('products.index')
             <a href="{{ route('products.index') }}"
                 class="nav-link d-flex align-items-center gap-2 {{ request()->routeIs('products.index') ? 'active text-white' : 'text-dark' }}">
                 <i class="bi bi-box-seam"></i>
                 <span>Master Produk</span>
-            </a>
-            <a href="{{ route('products.bulk_price_calculator') }}"
-                class="nav-link d-flex align-items-center gap-2 {{ request()->routeIs('products.bulk_price_calculator') ? 'active text-white' : 'text-dark' }}">
-                <i class="bi bi-calculator"></i>
-                <span>Kalkulator Harga Masal</span>
             </a>
         @endcan
 
@@ -164,17 +175,12 @@
             </a>
         @endcan
 
-        <!-- 5. Pesanan Masuk -->
-        @can('orders.index')
-            <a href="{{ route('orders.index') }}"
-                class="nav-link d-flex align-items-center justify-content-between pe-3 {{ (request()->routeIs('orders.*') && !request()->routeIs('orders.create')) ? 'active text-white' : 'text-dark' }}">
-                <div class="d-flex align-items-center gap-2">
-                    <i class="bi bi-cart-check"></i>
-                    <span>Pesanan Masuk</span>
-                </div>
-                @if (isset($pendingOrdersCount) && $pendingOrdersCount > 0)
-                    <span class="badge bg-danger rounded-pill small">{{ $pendingOrdersCount }}</span>
-                @endif
+        <!-- 5. Kalkulator Harga Masal -->
+        @can('products.index')
+            <a href="{{ route('products.bulk_price_calculator') }}"
+                class="nav-link d-flex align-items-center gap-2 {{ request()->routeIs('products.bulk_price_calculator') ? 'active text-white' : 'text-dark' }}">
+                <i class="bi bi-calculator"></i>
+                <span>Kalkulator Harga Masal</span>
             </a>
         @endcan
 
@@ -361,34 +367,6 @@
             </div>
         @endif
 
-        <!-- 8. PRODUKSI -->
-        @if (auth()->user()->isSuperAdmin() ||
-                auth()->user()->role === 'admin' ||
-                auth()->user()->hasAnyPermission(['spks.index', 'product-recipes.index']))
-            <div>
-                <a class="nav-link d-flex align-items-center justify-content-between text-dark {{ $isProduksiActive ? '' : 'collapsed' }}"
-                    data-bs-toggle="collapse" data-bs-target="#collapseProduksi" role="button"
-                    aria-expanded="{{ $isProduksiActive ? 'true' : 'false' }}" aria-controls="collapseProduksi">
-                    <div class="d-flex align-items-center gap-2">
-                        <i class="bi bi-hammer"></i>
-                        <span>Produksi</span>
-                    </div>
-                    <i class="bi bi-chevron-down small"></i>
-                </a>
-                <div class="collapse {{ $isProduksiActive ? 'show' : '' }}" id="collapseProduksi">
-                    <div class="nav flex-column ms-3 mt-1 gap-1 border-start ps-2">
-                        @can('spks.index')
-                            <a href="{{ route('spks.index') }}"
-                                class="nav-link py-1 {{ request()->routeIs('spks.*') ? 'active text-white' : 'text-secondary' }}">Surat Perintah Kerja (SPK)</a>
-                        @endcan
-                        @can('product-recipes.index')
-                            <a href="{{ route('product_recipes.index') }}"
-                                class="nav-link py-1 {{ request()->routeIs('product_recipes.*') ? 'active text-white' : 'text-secondary' }}">Formula Produk (BOM)</a>
-                        @endcan
-                    </div>
-                </div>
-            </div>
-        @endif
 
         <!-- 9. GUDANG JADI -->
         @if (auth()->user()->isSuperAdmin() ||
@@ -487,6 +465,8 @@
                         'offline-sales.index',
                         'returns.index',
                         'chats.index',
+                        'spks.index',
+                        'product-recipes.index',
                     ]))
             <div>
                 <a class="nav-link d-flex align-items-center justify-content-between text-dark {{ $isMarketingActive ? '' : 'collapsed' }}"
@@ -501,6 +481,14 @@
                 <div class="collapse {{ $isMarketingActive ? 'show' : '' }}" id="collapseMarketing">
                     <div class="nav flex-column ms-3 mt-1 gap-1 border-start ps-2">
 
+                        @can('spks.index')
+                            <a href="{{ route('spks.index') }}"
+                                class="nav-link py-1 {{ request()->routeIs('spks.*') ? 'active text-white' : 'text-secondary' }}">Surat Perintah Kerja (SPK)</a>
+                        @endcan
+                        @can('product-recipes.index')
+                            <a href="{{ route('product_recipes.index') }}"
+                                class="nav-link py-1 {{ request()->routeIs('product_recipes.*') ? 'active text-white' : 'text-secondary' }}">Formula Produk (BOM)</a>
+                        @endcan
 
                         @can('offline-sales.index')
                             <a href="{{ route('offline_sales.index') }}"
