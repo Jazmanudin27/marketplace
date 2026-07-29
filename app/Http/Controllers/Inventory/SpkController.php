@@ -2173,6 +2173,11 @@ class SpkController extends Controller
         $penjahitList      = $tailors->filter(fn($v) => in_array($v->category, ['Penjahit', null, ''], true))->pluck('name')->values();
         $vendorKancingList = $tailors->where('category', 'Vendor Kancing')->pluck('name')->values();
 
+        $totalEstKain = (float) $spk->items->sum('est_kain');
+        if ($totalEstKain <= 0) {
+            $totalEstKain = (float) ($spk->items->first()?->est_kain ?: 0);
+        }
+
         return view('inventory.spks.mobile_tracking', compact(
             'spk',
             'statusOptions',
@@ -2196,7 +2201,8 @@ class SpkController extends Controller
             'savedFotoSample',
             'savedFotoPrint',
             'savedFotoPotong',
-            'savedRdyKain'
+            'savedRdyKain',
+            'totalEstKain'
         ));
     }
 

@@ -866,7 +866,7 @@
                             <div class="row g-2">
                                 <div class="col-3 text-center">
                                     <label class="form-label form-label-sm mb-1 fw-bold text-secondary" style="font-size: 9.5px;">Estimasi (cm)</label>
-                                    <input type="number" name="est_kain_potong" class="form-control form-control-sm text-center fw-bold font-monospace py-2" value="{{ $spk->items->first()?->est_kain ?: '' }}" placeholder="0" step="any">
+                                    <input type="number" name="est_kain_potong" class="form-control form-control-sm text-center fw-bold font-monospace py-2" value="{{ $totalEstKain > 0 ? (float)$totalEstKain : ($spk->items->first()?->est_kain ?: '') }}" placeholder="0" step="any">
                                 </div>
                                 <div class="col-3 text-center">
                                     <label class="form-label form-label-sm mb-1 fw-bold text-secondary" style="font-size: 9.5px;">Ready (cm)</label>
@@ -985,7 +985,7 @@
                             <div class="row g-2">
                                 <div class="col-6 text-center">
                                     <label class="form-label form-label-sm mb-1 fw-bold text-secondary" style="font-size: 10px;">ESTIMASI KAIN (CM)</label>
-                                    <input type="number" name="est_hpp_print" class="form-control form-control-sm text-center fw-bold font-monospace py-2" value="{{ $spk->items->first()?->est_kain ?: '' }}" placeholder="0" step="any">
+                                    <input type="number" name="est_hpp_print" class="form-control form-control-sm text-center fw-bold font-monospace py-2" value="{{ $totalEstKain > 0 ? (float)$totalEstKain : ($spk->items->first()?->est_kain ?: '') }}" placeholder="0" step="any">
                                 </div>
                                 <div class="col-6 text-center">
                                     <label class="form-label form-label-sm mb-1 fw-bold text-secondary" style="font-size: 10px;">KAIN TERPAKAI (CM)</label>
