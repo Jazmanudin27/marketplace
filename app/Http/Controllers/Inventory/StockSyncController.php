@@ -47,7 +47,7 @@ class StockSyncController extends Controller
             ->where('marketplace_products.name', 'not like', 'PO %')
             ->where('marketplace_products.name', 'not like', '% PO %')
             ->whereNotNull('marketplace_products.last_synced_at')
-            ->whereRaw('marketplace_products.stock = GREATEST(0, master_products.stock - COALESCE(marketplace_products.safety_stock, 0))')
+            ->whereRaw('marketplace_products.stock = GREATEST(0, CAST(master_products.stock AS SIGNED) - CAST(COALESCE(marketplace_products.safety_stock, 0) AS SIGNED))')
             ->count();
 
         $totalBeda = (clone $baseQuery)
@@ -61,7 +61,7 @@ class StockSyncController extends Controller
             ->where('marketplace_products.name', 'not like', '% PO %')
             ->where(function($q) {
                 $q->whereNull('marketplace_products.last_synced_at')
-                  ->orWhereRaw('marketplace_products.stock != GREATEST(0, master_products.stock - COALESCE(marketplace_products.safety_stock, 0))');
+                  ->orWhereRaw('marketplace_products.stock != GREATEST(0, CAST(master_products.stock AS SIGNED) - CAST(COALESCE(marketplace_products.safety_stock, 0) AS SIGNED))');
             })
             ->count();
 
@@ -97,7 +97,7 @@ class StockSyncController extends Controller
                   ->where('marketplace_products.name', 'not like', 'PO %')
                   ->where('marketplace_products.name', 'not like', '% PO %')
                   ->whereNotNull('marketplace_products.last_synced_at')
-                  ->whereRaw('marketplace_products.stock = GREATEST(0, master_products.stock - COALESCE(marketplace_products.safety_stock, 0))');
+                  ->whereRaw('marketplace_products.stock = GREATEST(0, CAST(master_products.stock AS SIGNED) - CAST(COALESCE(marketplace_products.safety_stock, 0) AS SIGNED))');
         }
 
         // Filter: diff = stok marketplace ≠ ekspektasi ATAU belum pernah sync (bukan PO)
@@ -112,7 +112,7 @@ class StockSyncController extends Controller
                   ->where('marketplace_products.name', 'not like', '% PO %')
                   ->where(function($q) {
                       $q->whereNull('marketplace_products.last_synced_at')
-                        ->orWhereRaw('marketplace_products.stock != GREATEST(0, master_products.stock - COALESCE(marketplace_products.safety_stock, 0))');
+                        ->orWhereRaw('marketplace_products.stock != GREATEST(0, CAST(master_products.stock AS SIGNED) - CAST(COALESCE(marketplace_products.safety_stock, 0) AS SIGNED))');
                   });
         }
 
@@ -212,7 +212,7 @@ class StockSyncController extends Controller
                   ->where('marketplace_products.name', 'not like', 'PO %')
                   ->where('marketplace_products.name', 'not like', '% PO %')
                   ->whereNotNull('marketplace_products.last_synced_at')
-                  ->whereRaw('marketplace_products.stock = GREATEST(0, master_products.stock - COALESCE(marketplace_products.safety_stock, 0))');
+                  ->whereRaw('marketplace_products.stock = GREATEST(0, CAST(master_products.stock AS SIGNED) - CAST(COALESCE(marketplace_products.safety_stock, 0) AS SIGNED))');
         }
 
         if ($request->filter === 'diff') {
@@ -226,7 +226,7 @@ class StockSyncController extends Controller
                   ->where('marketplace_products.name', 'not like', '% PO %')
                   ->where(function($q) {
                       $q->whereNull('marketplace_products.last_synced_at')
-                        ->orWhereRaw('marketplace_products.stock != GREATEST(0, master_products.stock - COALESCE(marketplace_products.safety_stock, 0))');
+                        ->orWhereRaw('marketplace_products.stock != GREATEST(0, CAST(master_products.stock AS SIGNED) - CAST(COALESCE(marketplace_products.safety_stock, 0) AS SIGNED))');
                   });
         }
 
