@@ -46,7 +46,6 @@ class StockSyncController extends Controller
             ->where('marketplace_products.name', 'not like', '%PRE-ORDER%')
             ->where('marketplace_products.name', 'not like', 'PO %')
             ->where('marketplace_products.name', 'not like', '% PO %')
-            ->whereNotNull('marketplace_products.last_synced_at')
             ->whereRaw('marketplace_products.stock = GREATEST(0, CAST(master_products.stock AS SIGNED) - CAST(COALESCE(marketplace_products.safety_stock, 0) AS SIGNED))')
             ->count();
 
@@ -59,10 +58,7 @@ class StockSyncController extends Controller
             ->where('marketplace_products.name', 'not like', '%PRE-ORDER%')
             ->where('marketplace_products.name', 'not like', 'PO %')
             ->where('marketplace_products.name', 'not like', '% PO %')
-            ->where(function($q) {
-                $q->whereNull('marketplace_products.last_synced_at')
-                  ->orWhereRaw('marketplace_products.stock != GREATEST(0, CAST(master_products.stock AS SIGNED) - CAST(COALESCE(marketplace_products.safety_stock, 0) AS SIGNED))');
-            })
+            ->whereRaw('marketplace_products.stock != GREATEST(0, CAST(master_products.stock AS SIGNED) - CAST(COALESCE(marketplace_products.safety_stock, 0) AS SIGNED))')
             ->count();
 
         $query = (clone $baseQuery)->select('marketplace_products.*')->with(['store.channel', 'masterProduct']);
@@ -86,7 +82,7 @@ class StockSyncController extends Controller
             $query->where($poCondition);
         }
 
-        // Filter: match = stok sinkron (bukan PO, sudah pernah sync, dan stok cocok)
+        // Filter: match = stok sinkron (stok marketplace == ekspektasi ERP)
         if ($request->filter === 'match') {
             $query->join('master_products', 'marketplace_products.master_product_id', '=', 'master_products.id')
                   ->where('marketplace_products.is_pre_order', false)
@@ -96,11 +92,10 @@ class StockSyncController extends Controller
                   ->where('marketplace_products.name', 'not like', '%PRE-ORDER%')
                   ->where('marketplace_products.name', 'not like', 'PO %')
                   ->where('marketplace_products.name', 'not like', '% PO %')
-                  ->whereNotNull('marketplace_products.last_synced_at')
                   ->whereRaw('marketplace_products.stock = GREATEST(0, CAST(master_products.stock AS SIGNED) - CAST(COALESCE(marketplace_products.safety_stock, 0) AS SIGNED))');
         }
 
-        // Filter: diff = stok marketplace ≠ ekspektasi ATAU belum pernah sync (bukan PO)
+        // Filter: diff = stok marketplace ≠ ekspektasi ERP
         if ($request->filter === 'diff') {
             $query->join('master_products', 'marketplace_products.master_product_id', '=', 'master_products.id')
                   ->where('marketplace_products.is_pre_order', false)
@@ -110,10 +105,7 @@ class StockSyncController extends Controller
                   ->where('marketplace_products.name', 'not like', '%PRE-ORDER%')
                   ->where('marketplace_products.name', 'not like', 'PO %')
                   ->where('marketplace_products.name', 'not like', '% PO %')
-                  ->where(function($q) {
-                      $q->whereNull('marketplace_products.last_synced_at')
-                        ->orWhereRaw('marketplace_products.stock != GREATEST(0, CAST(master_products.stock AS SIGNED) - CAST(COALESCE(marketplace_products.safety_stock, 0) AS SIGNED))');
-                  });
+                  ->whereRaw('marketplace_products.stock != GREATEST(0, CAST(master_products.stock AS SIGNED) - CAST(COALESCE(marketplace_products.safety_stock, 0) AS SIGNED))');
         }
 
         // Filter: channel (shopee, tiktok, tokopedia, lazada)
@@ -211,7 +203,6 @@ class StockSyncController extends Controller
                   ->where('marketplace_products.name', 'not like', '%PRE-ORDER%')
                   ->where('marketplace_products.name', 'not like', 'PO %')
                   ->where('marketplace_products.name', 'not like', '% PO %')
-                  ->whereNotNull('marketplace_products.last_synced_at')
                   ->whereRaw('marketplace_products.stock = GREATEST(0, CAST(master_products.stock AS SIGNED) - CAST(COALESCE(marketplace_products.safety_stock, 0) AS SIGNED))');
         }
 
@@ -224,10 +215,7 @@ class StockSyncController extends Controller
                   ->where('marketplace_products.name', 'not like', '%PRE-ORDER%')
                   ->where('marketplace_products.name', 'not like', 'PO %')
                   ->where('marketplace_products.name', 'not like', '% PO %')
-                  ->where(function($q) {
-                      $q->whereNull('marketplace_products.last_synced_at')
-                        ->orWhereRaw('marketplace_products.stock != GREATEST(0, CAST(master_products.stock AS SIGNED) - CAST(COALESCE(marketplace_products.safety_stock, 0) AS SIGNED))');
-                  });
+                  ->whereRaw('marketplace_products.stock != GREATEST(0, CAST(master_products.stock AS SIGNED) - CAST(COALESCE(marketplace_products.safety_stock, 0) AS SIGNED))');
         }
 
         if ($request->filled('channel')) {
