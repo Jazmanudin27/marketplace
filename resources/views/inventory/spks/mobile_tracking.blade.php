@@ -958,12 +958,7 @@
                             </div>
                         </div>
 
-                        <div class="bg-white p-3 rounded-3 border mb-2">
-                            <label class="form-label form-label-sm mb-1 fw-bold text-info" style="font-size: 11px;">
-                                <i class="fas fa-tag text-info me-1"></i> SKU BAHAN
-                            </label>
-                            <input type="text" name="sku_kain_print_suffix" class="form-control form-control-sm font-monospace fw-bold text-info py-2 fs-6" value="{{ $spk->sku_kain ?: $fabricName }}" placeholder="Masukkan Kode / SKU Bahan...">
-                        </div>
+
 
                             <div class="row g-2">
                                 <div class="col-6 text-center">
@@ -1034,12 +1029,7 @@
                             </div>
                         </div>
 
-                        <div class="bg-white p-3 rounded-3 border mb-3">
-                            <label class="form-label form-label-sm mb-1 fw-bold text-primary" style="font-size: 11px;">
-                                <i class="fas fa-tag text-primary me-1"></i> SKU BAHAN
-                            </label>
-                            <input type="text" name="sku_kain_suffix" class="form-control form-control-sm font-monospace fw-bold text-primary py-2 fs-6" value="{{ $spk->sku_kain ?: $fabricName }}" placeholder="Masukkan Kode / SKU Bahan...">
-                        </div>
+
 
                         <div class="bg-white p-3 rounded-3 border mb-3">
                             <label class="form-label form-label-sm mb-1 fw-bold text-primary" style="font-size: 11px;">
