@@ -814,14 +814,17 @@
                         <div class="sub-card-title mb-3">
                             <i class="fas fa-camera text-primary"></i> BUKTI POTONG (GLOBAL)
                         </div>
+                        @php
+                            $imgPotong = $savedFotoPotong ?? '';
+                        @endphp
                         <div class="potong-dropzone-box" onclick="document.getElementById('potongCameraInput').click()">
                             <input type="file" id="potongCameraInput" name="potong_photo" accept="image/*" capture="environment" style="display:none;" onchange="previewPotongPhoto(this)">
-                            @if(!empty($spk->image_url))
+                            @if(!empty($imgPotong))
                                 <div id="potongPreviewPlaceholder" class="text-center" style="display:none;">
                                     <i class="fas fa-camera fs-1 text-primary mb-2"></i>
                                     <div class="fw-bold text-secondary">Jepret Kamera</div>
                                 </div>
-                                <img id="potongPreviewImg" src="{{ $spk->image_url }}" loading="lazy" style="display:block; max-height: 180px; width:100%; object-fit:contain; border-radius:10px;">
+                                <img id="potongPreviewImg" src="{{ $imgPotong }}" loading="lazy" style="display:block; max-height: 180px; width:100%; object-fit:contain; border-radius:10px;">
                             @else
                                 <div id="potongPreviewPlaceholder" class="text-center">
                                     <i class="fas fa-camera fs-1 text-primary mb-2"></i>
@@ -933,14 +936,17 @@
                         <div class="sub-card-title mb-3 text-cyan">
                             <i class="fas fa-camera text-info"></i> BUKTI PRINT / ROLL KAIN (GLOBAL)
                         </div>
+                        @php
+                            $imgPrint = $savedFotoPrint ?? '';
+                        @endphp
                         <div class="print-dropzone-box" onclick="document.getElementById('printCameraInput').click()">
                             <input type="file" id="printCameraInput" name="print_photo" accept="image/*" capture="environment" style="display:none;" onchange="previewPrintPhoto(this)">
-                            @if(!empty($spk->image_url))
+                            @if(!empty($imgPrint))
                                 <div id="printPreviewPlaceholder" class="text-center" style="display:none;">
                                     <i class="fas fa-camera fs-1 text-info mb-2"></i>
                                     <div class="fw-bold text-secondary">Jepret Hasil Print</div>
                                 </div>
-                                <img id="printPreviewImg" src="{{ $spk->image_url }}" loading="lazy" style="display:block; max-height: 180px; width:100%; object-fit:contain; border-radius:10px;">
+                                <img id="printPreviewImg" src="{{ $imgPrint }}" loading="lazy" style="display:block; max-height: 180px; width:100%; object-fit:contain; border-radius:10px;">
                             @else
                                 <div id="printPreviewPlaceholder" class="text-center">
                                     <i class="fas fa-camera fs-1 text-info mb-2"></i>
@@ -978,12 +984,12 @@
 
                             <div class="row g-2">
                                 <div class="col-6 text-center">
-                                    <label class="form-label form-label-sm mb-1 fw-bold text-secondary" style="font-size: 10px;">ESTIMASI HPP (M)</label>
-                                    <input type="number" name="est_hpp_print" class="form-control form-control-sm text-center fw-bold font-monospace py-2" value="84" step="any">
+                                    <label class="form-label form-label-sm mb-1 fw-bold text-secondary" style="font-size: 10px;">ESTIMASI KAIN (CM)</label>
+                                    <input type="number" name="est_hpp_print" class="form-control form-control-sm text-center fw-bold font-monospace py-2" value="{{ $spk->items->first()?->est_kain ?: '' }}" placeholder="0" step="any">
                                 </div>
                                 <div class="col-6 text-center">
-                                    <label class="form-label form-label-sm mb-1 fw-bold text-secondary" style="font-size: 10px;">KAIN TERPAKAI (M)</label>
-                                    <input type="number" name="kain_terpakai_print" class="form-control form-control-sm text-center fw-bold font-monospace py-2" value="0.00" step="0.01">
+                                    <label class="form-label form-label-sm mb-1 fw-bold text-secondary" style="font-size: 10px;">KAIN TERPAKAI (CM)</label>
+                                    <input type="number" name="kain_terpakai_print" class="form-control form-control-sm text-center fw-bold font-monospace py-2" value="{{ $spk->items->first()?->kain_pakai ?: '0.00' }}" placeholder="0.00" step="any">
                                 </div>
                             </div>
                         </div>
@@ -1012,14 +1018,17 @@
                         <div class="sub-card-title mb-3">
                             <i class="fas fa-camera text-primary"></i> DOKUMENTASI SAMPLE FISIK (GLOBAL)
                         </div>
+                        @php
+                            $imgSample = $savedFotoSample ?? '';
+                        @endphp
                         <div class="sample-dropzone-box" onclick="document.getElementById('sampleCameraInput').click()">
                             <input type="file" id="sampleCameraInput" name="sample_photo" accept="image/*" capture="environment" style="display:none;" onchange="previewSamplePhoto(this)">
-                            @if(!empty($spk->image_url))
+                            @if(!empty($imgSample))
                                 <div id="samplePreviewPlaceholder" class="text-center" style="display:none;">
                                     <i class="fas fa-camera fs-1 text-primary mb-2"></i>
                                     <div class="fw-bold text-secondary">Jepret Baju Sample</div>
                                 </div>
-                                <img id="samplePreviewImg" src="{{ $spk->image_url }}" loading="lazy" style="display:block; max-height: 180px; width:100%; object-fit:contain; border-radius:10px;">
+                                <img id="samplePreviewImg" src="{{ $imgSample }}" loading="lazy" style="display:block; max-height: 180px; width:100%; object-fit:contain; border-radius:10px;">
                             @else
                                 <div id="samplePreviewPlaceholder" class="text-center">
                                     <i class="fas fa-camera fs-1 text-primary mb-2"></i>

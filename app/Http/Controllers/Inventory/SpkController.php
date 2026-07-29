@@ -2127,6 +2127,9 @@ class SpkController extends Controller
         $savedVendorPrint    = '';
         $savedCatatanPotong  = '';
         $savedCatatanJahit   = '';
+        $savedFotoSample     = '';
+        $savedFotoPrint      = '';
+        $savedFotoPotong     = '';
 
         if (!empty($spk->tambahan)) {
             $parts = explode('||', $spk->tambahan);
@@ -2150,6 +2153,12 @@ class SpkController extends Controller
                         $savedCatatanPotong = trim(substr($sub, strlen('Potong:')));
                     } elseif (str_starts_with($sub, 'Jahit:')) {
                         $savedCatatanJahit = trim(substr($sub, strlen('Jahit:')));
+                    } elseif (str_starts_with($sub, 'Foto Sample:')) {
+                        $savedFotoSample = trim(substr($sub, strlen('Foto Sample:')));
+                    } elseif (str_starts_with($sub, 'Foto Print:')) {
+                        $savedFotoPrint = trim(substr($sub, strlen('Foto Print:')));
+                    } elseif (str_starts_with($sub, 'Foto Potong:')) {
+                        $savedFotoPotong = trim(substr($sub, strlen('Foto Potong:')));
                     }
                 }
             }
@@ -2180,7 +2189,10 @@ class SpkController extends Controller
             'savedCatatanRevisi',
             'savedVendorPrint',
             'savedCatatanPotong',
-            'savedCatatanJahit'
+            'savedCatatanJahit',
+            'savedFotoSample',
+            'savedFotoPrint',
+            'savedFotoPotong'
         ));
     }
 
@@ -2219,17 +2231,21 @@ class SpkController extends Controller
         }
 
         // 3. Handle File Uploads (Foto Bukti Kamera per Tahap)
-        $photoField = null;
+        $photoUrl = null;
+        $photoTag = null;
         if ($request->hasFile('sample_photo')) {
-            $photoField = $request->file('sample_photo');
+            $photoUrl = $this->resizeAndStoreUploadedImage($request->file('sample_photo'), 'spk_tracking', 1200, 80);
+            $photoTag = 'Foto Sample';
         } elseif ($request->hasFile('print_photo')) {
-            $photoField = $request->file('print_photo');
+            $photoUrl = $this->resizeAndStoreUploadedImage($request->file('print_photo'), 'spk_tracking', 1200, 80);
+            $photoTag = 'Foto Print';
         } elseif ($request->hasFile('potong_photo')) {
-            $photoField = $request->file('potong_photo');
+            $photoUrl = $this->resizeAndStoreUploadedImage($request->file('potong_photo'), 'spk_tracking', 1200, 80);
+            $photoTag = 'Foto Potong';
         }
 
-        if ($photoField) {
-            $spk->image_url = $this->resizeAndStoreUploadedImage($photoField, 'spk_tracking', 1200, 80);
+        if ($photoUrl) {
+            $spk->image_url = $photoUrl;
         }
 
         // 4. Update SKU Kain Konversi (Jika Diisi di Tahap Sampling / Print)
@@ -2243,8 +2259,8 @@ class SpkController extends Controller
         $pemotong = $request->input('pemotong');
         $penjahit = $request->input('penjahit');
         $vendorLkpk = $request->input('vendor_lkpk');
-        $estKainPotong = $request->input('est_kain_potong');
-        $pkiKainPotong = $request->input('pki_kain_potong') ?: $request->input('terpakai_kain');
+        $estKainPotong = $request->input('est_kain_potong') ?: $request->input('est_hpp_print');
+        $pkiKainPotong = $request->input('pki_kain_potong') ?: ($request->input('terpakai_kain') ?: $request->input('kain_terpakai_print'));
         $sisaKainPotong = $request->input('sisa_kain_potong');
 
         if ($request->has('items') && is_array($request->input('items'))) {
@@ -2301,6 +2317,7 @@ class SpkController extends Controller
         if ($request->filled('vendor_print')) $catatanNotes[] = "Vendor Print: " . $request->input('vendor_print');
         if ($request->filled('catatan_pemotongan')) $catatanNotes[] = "Potong: " . $request->input('catatan_pemotongan');
         if ($request->filled('catatan_jahit')) $catatanNotes[] = "Jahit: " . $request->input('catatan_jahit');
+        if ($photoUrl && $photoTag) $catatanNotes[] = "{$photoTag}: {$photoUrl}";
 
         if (!empty($catatanNotes)) {
             $catatanSummary = implode(' | ', $catatanNotes);
