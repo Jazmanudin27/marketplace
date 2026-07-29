@@ -2130,6 +2130,7 @@ class SpkController extends Controller
         $savedFotoSample     = '';
         $savedFotoPrint      = '';
         $savedFotoPotong     = '';
+        $savedRdyKain        = '';
 
         if (!empty($spk->tambahan)) {
             $parts = explode('||', $spk->tambahan);
@@ -2159,6 +2160,8 @@ class SpkController extends Controller
                         $savedFotoPrint = trim(substr($sub, strlen('Foto Print:')));
                     } elseif (str_starts_with($sub, 'Foto Potong:')) {
                         $savedFotoPotong = trim(substr($sub, strlen('Foto Potong:')));
+                    } elseif (str_starts_with($sub, 'Ready:')) {
+                        $savedRdyKain = trim(substr($sub, strlen('Ready:')));
                     }
                 }
             }
@@ -2192,7 +2195,8 @@ class SpkController extends Controller
             'savedCatatanJahit',
             'savedFotoSample',
             'savedFotoPrint',
-            'savedFotoPotong'
+            'savedFotoPotong',
+            'savedRdyKain'
         ));
     }
 
@@ -2317,6 +2321,7 @@ class SpkController extends Controller
         if ($request->filled('vendor_print')) $catatanNotes[] = "Vendor Print: " . $request->input('vendor_print');
         if ($request->filled('catatan_pemotongan')) $catatanNotes[] = "Potong: " . $request->input('catatan_pemotongan');
         if ($request->filled('catatan_jahit')) $catatanNotes[] = "Jahit: " . $request->input('catatan_jahit');
+        if ($request->filled('rdy_kain_potong')) $catatanNotes[] = "Ready: " . $request->input('rdy_kain_potong');
         if ($photoUrl && $photoTag) $catatanNotes[] = "{$photoTag}: {$photoUrl}";
 
         if (!empty($catatanNotes)) {

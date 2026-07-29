@@ -865,20 +865,20 @@
 
                             <div class="row g-2">
                                 <div class="col-3 text-center">
-                                    <label class="form-label form-label-sm mb-1 fw-bold text-secondary" style="font-size: 10px;">Est(m)</label>
-                                    <input type="number" name="est_kain_potong" class="form-control form-control-sm text-center fw-bold font-monospace bg-light py-2" value="84" readonly>
+                                    <label class="form-label form-label-sm mb-1 fw-bold text-secondary" style="font-size: 9.5px;">Estimasi (cm)</label>
+                                    <input type="number" name="est_kain_potong" class="form-control form-control-sm text-center fw-bold font-monospace py-2" value="{{ $spk->items->first()?->est_kain ?: '' }}" placeholder="0" step="any">
                                 </div>
                                 <div class="col-3 text-center">
-                                    <label class="form-label form-label-sm mb-1 fw-bold text-secondary" style="font-size: 10px;">Rdy(m)</label>
-                                    <input type="number" name="rdy_kain_potong" class="form-control form-control-sm text-center fw-bold font-monospace py-2" placeholder="" step="0.01">
+                                    <label class="form-label form-label-sm mb-1 fw-bold text-secondary" style="font-size: 9.5px;">Ready (cm)</label>
+                                    <input type="number" name="rdy_kain_potong" class="form-control form-control-sm text-center fw-bold font-monospace py-2" value="{{ $savedRdyKain ?? '' }}" placeholder="0" step="any">
                                 </div>
                                 <div class="col-3 text-center">
-                                    <label class="form-label form-label-sm mb-1 fw-bold text-primary" style="font-size: 10px;">Pki(m)</label>
-                                    <input type="number" name="pki_kain_potong" class="form-control form-control-sm text-center fw-bold font-monospace border-primary py-2" placeholder="" step="0.01">
+                                    <label class="form-label form-label-sm mb-1 fw-bold text-primary" style="font-size: 9.5px;">Pakai (cm)</label>
+                                    <input type="number" name="pki_kain_potong" class="form-control form-control-sm text-center fw-bold font-monospace border-primary py-2" value="{{ $spk->items->first()?->kain_pakai ?: '' }}" placeholder="0" step="any">
                                 </div>
                                 <div class="col-3 text-center">
-                                    <label class="form-label form-label-sm mb-1 fw-bold text-warning" style="font-size: 10px;">Sisa(m)</label>
-                                    <input type="number" name="sisa_kain_potong" class="form-control form-control-sm text-center fw-bold font-monospace border-warning py-2" placeholder="" step="0.01" style="border-color: #f97316 !important;">
+                                    <label class="form-label form-label-sm mb-1 fw-bold text-warning" style="font-size: 9.5px;">Sisa (cm)</label>
+                                    <input type="number" name="sisa_kain_potong" class="form-control form-control-sm text-center fw-bold font-monospace border-warning py-2" value="{{ $spk->items->first()?->kain_sisa ?: '' }}" placeholder="0" step="any" style="border-color: #f97316 !important;">
                                 </div>
                             </div>
                         </div>
