@@ -22,21 +22,21 @@
                         <input type="hidden" name="status" value="{{ request('status') }}">
                     @endif
                     <div class="row g-2 align-items-end">
-                        <div class="col-md-3">
+                        <div class="col-md-2">
                             <label class="form-label form-label-sm fw-semibold mb-1">
                                 <i class="fas fa-tag text-muted me-1"></i>Nama Barang
                             </label>
                             <input type="text" name="name" class="form-control form-control-sm"
                                 placeholder="Cari nama barang..." value="{{ request('name') }}">
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-2">
                             <label class="form-label form-label-sm fw-semibold mb-1">
                                 <i class="fas fa-barcode text-muted me-1"></i>SKU
                             </label>
                             <input type="text" name="sku" class="form-control form-control-sm"
                                 placeholder="Cari SKU..." value="{{ request('sku') }}">
                         </div>
-                        <div class="col-md-2 col-sm-6">
+                        <div class="col-md-2">
                             <label class="form-label form-label-sm fw-semibold mb-1">
                                 <i class="fas fa-layer-group text-muted me-1"></i>Channel
                             </label>
@@ -49,7 +49,7 @@
                                 @endforeach
                             </select>
                         </div>
-                        <div class="col-md-2 col-sm-6">
+                        <div class="col-md-2">
                             <label class="form-label form-label-sm fw-semibold mb-1">
                                 <i class="fas fa-store text-muted me-1"></i>Toko
                             </label>
@@ -63,18 +63,38 @@
                                 @endforeach
                             </select>
                         </div>
-                        <div class="col-md-2 d-flex gap-1">
-                            <button type="submit" class="btn btn-primary btn-sm flex-grow-1">
-                                <i class="fas fa-filter me-1"></i>Filter
+                        <div class="col-md-2">
+                            <label class="form-label form-label-sm fw-semibold mb-1">
+                                <i class="fas fa-clock text-muted me-1"></i>Tipe PO
+                            </label>
+                            <select name="po_status" class="form-select form-select-sm">
+                                <option value="">Semua (PO & Reguler)</option>
+                                <option value="po" {{ request('po_status') === 'po' ? 'selected' : '' }}>⏳ Pre-Order (PO)</option>
+                                <option value="non_po" {{ request('po_status') === 'non_po' ? 'selected' : '' }}>📦 Reguler (Non PO)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label form-label-sm fw-semibold mb-1">
+                                <i class="fas fa-sync text-muted me-1"></i>Status Stok
+                            </label>
+                            <select name="sync_status" class="form-select form-select-sm">
+                                <option value="">Semua Status Stok</option>
+                                <option value="match" {{ request('sync_status') === 'match' ? 'selected' : '' }}>✅ Stok Sinkron</option>
+                                <option value="diff" {{ request('sync_status') === 'diff' ? 'selected' : '' }}>⚠️ Stok Berbeda / Perlu Sync</option>
+                            </select>
+                        </div>
+                        <div class="col-md-12 d-flex justify-content-end gap-1 mt-2">
+                            <button type="submit" class="btn btn-primary btn-sm px-3">
+                                <i class="fas me-1 fa-filter"></i>Filter
                             </button>
                             <a href="{{ route('marketplace_products.print_report', request()->all()) }}" target="_blank"
-                                class="btn btn-outline-dark btn-sm" title="Cetak Laporan">
-                                <i class="fas fa-print"></i>
+                                class="btn btn-outline-dark btn-sm px-3" title="Cetak Laporan">
+                                <i class="fas fa-print me-1"></i>Cetak Laporan
                             </a>
-                            @if (request()->anyFilled(['name', 'sku', 'channel_id', 'store_id']))
+                            @if (request()->anyFilled(['name', 'sku', 'channel_id', 'store_id', 'po_status', 'sync_status']))
                                 <a href="{{ route('marketplace_products.index', request()->only('status')) }}"
-                                    class="btn btn-outline-secondary btn-sm" title="Reset Filter">
-                                    <i class="fas fa-undo"></i>
+                                    class="btn btn-outline-secondary btn-sm px-3" title="Reset Filter">
+                                    <i class="fas fa-undo me-1"></i>Reset
                                 </a>
                             @endif
                         </div>

@@ -152,10 +152,6 @@
             <i class="fas fa-sync text-primary me-2"></i>Pemetaan &amp; Perbandingan Stok
         </h5>
         <div class="d-flex gap-2">
-            <a href="{{ route('marketplace_products.print_report', request()->all()) }}" target="_blank"
-               class="btn btn-sm btn-outline-danger fw-semibold" title="Cetak Laporan Produk & Stok Sinkronisasi">
-                <i class="fas fa-print me-1"></i> Cetak Laporan
-            </a>
             <button type="button" class="btn btn-sm btn-outline-secondary fw-semibold"
                     data-bs-toggle="collapse" data-bs-target="#logPanel">
                 <i class="fas fa-history me-1"></i> Log Sync
