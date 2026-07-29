@@ -363,17 +363,17 @@ class SpkController extends Controller
 
         $imagePath = null;
         if ($request->hasFile('image')) {
-            $imagePath = $request->file('image')->store('spks', 'public');
+            $imagePath = str_replace('/storage/', '', $this->resizeAndStoreUploadedImage($request->file('image'), 'spks', 1200, 80));
         }
 
         $referensiPath = null;
         if ($request->hasFile('referensi_klien')) {
-            $referensiPath = $request->file('referensi_klien')->store('spks/referensi', 'public');
+            $referensiPath = str_replace('/storage/', '', $this->resizeAndStoreUploadedImage($request->file('referensi_klien'), 'spks/referensi', 1200, 80));
         }
 
         $mockupPath = null;
         if ($request->hasFile('mockup_final')) {
-            $mockupPath = $request->file('mockup_final')->store('spks/mockup', 'public');
+            $mockupPath = str_replace('/storage/', '', $this->resizeAndStoreUploadedImage($request->file('mockup_final'), 'spks/mockup', 1200, 80));
         }
 
         $spk = DB::transaction(function () use ($request, $tenantId, $imagePath, $referensiPath, $mockupPath) {
@@ -985,8 +985,7 @@ class SpkController extends Controller
             ];
 
             if ($request->hasFile('image')) {
-                $p = $request->file('image')->store('spks', 'public');
-                $updateData['image_url'] = Storage::url($p);
+                $updateData['image_url'] = $this->resizeAndStoreUploadedImage($request->file('image'), 'spks', 1200, 80);
             }
 
             $referensiFile = $request->file('referensi_klien') ?? $request->file('rincian.0.referensi_klien');
@@ -999,8 +998,7 @@ class SpkController extends Controller
                 }
             }
             if ($referensiFile) {
-                $p = $referensiFile->store('spks/referensi', 'public');
-                $updateData['referensi_klien_url'] = Storage::url($p);
+                $updateData['referensi_klien_url'] = $this->resizeAndStoreUploadedImage($referensiFile, 'spks/referensi', 1200, 80);
             }
 
             $mockupFile = $request->file('mockup_final') ?? $request->file('rincian.0.mockup_final');
@@ -1013,10 +1011,10 @@ class SpkController extends Controller
                 }
             }
             if ($mockupFile) {
-                $p = $mockupFile->store('spks/mockup', 'public');
-                $updateData['mockup_url'] = Storage::url($p);
+                $mockupUrl = $this->resizeAndStoreUploadedImage($mockupFile, 'spks/mockup', 1200, 80);
+                $updateData['mockup_url'] = $mockupUrl;
                 if (empty($spk->image_url) && !isset($updateData['image_url'])) {
-                    $updateData['image_url'] = Storage::url($p);
+                    $updateData['image_url'] = $mockupUrl;
                 }
             }
 
@@ -2231,8 +2229,7 @@ class SpkController extends Controller
         }
 
         if ($photoField) {
-            $path = $photoField->store('spk_tracking', 'public');
-            $spk->image_url = \Illuminate\Support\Facades\Storage::url($path);
+            $spk->image_url = $this->resizeAndStoreUploadedImage($photoField, 'spk_tracking', 1200, 80);
         }
 
         // 4. Update SKU Kain Konversi (Jika Diisi di Tahap Sampling / Print)
@@ -2353,5 +2350,74 @@ class SpkController extends Controller
             return 'XXL';
         }
         return $sz ?: 'S';
+    }
+
+    /**
+     * Resize and store uploaded image to disk using PHP GD (Max 1200px & 80% compression).
+     */
+    private function resizeAndStoreUploadedImage($file, string $folder = 'spks', int $maxDimension = 1200, int $quality = 80): string
+    {
+        $mime = $file->getMimeType();
+        $filePath = $file->getPathname();
+
+        if (function_exists('imagecreatetruecolor') && in_array($mime, ['image/jpeg', 'image/png', 'image/webp'], true)) {
+            list($origWidth, $origHeight) = @getimagesize($filePath) ?: [0, 0];
+
+            if ($origWidth > 0 && $origHeight > 0) {
+                $srcImg = match($mime) {
+                    'image/jpeg' => @imagecreatefromjpeg($filePath),
+                    'image/png'  => @imagecreatefrompng($filePath),
+                    'image/webp' => @imagecreatefromwebp($filePath),
+                    default      => null,
+                };
+
+                if ($srcImg) {
+                    $newWidth = $origWidth;
+                    $newHeight = $origHeight;
+
+                    if ($origWidth > $maxDimension || $origHeight > $maxDimension) {
+                        if ($origWidth >= $origHeight) {
+                            $newWidth = $maxDimension;
+                            $newHeight = (int) round(($origHeight / $origWidth) * $maxDimension);
+                        } else {
+                            $newHeight = $maxDimension;
+                            $newWidth = (int) round(($origWidth / $origHeight) * $maxDimension);
+                        }
+                    }
+
+                    $dstImg = imagecreatetruecolor($newWidth, $newHeight);
+
+                    if (in_array($mime, ['image/png', 'image/webp'], true)) {
+                        imagealphablending($dstImg, false);
+                        imagesavealpha($dstImg, true);
+                    }
+
+                    imagecopyresampled($dstImg, $srcImg, 0, 0, 0, 0, $newWidth, $newHeight, $origWidth, $origHeight);
+
+                    $tmpFilename = tempnam(sys_get_temp_dir(), 'img_resized_');
+                    if ($mime === 'image/png') {
+                        imagepng($dstImg, $tmpFilename, 6);
+                    } elseif ($mime === 'image/webp') {
+                        imagewebp($dstImg, $tmpFilename, $quality);
+                    } else {
+                        imagejpeg($dstImg, $tmpFilename, $quality);
+                    }
+
+                    imagedestroy($srcImg);
+                    imagedestroy($dstImg);
+
+                    $extension = $file->getClientOriginalExtension() ?: 'jpg';
+                    $targetPath = $folder . '/' . \Illuminate\Support\Str::random(40) . '.' . $extension;
+
+                    \Illuminate\Support\Facades\Storage::disk('public')->put($targetPath, file_get_contents($tmpFilename));
+                    @unlink($tmpFilename);
+
+                    return \Illuminate\Support\Facades\Storage::url($targetPath);
+                }
+            }
+        }
+
+        $path = $file->store($folder, 'public');
+        return \Illuminate\Support\Facades\Storage::url($path);
     }
 }

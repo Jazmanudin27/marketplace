@@ -613,7 +613,7 @@
                         $mockupImg = $spk->mockup_url ?: ($spk->image_url ?: $spk->referensi_klien_url);
                     @endphp
                     @if($mockupImg)
-                        <img src="{{ $mockupImg }}" class="product-thumb-box" alt="Gambar Desain">
+                        <img src="{{ $mockupImg }}" class="product-thumb-box" alt="Gambar Desain" loading="lazy">
                     @else
                         <div class="product-thumb-box d-flex align-items-center justify-content-center text-muted">
                             <i class="fas fa-tshirt fs-4"></i>
@@ -821,7 +821,7 @@
                                     <i class="fas fa-camera fs-1 text-primary mb-2"></i>
                                     <div class="fw-bold text-secondary">Jepret Kamera</div>
                                 </div>
-                                <img id="potongPreviewImg" src="{{ $spk->image_url }}" style="display:block; max-height: 180px; width:100%; object-fit:contain; border-radius:10px;">
+                                <img id="potongPreviewImg" src="{{ $spk->image_url }}" loading="lazy" style="display:block; max-height: 180px; width:100%; object-fit:contain; border-radius:10px;">
                             @else
                                 <div id="potongPreviewPlaceholder" class="text-center">
                                     <i class="fas fa-camera fs-1 text-primary mb-2"></i>
@@ -940,7 +940,7 @@
                                     <i class="fas fa-camera fs-1 text-info mb-2"></i>
                                     <div class="fw-bold text-secondary">Jepret Hasil Print</div>
                                 </div>
-                                <img id="printPreviewImg" src="{{ $spk->image_url }}" style="display:block; max-height: 180px; width:100%; object-fit:contain; border-radius:10px;">
+                                <img id="printPreviewImg" src="{{ $spk->image_url }}" loading="lazy" style="display:block; max-height: 180px; width:100%; object-fit:contain; border-radius:10px;">
                             @else
                                 <div id="printPreviewPlaceholder" class="text-center">
                                     <i class="fas fa-camera fs-1 text-info mb-2"></i>
@@ -1019,7 +1019,7 @@
                                     <i class="fas fa-camera fs-1 text-primary mb-2"></i>
                                     <div class="fw-bold text-secondary">Jepret Baju Sample</div>
                                 </div>
-                                <img id="samplePreviewImg" src="{{ $spk->image_url }}" style="display:block; max-height: 180px; width:100%; object-fit:contain; border-radius:10px;">
+                                <img id="samplePreviewImg" src="{{ $spk->image_url }}" loading="lazy" style="display:block; max-height: 180px; width:100%; object-fit:contain; border-radius:10px;">
                             @else
                                 <div id="samplePreviewPlaceholder" class="text-center">
                                     <i class="fas fa-camera fs-1 text-primary mb-2"></i>
@@ -1220,42 +1220,100 @@
             if (totLubang) totLubang.value = qty * lubangPerPcs;
         }
 
+        function resizeAndCompressImage(file, maxDimension, quality, callback) {
+            if (!file || !file.type.startsWith('image/')) {
+                return callback(null, file);
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    let width = img.width;
+                    let height = img.height;
+
+                    if (width > maxDimension || height > maxDimension) {
+                        if (width >= height) {
+                            height = Math.round((height / width) * maxDimension);
+                            width = maxDimension;
+                        } else {
+                            width = Math.round((width / height) * maxDimension);
+                            height = maxDimension;
+                        }
+                    }
+
+                    const canvas = document.createElement('canvas');
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    const mimeType = file.type === 'image/png' ? 'image/png' : 'image/jpeg';
+                    const dataUrl = canvas.toDataURL(mimeType, quality);
+
+                    canvas.toBlob(function(blob) {
+                        if (blob) {
+                            const resizedFile = new File([blob], file.name, {
+                                type: mimeType,
+                                lastModified: Date.now()
+                            });
+                            callback(dataUrl, resizedFile);
+                        } else {
+                            callback(e.target.result, file);
+                        }
+                    }, mimeType, quality);
+                };
+                img.onerror = () => callback(e.target.result, file);
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
         function previewPotongPhoto(input) {
             if (input.files && input.files[0]) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
+                resizeAndCompressImage(input.files[0], 1200, 0.8, function(dataUrl, resizedFile) {
+                    if (resizedFile && typeof DataTransfer !== 'undefined') {
+                        const dt = new DataTransfer();
+                        dt.items.add(resizedFile);
+                        input.files = dt.files;
+                    }
                     document.getElementById('potongPreviewPlaceholder').style.display = 'none';
                     const img = document.getElementById('potongPreviewImg');
-                    img.src = e.target.result;
+                    img.src = dataUrl;
                     img.style.display = 'block';
-                };
-                reader.readAsDataURL(input.files[0]);
+                });
             }
         }
 
         function previewPrintPhoto(input) {
             if (input.files && input.files[0]) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
+                resizeAndCompressImage(input.files[0], 1200, 0.8, function(dataUrl, resizedFile) {
+                    if (resizedFile && typeof DataTransfer !== 'undefined') {
+                        const dt = new DataTransfer();
+                        dt.items.add(resizedFile);
+                        input.files = dt.files;
+                    }
                     document.getElementById('printPreviewPlaceholder').style.display = 'none';
                     const img = document.getElementById('printPreviewImg');
-                    img.src = e.target.result;
+                    img.src = dataUrl;
                     img.style.display = 'block';
-                };
-                reader.readAsDataURL(input.files[0]);
+                });
             }
         }
 
         function previewSamplePhoto(input) {
             if (input.files && input.files[0]) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
+                resizeAndCompressImage(input.files[0], 1200, 0.8, function(dataUrl, resizedFile) {
+                    if (resizedFile && typeof DataTransfer !== 'undefined') {
+                        const dt = new DataTransfer();
+                        dt.items.add(resizedFile);
+                        input.files = dt.files;
+                    }
                     document.getElementById('samplePreviewPlaceholder').style.display = 'none';
                     const img = document.getElementById('samplePreviewImg');
-                    img.src = e.target.result;
+                    img.src = dataUrl;
                     img.style.display = 'block';
-                };
-                reader.readAsDataURL(input.files[0]);
+                });
             }
         }
 
