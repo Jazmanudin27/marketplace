@@ -2247,7 +2247,7 @@ class SpkController extends Controller
         $penjahit = $request->input('penjahit');
         $vendorLkpk = $request->input('vendor_lkpk');
         $estKainPotong = $request->input('est_kain_potong');
-        $pkiKainPotong = $request->input('pki_kain_potong');
+        $pkiKainPotong = $request->input('pki_kain_potong') ?: $request->input('terpakai_kain');
         $sisaKainPotong = $request->input('sisa_kain_potong');
 
         if ($request->has('items') && is_array($request->input('items'))) {

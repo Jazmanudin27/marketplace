@@ -1072,24 +1072,13 @@
                             </div>
                         </div>
 
-                        <div class="row g-2 mb-3">
-                            <div class="col-4 text-center">
-                                <label class="form-label form-label-sm mb-1 fw-bold text-secondary" style="font-size: 10px;">ESTIMASI HPP (M)</label>
-                                <input type="number" name="est_hpp_kain" class="form-control form-control-sm text-center fw-bold font-monospace py-2" value="84" step="any">
-                            </div>
-                            <div class="col-4 text-center">
-                                <label class="form-label form-label-sm mb-1 fw-bold text-secondary" style="font-size: 10px;">TERPAKAI (M)</label>
-                                <input type="number" name="terpakai_kain" class="form-control form-control-sm text-center fw-bold font-monospace py-2" value="0.00" step="0.01">
-                            </div>
-                            <div class="col-4 text-center">
-                                <label class="form-label form-label-sm mb-1 fw-bold text-secondary" style="font-size: 10px;">JENIS</label>
-                                <select name="jenis_kain" class="form-select form-select-sm text-center fw-bold py-2">
-                                    <option value="">-- Pilih --</option>
-                                    <option value="Cotton Combed">Cotton Combed</option>
-                                    <option value="Polyester">Polyester</option>
-                                    <option value="Drill">Drill</option>
-                                    <option value="Kuningan">Kuningan</option>
-                                </select>
+                        <div class="bg-white p-3 rounded-3 border mb-3">
+                            <label class="form-label form-label-sm mb-1 fw-bold text-primary" style="font-size: 11px;">
+                                <i class="fas fa-ruler-horizontal text-primary me-1"></i> KAIN TERPAKAI SAMPLE (CM)
+                            </label>
+                            <div class="input-group input-group-sm">
+                                <input type="number" name="terpakai_kain" class="form-control font-monospace fw-bold text-primary py-2 fs-6" value="{{ $spk->items->first()?->kain_pakai }}" placeholder="Masukkan pemakaian sample dalam CM..." step="any" min="0">
+                                <span class="input-group-text bg-light font-monospace fw-bold text-secondary">CM</span>
                             </div>
                         </div>
 
