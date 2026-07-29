@@ -134,6 +134,17 @@
             display: inline-block;
         }
 
+        .badge-reguler {
+            background-color: #e7f5ff;
+            color: #0c85d0;
+            border: 1px solid #a5d8ff;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 8px;
+            font-weight: bold;
+            display: inline-block;
+        }
+
         .badge-unmapped {
             background-color: #e2e3e5;
             color: #41464b;
@@ -170,6 +181,12 @@
         $appliedFilters = [];
         if (request('status') === 'mapped') $appliedFilters[] = "Status: Sudah Ditautkan";
         elseif (request('status') === 'unmapped') $appliedFilters[] = "Status: Belum Ditautkan";
+        elseif (request('status') === 'match' || request('status') === 'sinkron') $appliedFilters[] = "Status Stok: ✅ Sinkron";
+        elseif (request('status') === 'diff' || request('status') === 'beda') $appliedFilters[] = "Status Stok: ⚠️ Berbeda (Perlu Sync)";
+
+        if (request('is_po') === '1' || request('is_po') === 'po') $appliedFilters[] = "Tipe Produk: ⏳ Pre-Order (PO)";
+        elseif (request('is_po') === '0' || request('is_po') === 'reguler') $appliedFilters[] = "Tipe Produk: 📦 Reguler (Non-PO)";
+
         if (request('name')) $appliedFilters[] = "Nama: \"" . request('name') . "\"";
         if (request('sku')) $appliedFilters[] = "SKU: \"" . request('sku') . "\"";
         if ($selectedChannel) $appliedFilters[] = "Channel: " . $selectedChannel->name;
@@ -200,12 +217,12 @@
             <span style="color: #6b21a8;">⏳ {{ number_format($preorderCount ?? 0) }}</span>
         </div>
         <div class="summary-item">
-            <label>Belum Ditautkan</label>
-            <span style="color: #6c757d;">🔗 {{ number_format($unmappedCount) }}</span>
+            <label>Reguler (Non-PO)</label>
+            <span style="color: #0c85d0;">📦 {{ number_format($regulerCount ?? 0) }}</span>
         </div>
         <div class="summary-item">
-            <label>Total Stok MP</label>
-            <span style="color: #0d6efd;">{{ number_format($totalStock) }}</span>
+            <label>Belum Ditautkan</label>
+            <span style="color: #6c757d;">🔗 {{ number_format($unmappedCount) }}</span>
         </div>
     </div>
 
@@ -213,13 +230,14 @@
         <thead>
             <tr>
                 <th width="4%" class="text-center">NO</th>
-                <th width="24%">NAMA PRODUK MARKETPLACE</th>
-                <th width="14%">CHANNEL & TOKO</th>
+                <th width="22%">NAMA PRODUK MARKETPLACE</th>
+                <th width="12%">CHANNEL & TOKO</th>
                 <th width="14%">SKU MARKETPLACE</th>
-                <th width="10%" class="text-center">STOK GUDANG (ERP)</th>
-                <th width="10%" class="text-center">STOK MARKETPLACE</th>
-                <th width="8%" class="text-center">SELISIH</th>
-                <th width="16%" class="text-center">STATUS SINKRON</th>
+                <th width="11%" class="text-center">TIPE PRODUK</th>
+                <th width="9%" class="text-center">STOK GUDANG</th>
+                <th width="9%" class="text-center">STOK MP</th>
+                <th width="6%" class="text-center">SELISIH</th>
+                <th width="13%" class="text-center">STATUS SINKRON</th>
             </tr>
         </thead>
         <tbody>
@@ -239,7 +257,7 @@
                     <td>
                         <strong>{{ $p->name }}</strong>
                         @if($p->masterProduct)
-                            <div style="font-size:9px; color:#555;">Master: {{ $p->masterProduct->name }} (SKU: {{ $p->masterProduct->sku }})</div>
+                            <div style="font-size:8px; color:#555;">Master: {{ $p->masterProduct->name }} (SKU: {{ $p->masterProduct->sku }})</div>
                         @endif
                     </td>
                     <td>
@@ -247,10 +265,17 @@
                         <span style="color:#555;">{{ $p->store->store_name ?? '-' }}</span>
                     </td>
                     <td class="font-mono">{{ $p->marketplace_sku ?: '-' }}</td>
+                    <td class="text-center">
+                        @if($isPo)
+                            <span class="badge-po">⏳ PRE-ORDER</span>
+                        @else
+                            <span class="badge-reguler">📦 REGULER</span>
+                        @endif
+                    </td>
                     <td class="text-center font-mono" style="font-weight:bold;">
                         {{ $localStock !== null ? number_format($localStock) : '-' }}
                         @if($safetyStock > 0)
-                            <div style="font-size:8px; color:#6b21a8;">(Safety: {{ $safetyStock }})</div>
+                            <div style="font-size:7px; color:#6b21a8;">(Safety: {{ $safetyStock }})</div>
                         @endif
                     </td>
                     <td class="text-center font-mono" style="font-weight:bold;">{{ number_format($marketStock) }}</td>
@@ -266,10 +291,10 @@
                         @endif
                     </td>
                     <td class="text-center">
-                        @if($isPo)
-                            <span class="badge-po">⏳ PRE-ORDER</span>
-                        @elseif($isNoMap)
+                        @if($isNoMap)
                             <span class="badge-unmapped">🔗 BELUM MAP</span>
+                        @elseif($isPo)
+                            <span class="badge-po">⏳ PO (SKIP)</span>
                         @elseif($isSinkron)
                             <span class="badge-sinkron">✅ SINKRON</span>
                         @else
@@ -279,7 +304,7 @@
                 </tr>
             @empty
                 <tr>
-                    <td colspan="8" class="text-center" style="padding: 15px;">Tidak ada data produk marketplace yang ditemukan.</td>
+                    <td colspan="9" class="text-center" style="padding: 15px;">Tidak ada data produk marketplace yang ditemukan.</td>
                 </tr>
             @endforelse
         </tbody>
