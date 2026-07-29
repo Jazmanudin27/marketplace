@@ -426,8 +426,8 @@
                                 <span class="stock-num-market {{ $isNoMap ? '' : ($isSinkron ? 'match' : 'diff') }}">
                                     {{ number_format($marketStock) }}
                                 </span>
-                                @if(!$mp->last_synced_at)
-                                    <div class="safety-note text-warning">belum sync</div>
+                                @if(!$isSinkron && !$isNoMap)
+                                    <div class="safety-note text-warning">perlu sync</div>
                                 @endif
                             @endif
                         </td>
