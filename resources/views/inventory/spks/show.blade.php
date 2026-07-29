@@ -783,7 +783,7 @@
                                         $totalMaterialCost = array_sum(array_column($materials, 'subtotal'));
                                     @endphp
 
-                                    <tr id="product-row-{{ $rIdx }}-{{ $pIdx }}">
+                                    <tr id="product-row-{{ $rIdx }}-{{ $pIdx }}" data-r-idx="{{ $rIdx }}" data-p-idx="{{ $pIdx }}">
                                         <td>
                                             <input type="text" name="rincian[{{ $rIdx }}][produk][{{ $pIdx }}][sku_produk]"
                                                 class="form-control font-monospace fw-bold row-sku-produk"
@@ -1374,34 +1374,35 @@
         const pIdx = tbody.querySelectorAll('tr').length;
         const tr = document.createElement('tr');
         tr.id = `prod-row-${rIdx}-${pIdx}`;
+        tr.dataset.rIdx = rIdx;
+        tr.dataset.pIdx = pIdx;
 
         tr.innerHTML = `
             <td>
                 <input type="text" name="rincian[${rIdx}][produk][${pIdx}][sku_produk]" 
-                       class="form-control form-control-sm font-monospace fw-bold input-sku-produk" 
-                       placeholder="Contoh: BB-BR-BIRU-LPJ" 
-                       oninput="onSkuInputChanged(this)"
-                       onblur="onSkuInputBlur(this)">
+                       class="form-control form-control-sm font-monospace fw-bold row-sku-produk input-sku-produk" 
+                       list="master_skus_datalist" autocomplete="off"
+                       placeholder="Contoh: BB-BR-BIRU-LPJ">
             </td>
             <td>
                 <input type="text" name="rincian[${rIdx}][produk][${pIdx}][nama_produk]" 
-                       class="form-control form-control-sm input-nama-produk" 
+                       class="form-control form-control-sm row-nama-produk input-nama-produk" 
                        placeholder="Nama Produk / Varian" 
-                       list="master_product_names_datalist"
-                       oninput="onProductNameInputChanged(this)">
+                       list="master_product_names_datalist" autocomplete="off">
             </td>
             <td>
                 <input type="text" name="rincian[${rIdx}][produk][${pIdx}][ukuran]" 
-                       class="form-control form-control-sm text-center fw-bold input-ukuran-produk" 
+                       class="form-control form-control-sm text-center fw-bold row-ukuran input-ukuran-produk" 
                        placeholder="S, M, L, XL..." 
                        list="ukuran_datalist">
             </td>
             <td>
                 <input type="number" name="rincian[${rIdx}][produk][${pIdx}][qty_produksi]" 
-                       class="form-control form-control-sm text-center fw-bold input-qty-produksi" 
+                       class="form-control form-control-sm text-center fw-bold row-qty-produksi input-qty-produksi" 
                        value="1" min="1">
             </td>
             <td class="text-center">
+                <div class="hidden-bahan-container-${rIdx}-${pIdx}"></div>
                 <button type="button" class="btn btn-sm btn-outline-secondary btn-bahan-trigger btn-open-bahan-modal" 
                         data-r-idx="${rIdx}" data-p-idx="${pIdx}">
                     📦 Atur Bahan
@@ -1464,35 +1465,117 @@
         }
     }
 
+    function handleSkuSelection(tr) {
+        if (!tr) return;
+        const skuInput  = tr.querySelector('.row-sku-produk, .input-sku-produk');
+        const nameInput = tr.querySelector('.row-nama-produk, .input-nama-produk');
+        const ukInput   = tr.querySelector('.row-ukuran, .input-ukuran-produk');
+
+        const cleanSku  = skuInput ? skuInput.value.trim().toUpperCase() : '';
+        const cleanName = nameInput ? nameInput.value.trim().toUpperCase() : '';
+
+        let masterProd = null;
+        if (cleanSku && masterProductsMap[cleanSku]) {
+            masterProd = masterProductsMap[cleanSku];
+        } else if (cleanName && masterProductsMap[cleanName]) {
+            masterProd = masterProductsMap[cleanName];
+        } else if (cleanName) {
+            const found = allMasterProductsList.find(p => p.name && p.name.trim().toUpperCase() === cleanName);
+            if (found && found.sku) {
+                masterProd = masterProductsMap[found.sku.toUpperCase()];
+            }
+        }
+
+        if (masterProd) {
+            if (nameInput && (!nameInput.value || nameInput.value === 'PRODUK BARU')) nameInput.value = masterProd.name;
+            if (skuInput && !skuInput.value && masterProd.sku) skuInput.value = masterProd.sku;
+            if (ukInput && masterProd.ukuran) ukInput.value = masterProd.ukuran;
+        }
+
+        applyRecipeToProductRow(tr);
+    }
+
+    function applyRecipeToProductRow(tr) {
+        if (!tr) return;
+        const rIdx = tr.dataset.rIdx ?? '0';
+        const pIdx = tr.dataset.pIdx ?? '0';
+        const skuInput  = tr.querySelector('.row-sku-produk, .input-sku-produk');
+        const nameInput = tr.querySelector('.row-nama-produk, .input-nama-produk');
+        const skuVal    = skuInput?.value?.trim()?.toUpperCase();
+        const nameVal   = nameInput?.value?.trim()?.toUpperCase();
+        const qtyProd   = parseInt(tr.querySelector('.row-qty-produksi, .input-qty-produksi')?.value || 1) || 1;
+
+        let recipe = null;
+        if (skuVal && recipesMap[skuVal]) {
+            recipe = recipesMap[skuVal];
+        } else if (nameVal && recipesMap[nameVal]) {
+            recipe = recipesMap[nameVal];
+        } else if (skuVal || nameVal) {
+            const masterProd = (skuVal && masterProductsMap[skuVal]) || (nameVal && masterProductsMap[nameVal]);
+            if (masterProd) {
+                if (masterProd.sku && recipesMap[masterProd.sku.toUpperCase()]) {
+                    recipe = recipesMap[masterProd.sku.toUpperCase()];
+                } else if (masterProd.sku_induk && recipesMap[masterProd.sku_induk.toUpperCase()]) {
+                    recipe = recipesMap[masterProd.sku_induk.toUpperCase()];
+                } else if (masterProd.name && recipesMap[masterProd.name.toUpperCase()]) {
+                    recipe = recipesMap[masterProd.name.toUpperCase()];
+                }
+            }
+        }
+
+        const container = tr.querySelector(`.hidden-bahan-container-${rIdx}-${pIdx}`);
+        if (!container) return;
+
+        if (recipe && recipe.items && recipe.items.length > 0) {
+            container.innerHTML = '';
+            let totalCost = 0;
+            recipe.items.forEach((item, bIdx) => {
+                const rawQty = item.qty_unit * qtyProd;
+                const calcQty = (rawQty % 1 === 0) ? Math.round(rawQty).toString() : Number(rawQty.toFixed(4)).toString();
+                const subtotal = rawQty * item.harga;
+                totalCost += subtotal;
+
+                container.appendChild(createHiddenBahanRow(rIdx, pIdx, bIdx, {
+                    nama_bahan: item.nama_bahan + (item.unit ? ' (' + item.unit + ')' : ''),
+                    qty_bahan: calcQty,
+                    harga: item.harga,
+                    subtotal: subtotal
+                }));
+            });
+
+            updateProductRowBahanButton(tr, recipe.items.length, totalCost, true);
+        }
+    }
+
+    function createHiddenBahanRow(rIdx, pIdx, bIdx, data = {}) {
+        const div = document.createElement('div');
+        div.className = `hidden-bahan-row hidden-bahan-${bIdx}`;
+        div.innerHTML = `
+            <input type="hidden" name="rincian[${rIdx}][produk][${pIdx}][bahan][${bIdx}][nama_bahan]" value="${data.nama_bahan || ''}">
+            <input type="hidden" name="rincian[${rIdx}][produk][${pIdx}][bahan][${bIdx}][qty_bahan]" value="${data.qty_bahan || '1'}">
+            <input type="hidden" name="rincian[${rIdx}][produk][${pIdx}][bahan][${bIdx}][harga]" value="${data.harga || '0'}">
+            <input type="hidden" name="rincian[${rIdx}][produk][${pIdx}][bahan][${bIdx}][subtotal]" value="${data.subtotal || '0'}">
+        `;
+        return div;
+    }
+
+    function updateProductRowBahanButton(tr, count, totalCost, isRecipe = false) {
+        const btn = tr.querySelector('.btn-bahan-trigger');
+        if (!btn) return;
+
+        if (count > 0) {
+            btn.className = 'btn btn-sm btn-success-subtle text-success border border-success-subtle btn-bahan-trigger btn-open-bahan-modal';
+            btn.innerHTML = `${isRecipe ? '✨' : '📦'} ${count} Bahan (Rp ${Math.round(totalCost).toLocaleString('id-ID')})`;
+        } else {
+            btn.className = 'btn btn-sm btn-outline-secondary btn-bahan-trigger btn-open-bahan-modal';
+            btn.innerHTML = `📦 Atur Bahan <span class="badge bg-secondary rounded-pill ms-1">0</span>`;
+        }
+    }
+
     function onSkuInputChanged(inputEl) {
         updateMasterSkuDatalist(inputEl.value);
-
-        const val = inputEl.value.trim().toUpperCase();
-        if (!val) return;
-
-        const row = inputEl.closest('tr');
-        if (!row) return;
-
-        // Try exact match in masterProductsMap or allMasterProductsList
-        let prod = masterProductsMap[val];
-        if (!prod) {
-            prod = allMasterProductsList.find(p => 
-                (p.sku && p.sku.toUpperCase() === val) || 
-                (p.sku_induk && p.sku_induk.toUpperCase() === val)
-            );
-        }
-
-        if (prod) {
-            const nameInput = row.querySelector('.row-nama-produk, .input-nama-produk');
-            const ukuranInput = row.querySelector('.row-ukuran, .input-ukuran-produk');
-
-            if (nameInput && (!nameInput.value || nameInput.value === 'PRODUK BARU')) {
-                nameInput.value = prod.name;
-            }
-            if (ukuranInput && !ukuranInput.value && prod.ukuran) {
-                ukuranInput.value = prod.ukuran;
-            }
-        }
+        const tr = inputEl.closest('tr');
+        if (tr) handleSkuSelection(tr);
     }
 
     function onSkuInputBlur(inputEl) {
@@ -1501,25 +1584,8 @@
 
     function onProductNameInputChanged(inputEl) {
         updateMasterProductNameDatalist(inputEl.value);
-
-        const val = inputEl.value.trim().toLowerCase();
-        if (!val) return;
-
-        const row = inputEl.closest('tr');
-        if (!row) return;
-
-        const prod = allMasterProductsList.find(p => (p.name || '').toLowerCase() === val);
-        if (prod) {
-            const skuInput = row.querySelector('.row-sku-produk, .input-sku-produk');
-            const ukuranInput = row.querySelector('.row-ukuran, .input-ukuran-produk');
-
-            if (skuInput && !skuInput.value && prod.sku) {
-                skuInput.value = prod.sku;
-            }
-            if (ukuranInput && !ukuranInput.value && prod.ukuran) {
-                ukuranInput.value = prod.ukuran;
-            }
-        }
+        const tr = inputEl.closest('tr');
+        if (tr) handleSkuSelection(tr);
     }
 
     // Event delegation for dynamically added and static row inputs
