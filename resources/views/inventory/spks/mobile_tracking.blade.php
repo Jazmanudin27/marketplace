@@ -816,11 +816,19 @@
                         </div>
                         <div class="potong-dropzone-box" onclick="document.getElementById('potongCameraInput').click()">
                             <input type="file" id="potongCameraInput" name="potong_photo" accept="image/*" capture="environment" style="display:none;" onchange="previewPotongPhoto(this)">
-                            <div id="potongPreviewPlaceholder" class="text-center">
-                                <i class="fas fa-camera fs-1 text-primary mb-2"></i>
-                                <div class="fw-bold text-secondary">Jepret Kamera</div>
-                            </div>
-                            <img id="potongPreviewImg" src="" style="display:none; max-height: 180px; width:100%; object-fit:contain; border-radius:10px;">
+                            @if(!empty($spk->image_url))
+                                <div id="potongPreviewPlaceholder" class="text-center" style="display:none;">
+                                    <i class="fas fa-camera fs-1 text-primary mb-2"></i>
+                                    <div class="fw-bold text-secondary">Jepret Kamera</div>
+                                </div>
+                                <img id="potongPreviewImg" src="{{ $spk->image_url }}" style="display:block; max-height: 180px; width:100%; object-fit:contain; border-radius:10px;">
+                            @else
+                                <div id="potongPreviewPlaceholder" class="text-center">
+                                    <i class="fas fa-camera fs-1 text-primary mb-2"></i>
+                                    <div class="fw-bold text-secondary">Jepret Kamera</div>
+                                </div>
+                                <img id="potongPreviewImg" src="" style="display:none; max-height: 180px; width:100%; object-fit:contain; border-radius:10px;">
+                            @endif
                         </div>
                     </div>
                 </div>
@@ -927,11 +935,19 @@
                         </div>
                         <div class="print-dropzone-box" onclick="document.getElementById('printCameraInput').click()">
                             <input type="file" id="printCameraInput" name="print_photo" accept="image/*" capture="environment" style="display:none;" onchange="previewPrintPhoto(this)">
-                            <div id="printPreviewPlaceholder" class="text-center">
-                                <i class="fas fa-camera fs-1 text-info mb-2"></i>
-                                <div class="fw-bold text-secondary">Jepret Hasil Print</div>
-                            </div>
-                            <img id="printPreviewImg" src="" style="display:none; max-height: 180px; width:100%; object-fit:contain; border-radius:10px;">
+                            @if(!empty($spk->image_url))
+                                <div id="printPreviewPlaceholder" class="text-center" style="display:none;">
+                                    <i class="fas fa-camera fs-1 text-info mb-2"></i>
+                                    <div class="fw-bold text-secondary">Jepret Hasil Print</div>
+                                </div>
+                                <img id="printPreviewImg" src="{{ $spk->image_url }}" style="display:block; max-height: 180px; width:100%; object-fit:contain; border-radius:10px;">
+                            @else
+                                <div id="printPreviewPlaceholder" class="text-center">
+                                    <i class="fas fa-camera fs-1 text-info mb-2"></i>
+                                    <div class="fw-bold text-secondary">Jepret Hasil Print</div>
+                                </div>
+                                <img id="printPreviewImg" src="" style="display:none; max-height: 180px; width:100%; object-fit:contain; border-radius:10px;">
+                            @endif
                         </div>
                     </div>
                 </div>
@@ -998,11 +1014,19 @@
                         </div>
                         <div class="sample-dropzone-box" onclick="document.getElementById('sampleCameraInput').click()">
                             <input type="file" id="sampleCameraInput" name="sample_photo" accept="image/*" capture="environment" style="display:none;" onchange="previewSamplePhoto(this)">
-                            <div id="samplePreviewPlaceholder" class="text-center">
-                                <i class="fas fa-camera fs-1 text-primary mb-2"></i>
-                                <div class="fw-bold text-secondary">Jepret Baju Sample</div>
-                            </div>
-                            <img id="samplePreviewImg" src="" style="display:none; max-height: 180px; width:100%; object-fit:contain; border-radius:10px;">
+                            @if(!empty($spk->image_url))
+                                <div id="samplePreviewPlaceholder" class="text-center" style="display:none;">
+                                    <i class="fas fa-camera fs-1 text-primary mb-2"></i>
+                                    <div class="fw-bold text-secondary">Jepret Baju Sample</div>
+                                </div>
+                                <img id="samplePreviewImg" src="{{ $spk->image_url }}" style="display:block; max-height: 180px; width:100%; object-fit:contain; border-radius:10px;">
+                            @else
+                                <div id="samplePreviewPlaceholder" class="text-center">
+                                    <i class="fas fa-camera fs-1 text-primary mb-2"></i>
+                                    <div class="fw-bold text-secondary">Jepret Baju Sample</div>
+                                </div>
+                                <img id="samplePreviewImg" src="" style="display:none; max-height: 180px; width:100%; object-fit:contain; border-radius:10px;">
+                            @endif
                         </div>
                     </div>
                 </div>
