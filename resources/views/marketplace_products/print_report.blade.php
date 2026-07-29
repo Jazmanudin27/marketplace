@@ -134,17 +134,6 @@
             display: inline-block;
         }
 
-        .badge-reguler {
-            background-color: #e7f5ff;
-            color: #0c85d0;
-            border: 1px solid #a5d8ff;
-            padding: 2px 6px;
-            border-radius: 3px;
-            font-size: 8px;
-            font-weight: bold;
-            display: inline-block;
-        }
-
         .badge-unmapped {
             background-color: #e2e3e5;
             color: #41464b;
@@ -168,8 +157,43 @@
 </head>
 <body onload="window.print()">
 
-    <div class="no-print" style="margin-bottom: 15px; text-align: right;">
-        <button onclick="window.print()" style="padding: 6px 15px; cursor: pointer; font-weight: bold;">Cetak Halaman Ini</button>
+    <div class="no-print" style="margin-bottom: 20px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 12px 16px;">
+        <form method="GET" action="{{ route('marketplace_products.print_report') }}" style="display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap;">
+            @if(request('name')) <input type="hidden" name="name" value="{{ request('name') }}"> @endif
+            @if(request('search')) <input type="hidden" name="search" value="{{ request('search') }}"> @endif
+            @if(request('sku')) <input type="hidden" name="sku" value="{{ request('sku') }}"> @endif
+            @if(request('channel_id')) <input type="hidden" name="channel_id" value="{{ request('channel_id') }}"> @endif
+            @if(request('channel')) <input type="hidden" name="channel" value="{{ request('channel') }}"> @endif
+            @if(request('store_id')) <input type="hidden" name="store_id" value="{{ request('store_id') }}"> @endif
+
+            <div>
+                <label style="font-size: 11px; font-weight: bold; display: block; margin-bottom: 4px;">📊 Status Sinkronisasi Stok</label>
+                <select name="filter" style="padding: 6px 10px; font-size: 12px; border-radius: 4px; border: 1px solid #ccc;">
+                    <option value="">— Semua Status Stok —</option>
+                    <option value="match" {{ (request('filter')==='match' || request('sync_filter')==='match') ? 'selected':'' }}>✅ Stok Sinkron</option>
+                    <option value="diff"  {{ (request('filter')==='diff'  || request('sync_filter')==='diff')  ? 'selected':'' }}>⚠️ Stok Berbeda / Perlu Sync</option>
+                    <option value="po"    {{ (request('filter')==='po'    || request('sync_filter')==='po')    ? 'selected':'' }}>⏳ Pre-Order (PO)</option>
+                    <option value="nomap" {{ (request('filter')==='nomap' || request('sync_filter')==='nomap') ? 'selected':'' }}>🔗 Belum Map ke Master</option>
+                </select>
+            </div>
+
+            <div>
+                <label style="font-size: 11px; font-weight: bold; display: block; margin-bottom: 4px;">⏳ Tipe Produk (PO / Reguler)</label>
+                <select name="is_po" style="padding: 6px 10px; font-size: 12px; border-radius: 4px; border: 1px solid #ccc;">
+                    <option value="">— Semua Tipe —</option>
+                    <option value="0" {{ request('is_po')==='0' ? 'selected':'' }}>Reguler (Non Pre-Order)</option>
+                    <option value="1" {{ request('is_po')==='1' ? 'selected':'' }}>Pre-Order (PO) Sahaja</option>
+                </select>
+            </div>
+
+            <button type="submit" style="padding: 6px 14px; background: #0284c7; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer;">
+                🔍 Terapkan Filter
+            </button>
+
+            <button type="button" onclick="window.print()" style="padding: 6px 16px; background: #15803d; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; margin-left: auto;">
+                🖨️ Cetak Halaman Ini
+            </button>
+        </form>
     </div>
 
     <div class="header">
@@ -179,15 +203,20 @@
 
     @php
         $appliedFilters = [];
-        if (request('status') === 'mapped') $appliedFilters[] = "Status: Sudah Ditautkan";
-        elseif (request('status') === 'unmapped') $appliedFilters[] = "Status: Belum Ditautkan";
-        elseif (request('status') === 'match' || request('status') === 'sinkron') $appliedFilters[] = "Status Stok: ✅ Sinkron";
-        elseif (request('status') === 'diff' || request('status') === 'beda') $appliedFilters[] = "Status Stok: ⚠️ Berbeda (Perlu Sync)";
+        $filterVal = request('filter') ?? request('sync_filter');
+        if ($filterVal === 'match') $appliedFilters[] = "Status Stok: ✅ Sinkron";
+        elseif ($filterVal === 'diff') $appliedFilters[] = "Status Stok: ⚠️ Berbeda / Perlu Sync";
+        elseif ($filterVal === 'po') $appliedFilters[] = "Status Stok: ⏳ Pre-Order (PO)";
+        elseif ($filterVal === 'nomap') $appliedFilters[] = "Status Stok: 🔗 Belum Map";
 
-        if (request('is_po') === '1' || request('is_po') === 'po') $appliedFilters[] = "Tipe Produk: ⏳ Pre-Order (PO)";
-        elseif (request('is_po') === '0' || request('is_po') === 'reguler') $appliedFilters[] = "Tipe Produk: 📦 Reguler (Non-PO)";
+        if (request('is_po') === '1') $appliedFilters[] = "Tipe: Pre-Order (PO)";
+        elseif (request('is_po') === '0') $appliedFilters[] = "Tipe: Reguler (Non PO)";
+
+        if (request('status') === 'mapped') $appliedFilters[] = "Tautan: Sudah Ditautkan";
+        elseif (request('status') === 'unmapped') $appliedFilters[] = "Tautan: Belum Ditautkan";
 
         if (request('name')) $appliedFilters[] = "Nama: \"" . request('name') . "\"";
+        if (request('search')) $appliedFilters[] = "Cari: \"" . request('search') . "\"";
         if (request('sku')) $appliedFilters[] = "SKU: \"" . request('sku') . "\"";
         if ($selectedChannel) $appliedFilters[] = "Channel: " . $selectedChannel->name;
         if ($selectedStore) $appliedFilters[] = "Toko: " . $selectedStore->store_name;
@@ -217,12 +246,12 @@
             <span style="color: #6b21a8;">⏳ {{ number_format($preorderCount ?? 0) }}</span>
         </div>
         <div class="summary-item">
-            <label>Reguler (Non-PO)</label>
-            <span style="color: #0c85d0;">📦 {{ number_format($regulerCount ?? 0) }}</span>
-        </div>
-        <div class="summary-item">
             <label>Belum Ditautkan</label>
             <span style="color: #6c757d;">🔗 {{ number_format($unmappedCount) }}</span>
+        </div>
+        <div class="summary-item">
+            <label>Total Stok MP</label>
+            <span style="color: #0d6efd;">{{ number_format($totalStock) }}</span>
         </div>
     </div>
 
@@ -230,14 +259,13 @@
         <thead>
             <tr>
                 <th width="4%" class="text-center">NO</th>
-                <th width="22%">NAMA PRODUK MARKETPLACE</th>
-                <th width="12%">CHANNEL & TOKO</th>
+                <th width="24%">NAMA PRODUK MARKETPLACE</th>
+                <th width="14%">CHANNEL & TOKO</th>
                 <th width="14%">SKU MARKETPLACE</th>
-                <th width="11%" class="text-center">TIPE PRODUK</th>
-                <th width="9%" class="text-center">STOK GUDANG</th>
-                <th width="9%" class="text-center">STOK MP</th>
-                <th width="6%" class="text-center">SELISIH</th>
-                <th width="13%" class="text-center">STATUS SINKRON</th>
+                <th width="10%" class="text-center">STOK GUDANG (ERP)</th>
+                <th width="10%" class="text-center">STOK MARKETPLACE</th>
+                <th width="8%" class="text-center">SELISIH</th>
+                <th width="16%" class="text-center">STATUS SINKRON</th>
             </tr>
         </thead>
         <tbody>
@@ -257,7 +285,7 @@
                     <td>
                         <strong>{{ $p->name }}</strong>
                         @if($p->masterProduct)
-                            <div style="font-size:8px; color:#555;">Master: {{ $p->masterProduct->name }} (SKU: {{ $p->masterProduct->sku }})</div>
+                            <div style="font-size:9px; color:#555;">Master: {{ $p->masterProduct->name }} (SKU: {{ $p->masterProduct->sku }})</div>
                         @endif
                     </td>
                     <td>
@@ -265,17 +293,10 @@
                         <span style="color:#555;">{{ $p->store->store_name ?? '-' }}</span>
                     </td>
                     <td class="font-mono">{{ $p->marketplace_sku ?: '-' }}</td>
-                    <td class="text-center">
-                        @if($isPo)
-                            <span class="badge-po">⏳ PRE-ORDER</span>
-                        @else
-                            <span class="badge-reguler">📦 REGULER</span>
-                        @endif
-                    </td>
                     <td class="text-center font-mono" style="font-weight:bold;">
                         {{ $localStock !== null ? number_format($localStock) : '-' }}
                         @if($safetyStock > 0)
-                            <div style="font-size:7px; color:#6b21a8;">(Safety: {{ $safetyStock }})</div>
+                            <div style="font-size:8px; color:#6b21a8;">(Safety: {{ $safetyStock }})</div>
                         @endif
                     </td>
                     <td class="text-center font-mono" style="font-weight:bold;">{{ number_format($marketStock) }}</td>
@@ -291,10 +312,10 @@
                         @endif
                     </td>
                     <td class="text-center">
-                        @if($isNoMap)
+                        @if($isPo)
+                            <span class="badge-po">⏳ PRE-ORDER</span>
+                        @elseif($isNoMap)
                             <span class="badge-unmapped">🔗 BELUM MAP</span>
-                        @elseif($isPo)
-                            <span class="badge-po">⏳ PO (SKIP)</span>
                         @elseif($isSinkron)
                             <span class="badge-sinkron">✅ SINKRON</span>
                         @else
@@ -304,7 +325,7 @@
                 </tr>
             @empty
                 <tr>
-                    <td colspan="9" class="text-center" style="padding: 15px;">Tidak ada data produk marketplace yang ditemukan.</td>
+                    <td colspan="8" class="text-center" style="padding: 15px;">Tidak ada data produk marketplace yang ditemukan.</td>
                 </tr>
             @endforelse
         </tbody>

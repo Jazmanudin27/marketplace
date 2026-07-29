@@ -427,78 +427,95 @@ class MarketplaceProductController extends Controller
                 $q->where('tenant_id', $tenantId);
             });
 
-        // Filter Status Mapping / Sinkronisasi Stok
+        $poCondition = function($q) {
+            $q->where('marketplace_products.is_pre_order', true)
+              ->orWhereHas('masterProduct', function($mq) {
+                  $mq->where('is_preorder', true);
+              })
+              ->orWhere('marketplace_products.name', 'like', '%PRE ORDER%')
+              ->orWhere('marketplace_products.name', 'like', '%PREORDER%')
+              ->orWhere('marketplace_products.name', 'like', '%PRE-ORDER%')
+              ->orWhere('marketplace_products.name', 'like', 'PO %')
+              ->orWhere('marketplace_products.name', 'like', '% PO %');
+        };
+
         if ($request->filled('status')) {
             if ($request->status === 'unmapped') {
                 $query->whereDoesntHave('masterProduct');
             } elseif ($request->status === 'mapped') {
                 $query->whereHas('masterProduct');
-            } elseif ($request->status === 'match' || $request->status === 'sinkron') {
-                $query->join('master_products', 'marketplace_products.master_product_id', '=', 'master_products.id')
-                      ->where('marketplace_products.is_pre_order', false)
-                      ->where('master_products.is_preorder', false)
-                      ->where('marketplace_products.name', 'not like', '%PRE ORDER%')
-                      ->where('marketplace_products.name', 'not like', '%PREORDER%')
-                      ->where('marketplace_products.name', 'not like', '%PRE-ORDER%')
-                      ->where('marketplace_products.name', 'not like', 'PO %')
-                      ->where('marketplace_products.name', 'not like', '% PO %')
-                      ->whereRaw('marketplace_products.stock = IF(master_products.stock - COALESCE(marketplace_products.safety_stock, 0) < 0, 0, master_products.stock - COALESCE(marketplace_products.safety_stock, 0))');
-            } elseif ($request->status === 'diff' || $request->status === 'beda') {
-                $query->join('master_products', 'marketplace_products.master_product_id', '=', 'master_products.id')
-                      ->where('marketplace_products.is_pre_order', false)
-                      ->where('master_products.is_preorder', false)
-                      ->where('marketplace_products.name', 'not like', '%PRE ORDER%')
-                      ->where('marketplace_products.name', 'not like', '%PREORDER%')
-                      ->where('marketplace_products.name', 'not like', '%PRE-ORDER%')
-                      ->where('marketplace_products.name', 'not like', 'PO %')
-                      ->where('marketplace_products.name', 'not like', '% PO %')
-                      ->whereRaw('marketplace_products.stock != IF(master_products.stock - COALESCE(marketplace_products.safety_stock, 0) < 0, 0, master_products.stock - COALESCE(marketplace_products.safety_stock, 0))');
             }
         }
 
-        // Filter Tipe: Pre-Order (PO) vs Reguler
         if ($request->filled('is_po')) {
-            $poCond = function($q) {
-                $q->where('marketplace_products.is_pre_order', true)
-                  ->orWhereHas('masterProduct', function($mq) {
-                      $mq->where('is_preorder', true);
-                  })
-                  ->orWhere('marketplace_products.name', 'like', '%PRE ORDER%')
-                  ->orWhere('marketplace_products.name', 'like', '%PREORDER%')
-                  ->orWhere('marketplace_products.name', 'like', '%PRE-ORDER%')
-                  ->orWhere('marketplace_products.name', 'like', 'PO %')
-                  ->orWhere('marketplace_products.name', 'like', '% PO %');
-            };
-
-            if ($request->is_po === '1' || $request->is_po === 'po') {
-                $query->where($poCond);
-            } elseif ($request->is_po === '0' || $request->is_po === 'reguler') {
+            if ($request->is_po === '1') {
+                $query->where($poCondition);
+            } elseif ($request->is_po === '0') {
                 $query->where('marketplace_products.is_pre_order', false)
+                      ->where(function($q) {
+                          $q->whereDoesntHave('masterProduct')
+                            ->orWhereHas('masterProduct', fn($mq) => $mq->where('is_preorder', false));
+                      })
                       ->where('marketplace_products.name', 'not like', '%PRE ORDER%')
                       ->where('marketplace_products.name', 'not like', '%PREORDER%')
                       ->where('marketplace_products.name', 'not like', '%PRE-ORDER%')
                       ->where('marketplace_products.name', 'not like', 'PO %')
-                      ->where('marketplace_products.name', 'not like', '% PO %')
-                      ->where(function($sub) {
-                          $sub->whereDoesntHave('masterProduct')
-                              ->orWhereHas('masterProduct', function($mq) {
-                                  $mq->where('is_preorder', false);
-                              });
-                      });
+                      ->where('marketplace_products.name', 'not like', '% PO %');
             }
+        }
+
+        $filterVal = $request->filter ?? $request->sync_filter;
+        if ($filterVal === 'po') {
+            $query->where($poCondition);
+        } elseif ($filterVal === 'nomap') {
+            $query->whereNull('marketplace_products.master_product_id');
+        } elseif ($filterVal === 'match') {
+            $query->join('master_products', 'marketplace_products.master_product_id', '=', 'master_products.id')
+                  ->where('marketplace_products.is_pre_order', false)
+                  ->where('master_products.is_preorder', false)
+                  ->where('marketplace_products.name', 'not like', '%PRE ORDER%')
+                  ->where('marketplace_products.name', 'not like', '%PREORDER%')
+                  ->where('marketplace_products.name', 'not like', '%PRE-ORDER%')
+                  ->where('marketplace_products.name', 'not like', 'PO %')
+                  ->where('marketplace_products.name', 'not like', '% PO %')
+                  ->whereRaw('marketplace_products.stock = IF(master_products.stock - COALESCE(marketplace_products.safety_stock, 0) < 0, 0, master_products.stock - COALESCE(marketplace_products.safety_stock, 0))');
+        } elseif ($filterVal === 'diff') {
+            $query->join('master_products', 'marketplace_products.master_product_id', '=', 'master_products.id')
+                  ->where('marketplace_products.is_pre_order', false)
+                  ->where('master_products.is_preorder', false)
+                  ->where('marketplace_products.name', 'not like', '%PRE ORDER%')
+                  ->where('marketplace_products.name', 'not like', '%PREORDER%')
+                  ->where('marketplace_products.name', 'not like', '%PRE-ORDER%')
+                  ->where('marketplace_products.name', 'not like', 'PO %')
+                  ->where('marketplace_products.name', 'not like', '% PO %')
+                  ->whereRaw('marketplace_products.stock != IF(master_products.stock - COALESCE(marketplace_products.safety_stock, 0) < 0, 0, master_products.stock - COALESCE(marketplace_products.safety_stock, 0))');
         }
 
         if ($request->filled('name')) {
             $query->where('marketplace_products.name', 'like', '%' . $request->name . '%');
         }
 
+        if ($request->filled('search')) {
+            $query->where(function($q) use ($request) {
+                $q->where('marketplace_products.name', 'like', '%' . $request->search . '%')
+                  ->orWhere('marketplace_products.marketplace_sku', 'like', '%' . $request->search . '%')
+                  ->orWhere('marketplace_products.marketplace_product_id', 'like', '%' . $request->search . '%');
+            });
+        }
+
         if ($request->filled('sku')) {
-            $query->where('marketplace_products.marketplace_sku', 'like', '%' . $request->sku . '%');
+            $query->where('marketplace_sku', 'like', '%' . $request->sku . '%');
         }
 
         if ($request->filled('channel_id')) {
             $query->whereHas('store', function ($q) use ($request) {
                 $q->where('channel_id', $request->channel_id);
+            });
+        }
+
+        if ($request->filled('channel')) {
+            $query->whereHas('store.channel', function ($q) use ($request) {
+                $q->where('code', $request->channel);
             });
         }
 
@@ -513,7 +530,6 @@ class MarketplaceProductController extends Controller
         $unmappedCount = $totalCount - $mappedCount;
         $totalStock = $products->sum('stock');
         $preorderCount = $products->filter(fn($p) => $p->isPreOrder())->count();
-        $regulerCount = $totalCount - $preorderCount;
         $totalValue = $products->sum(function ($p) {
             return ($p->price ?? 0) * ($p->stock ?? 0);
         });
@@ -546,7 +562,6 @@ class MarketplaceProductController extends Controller
             'mappedCount',
             'unmappedCount',
             'preorderCount',
-            'regulerCount',
             'sinkronCount',
             'bedaCount',
             'totalStock',
