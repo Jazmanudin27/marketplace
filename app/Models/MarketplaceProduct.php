@@ -54,17 +54,19 @@ class MarketplaceProduct extends Model
     }
 
     /**
-     * Cek apakah produk ini Pre-Order
+     * Cek apakah produk ini Pre-Order.
+     * Jika terhubung ke Master Product, maka status is_preorder di Master Product adalah acuan utama.
      */
     public function isPreOrder(bool $includeMaster = true): bool
     {
-        if ($this->isPreOrderFromMarketplace()) {
-            return true;
+        if ($includeMaster) {
+            $master = $this->relationLoaded('masterProduct') ? $this->masterProduct : $this->masterProduct()->first();
+            if ($master) {
+                return (bool) $master->is_preorder;
+            }
         }
-        if ($includeMaster && $this->relationLoaded('masterProduct') && $this->masterProduct && $this->masterProduct->is_preorder) {
-            return true;
-        }
-        return false;
+
+        return $this->isPreOrderFromMarketplace();
     }
 
     protected static function booted()

@@ -48,34 +48,39 @@ class MarketplaceProductController extends Controller
         }
 
         // Filter: po_status (po / non_po)
-        $poCondition = function($q) {
-            $q->where('marketplace_products.is_pre_order', true)
-              ->orWhereHas('masterProduct', function($mq) {
-                  $mq->where('is_preorder', true);
-              })
-              ->orWhere('marketplace_products.name', 'like', '%PRE ORDER%')
-              ->orWhere('marketplace_products.name', 'like', '%PREORDER%')
-              ->orWhere('marketplace_products.name', 'like', '%PRE-ORDER%')
-              ->orWhere('marketplace_products.name', 'like', 'PO %')
-              ->orWhere('marketplace_products.name', 'like', '% PO %');
-        };
-
         if ($request->filled('po_status')) {
             if ($request->po_status === 'po') {
-                $query->where($poCondition);
-            } elseif ($request->po_status === 'non_po') {
-                $query->where('marketplace_products.is_pre_order', false)
-                      ->where(function($q) {
-                          $q->whereDoesntHave('masterProduct')
-                            ->orWhereHas('masterProduct', function($mq) {
-                                $mq->where('is_preorder', false);
+                $query->where(function($q) {
+                    $q->whereHas('masterProduct', function($mq) {
+                        $mq->where('is_preorder', true);
+                    })
+                    ->orWhere(function($sub) {
+                        $sub->whereNull('marketplace_products.master_product_id')
+                            ->where(function($poq) {
+                                $poq->where('marketplace_products.is_pre_order', true)
+                                    ->orWhere('marketplace_products.name', 'like', '%PRE ORDER%')
+                                    ->orWhere('marketplace_products.name', 'like', '%PREORDER%')
+                                    ->orWhere('marketplace_products.name', 'like', '%PRE-ORDER%')
+                                    ->orWhere('marketplace_products.name', 'like', 'PO %')
+                                    ->orWhere('marketplace_products.name', 'like', '% PO %');
                             });
-                      })
-                      ->where('marketplace_products.name', 'not like', '%PRE ORDER%')
-                      ->where('marketplace_products.name', 'not like', '%PREORDER%')
-                      ->where('marketplace_products.name', 'not like', '%PRE-ORDER%')
-                      ->where('marketplace_products.name', 'not like', 'PO %')
-                      ->where('marketplace_products.name', 'not like', '% PO %');
+                    });
+                });
+            } elseif ($request->po_status === 'non_po') {
+                $query->where(function($q) {
+                    $q->whereHas('masterProduct', function($mq) {
+                        $mq->where('is_preorder', false);
+                    })
+                    ->orWhere(function($sub) {
+                        $sub->whereNull('marketplace_products.master_product_id')
+                            ->where('marketplace_products.is_pre_order', false)
+                            ->where('marketplace_products.name', 'not like', '%PRE ORDER%')
+                            ->where('marketplace_products.name', 'not like', '%PREORDER%')
+                            ->where('marketplace_products.name', 'not like', '%PRE-ORDER%')
+                            ->where('marketplace_products.name', 'not like', 'PO %')
+                            ->where('marketplace_products.name', 'not like', '% PO %');
+                    });
+                });
             }
         }
 
