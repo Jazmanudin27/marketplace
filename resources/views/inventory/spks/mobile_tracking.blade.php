@@ -1032,16 +1032,8 @@
 
 
                         <div class="bg-white p-3 rounded-3 border mb-3">
-                            <div class="row g-2">
-                                <div class="col-6 text-center">
-                                    <label class="form-label form-label-sm mb-1 fw-bold text-secondary" style="font-size: 10px;">ESTIMASI HPP (CM)</label>
-                                    <input type="number" name="est_hpp_kain" class="form-control form-control-sm text-center fw-bold font-monospace py-2" value="84" step="any">
-                                </div>
-                                <div class="col-6 text-center">
-                                    <label class="form-label form-label-sm mb-1 fw-bold text-secondary" style="font-size: 10px;">KAIN TERPAKAI (CM)</label>
-                                    <input type="number" name="terpakai_kain" class="form-control form-control-sm text-center fw-bold font-monospace py-2" value="{{ $spk->items->first()?->kain_pakai ?: '0.00' }}" step="any">
-                                </div>
-                            </div>
+                            <label class="form-label form-label-sm mb-1 fw-bold text-secondary" style="font-size: 11px;">KAIN TERPAKAI (CM)</label>
+                            <input type="number" name="terpakai_kain" class="form-control form-control-sm text-center fw-bold font-monospace py-2" value="{{ $spk->items->first()?->kain_pakai ?: '0.00' }}" placeholder="0.00" step="any">
                         </div>
 
                         <div class="mb-3">
