@@ -160,10 +160,15 @@
                 @endif
             </button>
             <form action="{{ route('inventory.stock_sync.all') }}" method="POST"
-                  onsubmit="return confirm('Sinkronisasi semua produk reguler ke marketplace?')">
+                  onsubmit="return confirm('Sinkronisasi produk yang sesuai filter ke marketplace?')">
                 @csrf
-                <button type="submit" class="btn btn-sm btn-primary fw-semibold">
-                    <i class="fas fa-cloud-upload-alt me-1"></i> Sync Massal (Reguler)
+                @if(request('search')) <input type="hidden" name="search" value="{{ request('search') }}"> @endif
+                @if(request('filter')) <input type="hidden" name="filter" value="{{ request('filter') }}"> @endif
+                @if(request('channel')) <input type="hidden" name="channel" value="{{ request('channel') }}"> @endif
+                @if(request('store_id')) <input type="hidden" name="store_id" value="{{ request('store_id') }}"> @endif
+                @if(request('sync_status')) <input type="hidden" name="sync_status" value="{{ request('sync_status') }}"> @endif
+                <button type="submit" class="btn btn-sm btn-primary fw-semibold" title="Sinkronkan stok produk yang sesuai filter saat ini">
+                    <i class="fas fa-cloud-upload-alt me-1"></i> Sync Massal (Sesuai Filter)
                 </button>
             </form>
         </div>
