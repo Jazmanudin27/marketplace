@@ -23,11 +23,13 @@ class Tailor extends Model
     public static function categories(): array
     {
         return [
+            'Pembuat Sample' => 'Pembuat Sample / Tukang Sample',
+            'Vendor Print'   => 'Vendor Print / Sublim / Motif',
             'Pemotong'       => 'Pemotong / Tukang Potong',
             'Penjahit'       => 'Penjahit / Tukang Jahit',
             'Vendor Kancing' => 'Vendor Kancing / LKPK',
-            'Petugas QC'     => 'Petugas QC',
-            'Finishing'      => 'Petugas Finishing',
+            'Petugas QC'     => 'Petugas QC / Quality Control',
+            'Finishing'      => 'Petugas Finishing / Packing',
             'Lainnya'        => 'Vendor Operasional Lainnya',
         ];
     }

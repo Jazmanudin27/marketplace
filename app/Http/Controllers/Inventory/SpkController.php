@@ -2157,10 +2157,21 @@ class SpkController extends Controller
             }
         }
 
+        $pembuatSampleList = $tailors->where('category', 'Pembuat Sample')->pluck('name')->values();
+        $vendorPrintList   = $tailors->where('category', 'Vendor Print')->pluck('name')->values();
+        $pemotongList      = $tailors->where('category', 'Pemotong')->pluck('name')->values();
+        $penjahitList      = $tailors->filter(fn($v) => in_array($v->category, ['Penjahit', null, ''], true))->pluck('name')->values();
+        $vendorKancingList = $tailors->where('category', 'Vendor Kancing')->pluck('name')->values();
+
         return view('inventory.spks.mobile_tracking', compact(
             'spk',
             'statusOptions',
             'tailors',
+            'pembuatSampleList',
+            'vendorPrintList',
+            'pemotongList',
+            'penjahitList',
+            'vendorKancingList',
             'variantRows',
             'fabricName',
             'correctPin',
@@ -2300,6 +2311,23 @@ class SpkController extends Controller
         }
 
         $spk->save();
+
+        // 8. Auto-save Vendor / Mitra baru ke Master Data Tailors
+        if ($request->filled('pembuat_sample')) {
+            $this->processAutoSaveVendor($spk->tenant_id, (string) $request->input('pembuat_sample'), 'Pembuat Sample');
+        }
+        if ($request->filled('vendor_print')) {
+            $this->processAutoSaveVendor($spk->tenant_id, (string) $request->input('vendor_print'), 'Vendor Print');
+        }
+        if ($pemotong) {
+            $this->processAutoSaveVendor($spk->tenant_id, (string) $pemotong, 'Pemotong');
+        }
+        if ($penjahit) {
+            $this->processAutoSaveVendor($spk->tenant_id, (string) $penjahit, 'Penjahit');
+        }
+        if ($vendorLkpk) {
+            $this->processAutoSaveVendor($spk->tenant_id, (string) $vendorLkpk, 'Vendor Kancing');
+        }
 
         if ($request->expectsJson() || $request->ajax()) {
             return response()->json([

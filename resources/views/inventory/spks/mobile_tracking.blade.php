@@ -751,7 +751,12 @@
                                 <div class="small fw-bold font-monospace mb-1" style="font-size: 11px; color: #a855f7;">
                                     NAMA PENJAHIT / VENDOR JAHIT
                                 </div>
-                                <input type="text" name="penjahit" class="form-control form-control-sm border-0 border-bottom bg-transparent font-monospace fw-bold text-dark p-0" placeholder="Ketik nama penjahit...">
+                                <input type="text" name="penjahit" list="penjahitDatalist" class="form-control form-control-sm border-0 border-bottom bg-transparent font-monospace fw-bold text-dark p-0" value="{{ $spk->items->first()?->penjahit }}" placeholder="Ketik nama penjahit...">
+                                <datalist id="penjahitDatalist">
+                                    @foreach($penjahitList ?? [] as $vName)
+                                        <option value="{{ $vName }}"></option>
+                                    @endforeach
+                                </datalist>
                             </div>
                         </div>
 
@@ -826,7 +831,12 @@
                                 <div class="small fw-bold text-primary font-monospace" style="font-size: 11px;">
                                     PEMOTONG KAIN INI
                                 </div>
-                                <input type="text" name="pemotong" class="form-control form-control-sm border-0 border-bottom bg-transparent font-monospace fw-bold text-dark p-0" placeholder="Ketik nama...">
+                                <input type="text" name="pemotong" list="pemotongDatalist" class="form-control form-control-sm border-0 border-bottom bg-transparent font-monospace fw-bold text-dark p-0" value="{{ $spk->items->first()?->pemotong }}" placeholder="Ketik nama...">
+                                <datalist id="pemotongDatalist">
+                                    @foreach($pemotongList ?? [] as $vName)
+                                        <option value="{{ $vName }}"></option>
+                                    @endforeach
+                                </datalist>
                             </div>
                         </div>
 
@@ -928,7 +938,12 @@
                                 <div class="small fw-bold text-info font-monospace" style="font-size: 11px;">
                                     VENDOR PRINT ({{ strtoupper($fabricName) }})
                                 </div>
-                                <input type="text" name="vendor_print" class="form-control form-control-sm border-0 border-bottom bg-transparent font-monospace fw-bold text-dark p-0" value="{{ $savedVendorPrint ?? '' }}" placeholder="Ketik nama vendor...">
+                                <input type="text" name="vendor_print" list="vendorPrintDatalist" class="form-control form-control-sm border-0 border-bottom bg-transparent font-monospace fw-bold text-dark p-0" value="{{ $savedVendorPrint ?? '' }}" placeholder="Ketik nama vendor...">
+                                <datalist id="vendorPrintDatalist">
+                                    @foreach($vendorPrintList ?? [] as $vName)
+                                        <option value="{{ $vName }}"></option>
+                                    @endforeach
+                                </datalist>
                             </div>
                         </div>
 
@@ -1011,7 +1026,12 @@
                                 <div class="small fw-bold text-primary font-monospace" style="font-size: 11px;">
                                     PEMBUAT SAMPLE ({{ strtoupper($fabricName) }})
                                 </div>
-                                <input type="text" name="pembuat_sample" class="form-control form-control-sm border-0 border-bottom bg-transparent font-monospace fw-bold text-dark p-0" value="{{ $savedPembuatSample ?? '' }}" placeholder="Ketik nama...">
+                                <input type="text" name="pembuat_sample" list="pembuatSampleDatalist" class="form-control form-control-sm border-0 border-bottom bg-transparent font-monospace fw-bold text-dark p-0" value="{{ $savedPembuatSample ?? '' }}" placeholder="Ketik nama...">
+                                <datalist id="pembuatSampleDatalist">
+                                    @foreach($pembuatSampleList ?? [] as $vName)
+                                        <option value="{{ $vName }}"></option>
+                                    @endforeach
+                                </datalist>
                             </div>
                         </div>
 
