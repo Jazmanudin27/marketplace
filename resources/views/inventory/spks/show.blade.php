@@ -1311,8 +1311,25 @@
 </div>
 
 {{-- DATALISTS FOR SKU AND PRODUCT NAME AUTOCOMPLETE --}}
-<datalist id="master_skus_datalist"></datalist>
-<datalist id="master_product_names_datalist"></datalist>
+<datalist id="master_skus_datalist">
+    @foreach($products as $p)
+        @if(!empty($p->sku))
+            <option value="{{ $p->sku }}">{{ $p->name }} {{ $p->ukuran ? '('.$p->ukuran.')' : '' }}</option>
+        @endif
+        @if(!empty($p->sku_induk) && $p->sku_induk !== $p->sku)
+            <option value="{{ $p->sku_induk }}">{{ $p->name }} {{ $p->ukuran ? '('.$p->ukuran.')' : '' }}</option>
+        @endif
+    @endforeach
+</datalist>
+
+<datalist id="master_product_names_datalist">
+    @foreach($products as $p)
+        @if(!empty($p->name))
+            <option value="{{ $p->name }}">{{ $p->sku ? $p->sku . ' — ' : '' }}{{ $p->name }} {{ $p->ukuran ? '('.$p->ukuran.')' : '' }}</option>
+        @endif
+    @endforeach
+</datalist>
+
 <datalist id="ukuran_datalist">
     <option value="S">
     <option value="M">
