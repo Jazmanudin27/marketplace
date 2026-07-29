@@ -46,7 +46,7 @@ class StockSyncController extends Controller
             ->where('marketplace_products.name', 'not like', '%PRE-ORDER%')
             ->where('marketplace_products.name', 'not like', 'PO %')
             ->where('marketplace_products.name', 'not like', '% PO %')
-            ->whereRaw('marketplace_products.stock = GREATEST(0, CAST(master_products.stock AS SIGNED) - CAST(COALESCE(marketplace_products.safety_stock, 0) AS SIGNED))')
+            ->whereRaw('marketplace_products.stock = IF(master_products.stock - COALESCE(marketplace_products.safety_stock, 0) < 0, 0, master_products.stock - COALESCE(marketplace_products.safety_stock, 0))')
             ->count();
 
         $totalBeda = (clone $baseQuery)
@@ -58,7 +58,7 @@ class StockSyncController extends Controller
             ->where('marketplace_products.name', 'not like', '%PRE-ORDER%')
             ->where('marketplace_products.name', 'not like', 'PO %')
             ->where('marketplace_products.name', 'not like', '% PO %')
-            ->whereRaw('marketplace_products.stock != GREATEST(0, CAST(master_products.stock AS SIGNED) - CAST(COALESCE(marketplace_products.safety_stock, 0) AS SIGNED))')
+            ->whereRaw('marketplace_products.stock != IF(master_products.stock - COALESCE(marketplace_products.safety_stock, 0) < 0, 0, master_products.stock - COALESCE(marketplace_products.safety_stock, 0))')
             ->count();
 
         $query = (clone $baseQuery)->select('marketplace_products.*')->with(['store.channel', 'masterProduct']);
@@ -92,7 +92,7 @@ class StockSyncController extends Controller
                   ->where('marketplace_products.name', 'not like', '%PRE-ORDER%')
                   ->where('marketplace_products.name', 'not like', 'PO %')
                   ->where('marketplace_products.name', 'not like', '% PO %')
-                  ->whereRaw('marketplace_products.stock = GREATEST(0, CAST(master_products.stock AS SIGNED) - CAST(COALESCE(marketplace_products.safety_stock, 0) AS SIGNED))');
+                  ->whereRaw('marketplace_products.stock = IF(master_products.stock - COALESCE(marketplace_products.safety_stock, 0) < 0, 0, master_products.stock - COALESCE(marketplace_products.safety_stock, 0))');
         }
 
         // Filter: diff = stok marketplace ≠ ekspektasi ERP
@@ -105,7 +105,7 @@ class StockSyncController extends Controller
                   ->where('marketplace_products.name', 'not like', '%PRE-ORDER%')
                   ->where('marketplace_products.name', 'not like', 'PO %')
                   ->where('marketplace_products.name', 'not like', '% PO %')
-                  ->whereRaw('marketplace_products.stock != GREATEST(0, CAST(master_products.stock AS SIGNED) - CAST(COALESCE(marketplace_products.safety_stock, 0) AS SIGNED))');
+                  ->whereRaw('marketplace_products.stock != IF(master_products.stock - COALESCE(marketplace_products.safety_stock, 0) < 0, 0, master_products.stock - COALESCE(marketplace_products.safety_stock, 0))');
         }
 
         // Filter: channel (shopee, tiktok, tokopedia, lazada)
@@ -203,7 +203,7 @@ class StockSyncController extends Controller
                   ->where('marketplace_products.name', 'not like', '%PRE-ORDER%')
                   ->where('marketplace_products.name', 'not like', 'PO %')
                   ->where('marketplace_products.name', 'not like', '% PO %')
-                  ->whereRaw('marketplace_products.stock = GREATEST(0, CAST(master_products.stock AS SIGNED) - CAST(COALESCE(marketplace_products.safety_stock, 0) AS SIGNED))');
+                  ->whereRaw('marketplace_products.stock = IF(master_products.stock - COALESCE(marketplace_products.safety_stock, 0) < 0, 0, master_products.stock - COALESCE(marketplace_products.safety_stock, 0))');
         }
 
         if ($request->filter === 'diff') {
@@ -215,7 +215,7 @@ class StockSyncController extends Controller
                   ->where('marketplace_products.name', 'not like', '%PRE-ORDER%')
                   ->where('marketplace_products.name', 'not like', 'PO %')
                   ->where('marketplace_products.name', 'not like', '% PO %')
-                  ->whereRaw('marketplace_products.stock != GREATEST(0, CAST(master_products.stock AS SIGNED) - CAST(COALESCE(marketplace_products.safety_stock, 0) AS SIGNED))');
+                  ->whereRaw('marketplace_products.stock != IF(master_products.stock - COALESCE(marketplace_products.safety_stock, 0) < 0, 0, master_products.stock - COALESCE(marketplace_products.safety_stock, 0))');
         }
 
         if ($request->filled('channel')) {
