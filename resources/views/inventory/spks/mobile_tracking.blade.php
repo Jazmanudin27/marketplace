@@ -741,56 +741,69 @@
 
             <!-- ── CARD DYNAMIC SUB-CONTENT: TAHAP JAHIT (MATCH SCREENSHOT 100%) ── -->
             <div id="cardJahitArea" style="display: none;">
-                <div class="app-card mb-3">
-                    <div class="card-body-padding" style="background: #fdf4ff;">
-                        <div class="d-flex align-items-center gap-3 mb-3 p-3 bg-white rounded-3 border">
-                            <div class="tailor-avatar-badge">
-                                <i class="fas fa-user-tag fs-5" style="color: #c084fc;"></i>
-                            </div>
-                            <div class="flex-grow-1">
-                                <div class="small fw-bold font-monospace mb-1" style="font-size: 11px; color: #a855f7;">
-                                    NAMA PENJAHIT / VENDOR JAHIT
+                <div id="penjahitBlocksContainer">
+                    <div class="penjahit-block-card app-card mb-3">
+                        <div class="card-body-padding" style="background: #fdf4ff;">
+                            <div class="d-flex align-items-center gap-3 mb-3 p-3 bg-white rounded-3 border">
+                                <div class="tailor-avatar-badge">
+                                    <i class="fas fa-user-tag fs-5" style="color: #c084fc;"></i>
                                 </div>
-                                @php $currentPenjahit = $spk->items->first()?->penjahit; @endphp
-                                <select name="penjahit" class="form-select form-select-sm border-0 border-bottom bg-transparent font-monospace fw-bold text-dark p-0">
-                                    <option value="">-- Pilih Penjahit --</option>
-                                    @foreach($penjahitList ?? [] as $vName)
-                                        <option value="{{ $vName }}" {{ $currentPenjahit === $vName ? 'selected' : '' }}>{{ $vName }}</option>
-                                    @endforeach
-                                    @if(!empty($currentPenjahit) && !($penjahitList ?? collect())->contains($currentPenjahit))
-                                        <option value="{{ $currentPenjahit }}" selected>{{ $currentPenjahit }}</option>
-                                    @endif
-                                </select>
+                                <div class="flex-grow-1">
+                                    <div class="small fw-bold font-monospace mb-1" style="font-size: 11px; color: #a855f7;">
+                                        NAMA PENJAHIT / VENDOR JAHIT
+                                    </div>
+                                    @php $currentPenjahit = $spk->items->first()?->penjahit; @endphp
+                                    <select name="penjahit" class="form-select form-select-sm border-0 border-bottom bg-transparent font-monospace fw-bold text-dark p-0">
+                                        <option value="">-- Pilih Penjahit Utama --</option>
+                                        @foreach($penjahitList ?? [] as $vName)
+                                            <option value="{{ $vName }}" {{ $currentPenjahit === $vName ? 'selected' : '' }}>{{ $vName }}</option>
+                                        @endforeach
+                                        @if(!empty($currentPenjahit) && !($penjahitList ?? collect())->contains($currentPenjahit))
+                                            <option value="{{ $currentPenjahit }}" selected>{{ $currentPenjahit }}</option>
+                                        @endif
+                                    </select>
+                                </div>
                             </div>
-                        </div>
 
-                        <div id="jahitMatriksContainer" class="bg-white p-3 rounded-3 border mb-3">
-                            @foreach($variantRows as $modelName => $row)
-                                <div class="sku-header-title text-dark">{{ $modelName }}</div>
-                                <div class="size-boxes-grid">
-                                    @foreach($row['sizes'] as $szItem)
-                                        @php
-                                            $item = $szItem['item'];
-                                            $pg = $item->progres->first();
-                                            $valQty = ($pg && $pg->qty_done > 0) ? $pg->qty_done : $item->quantity;
-                                        @endphp
-                                        <div class="size-box-item">
-                                            <div class="size-box-label">{{ $szItem['size'] }}</div>
-                                            <input type="number" 
-                                                   name="{{ $pg ? 'progres['.$pg->id.']' : 'items['.$item->id.'][quantity_done]' }}" 
-                                                   class="size-box-input" 
-                                                   value="{{ $valQty }}" 
-                                                   min="0">
+                            <div id="jahitMatriksContainer" class="bg-white p-3 rounded-3 border mb-3">
+                                @foreach($variantRows as $modelName => $row)
+                                    @php
+                                        $firstItemInModel = $row['sizes'][0]['item'] ?? null;
+                                        $modelPenjahit = $firstItemInModel?->penjahit ?: $currentPenjahit;
+                                    @endphp
+                                    <div class="d-flex justify-content-between align-items-center mb-2 pb-1 border-bottom">
+                                        <div class="sku-header-title text-dark mb-0">{{ $modelName }}</div>
+                                        <div class="d-flex align-items-center gap-1">
+                                            <span class="small text-muted font-monospace" style="font-size: 10px;">Penjahit:</span>
+                                            <select name="penjahit_per_model[{{ $modelName }}]" class="form-select form-select-sm font-monospace fw-bold py-0 px-2 border rounded-2" style="font-size: 11px; color: #9333ea; background-color: #faf5ff;">
+                                                <option value="">(Ikuti Utama)</option>
+                                                @foreach($penjahitList ?? [] as $vName)
+                                                    <option value="{{ $vName }}" {{ $modelPenjahit === $vName ? 'selected' : '' }}>{{ $vName }}</option>
+                                                @endforeach
+                                                @if(!empty($modelPenjahit) && !($penjahitList ?? collect())->contains($modelPenjahit))
+                                                    <option value="{{ $modelPenjahit }}" selected>{{ $modelPenjahit }}</option>
+                                                @endif
+                                            </select>
                                         </div>
-                                    @endforeach
-                                </div>
-                            @endforeach
-
-                            <div class="form-check mt-3 pt-2 border-top">
-                                <input class="form-check-input" type="checkbox" name="serahkan_ke_qc" id="chkSerahkanQC" value="1">
-                                <label class="form-check-label fw-bold text-dark small" for="chkSerahkanQC">
-                                    Serahkan ke QC
-                                </label>
+                                    </div>
+                                    <div class="size-boxes-grid mb-3">
+                                        @foreach($row['sizes'] as $szItem)
+                                            @php
+                                                $item = $szItem['item'];
+                                                $pg = $item->progres->first();
+                                                $valQty = ($pg && $pg->qty_done > 0) ? $pg->qty_done : $item->quantity;
+                                            @endphp
+                                            <div class="size-box-item">
+                                                <div class="size-box-label">{{ $szItem['size'] }}</div>
+                                                <input type="number" 
+                                                       name="{{ $pg ? 'progres['.$pg->id.']' : 'items['.$item->id.'][quantity_done]' }}" 
+                                                       class="size-box-input" 
+                                                       value="{{ $valQty }}" 
+                                                       min="0">
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                @endforeach
                             </div>
                         </div>
                     </div>
@@ -1323,18 +1336,35 @@
         }
 
         function tambahRowPenjahit() {
+            const container = document.getElementById('penjahitBlocksContainer');
+            if (!container) return;
+
+            const firstCard = container.querySelector('.penjahit-block-card');
+            if (!firstCard) return;
+
+            const clonedCard = firstCard.cloneNode(true);
+            const selects = clonedCard.querySelectorAll('select');
+            selects.forEach(s => s.selectedIndex = 0);
+
+            const headerDiv = clonedCard.querySelector('.d-flex.align-items-center.gap-3');
+            if (headerDiv && !headerDiv.querySelector('.remove-penjahit-card-btn')) {
+                const delBtn = document.createElement('button');
+                delBtn.type = 'button';
+                delBtn.className = 'btn btn-sm btn-outline-danger border-0 remove-penjahit-card-btn ms-auto';
+                delBtn.innerHTML = '<i class="fas fa-trash-alt fs-6"></i>';
+                delBtn.title = 'Hapus Form Penjahit Ini';
+                delBtn.onclick = function() { clonedCard.remove(); };
+                headerDiv.appendChild(delBtn);
+            }
+
+            container.appendChild(clonedCard);
+            
             Swal.fire({
-                title: 'Tambah Penjahit Baru',
-                html: `<input type="text" id="namaPenjahitBaru" class="form-control" placeholder="Nama Penjahit / Vendor Jahit">`,
-                showCancelButton: true,
-                confirmButtonText: 'Tambah',
-                preConfirm: () => {
-                    return document.getElementById('namaPenjahitBaru').value;
-                }
-            }).then((res) => {
-                if (res.isConfirmed && res.value) {
-                    Swal.fire('Ditambahkan', 'Penjahit ' + res.value + ' berhasil ditambahkan.', 'success');
-                }
+                icon: 'success',
+                title: 'Form Penjahit Ditambahkan',
+                text: 'Silakan pilih penjahit tambahan dan sesuaikan SKU di form baru.',
+                timer: 1500,
+                showConfirmButton: false
             });
         }
 

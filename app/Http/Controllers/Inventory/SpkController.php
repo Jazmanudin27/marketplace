@@ -2265,45 +2265,42 @@ class SpkController extends Controller
             $spk->sku_kain = $request->input('sku_kain_print_suffix');
         }
 
-        // 5. Update Items (Pemotong, Penjahit, Vendor LKPK, Est/Pakai Meter Kain)
+        // 5. Update Items (Pemotong, Penjahit per Model/Item, Vendor LKPK, Est/Pakai Meter Kain)
         $pemotong = $request->input('pemotong');
-        $penjahit = $request->input('penjahit');
+        $penjahitGlobal = $request->input('penjahit');
+        $penjahitPerModel = (array) $request->input('penjahit_per_model', []);
         $vendorLkpk = $request->input('vendor_lkpk');
         $estKainPotong = $request->input('est_kain_potong') ?: $request->input('est_hpp_print');
         $pkiKainPotong = $request->input('pki_kain_potong') ?: ($request->input('terpakai_kain') ?: $request->input('kain_terpakai_print'));
         $sisaKainPotong = $request->input('sisa_kain_potong');
 
-        if ($request->has('items') && is_array($request->input('items'))) {
-            foreach ($request->input('items') as $itemId => $itemData) {
-                $item = $spk->items->find($itemId);
-                if (!$item) continue;
-
-                $updatePayload = [];
-                if ($pemotong) $updatePayload['pemotong'] = $pemotong;
-                if ($penjahit) $updatePayload['penjahit'] = $penjahit;
-                if ($vendorLkpk) $updatePayload['vendor_kancing'] = $vendorLkpk;
-                if ($estKainPotong) $updatePayload['est_kain'] = $estKainPotong;
-                if ($pkiKainPotong) $updatePayload['kain_pakai'] = $pkiKainPotong;
-                if ($sisaKainPotong) $updatePayload['kain_sisa'] = $sisaKainPotong;
-
-                if (isset($itemData['status'])) $updatePayload['status'] = $itemData['status'];
-
-                if (!empty($updatePayload)) {
-                    $item->update($updatePayload);
-                }
+        foreach ($spk->items as $item) {
+            $updatePayload = [];
+            $skuInduk = $item->sku_induk;
+            if (!$skuInduk && !empty($item->sku)) {
+                $skuInduk = preg_replace('/[_\-\s]+(S|M|L|XL|XXL|3XL|4XL|XXXL|XXXXL|2XL|ALLSIZE|ALL SIZE)$/i', '', trim($item->sku));
             }
-        } else {
-            // Apply global fields to all items in SPK
-            $globalPayload = [];
-            if ($pemotong) $globalPayload['pemotong'] = $pemotong;
-            if ($penjahit) $globalPayload['penjahit'] = $penjahit;
-            if ($vendorLkpk) $globalPayload['vendor_kancing'] = $vendorLkpk;
-            if ($estKainPotong) $globalPayload['est_kain'] = $estKainPotong;
-            if ($pkiKainPotong) $globalPayload['kain_pakai'] = $pkiKainPotong;
-            if ($sisaKainPotong) $globalPayload['kain_sisa'] = $sisaKainPotong;
+            $modelName = $skuInduk ?: ($item->sku ?: ($item->nama_produk ?: 'PRODUK VARIAN'));
 
-            if (!empty($globalPayload)) {
-                $spk->items()->update($globalPayload);
+            $itemPenjahit = !empty($penjahitPerModel[$modelName]) ? $penjahitPerModel[$modelName] : $penjahitGlobal;
+
+            if ($pemotong) $updatePayload['pemotong'] = $pemotong;
+            if ($itemPenjahit) $updatePayload['penjahit'] = $itemPenjahit;
+            if ($vendorLkpk) $updatePayload['vendor_kancing'] = $vendorLkpk;
+            if ($estKainPotong) $updatePayload['est_kain'] = $estKainPotong;
+            if ($pkiKainPotong) $updatePayload['kain_pakai'] = $pkiKainPotong;
+            if ($sisaKainPotong) $updatePayload['kain_sisa'] = $sisaKainPotong;
+
+            if ($request->has("items.{$item->id}.status")) {
+                $updatePayload['status'] = $request->input("items.{$item->id}.status");
+            }
+
+            if (!empty($updatePayload)) {
+                $item->update($updatePayload);
+            }
+
+            if ($itemPenjahit) {
+                $this->processAutoSaveVendor($spk->tenant_id, (string) $itemPenjahit, 'Penjahit');
             }
         }
 
