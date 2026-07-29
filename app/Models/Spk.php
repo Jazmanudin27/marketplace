@@ -158,6 +158,22 @@ class Spk extends Model
         return $firstSku ? strtoupper($firstSku) : 'STANDARD';
     }
 
+    /**
+     * Accessor for status (alias for tahap_saat_ini or current stage name).
+     */
+    public function getStatusAttribute(): ?string
+    {
+        return $this->attributes['tahap_saat_ini'] ?? $this->current_stage_name;
+    }
+
+    /**
+     * Mutator for status (maps assignment of status to tahap_saat_ini DB column).
+     */
+    public function setStatusAttribute($value): void
+    {
+        $this->attributes['tahap_saat_ini'] = $value;
+    }
+
     public function tenant(): BelongsTo
     {
         return $this->belongsTo(Tenant::class);

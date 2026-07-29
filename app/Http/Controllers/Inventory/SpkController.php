@@ -2157,13 +2157,11 @@ class SpkController extends Controller
         // 1. Update Status SPK & Tahap Saat Ini
         if ($request->has('spk_status')) {
             $newStatus = $request->input('spk_status');
-            $spk->status = $newStatus;
             $spk->tahap_saat_ini = $newStatus;
         }
 
         // 2. Handle Checkbox "Serahkan ke QC" (Khusus Tahap Jahit)
         if ($request->input('serahkan_ke_qc') == '1') {
-            $spk->status = 'Quality Control';
             $spk->tahap_saat_ini = 'Quality Control';
         }
 
