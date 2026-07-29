@@ -959,26 +959,11 @@
                         </div>
 
                         <div class="bg-white p-3 rounded-3 border mb-2">
-                            <div class="sub-card-title mb-3 text-info">
-                                <i class="fas fa-magic text-info me-1"></i> KELAHIRAN SKU BARU
-                            </div>
-                            
-                            <div class="row g-2 align-items-center mb-2">
-                                <div class="col-3 text-end fw-bold text-secondary small">DARI:</div>
-                                <div class="col-9">
-                                    <input type="text" class="form-control form-control-sm font-monospace fw-bold bg-light" value="{{ strtoupper($fabricName) }}" readonly>
-                                </div>
-                            </div>
-
-                            <div class="row g-2 align-items-center mb-3">
-                                <div class="col-3 text-end fw-bold text-info small">SUFFIX:</div>
-                                <div class="col-9">
-                                    <div class="input-group input-group-sm">
-                                        <span class="input-group-text bg-light font-monospace small" style="font-size: 10.5px;">{{ strtoupper($fabricName) }}-</span>
-                                        <input type="text" name="sku_kain_print_suffix" class="form-control font-monospace fw-bold text-info" placeholder="KODE BARU">
-                                    </div>
-                                </div>
-                            </div>
+                            <label class="form-label form-label-sm mb-1 fw-bold text-info" style="font-size: 11px;">
+                                <i class="fas fa-tag text-info me-1"></i> SKU BAHAN
+                            </label>
+                            <input type="text" name="sku_kain_print_suffix" class="form-control form-control-sm font-monospace fw-bold text-info py-2 fs-6" value="{{ $spk->sku_kain ?: $fabricName }}" placeholder="Masukkan Kode / SKU Bahan...">
+                        </div>
 
                             <div class="row g-2">
                                 <div class="col-6 text-center">
@@ -1050,26 +1035,10 @@
                         </div>
 
                         <div class="bg-white p-3 rounded-3 border mb-3">
-                            <div class="sub-card-title mb-3">
-                                <i class="fas fa-random text-primary"></i> KONVERSI SKU KAIN
-                            </div>
-                            
-                            <div class="row g-2 align-items-center mb-2">
-                                <div class="col-3 text-end fw-bold text-secondary small">DARI:</div>
-                                <div class="col-9">
-                                    <input type="text" class="form-control form-control-sm font-monospace fw-bold bg-light" value="{{ strtoupper($fabricName) }}" readonly>
-                                </div>
-                            </div>
-
-                            <div class="row g-2 align-items-center mb-3">
-                                <div class="col-3 text-end fw-bold text-primary small">SUFFIX:</div>
-                                <div class="col-9">
-                                    <div class="input-group input-group-sm">
-                                        <span class="input-group-text bg-light font-monospace small" style="font-size: 10.5px;">{{ strtoupper($fabricName) }}-</span>
-                                        <input type="text" name="sku_kain_suffix" class="form-control font-monospace fw-bold text-primary" placeholder="KODE BARU">
-                                    </div>
-                                </div>
-                            </div>
+                            <label class="form-label form-label-sm mb-1 fw-bold text-primary" style="font-size: 11px;">
+                                <i class="fas fa-tag text-primary me-1"></i> SKU BAHAN
+                            </label>
+                            <input type="text" name="sku_kain_suffix" class="form-control form-control-sm font-monospace fw-bold text-primary py-2 fs-6" value="{{ $spk->sku_kain ?: $fabricName }}" placeholder="Masukkan Kode / SKU Bahan...">
                         </div>
 
                         <div class="bg-white p-3 rounded-3 border mb-3">
