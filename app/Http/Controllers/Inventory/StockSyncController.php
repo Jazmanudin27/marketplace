@@ -173,9 +173,7 @@ class StockSyncController extends Controller
                 $q->where('tenant_id', $tenantId)->where('status', 'connected');
             })
             ->where('marketplace_products.sync_stock', true)
-            ->whereHas('masterProduct')
-            ->select('marketplace_products.*')
-            ->with('masterProduct');
+            ->whereNotNull('marketplace_products.master_product_id');
 
         // Terapkan filter pencarian & dropdown yang sedang aktif di layar (jika ada)
         if ($request->filled('search')) {
@@ -207,29 +205,15 @@ class StockSyncController extends Controller
         }
 
         if ($request->filter === 'diff') {
-            $query->whereNotNull('marketplace_products.master_product_id')
+            $query->join('master_products', 'marketplace_products.master_product_id', '=', 'master_products.id')
                   ->where('marketplace_products.is_pre_order', false)
-                  ->whereHas('masterProduct', function($mq) { $mq->where('is_preorder', false); })
+                  ->where('master_products.is_preorder', false)
                   ->where('marketplace_products.name', 'not like', '%PRE ORDER%')
                   ->where('marketplace_products.name', 'not like', '%PREORDER%')
                   ->where('marketplace_products.name', 'not like', '%PRE-ORDER%')
                   ->where('marketplace_products.name', 'not like', 'PO %')
                   ->where('marketplace_products.name', 'not like', '% PO %')
-                  ->whereNotIn('marketplace_products.id', function($subQuery) use ($tenantId) {
-                      $subQuery->select('marketplace_products.id')
-                          ->from('marketplace_products')
-                          ->join('master_products', 'marketplace_products.master_product_id', '=', 'master_products.id')
-                          ->join('stores', 'marketplace_products.store_id', '=', 'stores.id')
-                          ->where('stores.tenant_id', $tenantId)
-                          ->where('marketplace_products.is_pre_order', false)
-                          ->where('master_products.is_preorder', false)
-                          ->where('marketplace_products.name', 'not like', '%PRE ORDER%')
-                          ->where('marketplace_products.name', 'not like', '%PREORDER%')
-                          ->where('marketplace_products.name', 'not like', '%PRE-ORDER%')
-                          ->where('marketplace_products.name', 'not like', 'PO %')
-                          ->where('marketplace_products.name', 'not like', '% PO %')
-                          ->whereRaw('marketplace_products.stock = IF(master_products.stock - COALESCE(marketplace_products.safety_stock, 0) < 0, 0, master_products.stock - COALESCE(marketplace_products.safety_stock, 0))');
-                  });
+                  ->whereRaw('marketplace_products.stock != IF(master_products.stock - COALESCE(marketplace_products.safety_stock, 0) < 0, 0, master_products.stock - COALESCE(marketplace_products.safety_stock, 0))');
         }
 
         if ($request->filled('channel')) {
@@ -246,35 +230,23 @@ class StockSyncController extends Controller
             $query->where('marketplace_products.sync_stock', $request->sync_status === 'on' ? true : false);
         }
 
-        $mappedProducts = $query->get();
+        // Ambil daftar master_product_id unik secara cepat dari database
+        $masterProductIds = $query->distinct()->pluck('marketplace_products.master_product_id')->filter()->toArray();
 
-        $count = 0;
-        $dispatchedMasterIds = [];
-
-        foreach ($mappedProducts as $mp) {
-            // Abaikan produk Pre-Order
-            if ($mp->isPreOrder()) {
-                continue;
-            }
-
-            // Hitung ekspektasi stok
-            $expected = max(0, (int)$mp->masterProduct->stock - (int)($mp->safety_stock ?? 0));
-
-            // HANYA sync produk yang BELUM pernah sync ATAU stoknya BEDA (belum sinkron)
-            if ($mp->last_synced_at === null || (int)$mp->stock !== $expected) {
-                if (!in_array($mp->master_product_id, $dispatchedMasterIds)) {
-                    \App\Jobs\PushStockToMarketplaces::dispatch($mp->master_product_id, $mp->masterProduct->stock);
-                    $dispatchedMasterIds[] = $mp->master_product_id;
-                }
-                $count++;
-            }
-        }
-
-        if ($count === 0) {
+        if (empty($masterProductIds)) {
             return back()->with('info', 'Tidak ada produk (sesuai filter) yang perlu di-sync.');
         }
 
-        return back()->with('success', "Instruksi sinkronisasi stok berhasil dikirim untuk {$count} produk marketplace (sesuai filter).");
+        // Ambil data MasterProduct sekaligus
+        $masterProducts = \App\Models\MasterProduct::whereIn('id', $masterProductIds)->get(['id', 'stock']);
+
+        $count = 0;
+        foreach ($masterProducts as $mp) {
+            \App\Jobs\PushStockToMarketplaces::dispatch($mp->id, $mp->stock);
+            $count++;
+        }
+
+        return back()->with('success', "Instruksi sinkronisasi stok berhasil dikirim untuk {$count} item (sesuai filter).");
     }
 
     public function forceSyncProduct(MarketplaceProduct $product)
