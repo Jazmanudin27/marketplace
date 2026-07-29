@@ -685,6 +685,9 @@
                                     $size = $item->ukuran ?: 'ALL';
                                     $resepKancing = str_contains(strtolower($size), 'xl') ? 11 : (str_contains(strtolower($size), 'lpk') ? 7 : 9);
                                     $resepLubang = $resepKancing;
+                                    $qtyBaju = (int) $item->quantity;
+                                    $totKancing = $qtyBaju * $resepKancing;
+                                    $totLubang = $qtyBaju * $resepLubang;
                                 @endphp
                                 <div class="lkpk-item-row mb-3 pb-3 border-bottom">
                                     <div class="d-flex justify-content-between align-items-center mb-2">
@@ -704,7 +707,7 @@
                                                    id="qty_baju_{{ $item->id }}"
                                                    name="items[{{ $item->id }}][qty_baju]" 
                                                    class="form-control form-control-sm text-center fw-bold font-monospace py-2" 
-                                                   value="{{ $item->quantity }}" 
+                                                   value="{{ $qtyBaju }}" 
                                                    oninput="hitungBomLkpk({{ $item->id }}, {{ $resepKancing }}, {{ $resepLubang }})"
                                                    style="background: #ecfdf5; border: 1.5px solid #a7f3d0 !important;">
                                         </div>
@@ -714,7 +717,7 @@
                                                    id="tot_kancing_{{ $item->id }}"
                                                    name="items[{{ $item->id }}][tot_kancing]" 
                                                    class="form-control form-control-sm text-center fw-bold font-monospace bg-light py-2" 
-                                                   value="0" 
+                                                   value="{{ $totKancing }}" 
                                                    readonly>
                                         </div>
                                         <div class="col-4 text-center">
@@ -723,7 +726,7 @@
                                                    id="tot_lubang_{{ $item->id }}"
                                                    name="items[{{ $item->id }}][tot_lubang]" 
                                                    class="form-control form-control-sm text-center fw-bold font-monospace bg-light py-2" 
-                                                   value="0" 
+                                                   value="{{ $totLubang }}" 
                                                    readonly>
                                         </div>
                                     </div>
@@ -753,7 +756,7 @@
                                         NAMA PENJAHIT / VENDOR JAHIT
                                     </div>
                                     @php $currentPenjahit = $spk->items->first()?->penjahit; @endphp
-                                    <select name="penjahit" class="form-select form-select-sm border-0 border-bottom bg-transparent font-monospace fw-bold text-dark p-0">
+                                    <select name="penjahit[]" class="form-select form-select-sm border-0 border-bottom bg-transparent font-monospace fw-bold text-dark p-0">
                                         <option value="">-- Pilih Penjahit Utama --</option>
                                         @foreach($penjahitList ?? [] as $vName)
                                             <option value="{{ $vName }}" {{ $currentPenjahit === $vName ? 'selected' : '' }}>{{ $vName }}</option>
@@ -767,25 +770,7 @@
 
                             <div id="jahitMatriksContainer" class="bg-white p-3 rounded-3 border mb-3">
                                 @foreach($variantRows as $modelName => $row)
-                                    @php
-                                        $firstItemInModel = $row['sizes'][0]['item'] ?? null;
-                                        $modelPenjahit = $firstItemInModel?->penjahit ?: $currentPenjahit;
-                                    @endphp
-                                    <div class="d-flex justify-content-between align-items-center mb-2 pb-1 border-bottom">
-                                        <div class="sku-header-title text-dark mb-0">{{ $modelName }}</div>
-                                        <div class="d-flex align-items-center gap-1">
-                                            <span class="small text-muted font-monospace" style="font-size: 10px;">Penjahit:</span>
-                                            <select name="penjahit_per_model[{{ $modelName }}]" class="form-select form-select-sm font-monospace fw-bold py-0 px-2 border rounded-2" style="font-size: 11px; color: #9333ea; background-color: #faf5ff;">
-                                                <option value="">-- Pilih Penjahit --</option>
-                                                @foreach($penjahitList ?? [] as $vName)
-                                                    <option value="{{ $vName }}" {{ $modelPenjahit === $vName ? 'selected' : '' }}>{{ $vName }}</option>
-                                                @endforeach
-                                                @if(!empty($modelPenjahit) && !($penjahitList ?? collect())->contains($modelPenjahit))
-                                                    <option value="{{ $modelPenjahit }}" selected>{{ $modelPenjahit }}</option>
-                                                @endif
-                                            </select>
-                                        </div>
-                                    </div>
+                                    <div class="sku-header-title text-dark">{{ $modelName }}</div>
                                     <div class="size-boxes-grid mb-3">
                                         @foreach($row['sizes'] as $szItem)
                                             @php
@@ -1382,6 +1367,18 @@
                     Swal.fire('Ditambahkan', 'Vendor LKPK ' + res.value + ' berhasil ditambahkan.', 'success');
                 }
             });
+        }
+
+        function hitungBomLkpk(itemId, resepKancing, resepLubang) {
+            const qtyInput = document.getElementById('qty_baju_' + itemId);
+            const kancingInput = document.getElementById('tot_kancing_' + itemId);
+            const lubangInput = document.getElementById('tot_lubang_' + itemId);
+
+            if (!qtyInput) return;
+            const qty = parseFloat(qtyInput.value) || 0;
+
+            if (kancingInput) kancingInput.value = Math.round(qty * resepKancing);
+            if (lubangInput) lubangInput.value = Math.round(qty * resepLubang);
         }
 
         document.addEventListener('DOMContentLoaded', function() {

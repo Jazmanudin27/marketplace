@@ -2267,7 +2267,8 @@ class SpkController extends Controller
 
         // 5. Update Items (Pemotong, Penjahit per Model/Item, Vendor LKPK, Est/Pakai Meter Kain)
         $pemotong = $request->input('pemotong');
-        $penjahitGlobal = $request->input('penjahit');
+        $penjahitReq = $request->input('penjahit');
+        $penjahitGlobal = is_array($penjahitReq) ? (reset($penjahitReq) ?: null) : $penjahitReq;
         $penjahitPerModel = (array) $request->input('penjahit_per_model', []);
         $vendorLkpk = $request->input('vendor_lkpk');
         $estKainPotong = $request->input('est_kain_potong') ?: $request->input('est_hpp_print');
@@ -2344,8 +2345,13 @@ class SpkController extends Controller
         if ($pemotong) {
             $this->processAutoSaveVendor($spk->tenant_id, (string) $pemotong, 'Pemotong');
         }
-        if ($penjahitGlobal) {
-            $this->processAutoSaveVendor($spk->tenant_id, (string) $penjahitGlobal, 'Penjahit');
+        if (!empty($penjahitReq)) {
+            $listP = is_array($penjahitReq) ? $penjahitReq : [$penjahitReq];
+            foreach ($listP as $pVal) {
+                if ($pVal) {
+                    $this->processAutoSaveVendor($spk->tenant_id, (string) $pVal, 'Penjahit');
+                }
+            }
         }
         if ($vendorLkpk) {
             $this->processAutoSaveVendor($spk->tenant_id, (string) $vendorLkpk, 'Vendor Kancing');
