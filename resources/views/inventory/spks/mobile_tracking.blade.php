@@ -677,7 +677,7 @@
                                     </div>
                                     @php $currentVendorLkpk = $spk->items->first()?->vendor_kancing; @endphp
                                     <select name="vendor_lkpk[]" class="form-select form-select-sm border-0 border-bottom bg-transparent font-monospace fw-bold text-dark p-0">
-                                        <option value="">-- Pilih Vendor Kancing --</option>
+                                        <option value="">-- Pilih Vendor LKPK --</option>
                                         @foreach($vendorKancingList ?? [] as $vName)
                                             <option value="{{ $vName }}" {{ $currentVendorLkpk === $vName ? 'selected' : '' }}>{{ $vName }}</option>
                                         @endforeach
@@ -688,60 +688,61 @@
                                 </div>
                             </div>
 
-                        <!-- List per-Item SKU + Size with BOM Recipe -->
-                        <div class="bg-white p-3 rounded-3 border mb-2">
-                            @foreach($spk->items as $item)
-                                @php
-                                    $size = $item->ukuran ?: 'ALL';
-                                    $resepKancing = str_contains(strtolower($size), 'xl') ? 11 : (str_contains(strtolower($size), 'lpk') ? 7 : 9);
-                                    $resepLubang = $resepKancing;
-                                    $qtyBaju = (int) $item->quantity;
-                                    $totKancing = $qtyBaju * $resepKancing;
-                                    $totLubang = $qtyBaju * $resepLubang;
-                                @endphp
-                                <div class="lkpk-item-row mb-3 pb-3 border-bottom">
-                                    <div class="d-flex justify-content-between align-items-center mb-2">
-                                        <div>
-                                            <span class="fw-bold font-monospace text-dark" style="font-size: 13px;">{{ $item->sku ?: $item->nama_produk }}</span>
-                                            <span class="badge bg-secondary font-monospace ms-1">{{ $size }}</span>
+                            <!-- List per-Item SKU + Size with BOM Recipe -->
+                            <div class="bg-white p-3 rounded-3 border mb-2">
+                                @foreach($spk->items as $item)
+                                    @php
+                                        $size = $item->ukuran ?: 'ALL';
+                                        $resepKancing = str_contains(strtolower($size), 'xl') ? 11 : (str_contains(strtolower($size), 'lpk') ? 7 : 9);
+                                        $resepLubang = $resepKancing;
+                                        $qtyBaju = (int) $item->quantity;
+                                        $totKancing = $qtyBaju * $resepKancing;
+                                        $totLubang = $qtyBaju * $resepLubang;
+                                    @endphp
+                                    <div class="lkpk-item-row mb-3 pb-3 border-bottom">
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <div>
+                                                <span class="fw-bold font-monospace text-dark" style="font-size: 13px;">{{ $item->sku ?: $item->nama_produk }}</span>
+                                                <span class="badge bg-secondary font-monospace ms-1">{{ $size }}</span>
+                                            </div>
+                                            <span class="badge font-monospace" style="background: #fef3c7; color: #92400e; font-size: 10px;">
+                                                Resep: {{ $resepKancing }} Kancing | {{ $resepLubang }} Lubang
+                                            </span>
                                         </div>
-                                        <span class="badge font-monospace" style="background: #fef3c7; color: #92400e; font-size: 10px;">
-                                            Resep: {{ $resepKancing }} Kancing | {{ $resepLubang }} Lubang
-                                        </span>
-                                    </div>
 
-                                    <div class="row g-2">
-                                        <div class="col-4 text-center">
-                                            <label class="form-label form-label-sm mb-1 fw-bold" style="font-size: 10px; color: #059669;">Qty Baju</label>
-                                            <input type="number" 
-                                                   id="qty_baju_{{ $item->id }}"
-                                                   name="items[{{ $item->id }}][qty_baju]" 
-                                                   class="form-control form-control-sm text-center fw-bold font-monospace py-2" 
-                                                   value="{{ $qtyBaju }}" 
-                                                   oninput="hitungBomLkpk({{ $item->id }}, {{ $resepKancing }}, {{ $resepLubang }})"
-                                                   style="background: #ecfdf5; border: 1.5px solid #a7f3d0 !important;">
-                                        </div>
-                                        <div class="col-4 text-center">
-                                            <label class="form-label form-label-sm mb-1 fw-bold text-secondary" style="font-size: 10px;">Tot Kancing</label>
-                                            <input type="number" 
-                                                   id="tot_kancing_{{ $item->id }}"
-                                                   name="items[{{ $item->id }}][tot_kancing]" 
-                                                   class="form-control form-control-sm text-center fw-bold font-monospace bg-light py-2" 
-                                                   value="{{ $totKancing }}" 
-                                                   readonly>
-                                        </div>
-                                        <div class="col-4 text-center">
-                                            <label class="form-label form-label-sm mb-1 fw-bold text-secondary" style="font-size: 10px;">Tot Lubang</label>
-                                            <input type="number" 
-                                                   id="tot_lubang_{{ $item->id }}"
-                                                   name="items[{{ $item->id }}][tot_lubang]" 
-                                                   class="form-control form-control-sm text-center fw-bold font-monospace bg-light py-2" 
-                                                   value="{{ $totLubang }}" 
-                                                   readonly>
+                                        <div class="row g-2">
+                                            <div class="col-4 text-center">
+                                                <label class="form-label form-label-sm mb-1 fw-bold" style="font-size: 10px; color: #059669;">Qty Baju</label>
+                                                <input type="number" 
+                                                       id="qty_baju_{{ $item->id }}"
+                                                       name="items[{{ $item->id }}][qty_baju]" 
+                                                       class="form-control form-control-sm text-center fw-bold font-monospace py-2" 
+                                                       value="{{ $qtyBaju }}" 
+                                                       oninput="hitungBomLkpk({{ $item->id }}, {{ $resepKancing }}, {{ $resepLubang }})"
+                                                       style="background: #ecfdf5; border: 1.5px solid #a7f3d0 !important;">
+                                            </div>
+                                            <div class="col-4 text-center">
+                                                <label class="form-label form-label-sm mb-1 fw-bold text-secondary" style="font-size: 10px;">Tot Kancing</label>
+                                                <input type="number" 
+                                                       id="tot_kancing_{{ $item->id }}"
+                                                       name="items[{{ $item->id }}][tot_kancing]" 
+                                                       class="form-control form-control-sm text-center fw-bold font-monospace bg-light py-2" 
+                                                       value="{{ $totKancing }}" 
+                                                       readonly>
+                                            </div>
+                                            <div class="col-4 text-center">
+                                                <label class="form-label form-label-sm mb-1 fw-bold text-secondary" style="font-size: 10px;">Tot Lubang</label>
+                                                <input type="number" 
+                                                       id="tot_lubang_{{ $item->id }}"
+                                                       name="items[{{ $item->id }}][tot_lubang]" 
+                                                       class="form-control form-control-sm text-center fw-bold font-monospace bg-light py-2" 
+                                                       value="{{ $totLubang }}" 
+                                                       readonly>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            @endforeach
+                                @endforeach
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1390,7 +1391,7 @@
             Swal.fire({
                 icon: 'success',
                 title: 'Form Vendor LKPK Ditambahkan',
-                text: 'Silakan pilih vendor kancing tambahan dan sesuaikan matriks di form baru.',
+                text: 'Silakan pilih vendor LKPK tambahan dan sesuaikan jumlah di form baru.',
                 timer: 1500,
                 showConfirmButton: false
             });
