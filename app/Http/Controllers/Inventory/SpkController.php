@@ -376,7 +376,7 @@ class SpkController extends Controller
             $mockupPath = $request->file('mockup_final')->store('spks/mockup', 'public');
         }
 
-        $spk = DB::transaction(function () use ($request, $tenantId, $imagePath) {
+        $spk = DB::transaction(function () use ($request, $tenantId, $imagePath, $referensiPath, $mockupPath) {
             $noProduksi = trim((string) $request->input('no_produksi'));
             if (empty($noProduksi)) {
                 $noProduksi = Spk::generateNoProduksi();
@@ -2121,13 +2121,57 @@ class SpkController extends Controller
 
         $correctPin = session('spk_tracking_pin_' . $spk->tenant_id, '1234');
 
+        $savedRincianAntrian = '';
+        $savedCatatanAntrian = '';
+        $savedPembuatSample  = '';
+        $savedStatusAcc      = '';
+        $savedCatatanRevisi  = '';
+        $savedVendorPrint    = '';
+        $savedCatatanPotong  = '';
+        $savedCatatanJahit   = '';
+
+        if (!empty($spk->tambahan)) {
+            $parts = explode('||', $spk->tambahan);
+            foreach ($parts as $part) {
+                $subParts = explode('|', $part);
+                foreach ($subParts as $sub) {
+                    $sub = trim($sub);
+                    if (str_starts_with($sub, 'Rincian Antrian:')) {
+                        $savedRincianAntrian = trim(substr($sub, strlen('Rincian Antrian:')));
+                    } elseif (str_starts_with($sub, 'Antrian:')) {
+                        $savedCatatanAntrian = trim(substr($sub, strlen('Antrian:')));
+                    } elseif (str_starts_with($sub, 'Pembuat Sample:')) {
+                        $savedPembuatSample = trim(substr($sub, strlen('Pembuat Sample:')));
+                    } elseif (str_starts_with($sub, 'Status ACC:')) {
+                        $savedStatusAcc = trim(substr($sub, strlen('Status ACC:')));
+                    } elseif (str_starts_with($sub, 'Revisi:')) {
+                        $savedCatatanRevisi = trim(substr($sub, strlen('Revisi:')));
+                    } elseif (str_starts_with($sub, 'Vendor Print:')) {
+                        $savedVendorPrint = trim(substr($sub, strlen('Vendor Print:')));
+                    } elseif (str_starts_with($sub, 'Potong:')) {
+                        $savedCatatanPotong = trim(substr($sub, strlen('Potong:')));
+                    } elseif (str_starts_with($sub, 'Jahit:')) {
+                        $savedCatatanJahit = trim(substr($sub, strlen('Jahit:')));
+                    }
+                }
+            }
+        }
+
         return view('inventory.spks.mobile_tracking', compact(
             'spk',
             'statusOptions',
             'tailors',
             'variantRows',
             'fabricName',
-            'correctPin'
+            'correctPin',
+            'savedRincianAntrian',
+            'savedCatatanAntrian',
+            'savedPembuatSample',
+            'savedStatusAcc',
+            'savedCatatanRevisi',
+            'savedVendorPrint',
+            'savedCatatanPotong',
+            'savedCatatanJahit'
         ));
     }
 
@@ -2241,6 +2285,7 @@ class SpkController extends Controller
 
         // 7. Simpan Catatan Tambahan (Log Histori Catatan per Tahap)
         $catatanNotes = [];
+        if ($request->filled('rincian_antrian')) $catatanNotes[] = "Rincian Antrian: " . $request->input('rincian_antrian');
         if ($request->filled('catatan_antrian')) $catatanNotes[] = "Antrian: " . $request->input('catatan_antrian');
         if ($request->filled('pembuat_sample')) $catatanNotes[] = "Pembuat Sample: " . $request->input('pembuat_sample');
         if ($request->filled('status_acc')) $catatanNotes[] = "Status ACC: " . $request->input('status_acc');

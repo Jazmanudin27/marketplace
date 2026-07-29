@@ -793,7 +793,7 @@
 
                 <div class="app-card mb-3">
                     <div class="card-body-padding">
-                        <textarea name="catatan_jahit" class="form-control textarea-catatan-proses" placeholder="Catatan jahit..."></textarea>
+                        <textarea name="catatan_jahit" class="form-control textarea-catatan-proses" placeholder="Catatan jahit...">{{ $savedCatatanJahit ?? '' }}</textarea>
                     </div>
                 </div>
             </div>
@@ -881,7 +881,7 @@
                         </div>
 
                         <div>
-                            <textarea name="catatan_pemotongan" class="form-control textarea-catatan-proses" placeholder="Catatan pemotongan..."></textarea>
+                            <textarea name="catatan_pemotongan" class="form-control textarea-catatan-proses" placeholder="Catatan pemotongan...">{{ $savedCatatanPotong ?? '' }}</textarea>
                         </div>
                     </div>
                 </div>
@@ -928,7 +928,7 @@
                                 <div class="small fw-bold text-info font-monospace" style="font-size: 11px;">
                                     VENDOR PRINT ({{ strtoupper($fabricName) }})
                                 </div>
-                                <input type="text" name="vendor_print" class="form-control form-control-sm border-0 border-bottom bg-transparent font-monospace fw-bold text-dark p-0" placeholder="Ketik nama vendor...">
+                                <input type="text" name="vendor_print" class="form-control form-control-sm border-0 border-bottom bg-transparent font-monospace fw-bold text-dark p-0" value="{{ $savedVendorPrint ?? '' }}" placeholder="Ketik nama vendor...">
                             </div>
                         </div>
 
@@ -1011,7 +1011,7 @@
                                 <div class="small fw-bold text-primary font-monospace" style="font-size: 11px;">
                                     PEMBUAT SAMPLE ({{ strtoupper($fabricName) }})
                                 </div>
-                                <input type="text" name="pembuat_sample" class="form-control form-control-sm border-0 border-bottom bg-transparent font-monospace fw-bold text-dark p-0" placeholder="Ketik nama...">
+                                <input type="text" name="pembuat_sample" class="form-control form-control-sm border-0 border-bottom bg-transparent font-monospace fw-bold text-dark p-0" value="{{ $savedPembuatSample ?? '' }}" placeholder="Ketik nama...">
                             </div>
                         </div>
 
@@ -1062,19 +1062,19 @@
                         <div class="mb-3">
                             <div class="sub-card-title mb-2">STATUS ACC</div>
                             <div class="btn-group w-100 p-1 bg-white border rounded-3" role="group">
-                                <input type="radio" class="btn-check" name="status_acc" id="acc_menunggu" value="MENUNGGU" checked>
+                                <input type="radio" class="btn-check" name="status_acc" id="acc_menunggu" value="MENUNGGU" {{ ($savedStatusAcc ?? 'MENUNGGU') === 'MENUNGGU' ? 'checked' : '' }}>
                                 <label class="btn btn-sm btn-outline-warning fw-bold border-0 rounded-2 py-2" for="acc_menunggu">MENUNGGU</label>
 
-                                <input type="radio" class="btn-check" name="status_acc" id="acc_revisi" value="REVISI">
+                                <input type="radio" class="btn-check" name="status_acc" id="acc_revisi" value="REVISI" {{ ($savedStatusAcc ?? '') === 'REVISI' ? 'checked' : '' }}>
                                 <label class="btn btn-sm btn-outline-secondary fw-bold border-0 rounded-2 py-2" for="acc_revisi">REVISI</label>
 
-                                <input type="radio" class="btn-check" name="status_acc" id="acc_ok" value="ACC">
+                                <input type="radio" class="btn-check" name="status_acc" id="acc_ok" value="ACC" {{ ($savedStatusAcc ?? '') === 'ACC' ? 'checked' : '' }}>
                                 <label class="btn btn-sm btn-outline-success fw-bold border-0 rounded-2 py-2" for="acc_ok">ACC</label>
                             </div>
                         </div>
 
                         <div>
-                            <textarea name="catatan_revisi_kain" class="form-control textarea-catatan-proses" placeholder="Catatan revisi bahan ini..."></textarea>
+                            <textarea name="catatan_revisi_kain" class="form-control textarea-catatan-proses" placeholder="Catatan revisi bahan ini...">{{ $savedCatatanRevisi ?? '' }}</textarea>
                         </div>
                     </div>
                 </div>
@@ -1088,16 +1088,16 @@
                     </div>
                     <select name="rincian_antrian" class="form-select select-antrian-cream mb-3">
                         <option value="">-- Pilih Rincian Antrian --</option>
-                        <option value="Kain Belum Datang">Kain Belum Datang</option>
-                        <option value="Menunggu Antrian Potong">Menunggu Antrian Potong</option>
-                        <option value="Proses Approval Sample">Proses Approval Sample</option>
-                        <option value="Revisi Sample">Revisi Sample</option>
+                        <option value="Kain Belum Datang" {{ ($savedRincianAntrian ?? '') === 'Kain Belum Datang' ? 'selected' : '' }}>Kain Belum Datang</option>
+                        <option value="Menunggu Antrian Potong" {{ ($savedRincianAntrian ?? '') === 'Menunggu Antrian Potong' ? 'selected' : '' }}>Menunggu Antrian Potong</option>
+                        <option value="Proses Approval Sample" {{ ($savedRincianAntrian ?? '') === 'Proses Approval Sample' ? 'selected' : '' }}>Proses Approval Sample</option>
+                        <option value="Revisi Sample" {{ ($savedRincianAntrian ?? '') === 'Revisi Sample' ? 'selected' : '' }}>Revisi Sample</option>
                     </select>
 
                     <div class="sub-card-title mb-2">
                         <i class="fas fa-edit text-primary"></i> CATATAN PROSES ANTRIAN
                     </div>
-                    <textarea name="catatan_antrian" class="form-control textarea-catatan-proses" placeholder="Tuliskan kendala bahan / detail sample di sini..."></textarea>
+                    <textarea name="catatan_antrian" class="form-control textarea-catatan-proses" placeholder="Tuliskan kendala bahan / detail sample di sini...">{{ $savedCatatanAntrian ?? '' }}</textarea>
                 </div>
             </div>
 
