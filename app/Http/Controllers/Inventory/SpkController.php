@@ -2157,7 +2157,7 @@ class SpkController extends Controller
             }
         }
 
-        $pembuatSampleList = $tailors->where('category', 'Pembuat Sample')->pluck('name')->values();
+        $pembuatSampleList = $tailors->filter(fn($v) => in_array($v->category, ['Pembuat Sample', 'Vendor Print'], true))->pluck('name')->values();
         $vendorPrintList   = $tailors->where('category', 'Vendor Print')->pluck('name')->values();
         $pemotongList      = $tailors->where('category', 'Pemotong')->pluck('name')->values();
         $penjahitList      = $tailors->filter(fn($v) => in_array($v->category, ['Penjahit', null, ''], true))->pluck('name')->values();
