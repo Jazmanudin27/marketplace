@@ -772,7 +772,7 @@
                                         @php
                                             $item = $szItem['item'];
                                             $pg = $item->progres->first();
-                                            $valQty = $pg ? $pg->qty_done : $item->quantity;
+                                            $valQty = ($pg && $pg->qty_done > 0) ? $pg->qty_done : $item->quantity;
                                         @endphp
                                         <div class="size-box-item">
                                             <div class="size-box-label">{{ $szItem['size'] }}</div>
@@ -894,7 +894,7 @@
                                         @php
                                             $item = $szItem['item'];
                                             $pg = $item->progres->first();
-                                            $valQty = $pg ? $pg->qty_done : $item->quantity;
+                                            $valQty = ($pg && $pg->qty_done > 0) ? $pg->qty_done : $item->quantity;
                                         @endphp
                                         <div class="size-box-item">
                                             <div class="size-box-label">{{ $szItem['size'] }}</div>
