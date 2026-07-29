@@ -2270,7 +2270,8 @@ class SpkController extends Controller
         $penjahitReq = $request->input('penjahit');
         $penjahitGlobal = is_array($penjahitReq) ? (reset($penjahitReq) ?: null) : $penjahitReq;
         $penjahitPerModel = (array) $request->input('penjahit_per_model', []);
-        $vendorLkpk = $request->input('vendor_lkpk');
+        $vendorLkpkReq = $request->input('vendor_lkpk');
+        $vendorLkpk = is_array($vendorLkpkReq) ? (reset($vendorLkpkReq) ?: null) : $vendorLkpkReq;
         $estKainPotong = $request->input('est_kain_potong') ?: $request->input('est_hpp_print');
         $pkiKainPotong = $request->input('pki_kain_potong') ?: ($request->input('terpakai_kain') ?: $request->input('kain_terpakai_print'));
         $sisaKainPotong = $request->input('sisa_kain_potong');
@@ -2353,8 +2354,13 @@ class SpkController extends Controller
                 }
             }
         }
-        if ($vendorLkpk) {
-            $this->processAutoSaveVendor($spk->tenant_id, (string) $vendorLkpk, 'Vendor Kancing');
+        if (!empty($vendorLkpkReq)) {
+            $listLkpk = is_array($vendorLkpkReq) ? $vendorLkpkReq : [$vendorLkpkReq];
+            foreach ($listLkpk as $vLkpk) {
+                if ($vLkpk) {
+                    $this->processAutoSaveVendor($spk->tenant_id, (string) $vLkpk, 'Vendor Kancing');
+                }
+            }
         }
 
         if ($request->expectsJson() || $request->ajax()) {

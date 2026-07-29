@@ -663,20 +663,30 @@
                 </div>
 
                 <!-- 2. Nama Vendor LKPK & Matriks Kalkulator BOM Card -->
-                <div class="app-card mb-3">
-                    <div class="card-body-padding" style="background: #f0fdf4;">
-                        <!-- Nama Vendor LKPK Header Row -->
-                        <div class="d-flex align-items-center gap-3 mb-3 p-3 bg-white rounded-3 border">
-                            <div class="lkpk-avatar-badge">
-                                <i class="fas fa-user-cog fs-5" style="color: #059669;"></i>
-                            </div>
-                            <div class="flex-grow-1">
-                                <div class="small fw-bold font-monospace mb-1" style="font-size: 11px; color: #059669;">
-                                    NAMA VENDOR LKPK
+                <div id="lkpkBlocksContainer">
+                    <div class="lkpk-block-card app-card mb-3">
+                        <div class="card-body-padding" style="background: #f0fdf4;">
+                            <!-- Nama Vendor LKPK Header Row -->
+                            <div class="d-flex align-items-center gap-3 mb-3 p-3 bg-white rounded-3 border">
+                                <div class="lkpk-avatar-badge">
+                                    <i class="fas fa-user-cog fs-5" style="color: #059669;"></i>
                                 </div>
-                                <input type="text" name="vendor_lkpk" class="form-control form-control-sm border-0 border-bottom bg-transparent font-monospace fw-bold text-dark p-0" placeholder="Ketik nama vendor..." value="YUDI">
+                                <div class="flex-grow-1">
+                                    <div class="small fw-bold font-monospace mb-1" style="font-size: 11px; color: #059669;">
+                                        NAMA VENDOR LKPK
+                                    </div>
+                                    @php $currentVendorLkpk = $spk->items->first()?->vendor_kancing; @endphp
+                                    <select name="vendor_lkpk[]" class="form-select form-select-sm border-0 border-bottom bg-transparent font-monospace fw-bold text-dark p-0">
+                                        <option value="">-- Pilih Vendor Kancing --</option>
+                                        @foreach($vendorKancingList ?? [] as $vName)
+                                            <option value="{{ $vName }}" {{ $currentVendorLkpk === $vName ? 'selected' : '' }}>{{ $vName }}</option>
+                                        @endforeach
+                                        @if(!empty($currentVendorLkpk) && !($vendorKancingList ?? collect())->contains($currentVendorLkpk))
+                                            <option value="{{ $currentVendorLkpk }}" selected>{{ $currentVendorLkpk }}</option>
+                                        @endif
+                                    </select>
+                                </div>
                             </div>
-                        </div>
 
                         <!-- List per-Item SKU + Size with BOM Recipe -->
                         <div class="bg-white p-3 rounded-3 border mb-2">
@@ -1354,18 +1364,35 @@
         }
 
         function tambahRowLkpk() {
+            const container = document.getElementById('lkpkBlocksContainer');
+            if (!container) return;
+
+            const firstCard = container.querySelector('.lkpk-block-card');
+            if (!firstCard) return;
+
+            const clonedCard = firstCard.cloneNode(true);
+            const selects = clonedCard.querySelectorAll('select');
+            selects.forEach(s => s.selectedIndex = 0);
+
+            const headerDiv = clonedCard.querySelector('.d-flex.align-items-center.gap-3');
+            if (headerDiv && !headerDiv.querySelector('.remove-lkpk-card-btn')) {
+                const delBtn = document.createElement('button');
+                delBtn.type = 'button';
+                delBtn.className = 'btn btn-sm btn-outline-danger border-0 remove-lkpk-card-btn ms-auto';
+                delBtn.innerHTML = '<i class="fas fa-trash-alt fs-6"></i>';
+                delBtn.title = 'Hapus Form Vendor LKPK Ini';
+                delBtn.onclick = function() { clonedCard.remove(); };
+                headerDiv.appendChild(delBtn);
+            }
+
+            container.appendChild(clonedCard);
+            
             Swal.fire({
-                title: 'Tambah Vendor LKPK Baru',
-                html: `<input type="text" id="namaLkpkBaru" class="form-control" placeholder="Nama Vendor LKPK">`,
-                showCancelButton: true,
-                confirmButtonText: 'Tambah',
-                preConfirm: () => {
-                    return document.getElementById('namaLkpkBaru').value;
-                }
-            }).then((res) => {
-                if (res.isConfirmed && res.value) {
-                    Swal.fire('Ditambahkan', 'Vendor LKPK ' + res.value + ' berhasil ditambahkan.', 'success');
-                }
+                icon: 'success',
+                title: 'Form Vendor LKPK Ditambahkan',
+                text: 'Silakan pilih vendor kancing tambahan dan sesuaikan matriks di form baru.',
+                timer: 1500,
+                showConfirmButton: false
             });
         }
 
