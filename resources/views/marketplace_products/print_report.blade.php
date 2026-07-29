@@ -101,40 +101,48 @@
             font-family: 'Courier New', Courier, monospace;
         }
 
-        .badge-mapped {
-            background-color: #198754;
-            color: #fff;
-            padding: 2px 5px;
+        .badge-sinkron {
+            background-color: #d1e7dd;
+            color: #0f5132;
+            border: 1px solid #badbcc;
+            padding: 2px 6px;
             border-radius: 3px;
-            font-size: 9px;
+            font-size: 8px;
+            font-weight: bold;
+            display: inline-block;
+        }
+
+        .badge-diff {
+            background-color: #fff3cd;
+            color: #664d03;
+            border: 1px solid #ffecb5;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 8px;
+            font-weight: bold;
+            display: inline-block;
+        }
+
+        .badge-po {
+            background-color: #f3e8ff;
+            color: #6b21a8;
+            border: 1px solid #d8b4fe;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 8px;
             font-weight: bold;
             display: inline-block;
         }
 
         .badge-unmapped {
-            background-color: #ffc107;
-            color: #000;
-            padding: 2px 5px;
+            background-color: #e2e3e5;
+            color: #41464b;
+            border: 1px solid #d3d6d8;
+            padding: 2px 6px;
             border-radius: 3px;
-            font-size: 9px;
+            font-size: 8px;
             font-weight: bold;
             display: inline-block;
-        }
-
-        .badge-active {
-            background-color: #0d6efd;
-            color: #fff;
-            padding: 1px 4px;
-            border-radius: 2px;
-            font-size: 8px;
-        }
-
-        .badge-inactive {
-            background-color: #6c757d;
-            color: #fff;
-            padding: 1px 4px;
-            border-radius: 2px;
-            font-size: 8px;
         }
 
         @media print {
@@ -154,7 +162,7 @@
     </div>
 
     <div class="header">
-        <h1>LAPORAN PRODUK MARKETPLACE</h1>
+        <h1>LAPORAN PRODUK MARKETPLACE & STOK SINKRONISASI</h1>
         <p>Tanggal Cetak: {{ date('d-m-Y H:i:s') }} | Perusahaan: {{ Auth::user()->tenant->name ?? 'ERP System' }}</p>
     </div>
 
@@ -180,24 +188,24 @@
             <span>{{ number_format($totalCount) }}</span>
         </div>
         <div class="summary-item">
-            <label>Sudah Ditautkan</label>
-            <span style="color: #198754;">{{ number_format($mappedCount) }}</span>
+            <label>Stok Sinkron</label>
+            <span style="color: #198754;">✅ {{ number_format($sinkronCount ?? 0) }}</span>
         </div>
         <div class="summary-item">
-            <label>Belum Ditautkan</label>
-            <span style="color: #d97706;">{{ number_format($unmappedCount) }}</span>
+            <label>Stok Berbeda (Perlu Sync)</label>
+            <span style="color: #d97706;">⚠️ {{ number_format($bedaCount ?? 0) }}</span>
         </div>
         <div class="summary-item">
             <label>Pre-Order (PO)</label>
-            <span style="color: #6b21a8;">{{ number_format($preorderCount ?? 0) }}</span>
+            <span style="color: #6b21a8;">⏳ {{ number_format($preorderCount ?? 0) }}</span>
         </div>
         <div class="summary-item">
-            <label>Total Stok Marketplace</label>
+            <label>Belum Ditautkan</label>
+            <span style="color: #6c757d;">🔗 {{ number_format($unmappedCount) }}</span>
+        </div>
+        <div class="summary-item">
+            <label>Total Stok MP</label>
             <span style="color: #0d6efd;">{{ number_format($totalStock) }}</span>
-        </div>
-        <div class="summary-item">
-            <label>Total Nilai Marketplace</label>
-            <span style="color: #059669;">Rp {{ number_format($totalValue, 0, ',', '.') }}</span>
         </div>
     </div>
 
@@ -205,40 +213,69 @@
         <thead>
             <tr>
                 <th width="4%" class="text-center">NO</th>
-                <th width="26%">NAMA PRODUK MARKETPLACE</th>
-                <th width="10%" class="text-center">PRE-ORDER?</th>
-                <th width="10%">CHANNEL</th>
-                <th width="14%">TOKO</th>
-                <th width="16%">SKU MARKETPLACE</th>
-                <th width="13%" class="text-right">HARGA</th>
-                <th width="7%" class="text-center">STOK</th>
+                <th width="24%">NAMA PRODUK MARKETPLACE</th>
+                <th width="14%">CHANNEL & TOKO</th>
+                <th width="14%">SKU MARKETPLACE</th>
+                <th width="10%" class="text-center">STOK GUDANG (ERP)</th>
+                <th width="10%" class="text-center">STOK MARKETPLACE</th>
+                <th width="8%" class="text-center">SELISIH</th>
+                <th width="16%" class="text-center">STATUS SINKRON</th>
             </tr>
         </thead>
         <tbody>
             @forelse($products as $index => $p)
+                @php
+                    $isPo        = $p->isPreOrder();
+                    $isNoMap     = !$p->masterProduct;
+                    $localStock  = $p->masterProduct ? (int)$p->masterProduct->stock : null;
+                    $safetyStock = (int)($p->safety_stock ?? 0);
+                    $expectedMp  = $localStock !== null ? max(0, $localStock - $safetyStock) : null;
+                    $marketStock = (int)$p->stock;
+                    $selisih     = $expectedMp !== null ? ($marketStock - $expectedMp) : null;
+                    $isSinkron   = ($expectedMp !== null && $selisih === 0 && !$isPo);
+                @endphp
                 <tr>
                     <td class="text-center">{{ $index + 1 }}</td>
                     <td>
                         <strong>{{ $p->name }}</strong>
-                    </td>
-                    <td class="text-center">
-                        @if($p->isPreOrderFromMarketplace())
-                            <span style="color:#6b21a8; font-weight:bold; background:#f3e8ff; border:1px solid #d8b4fe; padding:2px 5px; border-radius:3px; font-size:8px;">⏳ PRE-ORDER</span>
-                        @else
-                            <span style="color:#6c757d; font-size:9px;">Reguler</span>
+                        @if($p->masterProduct)
+                            <div style="font-size:9px; color:#555;">Master: {{ $p->masterProduct->name }} (SKU: {{ $p->masterProduct->sku }})</div>
                         @endif
                     </td>
                     <td>
-                        <strong>{{ $p->store->channel->name ?? '-' }}</strong>
+                        <strong>{{ $p->store->channel->name ?? '-' }}</strong><br>
+                        <span style="color:#555;">{{ $p->store->store_name ?? '-' }}</span>
                     </td>
-                    <td>
-                        <strong>{{ $p->store->store_name ?? '-' }}</strong>
+                    <td class="font-mono">{{ $p->marketplace_sku ?: '-' }}</td>
+                    <td class="text-center font-mono" style="font-weight:bold;">
+                        {{ $localStock !== null ? number_format($localStock) : '-' }}
+                        @if($safetyStock > 0)
+                            <div style="font-size:8px; color:#6b21a8;">(Safety: {{ $safetyStock }})</div>
+                        @endif
                     </td>
-                    <td class="font-mono">
-                        {{ $p->marketplace_sku ?: '-' }}
+                    <td class="text-center font-mono" style="font-weight:bold;">{{ number_format($marketStock) }}</td>
+                    <td class="text-center font-mono" style="font-weight:bold;">
+                        @if($selisih === null)
+                            -
+                        @elseif($selisih === 0)
+                            <span style="color:#198754;">±0</span>
+                        @elseif($selisih > 0)
+                            <span style="color:#dc3545;">+{{ $selisih }}</span>
+                        @else
+                            <span style="color:#dc3545;">{{ $selisih }}</span>
+                        @endif
                     </td>
-                    <td class="text-right font-mono">Rp {{ number_format($p->price, 0, ',', '.') }}</td>
-                    <td class="text-center font-mono"><strong>{{ number_format($p->stock) }}</strong></td>
+                    <td class="text-center">
+                        @if($isPo)
+                            <span class="badge-po">⏳ PRE-ORDER</span>
+                        @elseif($isNoMap)
+                            <span class="badge-unmapped">🔗 BELUM MAP</span>
+                        @elseif($isSinkron)
+                            <span class="badge-sinkron">✅ SINKRON</span>
+                        @else
+                            <span class="badge-diff">⚠️ PERLU SYNC</span>
+                        @endif
+                    </td>
                 </tr>
             @empty
                 <tr>

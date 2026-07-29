@@ -459,10 +459,22 @@ class MarketplaceProductController extends Controller
         $mappedCount = $products->whereNotNull('master_product_id')->count();
         $unmappedCount = $totalCount - $mappedCount;
         $totalStock = $products->sum('stock');
-        $preorderCount = $products->filter(fn($p) => $p->isPreOrderFromMarketplace())->count();
+        $preorderCount = $products->filter(fn($p) => $p->isPreOrder())->count();
         $totalValue = $products->sum(function ($p) {
             return ($p->price ?? 0) * ($p->stock ?? 0);
         });
+
+        $sinkronCount = $products->filter(function($p) {
+            if (!$p->masterProduct || $p->isPreOrder()) return false;
+            $expected = max(0, (int)$p->masterProduct->stock - (int)($p->safety_stock ?? 0));
+            return (int)$p->stock === $expected;
+        })->count();
+
+        $bedaCount = $products->filter(function($p) {
+            if (!$p->masterProduct || $p->isPreOrder()) return false;
+            $expected = max(0, (int)$p->masterProduct->stock - (int)($p->safety_stock ?? 0));
+            return (int)$p->stock !== $expected;
+        })->count();
 
         $selectedChannel = null;
         if ($request->filled('channel_id')) {
@@ -480,6 +492,8 @@ class MarketplaceProductController extends Controller
             'mappedCount',
             'unmappedCount',
             'preorderCount',
+            'sinkronCount',
+            'bedaCount',
             'totalStock',
             'totalValue',
             'selectedChannel',
