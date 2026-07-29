@@ -37,50 +37,48 @@ class StockSyncController extends Controller
         $totalTidakMap = (clone $baseQuery)->whereNull('master_product_id')->count();
         $totalSyncOff = (clone $baseQuery)->where('sync_stock', false)->count();
 
-        $totalSinkron = (clone $baseQuery)->whereHas('masterProduct')
-            ->where('is_pre_order', false)
-            ->whereHas('masterProduct', function($mq) { $mq->where('is_preorder', false); })
-            ->where('name', 'not like', '%PRE ORDER%')
-            ->where('name', 'not like', '%PREORDER%')
-            ->where('name', 'not like', '%PRE-ORDER%')
-            ->where('name', 'not like', 'PO %')
-            ->where('name', 'not like', '% PO %')
-            ->whereNotNull('last_synced_at')
-            ->whereRaw('marketplace_products.stock = GREATEST(0, (
-                SELECT stock FROM master_products WHERE master_products.id = marketplace_products.master_product_id
-            ) - COALESCE(marketplace_products.safety_stock, 0))')
+        $totalSinkron = (clone $baseQuery)
+            ->join('master_products', 'marketplace_products.master_product_id', '=', 'master_products.id')
+            ->where('marketplace_products.is_pre_order', false)
+            ->where('master_products.is_preorder', false)
+            ->where('marketplace_products.name', 'not like', '%PRE ORDER%')
+            ->where('marketplace_products.name', 'not like', '%PREORDER%')
+            ->where('marketplace_products.name', 'not like', '%PRE-ORDER%')
+            ->where('marketplace_products.name', 'not like', 'PO %')
+            ->where('marketplace_products.name', 'not like', '% PO %')
+            ->whereNotNull('marketplace_products.last_synced_at')
+            ->whereRaw('marketplace_products.stock = GREATEST(0, master_products.stock - COALESCE(marketplace_products.safety_stock, 0))')
             ->count();
 
-        $totalBeda = (clone $baseQuery)->whereHas('masterProduct')
-            ->where('is_pre_order', false)
-            ->whereHas('masterProduct', function($mq) { $mq->where('is_preorder', false); })
-            ->where('name', 'not like', '%PRE ORDER%')
-            ->where('name', 'not like', '%PREORDER%')
-            ->where('name', 'not like', '%PRE-ORDER%')
-            ->where('name', 'not like', 'PO %')
-            ->where('name', 'not like', '% PO %')
+        $totalBeda = (clone $baseQuery)
+            ->join('master_products', 'marketplace_products.master_product_id', '=', 'master_products.id')
+            ->where('marketplace_products.is_pre_order', false)
+            ->where('master_products.is_preorder', false)
+            ->where('marketplace_products.name', 'not like', '%PRE ORDER%')
+            ->where('marketplace_products.name', 'not like', '%PREORDER%')
+            ->where('marketplace_products.name', 'not like', '%PRE-ORDER%')
+            ->where('marketplace_products.name', 'not like', 'PO %')
+            ->where('marketplace_products.name', 'not like', '% PO %')
             ->where(function($q) {
-                $q->whereNull('last_synced_at')
-                  ->orWhereRaw('marketplace_products.stock != GREATEST(0, (
-                      SELECT stock FROM master_products WHERE master_products.id = marketplace_products.master_product_id
-                  ) - COALESCE(marketplace_products.safety_stock, 0))');
+                $q->whereNull('marketplace_products.last_synced_at')
+                  ->orWhereRaw('marketplace_products.stock != GREATEST(0, master_products.stock - COALESCE(marketplace_products.safety_stock, 0))');
             })
             ->count();
 
-        $query = (clone $baseQuery)->with(['store.channel', 'masterProduct']);
+        $query = (clone $baseQuery)->select('marketplace_products.*')->with(['store.channel', 'masterProduct']);
 
         // Filter: search
         if ($request->filled('search')) {
             $query->where(function($q) use ($request) {
-                $q->where('name', 'like', '%' . $request->search . '%')
-                  ->orWhere('marketplace_sku', 'like', '%' . $request->search . '%')
-                  ->orWhere('marketplace_product_id', 'like', '%' . $request->search . '%');
+                $q->where('marketplace_products.name', 'like', '%' . $request->search . '%')
+                  ->orWhere('marketplace_products.marketplace_sku', 'like', '%' . $request->search . '%')
+                  ->orWhere('marketplace_products.marketplace_product_id', 'like', '%' . $request->search . '%');
             });
         }
 
         // Filter: nomap = belum terhubung ke produk master
         if ($request->filter === 'nomap') {
-            $query->whereNull('master_product_id');
+            $query->whereNull('marketplace_products.master_product_id');
         }
 
         // Filter: po = Pre-Order
@@ -90,35 +88,31 @@ class StockSyncController extends Controller
 
         // Filter: match = stok sinkron (bukan PO, sudah pernah sync, dan stok cocok)
         if ($request->filter === 'match') {
-            $query->whereHas('masterProduct')
-                  ->where('is_pre_order', false)
-                  ->whereHas('masterProduct', function($mq) { $mq->where('is_preorder', false); })
-                  ->where('name', 'not like', '%PRE ORDER%')
-                  ->where('name', 'not like', '%PREORDER%')
-                  ->where('name', 'not like', '%PRE-ORDER%')
-                  ->where('name', 'not like', 'PO %')
-                  ->where('name', 'not like', '% PO %')
-                  ->whereNotNull('last_synced_at')
-                  ->whereRaw('marketplace_products.stock = GREATEST(0, (
-                      SELECT stock FROM master_products WHERE master_products.id = marketplace_products.master_product_id
-                  ) - COALESCE(marketplace_products.safety_stock, 0))');
+            $query->join('master_products', 'marketplace_products.master_product_id', '=', 'master_products.id')
+                  ->where('marketplace_products.is_pre_order', false)
+                  ->where('master_products.is_preorder', false)
+                  ->where('marketplace_products.name', 'not like', '%PRE ORDER%')
+                  ->where('marketplace_products.name', 'not like', '%PREORDER%')
+                  ->where('marketplace_products.name', 'not like', '%PRE-ORDER%')
+                  ->where('marketplace_products.name', 'not like', 'PO %')
+                  ->where('marketplace_products.name', 'not like', '% PO %')
+                  ->whereNotNull('marketplace_products.last_synced_at')
+                  ->whereRaw('marketplace_products.stock = GREATEST(0, master_products.stock - COALESCE(marketplace_products.safety_stock, 0))');
         }
 
         // Filter: diff = stok marketplace ≠ ekspektasi ATAU belum pernah sync (bukan PO)
         if ($request->filter === 'diff') {
-            $query->whereHas('masterProduct')
-                  ->where('is_pre_order', false)
-                  ->whereHas('masterProduct', function($mq) { $mq->where('is_preorder', false); })
-                  ->where('name', 'not like', '%PRE ORDER%')
-                  ->where('name', 'not like', '%PREORDER%')
-                  ->where('name', 'not like', '%PRE-ORDER%')
-                  ->where('name', 'not like', 'PO %')
-                  ->where('name', 'not like', '% PO %')
+            $query->join('master_products', 'marketplace_products.master_product_id', '=', 'master_products.id')
+                  ->where('marketplace_products.is_pre_order', false)
+                  ->where('master_products.is_preorder', false)
+                  ->where('marketplace_products.name', 'not like', '%PRE ORDER%')
+                  ->where('marketplace_products.name', 'not like', '%PREORDER%')
+                  ->where('marketplace_products.name', 'not like', '%PRE-ORDER%')
+                  ->where('marketplace_products.name', 'not like', 'PO %')
+                  ->where('marketplace_products.name', 'not like', '% PO %')
                   ->where(function($q) {
-                      $q->whereNull('last_synced_at')
-                        ->orWhereRaw('marketplace_products.stock != GREATEST(0, (
-                            SELECT stock FROM master_products WHERE master_products.id = marketplace_products.master_product_id
-                        ) - COALESCE(marketplace_products.safety_stock, 0))');
+                      $q->whereNull('marketplace_products.last_synced_at')
+                        ->orWhereRaw('marketplace_products.stock != GREATEST(0, master_products.stock - COALESCE(marketplace_products.safety_stock, 0))');
                   });
         }
 
@@ -131,15 +125,15 @@ class StockSyncController extends Controller
 
         // Filter: store_id
         if ($request->filled('store_id')) {
-            $query->where('store_id', $request->store_id);
+            $query->where('marketplace_products.store_id', $request->store_id);
         }
 
         // Filter: sync_status (on/off)
         if ($request->filled('sync_status')) {
-            $query->where('sync_stock', $request->sync_status === 'on' ? true : false);
+            $query->where('marketplace_products.sync_stock', $request->sync_status === 'on' ? true : false);
         }
 
-        $mappedProducts = $query->orderByDesc('last_synced_at')->paginate(30)->withQueryString();
+        $mappedProducts = $query->orderByDesc('marketplace_products.last_synced_at')->paginate(30)->withQueryString();
 
         $syncLogs = MarketplaceSyncLog::where('tenant_id', $tenantId)
             ->orderBy('created_at', 'desc')
@@ -186,21 +180,22 @@ class StockSyncController extends Controller
         $query = MarketplaceProduct::whereHas('store', function($q) use ($tenantId) {
                 $q->where('tenant_id', $tenantId)->where('status', 'connected');
             })
-            ->where('sync_stock', true)
+            ->where('marketplace_products.sync_stock', true)
             ->whereHas('masterProduct')
+            ->select('marketplace_products.*')
             ->with('masterProduct');
 
         // Terapkan filter pencarian & dropdown yang sedang aktif di layar (jika ada)
         if ($request->filled('search')) {
             $query->where(function($q) use ($request) {
-                $q->where('name', 'like', '%' . $request->search . '%')
-                  ->orWhere('marketplace_sku', 'like', '%' . $request->search . '%')
-                  ->orWhere('marketplace_product_id', 'like', '%' . $request->search . '%');
+                $q->where('marketplace_products.name', 'like', '%' . $request->search . '%')
+                  ->orWhere('marketplace_products.marketplace_sku', 'like', '%' . $request->search . '%')
+                  ->orWhere('marketplace_products.marketplace_product_id', 'like', '%' . $request->search . '%');
             });
         }
 
         if ($request->filter === 'nomap') {
-            $query->whereNull('master_product_id');
+            $query->whereNull('marketplace_products.master_product_id');
         }
 
         if ($request->filter === 'po') {
@@ -208,34 +203,30 @@ class StockSyncController extends Controller
         }
 
         if ($request->filter === 'match') {
-            $query->whereHas('masterProduct')
-                  ->where('is_pre_order', false)
-                  ->whereHas('masterProduct', function($mq) { $mq->where('is_preorder', false); })
-                  ->where('name', 'not like', '%PRE ORDER%')
-                  ->where('name', 'not like', '%PREORDER%')
-                  ->where('name', 'not like', '%PRE-ORDER%')
-                  ->where('name', 'not like', 'PO %')
-                  ->where('name', 'not like', '% PO %')
-                  ->whereNotNull('last_synced_at')
-                  ->whereRaw('marketplace_products.stock = GREATEST(0, (
-                      SELECT stock FROM master_products WHERE master_products.id = marketplace_products.master_product_id
-                  ) - COALESCE(marketplace_products.safety_stock, 0))');
+            $query->join('master_products', 'marketplace_products.master_product_id', '=', 'master_products.id')
+                  ->where('marketplace_products.is_pre_order', false)
+                  ->where('master_products.is_preorder', false)
+                  ->where('marketplace_products.name', 'not like', '%PRE ORDER%')
+                  ->where('marketplace_products.name', 'not like', '%PREORDER%')
+                  ->where('marketplace_products.name', 'not like', '%PRE-ORDER%')
+                  ->where('marketplace_products.name', 'not like', 'PO %')
+                  ->where('marketplace_products.name', 'not like', '% PO %')
+                  ->whereNotNull('marketplace_products.last_synced_at')
+                  ->whereRaw('marketplace_products.stock = GREATEST(0, master_products.stock - COALESCE(marketplace_products.safety_stock, 0))');
         }
 
         if ($request->filter === 'diff') {
-            $query->whereHas('masterProduct')
-                  ->where('is_pre_order', false)
-                  ->whereHas('masterProduct', function($mq) { $mq->where('is_preorder', false); })
-                  ->where('name', 'not like', '%PRE ORDER%')
-                  ->where('name', 'not like', '%PREORDER%')
-                  ->where('name', 'not like', '%PRE-ORDER%')
-                  ->where('name', 'not like', 'PO %')
-                  ->where('name', 'not like', '% PO %')
+            $query->join('master_products', 'marketplace_products.master_product_id', '=', 'master_products.id')
+                  ->where('marketplace_products.is_pre_order', false)
+                  ->where('master_products.is_preorder', false)
+                  ->where('marketplace_products.name', 'not like', '%PRE ORDER%')
+                  ->where('marketplace_products.name', 'not like', '%PREORDER%')
+                  ->where('marketplace_products.name', 'not like', '%PRE-ORDER%')
+                  ->where('marketplace_products.name', 'not like', 'PO %')
+                  ->where('marketplace_products.name', 'not like', '% PO %')
                   ->where(function($q) {
-                      $q->whereNull('last_synced_at')
-                        ->orWhereRaw('marketplace_products.stock != GREATEST(0, (
-                            SELECT stock FROM master_products WHERE master_products.id = marketplace_products.master_product_id
-                        ) - COALESCE(marketplace_products.safety_stock, 0))');
+                      $q->whereNull('marketplace_products.last_synced_at')
+                        ->orWhereRaw('marketplace_products.stock != GREATEST(0, master_products.stock - COALESCE(marketplace_products.safety_stock, 0))');
                   });
         }
 
@@ -246,11 +237,11 @@ class StockSyncController extends Controller
         }
 
         if ($request->filled('store_id')) {
-            $query->where('store_id', $request->store_id);
+            $query->where('marketplace_products.store_id', $request->store_id);
         }
 
         if ($request->filled('sync_status')) {
-            $query->where('sync_stock', $request->sync_status === 'on' ? true : false);
+            $query->where('marketplace_products.sync_stock', $request->sync_status === 'on' ? true : false);
         }
 
         $mappedProducts = $query->get();
