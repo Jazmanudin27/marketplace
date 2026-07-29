@@ -1032,12 +1032,15 @@
 
 
                         <div class="bg-white p-3 rounded-3 border mb-3">
-                            <label class="form-label form-label-sm mb-1 fw-bold text-primary" style="font-size: 11px;">
-                                <i class="fas fa-ruler-horizontal text-primary me-1"></i> KAIN TERPAKAI SAMPLE (CM)
-                            </label>
-                            <div class="input-group input-group-sm">
-                                <input type="number" name="terpakai_kain" class="form-control font-monospace fw-bold text-primary py-2 fs-6" value="{{ $spk->items->first()?->kain_pakai }}" placeholder="Masukkan pemakaian sample dalam CM..." step="any" min="0">
-                                <span class="input-group-text bg-light font-monospace fw-bold text-secondary">CM</span>
+                            <div class="row g-2">
+                                <div class="col-6 text-center">
+                                    <label class="form-label form-label-sm mb-1 fw-bold text-secondary" style="font-size: 10px;">ESTIMASI HPP (CM)</label>
+                                    <input type="number" name="est_hpp_kain" class="form-control form-control-sm text-center fw-bold font-monospace py-2" value="84" step="any">
+                                </div>
+                                <div class="col-6 text-center">
+                                    <label class="form-label form-label-sm mb-1 fw-bold text-secondary" style="font-size: 10px;">KAIN TERPAKAI (CM)</label>
+                                    <input type="number" name="terpakai_kain" class="form-control form-control-sm text-center fw-bold font-monospace py-2" value="{{ $spk->items->first()?->kain_pakai ?: '0.00' }}" step="any">
+                                </div>
                             </div>
                         </div>
 
