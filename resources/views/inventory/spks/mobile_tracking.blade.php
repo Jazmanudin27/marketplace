@@ -776,7 +776,7 @@
                                         <div class="d-flex align-items-center gap-1">
                                             <span class="small text-muted font-monospace" style="font-size: 10px;">Penjahit:</span>
                                             <select name="penjahit_per_model[{{ $modelName }}]" class="form-select form-select-sm font-monospace fw-bold py-0 px-2 border rounded-2" style="font-size: 11px; color: #9333ea; background-color: #faf5ff;">
-                                                <option value="">(Ikuti Utama)</option>
+                                                <option value="">-- Pilih Penjahit --</option>
                                                 @foreach($penjahitList ?? [] as $vName)
                                                     <option value="{{ $vName }}" {{ $modelPenjahit === $vName ? 'selected' : '' }}>{{ $vName }}</option>
                                                 @endforeach

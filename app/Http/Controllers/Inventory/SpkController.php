@@ -2344,8 +2344,8 @@ class SpkController extends Controller
         if ($pemotong) {
             $this->processAutoSaveVendor($spk->tenant_id, (string) $pemotong, 'Pemotong');
         }
-        if ($penjahit) {
-            $this->processAutoSaveVendor($spk->tenant_id, (string) $penjahit, 'Penjahit');
+        if ($penjahitGlobal) {
+            $this->processAutoSaveVendor($spk->tenant_id, (string) $penjahitGlobal, 'Penjahit');
         }
         if ($vendorLkpk) {
             $this->processAutoSaveVendor($spk->tenant_id, (string) $vendorLkpk, 'Vendor Kancing');
