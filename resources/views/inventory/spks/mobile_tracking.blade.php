@@ -1129,7 +1129,7 @@
                                 @php
                                     $item = $szItem['item'];
                                     $pg = $item->progres->first();
-                                    $valQty = $pg ? $pg->qty_done : $item->quantity;
+                                    $valQty = ($pg && $pg->qty_done > 0) ? $pg->qty_done : $item->quantity;
                                 @endphp
                                 <div class="size-box-item">
                                     <div class="size-box-label">{{ $szItem['size'] }}</div>
@@ -1199,29 +1199,34 @@
             const rejectArea = document.getElementById('cardRejectArea');
 
             // Hide all sub-cards first
-            lkpkArea.style.display = 'none';
-            jahitArea.style.display = 'none';
-            potongArea.style.display = 'none';
-            printKainArea.style.display = 'none';
-            samplingArea.style.display = 'none';
-            antrianArea.style.display = 'none';
-            matriksArea.style.display = 'none';
-            rejectArea.style.display = 'none';
+            if (lkpkArea) lkpkArea.style.display = 'none';
+            if (jahitArea) jahitArea.style.display = 'none';
+            if (potongArea) potongArea.style.display = 'none';
+            if (printKainArea) printKainArea.style.display = 'none';
+            if (samplingArea) samplingArea.style.display = 'none';
+            if (antrianArea) antrianArea.style.display = 'none';
+            if (matriksArea) matriksArea.style.display = 'none';
+            if (rejectArea) rejectArea.style.display = 'none';
 
             if (val === 'Tahap LKPK') {
-                lkpkArea.style.display = 'block';
+                if (lkpkArea) lkpkArea.style.display = 'block';
             } else if (val === 'Tahap Jahit') {
-                jahitArea.style.display = 'block';
+                if (jahitArea) jahitArea.style.display = 'block';
             } else if (val === 'Tahap Pemotongan') {
-                potongArea.style.display = 'block';
+                if (potongArea) potongArea.style.display = 'block';
             } else if (val === 'Tahap Print Kain') {
-                printKainArea.style.display = 'block';
+                if (printKainArea) printKainArea.style.display = 'block';
             } else if (val === 'Tahap Sampling') {
-                samplingArea.style.display = 'block';
+                if (samplingArea) samplingArea.style.display = 'block';
             } else if (val === 'Antrian & Sampling') {
-                antrianArea.style.display = 'block';
+                if (antrianArea) antrianArea.style.display = 'block';
+            } else if (val === 'Quality Control' || val === 'QC') {
+                if (matriksArea) matriksArea.style.display = 'block';
+                if (rejectArea) rejectArea.style.display = 'block';
+            } else if (val === 'Packing / Finishing' || val === 'FINISHING' || val === 'Selesai (Finished Good)' || val === 'SELESAI' || val === 'Perencanaan') {
+                if (matriksArea) matriksArea.style.display = 'block';
+                if (rejectArea) rejectArea.style.display = 'block';
             }
-            // Perencanaan, Quality Control, Packing / Finishing, Selesai (Finished Good) -> Clean view!
         }
 
         function hitungBomLkpk(itemId, kancingPerPcs, lubangPerPcs) {

@@ -14,10 +14,60 @@ class StockSyncController extends Controller
     {
         $tenantId = Auth::user()->tenant_id;
 
-        $query = MarketplaceProduct::whereHas('store', function($q) use ($tenantId) {
-                $q->where('tenant_id', $tenantId);
+        $baseQuery = MarketplaceProduct::whereHas('store', function($q) use ($tenantId) {
+            $q->where('tenant_id', $tenantId);
+        });
+
+        // Closure untuk deteksi produk Pre-Order di SQL
+        $poCondition = function($q) {
+            $q->where('marketplace_products.is_pre_order', true)
+              ->orWhereHas('masterProduct', function($mq) {
+                  $mq->where('is_preorder', true);
+              })
+              ->orWhere('marketplace_products.name', 'like', '%PRE ORDER%')
+              ->orWhere('marketplace_products.name', 'like', '%PREORDER%')
+              ->orWhere('marketplace_products.name', 'like', '%PRE-ORDER%')
+              ->orWhere('marketplace_products.name', 'like', 'PO %')
+              ->orWhere('marketplace_products.name', 'like', '% PO %');
+        };
+
+        // Hitung statistik aktual untuk stat cards (seluruh data tenant)
+        $totalAll = (clone $baseQuery)->count();
+        $totalPo = (clone $baseQuery)->where($poCondition)->count();
+        $totalTidakMap = (clone $baseQuery)->whereNull('master_product_id')->count();
+        $totalSyncOff = (clone $baseQuery)->where('sync_stock', false)->count();
+
+        $totalSinkron = (clone $baseQuery)->whereHas('masterProduct')
+            ->where('is_pre_order', false)
+            ->whereHas('masterProduct', function($mq) { $mq->where('is_preorder', false); })
+            ->where('name', 'not like', '%PRE ORDER%')
+            ->where('name', 'not like', '%PREORDER%')
+            ->where('name', 'not like', '%PRE-ORDER%')
+            ->where('name', 'not like', 'PO %')
+            ->where('name', 'not like', '% PO %')
+            ->whereNotNull('last_synced_at')
+            ->whereRaw('marketplace_products.stock = GREATEST(0, (
+                SELECT stock FROM master_products WHERE master_products.id = marketplace_products.master_product_id
+            ) - COALESCE(marketplace_products.safety_stock, 0))')
+            ->count();
+
+        $totalBeda = (clone $baseQuery)->whereHas('masterProduct')
+            ->where('is_pre_order', false)
+            ->whereHas('masterProduct', function($mq) { $mq->where('is_preorder', false); })
+            ->where('name', 'not like', '%PRE ORDER%')
+            ->where('name', 'not like', '%PREORDER%')
+            ->where('name', 'not like', '%PRE-ORDER%')
+            ->where('name', 'not like', 'PO %')
+            ->where('name', 'not like', '% PO %')
+            ->where(function($q) {
+                $q->whereNull('last_synced_at')
+                  ->orWhereRaw('marketplace_products.stock != GREATEST(0, (
+                      SELECT stock FROM master_products WHERE master_products.id = marketplace_products.master_product_id
+                  ) - COALESCE(marketplace_products.safety_stock, 0))');
             })
-            ->with(['store.channel', 'masterProduct']);
+            ->count();
+
+        $query = (clone $baseQuery)->with(['store.channel', 'masterProduct']);
 
         // Filter: search
         if ($request->filled('search')) {
@@ -35,19 +85,10 @@ class StockSyncController extends Controller
 
         // Filter: po = Pre-Order
         if ($request->filter === 'po') {
-            $query->where(function($q) {
-                $q->where('is_pre_order', true)
-                  ->orWhereHas('masterProduct', function($mq) {
-                      $mq->where('is_preorder', true);
-                  })
-                  ->orWhere('name', 'like', '%PRE ORDER%')
-                  ->orWhere('name', 'like', '%PREORDER%')
-                  ->orWhere('name', 'like', '%PRE-ORDER%')
-                  ->orWhere('name', 'like', 'PO %');
-            });
+            $query->where($poCondition);
         }
 
-        // Filter: match = stok sinkron
+        // Filter: match = stok sinkron (bukan PO, sudah pernah sync, dan stok cocok)
         if ($request->filter === 'match') {
             $query->whereHas('masterProduct')
                   ->where('is_pre_order', false)
@@ -55,12 +96,15 @@ class StockSyncController extends Controller
                   ->where('name', 'not like', '%PRE ORDER%')
                   ->where('name', 'not like', '%PREORDER%')
                   ->where('name', 'not like', '%PRE-ORDER%')
+                  ->where('name', 'not like', 'PO %')
+                  ->where('name', 'not like', '% PO %')
+                  ->whereNotNull('last_synced_at')
                   ->whereRaw('marketplace_products.stock = GREATEST(0, (
                       SELECT stock FROM master_products WHERE master_products.id = marketplace_products.master_product_id
                   ) - COALESCE(marketplace_products.safety_stock, 0))');
         }
 
-        // Filter: diff = stok marketplace ≠ ekspektasi (bukan PO)
+        // Filter: diff = stok marketplace ≠ ekspektasi ATAU belum pernah sync (bukan PO)
         if ($request->filter === 'diff') {
             $query->whereHas('masterProduct')
                   ->where('is_pre_order', false)
@@ -68,9 +112,14 @@ class StockSyncController extends Controller
                   ->where('name', 'not like', '%PRE ORDER%')
                   ->where('name', 'not like', '%PREORDER%')
                   ->where('name', 'not like', '%PRE-ORDER%')
-                  ->whereRaw('marketplace_products.stock != GREATEST(0, (
-                      SELECT stock FROM master_products WHERE master_products.id = marketplace_products.master_product_id
-                  ) - COALESCE(marketplace_products.safety_stock, 0))');
+                  ->where('name', 'not like', 'PO %')
+                  ->where('name', 'not like', '% PO %')
+                  ->where(function($q) {
+                      $q->whereNull('last_synced_at')
+                        ->orWhereRaw('marketplace_products.stock != GREATEST(0, (
+                            SELECT stock FROM master_products WHERE master_products.id = marketplace_products.master_product_id
+                        ) - COALESCE(marketplace_products.safety_stock, 0))');
+                  });
         }
 
         // Filter: channel (shopee, tiktok, tokopedia, lazada)
@@ -105,28 +154,58 @@ class StockSyncController extends Controller
 
         $channels = \App\Models\Channel::orderBy('name')->get(['id', 'name', 'code']);
 
-        return view('inventory.stock_sync.index', compact('mappedProducts', 'syncLogs', 'stores', 'channels'));
+        $summaryStats = [
+            'totalAll'      => $totalAll,
+            'totalSinkron'  => $totalSinkron,
+            'totalBeda'     => $totalBeda,
+            'totalTidakMap' => $totalTidakMap,
+            'totalSyncOff'  => $totalSyncOff,
+            'totalPo'       => $totalPo,
+        ];
+
+        return view('inventory.stock_sync.index', compact('mappedProducts', 'syncLogs', 'stores', 'channels', 'summaryStats'));
     }
 
     public function forceSyncAll()
     {
         $tenantId = Auth::user()->tenant_id;
+
+        // Ambil produk ter-map dengan toko terhubung & sync_stock aktif
         $mappedProducts = MarketplaceProduct::whereHas('store', function($q) use ($tenantId) {
                 $q->where('tenant_id', $tenantId)->where('status', 'connected');
             })
             ->where('sync_stock', true)
+            ->whereHas('masterProduct')
             ->with('masterProduct')
             ->get();
 
         $count = 0;
+        $dispatchedMasterIds = [];
+
         foreach ($mappedProducts as $mp) {
-            if ($mp->masterProduct) {
-                \App\Jobs\PushStockToMarketplaces::dispatch($mp->master_product_id, $mp->masterProduct->stock);
+            // Abaikan produk Pre-Order
+            if ($mp->isPreOrder()) {
+                continue;
+            }
+
+            // Hitung ekspektasi stok
+            $expected = max(0, (int)$mp->masterProduct->stock - (int)($mp->safety_stock ?? 0));
+
+            // HANYA sync produk yang BELUM pernah sync ATAU stoknya BEDA (belum sinkron)
+            if ($mp->last_synced_at === null || (int)$mp->stock !== $expected) {
+                if (!in_array($mp->master_product_id, $dispatchedMasterIds)) {
+                    \App\Jobs\PushStockToMarketplaces::dispatch($mp->master_product_id, $mp->masterProduct->stock);
+                    $dispatchedMasterIds[] = $mp->master_product_id;
+                }
                 $count++;
             }
         }
 
-        return back()->with('success', "Instruksi sinkronisasi stok berhasil dikirim ke antrean untuk {$count} produk marketplace.");
+        if ($count === 0) {
+            return back()->with('info', 'Semua produk reguler sudah sinkron. Tidak ada stok yang perlu di-update.');
+        }
+
+        return back()->with('success', "Instruksi sinkronisasi stok berhasil dikirim untuk {$count} produk marketplace yang belum sinkron.");
     }
 
     public function forceSyncProduct(MarketplaceProduct $product)
@@ -142,3 +221,4 @@ class StockSyncController extends Controller
         return back()->with('success', "Instruksi sinkronisasi stok untuk {$product->name} berhasil dikirim.");
     }
 }
+

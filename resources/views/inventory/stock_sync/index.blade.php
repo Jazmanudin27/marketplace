@@ -95,15 +95,12 @@
 
 @section('content')
 @php
-    $totalAll      = $mappedProducts->total();
-    $totalSinkron  = 0; $totalBeda = 0; $totalTidakMap = 0; $totalSyncOff = 0; $totalPo = 0;
-    foreach ($mappedProducts as $mp) {
-        if ($mp->isPreOrder())  { $totalPo++; continue; }
-        if (!$mp->masterProduct){ $totalTidakMap++; continue; }
-        if (!$mp->sync_stock)   { $totalSyncOff++; continue; }
-        $expected = max(0, $mp->masterProduct->stock - ($mp->safety_stock ?? 0));
-        ($mp->stock === $expected) ? $totalSinkron++ : $totalBeda++;
-    }
+    $totalAll      = $summaryStats['totalAll'] ?? $mappedProducts->total();
+    $totalSinkron  = $summaryStats['totalSinkron'] ?? 0;
+    $totalBeda     = $summaryStats['totalBeda'] ?? 0;
+    $totalTidakMap = $summaryStats['totalTidakMap'] ?? 0;
+    $totalSyncOff  = $summaryStats['totalSyncOff'] ?? 0;
+    $totalPo       = $summaryStats['totalPo'] ?? 0;
 
     // Active filter labels
     $activeFilters = [];
@@ -334,7 +331,7 @@
                         $expectedMp  = $localStock !== null ? max(0, $localStock - $safetyStock) : null;
                         $marketStock = (int)$mp->stock;
                         $selisih     = $expectedMp !== null ? ($marketStock - $expectedMp) : null;
-                        $isSinkron   = ($selisih === 0);
+                        $isSinkron   = ($mp->last_synced_at !== null && $selisih === 0);
                         $isNoMap     = ($localStock === null);
                         $syncOff     = !$mp->sync_stock;
 
