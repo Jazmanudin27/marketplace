@@ -49,9 +49,9 @@
                         </div>
                         <div class="mb-3">
                             <div class="form-check form-switch">
-                                <input class="form-check-input" type="checkbox" name="show_zero_stock" value="1" id="showZeroStock">
-                                <label class="form-check-label small fw-semibold text-dark" for="showZeroStock">
-                                    Tampilkan Produk Stok Kosong / Tanpa Mutasi
+                                <input class="form-check-input" type="checkbox" name="hide_zero_stock" value="1" id="hideZeroStock">
+                                <label class="form-check-label small fw-semibold text-dark" for="hideZeroStock">
+                                    Sembunyikan / Hilangkan Produk Stok 0 (Tanpa Mutasi)
                                 </label>
                             </div>
                         </div>

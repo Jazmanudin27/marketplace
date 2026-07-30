@@ -370,13 +370,13 @@ class ReportController extends Controller
                 }
             }
 
-            $showZeroStock = $request->boolean('show_zero_stock');
+            $hideZeroStock = $request->boolean('hide_zero_stock');
 
-            if (!$showZeroStock) {
+            if ($hideZeroStock) {
                 $totalIn = $inPembelian + $inPenyesuaian + $inLainnya;
                 $totalOut = $outShopee + $outTiktok + $outTokopedia + $outLazada + $outLain + $outPenyesuaian;
 
-                // Filter out items with 0 initial stock, 0 final stock, and 0 movement history if show_zero_stock is false
+                // Sembunyikan produk jika hide_zero_stock dicentang dan stok awal 0, stok akhir 0, serta tidak ada mutasi
                 if ($stokAwal == 0 && $stokAkhir == 0 && $totalIn == 0 && $totalOut == 0) {
                     continue;
                 }

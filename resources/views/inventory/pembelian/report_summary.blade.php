@@ -30,9 +30,9 @@
             </div>
             <div class="col-md-3">
                 <div class="form-check form-switch mb-1">
-                    <input class="form-check-input" type="checkbox" name="show_zero_stock" value="1" id="showZeroStock" {{ !empty($showZeroStock) ? 'checked' : '' }}>
-                    <label class="form-check-label small fw-semibold text-dark" for="showZeroStock">
-                        Tampilkan Stok Kosong / Tanpa Mutasi
+                    <input class="form-check-input" type="checkbox" name="hide_zero_stock" value="1" id="hideZeroStock" {{ !empty($hideZeroStock) ? 'checked' : '' }}>
+                    <label class="form-check-label small fw-semibold text-dark" for="hideZeroStock">
+                        Sembunyikan Stok 0 (Tanpa Mutasi)
                     </label>
                 </div>
             </div>
