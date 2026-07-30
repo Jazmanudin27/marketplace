@@ -355,12 +355,16 @@ class ReportController extends Controller
                 }
             }
 
-            $totalIn = $inPembelian + $inPenyesuaian + $inLainnya;
-            $totalOut = $outShopee + $outTiktok + $outTokopedia + $outLazada + $outLain + $outPenyesuaian;
+            $showZeroStock = $request->boolean('show_zero_stock');
 
-            // Filter out items with 0 initial stock, 0 final stock, and 0 movement history
-            if ($stokAwal == 0 && $stokAkhir == 0 && $totalIn == 0 && $totalOut == 0) {
-                continue;
+            if (!$showZeroStock) {
+                $totalIn = $inPembelian + $inPenyesuaian + $inLainnya;
+                $totalOut = $outShopee + $outTiktok + $outTokopedia + $outLazada + $outLain + $outPenyesuaian;
+
+                // Filter out items with 0 initial stock, 0 final stock, and 0 movement history if show_zero_stock is false
+                if ($stokAwal == 0 && $stokAkhir == 0 && $totalIn == 0 && $totalOut == 0) {
+                    continue;
+                }
             }
 
             $reportData[] = [

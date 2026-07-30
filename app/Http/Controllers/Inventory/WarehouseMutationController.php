@@ -155,7 +155,8 @@ class WarehouseMutationController extends Controller
             $totalKeluar = $produksi + $percetakan + $returPembelian + $penyesuaianKeluar;
             $stokAwal = $stokAkhir - ($totalMasuk - $totalKeluar);
 
-            if ($stokAwal == 0 && $stokAkhir == 0 && $totalMasuk == 0 && $totalKeluar == 0) {
+            $showZeroStock = $request->boolean('show_zero_stock');
+            if (!$showZeroStock && $stokAwal == 0 && $stokAkhir == 0 && $totalMasuk == 0 && $totalKeluar == 0) {
                 continue;
             }
 
@@ -178,7 +179,8 @@ class WarehouseMutationController extends Controller
                 'total_value' => $stokAkhir * ($item->cost_price ?? 0)
             ];
         }
-        return view('inventory.pembelian.report_summary', compact('rekap', 'itemType', 'dateFrom', 'dateTo'));
+        $showZeroStock = $request->boolean('show_zero_stock');
+        return view('inventory.pembelian.report_summary', compact('rekap', 'itemType', 'dateFrom', 'dateTo', 'showZeroStock'));
     }
 
     public function printReportSummaryPembelian(Request $request)
@@ -244,7 +246,8 @@ class WarehouseMutationController extends Controller
             $totalKeluar = $produksi + $percetakan + $returPembelian + $penyesuaianKeluar;
             $stokAwal = $stokAkhir - ($totalMasuk - $totalKeluar);
 
-            if ($stokAwal == 0 && $stokAkhir == 0 && $totalMasuk == 0 && $totalKeluar == 0) {
+            $showZeroStock = $request->boolean('show_zero_stock');
+            if (!$showZeroStock && $stokAwal == 0 && $stokAkhir == 0 && $totalMasuk == 0 && $totalKeluar == 0) {
                 continue;
             }
 

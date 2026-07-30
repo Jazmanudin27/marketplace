@@ -39,6 +39,14 @@
                                 <input type="date" name="end_date" class="form-control form-control-sm">
                             </div>
                         </div>
+                        <div class="mb-3">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" name="show_zero_stock" value="1" id="showZeroStock">
+                                <label class="form-check-label small fw-semibold text-dark" for="showZeroStock">
+                                    Tampilkan Produk Stok Kosong / Tanpa Mutasi
+                                </label>
+                            </div>
+                        </div>
                         <div class="d-flex justify-content-end">
                             <button type="submit" class="btn btn-sm btn-primary">
                                 <i class="fas fa-print me-1"></i> Cetak Rekap Persediaan

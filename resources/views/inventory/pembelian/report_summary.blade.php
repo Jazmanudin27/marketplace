@@ -28,12 +28,20 @@
                 <label class="form-label small fw-semibold text-muted">Sampai Tanggal</label>
                 <input type="date" name="date_to" class="form-control form-control-sm" value="{{ $dateTo }}">
             </div>
-            <div class="col-md-3 d-flex gap-2">
-                <button type="submit" class="btn btn-success btn-sm px-4 w-100 fw-semibold">
+            <div class="col-md-3">
+                <div class="form-check form-switch mb-1">
+                    <input class="form-check-input" type="checkbox" name="show_zero_stock" value="1" id="showZeroStock" {{ !empty($showZeroStock) ? 'checked' : '' }}>
+                    <label class="form-check-label small fw-semibold text-dark" for="showZeroStock">
+                        Tampilkan Stok Kosong / Tanpa Mutasi
+                    </label>
+                </div>
+            </div>
+            <div class="col-md-12 d-flex justify-content-end gap-2 mt-2">
+                <button type="submit" class="btn btn-success btn-sm px-4 fw-semibold">
                     <i class="fas fa-filter me-1"></i> Tampilkan
                 </button>
-                <a href="{{ route('pembelian.print_report_summary', ['item_type' => $itemType, 'date_from' => $dateFrom, 'date_to' => $dateTo]) }}"
-                   target="_blank" class="btn btn-sm px-4 w-100 fw-semibold text-white"
+                <a href="{{ route('pembelian.print_report_summary', array_merge(request()->all(), ['item_type' => $itemType, 'date_from' => $dateFrom, 'date_to' => $dateTo])) }}"
+                   target="_blank" class="btn btn-sm px-4 fw-semibold text-white"
                    style="background:linear-gradient(135deg,#10b981,#059669)">
                     <i class="fas fa-print me-1"></i> Cetak Rekap
                 </a>
