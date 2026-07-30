@@ -31,6 +31,10 @@ class ReportController extends Controller
             $query->where('id', $request->product_id);
         }
 
+        if ($request->filled('is_bundle')) {
+            $query->where('is_bundle', (bool)$request->is_bundle);
+        }
+
         if ($request->filled('is_preorder')) {
             if ($request->is_preorder === '1') {
                 $query->where('is_preorder', true);
@@ -47,6 +51,15 @@ class ReportController extends Controller
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
                     ->orWhere('sku', 'like', "%{$search}%");
+            });
+        }
+
+        if ($request->boolean('hide_zero_stock')) {
+            $query->where(function ($q) {
+                $q->where('stock', '>', 0)
+                  ->orWhereHas('marketplaceProducts', function ($mq) {
+                      $mq->where('stock', '>', 0);
+                  });
             });
         }
 
@@ -75,6 +88,10 @@ class ReportController extends Controller
             $query->where('id', $request->product_id);
         }
 
+        if ($request->filled('is_bundle')) {
+            $query->where('is_bundle', (bool)$request->is_bundle);
+        }
+
         if ($request->filled('is_preorder')) {
             if ($request->is_preorder === '1') {
                 $query->where('is_preorder', true);
@@ -91,6 +108,15 @@ class ReportController extends Controller
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
                     ->orWhere('sku', 'like', "%{$search}%");
+            });
+        }
+
+        if ($request->boolean('hide_zero_stock')) {
+            $query->where(function ($q) {
+                $q->where('stock', '>', 0)
+                  ->orWhereHas('marketplaceProducts', function ($mq) {
+                      $mq->where('stock', '>', 0);
+                  });
             });
         }
 

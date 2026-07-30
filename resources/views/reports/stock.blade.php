@@ -3,6 +3,18 @@
 @section('page-title', 'Laporan Stok Barang')
 
 @section('content')
+    <style>
+        a.product-link {
+            color: #1e293b !important;
+            text-decoration: none !important;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        a.product-link:hover {
+            color: #0284c7 !important;
+            text-decoration: none !important;
+        }
+    </style>
     {{-- FILTER CARD --}}
     <div class="card border-0 shadow-sm rounded-4 bg-white mb-4">
         <div class="card-header bg-info bg-opacity-10 py-3 px-4 border-0 rounded-top-4">
@@ -46,27 +58,24 @@
                     </div>
 
                     <div class="col-12 col-md-3">
-                        <label class="form-label form-label-sm fw-semibold text-muted">Tipe Order / Pre-Order (PO)</label>
-                        <select name="is_preorder" id="is_preorder" class="form-select form-select-sm select2">
-                            <option value="" {{ request('is_preorder') === null || request('is_preorder') === '' ? 'selected' : '' }}>Semua Tipe (PO &amp; Ready)</option>
-                            <option value="1" {{ request('is_preorder') === '1' ? 'selected' : '' }}>📦 Pre-Order (PO)</option>
-                            <option value="0" {{ request('is_preorder') === '0' ? 'selected' : '' }}>⚡ Ready Stock (Bukan PO)</option>
+                        <label class="form-label form-label-sm fw-semibold text-muted">Jenis Produk</label>
+                        <select name="is_bundle" id="is_bundle" class="form-select form-select-sm select2">
+                            <option value="" {{ request('is_bundle') === null || request('is_bundle') === '' ? 'selected' : '' }}>Semua Jenis (Single &amp; BUNDLE)</option>
+                            <option value="0" {{ request('is_bundle') === '0' ? 'selected' : '' }}>📦 Single (Produk Standar)</option>
+                            <option value="1" {{ request('is_bundle') === '1' ? 'selected' : '' }}>🎁 BUNDLE / Paket Set</option>
                         </select>
                     </div>
 
                     <div class="col-12 col-md-3">
-                        <label class="form-label form-label-sm fw-semibold text-muted">Produk Spesifik</label>
-                        <select name="product_id" id="product_id" class="form-select form-select-sm select2">
-                            <option value="">Semua Produk</option>
-                            @foreach ($allProductsList as $pItem)
-                                <option value="{{ $pItem->id }}" {{ request('product_id') == $pItem->id ? 'selected' : '' }}>
-                                    {{ $pItem->sku ? '[' . $pItem->sku . '] ' : '' }}{{ $pItem->name }} {{ $pItem->is_preorder ? '(PO)' : '' }}
-                                </option>
-                            @endforeach
+                        <label class="form-label form-label-sm fw-semibold text-muted">Tipe Pre-Order (PO)</label>
+                        <select name="is_preorder" id="is_preorder" class="form-select form-select-sm select2">
+                            <option value="" {{ request('is_preorder') === null || request('is_preorder') === '' ? 'selected' : '' }}>Semua Tipe (PO &amp; Ready)</option>
+                            <option value="1" {{ request('is_preorder') === '1' ? 'selected' : '' }}>⏳ Pre-Order (PO)</option>
+                            <option value="0" {{ request('is_preorder') === '0' ? 'selected' : '' }}>📦 Ready Stock (Bukan PO)</option>
                         </select>
                     </div>
 
-                    <div class="col-12 col-md-6 col-lg-8">
+                    <div class="col-12 col-md-6 col-lg-5">
                         <label class="form-label form-label-sm fw-semibold text-muted">Cari Nama / SKU</label>
                         <div class="position-relative">
                             <i class="fas fa-search position-absolute top-50 start-0 translate-middle-y ms-3 text-muted opacity-75"></i>
@@ -75,11 +84,20 @@
                         </div>
                     </div>
 
-                    <div class="col-12 col-md-6 col-lg-4 d-flex gap-2 justify-content-end">
+                    <div class="col-12 col-md-6 col-lg-4">
+                        <div class="form-check form-switch mt-3">
+                            <input class="form-check-input" type="checkbox" name="hide_zero_stock" value="1" id="hideZeroStock" {{ request('hide_zero_stock') ? 'checked' : '' }}>
+                            <label class="form-check-label small fw-semibold text-dark" for="hideZeroStock">
+                                Sembunyikan / Hilangkan Produk Stok 0
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="col-12 col-md-12 col-lg-3 d-flex gap-2 justify-content-end">
                         <button type="submit" class="btn btn-sm btn-primary fw-bold px-3 rounded-3 flex-fill">
                             <i class="fas fa-filter me-1"></i> Filter Data
                         </button>
-                        @if(request()->anyFilled(['category_id', 'brand_id', 'is_preorder', 'product_id', 'search']))
+                        @if(request()->anyFilled(['category_id', 'brand_id', 'is_bundle', 'is_preorder', 'product_id', 'search', 'hide_zero_stock']))
                             <a href="{{ route('reports.stock') }}" class="btn btn-sm btn-outline-secondary px-3 rounded-3">
                                 <i class="fas fa-undo me-1"></i> Reset
                             </a>
@@ -122,13 +140,13 @@
                                     {{ ($products->currentPage() - 1) * $products->perPage() + $index + 1 }}
                                 </td>
                                 <td>
-                                    <a href="{{ $ledgerUrl }}" class="font-monospace fw-bold text-primary text-decoration-none"
+                                    <a href="{{ $ledgerUrl }}" target="_blank" class="product-link font-monospace"
                                        title="Klik untuk membuka Kartu Stok {{ $row->name }}">
                                         {{ $row->sku ?: '—' }}
                                     </a>
                                 </td>
                                 <td>
-                                    <a href="{{ $ledgerUrl }}" class="fw-bold text-dark text-decoration-none hover-primary"
+                                    <a href="{{ $ledgerUrl }}" target="_blank" class="product-link"
                                        title="Klik untuk melihat histori Kartu Stok produk ini">
                                         {{ $row->name }}
                                     </a>

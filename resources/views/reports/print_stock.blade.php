@@ -14,14 +14,13 @@
         }
 
         .header {
-            text-align: center;
-            margin-bottom: 30px;
-            border-bottom: 2px solid #000;
+            margin-bottom: 20px;
             padding-bottom: 15px;
+            border-bottom: 2px solid #000;
         }
 
         .header h1 {
-            margin: 0 0 10px 0;
+            margin: 0 0 5px 0;
             font-size: 24px;
         }
 
@@ -31,27 +30,57 @@
             color: #555;
         }
 
-        .info {
-            margin-bottom: 20px;
-            font-size: 14px;
+        .info-box {
+            margin-bottom: 15px;
+            font-size: 12px;
+            background: #f8fafc;
+            border: 1px solid #cbd5e1;
+            padding: 10px;
+            border-radius: 6px;
         }
 
-        table {
+        table.data-table {
+            min-width: 100%;
+            max-width: 150%;
             width: 100%;
             border-collapse: collapse;
-            font-size: 12px;
+            font-size: 11px;
         }
 
-        th,
-        td {
+        table.data-table th,
+        table.data-table td {
             border: 1px solid #000;
-            padding: 8px 10px;
+            padding: 6px 6px;
             text-align: left;
         }
 
-        th {
-            background-color: #f2f2f2;
-            font-weight: bold;
+        /* Group Headers */
+        table.data-table th.bg-blue {
+            background-color: #3b82f6 !important;
+            color: white;
+            text-align: center;
+            border-color: #000;
+        }
+
+        table.data-table th.bg-green {
+            background-color: #22c55e !important;
+            color: white;
+            text-align: center;
+            border-color: #000;
+        }
+
+        table.data-table th.bg-info-header {
+            background-color: #0284c7 !important;
+            color: white;
+            text-align: center;
+            border-color: #000;
+        }
+
+        table.data-table th.bg-gray {
+            background-color: #64748b !important;
+            color: white;
+            text-align: center;
+            border-color: #000;
         }
 
         .text-right {
@@ -62,13 +91,36 @@
             text-align: center;
         }
 
+        a.product-link {
+            color: #1e293b;
+            text-decoration: none !important;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        a.product-link:hover {
+            color: #0284c7;
+            text-decoration: none !important;
+        }
+
         @media print {
+            @page {
+                size: landscape;
+            }
+
             body {
                 padding: 0;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
             }
 
             .no-print {
                 display: none;
+            }
+
+            a.product-link {
+                color: #000 !important;
+                text-decoration: none !important;
             }
         }
     </style>
@@ -77,33 +129,40 @@
 <body>
 
     <div class="header">
-        <h1>LAPORAN STOK BARANG</h1>
+        <h1>LAPORAN STOK BARANG (GUDANG &amp; MARKETPLACE)</h1>
         <p>Tanggal Dicetak: {{ date('d-m-Y H:i:s') }}</p>
     </div>
 
-    <div class="info">
+    <div class="info-box">
+        <strong>Filter Laporan:</strong>
         @if (request('category_id'))
-            <p><strong>Filter Kategori:</strong> {{ App\Models\Category::find(request('category_id'))->name ?? '-' }}</p>
+            | Kategori: {{ App\Models\Category::find(request('category_id'))->name ?? '-' }}
         @endif
         @if (request('brand_id'))
-            <p><strong>Filter Merk:</strong> {{ App\Models\Brand::find(request('brand_id'))->name ?? '-' }}</p>
+            | Merk: {{ App\Models\Brand::find(request('brand_id'))->name ?? '-' }}
+        @endif
+        @if (request()->filled('is_bundle'))
+            | Jenis: {{ request('is_bundle') === '1' ? '🎁 BUNDLE / Paket Set' : '📦 Single (Produk Standar)' }}
         @endif
         @if (request()->filled('is_preorder'))
-            <p><strong>Status Order:</strong> {{ request('is_preorder') === '1' ? '📦 Pre-Order (PO)' : '⚡ Ready Stock (Bukan PO)' }}</p>
+            | Tipe: {{ request('is_preorder') === '1' ? '⏳ Pre-Order (PO)' : '📦 Ready Stock' }}
+        @endif
+        @if (request('search'))
+            | Pencarian: "{{ request('search') }}"
         @endif
     </div>
 
-    <table>
+    <table class="data-table">
         <thead>
             <tr>
-                <th width="4%" class="text-center">No</th>
-                <th width="13%">SKU</th>
-                <th width="28%">Nama Produk</th>
-                <th width="13%">Kategori / Merk</th>
-                <th width="12%" class="text-center">Tipe Order</th>
-                <th width="10%" class="text-right">Stok Gudang</th>
-                <th width="10%" class="text-right">Stok MP</th>
-                <th width="10%" class="text-right">Total Stok</th>
+                <th class="bg-blue" style="width: 4%;">No</th>
+                <th class="bg-blue" style="width: 14%;">SKU</th>
+                <th class="bg-blue" style="width: 30%;">Nama Produk</th>
+                <th class="bg-blue" style="width: 15%;">Kategori / Merk</th>
+                <th class="bg-blue" style="width: 11%;">Status &amp; PO</th>
+                <th class="bg-green" style="width: 9%;">Stok Gudang</th>
+                <th class="bg-info-header" style="width: 9%;">Stok MP</th>
+                <th class="bg-gray" style="width: 8%;">Total Stok</th>
             </tr>
         </thead>
         <tbody>
@@ -112,25 +171,38 @@
                     $stokGudang = (int) $product->stock;
                     $stokMp = (int) $product->marketplaceProducts->sum('stock');
                     $totalStok = $stokGudang + $stokMp;
+                    $ledgerUrl = route('reports.ledger.print', ['product_id' => $product->id]);
                 @endphp
                 <tr>
                     <td class="text-center">{{ $index + 1 }}</td>
-                    <td>{{ $product->sku ?? '-' }}</td>
-                    <td>{{ $product->name }}</td>
                     <td>
-                        {{ $product->category->name ?? '-' }}
-                        <small style="color: #666; display: block;">{{ $product->brand->name ?? '-' }}</small>
+                        <a href="{{ $ledgerUrl }}" target="_blank" class="product-link" title="Buka Kartu Stok {{ $product->name }}">
+                            {{ $product->sku ?? '-' }}
+                        </a>
+                    </td>
+                    <td>
+                        <a href="{{ $ledgerUrl }}" target="_blank" class="product-link" title="Buka Kartu Stok {{ $product->name }}">
+                            {{ $product->name }}
+                        </a>
+                    </td>
+                    <td>
+                        <strong>{{ $product->category->name ?? '-' }}</strong>
+                        <small style="color: #64748b; display: block;">{{ $product->brand->name ?? '-' }}</small>
                     </td>
                     <td class="text-center">
                         @if($product->is_preorder)
-                            <strong style="color: #c2410c;">📦 PO ({{ $product->preorder_days ?: 7 }}hr)</strong>
+                            <span style="color: #c2410c; font-weight: bold;">⏳ PO ({{ $product->preorder_days ?: 7 }}hr)</span>
                         @else
-                            <span style="color: #15803d;">⚡ Ready Stock</span>
+                            <span style="color: #16a34a; font-weight: bold;">📦 Ready Stock</span>
                         @endif
                     </td>
                     <td class="text-right"><strong>{{ number_format($stokGudang, 0, ',', '.') }}</strong></td>
                     <td class="text-right">{{ number_format($stokMp, 0, ',', '.') }}</td>
-                    <td class="text-right"><strong>{{ number_format($totalStok, 0, ',', '.') }}</strong></td>
+                    <td class="text-right">
+                        <strong style="color: {{ $totalStok <= 0 ? '#dc2626' : '#16a34a' }};">
+                            {{ number_format($totalStok, 0, ',', '.') }}
+                        </strong>
+                    </td>
                 </tr>
             @empty
                 <tr>
