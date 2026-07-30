@@ -340,34 +340,49 @@ class MarketplaceProductController extends Controller
     {
         $tenantId = Auth::user()->tenant_id;
 
-        // Ambil produk marketplace yang belum memiliki master_product_id tetapi memiliki SKU
-        $unlinkedProducts = MarketplaceProduct::whereNull('master_product_id')
-            ->whereHas('store', function($q) use ($tenantId) {
+        // Ambil SEMUA produk marketplace milik tenant
+        $marketplaceProducts = MarketplaceProduct::whereHas('store', function($q) use ($tenantId) {
                 $q->where('tenant_id', $tenantId);
-            })
-            ->whereNotNull('marketplace_sku')
-            ->where('marketplace_sku', '!=', '')
-            ->get();
+            })->get();
 
         $linkedCount = 0;
+        $unlinkedCount = 0;
 
-        foreach ($unlinkedProducts as $product) {
-            $skuClean = trim($product->marketplace_sku);
-            
-            $master = MasterProduct::where('tenant_id', $tenantId)
-                ->where('sku', $skuClean)
-                ->first();
+        foreach ($marketplaceProducts as $product) {
+            $skuClean = trim($product->marketplace_sku ?? '');
 
-            if ($master) {
-                $product->update([
-                    'master_product_id' => $master->id,
-                    'sync_stock' => true, // Otomatis aktifkan sinkronisasi stok
-                ]);
-                $linkedCount++;
+            if ($skuClean !== '') {
+                $master = MasterProduct::where('tenant_id', $tenantId)
+                    ->where('sku', $skuClean)
+                    ->first();
+
+                if ($master) {
+                    if ($product->master_product_id !== $master->id) {
+                        $product->update([
+                            'master_product_id' => $master->id,
+                            'sync_stock' => true,
+                        ]);
+                        $linkedCount++;
+                    }
+                } else {
+                    if ($product->master_product_id !== null) {
+                        $product->update([
+                            'master_product_id' => null,
+                        ]);
+                        $unlinkedCount++;
+                    }
+                }
+            } else {
+                if ($product->master_product_id !== null) {
+                    $product->update([
+                        'master_product_id' => null,
+                    ]);
+                    $unlinkedCount++;
+                }
             }
         }
 
-        return back()->with('success', "Berhasil menautkan secara otomatis {$linkedCount} produk marketplace berdasarkan kesamaan SKU.");
+        return back()->with('success', "Pembaruan Tautan Selesai. {$linkedCount} produk ditautkan ke Master Produk sesuai SKU terbaru, dan {$unlinkedCount} tautan lama yang SKU-nya sudah berubah/tidak ada dibersihkan.");
     }
 
     public function bulkPromote()
