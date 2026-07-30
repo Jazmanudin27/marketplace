@@ -9,6 +9,9 @@
             </small>
         </div>
         <div class="d-flex align-items-center gap-2">
+            <button type="button" id="btnBulkDelete" class="btn btn-outline-danger btn-sm px-3 rounded-3 d-none">
+                <i class="fas fa-trash me-1"></i>Hapus Massal (<span id="selectedDeleteCount">0</span>)
+            </button>
             <button type="button" id="btnBulkPublish" class="btn btn-outline-primary btn-sm px-3 rounded-3 d-none">
                 <i class="fas fa-cloud-upload-alt me-1"></i>Publish Massal (<span id="selectedCount">0</span>)
             </button>
@@ -37,8 +40,8 @@
                 {{-- Quick Filter Pills: Jenis & Status --}}
                 <div class="d-flex flex-wrap align-items-center gap-2 mb-2.5 pb-2 border-bottom">
                     <span class="fw-bold small text-muted me-1"><i class="fas fa-filter text-primary me-1"></i>Filter Cepat:</span>
-                    <a href="{{ route('products.index', request()->except(['is_preorder', 'is_bundle'])) }}"
-                        class="btn btn-xs rounded-pill {{ (!request()->has('is_preorder') || request('is_preorder') === '') && (!request()->has('is_bundle') || request('is_bundle') === '') ? 'btn-primary fw-bold' : 'btn-outline-secondary' }} px-3 py-1">
+                    <a href="{{ route('products.index', request()->except(['is_preorder', 'is_bundle', 'link_status'])) }}"
+                        class="btn btn-xs rounded-pill {{ (!request()->has('is_preorder') || request('is_preorder') === '') && (!request()->has('is_bundle') || request('is_bundle') === '') && (!request()->has('link_status') || request('link_status') === '') ? 'btn-primary fw-bold' : 'btn-outline-secondary' }} px-3 py-1">
                         🌐 Semua Produk <span class="badge bg-white text-dark ms-1">{{ number_format($products->total()) }}</span>
                     </a>
                     
@@ -66,6 +69,16 @@
                         class="btn btn-xs rounded-pill fw-bold px-3 py-1"
                         style="{{ request('is_preorder') === '0' ? 'background-color:#16a34a; border-color:#16a34a; color:#fff;' : 'color:#15803d; border-color:#16a34a;' }}">
                         ⚡ Ready Stock <span class="badge bg-white text-dark ms-1">{{ number_format($readyCount ?? 0) }}</span>
+                    </a>
+
+                    <span class="text-muted opacity-25 mx-1">|</span>
+
+                    {{-- Filter Belum Terhubung --}}
+                    <a href="{{ route('products.index', array_merge(request()->query(), ['link_status' => 'unlinked'])) }}"
+                        class="btn btn-xs rounded-pill fw-bold px-3 py-1"
+                        style="{{ request('link_status') === 'unlinked' ? 'background-color:#475569; border-color:#475569; color:#fff;' : 'color:#475569; border-color:#475569;' }}"
+                        title="Tampilkan Master Produk yang Belum Terhubung ke Toko Manapun">
+                        🔗 Belum Terhubung <span class="badge bg-white text-dark ms-1">{{ number_format($unlinkedCount ?? 0) }}</span>
                     </a>
                 </div>
 
@@ -480,15 +493,21 @@
         const selectAll = document.getElementById('selectAllProducts');
         const checkboxes = document.querySelectorAll('.product-select-checkbox');
         const btnBulkPublish = document.getElementById('btnBulkPublish');
+        const btnBulkDelete = document.getElementById('btnBulkDelete');
         const selectedCountSpan = document.getElementById('selectedCount');
+        const selectedDeleteCountSpan = document.getElementById('selectedDeleteCount');
 
         function updateBulkButton() {
             const checkedCount = document.querySelectorAll('.product-select-checkbox:checked').length;
+            if (selectedCountSpan) selectedCountSpan.textContent = checkedCount;
+            if (selectedDeleteCountSpan) selectedDeleteCountSpan.textContent = checkedCount;
+
             if (checkedCount > 0) {
-                selectedCountSpan.textContent = checkedCount;
-                btnBulkPublish.classList.remove('d-none');
+                if (btnBulkPublish) btnBulkPublish.classList.remove('d-none');
+                if (btnBulkDelete) btnBulkDelete.classList.remove('d-none');
             } else {
-                btnBulkPublish.classList.add('d-none');
+                if (btnBulkPublish) btnBulkPublish.classList.add('d-none');
+                if (btnBulkDelete) btnBulkDelete.classList.add('d-none');
             }
         }
 
@@ -512,6 +531,38 @@
                 updateBulkButton();
             });
         });
+
+        if (btnBulkDelete) {
+            btnBulkDelete.addEventListener('click', function () {
+                const checkedBoxes = document.querySelectorAll('.product-select-checkbox:checked');
+                if (checkedBoxes.length === 0) return;
+
+                if (!confirm(`Apakah Anda yakin ingin menghapus ${checkedBoxes.length} Master Produk terpilih ini secara permanen?`)) {
+                    return;
+                }
+
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = "{{ route('products.bulk_delete') }}";
+
+                const csrfToken = document.createElement('input');
+                csrfToken.type = 'hidden';
+                csrfToken.name = '_token';
+                csrfToken.value = '{{ csrf_token() }}';
+                form.appendChild(csrfToken);
+
+                checkedBoxes.forEach(cb => {
+                    const input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = 'product_ids[]';
+                    input.value = cb.value;
+                    form.appendChild(input);
+                });
+
+                document.body.appendChild(form);
+                form.submit();
+            });
+        }
 
         if (btnBulkPublish) {
             btnBulkPublish.addEventListener('click', function () {

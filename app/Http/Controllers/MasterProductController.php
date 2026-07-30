@@ -112,6 +112,7 @@ class MasterProductController extends Controller
         $singleCount = MasterProduct::where('tenant_id', $tenantId)->where(function($q) {
             $q->where('is_bundle', false)->orWhereNull('is_bundle');
         })->count();
+        $unlinkedCount = MasterProduct::where('tenant_id', $tenantId)->whereDoesntHave('marketplaceProducts')->count();
 
         return view('products.index', compact(
             'products',
@@ -125,8 +126,25 @@ class MasterProductController extends Controller
             'poCount',
             'readyCount',
             'bundleCount',
-            'singleCount'
+            'singleCount',
+            'unlinkedCount'
         ));
+    }
+
+    public function bulkDelete(Request $request)
+    {
+        $tenantId = Auth::user()->tenant_id;
+        $productIds = $request->input('product_ids', []);
+
+        if (empty($productIds)) {
+            return back()->with('error', 'Tidak ada produk yang dipilih untuk dihapus.');
+        }
+
+        $count = MasterProduct::where('tenant_id', $tenantId)
+            ->whereIn('id', $productIds)
+            ->delete();
+
+        return back()->with('success', "Berhasil menghapus {$count} Master Produk.");
     }
 
     public function create()
