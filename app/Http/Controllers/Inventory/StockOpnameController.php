@@ -134,6 +134,9 @@ class StockOpnameController extends Controller
 
     public function importStore(Request $request)
     {
+        @set_time_limit(0);
+        @ini_set('memory_limit', '512M');
+
         $tenantId = Auth::user()->tenant_id;
 
         $request->validate([
@@ -206,65 +209,81 @@ class StockOpnameController extends Controller
         $unchangedCount = 0;
         $errors = [];
         $processedSkus = [];
+        $userId = Auth::id();
 
-        for ($i = $startIndex; $i < count($rows); $i++) {
-            $row = $rows[$i];
-            $rowNum = $i + 1;
+        DB::transaction(function () use (
+            $startIndex,
+            $rows,
+            $skuCol,
+            $qtyCol,
+            $tenantId,
+            $reference,
+            $userId,
+            $date,
+            &$changesCount,
+            &$unchangedCount,
+            &$errors,
+            &$processedSkus
+        ) {
+            for ($i = $startIndex; $i < count($rows); $i++) {
+                $row = $rows[$i];
+                $rowNum = $i + 1;
 
-            if (!isset($row[$skuCol]) || trim($row[$skuCol]) === '') {
-                continue;
+                if (!isset($row[$skuCol]) || trim($row[$skuCol]) === '') {
+                    continue;
+                }
+
+                $sku = trim($row[$skuCol]);
+                $rawQty = isset($row[$qtyCol]) ? trim($row[$qtyCol]) : null;
+
+                if ($rawQty === null || $rawQty === '') {
+                    $errors[] = "Baris #{$rowNum}: SKU {$sku} dilewati (kolom Jumlah kosong).";
+                    continue;
+                }
+
+                $cleanQtyStr = str_replace([' ', ','], ['', ''], $rawQty);
+                if (!is_numeric($cleanQtyStr)) {
+                    $errors[] = "Baris #{$rowNum}: SKU {$sku} memiliki format Jumlah tidak valid ('{$rawQty}').";
+                    continue;
+                }
+
+                $actualStock = (int) round((float) $cleanQtyStr);
+                if ($actualStock < 0) {
+                    $errors[] = "Baris #{$rowNum}: SKU {$sku} memiliki Jumlah negatif ('{$rawQty}').";
+                    continue;
+                }
+
+                $product = MasterProduct::where('tenant_id', $tenantId)
+                    ->where('sku', $sku)
+                    ->first();
+
+                if (!$product) {
+                    $errors[] = "Baris #{$rowNum}: SKU '{$sku}' tidak ditemukan di sistem.";
+                    continue;
+                }
+
+                if (in_array($product->id, $processedSkus)) {
+                    $errors[] = "Baris #{$rowNum}: SKU '{$sku}' ganda/duplikat dalam berkas, hanya baris pertama yang diproses.";
+                    continue;
+                }
+
+                $processedSkus[] = $product->id;
+                $difference = $actualStock - $product->stock;
+
+                if ($difference != 0) {
+                    $product->recordStockMovement(
+                        $difference,
+                        'adj',
+                        $reference,
+                        $userId,
+                        $date
+                    );
+                    $changesCount++;
+                } else {
+                    $unchangedCount++;
+                }
             }
-
-            $sku = trim($row[$skuCol]);
-            $rawQty = isset($row[$qtyCol]) ? trim($row[$qtyCol]) : null;
-
-            if ($rawQty === null || $rawQty === '') {
-                $errors[] = "Baris #{$rowNum}: SKU {$sku} dilewati (kolom Jumlah kosong).";
-                continue;
-            }
-
-            $cleanQtyStr = str_replace([' ', ','], ['', ''], $rawQty);
-            if (!is_numeric($cleanQtyStr)) {
-                $errors[] = "Baris #{$rowNum}: SKU {$sku} memiliki format Jumlah tidak valid ('{$rawQty}').";
-                continue;
-            }
-
-            $actualStock = (int) round((float) $cleanQtyStr);
-            if ($actualStock < 0) {
-                $errors[] = "Baris #{$rowNum}: SKU {$sku} memiliki Jumlah negatif ('{$rawQty}').";
-                continue;
-            }
-
-            $product = MasterProduct::where('tenant_id', $tenantId)
-                ->where('sku', $sku)
-                ->first();
-
-            if (!$product) {
-                $errors[] = "Baris #{$rowNum}: SKU '{$sku}' tidak ditemukan di sistem.";
-                continue;
-            }
-
-            if (in_array($product->id, $processedSkus)) {
-                $errors[] = "Baris #{$rowNum}: SKU '{$sku}' ganda/duplikat dalam berkas, hanya baris pertama yang diproses.";
-                continue;
-            }
-
-            $processedSkus[] = $product->id;
-            $difference = $actualStock - $product->stock;
-
-            if ($difference != 0) {
-                $product->recordStockMovement(
-                    $difference,
-                    'adj',
-                    $reference,
-                    Auth::id(),
-                    $date
-                );
-                $changesCount++;
-            } else {
-                $unchangedCount++;
-            }
-        }
+        });
 
         $summaryMessage = "Import Stok Opname Selesai. {$changesCount} produk disesuaikan, {$unchangedCount} produk stoknya sesuai.";
 

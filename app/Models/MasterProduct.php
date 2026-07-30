@@ -130,7 +130,7 @@ class MasterProduct extends Model
                  ->where('sync_stock', true)
                  ->update(['stock' => $newStock]);
 
-            \App\Jobs\PushStockToMarketplaces::dispatch($this->id, $newStock);
+            \App\Jobs\PushStockToMarketplaces::dispatchAfterResponse($this->id, $newStock);
             return;
         }
 
@@ -173,7 +173,7 @@ class MasterProduct extends Model
              ->update(['stock' => $newStock]);
              
         // 4. Push stok ke API Marketplace secara otomatis (Shopee, Tokopedia, dll)
-        \App\Jobs\PushStockToMarketplaces::dispatch($this->id, $newStock);
+        \App\Jobs\PushStockToMarketplaces::dispatchAfterResponse($this->id, $newStock);
 
         // 5. Update bundle parent stocks if this product is a component of any bundle
         $parentBundles = MasterProduct::where('is_bundle', true)
@@ -186,7 +186,7 @@ class MasterProduct extends Model
             $parent->marketplaceProducts()
                    ->where('sync_stock', true)
                    ->update(['stock' => $parentStock]);
-            \App\Jobs\PushStockToMarketplaces::dispatch($parent->id, $parentStock);
+            \App\Jobs\PushStockToMarketplaces::dispatchAfterResponse($parent->id, $parentStock);
         }
     }
 
