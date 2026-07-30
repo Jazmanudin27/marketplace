@@ -50,12 +50,18 @@ class MasterProductController extends Controller
 
         if ($request->filled('link_status')) {
             if ($request->link_status === 'unlinked') {
-                $query->whereDoesntHave('marketplaceProducts');
+                $query->where(function($q) {
+                    $q->whereDoesntHave('marketplaceProducts')
+                      ->orWhereDoesntHave('marketplaceProducts', function($mq) {
+                          $mq->whereRaw('LOWER(TRIM(marketplace_sku)) = LOWER(TRIM(master_products.sku))');
+                      });
+                });
             } elseif ($request->link_status === 'partial') {
-                $query->whereHas('marketplaceProducts')
-                    ->whereRaw('(SELECT COUNT(DISTINCT store_id) FROM marketplace_products WHERE marketplace_products.master_product_id = master_products.id) < ?', [$connectedStoresCount]);
+                $query->whereHas('marketplaceProducts', function($mq) {
+                    $mq->whereRaw('LOWER(TRIM(marketplace_sku)) = LOWER(TRIM(master_products.sku))');
+                })->whereRaw('(SELECT COUNT(DISTINCT store_id) FROM marketplace_products WHERE marketplace_products.master_product_id = master_products.id AND LOWER(TRIM(marketplace_sku)) = LOWER(TRIM(master_products.sku))) < ?', [$connectedStoresCount]);
             } elseif ($request->link_status === 'all') {
-                $query->whereRaw('(SELECT COUNT(DISTINCT store_id) FROM marketplace_products WHERE marketplace_products.master_product_id = master_products.id) >= ?', [$connectedStoresCount]);
+                $query->whereRaw('(SELECT COUNT(DISTINCT store_id) FROM marketplace_products WHERE marketplace_products.master_product_id = master_products.id AND LOWER(TRIM(marketplace_sku)) = LOWER(TRIM(master_products.sku))) >= ?', [$connectedStoresCount]);
             }
         }
 
@@ -112,7 +118,13 @@ class MasterProductController extends Controller
         $singleCount = MasterProduct::where('tenant_id', $tenantId)->where(function($q) {
             $q->where('is_bundle', false)->orWhereNull('is_bundle');
         })->count();
-        $unlinkedCount = MasterProduct::where('tenant_id', $tenantId)->whereDoesntHave('marketplaceProducts')->count();
+        $unlinkedCount = MasterProduct::where('tenant_id', $tenantId)
+            ->where(function($q) {
+                $q->whereDoesntHave('marketplaceProducts')
+                  ->orWhereDoesntHave('marketplaceProducts', function($mq) {
+                      $mq->whereRaw('LOWER(TRIM(marketplace_sku)) = LOWER(TRIM(master_products.sku))');
+                  });
+            })->count();
 
         return view('products.index', compact(
             'products',

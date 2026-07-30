@@ -370,22 +370,27 @@
                                         @foreach ($validMpStores as $mp)
                                             @php
                                                 $chCode = strtolower($mp->store->channel->code ?? '');
-                                                $badgeClass = match(true) {
-                                                    str_contains($chCode, 'shopee') => 'badge-channel-shopee',
-                                                    str_contains($chCode, 'tiktok') => 'badge-channel-tiktok',
-                                                    str_contains($chCode, 'lazada') => 'badge-channel-lazada',
-                                                    str_contains($chCode, 'tokopedia') => 'badge-channel-tokopedia',
-                                                    default => 'bg-secondary text-white',
+                                                $chName = strtolower($mp->store->channel->name ?? '');
+
+                                                $badgeStyle = match(true) {
+                                                    str_contains($chCode, 'shopee') || str_contains($chName, 'shopee') => 'background: linear-gradient(135deg, #ee4d2d, #ff6b35) !important; color: #ffffff !important;',
+                                                    str_contains($chCode, 'tiktok') || str_contains($chName, 'tiktok') => 'background: linear-gradient(135deg, #000000, #1e293b) !important; color: #ffffff !important;',
+                                                    str_contains($chCode, 'lazada') || str_contains($chName, 'lazada') => 'background: linear-gradient(135deg, #0f146d, #1a237e) !important; color: #ffffff !important;',
+                                                    str_contains($chCode, 'tokopedia') || str_contains($chName, 'tokopedia') => 'background: linear-gradient(135deg, #03ac0e, #059669) !important; color: #ffffff !important;',
+                                                    default => 'background: linear-gradient(135deg, #475569, #334155) !important; color: #ffffff !important;',
                                                 };
+
                                                 $iconClass = match(true) {
-                                                    str_contains($chCode, 'shopee') => 'fas fa-shopping-bag',
-                                                    str_contains($chCode, 'tiktok') => 'fab fa-tiktok',
-                                                    str_contains($chCode, 'lazada') => 'fas fa-store',
-                                                    str_contains($chCode, 'tokopedia') => 'fas fa-shopping-cart',
-                                                    default => 'fas fa-store',
+                                                    str_contains($chCode, 'shopee') || str_contains($chName, 'shopee') => 'fas fa-shopping-bag',
+                                                    str_contains($chCode, 'tiktok') || str_contains($chName, 'tiktok') => 'fab fa-tiktok',
+                                                    str_contains($chCode, 'lazada') || str_contains($chName, 'lazada') => 'fas fa-store',
+                                                    str_contains($chCode, 'tokopedia') || str_contains($chName, 'tokopedia') => 'fas fa-shopping-cart',
+                                                    default => 'fas fa-store-alt',
                                                 };
                                             @endphp
-                                            <span class="badge {{ $badgeClass }} d-inline-flex align-items-center gap-1 rounded-pill" style="font-size: 0.65rem;" title="SKU MP: {{ $mp->marketplace_sku ?: $product->sku }}">
+                                            <span class="badge d-inline-flex align-items-center gap-1 rounded-pill px-2 py-1"
+                                                  style="{{ $badgeStyle }} font-size: 0.68rem; font-weight: 600; text-shadow: 0 1px 1px rgba(0,0,0,0.2);"
+                                                  title="Toko: {{ $mp->store->store_name ?? '' }} (SKU: {{ $mp->marketplace_sku ?: $product->sku }})">
                                                 <i class="{{ $iconClass }}"></i>
                                                 {{ $mp->store->store_name ?? 'Marketplace' }}
                                             </span>
