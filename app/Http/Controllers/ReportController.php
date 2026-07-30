@@ -16,58 +16,7 @@ class ReportController extends Controller
         $categories = Category::where('tenant_id', $tenantId)->orderBy('name')->get();
         $brands = Brand::where('tenant_id', $tenantId)->orderBy('name')->get();
 
-        $query = MasterProduct::with(['category', 'brand', 'marketplaceProducts.store.channel'])
-            ->where('tenant_id', $tenantId);
-
-        if ($request->filled('category_id')) {
-            $query->where('category_id', $request->category_id);
-        }
-
-        if ($request->filled('brand_id')) {
-            $query->where('brand_id', $request->brand_id);
-        }
-
-        if ($request->filled('product_id')) {
-            $query->where('id', $request->product_id);
-        }
-
-        if ($request->filled('is_bundle')) {
-            $query->where('is_bundle', (bool)$request->is_bundle);
-        }
-
-        if ($request->filled('is_preorder')) {
-            if ($request->is_preorder === '1') {
-                $query->where('is_preorder', true);
-            } elseif ($request->is_preorder === '0') {
-                $query->where(function ($q) {
-                    $q->where('is_preorder', false)
-                        ->orWhereNull('is_preorder');
-                });
-            }
-        }
-
-        if ($request->filled('search')) {
-            $search = trim($request->search);
-            $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                    ->orWhere('sku', 'like', "%{$search}%");
-            });
-        }
-
-        if ($request->boolean('hide_zero_stock')) {
-            $query->where(function ($q) {
-                $q->where('stock', '>', 0)
-                  ->orWhereHas('marketplaceProducts', function ($mq) {
-                      $mq->where('stock', '>', 0);
-                  });
-            });
-        }
-
-        $allProductsList = MasterProduct::where('tenant_id', $tenantId)->orderBy('name')->get(['id', 'name', 'sku', 'is_preorder']);
-
-        $products = $query->orderBy('name')->paginate(20)->withQueryString();
-
-        return view('reports.stock', compact('categories', 'brands', 'products', 'allProductsList'));
+        return view('reports.stock', compact('categories', 'brands'));
     }
 
     public function printStockReport(Request $request)
