@@ -302,6 +302,10 @@
                     foreach ($prefixes as $pfx) {
                         if (str_starts_with($ref, $pfx)) {
                             $orderRef = substr($ref, strlen($pfx));
+                            if (str_contains($orderRef, ' (Komponen dari Set:')) {
+                                $orderRef = explode(' (Komponen dari Set:', $orderRef)[0];
+                            }
+                            $orderRef = trim($orderRef);
                             break;
                         }
                     }

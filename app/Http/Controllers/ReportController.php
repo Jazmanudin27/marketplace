@@ -200,7 +200,11 @@ class ReportController extends Controller
         foreach ($movements as $mov) {
             foreach ($prefixes as $prefix) {
                 if (str_starts_with($mov->reference, $prefix)) {
-                    $orderMarketplaceIds[] = substr($mov->reference, strlen($prefix));
+                    $cleanId = substr($mov->reference, strlen($prefix));
+                    if (str_contains($cleanId, ' (Komponen dari Set:')) {
+                        $cleanId = explode(' (Komponen dari Set:', $cleanId)[0];
+                    }
+                    $orderMarketplaceIds[] = trim($cleanId);
                     break;
                 }
             }
@@ -259,10 +263,17 @@ class ReportController extends Controller
         foreach ($allMovements as $productId => $movements) {
             foreach ($movements as $mov) {
                 $ref = $mov->reference;
+                $cleanId = null;
                 if (str_starts_with($ref, 'Pesanan Masuk: ')) {
-                    $orderIds[] = substr($ref, strlen('Pesanan Masuk: '));
+                    $cleanId = substr($ref, strlen('Pesanan Masuk: '));
                 } elseif (str_starts_with($ref, 'Pembatalan Pesanan: ')) {
-                    $orderIds[] = substr($ref, strlen('Pembatalan Pesanan: '));
+                    $cleanId = substr($ref, strlen('Pembatalan Pesanan: '));
+                }
+                if ($cleanId) {
+                    if (str_contains($cleanId, ' (Komponen dari Set:')) {
+                        $cleanId = explode(' (Komponen dari Set:', $cleanId)[0];
+                    }
+                    $orderIds[] = trim($cleanId);
                 }
             }
         }
