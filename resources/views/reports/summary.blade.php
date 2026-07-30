@@ -29,6 +29,14 @@
                                 @endforeach
                             </select>
                         </div>
+                        <div class="mb-3">
+                            <label class="form-label form-label-sm fw-semibold">Jenis Produk</label>
+                            <select name="is_bundle" class="form-select form-select-sm">
+                                <option value="">Semua Jenis (Single & BUNDLE)</option>
+                                <option value="0">📦 Single (Produk Standar)</option>
+                                <option value="1">🎁 BUNDLE / Paket Set</option>
+                            </select>
+                        </div>
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label class="form-label form-label-sm fw-semibold">Dari Tanggal</label>

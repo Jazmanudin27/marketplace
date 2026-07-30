@@ -247,6 +247,10 @@ class ReportController extends Controller
             $query->where('brand_id', $request->brand_id);
         }
 
+        if ($request->filled('is_bundle')) {
+            $query->where('is_bundle', (bool)$request->is_bundle);
+        }
+
         $products = $query->get();
 
         $startDate = $request->start_date ? \Carbon\Carbon::parse($request->start_date)->startOfDay() : null;
