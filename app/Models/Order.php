@@ -354,13 +354,26 @@ class Order extends Model
     public function hasPreorderItems(): bool
     {
         return $this->items->contains(function ($item) {
+            // 1. Ambil Master Product langsung atau dari relation MarketplaceProduct
             $master = $item->masterProduct ?: ($item->marketplaceProduct ? $item->marketplaceProduct->masterProduct : null);
+
+            // 2. Jika belum terhubung, cari Master Product berdasarkan SKU item
+            if (!$master && !empty($item->sku)) {
+                $master = MasterProduct::where('tenant_id', $this->tenant_id)
+                    ->where('sku', $item->sku)
+                    ->first();
+            }
+
+            // 3. JIKA MASTER PRODUK DITEMUKAN: ACUAN MASTER PRODUK DIJADIKAN KEPUTUSAN MUTLAK!
             if ($master) {
                 return (bool) $master->is_preorder;
             }
+
+            // 4. Hanya jika produk tidak ada di Master Produk ERP, gunakan fallback dari Marketplace
             if ($item->marketplaceProduct) {
                 return $item->marketplaceProduct->isPreOrderFromMarketplace();
             }
+
             return false;
         });
     }
