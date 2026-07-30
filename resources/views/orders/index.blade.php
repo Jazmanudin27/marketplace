@@ -2,6 +2,38 @@
 @section('title', 'Daftar Pesanan')
 @section('page-title', 'Manajemen Pesanan')
 @section('content')
+    <style>
+        .badge-channel-shopee {
+            background: linear-gradient(135deg, #ee4d2d 0%, #ff6b35 100%) !important;
+            color: #ffffff !important;
+            font-weight: 700;
+            box-shadow: 0 2px 4px rgba(238, 77, 45, 0.25);
+        }
+        .badge-channel-tiktok {
+            background: linear-gradient(135deg, #000000 0%, #111827 100%) !important;
+            color: #ffffff !important;
+            border: 1px solid #374151;
+            font-weight: 700;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        .badge-channel-lazada {
+            background: linear-gradient(135deg, #0f146d 0%, #1a237e 100%) !important;
+            color: #ffffff !important;
+            font-weight: 700;
+            box-shadow: 0 2px 4px rgba(15, 20, 109, 0.25);
+        }
+        .badge-channel-tokopedia {
+            background: linear-gradient(135deg, #03ac0e 0%, #10b981 100%) !important;
+            color: #ffffff !important;
+            font-weight: 700;
+            box-shadow: 0 2px 4px rgba(3, 172, 14, 0.25);
+        }
+        .badge-channel-offline {
+            background: linear-gradient(135deg, #475569 0%, #64748b 100%) !important;
+            color: #ffffff !important;
+            font-weight: 700;
+        }
+    </style>
     <div class="row">
         <div class="col-md-12">
 
@@ -295,13 +327,29 @@
                                                 <strong class="text-dark small">{{ $order->buyer_name ?? '-' }}</strong>
                                             </td>
                                             <td>
+                                                @php
+                                                    $channelCode = strtolower($order->store?->channel?->code ?? '');
+                                                    $channelName = $order->store?->channel?->name ?? 'Offline';
+                                                    $badgeClass = match(true) {
+                                                        str_contains($channelCode, 'shopee') => 'badge-channel-shopee',
+                                                        str_contains($channelCode, 'tiktok') => 'badge-channel-tiktok',
+                                                        str_contains($channelCode, 'lazada') => 'badge-channel-lazada',
+                                                        str_contains($channelCode, 'tokopedia') => 'badge-channel-tokopedia',
+                                                        default => 'badge-channel-offline',
+                                                    };
+                                                    $channelIcon = match(true) {
+                                                        str_contains($channelCode, 'shopee') => 'fas fa-shopping-bag',
+                                                        str_contains($channelCode, 'tiktok') => 'fab fa-tiktok',
+                                                        str_contains($channelCode, 'lazada') => 'fas fa-store',
+                                                        str_contains($channelCode, 'tokopedia') => 'fas fa-shopping-cart',
+                                                        default => 'fas fa-store-alt',
+                                                    };
+                                                @endphp
                                                 <div class="lh-sm">
-                                                    <strong
-                                                        class="text-dark small">{{ $order->store->store_name }}</strong>
+                                                    <strong class="text-dark small">{{ $order->store->store_name ?? '-' }}</strong>
                                                     <div class="mt-1">
-                                                        <span
-                                                            class="badge bg-secondary channel-{{ $order->store->channel->code }} small">
-                                                            {{ $order->store->channel->name }}
+                                                        <span class="badge {{ $badgeClass }} px-2 py-1" style="font-size: 0.68rem;">
+                                                            <i class="{{ $channelIcon }} me-1"></i>{{ $channelName }}
                                                         </span>
                                                     </div>
                                                 </div>
