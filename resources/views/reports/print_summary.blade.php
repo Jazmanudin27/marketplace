@@ -30,6 +30,8 @@
         }
 
         table.data-table {
+            min-width: 100%;
+            max-width: 150%;
             width: 100%;
             border-collapse: collapse;
             font-size: 11px;

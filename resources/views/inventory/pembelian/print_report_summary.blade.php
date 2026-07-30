@@ -7,7 +7,7 @@
         body { font-family: Arial, sans-serif; font-size: 11px; color: #1e293b; margin: 20px; }
         h2 { text-align: center; color: #059669; margin-bottom: 4px; }
         .subtitle { text-align: center; color: #64748b; margin-bottom: 16px; font-size: 10px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        table { min-width: 100%; max-width: 150%; width: 100%; border-collapse: collapse; margin-top: 10px; }
         th { background: #ecfdf5; color: #047857; padding: 7px 8px; text-align: left; font-size: 10px; text-transform: uppercase; }
         td { padding: 6px 8px; border-bottom: 1px solid #e2e8f0; }
         tr:nth-child(even) { background: #fbfdfc; }
