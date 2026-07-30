@@ -251,6 +251,10 @@ class ReportController extends Controller
             $query->where('is_bundle', (bool)$request->is_bundle);
         }
 
+        if ($request->filled('po_status')) {
+            $query->where('is_preorder', (bool)$request->po_status);
+        }
+
         $products = $query->get();
 
         $startDate = $request->start_date ? \Carbon\Carbon::parse($request->start_date)->startOfDay() : null;

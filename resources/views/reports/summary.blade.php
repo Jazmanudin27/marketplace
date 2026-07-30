@@ -37,6 +37,14 @@
                                 <option value="1">🎁 BUNDLE / Paket Set</option>
                             </select>
                         </div>
+                        <div class="mb-3">
+                            <label class="form-label form-label-sm fw-semibold">Tipe Pre-Order (PO)</label>
+                            <select name="po_status" class="form-select form-select-sm">
+                                <option value="">Semua Tipe (PO & Reguler)</option>
+                                <option value="1">⏳ Pre-Order (PO)</option>
+                                <option value="0">📦 Reguler (Bukan PO)</option>
+                            </select>
+                        </div>
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label class="form-label form-label-sm fw-semibold">Dari Tanggal</label>
