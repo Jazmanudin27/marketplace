@@ -34,7 +34,13 @@ class MarketplaceProductController extends Controller
         }
 
         if ($request->filled('sku')) {
-            $query->where('marketplace_products.marketplace_sku', 'like', '%' . $request->sku . '%');
+            $skuInput = trim($request->sku);
+            $query->where(function ($q) use ($skuInput) {
+                $q->where('marketplace_products.marketplace_sku', 'like', '%' . $skuInput . '%')
+                  ->orWhereHas('masterProduct', function ($mq) use ($skuInput) {
+                      $mq->where('sku', 'like', '%' . $skuInput . '%');
+                  });
+            });
         }
 
         if ($request->filled('channel_id')) {
