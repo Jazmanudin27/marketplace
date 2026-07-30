@@ -342,32 +342,39 @@
                                 </div>
                             </td>
                             <td>
-                                @if ($product->marketplaceProducts->isEmpty())
-                                    <span class="badge bg-secondary text-white rounded-pill">
+                                @php
+                                    $validMpStores = $product->marketplaceProducts->filter(function($mp) use ($product) {
+                                        return empty($mp->marketplace_sku) || strtolower(trim($mp->marketplace_sku)) === strtolower(trim($product->sku));
+                                    })->unique('store_id');
+                                @endphp
+
+                                @if ($validMpStores->isEmpty())
+                                    <span class="badge bg-secondary text-white rounded-pill" style="font-size: 0.68rem;">
                                         <i class="fas fa-unlink me-1"></i> Belum Terhubung
                                     </span>
                                 @else
                                     <div class="d-flex flex-wrap gap-1">
-                                        @foreach ($product->marketplaceProducts->unique('store_id') as $mp)
+                                        @foreach ($validMpStores as $mp)
                                             @php
-                                                $chCode = $mp->store->channel->code ?? '';
-                                                $badgeClass = 'bg-success text-white';
-                                                if ($chCode === 'shopee') {
-                                                    $badgeClass = 'bg-danger text-white';
-                                                } elseif ($chCode === 'tiktok') {
-                                                    $badgeClass = 'bg-dark text-white';
-                                                }
+                                                $chCode = strtolower($mp->store->channel->code ?? '');
+                                                $badgeClass = match(true) {
+                                                    str_contains($chCode, 'shopee') => 'badge-channel-shopee',
+                                                    str_contains($chCode, 'tiktok') => 'badge-channel-tiktok',
+                                                    str_contains($chCode, 'lazada') => 'badge-channel-lazada',
+                                                    str_contains($chCode, 'tokopedia') => 'badge-channel-tokopedia',
+                                                    default => 'bg-secondary text-white',
+                                                };
+                                                $iconClass = match(true) {
+                                                    str_contains($chCode, 'shopee') => 'fas fa-shopping-bag',
+                                                    str_contains($chCode, 'tiktok') => 'fab fa-tiktok',
+                                                    str_contains($chCode, 'lazada') => 'fas fa-store',
+                                                    str_contains($chCode, 'tokopedia') => 'fas fa-shopping-cart',
+                                                    default => 'fas fa-store',
+                                                };
                                             @endphp
-                                            <span
-                                                class="badge {{ $badgeClass }} d-inline-flex align-items-center gap-1 rounded-pill">
-                                                @if ($chCode === 'shopee')
-                                                    <i class="fab fa-shopify"></i>
-                                                @elseif ($chCode === 'tiktok')
-                                                    <i class="fab fa-tiktok"></i>
-                                                @else
-                                                    <i class="fas fa-store"></i>
-                                                @endif
-                                                {{ $mp->store->store_name }}
+                                            <span class="badge {{ $badgeClass }} d-inline-flex align-items-center gap-1 rounded-pill" style="font-size: 0.65rem;" title="SKU MP: {{ $mp->marketplace_sku ?: $product->sku }}">
+                                                <i class="{{ $iconClass }}"></i>
+                                                {{ $mp->store->store_name ?? 'Marketplace' }}
                                             </span>
                                         @endforeach
                                     </div>
