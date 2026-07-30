@@ -487,10 +487,10 @@
                         </div>
                     </form>
 
-                    @if (isset($product->id))
+                    @if (isset($product->id) && !$product->isLinked())
                         <div class="mt-4 pt-3 border-top">
                             <form action="{{ route('products.destroy', $product) }}" method="POST"
-                                onsubmit="return confirm('Hapus produk ini?')">
+                                onsubmit="return confirm('Apakah Anda yakin ingin menghapus Master Produk ini secara permanen?')">
                                 @csrf @method('DELETE')
                                 <button type="submit" class="btn btn-outline-danger btn-sm rounded-3">
                                     <i class="fas fa-trash me-1"></i> Hapus Produk Ini

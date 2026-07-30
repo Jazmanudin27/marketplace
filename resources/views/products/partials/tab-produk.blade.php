@@ -359,6 +359,7 @@
                                     $validMpStores = $product->marketplaceProducts->filter(function($mp) use ($product) {
                                         return empty($mp->marketplace_sku) || strtolower(trim($mp->marketplace_sku)) === strtolower(trim($product->sku));
                                     })->unique('store_id');
+                                    $isLinked = $validMpStores->isNotEmpty();
                                 @endphp
 
                                 @if ($validMpStores->isEmpty())
@@ -420,6 +421,16 @@
                                             class="btn btn-primary btn-sm rounded-3" title="Publish ke Marketplace">
                                             <i class="fas fa-cloud-upload-alt"></i>
                                         </a>
+                                    @endif
+                                    @if (!$isLinked)
+                                        <form action="{{ route('products.destroy', $product->id) }}" method="POST" class="d-inline"
+                                            onsubmit="return confirm('Apakah Anda yakin ingin menghapus Master Produk &quot;{{ addslashes($product->name) }}&quot; ini secara permanen?')">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="btn btn-danger btn-sm rounded-3" title="Hapus Produk">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </form>
                                     @endif
                                 </div>
                             </td>

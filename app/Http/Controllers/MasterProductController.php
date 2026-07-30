@@ -143,6 +143,26 @@ class MasterProductController extends Controller
         ));
     }
 
+    public function destroy(MasterProduct $product)
+    {
+        $tenantId = Auth::user()->tenant_id;
+        if ($product->tenant_id !== $tenantId) {
+            abort(403);
+        }
+
+        if ($product->isLinked()) {
+            return back()->with('error', 'Master Produk ini sudah terhubung ke marketplace dan tidak dapat dihapus.');
+        }
+
+        try {
+            $productName = $product->name;
+            $product->delete();
+            return redirect()->route('products.index')->with('success', "Master Produk \"{$productName}\" berhasil dihapus.");
+        } catch (\Exception $e) {
+            return back()->with('error', 'Gagal menghapus produk. Master Produk ini mungkin sedang digunakan dalam transaksi atau data lain.');
+        }
+    }
+
     public function bulkDelete(Request $request)
     {
         $tenantId = Auth::user()->tenant_id;
@@ -152,11 +172,35 @@ class MasterProductController extends Controller
             return back()->with('error', 'Tidak ada produk yang dipilih untuk dihapus.');
         }
 
-        $count = MasterProduct::where('tenant_id', $tenantId)
+        $products = MasterProduct::with('marketplaceProducts')
+            ->where('tenant_id', $tenantId)
             ->whereIn('id', $productIds)
-            ->delete();
+            ->get();
 
-        return back()->with('success', "Berhasil menghapus {$count} Master Produk.");
+        $deletedCount = 0;
+        $skippedCount = 0;
+
+        foreach ($products as $product) {
+            if ($product->isLinked()) {
+                $skippedCount++;
+                continue;
+            }
+
+            try {
+                $product->delete();
+                $deletedCount++;
+            } catch (\Exception $e) {
+                $skippedCount++;
+            }
+        }
+
+        if ($deletedCount > 0 && $skippedCount > 0) {
+            return back()->with('warning', "Berhasil menghapus {$deletedCount} Master Produk. {$skippedCount} produk diabaikan karena sudah terhubung ke marketplace atau digunakan di data lain.");
+        } elseif ($deletedCount > 0) {
+            return back()->with('success', "Berhasil menghapus {$deletedCount} Master Produk.");
+        } else {
+            return back()->with('error', "Semua produk yang dipilih tidak dapat dihapus karena sudah terhubung ke marketplace atau sedang digunakan.");
+        }
     }
 
     public function create()
@@ -469,13 +513,6 @@ class MasterProductController extends Controller
         }
         
         return redirect()->route('products.index')->with('success', 'Produk berhasil diperbarui.');
-    }
-
-    public function destroy(MasterProduct $product)
-    {
-        abort_unless($product->tenant_id === Auth::user()->tenant_id, 403);
-        $product->delete();
-        return redirect()->route('products.index')->with('success', 'Produk berhasil dihapus.');
     }
 
     public function publish(MasterProduct $product)

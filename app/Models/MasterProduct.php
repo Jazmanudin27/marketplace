@@ -202,4 +202,18 @@ class MasterProduct extends Model
     {
         return $this->hasMany(ProductRecipe::class);
     }
+
+    /**
+     * Cek apakah produk master terhubung ke setidaknya 1 toko marketplace
+     */
+    public function isLinked(): bool
+    {
+        if (!$this->relationLoaded('marketplaceProducts')) {
+            $this->load('marketplaceProducts');
+        }
+
+        return $this->marketplaceProducts->filter(function ($mp) {
+            return empty($mp->marketplace_sku) || strtolower(trim($mp->marketplace_sku)) === strtolower(trim($this->sku));
+        })->isNotEmpty();
+    }
 }
