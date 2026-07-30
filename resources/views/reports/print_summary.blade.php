@@ -151,8 +151,20 @@
                 @endphp
                 <tr>
                     <td class="text-center">{{ $index + 1 }}</td>
-                    <td>{{ $product->sku }}</td>
-                    <td>{{ $product->name }}</td>
+                    <td>
+                        <a href="{{ route('reports.ledger.print', array_filter(['product_id' => $product->id, 'start_date' => request('start_date'), 'end_date' => request('end_date')])) }}"
+                            target="_blank" style="color: #0284c7; text-decoration: underline; font-weight: bold;"
+                            title="Klik untuk membuka Kartu Stok {{ $product->name }}">
+                            {{ $product->sku }}
+                        </a>
+                    </td>
+                    <td>
+                        <a href="{{ route('reports.ledger.print', array_filter(['product_id' => $product->id, 'start_date' => request('start_date'), 'end_date' => request('end_date')])) }}"
+                            target="_blank" style="color: #0f172a; text-decoration: none;"
+                            title="Klik untuk membuka Kartu Stok {{ $product->name }}">
+                            {{ $product->name }}
+                        </a>
+                    </td>
                     <td class="text-center">{{ $product->unit ?? 'PCS' }}</td>
                     <td class="text-center">{{ $product->category->name ?? '-' }}</td>
                     <td class="text-center">{{ $product->brand->name ?? '-' }}</td>

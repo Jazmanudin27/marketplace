@@ -155,7 +155,12 @@ class WarehouseMutationController extends Controller
             $totalKeluar = $produksi + $percetakan + $returPembelian + $penyesuaianKeluar;
             $stokAwal = $stokAkhir - ($totalMasuk - $totalKeluar);
 
+            if ($stokAwal == 0 && $stokAkhir == 0 && $totalMasuk == 0 && $totalKeluar == 0) {
+                continue;
+            }
+
             $rekap[] = [
+                'id' => $item->id,
                 'sku' => $item->sku,
                 'name' => $item->name,
                 'unit' => $item->unit,
@@ -239,7 +244,12 @@ class WarehouseMutationController extends Controller
             $totalKeluar = $produksi + $percetakan + $returPembelian + $penyesuaianKeluar;
             $stokAwal = $stokAkhir - ($totalMasuk - $totalKeluar);
 
+            if ($stokAwal == 0 && $stokAkhir == 0 && $totalMasuk == 0 && $totalKeluar == 0) {
+                continue;
+            }
+
             $rekap[] = [
+                'id' => $item->id,
                 'sku' => $item->sku,
                 'name' => $item->name,
                 'unit' => $item->unit,

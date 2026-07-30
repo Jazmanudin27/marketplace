@@ -47,8 +47,16 @@
             @forelse($rekap as $i => $row)
                 <tr>
                     <td>{{ $i + 1 }}</td>
-                    <td style="font-family:monospace">{{ $row['sku'] ?: '—' }}</td>
-                    <td style="font-weight:bold">{{ $row['name'] }}</td>
+                    <td style="font-family:monospace">
+                        <a href="{{ route('pembelian.print_stock_card', ['item_id' => $row['id'], 'date_from' => $dateFrom, 'date_to' => $dateTo]) }}" target="_blank" style="color:#0284c7;text-decoration:underline;font-weight:bold;" title="Buka Kartu Stok {{ $row['name'] }}">
+                            {{ $row['sku'] ?: '—' }}
+                        </a>
+                    </td>
+                    <td style="font-weight:bold">
+                        <a href="{{ route('pembelian.print_stock_card', ['item_id' => $row['id'], 'date_from' => $dateFrom, 'date_to' => $dateTo]) }}" target="_blank" style="color:#0f172a;text-decoration:none;" title="Buka Kartu Stok {{ $row['name'] }}">
+                            {{ $row['name'] }}
+                        </a>
+                    </td>
                     <td style="text-transform:uppercase">{{ $row['type'] }}</td>
                     <td style="text-align:center">{{ number_format($row['stok_awal']) }}</td>
                     <td style="text-align:center" class="text-success">+{{ number_format($row['pembelian']) }}</td>
