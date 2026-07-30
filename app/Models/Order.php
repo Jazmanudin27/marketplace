@@ -354,7 +354,14 @@ class Order extends Model
     public function hasPreorderItems(): bool
     {
         return $this->items->contains(function ($item) {
-            return $item->masterProduct && $item->masterProduct->is_preorder;
+            $master = $item->masterProduct ?: ($item->marketplaceProduct ? $item->marketplaceProduct->masterProduct : null);
+            if ($master) {
+                return (bool) $master->is_preorder;
+            }
+            if ($item->marketplaceProduct) {
+                return $item->marketplaceProduct->isPreOrderFromMarketplace();
+            }
+            return false;
         });
     }
 }
