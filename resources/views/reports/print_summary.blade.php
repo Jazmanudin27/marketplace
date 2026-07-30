@@ -29,13 +29,9 @@
             color: #555;
         }
 
-        .table-wrapper {
-            width: 100%;
-            overflow-x: auto;
-        }
-
         table.data-table {
-            min-width: 1350px;
+            min-width: 100%;
+            max-width: 150%;
             width: 100%;
             border-collapse: collapse;
             font-size: 11px;
@@ -44,8 +40,49 @@
         table.data-table th,
         table.data-table td {
             border: 1px solid #000;
-            padding: 7px 6px;
+            padding: 6px 4px;
             text-align: left;
+        }
+
+        /* Group Headers */
+        table.data-table th.bg-blue {
+            background-color: #3b82f6 !important;
+            /* Biru */
+            color: white;
+            text-align: center;
+            border-color: #000;
+        }
+
+        table.data-table th.bg-green {
+            background-color: #22c55e !important;
+            /* Hijau */
+            color: white;
+            text-align: center;
+            border-color: #000;
+        }
+
+        table.data-table th.bg-red {
+            background-color: #ef4444 !important;
+            /* Merah */
+            color: white;
+            text-align: center;
+            border-color: #000;
+        }
+
+        table.data-table th.bg-gray {
+            background-color: #64748b !important;
+            /* Abu-abu */
+            color: white;
+            text-align: center;
+            border-color: #000;
+        }
+
+        .text-right {
+            text-align: right;
+        }
+
+        .text-center {
+            text-align: center;
         }
 
         a.product-link {
@@ -53,7 +90,6 @@
             text-decoration: none !important;
             font-weight: 600;
             cursor: pointer;
-            word-break: break-word;
         }
 
         a.product-link:hover {
@@ -74,10 +110,6 @@
 
             .no-print {
                 display: none;
-            }
-
-            table.data-table {
-                min-width: 100% !important;
             }
 
             a.product-link {
@@ -103,33 +135,32 @@
         </p>
     </div>
 
-    <div class="table-wrapper">
     <table class="data-table">
         <thead>
             <tr>
-                <th rowspan="2" class="bg-blue" style="width: 35px;">No</th>
-                <th rowspan="2" class="bg-blue" style="min-width: 160px;">SKU</th>
-                <th rowspan="2" class="bg-blue" style="min-width: 280px;">Nama Barang</th>
-                <th rowspan="2" class="bg-blue" style="width: 55px;">Satuan</th>
-                <th rowspan="2" class="bg-blue" style="width: 85px;">Kategori</th>
-                <th rowspan="2" class="bg-blue" style="width: 85px;">Merk</th>
-                <th rowspan="2" class="bg-blue" style="width: 70px;">Stok Awal</th>
+                <th rowspan="2" class="bg-blue">No</th>
+                <th rowspan="2" class="bg-blue">SKU</th>
+                <th rowspan="2" class="bg-blue" width="15%">Nama Barang</th>
+                <th rowspan="2" class="bg-blue">Satuan</th>
+                <th rowspan="2" class="bg-blue">Kategori</th>
+                <th rowspan="2" class="bg-blue">Merk</th>
+                <th rowspan="2" class="bg-blue">Stok Awal</th>
                 <th colspan="3" class="bg-green">PENERIMAAN</th>
                 <th colspan="6" class="bg-red">PENGELUARAN</th>
-                <th rowspan="2" class="bg-gray" style="width: 75px;">Stok Akhir</th>
+                <th rowspan="2" class="bg-gray">Stok Akhir</th>
             </tr>
             <tr>
                 <!-- PENERIMAAN -->
-                <th class="bg-green" style="width: 65px;">Pembelian</th>
-                <th class="bg-green" style="width: 65px;">Penyesuaian<br>(+)</th>
-                <th class="bg-green" style="width: 65px;">Lainnya<br>(+)</th>
+                <th class="bg-green">Pembelian</th>
+                <th class="bg-green">Penyesuaian<br>(+)</th>
+                <th class="bg-green">Lainnya<br>(+)</th>
                 <!-- PENGELUARAN -->
-                <th class="bg-red" style="width: 65px;">Shopee</th>
-                <th class="bg-red" style="width: 65px;">TikTok</th>
-                <th class="bg-red" style="width: 65px;">Tokopedia</th>
-                <th class="bg-red" style="width: 65px;">Lazada</th>
-                <th class="bg-red" style="width: 65px;">Penyesuaian<br>(-)</th>
-                <th class="bg-red" style="width: 65px;">Lainnya<br>(-)</th>
+                <th class="bg-red">Shopee</th>
+                <th class="bg-red">TikTok</th>
+                <th class="bg-red">Tokopedia</th>
+                <th class="bg-red">Lazada</th>
+                <th class="bg-red">Penyesuaian<br>(-)</th>
+                <th class="bg-red">Lainnya<br>(-)</th>
             </tr>
         </thead>
         <tbody>
@@ -201,7 +232,6 @@
             </tfoot>
         @endif
     </table>
-    </div>
 
 
 </body>

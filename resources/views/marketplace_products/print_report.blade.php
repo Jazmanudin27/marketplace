@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -76,7 +77,8 @@
             font-size: 10px;
         }
 
-        th, td {
+        th,
+        td {
             border: 1px solid #333;
             padding: 6px 8px;
             vertical-align: top;
@@ -149,16 +151,19 @@
             body {
                 padding: 0;
             }
+
             .no-print {
                 display: none;
             }
         }
     </style>
 </head>
+
 <body onload="window.print()">
 
     <div class="no-print" style="margin-bottom: 15px; text-align: right;">
-        <button onclick="window.print()" style="padding: 6px 15px; cursor: pointer; font-weight: bold;">Cetak Halaman Ini</button>
+        <button onclick="window.print()" style="padding: 6px 15px; cursor: pointer; font-weight: bold;">Cetak Halaman
+            Ini</button>
     </div>
 
     <div class="header">
@@ -168,12 +173,23 @@
 
     @php
         $appliedFilters = [];
-        if (request('status') === 'mapped') $appliedFilters[] = "Status: Sudah Ditautkan";
-        elseif (request('status') === 'unmapped') $appliedFilters[] = "Status: Belum Ditautkan";
-        if (request('name')) $appliedFilters[] = "Nama: \"" . request('name') . "\"";
-        if (request('sku')) $appliedFilters[] = "SKU: \"" . request('sku') . "\"";
-        if ($selectedChannel) $appliedFilters[] = "Channel: " . $selectedChannel->name;
-        if ($selectedStore) $appliedFilters[] = "Toko: " . $selectedStore->store_name;
+        if (request('status') === 'mapped') {
+            $appliedFilters[] = 'Status: Sudah Ditautkan';
+        } elseif (request('status') === 'unmapped') {
+            $appliedFilters[] = 'Status: Belum Ditautkan';
+        }
+        if (request('name')) {
+            $appliedFilters[] = "Nama: \"" . request('name') . "\"";
+        }
+        if (request('sku')) {
+            $appliedFilters[] = "SKU: \"" . request('sku') . "\"";
+        }
+        if ($selectedChannel) {
+            $appliedFilters[] = 'Channel: ' . $selectedChannel->name;
+        }
+        if ($selectedStore) {
+            $appliedFilters[] = 'Toko: ' . $selectedStore->store_name;
+        }
     @endphp
 
     @if (count($appliedFilters) > 0)
@@ -225,21 +241,22 @@
         <tbody>
             @forelse($products as $index => $p)
                 @php
-                    $isPo        = $p->isPreOrder();
-                    $isNoMap     = !$p->masterProduct;
-                    $localStock  = $p->masterProduct ? (int)$p->masterProduct->stock : null;
-                    $safetyStock = (int)($p->safety_stock ?? 0);
-                    $expectedMp  = $localStock !== null ? max(0, $localStock - $safetyStock) : null;
-                    $marketStock = (int)$p->stock;
-                    $selisih     = $expectedMp !== null ? ($marketStock - $expectedMp) : null;
-                    $isSinkron   = ($expectedMp !== null && $selisih === 0 && !$isPo);
+                    $isPo = $p->isPreOrder();
+                    $isNoMap = !$p->masterProduct;
+                    $localStock = $p->masterProduct ? (int) $p->masterProduct->stock : null;
+                    $safetyStock = (int) ($p->safety_stock ?? 0);
+                    $expectedMp = $localStock !== null ? max(0, $localStock - $safetyStock) : null;
+                    $marketStock = (int) $p->stock;
+                    $selisih = $expectedMp !== null ? $marketStock - $expectedMp : null;
+                    $isSinkron = $expectedMp !== null && $selisih === 0 && !$isPo;
                 @endphp
                 <tr>
                     <td class="text-center">{{ $index + 1 }}</td>
                     <td>
                         <strong>{{ $p->name }}</strong>
-                        @if($p->masterProduct)
-                            <div style="font-size:9px; color:#555;">Master: {{ $p->masterProduct->name }} (SKU: {{ $p->masterProduct->sku }})</div>
+                        @if ($p->masterProduct)
+                            <div style="font-size:9px; color:#555;">Master: {{ $p->masterProduct->name }} (SKU:
+                                {{ $p->masterProduct->sku }})</div>
                         @endif
                     </td>
                     <td>
@@ -249,13 +266,13 @@
                     <td class="font-mono">{{ $p->marketplace_sku ?: '-' }}</td>
                     <td class="text-center font-mono" style="font-weight:bold;">
                         {{ $localStock !== null ? number_format($localStock) : '-' }}
-                        @if($safetyStock > 0)
+                        @if ($safetyStock > 0)
                             <div style="font-size:8px; color:#6b21a8;">(Safety: {{ $safetyStock }})</div>
                         @endif
                     </td>
                     <td class="text-center font-mono" style="font-weight:bold;">{{ number_format($marketStock) }}</td>
                     <td class="text-center font-mono" style="font-weight:bold;">
-                        @if($selisih === null)
+                        @if ($selisih === null)
                             -
                         @elseif($selisih === 0)
                             <span style="color:#198754;">±0</span>
@@ -266,7 +283,7 @@
                         @endif
                     </td>
                     <td class="text-center">
-                        @if($isPo)
+                        @if ($isPo)
                             <span class="badge-po">⏳ PRE-ORDER</span>
                         @elseif($isNoMap)
                             <span class="badge-unmapped">🔗 BELUM MAP</span>
@@ -279,11 +296,13 @@
                 </tr>
             @empty
                 <tr>
-                    <td colspan="8" class="text-center" style="padding: 15px;">Tidak ada data produk marketplace yang ditemukan.</td>
+                    <td colspan="8" class="text-center" style="padding: 15px;">Tidak ada data produk marketplace yang
+                        ditemukan.</td>
                 </tr>
             @endforelse
         </tbody>
     </table>
 
 </body>
+
 </html>
