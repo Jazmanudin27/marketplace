@@ -13,7 +13,9 @@
         tr:nth-child(even) { background: #fbfdfc; }
         .text-success { color: #059669; font-weight: bold; }
         .text-danger  { color: #dc2626; font-weight: bold; }
-        @media print { @page { margin: 15mm; } }
+        a.product-link { color: #1e293b; text-decoration: none !important; font-weight: 600; cursor: pointer; }
+        a.product-link:hover { color: #059669; text-decoration: none !important; }
+        @media print { @page { margin: 15mm; } a.product-link { color: #000 !important; text-decoration: none !important; } }
     </style>
 </head>
 <body>
@@ -48,12 +50,12 @@
                 <tr>
                     <td>{{ $i + 1 }}</td>
                     <td style="font-family:monospace">
-                        <a href="{{ route('pembelian.print_stock_card', ['item_id' => $row['id'], 'date_from' => $dateFrom, 'date_to' => $dateTo]) }}" target="_blank" style="color:#0284c7;text-decoration:underline;font-weight:bold;" title="Buka Kartu Stok {{ $row['name'] }}">
+                        <a href="{{ route('pembelian.print_stock_card', ['item_id' => $row['id'], 'date_from' => $dateFrom, 'date_to' => $dateTo]) }}" target="_blank" class="product-link" title="Buka Kartu Stok {{ $row['name'] }}">
                             {{ $row['sku'] ?: '—' }}
                         </a>
                     </td>
-                    <td style="font-weight:bold">
-                        <a href="{{ route('pembelian.print_stock_card', ['item_id' => $row['id'], 'date_from' => $dateFrom, 'date_to' => $dateTo]) }}" target="_blank" style="color:#0f172a;text-decoration:none;" title="Buka Kartu Stok {{ $row['name'] }}">
+                    <td>
+                        <a href="{{ route('pembelian.print_stock_card', ['item_id' => $row['id'], 'date_from' => $dateFrom, 'date_to' => $dateTo]) }}" target="_blank" class="product-link" title="Buka Kartu Stok {{ $row['name'] }}">
                             {{ $row['name'] }}
                         </a>
                     </td>

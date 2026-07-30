@@ -83,6 +83,18 @@
             text-align: center;
         }
 
+        a.product-link {
+            color: #1e293b;
+            text-decoration: none !important;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        a.product-link:hover {
+            color: #0284c7;
+            text-decoration: none !important;
+        }
+
         @media print {
             @page {
                 size: landscape;
@@ -96,6 +108,11 @@
 
             .no-print {
                 display: none;
+            }
+
+            a.product-link {
+                color: #000 !important;
+                text-decoration: none !important;
             }
         }
     </style>
@@ -153,14 +170,14 @@
                     <td class="text-center">{{ $index + 1 }}</td>
                     <td>
                         <a href="{{ route('reports.ledger.print', array_filter(['product_id' => $product->id, 'start_date' => request('start_date'), 'end_date' => request('end_date')])) }}"
-                            target="_blank" style="color: #0284c7; text-decoration: underline; font-weight: bold;"
+                            target="_blank" class="product-link"
                             title="Klik untuk membuka Kartu Stok {{ $product->name }}">
                             {{ $product->sku }}
                         </a>
                     </td>
                     <td>
                         <a href="{{ route('reports.ledger.print', array_filter(['product_id' => $product->id, 'start_date' => request('start_date'), 'end_date' => request('end_date')])) }}"
-                            target="_blank" style="color: #0f172a; text-decoration: none;"
+                            target="_blank" class="product-link"
                             title="Klik untuk membuka Kartu Stok {{ $product->name }}">
                             {{ $product->name }}
                         </a>
