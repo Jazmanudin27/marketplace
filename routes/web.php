@@ -433,6 +433,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/orders/export', [OrderController::class, 'export'])->name('orders.export')->middleware('permission:orders.export');
         Route::post('/orders/sync', [OrderController::class, 'sync'])->name('orders.sync');
         Route::post('/orders/mass-print', [OrderPrintController::class, 'massPrint'])->name('orders.mass_print');
+        Route::post('/orders/mass-ship', [OrderController::class, 'massShip'])->name('orders.mass_ship');
+        Route::post('/orders/mass-tracking', [OrderController::class, 'massTracking'])->name('orders.mass_tracking');
         Route::get('/orders/create', [OrderController::class, 'create'])->name('orders.create');
         Route::post('/orders', [OrderController::class, 'store'])->name('orders.store');
         Route::get('/orders/{order}', [OrderController::class, 'show'])->name('orders.show');

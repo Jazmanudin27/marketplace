@@ -81,19 +81,29 @@
                         </h6>
                         <small class="text-muted d-block mt-1">Kelola pesanan dari toko online dan marketplace</small>
                     </div>
-                    <div class="d-flex gap-2">
+                    <div class="d-flex gap-2 align-items-center flex-wrap">
                         @can('orders.export')
                             <a href="{{ route('orders.export', request()->all()) }}"
                                 class="btn btn-outline-secondary btn-sm px-3 rounded-3">
                                 <i class="fas fa-file-export me-1"></i> Ekspor CSV
                             </a>
                         @endcan
-                        <button type="submit" form="mass-print-form" class="btn btn-success btn-sm px-3 rounded-3">
+
+                        <button type="submit" form="mass-print-form" class="btn btn-primary btn-sm px-3 rounded-3 fw-semibold">
                             <i class="fas fa-print me-1"></i> Cetak Massal
                         </button>
+
+                        <button type="button" class="btn btn-success btn-sm px-3 rounded-3 fw-semibold" id="btn-mass-ship">
+                            <i class="fas fa-truck-loading me-1"></i> Kirim Pesanan Massal
+                        </button>
+
+                        <button type="button" class="btn btn-warning btn-sm px-3 rounded-3 text-dark fw-semibold" id="btn-mass-tracking">
+                            <i class="fas fa-sync me-1"></i> Tarik Resi Massal
+                        </button>
+
                         <form action="{{ route('orders.sync') }}" method="POST" class="m-0">
                             @csrf
-                            <button type="submit" class="btn btn-primary btn-sm px-3 rounded-3">
+                            <button type="submit" class="btn btn-outline-primary btn-sm px-3 rounded-3">
                                 <i class="fas fa-sync me-1"></i> Tarik Pesanan
                             </button>
                         </form>
@@ -440,10 +450,67 @@
         document.addEventListener('DOMContentLoaded', function() {
             const checkAll = document.getElementById('check-all');
             const checkboxes = document.querySelectorAll('.order-checkbox');
+            const form = document.getElementById('mass-print-form');
+            const btnShip = document.getElementById('btn-mass-ship');
+            const btnTracking = document.getElementById('btn-mass-tracking');
 
             if (checkAll) {
                 checkAll.addEventListener('change', function() {
                     checkboxes.forEach(cb => cb.checked = checkAll.checked);
+                });
+            }
+
+            if (btnShip) {
+                btnShip.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const checked = document.querySelectorAll('.order-checkbox:checked');
+                    if (checked.length === 0) {
+                        Swal.fire('Pilih Pesanan', 'Pilih minimal satu pesanan dengan mencentang checkbox.', 'warning');
+                        return;
+                    }
+
+                    Swal.fire({
+                        title: 'Kirim Pesanan Massal?',
+                        text: `Anda akan memproses pengiriman untuk ${checked.length} pesanan terpilih sekaligus ke Marketplace.`,
+                        icon: 'question',
+                        showCancelButton: true,
+                        confirmButtonText: 'Ya, Kirim Sekarang',
+                        cancelButtonText: 'Batal',
+                        confirmButtonColor: '#198754'
+                    }).then((res) => {
+                        if (res.isConfirmed) {
+                            form.action = "{{ route('orders.mass_ship') }}";
+                            form.removeAttribute('target');
+                            form.submit();
+                        }
+                    });
+                });
+            }
+
+            if (btnTracking) {
+                btnTracking.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const checked = document.querySelectorAll('.order-checkbox:checked');
+                    if (checked.length === 0) {
+                        Swal.fire('Pilih Pesanan', 'Pilih minimal satu pesanan dengan mencentang checkbox.', 'warning');
+                        return;
+                    }
+
+                    Swal.fire({
+                        title: 'Tarik Resi Massal?',
+                        text: `Anda akan menarik nomor resi untuk ${checked.length} pesanan terpilih dari Marketplace.`,
+                        icon: 'info',
+                        showCancelButton: true,
+                        confirmButtonText: 'Ya, Tarik Resi',
+                        cancelButtonText: 'Batal',
+                        confirmButtonColor: '#ffc107'
+                    }).then((res) => {
+                        if (res.isConfirmed) {
+                            form.action = "{{ route('orders.mass_tracking') }}";
+                            form.removeAttribute('target');
+                            form.submit();
+                        }
+                    });
                 });
             }
         });

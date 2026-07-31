@@ -331,6 +331,174 @@ class OrderController extends Controller
         return back()->with('error', 'Channel tidak didukung.');
     }
 
+    public function massShip(Request $request, \App\Services\ShopeeService $shopeeService, \App\Services\TiktokService $tiktokService)
+    {
+        abort_unless(Auth::user(), 403);
+        $orderIds = $request->input('order_ids', []);
+
+        if (empty($orderIds)) {
+            return back()->with('error', 'Pilih minimal satu pesanan untuk dikirim massal.');
+        }
+
+        $orders = Order::where('tenant_id', Auth::user()->tenant_id)
+            ->whereIn('id', $orderIds)
+            ->whereNotIn('order_status', [Order::STATUS_SHIPPED, Order::STATUS_CANCELLED, Order::STATUS_DELIVERED])
+            ->get();
+
+        if ($orders->isEmpty()) {
+            return back()->with('error', 'Tidak ada pesanan valid yang dapat dikirim dari pilihan Anda.');
+        }
+
+        $successCount = 0;
+        $failCount = 0;
+        $errors = [];
+
+        foreach ($orders as $order) {
+            try {
+                $store = $order->store;
+                if (!$store || !$store->channel) {
+                    $order->order_status = Order::STATUS_SHIPPED;
+                    $order->save();
+                    $successCount++;
+                    continue;
+                }
+
+                $handoverMethod = $store->shipping_handover_method ?? 'DROP_OFF';
+                $channelCode = strtolower($store->channel->code ?? '');
+
+                if ($channelCode === 'shopee') {
+                    $accessToken = $store->getValidAccessToken();
+                    $shopeeService->shipOrder(
+                        $accessToken,
+                        (int) $store->marketplace_store_id,
+                        $order->order_marketplace_id,
+                        $handoverMethod
+                    );
+
+                    try {
+                        $trackRes = $shopeeService->getTrackingNumber(
+                            $accessToken,
+                            (int) $store->marketplace_store_id,
+                            $order->order_marketplace_id
+                        );
+                        if (!empty($trackRes['tracking_number'])) {
+                            $order->tracking_number = $trackRes['tracking_number'];
+                        }
+                    } catch (\Exception $e) {}
+
+                    $order->order_status = Order::STATUS_SHIPPED;
+                    $order->save();
+                    $successCount++;
+                } elseif ($channelCode === 'tiktok') {
+                    $tiktokService->shipOrder(
+                        $store->access_token,
+                        $store->marketplace_store_id,
+                        $order->order_marketplace_id,
+                        $handoverMethod
+                    );
+                    $order->order_status = Order::STATUS_SHIPPED;
+                    $order->save();
+                    $successCount++;
+                } elseif ($channelCode === 'lazada') {
+                    $lazadaService = app(\App\Services\LazadaService::class);
+                    $lazadaService->shipOrder(
+                        $store->getValidAccessToken(),
+                        $store->marketplace_store_id,
+                        $order->order_marketplace_id,
+                        $handoverMethod
+                    );
+                    try {
+                        $trackRes = $lazadaService->getTrackingNumber(
+                            $store->getValidAccessToken(),
+                            $store->marketplace_store_id,
+                            $order->order_marketplace_id
+                        );
+                        if (!empty($trackRes['tracking_number'])) {
+                            $order->tracking_number = $trackRes['tracking_number'];
+                        }
+                    } catch (\Exception $e) {}
+                    $order->order_status = Order::STATUS_SHIPPED;
+                    $order->save();
+                    $successCount++;
+                } else {
+                    $order->order_status = Order::STATUS_SHIPPED;
+                    $order->save();
+                    $successCount++;
+                }
+            } catch (\Exception $e) {
+                $failCount++;
+                $errors[] = "#{$order->order_marketplace_id}: " . $e->getMessage();
+            }
+        }
+
+        $msg = "Berhasil memproses pengiriman massal untuk {$successCount} pesanan.";
+        if ($failCount > 0) {
+            $msg .= " ({$failCount} pesanan gagal: " . implode('; ', array_slice($errors, 0, 2)) . ")";
+        }
+
+        return back()->with($failCount > 0 ? 'warning' : 'success', $msg);
+    }
+
+    public function massTracking(Request $request, \App\Services\ShopeeService $shopeeService)
+    {
+        abort_unless(Auth::user(), 403);
+        $orderIds = $request->input('order_ids', []);
+
+        if (empty($orderIds)) {
+            return back()->with('error', 'Pilih minimal satu pesanan untuk ditarik resi massal.');
+        }
+
+        $orders = Order::where('tenant_id', Auth::user()->tenant_id)
+            ->whereIn('id', $orderIds)
+            ->whereIn('order_status', [Order::STATUS_SHIPPED, Order::STATUS_READY_TO_SHIP])
+            ->get();
+
+        if ($orders->isEmpty()) {
+            return back()->with('error', 'Tidak ada pesanan valid yang dapat ditarik resinya.');
+        }
+
+        $successCount = 0;
+        $failCount = 0;
+
+        foreach ($orders as $order) {
+            try {
+                $store = $order->store;
+                if (!$store || !$store->channel) continue;
+
+                $channelCode = strtolower($store->channel->code ?? '');
+                if ($channelCode === 'shopee') {
+                    $accessToken = $store->getValidAccessToken();
+                    $trackRes = $shopeeService->getTrackingNumber(
+                        $accessToken,
+                        (int) $store->marketplace_store_id,
+                        $order->order_marketplace_id
+                    );
+                    if (!empty($trackRes['tracking_number'])) {
+                        $order->tracking_number = $trackRes['tracking_number'];
+                        $order->save();
+                        $successCount++;
+                    }
+                } elseif ($channelCode === 'lazada') {
+                    $lazadaService = app(\App\Services\LazadaService::class);
+                    $trackRes = $lazadaService->getTrackingNumber(
+                        $store->getValidAccessToken(),
+                        $store->marketplace_store_id,
+                        $order->order_marketplace_id
+                    );
+                    if (!empty($trackRes['tracking_number'])) {
+                        $order->tracking_number = $trackRes['tracking_number'];
+                        $order->save();
+                        $successCount++;
+                    }
+                }
+            } catch (\Exception $e) {
+                $failCount++;
+            }
+        }
+
+        return back()->with('success', "Berhasil menarik nomor resi untuk {$successCount} pesanan.");
+    }
+
 
     /**
      * Ambil detail tracking resi secara real-time dari Shopee API (AJAX/JSON).
