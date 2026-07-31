@@ -144,10 +144,6 @@
                     dari {{ $products->total() }} produk
                 </small>
             </div>
-            <a href="{{ route('stock_opnames.create') }}"
-                class="btn btn-success btn-sm fw-semibold d-none d-md-inline-flex align-items-center gap-1">
-                <i class="fas fa-clipboard-check"></i> Mulai Stock Opname
-            </a>
         </div>
         <div class="card-body p-0">
             <div class="table-responsive">
