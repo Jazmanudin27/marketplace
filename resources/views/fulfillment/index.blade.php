@@ -298,7 +298,7 @@
                                         <th class="text-center">TIPE</th>
                                         <th>PEMBELI</th>
                                         <th>DETAIL BARANG</th>
-                                        <th>RESI / KURIR</th>
+                                        <th>KURIR</th>
                                         <th class="text-center">BATAS KIRIM</th>
                                         <th class="text-center">STATUS PRINT</th>
                                         <th class="text-center">STATUS KEMAS</th>
@@ -315,8 +315,21 @@
                                             <td class="font-monospace">
                                                 <span
                                                     class="fw-bold text-dark">{{ $order->invoice_number ?? $order->order_marketplace_id }}</span>
-                                                <div class="small text-muted mt-1">ID: {{ $order->order_marketplace_id }}
-                                                </div>
+                                                @if (!empty($order->tracking_number))
+                                                    <div class="small text-muted mt-1 font-monospace" title="Nomor Resi">
+                                                        <i class="fas fa-truck text-secondary me-1"></i><span class="fw-semibold text-dark">{{ $order->tracking_number }}</span>
+                                                    </div>
+                                                @else
+                                                    <div class="mt-1">
+                                                        <button type="button" 
+                                                            class="btn btn-sm btn-outline-warning text-dark border-warning rounded-1 py-0 px-1 fw-semibold btn-fetch-single-tracking"
+                                                            data-order-id="{{ $order->id }}"
+                                                            style="font-size: 0.65rem;"
+                                                            title="Tarik Resi dari Marketplace">
+                                                            <i class="fas fa-sync-alt me-1"></i>Tarik Resi
+                                                        </button>
+                                                    </div>
+                                                @endif
                                             </td>
                                             <td>
                                                 <div class="fw-semibold text-dark">{{ $order->store->store_name }}</div>
@@ -360,28 +373,13 @@
                                                 </ul>
                                             </td>
                                             <td>
-                                                 @if (!empty($order->tracking_number))
-                                                     <div class="fw-bold font-monospace text-dark small" title="Nomor Resi">
-                                                         <i class="fas fa-barcode me-1 text-secondary"></i>{{ $order->tracking_number }}
-                                                     </div>
-                                                     @if ($order->courier)
-                                                         <div class="small text-muted mt-1" style="font-size: 0.68rem;">
-                                                             <i class="fas fa-truck me-1"></i>{{ $order->courier }}
-                                                         </div>
-                                                     @endif
-                                                 @else
-                                                     @if ($order->courier)
-                                                         <div class="small text-muted mb-1" style="font-size: 0.68rem;">
-                                                             <i class="fas fa-truck me-1"></i>{{ $order->courier }}
-                                                         </div>
-                                                     @endif
-                                                     <form action="{{ route('orders.tracking', $order->id) }}" method="POST" class="d-inline m-0">
-                                                         @csrf
-                                                         <button type="submit" class="btn btn-outline-warning btn-sm px-2 py-0 rounded-2 text-dark font-monospace" style="font-size: 0.68rem;" title="Tarik Resi dari Marketplace" onclick="this.innerHTML='<i class=\'fas fa-spinner fa-spin\'></i>...'; this.disabled=true; this.form.submit();">
-                                                             <i class="fas fa-sync me-1"></i>Tarik Resi
-                                                         </button>
-                                                     </form>
-                                                 @endif
+                                                <div class="fw-semibold text-dark">{{ $order->courier ?? '-' }}</div>
+                                                @if ($order->tracking_number)
+                                                    <div class="small font-monospace text-muted mt-1">
+                                                        <i class="fas fa-receipt text-secondary"></i>
+                                                        {{ $order->tracking_number }}
+                                                    </div>
+                                                @endif
                                             </td>
                                             <td class="small text-center">
                                                 @if ($order->ship_before_date)
@@ -477,6 +475,9 @@
                             </table>
                         </div>
                     </form>
+                    <form id="single-tracking-form" action="" method="POST" class="d-none">
+                        @csrf
+                    </form>
 
                     <div class="mt-4">
                         {{ $orders->appends(request()->query())->links('pagination::bootstrap-5') }}
@@ -494,6 +495,16 @@
             const batchForm = $('#batch-form');
             const checkAll = $('#check-all');
             const checkboxes = $('.order-checkbox');
+
+            $(document).on('click', '.btn-fetch-single-tracking', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                const orderId = $(this).data('order-id');
+                const trackingForm = $('#single-tracking-form');
+                trackingForm.attr('action', `/orders/${orderId}/tracking`);
+                $(this).html('<i class="fas fa-spinner fa-spin me-1"></i>Menarik...').prop('disabled', true);
+                trackingForm.submit();
+            });
 
             checkAll.on('change', function() {
                 checkboxes.prop('checked', this.checked);

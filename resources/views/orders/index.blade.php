@@ -279,7 +279,7 @@
                                         <th>PEMBELI / DEPT</th>
                                         <th>TOKO &amp; CHANNEL</th>
                                         <th class="text-end">TOTAL</th>
-                                        <th>RESI / KURIR</th>
+                                        <th>KURIR</th>
                                         <th>TANGGAL</th>
                                         <th>BATAS KIRIM</th>
                                         <th class="text-center">STATUS</th>
@@ -301,8 +301,21 @@
                                                     <span class="badge bg-warning text-dark ms-1 font-monospace"
                                                         style="font-size: 0.6rem; padding: 0.15em 0.3em;">Dropship</span>
                                                 @endif
-                                                <div class="text-muted small mt-1" style="font-size:0.68rem;">ID:
-                                                    {{ $order->order_marketplace_id }}</div>
+                                                @if (!empty($order->tracking_number))
+                                                    <div class="text-muted small mt-1 font-monospace" style="font-size:0.68rem;" title="Nomor Resi">
+                                                        <i class="fas fa-truck me-1 text-secondary"></i><span class="fw-semibold text-dark">{{ $order->tracking_number }}</span>
+                                                    </div>
+                                                @else
+                                                    <div class="mt-1">
+                                                        <button type="button" 
+                                                            class="btn btn-sm btn-outline-warning text-dark border-warning rounded-1 py-0 px-1 fw-semibold btn-fetch-single-tracking"
+                                                            data-order-id="{{ $order->id }}"
+                                                            style="font-size: 0.65rem;"
+                                                            title="Tarik Resi dari Marketplace">
+                                                            <i class="fas fa-sync-alt me-1"></i>Tarik Resi
+                                                        </button>
+                                                    </div>
+                                                @endif
 
                                                 <div class="mt-1 d-flex flex-wrap gap-1 align-items-center">
                                                     {{-- Badge PO vs Ready --}}
@@ -369,28 +382,10 @@
                                                     {{ number_format($order->total_amount, 0, ',', '.') }}</strong>
                                             </td>
                                             <td>
-                                                @if (!empty($order->tracking_number))
-                                                    <div class="fw-bold font-monospace text-dark small" title="Nomor Resi">
-                                                        <i class="fas fa-barcode me-1 text-secondary"></i>{{ $order->tracking_number }}
-                                                    </div>
-                                                    @if ($order->courier)
-                                                        <div class="small text-muted mt-1" style="font-size: 0.68rem;">
-                                                            <i class="fas fa-truck me-1"></i>{{ $order->courier }}
-                                                        </div>
-                                                    @endif
-                                                @else
-                                                    @if ($order->courier)
-                                                        <div class="small text-muted mb-1" style="font-size: 0.68rem;">
-                                                            <i class="fas fa-truck me-1"></i>{{ $order->courier }}
-                                                        </div>
-                                                    @endif
-                                                    <form action="{{ route('orders.tracking', $order->id) }}" method="POST" class="d-inline m-0">
-                                                        @csrf
-                                                        <button type="submit" class="btn btn-outline-warning btn-sm px-2 py-0 rounded-2 text-dark font-monospace" style="font-size: 0.68rem;" title="Tarik Resi dari Marketplace" onclick="this.innerHTML='<i class=\'fas fa-spinner fa-spin\'></i>...'; this.disabled=true; this.form.submit();">
-                                                            <i class="fas fa-sync me-1"></i>Tarik Resi
-                                                        </button>
-                                                    </form>
-                                                @endif
+                                                <span class="small text-muted">
+                                                    <i
+                                                        class="fas fa-truck me-1 text-secondary"></i>{{ $order->courier ?? '—' }}
+                                                </span>
                                             </td>
                                             <td class="small text-muted">
                                                 {{ $order->order_date->format('d/m/Y H:i') }}
@@ -452,6 +447,9 @@
                                 </tbody>
                             </table>
                         </form>
+                        <form id="single-tracking-form" action="" method="POST" class="d-none">
+                            @csrf
+                        </form>
                     </div>
 
                     @if ($orders->hasPages())
@@ -471,6 +469,19 @@
             const form = document.getElementById('mass-print-form');
             const btnShip = document.getElementById('btn-mass-ship');
             const btnTracking = document.getElementById('btn-mass-tracking');
+
+            document.querySelectorAll('.btn-fetch-single-tracking').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const orderId = this.dataset.orderId;
+                    const trackingForm = document.getElementById('single-tracking-form');
+                    trackingForm.action = `/orders/${orderId}/tracking`;
+                    this.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Menarik...';
+                    this.disabled = true;
+                    trackingForm.submit();
+                });
+            });
 
             if (checkAll) {
                 checkAll.addEventListener('change', function() {

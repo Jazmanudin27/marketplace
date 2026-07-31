@@ -155,19 +155,7 @@
                         <div class="col-md-4">
                             <div class="p-2.5 border rounded h-100 bg-light">
                                 <small class="text-muted d-block text-uppercase fw-semibold mb-1" style="font-size: 0.65rem;">No. Resi</small>
-                                @if (!empty($order->tracking_number))
-                                    <span class="font-monospace fw-bold text-dark small">{{ $order->tracking_number }}</span>
-                                @else
-                                    <div class="d-flex align-items-center justify-content-between">
-                                        <span class="text-muted small">—</span>
-                                        <form action="{{ route('orders.tracking', $order->id) }}" method="POST" class="d-inline m-0">
-                                            @csrf
-                                            <button type="submit" class="btn btn-outline-warning btn-sm px-2 py-0 rounded-2 text-dark font-monospace" style="font-size: 0.68rem;" title="Tarik Resi dari Marketplace" onclick="this.innerHTML='<i class=\'fas fa-spinner fa-spin\'></i>...'; this.disabled=true; this.form.submit();">
-                                                <i class="fas fa-sync me-1"></i>Tarik Resi
-                                            </button>
-                                        </form>
-                                    </div>
-                                @endif
+                                <span class="font-monospace fw-bold text-warning small">{{ $order->tracking_number ?? '-' }}</span>
                             </div>
                         </div>
 
