@@ -298,7 +298,7 @@
                                         <th class="text-center">TIPE</th>
                                         <th>PEMBELI</th>
                                         <th>DETAIL BARANG</th>
-                                        <th>KURIR</th>
+                                        <th>RESI / KURIR</th>
                                         <th class="text-center">BATAS KIRIM</th>
                                         <th class="text-center">STATUS PRINT</th>
                                         <th class="text-center">STATUS KEMAS</th>
@@ -360,13 +360,28 @@
                                                 </ul>
                                             </td>
                                             <td>
-                                                <div class="fw-semibold text-dark">{{ $order->courier ?? '-' }}</div>
-                                                @if ($order->tracking_number)
-                                                    <div class="small font-monospace text-muted mt-1">
-                                                        <i class="fas fa-receipt text-secondary"></i>
-                                                        {{ $order->tracking_number }}
-                                                    </div>
-                                                @endif
+                                                 @if (!empty($order->tracking_number))
+                                                     <div class="fw-bold font-monospace text-dark small" title="Nomor Resi">
+                                                         <i class="fas fa-barcode me-1 text-secondary"></i>{{ $order->tracking_number }}
+                                                     </div>
+                                                     @if ($order->courier)
+                                                         <div class="small text-muted mt-1" style="font-size: 0.68rem;">
+                                                             <i class="fas fa-truck me-1"></i>{{ $order->courier }}
+                                                         </div>
+                                                     @endif
+                                                 @else
+                                                     @if ($order->courier)
+                                                         <div class="small text-muted mb-1" style="font-size: 0.68rem;">
+                                                             <i class="fas fa-truck me-1"></i>{{ $order->courier }}
+                                                         </div>
+                                                     @endif
+                                                     <form action="{{ route('orders.tracking', $order->id) }}" method="POST" class="d-inline m-0">
+                                                         @csrf
+                                                         <button type="submit" class="btn btn-outline-warning btn-sm px-2 py-0 rounded-2 text-dark font-monospace" style="font-size: 0.68rem;" title="Tarik Resi dari Marketplace" onclick="this.innerHTML='<i class=\'fas fa-spinner fa-spin\'></i>...'; this.disabled=true; this.form.submit();">
+                                                             <i class="fas fa-sync me-1"></i>Tarik Resi
+                                                         </button>
+                                                     </form>
+                                                 @endif
                                             </td>
                                             <td class="small text-center">
                                                 @if ($order->ship_before_date)
