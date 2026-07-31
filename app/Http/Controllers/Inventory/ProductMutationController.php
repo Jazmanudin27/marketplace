@@ -72,16 +72,11 @@ class ProductMutationController extends Controller
         $totalInbound = (clone $statsQuery)->where('type', 'in')->sum('quantity');
         $totalOutbound = (clone $statsQuery)->where('type', 'out')->sum(DB::raw('ABS(quantity)'));
 
-        $products = MasterProduct::where('tenant_id', $tenantId)
-            ->orderBy('name')
-            ->get(['id', 'sku', 'name', 'stock']);
-
         return view('inventory.mutations.index', compact(
             'mutations',
             'totalTransactions',
             'totalInbound',
-            'totalOutbound',
-            'products'
+            'totalOutbound'
         ));
     }
 

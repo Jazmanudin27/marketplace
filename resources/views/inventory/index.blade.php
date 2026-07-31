@@ -94,11 +94,8 @@
                                 <i class="fas fa-times me-1"></i>Reset
                             </a>
                         @endif
-                        <a href="{{ route('inventory.mutations.create', ['type' => 'in']) }}" class="btn btn-success btn-sm fw-semibold">
-                            <i class="fas fa-plus-circle me-1"></i>+ Mutasi Masuk
-                        </a>
-                        <a href="{{ route('inventory.mutations.create', ['type' => 'out']) }}" class="btn btn-danger btn-sm fw-semibold">
-                            <i class="fas fa-minus-circle me-1"></i>- Mutasi Keluar
+                        <a href="{{ route('inventory.mutations.create') }}" class="btn btn-primary btn-sm fw-semibold">
+                            <i class="fas fa-plus-circle me-1"></i>+ Input Mutasi
                         </a>
                         <a href="{{ route('inventory.mutations.index') }}" class="btn btn-outline-info btn-sm">
                             <i class="fas fa-history me-1"></i>Riwayat Mutasi

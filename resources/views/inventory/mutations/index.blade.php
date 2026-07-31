@@ -18,11 +18,8 @@
                     </p>
                 </div>
                 <div class="d-flex gap-2 flex-wrap">
-                    <a href="{{ route('inventory.mutations.create', ['type' => 'in']) }}" class="btn btn-success btn-sm px-3 rounded-3 fw-semibold">
-                        <i class="fas fa-plus-circle me-1.5"></i> + Barang Masuk (Inbound)
-                    </a>
-                    <a href="{{ route('inventory.mutations.create', ['type' => 'out']) }}" class="btn btn-danger btn-sm px-3 rounded-3 fw-semibold">
-                        <i class="fas fa-minus-circle me-1.5"></i> - Barang Keluar (Outbound)
+                    <a href="{{ route('inventory.mutations.create') }}" class="btn btn-primary btn-sm px-3 rounded-3 fw-semibold">
+                        <i class="fas fa-plus-circle me-1.5"></i> + Input Mutasi Barang
                     </a>
                     <a href="{{ route('inventory.index') }}" class="btn btn-outline-secondary btn-sm px-3 rounded-3">
                         <i class="fas fa-boxes me-1"></i> Stok Gudang
@@ -80,13 +77,13 @@
         <div class="card-body p-3">
             <form method="GET" action="{{ route('inventory.mutations.index') }}">
                 <div class="row g-2 align-items-end">
-                    <div class="col-md-3">
+                    <div class="col-md-5">
                         <label class="form-label form-label-sm fw-semibold mb-1">
                             <i class="fas fa-search me-1 text-muted"></i> Cari SKU / Nama / Ket.
                         </label>
                         <input type="text" name="search" class="form-control form-control-sm" placeholder="Cari keyword mutasi..." value="{{ request('search') }}">
                     </div>
-                    <div class="col-md-2">
+                    <div class="col-md-3">
                         <label class="form-label form-label-sm fw-semibold mb-1">
                             <i class="fas fa-filter me-1 text-muted"></i> Jenis Mutasi
                         </label>
@@ -95,19 +92,6 @@
                             <option value="in" {{ request('type') === 'in' ? 'selected' : '' }}>🟢 Barang Masuk (Inbound)</option>
                             <option value="out" {{ request('type') === 'out' ? 'selected' : '' }}>🔴 Barang Keluar (Outbound)</option>
                             <option value="adj" {{ request('type') === 'adj' ? 'selected' : '' }}>🟡 Penyesuaian (Adjust)</option>
-                        </select>
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label form-label-sm fw-semibold mb-1">
-                            <i class="fas fa-box me-1 text-muted"></i> Master Produk
-                        </label>
-                        <select name="product_id" class="form-select form-select-sm select2-filter">
-                            <option value="">-- Semua Produk --</option>
-                            @foreach ($products as $p)
-                                <option value="{{ $p->id }}" {{ request('product_id') == $p->id ? 'selected' : '' }}>
-                                    [{{ $p->sku }}] {{ $p->name }}
-                                </option>
-                            @endforeach
                         </select>
                     </div>
                     <div class="col-md-2">
@@ -126,7 +110,7 @@
                         <button type="submit" class="btn btn-primary btn-sm px-3">
                             <i class="fas fa-filter me-1"></i> Terapkan Filter
                         </button>
-                        @if (request()->anyFilled(['search', 'type', 'product_id', 'start_date', 'end_date']))
+                        @if (request()->anyFilled(['search', 'type', 'start_date', 'end_date']))
                             <a href="{{ route('inventory.mutations.index') }}" class="btn btn-secondary btn-sm px-3 ms-1">
                                 <i class="fas fa-times me-1"></i> Reset Filter
                             </a>
