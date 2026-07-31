@@ -579,6 +579,11 @@ Route::middleware('auth')->group(function () {
         Route::get('/stock-sync', [StockSyncController::class, 'index'])->name('inventory.stock_sync');
         Route::post('/stock-sync/all', [StockSyncController::class, 'forceSyncAll'])->name('inventory.stock_sync.all');
         Route::post('/stock-sync/{product}', [StockSyncController::class, 'forceSyncProduct'])->name('inventory.stock_sync.product');
+
+        // Mutasi Gudang Jadi (Barang Masuk & Keluar)
+        Route::get('/inventory/mutations', [\App\Http\Controllers\Inventory\ProductMutationController::class, 'index'])->name('inventory.mutations.index');
+        Route::get('/inventory/mutations/create', [\App\Http\Controllers\Inventory\ProductMutationController::class, 'create'])->name('inventory.mutations.create');
+        Route::post('/inventory/mutations', [\App\Http\Controllers\Inventory\ProductMutationController::class, 'store'])->name('inventory.mutations.store');
     });
 
     // Pesanan Retur

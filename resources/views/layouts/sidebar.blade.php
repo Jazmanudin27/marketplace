@@ -32,6 +32,7 @@
     $isGudangJadiActive =
         request()->routeIs('inventory.index') ||
         request()->routeIs('inventory.ledger') ||
+        request()->routeIs('inventory.mutations.*') ||
         request()->routeIs('stock_opnames.*') ||
         request()->routeIs('inventory.stock_sync') ||
         request()->routeIs('fulfillment.*');
@@ -393,6 +394,9 @@
                             <a href="{{ route('inventory.index') }}"
                                 class="nav-link py-1 {{ request()->routeIs('inventory.index') || request()->routeIs('inventory.ledger') ? 'active text-white' : 'text-secondary' }}">Stok
                                 Gudang Jadi</a>
+                            <a href="{{ route('inventory.mutations.index') }}"
+                                class="nav-link py-1 {{ request()->routeIs('inventory.mutations.*') ? 'active text-white' : 'text-secondary' }}">Mutasi
+                                Masuk & Keluar</a>
                         @endcan
                         @can('stock-opnames.index')
                             <a href="{{ route('stock_opnames.index') }}"

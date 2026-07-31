@@ -88,13 +88,22 @@
                             <i class="fas fa-search me-1"></i>Cari
                         </button>
                     </div>
-                    <div class="col-6 col-md-2 col-lg-2 d-flex gap-2">
+                    <div class="col-12 col-md-auto d-flex gap-1.5 flex-wrap ms-auto">
                         @if (request('search') || request('status'))
-                            <a href="{{ route('inventory.index') }}" class="btn btn-outline-secondary btn-sm flex-fill">
+                            <a href="{{ route('inventory.index') }}" class="btn btn-outline-secondary btn-sm">
                                 <i class="fas fa-times me-1"></i>Reset
                             </a>
                         @endif
-                        <a href="{{ route('stock_opnames.create') }}" class="btn btn-success btn-sm flex-fill">
+                        <a href="{{ route('inventory.mutations.create', ['type' => 'in']) }}" class="btn btn-success btn-sm fw-semibold">
+                            <i class="fas fa-plus-circle me-1"></i>+ Mutasi Masuk
+                        </a>
+                        <a href="{{ route('inventory.mutations.create', ['type' => 'out']) }}" class="btn btn-danger btn-sm fw-semibold">
+                            <i class="fas fa-minus-circle me-1"></i>- Mutasi Keluar
+                        </a>
+                        <a href="{{ route('inventory.mutations.index') }}" class="btn btn-outline-info btn-sm">
+                            <i class="fas fa-history me-1"></i>Riwayat Mutasi
+                        </a>
+                        <a href="{{ route('stock_opnames.create') }}" class="btn btn-outline-primary btn-sm">
                             <i class="fas fa-clipboard-check me-1"></i>Stock Opname
                         </a>
                     </div>
