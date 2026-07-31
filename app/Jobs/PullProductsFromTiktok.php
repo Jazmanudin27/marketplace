@@ -51,6 +51,7 @@ class PullProductsFromTiktok implements ShouldQueue
 
             $pageToken = '';
             $totalSynced = 0;
+            $syncStartTime = now();
 
             do {
                 $response = $tiktokService->getProductSearch(
@@ -152,6 +153,14 @@ class PullProductsFromTiktok implements ShouldQueue
                 $hasMore = !empty($pageToken);
                 
             } while ($hasMore);
+
+            // Bersihkan produk marketplace lama milik toko ini yang sudah dihapus/tidak ada lagi di TikTok
+            MarketplaceProduct::where('store_id', $this->store->id)
+                ->where(function ($q) use ($syncStartTime) {
+                    $q->whereNull('last_synced_at')
+                      ->orWhere('last_synced_at', '<', $syncStartTime);
+                })
+                ->delete();
 
             Log::info("[TikTok] Berhasil sinkronisasi {$totalSynced} varian/produk untuk toko {$this->store->store_name}");
 

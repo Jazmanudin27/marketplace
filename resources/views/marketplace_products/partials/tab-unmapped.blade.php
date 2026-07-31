@@ -207,6 +207,13 @@
                                                 <i class="fas fa-copy me-1"></i>Salin ke Toko Lain
                                             </button>
                                         </form>
+                                        <form action="{{ route('marketplace_products.destroy', $product->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Hapus produk marketplace ini dari daftar ERP?');">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="btn btn-outline-danger btn-sm py-0 px-2" title="Hapus Produk Ini" style="font-size:0.72rem;">
+                                                <i class="fas fa-trash me-1"></i>Hapus
+                                            </button>
+                                        </form>
                                     </div>
 
                                     <form id="link-form-{{ $product->id }}"

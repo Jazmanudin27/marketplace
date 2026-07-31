@@ -353,7 +353,7 @@ class MarketplaceProductController extends Controller
 
             if ($skuClean !== '') {
                 $master = MasterProduct::where('tenant_id', $tenantId)
-                    ->where('sku', $skuClean)
+                    ->whereRaw('LOWER(TRIM(sku)) = LOWER(TRIM(?))', [$skuClean])
                     ->first();
 
                 if ($master) {
@@ -556,5 +556,15 @@ class MarketplaceProductController extends Controller
             'selectedChannel',
             'selectedStore'
         ));
+    }
+
+    public function destroy(MarketplaceProduct $product)
+    {
+        abort_unless($product->store->tenant_id === Auth::user()->tenant_id, 403);
+
+        $name = $product->name;
+        $product->delete();
+
+        return back()->with('success', "Produk marketplace '{$name}' berhasil dihapus dari data ERP.");
     }
 }

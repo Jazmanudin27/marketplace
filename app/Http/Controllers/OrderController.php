@@ -123,10 +123,15 @@ class OrderController extends Controller
         return view('orders.index', compact('orders', 'channels', 'stores', 'couriers', 'statuses', 'urgentOrders'));
     }
 
-    public function show(Order $order)
+    public function show(Order $order, Request $request)
     {
         abort_unless($order->tenant_id === Auth::user()->tenant_id, 403);
         $order->load('items.masterProduct', 'store.channel', 'spks.items');
+
+        if ($request->ajax() || $request->wantsJson() || $request->query('modal')) {
+            return view('orders.partials.detail_modal_body', compact('order'));
+        }
+
         return view('orders.show', compact('order'));
     }
 

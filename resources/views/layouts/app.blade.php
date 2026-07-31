@@ -458,9 +458,96 @@
     })();
     </script>
 
+    <!-- Global Order Detail Modal Popup -->
+    <div class="modal fade" id="globalOrderDetailModal" tabindex="-1" aria-labelledby="globalOrderDetailModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable">
+            <div class="modal-content border-0 shadow-lg" id="globalOrderDetailModalContent">
+                <!-- Dynamic content loaded via AJAX -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        document.body.addEventListener('click', function(e) {
+            const link = e.target.closest('a[href*="/orders/"]');
+            if (!link) return;
+
+            const href = link.getAttribute('href');
+            if (!href) return;
+
+            // Abaikan link aksi khusus yang bukan detail order
+            const ignoredKeywords = ['/create', '/export', '/sync', '/mass-print', '/print', '/tracking', '/process', '/ship', '/cancel', '/approve'];
+            if (ignoredKeywords.some(kw => href.includes(kw))) {
+                return;
+            }
+
+            // Izinkan Ctrl+Click, Cmd+Click, Shift+Click, atau Klik Tengah Mouse (buka tab baru)
+            if (e.ctrlKey || e.metaKey || e.shiftKey || e.button === 1) {
+                return;
+            }
+
+            e.preventDefault();
+
+            const modalEl = document.getElementById('globalOrderDetailModal');
+            const modalContent = document.getElementById('globalOrderDetailModalContent');
+            if (!modalEl || !modalContent) return;
+
+            const bsModal = bootstrap.Modal.getOrCreateInstance(modalEl);
+
+            modalContent.innerHTML = `
+                <div class="modal-header bg-info bg-opacity-10 py-2.5 px-3 border-bottom">
+                    <h5 class="modal-title fw-bold text-dark fs-6 mb-0">
+                        <i class="fas fa-spinner fa-spin text-info me-2"></i>Memuat Detail Pesanan...
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-center py-5">
+                    <div class="spinner-border text-primary mb-3" style="width: 3rem; height: 3rem;" role="status">
+                        <span class="visually-hidden">Memuat...</span>
+                    </div>
+                    <div class="fw-semibold text-muted">Mohon tunggu sebentar, sedang mengambil data pesanan...</div>
+                </div>
+            `;
+
+            bsModal.show();
+
+            const separator = href.includes('?') ? '&' : '?';
+            fetch(href + separator + 'modal=1', {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'text/html, application/xhtml+xml, */*'
+                }
+            })
+            .then(res => {
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                return res.text();
+            })
+            .then(html => {
+                modalContent.innerHTML = html;
+            })
+            .catch(err => {
+                modalContent.innerHTML = `
+                    <div class="modal-header bg-danger text-white">
+                        <h5 class="modal-title fs-6 fw-bold"><i class="fas fa-exclamation-triangle me-2"></i>Gagal Memuat Detail</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body p-4 text-center">
+                        <div class="text-danger mb-2"><i class="fas fa-exclamation-circle fa-2x"></i></div>
+                        <p class="mb-0 text-muted">Gagal mengambil data pesanan: ${err.message}</p>
+                    </div>
+                    <div class="modal-footer p-2">
+                        <a href="${href}" class="btn btn-primary btn-sm rounded-3">Buka Halaman Lengkap</a>
+                        <button type="button" class="btn btn-secondary btn-sm rounded-3" data-bs-dismiss="modal">Tutup</button>
+                    </div>
+                `;
+            });
+        });
+    });
+    </script>
+
     @stack('modals')
     @stack('scripts')
-
 
 </body>
 

@@ -204,6 +204,30 @@ class MasterProduct extends Model
     }
 
     /**
+     * Boot model listener untuk otomatis menautkan MarketplaceProduct yang cocok dengan SKU
+     */
+    protected static function booted()
+    {
+        static::saved(function (MasterProduct $master) {
+            if (!empty($master->sku)) {
+                $skuClean = trim($master->sku);
+                MarketplaceProduct::whereHas('store', function ($q) use ($master) {
+                        $q->where('tenant_id', $master->tenant_id);
+                    })
+                    ->whereRaw('LOWER(TRIM(marketplace_sku)) = LOWER(TRIM(?))', [$skuClean])
+                    ->where(function ($q) use ($master) {
+                        $q->whereNull('master_product_id')
+                          ->orWhere('master_product_id', '!=', $master->id);
+                    })
+                    ->update([
+                        'master_product_id' => $master->id,
+                        'sync_stock' => true
+                    ]);
+            }
+        });
+    }
+
+    /**
      * Cek apakah produk master terhubung ke setidaknya 1 toko marketplace
      */
     public function isLinked(): bool

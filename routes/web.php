@@ -424,6 +424,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/marketplace-products/{product}/clone-and-publish', [MarketplaceProductController::class, 'cloneAndPublish'])->name('marketplace_products.clone_and_publish');
         Route::post('/marketplace-products/auto-link', [MarketplaceProductController::class, 'autoLink'])->name('marketplace_products.auto_link');
         Route::post('/marketplace-products/bulk-promote', [MarketplaceProductController::class, 'bulkPromote'])->name('marketplace_products.bulk_promote');
+        Route::delete('/marketplace-products/{product}', [MarketplaceProductController::class, 'destroy'])->name('marketplace_products.destroy');
     });
 
     // Orders (Pesanan Masuk)

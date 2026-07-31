@@ -159,6 +159,7 @@ class ShopeeController extends Controller
             $pageSize = 50;
             $hasMore = true;
             $totalSynced = 0;
+            $syncStartTime = now();
 
             while ($hasMore) {
                 // 1. Get Item List
@@ -231,7 +232,7 @@ class ShopeeController extends Controller
                                         }
                                     }
 
-                                    $mp = \App\Models\MarketplaceProduct::updateOrCreate(
+                                    \App\Models\MarketplaceProduct::updateOrCreate(
                                         [
                                             'store_id' => $store->id,
                                             'marketplace_product_id' => (string) $item['item_id'],
@@ -286,8 +287,16 @@ class ShopeeController extends Controller
                 $offset += $pageSize;
             }
 
+            // Bersihkan produk marketplace lama milik toko ini yang sudah dihapus/tidak ada lagi di Shopee
+            \App\Models\MarketplaceProduct::where('store_id', $store->id)
+                ->where(function ($q) use ($syncStartTime) {
+                    $q->whereNull('last_synced_at')
+                      ->orWhere('last_synced_at', '<', $syncStartTime);
+                })
+                ->delete();
+
             return redirect()->route('stores.index')
-                ->with('success', "Berhasil menarik $totalSynced produk dari {$store->store_name}.");
+                ->with('success', "Berhasil menarik $totalSynced produk dari {$store->store_name}. Produk yang sudah dihapus di marketplace telah dibersihkan.");
 
         } catch (\Throwable $e) {
             Log::error('Gagal sync produk Shopee', ['store_id' => $store->id, 'error' => $e->getMessage()]);

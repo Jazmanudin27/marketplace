@@ -83,7 +83,7 @@ class MarketplaceProduct extends Model
                 if ($store) {
                     $skuClean = trim($product->marketplace_sku);
                     $master = MasterProduct::where('tenant_id', $store->tenant_id)
-                        ->where('sku', $skuClean)
+                        ->whereRaw('LOWER(TRIM(sku)) = LOWER(TRIM(?))', [$skuClean])
                         ->first();
                     if ($master) {
                         $product->master_product_id = $master->id;
