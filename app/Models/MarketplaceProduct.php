@@ -61,12 +61,18 @@ class MarketplaceProduct extends Model
     {
         if ($includeMaster) {
             $master = $this->relationLoaded('masterProduct') ? $this->masterProduct : $this->masterProduct()->first();
+            if (!$master && !empty($this->marketplace_sku) && $this->store) {
+                $skuClean = trim($this->marketplace_sku);
+                $master = MasterProduct::where('tenant_id', $this->store->tenant_id)
+                    ->whereRaw('LOWER(TRIM(sku)) = LOWER(TRIM(?))', [$skuClean])
+                    ->first();
+            }
             if ($master) {
                 return (bool) $master->is_preorder;
             }
         }
 
-        return $this->isPreOrderFromMarketplace();
+        return (bool) $this->is_pre_order;
     }
 
     protected static function booted()

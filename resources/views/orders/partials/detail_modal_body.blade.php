@@ -1,4 +1,4 @@
-<div class="modal-header bg-info bg-opacity-10 py-2.5 px-3 border-bottom">
+<div class="modal-header bg-info bg-opacity-10 py-2.5 px-3 border-bottom d-flex flex-wrap align-items-center justify-content-between gap-2">
     <div class="d-flex align-items-center gap-2">
         <h5 class="modal-title fw-bold text-dark fs-6 mb-0">
             <i class="fas fa-receipt text-info me-1.5"></i>
@@ -8,10 +8,62 @@
             {{ str_replace('_', ' ', $order->order_status) }}
         </span>
     </div>
-    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+
+    {{-- Action Buttons Toolbar --}}
+    <div class="d-flex gap-1.5 align-items-center flex-wrap">
+        @if (!in_array($order->order_status, ['SHIPPED', 'CANCELLED', 'DELIVERED']))
+            <form action="{{ route('orders.ship', $order->id) }}" method="POST" class="d-inline m-0">
+                @csrf
+                <button type="submit" class="btn btn-success btn-sm px-2.5 rounded-3 fw-semibold"
+                    onclick="this.innerHTML='<i class=\'fas fa-spinner fa-spin\'></i> Memproses...'; this.disabled=true; this.form.submit();">
+                    <i class="fas fa-truck-loading me-1"></i> Kirim Pesanan
+                </button>
+            </form>
+
+            <button type="button" class="btn btn-danger btn-sm px-2.5 rounded-3 fw-semibold"
+                onclick="document.getElementById('modalCancelSection-{{ $order->id }}').classList.toggle('d-none');">
+                <i class="fas fa-times-circle me-1"></i> Batalkan Pesanan
+            </button>
+        @endif
+
+        @if (in_array($order->order_status, ['SHIPPED', 'READY_TO_SHIP']))
+            @if (empty($order->tracking_number))
+                <form action="{{ route('orders.tracking', $order->id) }}" method="POST" class="d-inline m-0">
+                    @csrf
+                    <button type="submit" class="btn btn-warning btn-sm px-2.5 rounded-3 text-dark fw-semibold"
+                        onclick="this.innerHTML='<i class=\'fas fa-spinner fa-spin\'></i> Menarik...'; this.disabled=true; this.form.submit();">
+                        <i class="fas fa-sync me-1"></i> Tarik Resi
+                    </button>
+                </form>
+            @endif
+
+            <a href="{{ route('orders.print', $order->id) }}" target="_blank"
+                class="btn btn-primary btn-sm px-2.5 text-white rounded-3 fw-semibold" data-no-modal="true">
+                <i class="fas fa-print me-1"></i> Cetak Invoice
+            </a>
+        @endif
+
+        <button type="button" class="btn-close ms-2" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
 </div>
 
 <div class="modal-body p-3" style="max-height: 80vh; overflow-y: auto;">
+    {{-- Inline Cancel Order Form --}}
+    <div id="modalCancelSection-{{ $order->id }}" class="d-none mb-3 p-3 border border-danger rounded-3 bg-danger bg-opacity-10">
+        <h6 class="fw-bold text-danger mb-2 small"><i class="fas fa-exclamation-triangle me-1"></i> Konfirmasi Pembatalan Pesanan</h6>
+        <form action="{{ route('orders.cancel', $order->id) }}" method="POST">
+            @csrf
+            <div class="mb-2">
+                <label class="form-label small fw-semibold mb-1 text-dark">Alasan Pembatalan <span class="text-danger">*</span></label>
+                <textarea name="cancel_reason" class="form-control form-control-sm" rows="2" required placeholder="Contoh: Stok barang di gudang kosong / Buyer meminta cancel..."></textarea>
+            </div>
+            <div class="d-flex gap-2 justify-content-end">
+                <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('modalCancelSection-{{ $order->id }}').classList.add('d-none')">Batal</button>
+                <button type="submit" class="btn btn-danger btn-sm fw-semibold">Ya, Batalkan Pesanan Ini</button>
+            </div>
+        </form>
+    </div>
+
     <div class="row g-3">
 
         <!-- Left Side: Order & Item Details -->

@@ -357,10 +357,11 @@ class Order extends Model
             // 1. Ambil Master Product langsung atau dari relation MarketplaceProduct
             $master = $item->masterProduct ?: ($item->marketplaceProduct ? $item->marketplaceProduct->masterProduct : null);
 
-            // 2. Jika belum terhubung, cari Master Product berdasarkan SKU item
+            // 2. Jika belum terhubung via relasi, cari Master Product berdasarkan SKU item (fleksibel case & trim)
             if (!$master && !empty($item->sku)) {
+                $skuClean = trim($item->sku);
                 $master = MasterProduct::where('tenant_id', $this->tenant_id)
-                    ->where('sku', $item->sku)
+                    ->whereRaw('LOWER(TRIM(sku)) = LOWER(TRIM(?))', [$skuClean])
                     ->first();
             }
 
@@ -371,7 +372,7 @@ class Order extends Model
 
             // 4. Hanya jika produk tidak ada di Master Produk ERP, gunakan fallback dari Marketplace
             if ($item->marketplaceProduct) {
-                return $item->marketplaceProduct->isPreOrderFromMarketplace();
+                return (bool) $item->marketplaceProduct->is_pre_order;
             }
 
             return false;
