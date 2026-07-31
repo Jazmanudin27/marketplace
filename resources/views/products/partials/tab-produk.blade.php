@@ -191,14 +191,14 @@
                         <th>KATEGORI / MERK</th>
                         <th class="text-center">VARIASI</th>
                         <th class="text-end">HARGA (HPP / JUAL)</th>
+                        <th class="text-center">STOK</th>
+                        <th class="text-center">STATUS & PO</th>
+                        <th>MARKETPLACE</th>
                         <th class="text-center">AKSI</th>
                     </tr>
                 </thead>
                 <tbody>
                     @forelse($products as $product)
-                        @php
-                            $isLinked = $product->isLinked();
-                        @endphp
                         <tr style="border-left: 4px solid {{ $product->is_preorder ? '#8b5cf6' : '#22c55e' }} !important;">
                             <td class="text-center">
                                 <input type="checkbox" value="{{ $product->id }}" class="form-check-input product-select-checkbox">
@@ -305,6 +305,101 @@
                                 </div>
                             </td>
                             <td class="text-center">
+                                @php
+                                    $stockBadgeClass =
+                                        $product->stock <= $product->min_stock
+                                            ? 'bg-danger text-white'
+                                            : 'bg-success text-white';
+                                @endphp
+                                <span class="badge {{ $stockBadgeClass }} font-monospace">
+                                    {{ number_format($product->stock) }}
+                                </span>
+                                @if ($product->stock <= $product->min_stock)
+                                    <div class="text-danger mt-1 fw-bold text-uppercase small">stok rendah</div>
+                                @endif
+                            </td>
+                            <td class="text-center">
+                                <div class="d-flex flex-column align-items-center gap-1">
+                                    @if ($product->is_active)
+                                        <span class="badge bg-success">Aktif</span>
+                                    @else
+                                        <span class="badge bg-secondary">Nonaktif</span>
+                                    @endif
+
+                                    {{-- Badge Status PO (Pre-Order) --}}
+                                    <div id="po-badge-container-{{ $product->id }}">
+                                        @if ($product->is_preorder)
+                                            <button type="button" class="btn btn-xs p-0 border-0 btn-quick-po"
+                                                data-product-id="{{ $product->id }}"
+                                                data-product-name="{{ $product->name }}"
+                                                data-is-preorder="1"
+                                                data-preorder-days="{{ $product->preorder_days ?? 7 }}"
+                                                title="Klik untuk ubah status PO">
+                                                <span class="badge text-white px-2 py-1" style="background-color: #8b5cf6; font-size: 0.68rem;">
+                                                    <i class="fas fa-clock me-1"></i>PO ({{ $product->preorder_days ?? 7 }} Hari) <i class="fas fa-edit ms-1 opacity-75"></i>
+                                                </span>
+                                            </button>
+                                        @else
+                                            <button type="button" class="btn btn-xs p-0 border-0 btn-quick-po"
+                                                data-product-id="{{ $product->id }}"
+                                                data-product-name="{{ $product->name }}"
+                                                data-is-preorder="0"
+                                                data-preorder-days="{{ $product->preorder_days ?? 7 }}"
+                                                title="Klik untuk ubah status PO">
+                                                <span class="badge px-2 py-1" style="background-color: #dcfce7; color: #15803d; border: 1px solid #86efac; font-size: 0.68rem;">
+                                                    <i class="fas fa-check-circle me-1"></i>Ready <i class="fas fa-edit ms-1 opacity-50"></i>
+                                                </span>
+                                            </button>
+                                        @endif
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                @php
+                                    $validMpStores = $product->marketplaceProducts->filter(function($mp) use ($product) {
+                                        return empty($mp->marketplace_sku) || strtolower(trim($mp->marketplace_sku)) === strtolower(trim($product->sku));
+                                    })->unique('store_id');
+                                    $isLinked = $validMpStores->isNotEmpty();
+                                @endphp
+
+                                @if ($validMpStores->isEmpty())
+                                    <span class="badge bg-secondary text-white rounded-pill" style="font-size: 0.68rem;">
+                                        <i class="fas fa-unlink me-1"></i> Belum Terhubung
+                                    </span>
+                                @else
+                                    <div class="d-flex flex-wrap gap-1">
+                                        @foreach ($validMpStores as $mp)
+                                            @php
+                                                $chCode = strtolower($mp->store->channel->code ?? '');
+                                                $chName = strtolower($mp->store->channel->name ?? '');
+
+                                                $badgeStyle = match(true) {
+                                                    str_contains($chCode, 'shopee') || str_contains($chName, 'shopee') => 'background: linear-gradient(135deg, #ee4d2d, #ff6b35) !important; color: #ffffff !important;',
+                                                    str_contains($chCode, 'tiktok') || str_contains($chName, 'tiktok') => 'background: linear-gradient(135deg, #000000, #1e293b) !important; color: #ffffff !important;',
+                                                    str_contains($chCode, 'lazada') || str_contains($chName, 'lazada') => 'background: linear-gradient(135deg, #0f146d, #1a237e) !important; color: #ffffff !important;',
+                                                    str_contains($chCode, 'tokopedia') || str_contains($chName, 'tokopedia') => 'background: linear-gradient(135deg, #03ac0e, #059669) !important; color: #ffffff !important;',
+                                                    default => 'background: linear-gradient(135deg, #475569, #334155) !important; color: #ffffff !important;',
+                                                };
+
+                                                $iconClass = match(true) {
+                                                    str_contains($chCode, 'shopee') || str_contains($chName, 'shopee') => 'fas fa-shopping-bag',
+                                                    str_contains($chCode, 'tiktok') || str_contains($chName, 'tiktok') => 'fab fa-tiktok',
+                                                    str_contains($chCode, 'lazada') || str_contains($chName, 'lazada') => 'fas fa-store',
+                                                    str_contains($chCode, 'tokopedia') || str_contains($chName, 'tokopedia') => 'fas fa-shopping-cart',
+                                                    default => 'fas fa-store-alt',
+                                                };
+                                            @endphp
+                                            <span class="badge d-inline-flex align-items-center gap-1 rounded-pill px-2 py-1"
+                                                  style="{{ $badgeStyle }} font-size: 0.68rem; font-weight: 600; text-shadow: 0 1px 1px rgba(0,0,0,0.2);"
+                                                  title="Toko: {{ $mp->store->store_name ?? '' }} (SKU: {{ $mp->marketplace_sku ?: $product->sku }})">
+                                                <i class="{{ $iconClass }}"></i>
+                                                {{ $mp->store->store_name ?? 'Marketplace' }}
+                                            </span>
+                                        @endforeach
+                                    </div>
+                                @endif
+                            </td>
+                            <td class="text-center">
                                 <div class="d-flex gap-1 justify-content-center">
                                     <a href="{{ route('products.edit', $product->id) }}"
                                         class="btn btn-warning btn-sm rounded-3" title="Edit Produk">
@@ -342,7 +437,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="8" class="text-center text-muted py-5">
+                            <td colspan="11" class="text-center text-muted py-5">
                                 <i class="fas fa-box-open d-block mb-2 opacity-25 fs-2"></i>
                                 Belum ada produk.
                                 <a href="{{ route('products.create') }}"
