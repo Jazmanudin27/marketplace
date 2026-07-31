@@ -315,21 +315,6 @@
                                             <td class="font-monospace">
                                                 <span
                                                     class="fw-bold text-dark">{{ $order->invoice_number ?? $order->order_marketplace_id }}</span>
-                                                @if (!empty($order->tracking_number))
-                                                    <div class="small text-muted mt-1 font-monospace" title="Nomor Resi">
-                                                        <i class="fas fa-truck text-secondary me-1"></i><span class="fw-semibold text-dark">{{ $order->tracking_number }}</span>
-                                                    </div>
-                                                @else
-                                                    <div class="mt-1">
-                                                        <button type="button" 
-                                                            class="btn btn-sm btn-outline-warning text-dark border-warning rounded-1 py-0 px-1 fw-semibold btn-fetch-single-tracking"
-                                                            data-order-id="{{ $order->id }}"
-                                                            style="font-size: 0.65rem;"
-                                                            title="Tarik Resi dari Marketplace">
-                                                            <i class="fas fa-sync-alt me-1"></i>Tarik Resi
-                                                        </button>
-                                                    </div>
-                                                @endif
                                             </td>
                                             <td>
                                                 <div class="fw-semibold text-dark">{{ $order->store->store_name }}</div>
@@ -373,13 +358,48 @@
                                                 </ul>
                                             </td>
                                             <td>
-                                                <div class="fw-semibold text-dark">{{ $order->courier ?? '-' }}</div>
-                                                @if ($order->tracking_number)
-                                                    <div class="small font-monospace text-muted mt-1">
-                                                        <i class="fas fa-receipt text-secondary"></i>
-                                                        {{ $order->tracking_number }}
-                                                    </div>
-                                                @endif
+                                                <div class="fw-semibold text-dark small mb-1">
+                                                    <i class="fas fa-truck me-1 text-secondary"></i>{{ $order->courier ?? '—' }}
+                                                </div>
+
+                                                <div class="mt-1 d-flex flex-column gap-1">
+                                                    {{-- Resi Info / Tarik Resi --}}
+                                                    @if (!empty($order->tracking_number))
+                                                        <div class="text-muted small font-monospace" style="font-size:0.68rem;" title="Nomor Resi">
+                                                            <i class="fas fa-barcode me-1 text-secondary"></i><span class="fw-semibold text-dark">{{ $order->tracking_number }}</span>
+                                                        </div>
+                                                    @else
+                                                        <div>
+                                                            <button type="button" 
+                                                                class="btn btn-sm btn-outline-warning text-dark border-warning rounded-1 py-0 px-1.5 fw-semibold btn-fetch-single-tracking"
+                                                                data-order-id="{{ $order->id }}"
+                                                                style="font-size: 0.65rem;"
+                                                                title="Tarik Resi dari Marketplace">
+                                                                <i class="fas fa-sync-alt me-1"></i>Tarik Resi
+                                                            </button>
+                                                        </div>
+                                                    @endif
+
+                                                    {{-- Status Kirim / Tombol Kirim Pesanan --}}
+                                                    @if (in_array($order->order_status, ['SHIPPED', 'DELIVERED', 'COMPLETED']))
+                                                        <div>
+                                                            <span class="badge bg-success-subtle text-success border border-success-subtle px-1-5 py-0-5"
+                                                                style="font-size: 0.65rem;" title="Pesanan Sudah Dikirim">
+                                                                <i class="fas fa-check-circle me-1"></i>Sudah Kirim
+                                                            </span>
+                                                        </div>
+                                                    @elseif ($order->order_status !== 'CANCELLED')
+                                                        <div>
+                                                            <button type="button" 
+                                                                class="btn btn-sm btn-outline-primary rounded-1 py-0 px-1.5 fw-semibold btn-ship-single-order"
+                                                                data-order-id="{{ $order->id }}"
+                                                                style="font-size: 0.65rem;"
+                                                                title="Kirim Pesanan ke Marketplace">
+                                                                <i class="fas fa-paper-plane me-1"></i>Kirim Pesanan
+                                                            </button>
+                                                        </div>
+                                                    @endif
+                                                </div>
                                             </td>
                                             <td class="small text-center">
                                                 @if ($order->ship_before_date)
@@ -504,6 +524,18 @@
                 trackingForm.attr('action', `/orders/${orderId}/tracking`);
                 $(this).html('<i class="fas fa-spinner fa-spin me-1"></i>Menarik...').prop('disabled', true);
                 trackingForm.submit();
+            });
+
+            $(document).on('click', '.btn-ship-single-order', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                const orderId = $(this).data('order-id');
+                if (confirm('Kirim pesanan ini ke Marketplace? Status akan diperbarui.')) {
+                    const trackingForm = $('#single-tracking-form');
+                    trackingForm.attr('action', `/orders/${orderId}/ship`);
+                    $(this).html('<i class="fas fa-spinner fa-spin me-1"></i>Mengirim...').prop('disabled', true);
+                    trackingForm.submit();
+                }
             });
 
             checkAll.on('change', function() {
