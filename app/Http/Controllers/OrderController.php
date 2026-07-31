@@ -126,7 +126,7 @@ class OrderController extends Controller
     public function show(Order $order, Request $request)
     {
         abort_unless($order->tenant_id === Auth::user()->tenant_id, 403);
-        $order->load('items.masterProduct', 'store.channel', 'spks.items');
+        $order->load('items.masterProduct', 'items.marketplaceProduct.masterProduct', 'store.channel', 'spks.items');
 
         if ($request->ajax() || $request->wantsJson() || $request->query('modal')) {
             return view('orders.partials.detail_modal_body', compact('order'));

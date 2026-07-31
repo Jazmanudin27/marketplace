@@ -361,7 +361,10 @@ class Order extends Model
             if (!$master && !empty($item->sku)) {
                 $skuClean = trim($item->sku);
                 $master = MasterProduct::where('tenant_id', $this->tenant_id)
-                    ->whereRaw('LOWER(TRIM(sku)) = LOWER(TRIM(?))', [$skuClean])
+                    ->where(function ($q) use ($skuClean) {
+                        $q->where('sku', $skuClean)
+                          ->orWhereRaw('LOWER(sku) = LOWER(?)', [$skuClean]);
+                    })
                     ->first();
             }
 

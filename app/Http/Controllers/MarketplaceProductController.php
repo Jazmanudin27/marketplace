@@ -353,7 +353,10 @@ class MarketplaceProductController extends Controller
 
             if ($skuClean !== '') {
                 $master = MasterProduct::where('tenant_id', $tenantId)
-                    ->whereRaw('LOWER(TRIM(sku)) = LOWER(TRIM(?))', [$skuClean])
+                    ->where(function ($q) use ($skuClean) {
+                        $q->where('sku', $skuClean)
+                          ->orWhereRaw('LOWER(sku) = LOWER(?)', [$skuClean]);
+                    })
                     ->first();
 
                 if ($master) {

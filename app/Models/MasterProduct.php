@@ -214,7 +214,10 @@ class MasterProduct extends Model
                 MarketplaceProduct::whereHas('store', function ($q) use ($master) {
                         $q->where('tenant_id', $master->tenant_id);
                     })
-                    ->whereRaw('LOWER(TRIM(marketplace_sku)) = LOWER(TRIM(?))', [$skuClean])
+                    ->where(function ($q) use ($skuClean) {
+                        $q->where('marketplace_sku', $skuClean)
+                          ->orWhereRaw('LOWER(marketplace_sku) = LOWER(?)', [$skuClean]);
+                    })
                     ->where(function ($q) use ($master) {
                         $q->whereNull('master_product_id')
                           ->orWhere('master_product_id', '!=', $master->id);
