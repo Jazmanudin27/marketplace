@@ -476,6 +476,11 @@
             const href = link.getAttribute('href');
             if (!href) return;
 
+            // Abaikan jika tombol mempunyai data-no-modal="true" atau berada di dalam modal detail pesanan
+            if (link.dataset.noModal === 'true' || link.closest('#globalOrderDetailModal')) {
+                return;
+            }
+
             // Abaikan link aksi khusus yang bukan detail order
             const ignoredKeywords = ['/create', '/export', '/sync', '/mass-print', '/print', '/tracking', '/process', '/ship', '/cancel', '/approve'];
             if (ignoredKeywords.some(kw => href.includes(kw))) {

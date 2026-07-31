@@ -261,7 +261,7 @@
 
 <div class="modal-footer bg-light py-2 px-3 border-top d-flex justify-content-between align-items-center">
     <div class="d-flex gap-2">
-        <a href="{{ route('orders.show', $order->id) }}" class="btn btn-outline-secondary btn-sm rounded-3">
+        <a href="{{ route('orders.show', $order->id) }}" class="btn btn-outline-secondary btn-sm rounded-3" data-no-modal="true">
             <i class="fas fa-external-link-alt me-1"></i> Buka Halaman Penuh
         </a>
         @if (in_array($order->order_status, ['SHIPPED', 'READY_TO_SHIP']))
