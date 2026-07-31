@@ -107,15 +107,6 @@ class PullProductsFromTiktok implements ShouldQueue
                             ]
                         );
 
-                        if ($isTiktokPo && $tiktokPreorderDays) {
-                            if ($mp->masterProduct) {
-                                $mp->masterProduct->update([
-                                    'is_preorder' => true,
-                                    'preorder_days' => (int) $tiktokPreorderDays,
-                                ]);
-                            }
-                        }
-
                         $totalSynced++;
                         continue;
                     }
@@ -136,7 +127,7 @@ class PullProductsFromTiktok implements ShouldQueue
 
                         $sellerSku = !empty($sku['seller_sku']) ? trim($sku['seller_sku']) : null;
 
-                        $mp = MarketplaceProduct::updateOrCreate(
+                        MarketplaceProduct::updateOrCreate(
                             [
                                 'store_id' => $this->store->id,
                                 'marketplace_product_id' => $productId,
@@ -152,17 +143,6 @@ class PullProductsFromTiktok implements ShouldQueue
                                 'last_synced_at' => now(),
                             ]
                         );
-
-                        // Otomatis sinkronkan status & hari PO ke Master Product jika produk TikTok adalah Pre-Order
-                        if ($isTiktokPo && $tiktokPreorderDays) {
-                            $masterProduct = $mp->masterProduct ?? ($sellerSku ? \App\Models\MasterProduct::where('tenant_id', $this->store->tenant_id)->where('sku', $sellerSku)->first() : null);
-                            if ($masterProduct) {
-                                $masterProduct->update([
-                                    'is_preorder' => true,
-                                    'preorder_days' => (int) $tiktokPreorderDays,
-                                ]);
-                            }
-                        }
 
                         $totalSynced++;
                     }
