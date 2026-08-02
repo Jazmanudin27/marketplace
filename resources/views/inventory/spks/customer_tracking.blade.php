@@ -465,9 +465,9 @@
                                         @endif
                                     </div>
                                     <div class="timeline-desc d-flex justify-content-between align-items-center mt-1">
-                                        <span>{{ $stageMeta['note'] }}</span>
+                                        <span class="text-muted" style="font-size: 11px;">Klik untuk melihat foto pengerjaan</span>
                                         <span class="text-primary fw-bold flex-shrink-0 ms-2" style="font-size: 10px;">
-                                            <i class="fas fa-search-plus me-0.5"></i> Detail Foto
+                                            <i class="fas fa-search-plus me-0.5"></i> Lihat Foto
                                         </span>
                                     </div>
                                 </div>
@@ -512,31 +512,6 @@
                 </div>
             </div>
 
-            <!-- ── CARD 3: GALERI FOTO MOCKUP & PROGRES PRODUKSI ── -->
-            @if(!empty($photos))
-                <div class="app-card">
-                    <div class="card-header-clean">
-                        <h3 class="card-header-title">
-                            <i class="fas fa-images text-purple"></i> Foto Desain & Bukti Produksi
-                        </h3>
-                    </div>
-                    <div class="card-body-clean">
-                        <div class="row g-2">
-                            @foreach($photos as $img)
-                                <div class="col-6 col-sm-4">
-                                    <div class="position-relative">
-                                        <img src="{{ $img['url'] }}" class="gallery-thumb" alt="{{ $img['title'] }}" onclick="openImageModal('{{ $img['url'] }}', '{{ $img['title'] }}')">
-                                        <div class="position-absolute bottom-0 start-0 end-0 bg-dark bg-opacity-60 text-white p-1 text-center small text-truncate rounded-bottom-3" style="font-size: 10px;">
-                                            {{ $img['title'] }}
-                                        </div>
-                                    </div>
-                                </div>
-                            @endforeach
-                        </div>
-                    </div>
-                </div>
-            @endif
-
         </div>
 
         <!-- ── STICKY FOOTER ACTION BAR ── -->
@@ -570,20 +545,21 @@
                     </div>
                     <div class="modal-body p-3">
                         <!-- Photo container -->
-                        <div id="stagePhotoWrapper" class="mb-3 text-center" style="display:none;">
+                        <div id="stagePhotoWrapper" class="text-center" style="display:none;">
                             <div class="position-relative">
-                                <img id="stageModalImg" src="" class="img-fluid rounded-3 border w-100 object-fit-cover" style="max-height: 280px; cursor:pointer;" onclick="zoomStagePhoto()">
-                                <span id="stageModalPhotoTag" class="position-absolute bottom-0 start-0 bg-dark bg-opacity-75 text-white px-2 py-1 small rounded-end-2 font-monospace" style="font-size: 10.5px;">Foto Bukti</span>
+                                <img id="stageModalImg" src="" class="img-fluid rounded-3 border w-100 object-fit-cover" style="max-height: 320px; cursor:pointer;" onclick="zoomStagePhoto()">
+                                <span id="stageModalPhotoTag" class="position-absolute bottom-0 start-0 bg-dark bg-opacity-75 text-white px-2.5 py-1 small rounded-end-2 font-monospace" style="font-size: 11px;">Foto Bukti</span>
                             </div>
                             <button type="button" class="btn btn-sm btn-outline-primary fw-bold w-100 mt-2 rounded-3" onclick="zoomStagePhoto()">
                                 <i class="fas fa-search-plus me-1"></i> Perbesar Foto Fullscreen
                             </button>
                         </div>
 
-                        <!-- Notes container -->
-                        <div class="bg-light p-3 rounded-3 border">
-                            <div class="text-muted fw-bold small mb-1" style="font-size: 11px;">KETERANGAN / PROGRESS:</div>
-                            <div id="stageModalNote" class="fw-bold text-dark" style="font-size: 13.5px; line-height: 1.4;">-</div>
+                        <!-- Fallback Container if No Photo -->
+                        <div id="noPhotoFallback" class="text-center py-4 px-3 bg-light rounded-3 border" style="display:none;">
+                            <div class="fs-1 text-muted opacity-50 mb-2">📷</div>
+                            <div class="fw-bold text-dark mb-1" style="font-size: 14px;">Foto Bukti Belum Diunggah</div>
+                            <div class="text-muted small" style="font-size: 12px;">Foto pengerjaan untuk tahapan ini akan otomatis muncul setelah di-update tim produksi.</div>
                         </div>
                     </div>
                     <div class="modal-footer border-0 p-2 bg-light">
@@ -631,17 +607,19 @@
             }
 
             const photoWrapper = document.getElementById('stagePhotoWrapper');
+            const noPhotoFallback = document.getElementById('noPhotoFallback');
+
             if (photoUrl && photoUrl !== '' && photoUrl !== 'null') {
                 activeStagePhotoUrl = photoUrl;
                 activeStagePhotoTitle = photoTag || title;
                 document.getElementById('stageModalImg').src = photoUrl;
                 document.getElementById('stageModalPhotoTag').innerText = photoTag || 'Foto Bukti Pengerjaan';
                 photoWrapper.style.display = 'block';
+                noPhotoFallback.style.display = 'none';
             } else {
                 photoWrapper.style.display = 'none';
+                noPhotoFallback.style.display = 'block';
             }
-
-            document.getElementById('stageModalNote').innerText = note || 'Tidak ada catatan tambahan untuk tahapan ini.';
 
             new bootstrap.Modal(document.getElementById('stageDetailModal')).show();
         }
