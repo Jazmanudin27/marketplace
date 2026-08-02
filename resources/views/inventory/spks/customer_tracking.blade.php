@@ -438,8 +438,7 @@
                                     $statusClass = 'active';
                                 }
                                 $stepNo++;
-                                $noteEscaped = e($stageMeta['note'] ?? '');
-                                $photoEscaped = e($stageMeta['photo'] ?? '');
+                                $photoEscaped    = e($stageMeta['photo']     ?? '');
                                 $photoTagEscaped = e($stageMeta['photo_tag'] ?? '');
                             @endphp
                             <div class="timeline-step {{ $statusClass }}">
@@ -452,7 +451,7 @@
                                         <span>{{ $loop->iteration }}</span>
                                     @endif
                                 </div>
-                                <div class="timeline-content" onclick="openStageModal('{{ $stageMeta['label'] }}', '{{ $stageMeta['icon'] }}', '{{ $statusClass }}', '{{ $photoEscaped }}', '{{ $photoTagEscaped }}', '{{ $noteEscaped }}')">
+                                <div class="timeline-content" onclick="openImageModal('{{ $photoEscaped }}', '{{ $photoTagEscaped }}')">
                                     <div class="timeline-title">
                                         <i class="{{ $stageMeta['icon'] }} me-1 opacity-75"></i>
                                         <span>{{ $stageMeta['label'] }}</span>
@@ -467,7 +466,7 @@
                                     <div class="timeline-desc d-flex justify-content-between align-items-center mt-1">
                                         <span class="text-muted" style="font-size: 11px;">Klik untuk melihat foto pengerjaan</span>
                                         <span class="text-primary fw-bold flex-shrink-0 ms-2" style="font-size: 10px;">
-                                            <i class="fas fa-search-plus me-0.5"></i> Lihat Foto
+                                            <i class="fas fa-search-plus"></i> Lihat Foto
                                         </span>
                                     </div>
                                 </div>
@@ -529,46 +528,6 @@
             </a>
         </div>
 
-        <!-- ── STAGE DETAIL MODAL POPUP (KLIK DARI TIMELINE STEP) ── -->
-        <div class="modal fade" id="stageDetailModal" tabindex="-1" aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content border-0 rounded-4 shadow-lg overflow-hidden">
-                    <div class="modal-header border-0 bg-primary text-white p-3">
-                        <div class="d-flex align-items-center gap-2">
-                            <i id="stageModalIcon" class="fas fa-info-circle fs-4"></i>
-                            <div>
-                                <h6 class="modal-title fw-extrabold text-white mb-0" id="stageModalTitle">Detail Tahapan</h6>
-                                <span class="badge rounded-pill bg-white text-primary fw-bold mt-1" id="stageModalBadge" style="font-size: 10px;">STATUS</span>
-                            </div>
-                        </div>
-                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body p-3">
-                        <!-- Photo container -->
-                        <div id="stagePhotoWrapper" class="text-center" style="display:none;">
-                            <div class="position-relative">
-                                <img id="stageModalImg" src="" class="img-fluid rounded-3 border w-100 object-fit-cover" style="max-height: 320px; cursor:pointer;" onclick="zoomStagePhoto()">
-                                <span id="stageModalPhotoTag" class="position-absolute bottom-0 start-0 bg-dark bg-opacity-75 text-white px-2.5 py-1 small rounded-end-2 font-monospace" style="font-size: 11px;">Foto Bukti</span>
-                            </div>
-                            <button type="button" class="btn btn-sm btn-outline-primary fw-bold w-100 mt-2 rounded-3" onclick="zoomStagePhoto()">
-                                <i class="fas fa-search-plus me-1"></i> Perbesar Foto Fullscreen
-                            </button>
-                        </div>
-
-                        <!-- Fallback Container if No Photo -->
-                        <div id="noPhotoFallback" class="text-center py-4 px-3 bg-light rounded-3 border" style="display:none;">
-                            <div class="fs-1 text-muted opacity-50 mb-2">📷</div>
-                            <div class="fw-bold text-dark mb-1" style="font-size: 14px;">Foto Bukti Belum Diunggah</div>
-                            <div class="text-muted small" style="font-size: 12px;">Foto pengerjaan untuk tahapan ini akan otomatis muncul setelah di-update tim produksi.</div>
-                        </div>
-                    </div>
-                    <div class="modal-footer border-0 p-2 bg-light">
-                        <button type="button" class="btn btn-sm btn-secondary fw-bold w-100 rounded-3" data-bs-dismiss="modal">Tutup</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
         <!-- ── IMAGE MODAL PREVIEW (FULLSCREEN PREVIEW) ── -->
         <div class="modal fade" id="imageModal" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered modal-lg">
@@ -587,50 +546,8 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        let activeStagePhotoUrl = '';
-        let activeStagePhotoTitle = '';
-
-        function openStageModal(title, iconClass, statusClass, photoUrl, photoTag, note) {
-            document.getElementById('stageModalTitle').innerText = title;
-            document.getElementById('stageModalIcon').className = iconClass + ' fs-4';
-            
-            const badgeEl = document.getElementById('stageModalBadge');
-            if (statusClass === 'completed') {
-                badgeEl.className = 'badge rounded-pill bg-success text-white fw-bold mt-1';
-                badgeEl.innerText = '✅ SELESAI';
-            } else if (statusClass === 'active') {
-                badgeEl.className = 'badge rounded-pill bg-warning text-dark fw-bold mt-1';
-                badgeEl.innerText = '🔄 SEDANG DIPROSES';
-            } else {
-                badgeEl.className = 'badge rounded-pill bg-secondary text-white fw-bold mt-1';
-                badgeEl.innerText = '⏳ MENUNGGU';
-            }
-
-            const photoWrapper = document.getElementById('stagePhotoWrapper');
-            const noPhotoFallback = document.getElementById('noPhotoFallback');
-
-            if (photoUrl && photoUrl !== '' && photoUrl !== 'null') {
-                activeStagePhotoUrl = photoUrl;
-                activeStagePhotoTitle = photoTag || title;
-                document.getElementById('stageModalImg').src = photoUrl;
-                document.getElementById('stageModalPhotoTag').innerText = photoTag || 'Foto Bukti Pengerjaan';
-                photoWrapper.style.display = 'block';
-                noPhotoFallback.style.display = 'none';
-            } else {
-                photoWrapper.style.display = 'none';
-                noPhotoFallback.style.display = 'block';
-            }
-
-            new bootstrap.Modal(document.getElementById('stageDetailModal')).show();
-        }
-
-        function zoomStagePhoto() {
-            if (activeStagePhotoUrl) {
-                openImageModal(activeStagePhotoUrl, activeStagePhotoTitle);
-            }
-        }
-
         function openImageModal(url, title) {
+            if (!url || url === '' || url === 'null') return;
             document.getElementById('modalImgSrc').src = url;
             document.getElementById('modalImgTitle').innerText = title;
             new bootstrap.Modal(document.getElementById('imageModal')).show();
