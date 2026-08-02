@@ -2495,17 +2495,134 @@ class SpkController extends Controller
             ]);
         }
 
+        $savedRincianAntrian = '';
+        $savedCatatanAntrian = '';
+        $savedPembuatSample  = '';
+        $savedStatusAcc      = '';
+        $savedCatatanRevisi  = '';
+        $savedVendorPrint    = '';
+        $savedCatatanPotong  = '';
+        $savedCatatanJahit   = '';
+        $savedFotoSample     = '';
+        $savedFotoPrint      = '';
+        $savedFotoPotong     = '';
+
+        if (!empty($spk->tambahan)) {
+            $parts = explode('||', $spk->tambahan);
+            foreach ($parts as $part) {
+                $subParts = explode('|', $part);
+                foreach ($subParts as $sub) {
+                    $sub = trim($sub);
+                    if (str_starts_with($sub, 'Rincian Antrian:')) {
+                        $savedRincianAntrian = trim(substr($sub, strlen('Rincian Antrian:')));
+                    } elseif (str_starts_with($sub, 'Antrian:')) {
+                        $savedCatatanAntrian = trim(substr($sub, strlen('Antrian:')));
+                    } elseif (str_starts_with($sub, 'Pembuat Sample:')) {
+                        $savedPembuatSample = trim(substr($sub, strlen('Pembuat Sample:')));
+                    } elseif (str_starts_with($sub, 'Status ACC:')) {
+                        $savedStatusAcc = trim(substr($sub, strlen('Status ACC:')));
+                    } elseif (str_starts_with($sub, 'Revisi:')) {
+                        $savedCatatanRevisi = trim(substr($sub, strlen('Revisi:')));
+                    } elseif (str_starts_with($sub, 'Vendor Print:')) {
+                        $savedVendorPrint = trim(substr($sub, strlen('Vendor Print:')));
+                    } elseif (str_starts_with($sub, 'Potong:')) {
+                        $savedCatatanPotong = trim(substr($sub, strlen('Potong:')));
+                    } elseif (str_starts_with($sub, 'Jahit:')) {
+                        $savedCatatanJahit = trim(substr($sub, strlen('Jahit:')));
+                    } elseif (str_starts_with($sub, 'Foto Sample:')) {
+                        $savedFotoSample = trim(substr($sub, strlen('Foto Sample:')));
+                    } elseif (str_starts_with($sub, 'Foto Print:')) {
+                        $savedFotoPrint = trim(substr($sub, strlen('Foto Print:')));
+                    } elseif (str_starts_with($sub, 'Foto Potong:')) {
+                        $savedFotoPotong = trim(substr($sub, strlen('Foto Potong:')));
+                    }
+                }
+            }
+        }
+
+        $defaultPhoto = $spk->mockup_url ?: ($spk->image_url ?: $spk->referensi_klien_url);
+
         $stagesList = [
-            'Perencanaan'             => ['label' => 'Perencanaan Pesanan',     'icon' => 'fas fa-clipboard-list', 'pct' => 10],
-            'Antrian & Sampling'      => ['label' => 'Antrian & Preparation',   'icon' => 'fas fa-hourglass-half', 'pct' => 20],
-            'Tahap Sampling'          => ['label' => 'Pembuatan Sample',        'icon' => 'fas fa-vial',           'pct' => 30],
-            'Tahap Print Kain'        => ['label' => 'Proses Print & Motif',    'icon' => 'fas fa-print',          'pct' => 40],
-            'Tahap Pemotongan'        => ['label' => 'Pemotongan Bahan',        'icon' => 'fas fa-scissors',       'pct' => 55],
-            'Tahap Jahit'             => ['label' => 'Proses Penjahitan',       'icon' => 'fas fa-cut',            'pct' => 70],
-            'Tahap LKPK'              => ['label' => 'Pemasangan Aksesoris',    'icon' => 'fas fa-calculator',     'pct' => 80],
-            'Quality Control'         => ['label' => 'Quality Control (QC)',    'icon' => 'fas fa-check-double',   'pct' => 90],
-            'Packing / Finishing'     => ['label' => 'Packing & Finishing',      'icon' => 'fas fa-box-open',       'pct' => 95],
-            'Selesai (Finished Good)' => ['label' => 'Pesanan Selesai (Siap)', 'icon' => 'fas fa-check-circle',   'pct' => 100],
+            'Perencanaan' => [
+                'label' => 'Perencanaan Pesanan',
+                'icon' => 'fas fa-clipboard-list',
+                'pct' => 10,
+                'photo' => $spk->referensi_klien_url ?: $spk->mockup_url,
+                'photo_tag' => 'Desain / Referensi Klien',
+                'note' => $savedCatatanAntrian ?: 'Pesanan telah diterima dan masuk tahap perencanaan produksi.'
+            ],
+            'Antrian & Sampling' => [
+                'label' => 'Antrian & Preparation',
+                'icon' => 'fas fa-hourglass-half',
+                'pct' => 20,
+                'photo' => $savedFotoSample ?: $defaultPhoto,
+                'photo_tag' => 'Persiapan Bahan & Antrian',
+                'note' => $savedRincianAntrian ?: 'Persiapan bahan dan antrian jadwal pengerjaan.'
+            ],
+            'Tahap Sampling' => [
+                'label' => 'Pembuatan Sample',
+                'icon' => 'fas fa-vial',
+                'pct' => 30,
+                'photo' => $savedFotoSample ?: $defaultPhoto,
+                'photo_tag' => 'Foto Sample Baju',
+                'note' => $savedStatusAcc ? "Status ACC: {$savedStatusAcc}" : ($savedPembuatSample ? "Pembuat Sample: {$savedPembuatSample}" : 'Proses pembuatan dan pengecekan sample produk.')
+            ],
+            'Tahap Print Kain' => [
+                'label' => 'Proses Print & Motif',
+                'icon' => 'fas fa-print',
+                'pct' => 40,
+                'photo' => $savedFotoPrint ?: $defaultPhoto,
+                'photo_tag' => 'Foto Hasil Print Kain',
+                'note' => $savedVendorPrint ? "Mitra Print: {$savedVendorPrint}" : 'Pencetakan motif dan desain pada bahan kain.'
+            ],
+            'Tahap Pemotongan' => [
+                'label' => 'Pemotongan Bahan',
+                'icon' => 'fas fa-scissors',
+                'pct' => 55,
+                'photo' => $savedFotoPotong ?: $defaultPhoto,
+                'photo_tag' => 'Foto Hasil Pemotongan Kain',
+                'note' => $savedCatatanPotong ?: 'Proses pemotongan kain sesuai pola dan varian ukuran.'
+            ],
+            'Tahap Jahit' => [
+                'label' => 'Proses Penjahitan',
+                'icon' => 'fas fa-cut',
+                'pct' => 70,
+                'photo' => $spk->image_url ?: $defaultPhoto,
+                'photo_tag' => 'Foto Bukti Penjahitan',
+                'note' => $savedCatatanJahit ?: 'Penggabungan pola dan penjahitan seluruh komponen produk.'
+            ],
+            'Tahap LKPK' => [
+                'label' => 'Pemasangan Aksesoris',
+                'icon' => 'fas fa-calculator',
+                'pct' => 80,
+                'photo' => $defaultPhoto,
+                'photo_tag' => 'Pemasangan Aksesoris & Kancing',
+                'note' => 'Pemasangan kancing, lubang kancing, dan aksesoris pendukung.'
+            ],
+            'Quality Control' => [
+                'label' => 'Quality Control (QC)',
+                'icon' => 'fas fa-check-double',
+                'pct' => 90,
+                'photo' => $spk->image_url ?: $defaultPhoto,
+                'photo_tag' => 'Foto QC Produk',
+                'note' => 'Pemeriksaan ketelitian, ukuran, dan kualitas hasil akhir.'
+            ],
+            'Packing / Finishing' => [
+                'label' => 'Packing & Finishing',
+                'icon' => 'fas fa-box-open',
+                'pct' => 95,
+                'photo' => $spk->image_url ?: $defaultPhoto,
+                'photo_tag' => 'Foto Finishing & Packing',
+                'note' => 'Pembersihan benang, penggosokan, pelipatan, dan pembungkusan rapi.'
+            ],
+            'Selesai (Finished Good)' => [
+                'label' => 'Pesanan Selesai (Siap)',
+                'icon' => 'fas fa-check-circle',
+                'pct' => 100,
+                'photo' => $spk->image_url ?: $defaultPhoto,
+                'photo_tag' => 'Foto Produk Selesai',
+                'note' => 'Seluruh pengerjaan selesai. Pesanan siap dikirim / diambil.'
+            ],
         ];
 
         $currentStageRaw = $spk->status ?: ($spk->tahap_saat_ini ?: 'Perencanaan');
