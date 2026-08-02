@@ -47,19 +47,17 @@ class SpkController extends Controller
 
         if ($request->filled('stage')) {
             $stage = strtolower(trim($request->stage));
-            if (in_array($stage, ['pesanan_baru', 'perencanaan', 'draft'])) {
-                $query->where(function ($q) {
-                    $q->doesntHave('proses')
-                      ->orWhereIn(DB::raw('LOWER(tahap_saat_ini)'), ['draft', 'pesanan baru', 'perencanaan', 'perancangan produksi (spk)', 'tahap desain & mockup'])
-                      ->orWhereDoesntHave('items.progres', function ($pg) {
-                          $pg->where('qty_done', '>', 0);
-                      });
-                });
-            } else {
-                $query->whereHas('proses', function ($p) use ($stage) {
-                    $p->where('nama_proses', 'like', '%' . $stage . '%');
-                });
-            }
+            $query->where(function ($q) use ($stage) {
+                $q->where(DB::raw('LOWER(tahap_saat_ini)'), 'like', '%' . $stage . '%');
+                if (in_array($stage, ['pesanan_baru', 'perencanaan', 'draft'])) {
+                    $q->orWhereIn(DB::raw('LOWER(tahap_saat_ini)'), ['draft', 'pesanan baru', 'perencanaan', 'perancangan produksi (spk)', 'tahap desain & mockup'])
+                      ->orDoesntHave('proses');
+                } else {
+                    $q->orWhereHas('proses', function ($p) use ($stage) {
+                        $p->where('nama_proses', 'like', '%' . $stage . '%');
+                    });
+                }
+            });
         }
 
         if ($request->filled('date_from')) {

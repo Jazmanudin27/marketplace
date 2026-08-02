@@ -158,6 +158,17 @@
             </a>
         @endcan
 
+        <!-- Pesanan Retur -->
+        @can('returns.index')
+            <a href="{{ route('returns.index') }}"
+                class="nav-link d-flex align-items-center justify-content-between pe-3 {{ request()->routeIs('returns.*') ? 'active text-white' : 'text-dark' }}">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="bi bi-arrow-return-left"></i>
+                    <span>Pesanan Retur</span>
+                </div>
+            </a>
+        @endcan
+
         <!-- 3. Master Produk -->
         @can('products.index')
             <a href="{{ route('products.index') }}"
@@ -498,11 +509,6 @@
                             <a href="{{ route('offline_sales.index') }}"
                                 class="nav-link py-1 {{ request()->routeIs('offline_sales.*') ? 'active text-white' : 'text-secondary' }}">Penjualan
                                 Offline</a>
-                        @endcan
-                        @can('returns.index')
-                            <a href="{{ route('returns.index') }}"
-                                class="nav-link py-1 {{ request()->routeIs('returns.*') ? 'active text-white' : 'text-secondary' }}">Pesanan
-                                Retur</a>
                         @endcan
                         @can('chats.index')
                             <a href="{{ route('chats.index') }}"

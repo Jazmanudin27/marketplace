@@ -55,6 +55,10 @@ class Spk extends Model
 
     public function getCurrentStageNameAttribute(): string
     {
+        if (!empty($this->tahap_saat_ini)) {
+            return strtoupper($this->tahap_saat_ini);
+        }
+
         if ($this->relationLoaded('proses') && $this->proses->isNotEmpty()) {
             if ($this->relationLoaded('items') && $this->items->isNotEmpty()) {
                 $totalPcs = (int) $this->items->sum('quantity');
@@ -128,10 +132,6 @@ class Spk extends Model
                 return strtoupper($this->tahap_saat_ini);
             }
             return strtoupper($this->proses->first()->nama_proses);
-        }
-
-        if (!empty($this->tahap_saat_ini)) {
-            return strtoupper($this->tahap_saat_ini);
         }
 
         return 'PERANCANGAN PRODUKSI (SPK)';
