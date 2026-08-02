@@ -476,41 +476,6 @@
                 </div>
             </div>
 
-            <!-- ── CARD 2: DETAIL RINCIAN PRODUK & VARIAN ── -->
-            <div class="app-card">
-                <div class="card-header-clean">
-                    <h3 class="card-header-title">
-                        <i class="fas fa-tshirt text-warning"></i> Rincian Pesanan Produk
-                    </h3>
-                    <span class="badge bg-warning bg-opacity-10 text-warning border border-warning-subtle fw-bold" style="font-size: 10px;">
-                        {{ strtoupper($fabricName) }}
-                    </span>
-                </div>
-                <div class="card-body-clean">
-                    @foreach($variantRows as $modelName => $row)
-                        <div class="mb-3 pb-3 {{ !$loop->last ? 'border-bottom' : '' }}">
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <div class="fw-extrabold text-dark" style="font-size: 15px;">
-                                    {{ $modelName }}
-                                </div>
-                                <span class="badge bg-primary text-white fw-bold">
-                                    {{ number_format($row['subtotal']) }} Pcs
-                                </span>
-                            </div>
-
-                            <div class="d-flex flex-wrap gap-2">
-                                @foreach($row['sizes'] as $sz)
-                                    <div class="size-chip-item">
-                                        <div class="size-chip-label">Size {{ $sz['size'] }}</div>
-                                        <div class="size-chip-val">{{ number_format($sz['quantity']) }}</div>
-                                    </div>
-                                @endforeach
-                            </div>
-                        </div>
-                    @endforeach
-                </div>
-            </div>
-
         </div>
 
         <!-- ── STICKY FOOTER ACTION BAR ── -->
