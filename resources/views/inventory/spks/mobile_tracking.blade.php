@@ -599,8 +599,11 @@
     <div class="container-fluid px-3 pt-3">
 
         <!-- ── BANNER STATUS "Akses Produksi Dibuka!" ── -->
-        <div class="alert-akses-dibuka">
-            Akses Produksi Dibuka!
+        <div class="alert-akses-dibuka d-flex justify-content-between align-items-center">
+            <span>Akses Produksi Dibuka!</span>
+            <a href="{{ route('spks.customer_track', $spk->no_produksi ?: $spk->id) }}" target="_blank" class="btn btn-sm bg-white text-dark fw-bold rounded-pill shadow-2xs px-3 text-decoration-none" style="font-size: 12px;">
+                📱 Link Customer
+            </a>
         </div>
 
         <form id="simpleTrackingForm" action="{{ route('spks.mobile_update_tracking', $spk->id) }}" method="POST" enctype="multipart/form-data">

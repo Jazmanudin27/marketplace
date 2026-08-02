@@ -2455,4 +2455,157 @@ class SpkController extends Controller
         $path = $file->store($folder, 'public');
         return \Illuminate\Support\Facades\Storage::url($path);
     }
+
+    /**
+     * Tampilan Publik Tracking Produksi SPK untuk Customer (Tanpa Login & Tanpa Data Internal/Vendor)
+     */
+    public function customerTrack(Request $request, $spkKey)
+    {
+        $spk = null;
+
+        if ($spkKey instanceof Spk) {
+            $spk = $spkKey;
+            $spk->load(['items', 'penginput', 'proses']);
+        } elseif (is_numeric($spkKey)) {
+            $spk = Spk::with(['items', 'penginput', 'proses'])->find($spkKey);
+        }
+
+        if (!$spk && is_string($spkKey)) {
+            $spk = Spk::with(['items', 'penginput', 'proses'])
+                ->where('no_spk', $spkKey)
+                ->orWhere('no_produksi', $spkKey)
+                ->orWhere('no_pesanan', $spkKey)
+                ->first();
+        }
+
+        if (!$spk && $request->filled('search')) {
+            $search = trim($request->search);
+            $spk = Spk::with(['items', 'penginput', 'proses'])
+                ->where('no_spk', $search)
+                ->orWhere('no_produksi', $search)
+                ->orWhere('no_pesanan', $search)
+                ->orWhere('pemesan', 'like', '%' . $search . '%')
+                ->first();
+        }
+
+        if (!$spk) {
+            return view('inventory.spks.customer_tracking', [
+                'spk' => null,
+                'search' => $request->input('search', $spkKey),
+            ]);
+        }
+
+        $stagesList = [
+            'Perencanaan'             => ['label' => 'Perencanaan Pesanan',     'icon' => 'fas fa-clipboard-list', 'pct' => 10],
+            'Antrian & Sampling'      => ['label' => 'Antrian & Preparation',   'icon' => 'fas fa-hourglass-half', 'pct' => 20],
+            'Tahap Sampling'          => ['label' => 'Pembuatan Sample',        'icon' => 'fas fa-vial',           'pct' => 30],
+            'Tahap Print Kain'        => ['label' => 'Proses Print & Motif',    'icon' => 'fas fa-print',          'pct' => 40],
+            'Tahap Pemotongan'        => ['label' => 'Pemotongan Bahan',        'icon' => 'fas fa-scissors',       'pct' => 55],
+            'Tahap Jahit'             => ['label' => 'Proses Penjahitan',       'icon' => 'fas fa-cut',            'pct' => 70],
+            'Tahap LKPK'              => ['label' => 'Pemasangan Aksesoris',    'icon' => 'fas fa-calculator',     'pct' => 80],
+            'Quality Control'         => ['label' => 'Quality Control (QC)',    'icon' => 'fas fa-check-double',   'pct' => 90],
+            'Packing / Finishing'     => ['label' => 'Packing & Finishing',      'icon' => 'fas fa-box-open',       'pct' => 95],
+            'Selesai (Finished Good)' => ['label' => 'Pesanan Selesai (Siap)', 'icon' => 'fas fa-check-circle',   'pct' => 100],
+        ];
+
+        $currentStageRaw = $spk->status ?: ($spk->tahap_saat_ini ?: 'Perencanaan');
+        $currentStageKey = 'Perencanaan';
+        $currentStageIdx = 1;
+        $progressPct = 10;
+
+        $idx = 1;
+        foreach ($stagesList as $key => $meta) {
+            $keyFirstWord = strtolower(explode(' ', $key)[0]);
+            $rawLower = strtolower($currentStageRaw);
+            if (str_contains($rawLower, strtolower($key)) || ($keyFirstWord !== 'tahap' && str_contains($rawLower, $keyFirstWord))) {
+                $currentStageKey = $key;
+                $currentStageIdx = $idx;
+                $progressPct = $meta['pct'];
+            }
+            $idx++;
+        }
+
+        if (str_contains(strtolower($currentStageRaw), 'jahit')) {
+            $currentStageKey = 'Tahap Jahit';
+            $currentStageIdx = 6;
+            $progressPct = 70;
+        } elseif (str_contains(strtolower($currentStageRaw), 'potong')) {
+            $currentStageKey = 'Tahap Pemotongan';
+            $currentStageIdx = 5;
+            $progressPct = 55;
+        } elseif (str_contains(strtolower($currentStageRaw), 'qc') || str_contains(strtolower($currentStageRaw), 'quality')) {
+            $currentStageKey = 'Quality Control';
+            $currentStageIdx = 8;
+            $progressPct = 90;
+        } elseif (str_contains(strtolower($currentStageRaw), 'packing') || str_contains(strtolower($currentStageRaw), 'finishing')) {
+            $currentStageKey = 'Packing / Finishing';
+            $currentStageIdx = 9;
+            $progressPct = 95;
+        } elseif (str_contains(strtolower($currentStageRaw), 'selesai') || str_contains(strtolower($currentStageRaw), 'finished')) {
+            $currentStageKey = 'Selesai (Finished Good)';
+            $currentStageIdx = 10;
+            $progressPct = 100;
+        }
+
+        $variantRows = [];
+        $fabricName = $spk->items->first()?->sku_kain ?: 'BAHAN STANDAR';
+        $totalPcs = 0;
+
+        foreach ($spk->items as $item) {
+            $szKey = strtoupper($this->normalizeSizeKey($item->ukuran));
+            $skuInduk = $item->sku_induk;
+            if (!$skuInduk && !empty($item->sku)) {
+                $skuInduk = preg_replace('/[_\-\s]+(S|M|L|XL|XXL|3XL|4XL|XXXL|XXXXL|2XL|ALLSIZE|ALL SIZE)$/i', '', trim($item->sku));
+            }
+            $modelName = $skuInduk ?: ($item->sku ?: ($item->nama_produk ?: 'PRODUK VARIAN'));
+
+            if (!isset($variantRows[$modelName])) {
+                $variantRows[$modelName] = [
+                    'name'     => $modelName,
+                    'sizes'    => [],
+                    'subtotal' => 0,
+                ];
+            }
+            $variantRows[$modelName]['sizes'][] = [
+                'size'     => $szKey,
+                'quantity' => (int) $item->quantity,
+            ];
+            $variantRows[$modelName]['subtotal'] += (int) $item->quantity;
+            $totalPcs += (int) $item->quantity;
+        }
+
+        $photos = [];
+        if ($spk->mockup_url) $photos[] = ['title' => 'Mockup Desain Final', 'url' => $spk->mockup_url];
+        if ($spk->referensi_klien_url) $photos[] = ['title' => 'Referensi Klien', 'url' => $spk->referensi_klien_url];
+        if ($spk->image_url) $photos[] = ['title' => 'Foto Progres Produksi', 'url' => $spk->image_url];
+
+        if (!empty($spk->tambahan)) {
+            $parts = explode('||', $spk->tambahan);
+            foreach ($parts as $part) {
+                foreach (explode('|', $part) as $sub) {
+                    $sub = trim($sub);
+                    if (str_contains($sub, 'Foto ') && str_contains($sub, 'http')) {
+                        $pParts = explode(':', $sub, 2);
+                        if (count($pParts) == 2) {
+                            $tag = trim($pParts[0]);
+                            $url = trim($pParts[1]);
+                            $photos[] = ['title' => $tag, 'url' => $url];
+                        }
+                    }
+                }
+            }
+        }
+
+        return view('inventory.spks.customer_tracking', compact(
+            'spk',
+            'stagesList',
+            'currentStageKey',
+            'currentStageIdx',
+            'progressPct',
+            'variantRows',
+            'fabricName',
+            'totalPcs',
+            'photos'
+        ));
+    }
 }

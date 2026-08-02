@@ -139,6 +139,9 @@ Route::get('/spk-scan/{spk}', [\App\Http\Controllers\Inventory\SpkController::cl
 Route::post('/spk-scan/{spk}/verify-pin', [\App\Http\Controllers\Inventory\SpkController::class, 'verifyMobilePin'])->name('spks.mobile_verify_pin');
 Route::post('/spk-scan/{spk}/update-tracking', [\App\Http\Controllers\Inventory\SpkController::class, 'updateMobileTracking'])->name('spks.mobile_update_tracking');
 
+// Public Customer Production Tracking (Tanpa Login Username/Password)
+Route::get('/track-spk/{spk}', [\App\Http\Controllers\Inventory\SpkController::class, 'customerTrack'])->name('spks.customer_track');
+
 // Petunjuk Penghapusan Data (Tanpa Login)
 Route::get('/data-deletion', function () {
     return view('data-deletion');

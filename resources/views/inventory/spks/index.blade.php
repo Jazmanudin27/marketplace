@@ -198,7 +198,7 @@
                         ($firstSpk->items->pluck('masterProduct.image_url')->filter()->first() ??
                             $spkGroup->pluck('image_url')->filter()->first());
 
-                    $trackingUrl = route('mobile.spk.detail', $row->id);
+                    $trackingUrl = route('spks.customer_track', $row->no_produksi ?: $row->id);
                     $waText = rawurlencode(
                         'Halo ' .
                             ($row->pemesan ?: 'Pelanggan') .
@@ -465,23 +465,32 @@
 
                             {{-- ACTION BUTTONS TOOLBAR --}}
                             <div class="d-flex flex-column gap-2 mt-auto">
-                                {{-- Row 1: Detail/Edit & Link Track --}}
-                                <div class="row g-2">
-                                    <div class="col-6">
+                                {{-- Row 1: Detail/Edit, Lihat Track Customer & Kirim WA --}}
+                                <div class="row g-1">
+                                    <div class="col-4">
                                         <a href="{{ route('spks.show', $row) }}"
-                                            class="btn btn-sm btn-outline-secondary w-100 rounded-3 fw-bold py-1.5 bg-white text-dark border-opacity-25 d-inline-flex align-items-center justify-content-center gap-1.5 hover-shadow"
-                                            style="font-size: 0.8rem;">
+                                            class="btn btn-sm btn-outline-secondary w-100 rounded-3 fw-bold py-1.5 bg-white text-dark border-opacity-25 d-inline-flex align-items-center justify-content-center gap-1 hover-shadow"
+                                            style="font-size: 0.75rem;" title="Edit Detail SPK">
                                             <i class="far fa-eye text-primary"></i>
-                                            <span>Detail / Edit</span>
+                                            <span>Detail</span>
                                         </a>
                                     </div>
-                                    <div class="col-6">
+                                    <div class="col-4">
+                                        <a href="{{ route('spks.customer_track', $row->no_produksi ?: $row->id) }}" target="_blank"
+                                            class="btn btn-sm rounded-3 fw-bold py-1.5 w-100 d-inline-flex align-items-center justify-content-center gap-1 transition-all hover-shadow"
+                                            style="font-size: 0.75rem; background-color: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe;"
+                                            title="Buka Halaman Tracking Customer di Tab Baru">
+                                            <i class="fas fa-external-link-alt text-primary"></i>
+                                            <span>Tracking</span>
+                                        </a>
+                                    </div>
+                                    <div class="col-4">
                                         <a href="https://wa.me/?text={{ $waText }}" target="_blank"
-                                            class="btn btn-sm rounded-3 fw-bold py-1.5 w-100 d-inline-flex align-items-center justify-content-center gap-1.5 transition-all hover-shadow"
-                                            style="font-size: 0.8rem; background-color: #dcfce7; color: #15803d; border: 1px solid #bbf7d0;"
+                                            class="btn btn-sm rounded-3 fw-bold py-1.5 w-100 d-inline-flex align-items-center justify-content-center gap-1 transition-all hover-shadow"
+                                            style="font-size: 0.75rem; background-color: #dcfce7; color: #15803d; border: 1px solid #bbf7d0;"
                                             title="Bagikan Tautan Pelacakan ke Pelanggan via WhatsApp">
                                             <i class="fab fa-whatsapp fs-6 text-success"></i>
-                                            <span>Link Track</span>
+                                            <span>Kirim WA</span>
                                         </a>
                                     </div>
                                 </div>

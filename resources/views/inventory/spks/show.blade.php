@@ -367,6 +367,12 @@
             ]) }}" class="btn btn-sm btn-success fw-bold px-3">
                 ✚ Tambah SPK Baru
             </a>
+            <a href="{{ route('spks.customer_track', $spk->no_produksi ?: $spk->id) }}" target="_blank" class="btn btn-sm btn-info text-white fw-bold px-3">
+                📱 Link Customer
+            </a>
+            <a href="https://wa.me/?text={{ rawurlencode('Halo ' . ($spk->pemesan ?: 'Customer') . ', berikut link tracking status pengerjaan pesanan Anda: ' . route('spks.customer_track', $spk->no_produksi ?: $spk->id)) }}" target="_blank" class="btn btn-sm text-white fw-bold px-3" style="background-color: #25d366;">
+                <i class="fab fa-whatsapp me-1"></i> Share WA
+            </a>
             <a href="{{ route('spks.print', $spk) }}" target="_blank" class="btn btn-sm btn-outline-primary fw-bold px-3">
                 🖨️ Cetak Lembar SPK
             </a>
