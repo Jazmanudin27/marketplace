@@ -289,11 +289,11 @@ class FulfillmentController extends Controller
                     $order->save();
                     $shipped = true;
                     $message = "Kemas sukses! Pesanan berhasil dikirim ke Shopee.";
-                } elseif ($store->channel->code === 'tiktok') {
+                } elseif (in_array(strtolower($store->channel->code ?? ''), ['tiktok', 'tokopedia'])) {
                     $tiktokService = app(\App\Services\TiktokService::class);
                     $tiktokService->shipOrder(
-                        $store->access_token,
-                        $store->marketplace_store_id,
+                        $store->getValidAccessToken(),
+                        $store->shop_cipher ?: $store->marketplace_store_id,
                         $order->order_marketplace_id,
                         $handoverMethod
                     );
@@ -719,11 +719,11 @@ class FulfillmentController extends Controller
                     $order->order_status = Order::STATUS_SHIPPED;
                     $order->save();
                     $successCount++;
-                } elseif ($store->channel->code === 'tiktok') {
+                } elseif (in_array(strtolower($store->channel->code ?? ''), ['tiktok', 'tokopedia'])) {
                     $tiktokService = app(\App\Services\TiktokService::class);
                     $tiktokService->shipOrder(
-                        $store->access_token,
-                        $store->marketplace_store_id,
+                        $store->getValidAccessToken(),
+                        $store->shop_cipher ?: $store->marketplace_store_id,
                         $order->order_marketplace_id,
                         $handoverMethod
                     );

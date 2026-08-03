@@ -215,11 +215,14 @@ class OrderController extends Controller
             } catch (\Exception $e) {
                 return back()->with('error', 'Gagal memproses pengiriman Shopee: ' . $e->getMessage());
             }
-        } elseif ($store->channel->code === 'tiktok') {
+        } elseif (in_array(strtolower($store->channel->code ?? ''), ['tiktok', 'tokopedia'])) {
             try {
+                $accessToken = $store->getValidAccessToken();
+                $shopCipher  = $store->shop_cipher ?: $store->marketplace_store_id;
+
                 $tiktokService->shipOrder(
-                    $store->access_token,
-                    $store->marketplace_store_id,
+                    $accessToken,
+                    $shopCipher,
                     $order->order_marketplace_id,
                     $handoverMethod
                 );
@@ -329,7 +332,28 @@ class OrderController extends Controller
         } elseif (in_array($channelCode, ['tiktok', 'tokopedia'])) {
             try {
                 $accessToken = $store->getValidAccessToken();
-                $shopCipher = $store->marketplace_store_id;
+                $shopCipher  = $store->shop_cipher;
+
+                // Self-healing jika shop_cipher belum tersimpan di DB
+                if (empty($shopCipher)) {
+                    try {
+                        $shopsData = $tiktokService->getShopInfo($accessToken);
+                        $shopsList = $shopsData['shops'] ?? (is_array($shopsData) ? $shopsData : []);
+                        foreach ($shopsList as $s) {
+                            $c = $s['cipher'] ?? $s['shop_cipher'] ?? null;
+                            if ($c) {
+                                $shopCipher = $c;
+                                $store->shop_cipher = $c;
+                                $store->save();
+                                break;
+                            }
+                        }
+                    } catch (\Exception $e) {}
+                }
+
+                if (empty($shopCipher)) {
+                    $shopCipher = $store->marketplace_store_id;
+                }
 
                 $detailData = $tiktokService->getOrderDetail(
                     $accessToken,
@@ -478,10 +502,13 @@ class OrderController extends Controller
                     $order->order_status = Order::STATUS_SHIPPED;
                     $order->save();
                     $successCount++;
-                } elseif ($channelCode === 'tiktok') {
+                } elseif (in_array($channelCode, ['tiktok', 'tokopedia'])) {
+                    $accessToken = $store->getValidAccessToken();
+                    $shopCipher  = $store->shop_cipher ?: $store->marketplace_store_id;
+
                     $tiktokService->shipOrder(
-                        $store->access_token,
-                        $store->marketplace_store_id,
+                        $accessToken,
+                        $shopCipher,
                         $order->order_marketplace_id,
                         $handoverMethod
                     );
@@ -586,7 +613,26 @@ class OrderController extends Controller
                 } elseif (in_array($channelCode, ['tiktok', 'tokopedia'])) {
                     $tiktokService = app(\App\Services\TiktokService::class);
                     $accessToken = $store->getValidAccessToken();
-                    $shopCipher = $store->marketplace_store_id;
+                    $shopCipher  = $store->shop_cipher;
+
+                    if (empty($shopCipher)) {
+                        try {
+                            $shopsData = $tiktokService->getShopInfo($accessToken);
+                            $shopsList = $shopsData['shops'] ?? (is_array($shopsData) ? $shopsData : []);
+                            foreach ($shopsList as $s) {
+                                $c = $s['cipher'] ?? $s['shop_cipher'] ?? null;
+                                if ($c) {
+                                    $shopCipher = $c;
+                                    $store->shop_cipher = $c;
+                                    $store->save();
+                                    break;
+                                }
+                            }
+                        } catch (\Exception $e) {}
+                    }
+                    if (empty($shopCipher)) {
+                        $shopCipher = $store->marketplace_store_id;
+                    }
 
                     $detailData = $tiktokService->getOrderDetail(
                         $accessToken,
@@ -705,10 +751,10 @@ class OrderController extends Controller
 
         // Coba untuk fetch dokumen pengiriman dari marketplace API
         try {
-            if (in_array($store->channel->code, ['tiktok', 'tokopedia']) && !empty($store->access_token)) {
+            if (in_array(strtolower($store->channel->code ?? ''), ['tiktok', 'tokopedia']) && !empty($store->access_token)) {
                 $response = $tiktokService->getShippingDocument(
-                    $store->access_token,
-                    $store->marketplace_store_id,
+                    $store->getValidAccessToken(),
+                    $store->shop_cipher ?: $store->marketplace_store_id,
                     $order->order_marketplace_id
                 );
                 if (!empty($response['doc_url'])) {

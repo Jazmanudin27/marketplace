@@ -40,8 +40,8 @@ class OrderPrintController extends Controller
             if ($store && in_array($store->channel->code ?? '', ['tiktok', 'tokopedia']) && !empty($store->access_token)) {
                 try {
                     $docData = $tiktokService->getShippingDocument(
-                        $store->access_token,
-                        $store->marketplace_store_id ?? '',
+                        $store->getValidAccessToken(),
+                        $store->shop_cipher ?: $store->marketplace_store_id,
                         $order->order_marketplace_id
                     );
                     if (!empty($docData['doc_url'])) {
