@@ -611,7 +611,22 @@
                                         showConfirmButton: false
                                     });
 
-                                    // Ganti tombol Kirim Pesanan dengan Badge Sudah Kirim
+                                    const $flexContainer = $btn.closest('.d-flex');
+                                    const trackingBtn = $flexContainer ? $flexContainer.querySelector('.btn-fetch-single-tracking') : null;
+
+                                    // 1. Update tampilan resi jika resi otomatis didapatkan
+                                    if (data.tracking_number && trackingBtn) {
+                                        const trackingDiv = trackingBtn.closest('div');
+                                        if (trackingDiv) {
+                                            trackingDiv.outerHTML = `
+                                                <div class="text-muted small font-monospace" style="font-size:0.68rem;" title="Nomor Resi">
+                                                    <i class="fas fa-barcode me-1 text-secondary"></i><span class="fw-semibold text-dark">${data.tracking_number}</span>
+                                                </div>
+                                            `;
+                                        }
+                                    }
+
+                                    // 2. Ganti tombol Kirim Pesanan dengan Badge Sudah Kirim
                                     const parentDiv = $btn.closest('div');
                                     if (parentDiv) {
                                         parentDiv.outerHTML = `
@@ -622,18 +637,6 @@
                                                 </span>
                                             </div>
                                         `;
-                                    }
-
-                                    // Jika resi otomatis didapatkan, update juga tampilan resinya
-                                    if (data.tracking_number) {
-                                        const trackingBtnContainer = $btn.closest('.d-flex').querySelector('.btn-fetch-single-tracking')?.closest('div');
-                                        if (trackingBtnContainer) {
-                                            trackingBtnContainer.outerHTML = `
-                                                <div class="text-muted small font-monospace" style="font-size:0.68rem;" title="Nomor Resi">
-                                                    <i class="fas fa-barcode me-1 text-secondary"></i><span class="fw-semibold text-dark">${data.tracking_number}</span>
-                                                </div>
-                                            `;
-                                        }
                                     }
                                 } else {
                                     Swal.fire({
