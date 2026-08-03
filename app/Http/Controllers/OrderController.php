@@ -365,33 +365,18 @@ class OrderController extends Controller
                 $tOrders = $detailData['order_list'] ?? [];
                 if (!empty($tOrders[0])) {
                     $tOrder = $tOrders[0];
-                    $trackingNo = $tOrder['tracking_number'] 
-                        ?? $tOrder['tracking_no'] 
-                        ?? ($tOrder['packages'][0]['tracking_number'] ?? null)
-                        ?? ($tOrder['packages'][0]['tracking_no'] ?? null)
-                        ?? ($tOrder['shipping_info']['tracking_number'] ?? null)
-                        ?? ($tOrder['shipping_info']['tracking_no'] ?? null)
-                        ?? ($tOrder['tracking_info']['tracking_number'] ?? null)
-                        ?? null;
+                    $trackingNo = $tOrder['tracking_number'] ?? $tOrder['tracking_no'] ?? $tOrder['express_tracking_number'] ?? null;
+                    if (empty($trackingNo) && !empty($tOrder['packages'])) {
+                        foreach ($tOrder['packages'] as $pkg) {
+                            $t = $pkg['tracking_number'] ?? $pkg['tracking_no'] ?? $pkg['express_tracking_number'] ?? null;
+                            if (!empty($t)) {
+                                $trackingNo = $t;
+                                break;
+                            }
+                        }
+                    }
                 }
 
-                // Fallback 1: Memanggil API getShippingInfo TikTok
-                if (empty($trackingNo)) {
-                    try {
-                        $shipInfo = $tiktokService->getShippingInfo(
-                            $accessToken,
-                            $shopCipher,
-                            $order->order_marketplace_id
-                        );
-                        $trackingNo = $shipInfo['tracking_number'] 
-                            ?? $shipInfo['tracking_no'] 
-                            ?? ($shipInfo['tracking_info']['tracking_number'] ?? null)
-                            ?? ($shipInfo['packages'][0]['tracking_number'] ?? null)
-                            ?? null;
-                    } catch (\Exception $e) {}
-                }
-
-                // Fallback 2: Memanggil API getShippingDocument TikTok
                 if (empty($trackingNo)) {
                     try {
                         $docRes = $tiktokService->getShippingDocument(
@@ -399,7 +384,7 @@ class OrderController extends Controller
                             $shopCipher,
                             $order->order_marketplace_id
                         );
-                        $trackingNo = $docRes['tracking_number'] ?? $docRes['tracking_no'] ?? null;
+                        $trackingNo = $docRes['tracking_number'] ?? $docRes['tracking_no'] ?? $docRes['express_tracking_number'] ?? null;
                     } catch (\Exception $e) {}
                 }
 
@@ -663,9 +648,15 @@ class OrderController extends Controller
                     $tOrders = $detailData['order_list'] ?? [];
                     if (!empty($tOrders[0])) {
                         $tOrder = $tOrders[0];
-                        $trackingNo = $tOrder['tracking_number'] ?? $tOrder['tracking_no'] ?? null;
+                        $trackingNo = $tOrder['tracking_number'] ?? $tOrder['tracking_no'] ?? $tOrder['express_tracking_number'] ?? null;
                         if (empty($trackingNo) && !empty($tOrder['packages'])) {
-                            $trackingNo = $tOrder['packages'][0]['tracking_number'] ?? $tOrder['packages'][0]['tracking_no'] ?? null;
+                            foreach ($tOrder['packages'] as $pkg) {
+                                $t = $pkg['tracking_number'] ?? $pkg['tracking_no'] ?? $pkg['express_tracking_number'] ?? null;
+                                if (!empty($t)) {
+                                    $trackingNo = $t;
+                                    break;
+                                }
+                            }
                         }
                     }
                 } elseif ($channelCode === 'lazada') {

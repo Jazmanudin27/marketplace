@@ -518,36 +518,6 @@ class TiktokService
     }
 
     /**
-     * Mendapatkan informasi logistik & resi pengiriman untuk order TikTok (v202309)
-     */
-    public function getShippingInfo(string $accessToken, string $shopCipher, string $orderId)
-    {
-        $path = '/logistics/202309/orders/' . $orderId . '/shipping_info';
-        
-        $queryParams = [
-            'app_key' => $this->appKey,
-            'timestamp' => time(),
-            'shop_cipher' => $shopCipher,
-        ];
-
-        $sign = $this->generateSignature($path, $queryParams);
-        $queryParams['sign'] = $sign;
-        $queryParams['access_token'] = $accessToken;
-
-        $response = Http::withHeaders([
-            'x-tts-access-token' => $accessToken,
-        ])->get($this->baseUrl . $path, $queryParams);
-
-        $data = $response->json();
-        
-        if (isset($data['code']) && $data['code'] !== 0) {
-            return [];
-        }
-
-        return $data['data'] ?? [];
-    }
-
-    /**
      * Mendapatkan daftar warehouse TikTok Shop
      */
     public function getWarehouses(string $accessToken, string $shopCipher)
