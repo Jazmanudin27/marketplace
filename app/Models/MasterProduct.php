@@ -176,17 +176,22 @@ class MasterProduct extends Model
         \App\Jobs\PushStockToMarketplaces::dispatchAfterResponse($this->id, $newStock);
 
         // 5. Update bundle parent stocks if this product is a component of any bundle
-        $parentBundles = MasterProduct::where('is_bundle', true)
-            ->whereHas('components', function ($q) {
-                $q->where('child_id', $this->id);
-            })->get();
+        $parentIds = \Illuminate\Support\Facades\DB::table('master_product_bundles')
+            ->where('child_id', $this->id)
+            ->pluck('parent_id');
 
-        foreach ($parentBundles as $parent) {
-            $parentStock = $parent->stock; // Recalculates dynamically
-            $parent->marketplaceProducts()
-                   ->where('sync_stock', true)
-                   ->update(['stock' => $parentStock]);
-            \App\Jobs\PushStockToMarketplaces::dispatchAfterResponse($parent->id, $parentStock);
+        if ($parentIds->isNotEmpty()) {
+            $parentBundles = MasterProduct::whereIn('id', $parentIds)
+                ->where('is_bundle', true)
+                ->get();
+
+            foreach ($parentBundles as $parent) {
+                $parentStock = $parent->stock; // Recalculates dynamically from component stocks
+                $parent->marketplaceProducts()
+                       ->where('sync_stock', true)
+                       ->update(['stock' => $parentStock]);
+                \App\Jobs\PushStockToMarketplaces::dispatchAfterResponse($parent->id, $parentStock);
+            }
         }
     }
 
