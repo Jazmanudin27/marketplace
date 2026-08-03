@@ -15,7 +15,7 @@
             <form action="{{ route('orders.ship', $order->id) }}" method="POST" class="d-inline m-0">
                 @csrf
                 <button type="submit" class="btn btn-success btn-sm px-3 rounded-3 fw-semibold"
-                    onclick="this.innerHTML='<i class=\'fas fa-spinner fa-spin\'></i> Memproses...'; this.disabled=true; this.form.submit();">
+                    onclick="this.disabled=true; this.innerHTML='<i class=&quot;fas fa-spinner fa-spin&quot;></i> Memproses...'; this.form.submit();">
                     <i class="fas fa-truck-loading me-1"></i> Kirim Pesanan
                 </button>
             </form>
@@ -31,7 +31,7 @@
                 <form action="{{ route('orders.tracking', $order->id) }}" method="POST" class="d-inline m-0">
                     @csrf
                     <button type="submit" class="btn btn-warning btn-sm px-3 rounded-3 text-dark fw-semibold"
-                        onclick="this.innerHTML='<i class=\'fas fa-spinner fa-spin\'></i> Menarik...'; this.disabled=true; this.form.submit();">
+                        onclick="this.disabled=true; this.innerHTML='<i class=&quot;fas fa-spinner fa-spin&quot;></i> Menarik...'; this.form.submit();">
                         <i class="fas fa-sync me-1"></i> Tarik Resi
                     </button>
                 </form>

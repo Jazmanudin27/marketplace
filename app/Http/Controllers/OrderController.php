@@ -220,19 +220,65 @@ class OrderController extends Controller
                 $accessToken = $store->getValidAccessToken();
                 $shopCipher  = $store->shop_cipher ?: $store->marketplace_store_id;
 
-                $tiktokService->shipOrder(
-                    $accessToken,
-                    $shopCipher,
-                    $order->order_marketplace_id,
-                    $handoverMethod
-                );
+                try {
+                    $tiktokService->shipOrder(
+                        $accessToken,
+                        $shopCipher,
+                        $order->order_marketplace_id,
+                        $handoverMethod
+                    );
+                } catch (\Exception $e) {
+                    // Cek jika error dari TikTok karena status pesanan sudah dikirim / dikemas di TikTok
+                    $errStr = strtolower($e->getMessage());
+                    if (str_contains($errStr, 'already') || str_contains($errStr, 'status') || str_contains($errStr, 'invalid')) {
+                        try {
+                            $detailData = $tiktokService->getOrderDetail($accessToken, $shopCipher, [$order->order_marketplace_id]);
+                            $tOrders = $detailData['order_list'] ?? [];
+                            if (!empty($tOrders[0]['status']) && in_array($tOrders[0]['status'], ['AWAITING_COLLECTION', 'IN_TRANSIT', 'DELIVERED', 'COMPLETED'])) {
+                                // Pesanan memang sudah siap dikirim / dikemas di TikTok!
+                            } else {
+                                throw $e;
+                            }
+                        } catch (\Exception $e2) {
+                            throw $e;
+                        }
+                    } else {
+                        throw $e;
+                    }
+                }
                 
                 $order->order_status = Order::STATUS_SHIPPED;
+
+                // Langsung coba tarik nomor resi dari TikTok setelah ship sukses
+                try {
+                    $detailData = $tiktokService->getOrderDetail($accessToken, $shopCipher, [$order->order_marketplace_id]);
+                    $tOrders = $detailData['order_list'] ?? [];
+                    if (!empty($tOrders[0])) {
+                        $tOrder = $tOrders[0];
+                        $tNo = $tOrder['tracking_number'] ?? $tOrder['tracking_no'] ?? $tOrder['express_tracking_number'] ?? null;
+                        if (empty($tNo) && !empty($tOrder['packages'])) {
+                            foreach ($tOrder['packages'] as $pkg) {
+                                $tNo = $pkg['tracking_number'] ?? $pkg['tracking_no'] ?? $pkg['express_tracking_number'] ?? null;
+                                if (!empty($tNo)) break;
+                            }
+                        }
+                        if ($tNo) {
+                            $order->tracking_number = $tNo;
+                        }
+                    }
+                } catch (\Exception $e) {}
+
                 $order->save();
                 
-                return back()->with('success', 'Pesanan berhasil diproses pengirimannya ke TikTok (' . ($handoverMethod === 'PICK_UP' ? 'Pickup' : 'Drop-off') . ' sukses).');
+                $msg = 'Pesanan berhasil diproses pengirimannya ke TikTok (' . ($handoverMethod === 'PICK_UP' ? 'Pickup' : 'Drop-off') . ' sukses).';
+                return $request->ajax() || $request->wantsJson()
+                    ? response()->json(['success' => true, 'message' => $msg, 'tracking_number' => $order->tracking_number])
+                    : back()->with('success', $msg);
             } catch (\Exception $e) {
-                return back()->with('error', 'Gagal memproses pengiriman TikTok: ' . $e->getMessage());
+                $msg = 'Gagal memproses pengiriman TikTok: ' . $e->getMessage();
+                return $request->ajax() || $request->wantsJson()
+                    ? response()->json(['success' => false, 'message' => $msg], 400)
+                    : back()->with('error', $msg);
             }
         } elseif ($store->channel->code === 'lazada') {
             try {

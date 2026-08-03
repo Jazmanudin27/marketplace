@@ -485,8 +485,9 @@
                 </div>
             </div>
         </div>
-    </div>
+@endsection
 
+@push('scripts')
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const checkAll = document.getElementById('check-all');
@@ -574,7 +575,9 @@
                 btn.addEventListener('click', function(e) {
                     e.preventDefault();
                     e.stopPropagation();
-                    const orderId = this.dataset.orderId;
+                    const $btn = this;
+                    const orderId = $btn.dataset.orderId;
+                    const originalHtml = $btn.innerHTML;
                     
                     Swal.fire({
                         title: 'Kirim Pesanan ke Marketplace?',
@@ -586,11 +589,73 @@
                         confirmButtonColor: '#0d6efd'
                     }).then((res) => {
                         if (res.isConfirmed) {
-                            const trackingForm = document.getElementById('single-tracking-form');
-                            trackingForm.action = `/orders/${orderId}/ship`;
-                            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Mengirim...';
-                            btn.disabled = true;
-                            trackingForm.submit();
+                            $btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Mengirim...';
+                            $btn.disabled = true;
+
+                            fetch(`{{ url('/orders') }}/${orderId}/ship`, {
+                                method: 'POST',
+                                headers: {
+                                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                    'Accept': 'application/json',
+                                    'X-Requested-With': 'XMLHttpRequest'
+                                }
+                            })
+                            .then(res => res.json())
+                            .then(data => {
+                                if (data.success) {
+                                    Swal.fire({
+                                        icon: 'success',
+                                        title: 'Pesanan Berhasil Dikirim!',
+                                        text: data.message,
+                                        timer: 3000,
+                                        showConfirmButton: false
+                                    });
+
+                                    // Ganti tombol Kirim Pesanan dengan Badge Sudah Kirim
+                                    const parentDiv = $btn.closest('div');
+                                    if (parentDiv) {
+                                        parentDiv.outerHTML = `
+                                            <div>
+                                                <span class="badge bg-success-subtle text-success border border-success-subtle px-1-5 py-0-5"
+                                                    style="font-size: 0.65rem;" title="Pesanan Sudah Dikirim">
+                                                    <i class="fas fa-check-circle me-1"></i>Sudah Kirim
+                                                </span>
+                                            </div>
+                                        `;
+                                    }
+
+                                    // Jika resi otomatis didapatkan, update juga tampilan resinya
+                                    if (data.tracking_number) {
+                                        const trackingBtnContainer = $btn.closest('.d-flex').querySelector('.btn-fetch-single-tracking')?.closest('div');
+                                        if (trackingBtnContainer) {
+                                            trackingBtnContainer.outerHTML = `
+                                                <div class="text-muted small font-monospace" style="font-size:0.68rem;" title="Nomor Resi">
+                                                    <i class="fas fa-barcode me-1 text-secondary"></i><span class="fw-semibold text-dark">${data.tracking_number}</span>
+                                                </div>
+                                            `;
+                                        }
+                                    }
+                                } else {
+                                    Swal.fire({
+                                        icon: 'error',
+                                        title: 'Gagal Kirim Pesanan',
+                                        text: data.message || 'Terjadi kesalahan saat memproses pengiriman.',
+                                        confirmButtonColor: '#0d6efd'
+                                    });
+                                    $btn.innerHTML = originalHtml;
+                                    $btn.disabled = false;
+                                }
+                            })
+                            .catch(err => {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Gagal Kirim Pesanan',
+                                    text: 'Terjadi kesalahan sistem atau koneksi: ' + err.message,
+                                    confirmButtonColor: '#0d6efd'
+                                });
+                                $btn.innerHTML = originalHtml;
+                                $btn.disabled = false;
+                            });
                         }
                     });
                 });
@@ -657,4 +722,4 @@
             }
         });
     </script>
-@endsection
+@endpush
