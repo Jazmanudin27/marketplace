@@ -150,7 +150,7 @@ class OrderController extends Controller
         return back()->with('error', 'Channel tidak didukung.');
     }
 
-    public function ship(Order $order, \App\Services\ShopeeService $shopeeService, \App\Services\TiktokService $tiktokService)
+    public function ship(Request $request, Order $order, \App\Services\ShopeeService $shopeeService, \App\Services\TiktokService $tiktokService)
     {
         abort_unless($order->tenant_id === Auth::user()->tenant_id, 403);
         
@@ -211,9 +211,15 @@ class OrderController extends Controller
                     Log::warning('[Order] Gagal kirim notifikasi chat ke pembeli: ' . $e->getMessage());
                 }
                 
-                return back()->with('success', 'Pesanan berhasil diproses pengirimannya ke Shopee. Notifikasi dikirim ke pembeli.');
+                $msg = 'Pesanan berhasil diproses pengirimannya ke Shopee.';
+                return $request->ajax() || $request->wantsJson()
+                    ? response()->json(['success' => true, 'message' => $msg, 'tracking_number' => $order->tracking_number])
+                    : back()->with('success', $msg);
             } catch (\Exception $e) {
-                return back()->with('error', 'Gagal memproses pengiriman Shopee: ' . $e->getMessage());
+                $msg = 'Gagal memproses pengiriman Shopee: ' . $e->getMessage();
+                return $request->ajax() || $request->wantsJson()
+                    ? response()->json(['success' => false, 'message' => $msg], 400)
+                    : back()->with('error', $msg);
             }
         } elseif (in_array(strtolower($store->channel->code ?? ''), ['tiktok', 'tokopedia'])) {
             try {
@@ -306,13 +312,22 @@ class OrderController extends Controller
                 $order->order_status = Order::STATUS_SHIPPED;
                 $order->save();
                 
-                return back()->with('success', 'Pesanan Lazada berhasil diproses pengirimannya.');
+                $msg = 'Pesanan Lazada berhasil diproses pengirimannya.';
+                return $request->ajax() || $request->wantsJson()
+                    ? response()->json(['success' => true, 'message' => $msg, 'tracking_number' => $order->tracking_number])
+                    : back()->with('success', $msg);
             } catch (\Exception $e) {
-                return back()->with('error', 'Gagal memproses pengiriman Lazada: ' . $e->getMessage());
+                $msg = 'Gagal memproses pengiriman Lazada: ' . $e->getMessage();
+                return $request->ajax() || $request->wantsJson()
+                    ? response()->json(['success' => false, 'message' => $msg], 400)
+                    : back()->with('error', $msg);
             }
         }
 
-        return back()->with('error', 'Channel tidak didukung.');
+        $msg = 'Channel tidak didukung.';
+        return $request->ajax() || $request->wantsJson()
+            ? response()->json(['success' => false, 'message' => $msg], 400)
+            : back()->with('error', $msg);
     }
 
 
