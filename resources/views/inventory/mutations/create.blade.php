@@ -153,10 +153,11 @@
 
 </div>
 
-{{-- Data Produk untuk JavaScript --}}
+{{-- Data untuk JavaScript --}}
 <script>
-    const productsData = @json($products);
-    const preSelectedProductId = @json($selectedProductId);
+    const SEARCH_URL    = "{{ route('inventory.mutations.search-products') }}";
+    const PRE_SELECTED  = @json($preSelectedProduct);
+    const selectedType  = @json($selectedType);
 
     const reasonsIn = [
         "Hasil Produksi Selesai",
@@ -176,18 +177,142 @@
         "Lainnya"
     ];
 
+    /* =====================================================
+       AUTOCOMPLETE HELPER
+       Membuat 1 baris item dengan input autocomplete produk
+       ===================================================== */
+    function createProductAutocomplete(rowIndex, preProduct = null) {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'autocomplete-wrapper position-relative';
+
+        // Input teks yang user ketik
+        const input = document.createElement('input');
+        input.type        = 'text';
+        input.className   = 'form-control form-control-sm';
+        input.placeholder = 'Ketik nama / SKU produk...';
+        input.autocomplete = 'off';
+        input.required    = true;
+
+        // Hidden input yang menyimpan product_id sesungguhnya untuk POST
+        const hidden = document.createElement('input');
+        hidden.type  = 'hidden';
+        hidden.name  = `items[${rowIndex}][product_id]`;
+        hidden.required = true;
+
+        // Dropdown list
+        const dropdown = document.createElement('ul');
+        dropdown.className = 'autocomplete-dropdown list-unstyled mb-0 shadow-sm border rounded-2 bg-white position-absolute w-100';
+        dropdown.style.cssText = 'top:100%;left:0;z-index:1055;max-height:220px;overflow-y:auto;display:none;';
+
+        wrapper.appendChild(input);
+        wrapper.appendChild(hidden);
+        wrapper.appendChild(dropdown);
+
+        let debounceTimer = null;
+        let lastKeyword   = '';
+
+        function renderDropdown(items) {
+            dropdown.innerHTML = '';
+            if (!items.length) {
+                dropdown.innerHTML = '<li class="px-3 py-2 text-muted small">Produk tidak ditemukan</li>';
+                dropdown.style.display = 'block';
+                return;
+            }
+            items.forEach(p => {
+                const li = document.createElement('li');
+                li.className = 'autocomplete-item px-3 py-2 small d-flex justify-content-between align-items-center';
+                li.style.cursor = 'pointer';
+                li.innerHTML = `
+                    <span>
+                        <span class="text-muted font-monospace me-1">[${escHtml(p.sku)}]</span>
+                        <strong>${escHtml(p.name)}</strong>
+                    </span>
+                    <span class="badge bg-light text-dark border ms-2">Stok: ${p.stock}</span>`;
+                li.addEventListener('mousedown', (e) => {
+                    e.preventDefault(); // Prevent blur sebelum click terekam
+                    selectProduct(p);
+                });
+                dropdown.appendChild(li);
+            });
+            dropdown.style.display = 'block';
+        }
+
+        function selectProduct(p) {
+            input.value   = `[${p.sku}] ${p.name}`;
+            hidden.value  = p.id;
+            dropdown.style.display = 'none';
+            // Update badge stok
+            const badge = wrapper.closest('tr')?.querySelector('.current-stock-badge');
+            if (badge) badge.textContent = p.stock ?? 0;
+        }
+
+        function clearSelection() {
+            hidden.value = '';
+            const badge = wrapper.closest('tr')?.querySelector('.current-stock-badge');
+            if (badge) badge.textContent = 0;
+        }
+
+        input.addEventListener('input', () => {
+            const kw = input.value.trim();
+            clearSelection();
+            if (kw === lastKeyword) return;
+            lastKeyword = kw;
+
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                if (kw.length < 1) { dropdown.style.display = 'none'; return; }
+                fetch(`${SEARCH_URL}?q=${encodeURIComponent(kw)}`)
+                    .then(r => r.json())
+                    .then(data => renderDropdown(data))
+                    .catch(() => { dropdown.style.display = 'none'; });
+            }, 280); // debounce 280ms
+        });
+
+        input.addEventListener('focus', () => {
+            if (input.value.trim().length >= 1 && !hidden.value) {
+                input.dispatchEvent(new Event('input'));
+            }
+        });
+
+        input.addEventListener('blur', () => {
+            // Delay agar mousedown pada item dropdown sempat terekam
+            setTimeout(() => { dropdown.style.display = 'none'; }, 200);
+            // Jika tidak ada produk terpilih, kosongkan input agar tidak menipu
+            if (!hidden.value) input.value = '';
+        });
+
+        // Jika ada pre-selected product (dari query string / old value)
+        if (preProduct) {
+            selectProduct(preProduct);
+        }
+
+        return { wrapper, input, hidden };
+    }
+
+    function escHtml(str) {
+        const d = document.createElement('div');
+        d.appendChild(document.createTextNode(str ?? ''));
+        return d.innerHTML;
+    }
+
+    /* =====================================================
+       INISIALISASI HALAMAN
+       ===================================================== */
     document.addEventListener('DOMContentLoaded', function () {
-        const typeIn = document.getElementById('typeIn');
-        const typeOut = document.getElementById('typeOut');
-        const selectReasonPreset = document.getElementById('selectReasonPreset');
-        const categoryReasonInput = document.getElementById('categoryReason');
-        const mutationRows = document.getElementById('mutationRows');
-        const btnAddRow = document.getElementById('btnAddRow');
+        const typeIn               = document.getElementById('typeIn');
+        const typeOut              = document.getElementById('typeOut');
+        const selectReasonPreset   = document.getElementById('selectReasonPreset');
+        const categoryReasonInput  = document.getElementById('categoryReason');
+        const mutationRows         = document.getElementById('mutationRows');
+        const btnAddRow            = document.getElementById('btnAddRow');
+
+        // Set tipe sesuai state saat ini
+        if (selectedType === 'out') typeOut.checked = true;
+        else typeIn.checked = true;
 
         function updateReasonPresets() {
-            const isOut = typeOut.checked;
+            const isOut   = typeOut.checked;
             const presets = isOut ? reasonsOut : reasonsIn;
-
             selectReasonPreset.innerHTML = '<option value="">-- Pilih Kategori Preset --</option>';
             presets.forEach(reason => {
                 const opt = document.createElement('option');
@@ -201,75 +326,73 @@
         typeOut.addEventListener('change', updateReasonPresets);
 
         selectReasonPreset.addEventListener('change', function () {
-            if (this.value) {
-                categoryReasonInput.value = this.value;
-            }
+            if (this.value) categoryReasonInput.value = this.value;
         });
 
         updateReasonPresets();
 
         let rowIndex = 0;
 
-        function addRow(productId = null, qty = 1) {
+        function addRow(preProduct = null) {
             rowIndex++;
             const tr = document.createElement('tr');
             tr.id = `row-${rowIndex}`;
 
-            let productOptions = '<option value="">-- Pilih Produk --</option>';
-            productsData.forEach(p => {
-                const selected = productId == p.id ? 'selected' : '';
-                productOptions += `<option value="${p.id}" data-stock="${p.stock}" ${selected}>[${p.sku}] ${p.name} (Stok: ${p.stock})</option>`;
-            });
+            // Kolom Produk (autocomplete)
+            const tdProduct = document.createElement('td');
+            const { wrapper } = createProductAutocomplete(rowIndex, preProduct);
+            tdProduct.appendChild(wrapper);
 
-            tr.innerHTML = `
-                <td>
-                    <select name="items[${rowIndex}][product_id]" class="form-select form-select-sm select-product" required style="width: 100%;">
-                        ${productOptions}
-                    </select>
-                </td>
-                <td class="text-center align-middle">
-                    <span class="badge bg-light text-dark font-monospace border current-stock-badge px-2 py-1">0</span>
-                </td>
-                <td>
-                    <input type="number" name="items[${rowIndex}][quantity]" class="form-control form-control-sm text-center input-qty font-monospace" min="1" value="${qty}" required>
-                </td>
-                <td class="text-center align-middle">
-                    <button type="button" class="btn btn-outline-danger btn-xs btn-remove-row" title="Hapus Baris">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </td>
-            `;
+            // Kolom Stok
+            const tdStock = document.createElement('td');
+            tdStock.className = 'text-center align-middle';
+            tdStock.innerHTML = `<span class="badge bg-light text-dark font-monospace border current-stock-badge px-2 py-1">0</span>`;
 
-            mutationRows.appendChild(tr);
+            // Kolom Qty
+            const tdQty = document.createElement('td');
+            tdQty.innerHTML = `<input type="number" name="items[${rowIndex}][quantity]" class="form-control form-control-sm text-center input-qty font-monospace" min="1" value="1" required>`;
 
-            const selectEl = tr.querySelector('.select-product');
-            const stockBadge = tr.querySelector('.current-stock-badge');
-            const removeBtn = tr.querySelector('.btn-remove-row');
-
-            function updateStockDisplay() {
-                const selectedOpt = selectEl.options[selectEl.selectedIndex];
-                const stock = selectedOpt ? selectedOpt.getAttribute('data-stock') : 0;
-                stockBadge.textContent = stock !== null ? stock : 0;
-            }
-
-            selectEl.addEventListener('change', updateStockDisplay);
-            updateStockDisplay();
-
-            removeBtn.addEventListener('click', function () {
+            // Kolom Aksi
+            const tdAction = document.createElement('td');
+            tdAction.className = 'text-center align-middle';
+            const btnRemove = document.createElement('button');
+            btnRemove.type = 'button';
+            btnRemove.className = 'btn btn-outline-danger btn-xs btn-remove-row';
+            btnRemove.title = 'Hapus Baris';
+            btnRemove.innerHTML = '<i class="fas fa-trash"></i>';
+            btnRemove.addEventListener('click', () => {
                 if (mutationRows.children.length > 1) {
                     tr.remove();
                 } else {
                     alert('Minimal 1 produk harus dipilih!');
                 }
             });
+            tdAction.appendChild(btnRemove);
+
+            tr.appendChild(tdProduct);
+            tr.appendChild(tdStock);
+            tr.appendChild(tdQty);
+            tr.appendChild(tdAction);
+            mutationRows.appendChild(tr);
         }
 
-        btnAddRow.addEventListener('click', function () {
-            addRow();
-        });
+        btnAddRow.addEventListener('click', () => addRow());
 
-        // Add initial row
-        addRow(preSelectedProductId);
+        // Row pertama — pre-select produk jika ada (dari query string)
+        addRow(PRE_SELECTED);
     });
 </script>
+
+<style>
+    .autocomplete-item:hover {
+        background-color: #f0f4ff;
+    }
+    .autocomplete-dropdown::-webkit-scrollbar {
+        width: 5px;
+    }
+    .autocomplete-dropdown::-webkit-scrollbar-thumb {
+        background: #ccc;
+        border-radius: 4px;
+    }
+</style>
 @endsection

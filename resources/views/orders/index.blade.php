@@ -501,7 +501,7 @@
                     e.stopPropagation();
                     const orderId = this.dataset.orderId;
                     const trackingForm = document.getElementById('single-tracking-form');
-                    trackingForm.action = `/orders/${orderId}/tracking`;
+                    trackingForm.action = `{{ url('/orders') }}/${orderId}/tracking`;
                     this.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Menarik...';
                     this.disabled = true;
                     trackingForm.submit();

@@ -590,6 +590,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/inventory/mutations', [\App\Http\Controllers\Inventory\ProductMutationController::class, 'index'])->name('inventory.mutations.index');
         Route::get('/inventory/mutations/create', [\App\Http\Controllers\Inventory\ProductMutationController::class, 'create'])->name('inventory.mutations.create');
         Route::post('/inventory/mutations', [\App\Http\Controllers\Inventory\ProductMutationController::class, 'store'])->name('inventory.mutations.store');
+        Route::get('/inventory/mutations/search-products', [\App\Http\Controllers\Inventory\ProductMutationController::class, 'searchProducts'])->name('inventory.mutations.search-products');
     });
 
     // Pesanan Retur

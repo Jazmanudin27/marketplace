@@ -521,7 +521,7 @@
                 e.stopPropagation();
                 const orderId = $(this).data('order-id');
                 const trackingForm = $('#single-tracking-form');
-                trackingForm.attr('action', `/orders/${orderId}/tracking`);
+                trackingForm.attr('action', `{{ url('/orders') }}/${orderId}/tracking`);
                 $(this).html('<i class="fas fa-spinner fa-spin me-1"></i>Menarik...').prop('disabled', true);
                 trackingForm.submit();
             });

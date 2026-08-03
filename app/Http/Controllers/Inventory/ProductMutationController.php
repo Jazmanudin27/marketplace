@@ -95,7 +95,41 @@ class ProductMutationController extends Controller
         $selectedType = $request->get('type', 'in'); // 'in' or 'out'
         $selectedProductId = $request->get('product_id');
 
-        return view('inventory.mutations.create', compact('products', 'selectedType', 'selectedProductId'));
+        // Ambil data produk yang dipre-select saja (jika ada), tidak load semua
+        $preSelectedProduct = null;
+        if ($selectedProductId) {
+            $preSelectedProduct = MasterProduct::where('tenant_id', $tenantId)
+                ->where('is_active', true)
+                ->where('id', $selectedProductId)
+                ->first(['id', 'sku', 'name', 'stock', 'unit']);
+        }
+
+        return view('inventory.mutations.create', compact('selectedType', 'selectedProductId', 'preSelectedProduct'));
+    }
+
+    /**
+     * API Autocomplete: Cari Master Produk berdasarkan keyword (nama / SKU).
+     * Hanya mengembalikan max 15 hasil untuk performa.
+     */
+    public function searchProducts(Request $request)
+    {
+        $tenantId = Auth::user()->tenant_id;
+        $keyword  = trim($request->get('q', ''));
+
+        $query = MasterProduct::where('tenant_id', $tenantId)
+            ->where('is_active', true)
+            ->orderBy('name');
+
+        if ($keyword !== '') {
+            $query->where(function ($q) use ($keyword) {
+                $q->where('name', 'like', "%{$keyword}%")
+                  ->orWhere('sku',  'like', "%{$keyword}%");
+            });
+        }
+
+        $products = $query->limit(15)->get(['id', 'sku', 'name', 'stock', 'unit']);
+
+        return response()->json($products);
     }
 
     /**

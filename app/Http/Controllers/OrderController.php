@@ -272,42 +272,91 @@ class OrderController extends Controller
         abort_unless($order->tenant_id === Auth::user()->tenant_id, 403);
         
         $store = $order->store;
-        
-        if ($store->channel->code === 'shopee') {
+        if (!$store || !$store->channel) {
+            return back()->with('error', 'Informasi toko atau channel tidak ditemukan.');
+        }
+
+        $channelCode = strtolower($store->channel->code ?? '');
+
+        if ($channelCode === 'shopee') {
             try {
+                $accessToken = $store->getValidAccessToken();
                 $response = $shopeeService->getTrackingNumber(
-                    $store->access_token,
+                    $accessToken,
                     (int) $store->marketplace_store_id,
                     $order->order_marketplace_id
                 );
                 
-                if (!empty($response['tracking_number'])) {
-                    $order->tracking_number = $response['tracking_number'];
+                $trackingNo = $response['tracking_number'] ?? $response['package_list'][0]['tracking_number'] ?? null;
+
+                if (empty($trackingNo)) {
+                    // Fallback: ambil dari detail order Shopee jika get_tracking_number belum mengembalikan resi
+                    try {
+                        $shopeeOrder = $shopeeService->getOrderDetail(
+                            $accessToken,
+                            (int) $store->marketplace_store_id,
+                            [$order->order_marketplace_id]
+                        );
+                        $ordersList = $shopeeOrder['order_list'] ?? [];
+                        if (!empty($ordersList[0]['package_list'][0]['tracking_number'])) {
+                            $trackingNo = $ordersList[0]['package_list'][0]['tracking_number'];
+                        }
+                    } catch (\Exception $e) {}
+                }
+
+                if (!empty($trackingNo)) {
+                    $order->tracking_number = $trackingNo;
                     $order->save();
-                    return back()->with('success', 'Resi berhasil ditarik: ' . $order->tracking_number);
+                    return back()->with('success', 'Resi Shopee berhasil ditarik: ' . $order->tracking_number);
                 }
                 
-                return back()->with('error', 'Resi belum tersedia dari kurir.');
+                return back()->with('error', 'Resi belum diterbitkan oleh Shopee/kurir. Silakan coba beberapa saat lagi.');
             } catch (\Exception $e) {
-                return back()->with('error', 'Gagal menarik resi: ' . $e->getMessage());
+                return back()->with('error', 'Gagal menarik resi Shopee: ' . $e->getMessage());
             }
-        } elseif ($store->channel->code === 'tiktok') {
+        } elseif (in_array($channelCode, ['tiktok', 'tokopedia'])) {
             try {
-                $response = $tiktokService->getShippingDocument(
-                    $store->access_token,
-                    $store->marketplace_store_id,
-                    $order->order_marketplace_id
+                $accessToken = $store->getValidAccessToken();
+                $shopCipher = $store->marketplace_store_id;
+
+                $detailData = $tiktokService->getOrderDetail(
+                    $accessToken,
+                    $shopCipher,
+                    [$order->order_marketplace_id]
                 );
-                
-                if (!empty($response['doc_url'])) {
-                    return redirect($response['doc_url']);
+
+                $trackingNo = null;
+                $tOrders = $detailData['order_list'] ?? [];
+                if (!empty($tOrders[0])) {
+                    $tOrder = $tOrders[0];
+                    $trackingNo = $tOrder['tracking_number'] ?? $tOrder['tracking_no'] ?? null;
+                    if (empty($trackingNo) && !empty($tOrder['packages'])) {
+                        $trackingNo = $tOrder['packages'][0]['tracking_number'] ?? $tOrder['packages'][0]['tracking_no'] ?? null;
+                    }
                 }
-                
-                return back()->with('error', 'Resi TikTok belum tersedia atau tidak dikembalikan oleh API.');
+
+                if (empty($trackingNo)) {
+                    try {
+                        $docRes = $tiktokService->getShippingDocument(
+                            $accessToken,
+                            $shopCipher,
+                            $order->order_marketplace_id
+                        );
+                        $trackingNo = $docRes['tracking_number'] ?? $docRes['tracking_no'] ?? null;
+                    } catch (\Exception $e) {}
+                }
+
+                if (!empty($trackingNo)) {
+                    $order->tracking_number = $trackingNo;
+                    $order->save();
+                    return back()->with('success', 'Resi TikTok berhasil ditarik: ' . $order->tracking_number);
+                }
+
+                return back()->with('error', 'Resi belum diterbitkan oleh TikTok/kurir. Silakan pastikan pesanan sudah dikemas di Seller Center.');
             } catch (\Exception $e) {
-                return back()->with('error', 'Gagal menarik resi: ' . $e->getMessage());
+                return back()->with('error', 'Gagal menarik resi TikTok: ' . $e->getMessage());
             }
-        } elseif ($store->channel->code === 'lazada') {
+        } elseif ($channelCode === 'lazada') {
             try {
                 $lazadaService = app(\App\Services\LazadaService::class);
                 $response = $lazadaService->getTrackingNumber(
@@ -322,13 +371,17 @@ class OrderController extends Controller
                     return back()->with('success', 'Resi Lazada berhasil ditarik: ' . $order->tracking_number);
                 }
                 
-                return back()->with('error', 'Resi belum tersedia dari kurir.');
+                return back()->with('error', 'Resi belum tersedia dari kurir Lazada.');
             } catch (\Exception $e) {
                 return back()->with('error', 'Gagal menarik resi Lazada: ' . $e->getMessage());
             }
         }
 
-        return back()->with('error', 'Channel tidak didukung.');
+        if (!empty($order->tracking_number)) {
+            return back()->with('info', 'Nomor resi pesanan ini: ' . $order->tracking_number);
+        }
+
+        return back()->with('error', 'Channel marketplace (' . ($store->channel->name ?? 'Lokal') . ') tidak mendukung penarikan resi otomatis.');
     }
 
     public function massShip(Request $request, \App\Services\ShopeeService $shopeeService, \App\Services\TiktokService $tiktokService)
@@ -450,7 +503,6 @@ class OrderController extends Controller
 
         $orders = Order::where('tenant_id', Auth::user()->tenant_id)
             ->whereIn('id', $orderIds)
-            ->whereIn('order_status', [Order::STATUS_SHIPPED, Order::STATUS_READY_TO_SHIP])
             ->get();
 
         if ($orders->isEmpty()) {
@@ -461,11 +513,19 @@ class OrderController extends Controller
         $failCount = 0;
 
         foreach ($orders as $order) {
+            // Jika resi sudah tersimpan sebelumnya
+            if (!empty($order->tracking_number)) {
+                $successCount++;
+                continue;
+            }
+
             try {
                 $store = $order->store;
                 if (!$store || !$store->channel) continue;
 
                 $channelCode = strtolower($store->channel->code ?? '');
+                $trackingNo = null;
+
                 if ($channelCode === 'shopee') {
                     $accessToken = $store->getValidAccessToken();
                     $trackRes = $shopeeService->getTrackingNumber(
@@ -473,10 +533,37 @@ class OrderController extends Controller
                         (int) $store->marketplace_store_id,
                         $order->order_marketplace_id
                     );
-                    if (!empty($trackRes['tracking_number'])) {
-                        $order->tracking_number = $trackRes['tracking_number'];
-                        $order->save();
-                        $successCount++;
+                    $trackingNo = $trackRes['tracking_number'] ?? $trackRes['package_list'][0]['tracking_number'] ?? null;
+                    if (empty($trackingNo)) {
+                        try {
+                            $shopeeOrder = $shopeeService->getOrderDetail(
+                                $accessToken,
+                                (int) $store->marketplace_store_id,
+                                [$order->order_marketplace_id]
+                            );
+                            $ordersList = $shopeeOrder['order_list'] ?? [];
+                            if (!empty($ordersList[0]['package_list'][0]['tracking_number'])) {
+                                $trackingNo = $ordersList[0]['package_list'][0]['tracking_number'];
+                            }
+                        } catch (\Exception $e) {}
+                    }
+                } elseif (in_array($channelCode, ['tiktok', 'tokopedia'])) {
+                    $tiktokService = app(\App\Services\TiktokService::class);
+                    $accessToken = $store->getValidAccessToken();
+                    $shopCipher = $store->marketplace_store_id;
+
+                    $detailData = $tiktokService->getOrderDetail(
+                        $accessToken,
+                        $shopCipher,
+                        [$order->order_marketplace_id]
+                    );
+                    $tOrders = $detailData['order_list'] ?? [];
+                    if (!empty($tOrders[0])) {
+                        $tOrder = $tOrders[0];
+                        $trackingNo = $tOrder['tracking_number'] ?? $tOrder['tracking_no'] ?? null;
+                        if (empty($trackingNo) && !empty($tOrder['packages'])) {
+                            $trackingNo = $tOrder['packages'][0]['tracking_number'] ?? $tOrder['packages'][0]['tracking_no'] ?? null;
+                        }
                     }
                 } elseif ($channelCode === 'lazada') {
                     $lazadaService = app(\App\Services\LazadaService::class);
@@ -485,11 +572,15 @@ class OrderController extends Controller
                         $store->marketplace_store_id,
                         $order->order_marketplace_id
                     );
-                    if (!empty($trackRes['tracking_number'])) {
-                        $order->tracking_number = $trackRes['tracking_number'];
-                        $order->save();
-                        $successCount++;
-                    }
+                    $trackingNo = $trackRes['tracking_number'] ?? null;
+                }
+
+                if (!empty($trackingNo)) {
+                    $order->tracking_number = $trackingNo;
+                    $order->save();
+                    $successCount++;
+                } else {
+                    $failCount++;
                 }
             } catch (\Exception $e) {
                 $failCount++;
