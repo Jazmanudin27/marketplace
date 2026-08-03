@@ -140,7 +140,7 @@ class PullOrdersFromTiktok implements ShouldQueue
         $statusMapping = [
             'UNPAID' => 'UNPAID',
             'AWAITING_SHIPMENT' => 'READY_TO_SHIP',
-            'AWAITING_COLLECTION' => 'READY_TO_SHIP',
+            'AWAITING_COLLECTION' => 'SHIPPED',
             'PARTIALLY_SHIPPING' => 'SHIPPED',
             'IN_TRANSIT' => 'SHIPPED',
             'DELIVERED' => 'DELIVERED',
