@@ -519,11 +519,70 @@
             $(document).on('click', '.btn-fetch-single-tracking', function(e) {
                 e.preventDefault();
                 e.stopPropagation();
-                const orderId = $(this).data('order-id');
-                const trackingForm = $('#single-tracking-form');
-                trackingForm.attr('action', `{{ url('/orders') }}/${orderId}/tracking`);
-                $(this).html('<i class="fas fa-spinner fa-spin me-1"></i>Menarik...').prop('disabled', true);
-                trackingForm.submit();
+                const $btn = $(this);
+                const orderId = $btn.data('order-id');
+                const originalHtml = $btn.html();
+
+                $btn.html('<i class="fas fa-spinner fa-spin me-1"></i>Menarik...').prop('disabled', true);
+
+                fetch(`{{ url('/orders') }}/${orderId}/tracking`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        if (typeof Swal !== 'undefined') {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Resi Berhasil Ditarik!',
+                                text: data.message,
+                                timer: 2500,
+                                showConfirmButton: false
+                            });
+                        } else {
+                            alert(data.message);
+                        }
+
+                        const parentDiv = $btn.closest('div');
+                        if (parentDiv.length && data.tracking_number) {
+                            parentDiv.replaceWith(`
+                                <div class="text-muted small font-monospace" style="font-size:0.68rem;" title="Nomor Resi">
+                                    <i class="fas fa-barcode me-1 text-secondary"></i><span class="fw-semibold text-dark">${data.tracking_number}</span>
+                                </div>
+                            `);
+                        }
+                    } else {
+                        if (typeof Swal !== 'undefined') {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Gagal Tarik Resi',
+                                text: data.message || 'Terjadi kesalahan saat menarik resi.',
+                                confirmButtonColor: '#0d6efd'
+                            });
+                        } else {
+                            alert(data.message || 'Gagal menarik resi.');
+                        }
+                        $btn.html(originalHtml).prop('disabled', false);
+                    }
+                })
+                .catch(err => {
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Gagal Tarik Resi',
+                            text: 'Terjadi kesalahan sistem atau koneksi: ' + err.message,
+                            confirmButtonColor: '#0d6efd'
+                        });
+                    } else {
+                        alert('Terjadi kesalahan koneksi.');
+                    }
+                    $btn.html(originalHtml).prop('disabled', false);
+                });
             });
 
             $(document).on('click', '.btn-ship-single-order', function(e) {

@@ -499,12 +499,74 @@
                 btn.addEventListener('click', function(e) {
                     e.preventDefault();
                     e.stopPropagation();
-                    const orderId = this.dataset.orderId;
-                    const trackingForm = document.getElementById('single-tracking-form');
-                    trackingForm.action = `{{ url('/orders') }}/${orderId}/tracking`;
-                    this.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Menarik...';
-                    this.disabled = true;
-                    trackingForm.submit();
+                    const $btn = this;
+                    const orderId = $btn.dataset.orderId;
+                    const originalHtml = $btn.innerHTML;
+
+                    $btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Menarik...';
+                    $btn.disabled = true;
+
+                    fetch(`{{ url('/orders') }}/${orderId}/tracking`, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success) {
+                            if (typeof Swal !== 'undefined') {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Resi Berhasil Ditarik!',
+                                    text: data.message,
+                                    timer: 2500,
+                                    showConfirmButton: false
+                                });
+                            } else {
+                                alert(data.message);
+                            }
+
+                            // Ganti tombol Tarik Resi secara langsung dengan tampilan Nomor Resi
+                            const parentDiv = $btn.closest('div');
+                            if (parentDiv && data.tracking_number) {
+                                parentDiv.outerHTML = `
+                                    <div class="text-muted small font-monospace" style="font-size:0.68rem;" title="Nomor Resi">
+                                        <i class="fas fa-barcode me-1 text-secondary"></i><span class="fw-semibold text-dark">${data.tracking_number}</span>
+                                    </div>
+                                `;
+                            }
+                        } else {
+                            if (typeof Swal !== 'undefined') {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Gagal Tarik Resi',
+                                    text: data.message || 'Terjadi kesalahan saat menarik resi.',
+                                    confirmButtonColor: '#0d6efd'
+                                });
+                            } else {
+                                alert(data.message || 'Gagal menarik resi.');
+                            }
+                            $btn.innerHTML = originalHtml;
+                            $btn.disabled = false;
+                        }
+                    })
+                    .catch(err => {
+                        if (typeof Swal !== 'undefined') {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Gagal Tarik Resi',
+                                text: 'Terjadi kesalahan sistem atau koneksi: ' + err.message,
+                                confirmButtonColor: '#0d6efd'
+                            });
+                        } else {
+                            alert('Terjadi kesalahan koneksi.');
+                        }
+                        $btn.innerHTML = originalHtml;
+                        $btn.disabled = false;
+                    });
                 });
             });
 

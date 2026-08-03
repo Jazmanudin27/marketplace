@@ -267,13 +267,16 @@ class OrderController extends Controller
     }
 
 
-    public function fetchTracking(Order $order, \App\Services\ShopeeService $shopeeService, \App\Services\TiktokService $tiktokService)
+    public function fetchTracking(Request $request, Order $order, \App\Services\ShopeeService $shopeeService, \App\Services\TiktokService $tiktokService)
     {
         abort_unless($order->tenant_id === Auth::user()->tenant_id, 403);
         
         $store = $order->store;
         if (!$store || !$store->channel) {
-            return back()->with('error', 'Informasi toko atau channel tidak ditemukan.');
+            $msg = 'Informasi toko atau channel tidak ditemukan.';
+            return $request->ajax() || $request->wantsJson() 
+                ? response()->json(['success' => false, 'message' => $msg], 422)
+                : back()->with('error', $msg);
         }
 
         $channelCode = strtolower($store->channel->code ?? '');
@@ -307,12 +310,21 @@ class OrderController extends Controller
                 if (!empty($trackingNo)) {
                     $order->tracking_number = $trackingNo;
                     $order->save();
-                    return back()->with('success', 'Resi Shopee berhasil ditarik: ' . $order->tracking_number);
+                    $msg = 'Resi Shopee berhasil ditarik: ' . $order->tracking_number;
+                    return $request->ajax() || $request->wantsJson() 
+                        ? response()->json(['success' => true, 'message' => $msg, 'tracking_number' => $order->tracking_number])
+                        : back()->with('success', $msg);
                 }
                 
-                return back()->with('error', 'Resi belum diterbitkan oleh Shopee/kurir. Silakan coba beberapa saat lagi.');
+                $msg = 'Resi belum diterbitkan oleh Shopee/kurir. Silakan coba beberapa saat lagi.';
+                return $request->ajax() || $request->wantsJson() 
+                    ? response()->json(['success' => false, 'message' => $msg], 422)
+                    : back()->with('error', $msg);
             } catch (\Exception $e) {
-                return back()->with('error', 'Gagal menarik resi Shopee: ' . $e->getMessage());
+                $msg = 'Gagal menarik resi Shopee: ' . $e->getMessage();
+                return $request->ajax() || $request->wantsJson() 
+                    ? response()->json(['success' => false, 'message' => $msg], 400)
+                    : back()->with('error', $msg);
             }
         } elseif (in_array($channelCode, ['tiktok', 'tokopedia'])) {
             try {
@@ -349,12 +361,21 @@ class OrderController extends Controller
                 if (!empty($trackingNo)) {
                     $order->tracking_number = $trackingNo;
                     $order->save();
-                    return back()->with('success', 'Resi TikTok berhasil ditarik: ' . $order->tracking_number);
+                    $msg = 'Resi TikTok berhasil ditarik: ' . $order->tracking_number;
+                    return $request->ajax() || $request->wantsJson() 
+                        ? response()->json(['success' => true, 'message' => $msg, 'tracking_number' => $order->tracking_number])
+                        : back()->with('success', $msg);
                 }
 
-                return back()->with('error', 'Resi belum diterbitkan oleh TikTok/kurir. Silakan pastikan pesanan sudah dikemas di Seller Center.');
+                $msg = 'Resi belum diterbitkan oleh TikTok/kurir. Silakan pastikan pesanan sudah dikemas di Seller Center.';
+                return $request->ajax() || $request->wantsJson() 
+                    ? response()->json(['success' => false, 'message' => $msg], 422)
+                    : back()->with('error', $msg);
             } catch (\Exception $e) {
-                return back()->with('error', 'Gagal menarik resi TikTok: ' . $e->getMessage());
+                $msg = 'Gagal menarik resi TikTok: ' . $e->getMessage();
+                return $request->ajax() || $request->wantsJson() 
+                    ? response()->json(['success' => false, 'message' => $msg], 400)
+                    : back()->with('error', $msg);
             }
         } elseif ($channelCode === 'lazada') {
             try {
@@ -368,20 +389,35 @@ class OrderController extends Controller
                 if (!empty($response['tracking_number'])) {
                     $order->tracking_number = $response['tracking_number'];
                     $order->save();
-                    return back()->with('success', 'Resi Lazada berhasil ditarik: ' . $order->tracking_number);
+                    $msg = 'Resi Lazada berhasil ditarik: ' . $order->tracking_number;
+                    return $request->ajax() || $request->wantsJson() 
+                        ? response()->json(['success' => true, 'message' => $msg, 'tracking_number' => $order->tracking_number])
+                        : back()->with('success', $msg);
                 }
                 
-                return back()->with('error', 'Resi belum tersedia dari kurir Lazada.');
+                $msg = 'Resi belum tersedia dari kurir Lazada.';
+                return $request->ajax() || $request->wantsJson() 
+                    ? response()->json(['success' => false, 'message' => $msg], 422)
+                    : back()->with('error', $msg);
             } catch (\Exception $e) {
-                return back()->with('error', 'Gagal menarik resi Lazada: ' . $e->getMessage());
+                $msg = 'Gagal menarik resi Lazada: ' . $e->getMessage();
+                return $request->ajax() || $request->wantsJson() 
+                    ? response()->json(['success' => false, 'message' => $msg], 400)
+                    : back()->with('error', $msg);
             }
         }
 
         if (!empty($order->tracking_number)) {
-            return back()->with('info', 'Nomor resi pesanan ini: ' . $order->tracking_number);
+            $msg = 'Nomor resi pesanan ini: ' . $order->tracking_number;
+            return $request->ajax() || $request->wantsJson() 
+                ? response()->json(['success' => true, 'message' => $msg, 'tracking_number' => $order->tracking_number])
+                : back()->with('info', $msg);
         }
 
-        return back()->with('error', 'Channel marketplace (' . ($store->channel->name ?? 'Lokal') . ') tidak mendukung penarikan resi otomatis.');
+        $msg = 'Channel marketplace (' . ($store->channel->name ?? 'Lokal') . ') tidak mendukung penarikan resi otomatis.';
+        return $request->ajax() || $request->wantsJson() 
+            ? response()->json(['success' => false, 'message' => $msg], 422)
+            : back()->with('error', $msg);
     }
 
     public function massShip(Request $request, \App\Services\ShopeeService $shopeeService, \App\Services\TiktokService $tiktokService)
