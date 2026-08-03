@@ -453,22 +453,48 @@ class TiktokService
      */
     public function shipOrder(string $accessToken, string $shopCipher, string $orderId, string $handoverMethod = 'DROP_OFF')
     {
+        // Ambil ID paket (package_id) dari detail pesanan jika tersedia
+        $packageId = null;
+        try {
+            $orderData = $this->getOrderDetail($accessToken, $shopCipher, [$orderId]);
+            $orders = $orderData['order_list'] ?? [];
+            if (!empty($orders[0]['packages'][0]['id'])) {
+                $packageId = (string) $orders[0]['packages'][0]['id'];
+            }
+        } catch (\Exception $e) {}
+
+        $packageObj = ['handover_method' => $handoverMethod];
+        if ($packageId) {
+            $packageObj['id'] = $packageId;
+        }
+
         $endpoints = [
             [
                 'path' => '/fulfillment/202309/orders/' . $orderId . '/ship',
-                'body' => ['handover_method' => $handoverMethod],
+                'body' => [
+                    'packages' => [$packageObj],
+                    'handover_method' => $handoverMethod,
+                ],
             ],
             [
                 'path' => '/fulfillment/202309/packages/ship',
-                'body' => ['order_id' => $orderId, 'handover_method' => $handoverMethod],
+                'body' => [
+                    'packages' => [$packageObj],
+                ],
             ],
             [
                 'path' => '/fulfillment/202309/orders/ship',
-                'body' => ['order_id' => $orderId, 'handover_method' => $handoverMethod],
+                'body' => [
+                    'order_id' => $orderId,
+                    'packages' => [$packageObj],
+                ],
             ],
             [
                 'path' => '/logistics/202309/orders/' . $orderId . '/ship',
-                'body' => ['handover_method' => $handoverMethod],
+                'body' => [
+                    'packages' => [$packageObj],
+                    'handover_method' => $handoverMethod,
+                ],
             ],
         ];
 
