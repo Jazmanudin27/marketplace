@@ -453,35 +453,65 @@ class TiktokService
      */
     public function shipOrder(string $accessToken, string $shopCipher, string $orderId, string $handoverMethod = 'DROP_OFF')
     {
-        $path = '/logistics/202309/orders/' . $orderId . '/ship';
-        
-        $body = [
-            'handover_method' => $handoverMethod
+        $endpoints = [
+            [
+                'path' => '/fulfillment/202309/orders/' . $orderId . '/ship',
+                'body' => ['handover_method' => $handoverMethod],
+            ],
+            [
+                'path' => '/fulfillment/202309/packages/ship',
+                'body' => ['order_id' => $orderId, 'handover_method' => $handoverMethod],
+            ],
+            [
+                'path' => '/fulfillment/202309/orders/ship',
+                'body' => ['order_id' => $orderId, 'handover_method' => $handoverMethod],
+            ],
+            [
+                'path' => '/logistics/202309/orders/' . $orderId . '/ship',
+                'body' => ['handover_method' => $handoverMethod],
+            ],
         ];
 
-        $queryParams = [
-            'app_key' => $this->appKey,
-            'timestamp' => time(),
-            'shop_cipher' => $shopCipher,
-        ];
+        $lastException = null;
 
-        $bodyJson = json_encode($body);
-        $sign = $this->generateSignature($path, $queryParams, $bodyJson);
-        $queryParams['sign'] = $sign;
-        $queryParams['access_token'] = $accessToken;
+        foreach ($endpoints as $ep) {
+            $path = $ep['path'];
+            $body = $ep['body'];
 
-        $response = Http::withHeaders([
-            'x-tts-access-token' => $accessToken,
-            'Content-Type' => 'application/json',
-        ])->post($this->baseUrl . $path . '?' . http_build_query($queryParams), $body);
+            $queryParams = [
+                'app_key' => $this->appKey,
+                'timestamp' => time(),
+                'shop_cipher' => $shopCipher,
+            ];
 
-        $data = $response->json();
-        
-        if (isset($data['code']) && $data['code'] !== 0) {
-            throw new \RuntimeException('TikTok API Error: ' . ($data['message'] ?? 'Unknown Error'));
+            $bodyJson = json_encode($body);
+            $sign = $this->generateSignature($path, $queryParams, $bodyJson);
+            $queryParams['sign'] = $sign;
+            $queryParams['access_token'] = $accessToken;
+
+            $response = Http::withHeaders([
+                'x-tts-access-token' => $accessToken,
+                'Content-Type' => 'application/json',
+            ])->post($this->baseUrl . $path . '?' . http_build_query($queryParams), $body);
+
+            $data = $response->json();
+
+            if (isset($data['code']) && $data['code'] === 0) {
+                return $data;
+            }
+
+            $msg = $data['message'] ?? 'Unknown Error';
+            $code = $data['code'] ?? -1;
+
+            if (str_contains(strtolower($msg), 'invalid path') || $code === 105001) {
+                $lastException = new \RuntimeException('TikTok API Error: ' . $msg);
+                continue;
+            }
+
+            throw new \RuntimeException('TikTok API Error: ' . $msg);
         }
 
-        return $data;
+        throw $lastException ?? new \RuntimeException('TikTok API Error: Invalid path across all ship endpoints');
     }
 
     /**
@@ -489,32 +519,52 @@ class TiktokService
      */
     public function getShippingDocument(string $accessToken, string $shopCipher, string $orderId)
     {
-        // Path dan params untuk GET shipping document
-        $path = '/logistics/202309/orders/' . $orderId . '/documents';
-        
-        $queryParams = [
-            'app_key' => $this->appKey,
-            'timestamp' => time(),
-            'shop_cipher' => $shopCipher,
-            'document_type' => 'SHIPPING_LABEL',
-            'document_size' => 'A6',
+        $paths = [
+            '/fulfillment/202309/orders/' . $orderId . '/documents',
+            '/logistics/202309/orders/' . $orderId . '/documents',
+            '/fulfillment/202309/documents',
         ];
 
-        $sign = $this->generateSignature($path, $queryParams);
-        $queryParams['sign'] = $sign;
-        $queryParams['access_token'] = $accessToken;
+        $lastException = null;
 
-        $response = Http::withHeaders([
-            'x-tts-access-token' => $accessToken,
-        ])->get($this->baseUrl . $path, $queryParams);
+        foreach ($paths as $path) {
+            $queryParams = [
+                'app_key' => $this->appKey,
+                'timestamp' => time(),
+                'shop_cipher' => $shopCipher,
+                'document_type' => 'SHIPPING_LABEL',
+                'document_size' => 'A6',
+            ];
+            if ($path === '/fulfillment/202309/documents') {
+                $queryParams['order_id'] = $orderId;
+            }
 
-        $data = $response->json();
-        
-        if (isset($data['code']) && $data['code'] !== 0) {
-            throw new \RuntimeException('TikTok API Error: ' . ($data['message'] ?? 'Unknown Error'));
+            $sign = $this->generateSignature($path, $queryParams);
+            $queryParams['sign'] = $sign;
+            $queryParams['access_token'] = $accessToken;
+
+            $response = Http::withHeaders([
+                'x-tts-access-token' => $accessToken,
+            ])->get($this->baseUrl . $path, $queryParams);
+
+            $data = $response->json();
+
+            if (isset($data['code']) && $data['code'] === 0) {
+                return $data['data'] ?? [];
+            }
+
+            $msg = $data['message'] ?? 'Unknown Error';
+            $code = $data['code'] ?? -1;
+
+            if (str_contains(strtolower($msg), 'invalid path') || $code === 105001) {
+                $lastException = new \RuntimeException('TikTok API Error: ' . $msg);
+                continue;
+            }
+
+            throw new \RuntimeException('TikTok API Error: ' . $msg);
         }
 
-        return $data['data'] ?? [];
+        return [];
     }
 
     /**
