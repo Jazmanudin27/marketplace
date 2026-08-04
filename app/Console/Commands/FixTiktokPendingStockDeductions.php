@@ -32,22 +32,42 @@ class FixTiktokPendingStockDeductions extends Command
     {
         $this->info('Memulai pengecekan dan perbaikan potongan stok pesanan TikTok...');
 
-        // Langkah 1: Sinkronisasi dan tautkan otomatis MarketplaceProduct ke MasterProduct berdasarkan SKU
-        $unlinkedMp = \App\Models\MarketplaceProduct::whereNull('master_product_id')
-            ->whereNotNull('marketplace_sku')
-            ->where('marketplace_sku', '!=', '')
-            ->get();
+        // Langkah 1: Sinkronisasi dan tautkan otomatis MarketplaceProduct ke MasterProduct berdasarkan SKU (Exact, Lower, & Normalized) dan Nama
+        $unlinkedMp = \App\Models\MarketplaceProduct::whereNull('master_product_id')->get();
 
         $linkedMpCount = 0;
         foreach ($unlinkedMp as $mp) {
             $store = $mp->store;
             if (!$store) continue;
-            $skuClean = trim($mp->marketplace_sku);
-            $master = \App\Models\MasterProduct::where('tenant_id', $store->tenant_id)
-                ->where(function ($q) use ($skuClean) {
-                    $q->where('sku', $skuClean)
-                      ->orWhereRaw('LOWER(sku) = LOWER(?)', [strtolower($skuClean)]);
-                })->first();
+            
+            $master = null;
+            if (!empty($mp->marketplace_sku)) {
+                $skuClean = trim($mp->marketplace_sku);
+                $skuNorm = preg_replace('/[^a-zA-Z0-9]/', '', strtolower($skuClean));
+
+                $master = \App\Models\MasterProduct::where('tenant_id', $store->tenant_id)
+                    ->where(function ($q) use ($skuClean) {
+                        $q->where('sku', $skuClean)
+                          ->orWhereRaw('LOWER(sku) = LOWER(?)', [strtolower($skuClean)]);
+                    })->first();
+
+                if (!$master && !empty($skuNorm)) {
+                    $master = \App\Models\MasterProduct::where('tenant_id', $store->tenant_id)
+                        ->get()
+                        ->first(function ($m) use ($skuNorm) {
+                            return preg_replace('/[^a-zA-Z0-9]/', '', strtolower($m->sku)) === $skuNorm;
+                        });
+                }
+            }
+
+            if (!$master && !empty($mp->name)) {
+                $nameClean = trim($mp->name);
+                $master = \App\Models\MasterProduct::where('tenant_id', $store->tenant_id)
+                    ->where(function ($q) use ($nameClean) {
+                        $q->where('name', $nameClean)
+                          ->orWhereRaw('LOWER(name) = LOWER(?)', [strtolower($nameClean)]);
+                    })->first();
+            }
 
             if ($master) {
                 $mp->update([
@@ -59,7 +79,7 @@ class FixTiktokPendingStockDeductions extends Command
         }
 
         if ($linkedMpCount > 0) {
-            $this->info("Berhasil menghubungkan {$linkedMpCount} produk toko TikTok ke MasterProduct berdasarkan SKU.");
+            $this->info("Berhasil menghubungkan {$linkedMpCount} produk toko TikTok ke MasterProduct secara otomatis.");
         }
 
         $orderIdOption = $this->option('order_id');
@@ -108,7 +128,12 @@ class FixTiktokPendingStockDeductions extends Command
                     $this->info("✅ Pesanan #{$order->id} ({$order->order_marketplace_id}) berhasil dipotong stoknya & dicatat ke Kartu Stok.");
                 } else {
                     $failedCount++;
-                    $this->warn("⚠️ Pesanan #{$order->id} ({$order->order_marketplace_id}) sebagian item belum dapat dipetakan ke MasterProduct.");
+                    $unmappedItems = $order->items->whereNull('master_product_id');
+                    $details = [];
+                    foreach ($unmappedItems as $un) {
+                        $details[] = "[SKU: '" . ($un->sku ?: 'KOSONG') . "', Nama: '" . $un->product_name . "']";
+                    }
+                    $this->warn("⚠️ Pesanan #{$order->id} ({$order->order_marketplace_id}) item unmapped: " . implode(', ', $details));
                 }
             } catch (\Exception $e) {
                 $failedCount++;

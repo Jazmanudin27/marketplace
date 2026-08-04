@@ -150,6 +150,8 @@ class Order extends Model
         // Pastikan relasi items selalu diperbarui dari database (mencegah memory cache stale)
         $this->load('items');
 
+        $tenantId = $this->tenant_id ?: ($this->store ? $this->store->tenant_id : null);
+
         // 1. Deduct stock if not already deducted and not cancelled
         if (!$this->is_stock_deducted && $this->order_status !== self::STATUS_CANCELLED) {
             $allDeducted = true;
@@ -162,10 +164,9 @@ class Order extends Model
                     if ($mp) {
                         if ($mp->master_product_id) {
                             $masterProductId = $mp->master_product_id;
-                        } elseif (!empty($mp->marketplace_sku)) {
-                            // Coba hubungkan mp ke MasterProduct via SKU jika belum terhubung
+                        } elseif (!empty($mp->marketplace_sku) && $tenantId) {
                             $skuClean = trim($mp->marketplace_sku);
-                            $mpDirect = MasterProduct::where('tenant_id', $this->tenant_id)
+                            $mpDirect = MasterProduct::where('tenant_id', $tenantId)
                                 ->where(function ($q) use ($skuClean) {
                                     $q->where('sku', $skuClean)
                                       ->orWhereRaw('LOWER(sku) = LOWER(?)', [strtolower($skuClean)]);
@@ -181,21 +182,34 @@ class Order extends Model
                     }
                 }
 
-                // Fallback 2: Jika masih belum ter-set, cari ke MasterProduct berdasarkan SKU di OrderItem
-                if (!$masterProductId && !empty($item->sku)) {
+                // Fallback 2: Jika belum ter-set, cari ke MasterProduct berdasarkan SKU di OrderItem
+                if (!$masterProductId && !empty($item->sku) && $tenantId) {
                     $skuClean = trim($item->sku);
-                    $mpDirect = MasterProduct::where('tenant_id', $this->tenant_id)
+                    $mpDirect = MasterProduct::where('tenant_id', $tenantId)
                         ->where(function ($q) use ($skuClean) {
                             $q->where('sku', $skuClean)
                               ->orWhereRaw('LOWER(sku) = LOWER(?)', [strtolower($skuClean)]);
                         })->first();
+
+                    // Coba Normalized SKU (abaikan strip/spasi/karakter khusus) jika belum ketemu
+                    if (!$mpDirect) {
+                        $skuNorm = preg_replace('/[^a-zA-Z0-9]/', '', strtolower($skuClean));
+                        if (!empty($skuNorm)) {
+                            $mpDirect = MasterProduct::where('tenant_id', $tenantId)
+                                ->get()
+                                ->first(function ($mp) use ($skuNorm) {
+                                    return preg_replace('/[^a-zA-Z0-9]/', '', strtolower($mp->sku)) === $skuNorm;
+                                });
+                        }
+                    }
+
                     if ($mpDirect) {
                         $masterProductId = $mpDirect->id;
                         $item->update(['master_product_id' => $masterProductId]);
                     }
                 }
 
-                // Fallback 3: Cari ke MarketplaceProduct milik toko ini berdasarkan SKU atau variant ID / product ID
+                // Fallback 3: Cari ke MarketplaceProduct milik toko ini berdasarkan SKU, variant ID, atau product ID
                 if (!$masterProductId && $this->store_id) {
                     $mp = MarketplaceProduct::where('store_id', $this->store_id)
                         ->where(function ($q) use ($item) {
@@ -210,9 +224,9 @@ class Order extends Model
                     if ($mp) {
                         if ($mp->master_product_id) {
                             $masterProductId = $mp->master_product_id;
-                        } elseif (!empty($mp->marketplace_sku)) {
+                        } elseif (!empty($mp->marketplace_sku) && $tenantId) {
                             $skuClean = trim($mp->marketplace_sku);
-                            $mpDirect = MasterProduct::where('tenant_id', $this->tenant_id)
+                            $mpDirect = MasterProduct::where('tenant_id', $tenantId)
                                 ->where(function ($q) use ($skuClean) {
                                     $q->where('sku', $skuClean)
                                       ->orWhereRaw('LOWER(sku) = LOWER(?)', [strtolower($skuClean)]);
@@ -233,10 +247,10 @@ class Order extends Model
                 }
 
                 // Fallback 4: Cari ke MarketplaceProduct apapun di bawah tenant yang sama
-                if (!$masterProductId && $this->tenant_id && !empty($item->sku)) {
+                if (!$masterProductId && $tenantId && !empty($item->sku)) {
                     $skuClean = trim($item->sku);
-                    $mpTenant = MarketplaceProduct::whereHas('store', function($q) {
-                            $q->where('tenant_id', $this->tenant_id);
+                    $mpTenant = MarketplaceProduct::whereHas('store', function($q) use ($tenantId) {
+                            $q->where('tenant_id', $tenantId);
                         })
                         ->where(function ($q) use ($skuClean) {
                             $q->where('marketplace_sku', $skuClean)
@@ -249,6 +263,34 @@ class Order extends Model
                             'marketplace_product_id' => $mpTenant->id,
                             'master_product_id'      => $masterProductId
                         ]);
+                    }
+                }
+
+                // Fallback 5: Pencarian berdasarkan Nama Produk (exact atau substring SKU di nama)
+                if (!$masterProductId && $tenantId && !empty($item->product_name)) {
+                    $prodName = trim($item->product_name);
+                    // Match MasterProduct by exact name
+                    $mpName = MasterProduct::where('tenant_id', $tenantId)
+                        ->where(function ($q) use ($prodName) {
+                            $q->where('name', $prodName)
+                              ->orWhereRaw('LOWER(name) = LOWER(?)', [strtolower($prodName)]);
+                        })->first();
+
+                    if (!$mpName) {
+                        // Cek jika SKU Master Product terkandung di dalam product_name
+                        $mpName = MasterProduct::where('tenant_id', $tenantId)
+                            ->get()
+                            ->first(function ($mp) use ($prodName) {
+                                return !empty($mp->sku) && (
+                                    str_contains(strtolower($prodName), strtolower($mp->sku)) ||
+                                    str_contains(strtolower($mp->name), strtolower($prodName))
+                                );
+                            });
+                    }
+
+                    if ($mpName) {
+                        $masterProductId = $mpName->id;
+                        $item->update(['master_product_id' => $masterProductId]);
                     }
                 }
 
