@@ -222,8 +222,8 @@
                     </td>
                     @foreach($stores as $store)
                         @php
-                            $storeStock = (int) $product->marketplaceProducts->where('store_id', $store->id)->sum('stock');
-                            $totalStok += $storeStock;
+                            $storeMpProducts = $product->marketplaceProducts->where('store_id', $store->id);
+                            $storeStock = $storeMpProducts->isNotEmpty() ? (int) $storeMpProducts->max('stock') : 0;
                         @endphp
                         <td class="text-right">
                             <span style="font-weight: {{ $storeStock > 0 ? 'bold' : 'normal' }}; color: {{ $storeStock > 0 ? '#0369a1' : '#94a3b8' }};">
@@ -232,8 +232,8 @@
                         </td>
                     @endforeach
                     <td class="text-right" style="background-color: #f8fafc;">
-                        <strong style="color: {{ $totalStok <= 0 ? '#dc2626' : '#0f172a' }};">
-                            {{ number_format($totalStok, 0, ',', '.') }}
+                        <strong style="color: {{ $stokGudang <= 0 ? '#dc2626' : '#0f172a' }};">
+                            {{ number_format($stokGudang, 0, ',', '.') }}
                         </strong>
                     </td>
                 </tr>

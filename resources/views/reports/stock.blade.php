@@ -150,15 +150,15 @@
                                 </td>
                                 @foreach($stores as $st)
                                     @php
-                                        $storeStock = (int) $product->marketplaceProducts->where('store_id', $st->id)->sum('stock');
-                                        $totalStok += $storeStock;
+                                        $storeMpProducts = $product->marketplaceProducts->where('store_id', $st->id);
+                                        $storeStock = $storeMpProducts->isNotEmpty() ? (int) $storeMpProducts->max('stock') : 0;
                                     @endphp
                                     <td class="text-end font-monospace {{ $storeStock > 0 ? 'fw-bold text-primary' : 'text-muted' }}">
                                         {{ number_format($storeStock, 0, ',', '.') }}
                                     </td>
                                 @endforeach
-                                <td class="text-end font-monospace fw-bold {{ $totalStok <= 0 ? 'text-danger' : 'text-dark' }}" style="background-color: #f8fafc;">
-                                    {{ number_format($totalStok, 0, ',', '.') }}
+                                <td class="text-end font-monospace fw-bold {{ $stokGudang <= 0 ? 'text-danger' : 'text-dark' }}" style="background-color: #f8fafc;">
+                                    {{ number_format($stokGudang, 0, ',', '.') }}
                                 </td>
                             </tr>
                         @empty
