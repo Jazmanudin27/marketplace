@@ -195,20 +195,58 @@ class Order extends Model
                     }
                 }
 
-                // Fallback 3: Cari ke MarketplaceProduct milik toko ini berdasarkan SKU atau variant ID
+                // Fallback 3: Cari ke MarketplaceProduct milik toko ini berdasarkan SKU atau variant ID / product ID
                 if (!$masterProductId && $this->store_id) {
                     $mp = MarketplaceProduct::where('store_id', $this->store_id)
                         ->where(function ($q) use ($item) {
                             if (!empty($item->sku)) {
-                                $q->where('marketplace_sku', trim($item->sku))
-                                  ->orWhere('marketplace_variant_id', trim($item->sku));
+                                $skuTrim = trim($item->sku);
+                                $q->where('marketplace_sku', $skuTrim)
+                                  ->orWhere('marketplace_variant_id', $skuTrim)
+                                  ->orWhere('marketplace_product_id', $skuTrim);
                             }
                         })->first();
 
-                    if ($mp && $mp->master_product_id) {
-                        $masterProductId = $mp->master_product_id;
+                    if ($mp) {
+                        if ($mp->master_product_id) {
+                            $masterProductId = $mp->master_product_id;
+                        } elseif (!empty($mp->marketplace_sku)) {
+                            $skuClean = trim($mp->marketplace_sku);
+                            $mpDirect = MasterProduct::where('tenant_id', $this->tenant_id)
+                                ->where(function ($q) use ($skuClean) {
+                                    $q->where('sku', $skuClean)
+                                      ->orWhereRaw('LOWER(sku) = LOWER(?)', [strtolower($skuClean)]);
+                                })->first();
+                            if ($mpDirect) {
+                                $masterProductId = $mpDirect->id;
+                                $mp->update(['master_product_id' => $masterProductId, 'sync_stock' => true]);
+                            }
+                        }
+
+                        if ($masterProductId) {
+                            $item->update([
+                                'marketplace_product_id' => $mp->id,
+                                'master_product_id'      => $masterProductId
+                            ]);
+                        }
+                    }
+                }
+
+                // Fallback 4: Cari ke MarketplaceProduct apapun di bawah tenant yang sama
+                if (!$masterProductId && $this->tenant_id && !empty($item->sku)) {
+                    $skuClean = trim($item->sku);
+                    $mpTenant = MarketplaceProduct::whereHas('store', function($q) {
+                            $q->where('tenant_id', $this->tenant_id);
+                        })
+                        ->where(function ($q) use ($skuClean) {
+                            $q->where('marketplace_sku', $skuClean)
+                              ->orWhere('marketplace_variant_id', $skuClean);
+                        })->first();
+
+                    if ($mpTenant && $mpTenant->master_product_id) {
+                        $masterProductId = $mpTenant->master_product_id;
                         $item->update([
-                            'marketplace_product_id' => $mp->id,
+                            'marketplace_product_id' => $mpTenant->id,
                             'master_product_id'      => $masterProductId
                         ]);
                     }
