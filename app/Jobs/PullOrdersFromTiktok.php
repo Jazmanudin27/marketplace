@@ -313,7 +313,7 @@ class PullOrdersFromTiktok implements ShouldQueue
             $masterProduct = null;
             $skuId = $item['sku_id'] ?? null;
             $productId = $item['product_id'] ?? $item['id'] ?? null;
-            $sellerSku = $item['seller_sku'] ?? $item['sku'] ?? null;
+            $sellerSku = trim($item['seller_sku'] ?? $item['sku'] ?? $item['sku_name'] ?? '');
 
             $marketplaceProductId = null;
             if ($skuId) {
@@ -328,8 +328,10 @@ class PullOrdersFromTiktok implements ShouldQueue
 
             if (!$masterProduct && $sellerSku) {
                 $masterProduct = MasterProduct::where('tenant_id', $this->store->tenant_id)
-                                              ->where('sku', $sellerSku)
-                                              ->first();
+                    ->where(function ($q) use ($sellerSku) {
+                        $q->where('sku', $sellerSku)
+                          ->orWhereRaw('LOWER(sku) = LOWER(?)', [$sellerSku]);
+                    })->first();
             }
 
             // Snapshot HPP dari MasterProduct saat pesanan dibuat
