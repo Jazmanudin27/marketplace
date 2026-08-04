@@ -307,13 +307,32 @@ class PullOrdersFromTiktok implements ShouldQueue
             ]
         );
 
-        // Process Items
-        $itemList = $tiktokOrder['line_items'] ?? $tiktokOrder['item_list'] ?? [];
+        // Process Items - Ambil array item dari semua kemungkinan key TikTok API v2
+        $itemList = $tiktokOrder['item_list']
+            ?? $tiktokOrder['line_items']
+            ?? $tiktokOrder['sku_list']
+            ?? $tiktokOrder['items']
+            ?? [];
+
+        if (empty($itemList) && !empty($tiktokOrder['packages'])) {
+            foreach ($tiktokOrder['packages'] as $pkg) {
+                if (!empty($pkg['items'])) {
+                    $itemList = array_merge($itemList, $pkg['items']);
+                } elseif (!empty($pkg['item_list'])) {
+                    $itemList = array_merge($itemList, $pkg['item_list']);
+                }
+            }
+        }
+
         foreach ($itemList as $item) {
             $masterProduct = null;
             $skuId = $item['sku_id'] ?? null;
             $productId = $item['product_id'] ?? $item['id'] ?? null;
-            $sellerSku = $item['seller_sku'] ?? $item['sku'] ?? null;
+            $sellerSku = $item['seller_sku'] ?? $item['sku'] ?? $item['sku_name'] ?? $item['seller_sku_id'] ?? $item['sku_seller_id'] ?? null;
+
+            if ($sellerSku) {
+                $sellerSku = trim($sellerSku);
+            }
 
             $marketplaceProductId = null;
             if ($skuId) {
@@ -327,9 +346,13 @@ class PullOrdersFromTiktok implements ShouldQueue
             }
 
             if (!$masterProduct && $sellerSku) {
+                $skuClean = $sellerSku;
                 $masterProduct = MasterProduct::where('tenant_id', $this->store->tenant_id)
-                                              ->where('sku', $sellerSku)
-                                              ->first();
+                    ->where(function ($q) use ($skuClean) {
+                        $q->where('sku', $skuClean)
+                          ->orWhereRaw('LOWER(sku) = LOWER(?)', [$skuClean]);
+                    })
+                    ->first();
             }
 
             // Snapshot HPP dari MasterProduct saat pesanan dibuat
@@ -338,18 +361,19 @@ class PullOrdersFromTiktok implements ShouldQueue
             
             // Standardisasi harga
             $price = $item['sku_sale_price'] ?? $item['sale_price'] ?? $item['price'] ?? $item['sku_original_price'] ?? $item['original_price'] ?? 0;
-            // Jika price berupa string (misal "150000.00"), cast ke float
             $price = (float) $price;
+
+            $itemSku = $sellerSku ?: ($productId ?: 'TIKTOK-ITEM-' . rand(100, 999));
 
             OrderItem::updateOrCreate(
                 [
                     'order_id' => $order->id,
-                    'sku'      => $sellerSku ?: $productId, // fallback ke product ID jika SKU kosong agar unik
+                    'sku'      => $itemSku,
                 ],
                 [
                     'marketplace_product_id' => $marketplaceProductId,
                     'master_product_id'      => $masterProduct ? $masterProduct->id : null,
-                    'product_name'           => $item['product_name'] ?? 'Unknown Item',
+                    'product_name'           => $item['product_name'] ?? $item['item_name'] ?? 'TikTok Item',
                     'price'                  => $price,
                     'quantity'               => $qty,
                     'total_price'            => $price * $qty,
@@ -358,7 +382,6 @@ class PullOrdersFromTiktok implements ShouldQueue
                 ]
             );
         }
-
 
         // Process stock deduction or return
         $order->processStockDeduction();
