@@ -331,7 +331,7 @@
                                                             <div class="text-muted font-monospace" style="font-size: 0.67rem; line-height: 1.4;">
                                                                 <i class="fas fa-tag me-1 text-secondary opacity-50"></i>
                                                                 <span class="fw-semibold text-dark">{{ $orderItem->sku ?? ($orderItem->masterProduct->sku ?? '-') }}</span>
-                                                                <span class="text-muted ms-1">×{{ $orderItem->quantity }}</span>
+                                                                <span class="text-muted ms-1">({{ $orderItem->quantity }} PCS)</span>
                                                             </div>
                                                         @endforeach
                                                     </div>
