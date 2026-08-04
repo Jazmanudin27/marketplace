@@ -185,10 +185,11 @@ class TiktokController extends Controller
         abort_if($store->status === 'disconnected', 400, 'Toko telah dinonaktifkan.');
 
         try {
-            $timeFrom = now()->subDays(15)->timestamp;
-            $timeTo = now()->timestamp;
-
-            PullOrdersFromTiktok::dispatch($store, $timeFrom, $timeTo);
+            try {
+                PullOrdersFromTiktok::dispatchSync($store, $timeFrom, $timeTo);
+            } catch (\Exception $e) {
+                PullOrdersFromTiktok::dispatch($store, $timeFrom, $timeTo);
+            }
 
             $platform = $store->channel->code === 'tokopedia' ? 'Tokopedia' : 'TikTok Shop';
             return back()->with('success', "Sinkronisasi pesanan {$platform} sedang berjalan di latar belakang.");
