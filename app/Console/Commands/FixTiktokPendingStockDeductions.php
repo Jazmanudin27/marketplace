@@ -41,32 +41,64 @@ class FixTiktokPendingStockDeductions extends Command
             if (!$store) continue;
             
             $master = null;
+            $tenantId = $store ? $store->tenant_id : null;
+
             if (!empty($mp->marketplace_sku)) {
                 $skuClean = trim($mp->marketplace_sku);
                 $skuNorm = preg_replace('/[^a-zA-Z0-9]/', '', strtolower($skuClean));
 
-                $master = \App\Models\MasterProduct::where('tenant_id', $store->tenant_id)
-                    ->where(function ($q) use ($skuClean) {
+                $queryMaster = \App\Models\MasterProduct::query();
+                if ($tenantId) {
+                    $queryMaster->where('tenant_id', $tenantId);
+                }
+
+                $master = $queryMaster->where(function ($q) use ($skuClean) {
                         $q->where('sku', $skuClean)
                           ->orWhereRaw('LOWER(sku) = LOWER(?)', [strtolower($skuClean)]);
                     })->first();
 
                 if (!$master && !empty($skuNorm)) {
-                    $master = \App\Models\MasterProduct::where('tenant_id', $store->tenant_id)
-                        ->get()
-                        ->first(function ($m) use ($skuNorm) {
-                            return preg_replace('/[^a-zA-Z0-9]/', '', strtolower($m->sku)) === $skuNorm;
-                        });
+                    $allMasters = $tenantId ? \App\Models\MasterProduct::where('tenant_id', $tenantId)->get() : \App\Models\MasterProduct::all();
+                    $master = $allMasters->first(function ($m) use ($skuNorm) {
+                        return preg_replace('/[^a-zA-Z0-9]/', '', strtolower($m->sku)) === $skuNorm;
+                    });
+                }
+
+                // Coba Prefix / Similarity SKU Matching (misal: BB-BR-MERAH-LPJ-X vs BB-BR-MERAH-LPJ-XL)
+                if (!$master) {
+                    $allMasters = $tenantId ? \App\Models\MasterProduct::where('tenant_id', $tenantId)->get() : \App\Models\MasterProduct::all();
+                    $master = $allMasters->first(function ($m) use ($skuClean) {
+                        $mSku = strtolower(trim($m->sku));
+                        $iSku = strtolower(trim($skuClean));
+                        if (empty($mSku) || empty($iSku)) return false;
+
+                        if (str_starts_with($iSku, $mSku) || str_starts_with($mSku, $iSku)) {
+                            return true;
+                        }
+
+                        similar_text($iSku, $mSku, $percent);
+                        return $percent >= 85;
+                    });
+                }
+
+                // Global Fallback tanpa batasan tenant
+                if (!$master) {
+                    $master = \App\Models\MasterProduct::where('sku', $skuClean)
+                        ->orWhereRaw('LOWER(sku) = LOWER(?)', [strtolower($skuClean)])
+                        ->first();
                 }
             }
 
             if (!$master && !empty($mp->name)) {
                 $nameClean = trim($mp->name);
-                $master = \App\Models\MasterProduct::where('tenant_id', $store->tenant_id)
-                    ->where(function ($q) use ($nameClean) {
-                        $q->where('name', $nameClean)
-                          ->orWhereRaw('LOWER(name) = LOWER(?)', [strtolower($nameClean)]);
-                    })->first();
+                $queryName = \App\Models\MasterProduct::query();
+                if ($tenantId) {
+                    $queryName->where('tenant_id', $tenantId);
+                }
+                $master = $queryName->where(function ($q) use ($nameClean) {
+                    $q->where('name', $nameClean)
+                      ->orWhereRaw('LOWER(name) = LOWER(?)', [strtolower($nameClean)]);
+                })->first();
             }
 
             if ($master) {

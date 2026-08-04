@@ -268,7 +268,6 @@ class ReportController extends Controller
         if (!empty($orderMarketplaceIds)) {
             $orderMap = \App\Models\Order::with('store.channel')
                 ->whereIn('order_marketplace_id', $orderMarketplaceIds)
-                ->where('tenant_id', $tenantId)
                 ->get()
                 ->keyBy('order_marketplace_id');
         }

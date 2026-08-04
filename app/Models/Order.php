@@ -191,7 +191,7 @@ class Order extends Model
                               ->orWhereRaw('LOWER(sku) = LOWER(?)', [strtolower($skuClean)]);
                         })->first();
 
-                    // Coba Normalized SKU (abaikan strip/spasi/karakter khusus) jika belum ketemu
+                    // Coba Normalized SKU (abaikan strip/spasi/karakter khusus)
                     if (!$mpDirect) {
                         $skuNorm = preg_replace('/[^a-zA-Z0-9]/', '', strtolower($skuClean));
                         if (!empty($skuNorm)) {
@@ -201,6 +201,24 @@ class Order extends Model
                                     return preg_replace('/[^a-zA-Z0-9]/', '', strtolower($mp->sku)) === $skuNorm;
                                 });
                         }
+                    }
+
+                    // Coba Prefix / Similarity SKU Matching (misal: BB-BR-MERAH-LPJ-X vs BB-BR-MERAH-LPJ-XL)
+                    if (!$mpDirect) {
+                        $mpDirect = MasterProduct::where('tenant_id', $tenantId)
+                            ->get()
+                            ->first(function ($mp) use ($skuClean) {
+                                $mSku = strtolower(trim($mp->sku));
+                                $iSku = strtolower(trim($skuClean));
+                                if (empty($mSku) || empty($iSku)) return false;
+
+                                if (str_starts_with($iSku, $mSku) || str_starts_with($mSku, $iSku)) {
+                                    return true;
+                                }
+
+                                similar_text($iSku, $mSku, $percent);
+                                return $percent >= 85;
+                            });
                     }
 
                     if ($mpDirect) {
@@ -267,30 +285,64 @@ class Order extends Model
                 }
 
                 // Fallback 5: Pencarian berdasarkan Nama Produk (exact atau substring SKU di nama)
-                if (!$masterProductId && $tenantId && !empty($item->product_name)) {
+                if (!$masterProductId && !empty($item->product_name)) {
                     $prodName = trim($item->product_name);
-                    // Match MasterProduct by exact name
-                    $mpName = MasterProduct::where('tenant_id', $tenantId)
-                        ->where(function ($q) use ($prodName) {
+                    $queryName = MasterProduct::query();
+                    if ($tenantId) {
+                        $queryName->where('tenant_id', $tenantId);
+                    }
+                    $mpName = $queryName->where(function ($q) use ($prodName) {
                             $q->where('name', $prodName)
                               ->orWhereRaw('LOWER(name) = LOWER(?)', [strtolower($prodName)]);
                         })->first();
 
                     if (!$mpName) {
-                        // Cek jika SKU Master Product terkandung di dalam product_name
-                        $mpName = MasterProduct::where('tenant_id', $tenantId)
-                            ->get()
-                            ->first(function ($mp) use ($prodName) {
-                                return !empty($mp->sku) && (
-                                    str_contains(strtolower($prodName), strtolower($mp->sku)) ||
-                                    str_contains(strtolower($mp->name), strtolower($prodName))
-                                );
-                            });
+                        $allMasters = $tenantId ? MasterProduct::where('tenant_id', $tenantId)->get() : MasterProduct::all();
+                        $mpName = $allMasters->first(function ($mp) use ($prodName) {
+                            return !empty($mp->sku) && (
+                                str_contains(strtolower($prodName), strtolower($mp->sku)) ||
+                                str_contains(strtolower($mp->name), strtolower($prodName))
+                            );
+                        });
                     }
 
                     if ($mpName) {
                         $masterProductId = $mpName->id;
                         $item->update(['master_product_id' => $masterProductId]);
+                    }
+                }
+
+                // Fallback 6: Pencarian Global Tanpa Batasan Tenant (Penyelamat Akhir)
+                if (!$masterProductId && !empty($item->sku)) {
+                    $skuClean = trim($item->sku);
+                    $globalMp = MasterProduct::where('sku', $skuClean)
+                        ->orWhereRaw('LOWER(sku) = LOWER(?)', [strtolower($skuClean)])
+                        ->first();
+
+                    if (!$globalMp) {
+                        $skuNorm = preg_replace('/[^a-zA-Z0-9]/', '', strtolower($skuClean));
+                        if (!empty($skuNorm)) {
+                            $globalMp = MasterProduct::all()->first(function ($m) use ($skuNorm) {
+                                return preg_replace('/[^a-zA-Z0-9]/', '', strtolower($m->sku)) === $skuNorm;
+                            });
+                        }
+                    }
+
+                    if (!$globalMp) {
+                        $globalMp = MasterProduct::all()->first(function ($m) use ($skuClean) {
+                            $mSku = strtolower(trim($m->sku));
+                            $iSku = strtolower(trim($skuClean));
+                            if (empty($mSku) || empty($iSku)) return false;
+                            return str_starts_with($iSku, $mSku) || str_starts_with($mSku, $iSku);
+                        });
+                    }
+
+                    if ($globalMp) {
+                        $masterProductId = $globalMp->id;
+                        $item->update(['master_product_id' => $masterProductId]);
+                        if (!$this->tenant_id) {
+                            $this->update(['tenant_id' => $globalMp->tenant_id]);
+                        }
                     }
                 }
 
