@@ -114,6 +114,16 @@ class FixTiktokPendingStockDeductions extends Command
             $this->info("Berhasil menghubungkan {$linkedMpCount} produk toko TikTok ke MasterProduct secara otomatis.");
         }
 
+        // Langkah 1.5: Self-healing tenant_id pada stock_movements
+        \App\Models\StockMovement::whereNull('tenant_id')
+            ->whereNotNull('master_product_id')
+            ->get()
+            ->each(function ($sm) {
+                if ($sm->masterProduct && $sm->masterProduct->tenant_id) {
+                    $sm->update(['tenant_id' => $sm->masterProduct->tenant_id]);
+                }
+            });
+
         $orderIdOption = $this->option('order_id');
         $fromDateOption = $this->option('from_date');
         $allTimeOption = $this->option('all_time');
@@ -157,6 +167,10 @@ class FixTiktokPendingStockDeductions extends Command
 
         foreach ($pendingOrders as $order) {
             try {
+                if ($orderIdOption && $order->is_stock_deducted) {
+                    $order->update(['is_stock_deducted' => false]);
+                }
+
                 $order->processStockDeduction();
                 $order->refresh();
 

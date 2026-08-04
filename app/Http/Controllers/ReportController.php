@@ -203,11 +203,10 @@ class ReportController extends Controller
             'product_id' => 'required|exists:master_products,id',
         ]);
 
-        $product = \App\Models\MasterProduct::with('components')->where('tenant_id', $tenantId)->findOrFail($request->product_id);
+        $product = \App\Models\MasterProduct::with('components')->findOrFail($request->product_id);
 
         $query = \App\Models\StockMovement::with('user')
             ->where('master_product_id', $product->id)
-            ->where('tenant_id', $tenantId)
             ->orderBy('created_at', 'asc')
             ->orderBy('id', 'asc');
 
@@ -223,7 +222,6 @@ class ReportController extends Controller
         
         if ($request->filled('start_date')) {
             $prevMovement = \App\Models\StockMovement::where('master_product_id', $product->id)
-                ->where('tenant_id', $tenantId)
                 ->whereDate('created_at', '<', $request->start_date)
                 ->orderBy('created_at', 'desc')
                 ->orderBy('id', 'desc')

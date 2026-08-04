@@ -362,11 +362,13 @@ class Order extends Model
                                 continue;
                             }
 
+                            $orderDateStr = $this->order_date ? $this->order_date->format('Y-m-d H:i:s') : null;
                             $masterProduct->recordStockMovement(
                                 $item->quantity,
                                 'out',
                                 $reference,
-                                null
+                                null,
+                                $orderDateStr
                             );
                         }
                     }
