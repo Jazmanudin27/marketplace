@@ -176,7 +176,13 @@ class FixTiktokPendingStockDeductions extends Command
 
                 if ($order->is_stock_deducted) {
                     $successCount++;
-                    $this->info("✅ Pesanan #{$order->id} ({$order->order_marketplace_id}) berhasil dipotong stoknya & dicatat ke Kartu Stok.");
+                    $mappedInfo = [];
+                    foreach ($order->items as $it) {
+                        if ($it->masterProduct) {
+                            $mappedInfo[] = "[SKU Master: '{$it->masterProduct->sku}', Nama: '{$it->masterProduct->name}', Qty: {$it->quantity}]";
+                        }
+                    }
+                    $this->info("✅ Pesanan #{$order->id} ({$order->order_marketplace_id}) BERHASIL DIPOTONG dari Kartu Stok:\n   -> " . implode("\n   -> ", $mappedInfo));
                 } else {
                     $failedCount++;
                     $unmappedItems = $order->items->whereNull('master_product_id');
