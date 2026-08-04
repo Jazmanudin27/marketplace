@@ -204,10 +204,10 @@ class Order extends Model
                 if ($item->master_product_id) {
                     $masterProduct = MasterProduct::find($item->master_product_id);
                     if ($masterProduct) {
-                        // Hanya kembalikan jika pernah dipotong (ada stock movement "Pesanan Masuk")
-                        $deductionRef = 'Pesanan Masuk: ' . $this->order_marketplace_id;
-                        $wasDeducted = StockMovement::where('master_product_id', $item->master_product_id)
-                            ->where('reference', $deductionRef)
+                        // Kembalikan jika pesanan pernah memotong stok (is_stock_deducted = true) atau ada catatan movement pesanan masuk
+                        $wasDeducted = $this->is_stock_deducted || StockMovement::where('master_product_id', $item->master_product_id)
+                            ->where('reference', 'like', '%' . $this->order_marketplace_id . '%')
+                            ->where('type', 'out')
                             ->exists();
 
                         if ($wasDeducted) {

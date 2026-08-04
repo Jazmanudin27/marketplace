@@ -126,11 +126,28 @@ class MasterProduct extends Model
 
             // Sync parent set stock to connected marketplace listings
             $newStock = $this->stock; // Calls getStockAttribute() dynamically
-            $this->marketplaceProducts()
-                 ->where('sync_stock', true)
-                 ->update(['stock' => $newStock]);
+            MarketplaceProduct::where(function ($q) {
+                $q->where('master_product_id', $this->id);
+                if ($this->sku) {
+                    $q->orWhere('marketplace_sku', $this->sku);
+                }
+            })->each(function ($mp) use ($newStock) {
+                $mp->update([
+                    'master_product_id' => $this->id,
+                    'stock' => $newStock,
+                    'sync_stock' => true,
+                ]);
+            });
 
-            \App\Jobs\PushStockToMarketplaces::dispatchAfterResponse($this->id, $newStock);
+            try {
+                if (app()->runningInConsole()) {
+                    \App\Jobs\PushStockToMarketplaces::dispatchSync($this->id, $newStock);
+                } else {
+                    \App\Jobs\PushStockToMarketplaces::dispatch($this->id, $newStock);
+                }
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::warning('[StockSync] Push bundle stock error: ' . $e->getMessage());
+            }
             return;
         }
 
@@ -167,13 +184,30 @@ class MasterProduct extends Model
         // 2. Catat ke stock_movements
         StockMovement::create($movementData);
 
-        // 3. Sinkronisasi ke semua marketplace produk yang terhubung
-        $this->marketplaceProducts()
-             ->where('sync_stock', true)
-             ->update(['stock' => $newStock]);
+        // 3. Sinkronisasi ke semua marketplace produk yang terhubung (by ID maupun SKU)
+        MarketplaceProduct::where(function ($q) {
+            $q->where('master_product_id', $this->id);
+            if ($this->sku) {
+                $q->orWhere('marketplace_sku', $this->sku);
+            }
+        })->get()->each(function ($mp) use ($newStock) {
+            $mp->update([
+                'master_product_id' => $this->id,
+                'stock' => $newStock,
+                'sync_stock' => true,
+            ]);
+        });
              
-        // 4. Push stok ke API Marketplace secara otomatis (Shopee, Tokopedia, dll)
-        \App\Jobs\PushStockToMarketplaces::dispatchAfterResponse($this->id, $newStock);
+        // 4. Push stok ke API Marketplace secara otomatis (Shopee, TikTok, dll)
+        try {
+            if (app()->runningInConsole()) {
+                \App\Jobs\PushStockToMarketplaces::dispatchSync($this->id, $newStock);
+            } else {
+                \App\Jobs\PushStockToMarketplaces::dispatch($this->id, $newStock);
+            }
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::warning('[StockSync] Push stock error: ' . $e->getMessage());
+        }
 
         // 5. Update bundle parent stocks if this product is a component of any bundle
         $parentIds = \Illuminate\Support\Facades\DB::table('master_product_bundles')
@@ -187,10 +221,26 @@ class MasterProduct extends Model
 
             foreach ($parentBundles as $parent) {
                 $parentStock = $parent->stock; // Recalculates dynamically from component stocks
-                $parent->marketplaceProducts()
-                       ->where('sync_stock', true)
-                       ->update(['stock' => $parentStock]);
-                \App\Jobs\PushStockToMarketplaces::dispatchAfterResponse($parent->id, $parentStock);
+                MarketplaceProduct::where(function ($q) use ($parent) {
+                    $q->where('master_product_id', $parent->id);
+                    if ($parent->sku) {
+                        $q->orWhere('marketplace_sku', $parent->sku);
+                    }
+                })->get()->each(function ($mp) use ($parent, $parentStock) {
+                    $mp->update([
+                        'master_product_id' => $parent->id,
+                        'stock' => $parentStock,
+                        'sync_stock' => true,
+                    ]);
+                });
+
+                try {
+                    if (app()->runningInConsole()) {
+                        \App\Jobs\PushStockToMarketplaces::dispatchSync($parent->id, $parentStock);
+                    } else {
+                        \App\Jobs\PushStockToMarketplaces::dispatch($parent->id, $parentStock);
+                    }
+                } catch (\Exception $e) {}
             }
         }
     }
