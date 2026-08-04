@@ -198,7 +198,8 @@ class Order extends Model
                                 $item->quantity,
                                 'out',
                                 $reference,
-                                null
+                                null,
+                                $this->order_date ? $this->order_date->format('Y-m-d H:i:s') : null
                             );
                         }
                     }
