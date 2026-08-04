@@ -122,7 +122,11 @@
                         @forelse ($products as $index => $product)
                             @php
                                 $stokGudang = (int) $product->stock;
-                                $ledgerUrl = route('reports.ledger.print', ['product_id' => $product->id]);
+                                $ledgerUrl = route('reports.ledger.print', [
+                                    'product_id' => $product->id,
+                                    'start_date' => now()->startOfMonth()->format('Y-m-d'),
+                                    'end_date'   => now()->format('Y-m-d'),
+                                ]);
                             @endphp
                             <tr>
                                 <td class="text-center font-monospace text-muted">{{ $products->firstItem() + $index }}</td>

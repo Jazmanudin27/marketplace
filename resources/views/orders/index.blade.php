@@ -97,16 +97,9 @@
                             <i class="fas fa-truck-loading me-1"></i> Kirim Pesanan Massal
                         </button>
 
-                        <button type="button" class="btn btn-warning btn-sm px-3 rounded-3 text-dark fw-semibold" id="btn-mass-tracking">
-                            <i class="fas fa-sync me-1"></i> Tarik Resi Massal
-                        </button>
 
-                        <form action="{{ route('orders.sync') }}" method="POST" class="m-0">
-                            @csrf
-                            <button type="submit" class="btn btn-outline-primary btn-sm px-3 rounded-3">
-                                <i class="fas fa-sync me-1"></i> Tarik Pesanan
-                            </button>
-                        </form>
+
+
                     </div>
                 </div>
 
