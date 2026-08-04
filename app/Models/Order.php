@@ -153,11 +153,25 @@ class Order extends Model
             foreach ($this->items as $item) {
                 $masterProductId = $item->master_product_id;
 
-                // Fallback: jika di item belum ter-set, coba cari dari MarketplaceProduct
+                // Fallback 1: Jika di item belum ter-set, coba cari dari MarketplaceProduct
                 if (!$masterProductId && $item->marketplace_product_id) {
                     $mp = MarketplaceProduct::find($item->marketplace_product_id);
                     if ($mp && $mp->master_product_id) {
                         $masterProductId = $mp->master_product_id;
+                        $item->update(['master_product_id' => $masterProductId]);
+                    }
+                }
+
+                // Fallback 2: Jika masih belum ter-set, cari ke MasterProduct berdasarkan SKU di OrderItem
+                if (!$masterProductId && !empty($item->sku)) {
+                    $skuClean = trim($item->sku);
+                    $mpDirect = MasterProduct::where('tenant_id', $this->tenant_id)
+                        ->where(function ($q) use ($skuClean) {
+                            $q->where('sku', $skuClean)
+                              ->orWhereRaw('LOWER(sku) = LOWER(?)', [$skuClean]);
+                        })->first();
+                    if ($mpDirect) {
+                        $masterProductId = $mpDirect->id;
                         $item->update(['master_product_id' => $masterProductId]);
                     }
                 }
