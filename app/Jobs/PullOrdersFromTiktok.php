@@ -19,7 +19,6 @@ class PullOrdersFromTiktok implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    protected $store;
     protected int $storeId;
     protected int $timeFrom;
     protected int $timeTo;
@@ -53,20 +52,8 @@ class PullOrdersFromTiktok implements ShouldQueue
             $shopCipher = $this->store->shop_cipher;
 
             if (empty($shopCipher)) {
-                try {
-                    $shopInfo = $tiktokService->getShopInfo($accessToken);
-                    $shops = $shopInfo['shops'] ?? [];
-                    if (!empty($shops[0]['cipher'])) {
-                        $shopCipher = $shops[0]['cipher'];
-                        $this->store->update(['shop_cipher' => $shopCipher]);
-                    }
-                } catch (\Exception $e) {
-                    Log::warning("[TikTok] Gagal mendapatkan shop_cipher untuk toko {$this->store->store_name}: " . $e->getMessage());
-                }
-            }
-
-            if (empty($shopCipher)) {
-                $shopCipher = $this->store->marketplace_store_id;
+                Log::warning("[TikTok] shop_cipher kosong untuk toko {$this->store->store_name}.");
+                return;
             }
 
             $cursor = '';

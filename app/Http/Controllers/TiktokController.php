@@ -188,15 +188,10 @@ class TiktokController extends Controller
             $timeFrom = now()->subDays(15)->timestamp;
             $timeTo = now()->timestamp;
 
-            try {
-                PullOrdersFromTiktok::dispatchSync($store, $timeFrom, $timeTo);
-            } catch (\Exception $e) {
-                Log::warning('[TikTok Sync] dispatchSync failed, falling back to dispatch: ' . $e->getMessage());
-                PullOrdersFromTiktok::dispatch($store, $timeFrom, $timeTo);
-            }
+            PullOrdersFromTiktok::dispatch($store, $timeFrom, $timeTo);
 
             $platform = $store->channel->code === 'tokopedia' ? 'Tokopedia' : 'TikTok Shop';
-            return back()->with('success', "Sinkronisasi pesanan {$platform} berhasil diproses.");
+            return back()->with('success', "Sinkronisasi pesanan {$platform} sedang berjalan di latar belakang.");
         } catch (\Exception $e) {
             Log::error('[TikTok Sync Orders] Gagal memulai sync', [
                 'store_id' => $store->id,

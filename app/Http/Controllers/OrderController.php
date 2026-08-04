@@ -797,21 +797,12 @@ class OrderController extends Controller
         $timeFrom = strtotime('-14 days', $timeTo);
 
         foreach ($stores as $store) {
-            try {
-                if ($store->channel->code === 'shopee') {
-                    \App\Jobs\PullOrdersFromShopee::dispatchSync($store, $timeFrom, $timeTo);
-                } elseif (in_array($store->channel->code, ['tiktok', 'tokopedia'])) {
-                    \App\Jobs\PullOrdersFromTiktok::dispatchSync($store, $timeFrom, $timeTo);
-                } elseif ($store->channel->code === 'lazada') {
-                    \App\Jobs\PullOrdersFromLazada::dispatchSync($store, $timeFrom, $timeTo);
-                }
-            } catch (\Exception $e) {
-                \Illuminate\Support\Facades\Log::warning('[OrderSync] Sync store ' . $store->id . ' error: ' . $e->getMessage());
-                if ($store->channel->code === 'shopee') {
-                    \App\Jobs\PullOrdersFromShopee::dispatch($store, $timeFrom, $timeTo);
-                } elseif (in_array($store->channel->code, ['tiktok', 'tokopedia'])) {
-                    \App\Jobs\PullOrdersFromTiktok::dispatch($store, $timeFrom, $timeTo);
-                }
+            if ($store->channel->code === 'shopee') {
+                \App\Jobs\PullOrdersFromShopee::dispatch($store, $timeFrom, $timeTo);
+            } elseif (in_array($store->channel->code, ['tiktok', 'tokopedia'])) {
+                \App\Jobs\PullOrdersFromTiktok::dispatch($store, $timeFrom, $timeTo);
+            } elseif ($store->channel->code === 'lazada') {
+                \App\Jobs\PullOrdersFromLazada::dispatch($store, $timeFrom, $timeTo);
             }
         }
 
