@@ -147,10 +147,7 @@ class Order extends Model
 
     public function processStockDeduction(): void
     {
-        // Pastikan relasi items selalu diperbarui dari database (mencegah memory cache stale)
         $this->load('items');
-
-        $tenantId = $this->tenant_id ?: ($this->store ? $this->store->tenant_id : null);
 
         // 1. Deduct stock if not already deducted and not cancelled
         if (!$this->is_stock_deducted && $this->order_status !== self::STATUS_CANCELLED) {
@@ -158,191 +155,26 @@ class Order extends Model
             foreach ($this->items as $item) {
                 $masterProductId = $item->master_product_id;
 
-                // Fallback 1: Jika di item belum ter-set master_product_id, coba cari dari MarketplaceProduct
+                // Fallback 1: Jika di item belum ter-set, coba cari dari MarketplaceProduct
                 if (!$masterProductId && $item->marketplace_product_id) {
                     $mp = MarketplaceProduct::find($item->marketplace_product_id);
-                    if ($mp) {
-                        if ($mp->master_product_id) {
-                            $masterProductId = $mp->master_product_id;
-                        } elseif (!empty($mp->marketplace_sku) && $tenantId) {
-                            $skuClean = trim($mp->marketplace_sku);
-                            $mpDirect = MasterProduct::where('tenant_id', $tenantId)
-                                ->where(function ($q) use ($skuClean) {
-                                    $q->where('sku', $skuClean)
-                                      ->orWhereRaw('LOWER(sku) = LOWER(?)', [strtolower($skuClean)]);
-                                })->first();
-                            if ($mpDirect) {
-                                $masterProductId = $mpDirect->id;
-                                $mp->update(['master_product_id' => $masterProductId, 'sync_stock' => true]);
-                            }
-                        }
-                        if ($masterProductId) {
-                            $item->update(['master_product_id' => $masterProductId]);
-                        }
+                    if ($mp && $mp->master_product_id) {
+                        $masterProductId = $mp->master_product_id;
+                        $item->update(['master_product_id' => $masterProductId]);
                     }
                 }
 
-                // Fallback 2: Jika belum ter-set, cari ke MasterProduct berdasarkan SKU di OrderItem
-                if (!$masterProductId && !empty($item->sku) && $tenantId) {
+                // Fallback 2: Jika masih belum ter-set, cari ke MasterProduct berdasarkan SKU di OrderItem
+                if (!$masterProductId && !empty($item->sku)) {
                     $skuClean = trim($item->sku);
-                    $mpDirect = MasterProduct::where('tenant_id', $tenantId)
+                    $mpDirect = MasterProduct::where('tenant_id', $this->tenant_id)
                         ->where(function ($q) use ($skuClean) {
                             $q->where('sku', $skuClean)
-                              ->orWhereRaw('LOWER(sku) = LOWER(?)', [strtolower($skuClean)]);
+                              ->orWhereRaw('LOWER(sku) = LOWER(?)', [$skuClean]);
                         })->first();
-
-                    // Coba Normalized SKU (abaikan strip/spasi/karakter khusus)
-                    if (!$mpDirect) {
-                        $skuNorm = preg_replace('/[^a-zA-Z0-9]/', '', strtolower($skuClean));
-                        if (!empty($skuNorm)) {
-                            $mpDirect = MasterProduct::where('tenant_id', $tenantId)
-                                ->get()
-                                ->first(function ($mp) use ($skuNorm) {
-                                    return preg_replace('/[^a-zA-Z0-9]/', '', strtolower($mp->sku)) === $skuNorm;
-                                });
-                        }
-                    }
-
-                    // Coba Prefix / Similarity SKU Matching (misal: BB-BR-MERAH-LPJ-X vs BB-BR-MERAH-LPJ-XL)
-                    if (!$mpDirect) {
-                        $mpDirect = MasterProduct::where('tenant_id', $tenantId)
-                            ->get()
-                            ->first(function ($mp) use ($skuClean) {
-                                $mSku = strtolower(trim($mp->sku));
-                                $iSku = strtolower(trim($skuClean));
-                                if (empty($mSku) || empty($iSku)) return false;
-
-                                if (str_starts_with($iSku, $mSku) || str_starts_with($mSku, $iSku)) {
-                                    return true;
-                                }
-
-                                similar_text($iSku, $mSku, $percent);
-                                return $percent >= 85;
-                            });
-                    }
-
                     if ($mpDirect) {
                         $masterProductId = $mpDirect->id;
                         $item->update(['master_product_id' => $masterProductId]);
-                    }
-                }
-
-                // Fallback 3: Cari ke MarketplaceProduct milik toko ini berdasarkan SKU, variant ID, atau product ID
-                if (!$masterProductId && $this->store_id) {
-                    $mp = MarketplaceProduct::where('store_id', $this->store_id)
-                        ->where(function ($q) use ($item) {
-                            if (!empty($item->sku)) {
-                                $skuTrim = trim($item->sku);
-                                $q->where('marketplace_sku', $skuTrim)
-                                  ->orWhere('marketplace_variant_id', $skuTrim)
-                                  ->orWhere('marketplace_product_id', $skuTrim);
-                            }
-                        })->first();
-
-                    if ($mp) {
-                        if ($mp->master_product_id) {
-                            $masterProductId = $mp->master_product_id;
-                        } elseif (!empty($mp->marketplace_sku) && $tenantId) {
-                            $skuClean = trim($mp->marketplace_sku);
-                            $mpDirect = MasterProduct::where('tenant_id', $tenantId)
-                                ->where(function ($q) use ($skuClean) {
-                                    $q->where('sku', $skuClean)
-                                      ->orWhereRaw('LOWER(sku) = LOWER(?)', [strtolower($skuClean)]);
-                                })->first();
-                            if ($mpDirect) {
-                                $masterProductId = $mpDirect->id;
-                                $mp->update(['master_product_id' => $masterProductId, 'sync_stock' => true]);
-                            }
-                        }
-
-                        if ($masterProductId) {
-                            $item->update([
-                                'marketplace_product_id' => $mp->id,
-                                'master_product_id'      => $masterProductId
-                            ]);
-                        }
-                    }
-                }
-
-                // Fallback 4: Cari ke MarketplaceProduct apapun di bawah tenant yang sama
-                if (!$masterProductId && $tenantId && !empty($item->sku)) {
-                    $skuClean = trim($item->sku);
-                    $mpTenant = MarketplaceProduct::whereHas('store', function($q) use ($tenantId) {
-                            $q->where('tenant_id', $tenantId);
-                        })
-                        ->where(function ($q) use ($skuClean) {
-                            $q->where('marketplace_sku', $skuClean)
-                              ->orWhere('marketplace_variant_id', $skuClean);
-                        })->first();
-
-                    if ($mpTenant && $mpTenant->master_product_id) {
-                        $masterProductId = $mpTenant->master_product_id;
-                        $item->update([
-                            'marketplace_product_id' => $mpTenant->id,
-                            'master_product_id'      => $masterProductId
-                        ]);
-                    }
-                }
-
-                // Fallback 5: Pencarian berdasarkan Nama Produk (exact atau substring SKU di nama)
-                if (!$masterProductId && !empty($item->product_name)) {
-                    $prodName = trim($item->product_name);
-                    $queryName = MasterProduct::query();
-                    if ($tenantId) {
-                        $queryName->where('tenant_id', $tenantId);
-                    }
-                    $mpName = $queryName->where(function ($q) use ($prodName) {
-                            $q->where('name', $prodName)
-                              ->orWhereRaw('LOWER(name) = LOWER(?)', [strtolower($prodName)]);
-                        })->first();
-
-                    if (!$mpName) {
-                        $allMasters = $tenantId ? MasterProduct::where('tenant_id', $tenantId)->get() : MasterProduct::all();
-                        $mpName = $allMasters->first(function ($mp) use ($prodName) {
-                            return !empty($mp->sku) && (
-                                str_contains(strtolower($prodName), strtolower($mp->sku)) ||
-                                str_contains(strtolower($mp->name), strtolower($prodName))
-                            );
-                        });
-                    }
-
-                    if ($mpName) {
-                        $masterProductId = $mpName->id;
-                        $item->update(['master_product_id' => $masterProductId]);
-                    }
-                }
-
-                // Fallback 6: Pencarian Global Tanpa Batasan Tenant (Penyelamat Akhir)
-                if (!$masterProductId && !empty($item->sku)) {
-                    $skuClean = trim($item->sku);
-                    $globalMp = MasterProduct::where('sku', $skuClean)
-                        ->orWhereRaw('LOWER(sku) = LOWER(?)', [strtolower($skuClean)])
-                        ->first();
-
-                    if (!$globalMp) {
-                        $skuNorm = preg_replace('/[^a-zA-Z0-9]/', '', strtolower($skuClean));
-                        if (!empty($skuNorm)) {
-                            $globalMp = MasterProduct::all()->first(function ($m) use ($skuNorm) {
-                                return preg_replace('/[^a-zA-Z0-9]/', '', strtolower($m->sku)) === $skuNorm;
-                            });
-                        }
-                    }
-
-                    if (!$globalMp) {
-                        $globalMp = MasterProduct::all()->first(function ($m) use ($skuClean) {
-                            $mSku = strtolower(trim($m->sku));
-                            $iSku = strtolower(trim($skuClean));
-                            if (empty($mSku) || empty($iSku)) return false;
-                            return str_starts_with($iSku, $mSku) || str_starts_with($mSku, $iSku);
-                        });
-                    }
-
-                    if ($globalMp) {
-                        $masterProductId = $globalMp->id;
-                        $item->update(['master_product_id' => $masterProductId]);
-                        if (!$this->tenant_id) {
-                            $this->update(['tenant_id' => $globalMp->tenant_id]);
-                        }
                     }
                 }
 
@@ -362,13 +194,11 @@ class Order extends Model
                                 continue;
                             }
 
-                            $orderDateStr = $this->order_date ? $this->order_date->format('Y-m-d H:i:s') : null;
                             $masterProduct->recordStockMovement(
                                 $item->quantity,
                                 'out',
                                 $reference,
-                                null,
-                                $orderDateStr
+                                null
                             );
                         }
                     }

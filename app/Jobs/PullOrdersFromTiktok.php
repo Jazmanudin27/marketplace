@@ -22,10 +22,12 @@ class PullOrdersFromTiktok implements ShouldQueue
     protected int $storeId;
     protected int $timeFrom;
     protected int $timeTo;
+    protected ?Store $store = null;
 
     public function __construct(Store $store, int $timeFrom, int $timeTo)
     {
         $this->storeId  = $store->id;
+        $this->store    = $store;
         $this->timeFrom = $timeFrom;
         $this->timeTo   = $timeTo;
     }
@@ -137,7 +139,15 @@ class PullOrdersFromTiktok implements ShouldQueue
 
         // Standarisasi Status
         // TikTok: UNPAID, AWAITING_SHIPMENT, AWAITING_COLLECTION, IN_TRANSIT, DELIVERED, COMPLETED, CANCELLED
+        // TikTok API v2 Numeric: 100, 111, 112, 121, 122, 130, 140
         $statusMapping = [
+            '100' => 'UNPAID',
+            '111' => 'READY_TO_SHIP',
+            '112' => 'SHIPPED',
+            '121' => 'SHIPPED',
+            '122' => 'DELIVERED',
+            '130' => 'COMPLETED',
+            '140' => 'CANCELLED',
             'UNPAID' => 'UNPAID',
             'AWAITING_SHIPMENT' => 'READY_TO_SHIP',
             'AWAITING_COLLECTION' => 'SHIPPED',
@@ -146,10 +156,11 @@ class PullOrdersFromTiktok implements ShouldQueue
             'DELIVERED' => 'DELIVERED',
             'COMPLETED' => 'COMPLETED',
             'CANCELLED' => 'CANCELLED',
+            'IN_CANCEL' => 'CANCELLED',
         ];
 
         // Dapatkan status secara aman dengan fallback
-        $rawStatus = $tiktokOrder['order_status'] ?? $tiktokOrder['status'] ?? 'UNPAID';
+        $rawStatus = strtoupper((string) ($tiktokOrder['order_status'] ?? $tiktokOrder['status'] ?? 'UNPAID'));
         $erpStatus = $statusMapping[$rawStatus] ?? $rawStatus;
 
         // Dapatkan Order ID secara aman dengan fallback
@@ -326,58 +337,54 @@ class PullOrdersFromTiktok implements ShouldQueue
 
         foreach ($itemList as $item) {
             $masterProduct = null;
-            $skuId = $item['sku_id'] ?? null;
-            $productId = $item['product_id'] ?? $item['id'] ?? null;
-            
-            // Extract seller_sku properly without taking sku_name (variation title) as SKU
-            $sellerSku = null;
-            foreach (['seller_sku', 'sku', 'seller_sku_id', 'sku_seller_id'] as $skuKey) {
-                if (!empty($item[$skuKey]) && is_string($item[$skuKey])) {
-                    $candidate = trim($item[$skuKey]);
-                    // Don't treat integer IDs or empty strings as SKU if seller_sku is present
-                    if ($candidate !== '') {
-                        $sellerSku = $candidate;
-                        break;
-                    }
-                }
+            $skuId = !empty($item['sku_id']) ? (string) $item['sku_id'] : null;
+            $productId = !empty($item['product_id']) ? (string) $item['product_id'] : (!empty($item['id']) ? (string) $item['id'] : null);
+            $sellerSku = $item['seller_sku'] ?? $item['sku'] ?? $item['seller_sku_id'] ?? $item['sku_seller_id'] ?? null;
+
+            if ($sellerSku) {
+                $sellerSku = trim($sellerSku);
             }
 
-            // 1. Cari MarketplaceProduct milik toko ini
             $marketplaceProduct = null;
-            if ($skuId || $productId) {
+
+            // 1. Cari MarketplaceProduct berdasarkan store_id + variant_id (jika varian tersedia)
+            if ($skuId) {
                 $marketplaceProduct = \App\Models\MarketplaceProduct::where('store_id', $this->store->id)
-                    ->where(function ($q) use ($skuId, $productId) {
-                        if ($skuId) {
-                            $q->where('marketplace_variant_id', (string) $skuId);
-                        }
-                        if ($productId) {
-                            $q->orWhere('marketplace_product_id', (string) $productId);
-                        }
-                    })
+                    ->where('marketplace_variant_id', $skuId)
                     ->first();
             }
 
-            $marketplaceProductId = $marketplaceProduct ? $marketplaceProduct->id : null;
-            $masterProduct = $marketplaceProduct ? $marketplaceProduct->masterProduct : null;
+            // 2. Fallback: Cari MarketplaceProduct berdasarkan store_id + product_id
+            if (!$marketplaceProduct && $productId) {
+                $marketplaceProduct = \App\Models\MarketplaceProduct::where('store_id', $this->store->id)
+                    ->where('marketplace_product_id', $productId)
+                    ->first();
+            }
 
-            // 2. Fallback: Cari MasterProduct langsung berdasarkan sellerSku jika belum terhubung
+            // 3. Fallback: Cari MarketplaceProduct berdasarkan store_id + seller_sku
+            if (!$marketplaceProduct && $sellerSku) {
+                $marketplaceProduct = \App\Models\MarketplaceProduct::where('store_id', $this->store->id)
+                    ->where('marketplace_sku', $sellerSku)
+                    ->first();
+            }
+
+            if ($marketplaceProduct) {
+                $masterProduct = $marketplaceProduct->masterProduct;
+            }
+
+            // 4. Direct Fallback: Cari langsung ke MasterProduct berdasarkan SKU jika MarketplaceProduct belum terhubung ke MasterProduct
             if (!$masterProduct && $sellerSku) {
                 $skuClean = $sellerSku;
                 $masterProduct = MasterProduct::where('tenant_id', $this->store->tenant_id)
                     ->where(function ($q) use ($skuClean) {
                         $q->where('sku', $skuClean)
-                          ->orWhereRaw('LOWER(sku) = LOWER(?)', [strtolower($skuClean)]);
+                          ->orWhereRaw('LOWER(sku) = LOWER(?)', [$skuClean]);
                     })
                     ->first();
             }
 
-            // 3. Auto-link MarketplaceProduct ke MasterProduct jika baru ditemukan via SKU
-            if ($masterProduct && $marketplaceProduct && !$marketplaceProduct->master_product_id) {
-                $marketplaceProduct->update([
-                    'master_product_id' => $masterProduct->id,
-                    'sync_stock'        => true,
-                ]);
-            }
+            $marketplaceProductId = $marketplaceProduct ? $marketplaceProduct->id : null;
+            $masterProductId = $masterProduct ? $masterProduct->id : null;
 
             // Snapshot HPP dari MasterProduct saat pesanan dibuat
             $costPrice = $masterProduct ? (float) $masterProduct->cost_price : 0;
@@ -387,7 +394,7 @@ class PullOrdersFromTiktok implements ShouldQueue
             $price = $item['sku_sale_price'] ?? $item['sale_price'] ?? $item['price'] ?? $item['sku_original_price'] ?? $item['original_price'] ?? 0;
             $price = (float) $price;
 
-            $itemSku = $sellerSku ?: ($skuId ?: ($productId ?: 'TIKTOK-ITEM-' . ($item['id'] ?? $order->id)));
+            $itemSku = $sellerSku ?: ($skuId ?: ($productId ?: 'TIKTOK-ITEM-' . rand(100, 999)));
 
             OrderItem::updateOrCreate(
                 [
@@ -396,7 +403,7 @@ class PullOrdersFromTiktok implements ShouldQueue
                 ],
                 [
                     'marketplace_product_id' => $marketplaceProductId,
-                    'master_product_id'      => $masterProduct ? $masterProduct->id : null,
+                    'master_product_id'      => $masterProductId,
                     'product_name'           => $item['product_name'] ?? $item['item_name'] ?? 'TikTok Item',
                     'price'                  => $price,
                     'quantity'               => $qty,
@@ -407,8 +414,8 @@ class PullOrdersFromTiktok implements ShouldQueue
             );
         }
 
-        // Process stock deduction or return (pastikan relasi items selalu segar dari DB)
-        $order->load('items');
+        // Unset relation memory cache agar processStockDeduction membaca item terbaru dari DB
+        $order->unsetRelation('items');
         $order->processStockDeduction();
     }
 
