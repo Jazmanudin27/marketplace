@@ -331,9 +331,7 @@
                                                             <div class="text-muted font-monospace" style="font-size: 0.67rem; line-height: 1.4;">
                                                                 <i class="fas fa-tag me-1 text-secondary opacity-50"></i>
                                                                 <span class="fw-semibold text-dark">{{ $orderItem->sku ?? ($orderItem->masterProduct->sku ?? '-') }}</span>
-                                                                @if($orderItem->quantity > 1)
-                                                                    <span class="text-muted ms-1">×{{ $orderItem->quantity }}</span>
-                                                                @endif
+                                                                <span class="text-muted ms-1">×{{ $orderItem->quantity }}</span>
                                                             </div>
                                                         @endforeach
                                                     </div>
