@@ -105,17 +105,32 @@ class ReprocessTiktokStock extends Command
             }
 
             // Jalankan pemotongan stok & pencatatan mutasi stok gudang
+            // PENTING: Reset is_stock_deducted dulu agar processStockDeduction() tidak skip
+            $order->update(['is_stock_deducted' => false]);
+
+            // Hapus movement duplikat yang mungkin sudah ada dari proses sebelumnya
+            // agar alreadyDeducted check tidak memblok pencatatan baru
+            \App\Models\StockMovement::where('reference', 'Pesanan Masuk: ' . $order->order_marketplace_id)
+                ->whereIn('master_product_id', $order->items->pluck('master_product_id')->filter()->toArray())
+                ->delete();
+
             $order->unsetRelation('items');
             $order->processStockDeduction();
 
             // Refresh order status setelah processStockDeduction
             $order->refresh();
 
-            if ($order->is_stock_deducted) {
-                $this->info("  -> Sukses: Stok Order #{$order->order_marketplace_id} berhasil dipotong dan tercatat di Mutasi Stok!");
+            // Cek apakah stock movement benar-benar tercatat
+            $movementsCreated = \App\Models\StockMovement::where('reference', 'Pesanan Masuk: ' . $order->order_marketplace_id)->count();
+
+            if ($order->is_stock_deducted && $movementsCreated > 0) {
+                $this->info("  -> Sukses: {$movementsCreated} mutasi stok tercatat untuk Order #{$order->order_marketplace_id}!");
                 $successCount++;
+            } elseif ($order->is_stock_deducted && $movementsCreated === 0) {
+                $this->warn("  -> Perhatian: is_stock_deducted=true tapi TIDAK ADA mutasi stok tercatat. Kemungkinan produk belum ter-map.");
+                $failedCount++;
             } else {
-                $this->error("  -> Gagal: Stok Order #{$order->order_marketplace_id} belum sepenuhnya terpotong (ada item belum ter-map).");
+                $this->error("  -> Gagal: Stok Order #{$order->order_marketplace_id} belum sepenuhnya terpotong (ada item belum ter-map ke MasterProduct).");
                 $failedCount++;
             }
         }
