@@ -65,11 +65,19 @@
                                 <input type="text" name="search" value="{{ request('search') }}" class="form-control form-control-sm" placeholder="Ketik nama produk atau SKU...">
                             </div>
                             <div class="col-md-5 col-sm-12 d-flex align-items-end justify-content-between pt-2">
-                                <div class="form-check form-switch mb-1">
-                                    <input class="form-check-input" type="checkbox" name="hide_zero_stock" value="1" id="hideZeroStock" {{ request()->boolean('hide_zero_stock') ? 'checked' : '' }}>
-                                    <label class="form-check-label small fw-semibold text-dark" for="hideZeroStock">
-                                        Hilangkan Produk Stok 0
-                                    </label>
+                                <div class="d-flex flex-column gap-1">
+                                    <div class="form-check form-switch mb-0">
+                                        <input class="form-check-input" type="checkbox" name="hide_zero_stock" value="1" id="hideZeroStock" {{ request()->boolean('hide_zero_stock') ? 'checked' : '' }}>
+                                        <label class="form-check-label small fw-semibold text-dark" for="hideZeroStock">
+                                            Hilangkan Produk Stok 0
+                                        </label>
+                                    </div>
+                                    <div class="form-check form-switch mb-0">
+                                        <input class="form-check-input" type="checkbox" name="only_different" value="1" id="onlyDifferent" {{ request()->boolean('only_different') ? 'checked' : '' }}>
+                                        <label class="form-check-label small fw-bold text-danger" for="onlyDifferent">
+                                            ⚠️ Hanya Stok Berbeda (Beda Gudang vs Toko)
+                                        </label>
+                                    </div>
                                 </div>
                                 <div>
                                     <button type="submit" class="btn btn-sm btn-primary px-3 me-1">
@@ -87,7 +95,7 @@
         </div>
     </div>
 
-    {{-- Data Table Matching User Header Request --}}
+    {{-- Data Table Matching User Request (Without Total Stok & With Red Background Discrepancy Indicator) --}}
     <div class="card border-0 shadow-sm">
         <div class="card-body p-0">
             <div class="table-responsive">
@@ -108,14 +116,12 @@
                                     </span>
                                 </th>
                             @endforeach
-                            <th class="text-white text-center align-middle" style="background-color: #334155; width: 100px;">Total Stok</th>
                         </tr>
                     </thead>
                     <tbody>
                         @forelse ($products as $index => $product)
                             @php
                                 $stokGudang = (int) $product->stock;
-                                $totalStok = $stokGudang;
                                 $ledgerUrl = route('reports.ledger.print', ['product_id' => $product->id]);
                             @endphp
                             <tr>
@@ -152,18 +158,20 @@
                                     @php
                                         $storeMpProducts = $product->marketplaceProducts->where('store_id', $st->id);
                                         $storeStock = $storeMpProducts->isNotEmpty() ? (int) $storeMpProducts->max('stock') : 0;
+                                        $isDifferent = ($storeMpProducts->isNotEmpty() && $storeStock !== $stokGudang);
                                     @endphp
-                                    <td class="text-end font-monospace {{ $storeStock > 0 ? 'fw-bold text-primary' : 'text-muted' }}">
+                                    <td class="text-end font-monospace align-middle {{ $isDifferent ? 'bg-danger text-white fw-bold' : ($storeStock > 0 ? 'fw-bold text-primary' : 'text-muted') }}"
+                                        @if($isDifferent) title="Beda Stok! Gudang: {{ $stokGudang }}, Toko {{ $st->store_name }}: {{ $storeStock }}" @endif>
+                                        @if($isDifferent)
+                                            <i class="fas fa-exclamation-triangle text-warning me-1"></i>
+                                        @endif
                                         {{ number_format($storeStock, 0, ',', '.') }}
                                     </td>
                                 @endforeach
-                                <td class="text-end font-monospace fw-bold {{ $stokGudang <= 0 ? 'text-danger' : 'text-dark' }}" style="background-color: #f8fafc;">
-                                    {{ number_format($stokGudang, 0, ',', '.') }}
-                                </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="{{ 7 + count($stores) }}" class="text-center text-muted py-4">
+                                <td colspan="{{ 6 + count($stores) }}" class="text-center text-muted py-4">
                                     <i class="fas fa-inbox fa-2x mb-2 d-block opacity-25"></i>
                                     Tidak ada data stok barang yang sesuai dengan filter.
                                 </td>

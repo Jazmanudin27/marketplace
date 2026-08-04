@@ -85,13 +85,10 @@
             vertical-align: middle;
         }
 
-        table.data-table th.bg-dark {
-            background-color: #334155 !important;
-            color: #ffffff;
-            text-align: center;
-            font-weight: 700;
-            border: 1px solid #000;
-            vertical-align: middle;
+        .bg-danger-cell {
+            background-color: #ef4444 !important;
+            color: #ffffff !important;
+            font-weight: bold !important;
         }
 
         .text-right {
@@ -137,6 +134,11 @@
                 color: #000 !important;
                 text-decoration: none !important;
             }
+
+            .bg-danger-cell {
+                background-color: #ef4444 !important;
+                color: #ffffff !important;
+            }
         }
     </style>
 </head>
@@ -165,17 +167,20 @@
         @if (request('search'))
             | Pencarian: "{{ request('search') }}"
         @endif
+        @if (request()->boolean('only_different'))
+            | ⚠️ Filter: Hanya Stok Berbeda (Beda Gudang vs Toko)
+        @endif
     </div>
 
     <table class="data-table">
         <thead>
             <tr>
-                <th class="bg-blue" style="width: 3%;">No</th>
-                <th class="bg-blue" style="width: 12%;">SKU</th>
+                <th class="bg-blue" style="width: 4%;">No</th>
+                <th class="bg-blue" style="width: 14%;">SKU</th>
                 <th class="bg-blue">Nama Produk</th>
-                <th class="bg-blue" style="width: 13%;">Kategori / Merk</th>
-                <th class="bg-blue" style="width: 10%;">Status &amp; PO</th>
-                <th class="bg-green" style="width: 8%;">Stok Gudang</th>
+                <th class="bg-blue" style="width: 15%;">Kategori / Merk</th>
+                <th class="bg-blue" style="width: 11%;">Status &amp; PO</th>
+                <th class="bg-green" style="width: 10%;">Stok Gudang</th>
                 @foreach($stores as $store)
                     <th class="bg-cyan">
                         {{ $store->store_name }}
@@ -184,14 +189,12 @@
                         </span>
                     </th>
                 @endforeach
-                <th class="bg-dark" style="width: 8%;">Total Stok</th>
             </tr>
         </thead>
         <tbody>
             @forelse($products as $index => $product)
                 @php
                     $stokGudang = (int) $product->stock;
-                    $totalStok = $stokGudang;
                     $ledgerUrl = route('reports.ledger.print', ['product_id' => $product->id]);
                 @endphp
                 <tr>
@@ -224,22 +227,21 @@
                         @php
                             $storeMpProducts = $product->marketplaceProducts->where('store_id', $store->id);
                             $storeStock = $storeMpProducts->isNotEmpty() ? (int) $storeMpProducts->max('stock') : 0;
+                            $isDifferent = ($storeMpProducts->isNotEmpty() && $storeStock !== $stokGudang);
                         @endphp
-                        <td class="text-right">
-                            <span style="font-weight: {{ $storeStock > 0 ? 'bold' : 'normal' }}; color: {{ $storeStock > 0 ? '#0369a1' : '#94a3b8' }};">
+                        <td class="text-right {{ $isDifferent ? 'bg-danger-cell' : '' }}">
+                            @if($isDifferent)
+                                <span style="color: #fde047; font-weight: bold; margin-right: 2px;">⚠️</span>
+                            @endif
+                            <span style="{{ $isDifferent ? 'color: #ffffff !important;' : ($storeStock > 0 ? 'font-weight: bold; color: #0369a1;' : 'color: #94a3b8;') }}">
                                 {{ number_format($storeStock, 0, ',', '.') }}
                             </span>
                         </td>
                     @endforeach
-                    <td class="text-right" style="background-color: #f8fafc;">
-                        <strong style="color: {{ $stokGudang <= 0 ? '#dc2626' : '#0f172a' }};">
-                            {{ number_format($stokGudang, 0, ',', '.') }}
-                        </strong>
-                    </td>
                 </tr>
             @empty
                 <tr>
-                    <td colspan="{{ 7 + count($stores) }}" class="text-center" style="padding: 20px;">Tidak ada data barang yang sesuai dengan filter.</td>
+                    <td colspan="{{ 6 + count($stores) }}" class="text-center" style="padding: 20px;">Tidak ada data barang yang sesuai dengan filter.</td>
                 </tr>
             @endforelse
         </tbody>

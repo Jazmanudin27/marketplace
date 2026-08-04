@@ -68,6 +68,13 @@ class ReportController extends Controller
             });
         }
 
+        if ($request->boolean('only_different')) {
+            $query->whereHas('marketplaceProducts', function ($mq) {
+                $mq->where('sync_stock', true)
+                   ->whereColumn('stock', '!=', 'master_products.stock');
+            });
+        }
+
         $products = $query->orderBy('name')->paginate(50)->withQueryString();
 
         return view('reports.stock', compact('categories', 'brands', 'stores', 'products'));
@@ -130,6 +137,13 @@ class ReportController extends Controller
                   ->orWhereHas('marketplaceProducts', function ($mq) {
                       $mq->where('stock', '>', 0);
                   });
+            });
+        }
+
+        if ($request->boolean('only_different')) {
+            $query->whereHas('marketplaceProducts', function ($mq) {
+                $mq->where('sync_stock', true)
+                   ->whereColumn('stock', '!=', 'master_products.stock');
             });
         }
 
