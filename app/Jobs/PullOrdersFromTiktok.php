@@ -328,31 +328,55 @@ class PullOrdersFromTiktok implements ShouldQueue
             $masterProduct = null;
             $skuId = $item['sku_id'] ?? null;
             $productId = $item['product_id'] ?? $item['id'] ?? null;
-            $sellerSku = $item['seller_sku'] ?? $item['sku'] ?? $item['sku_name'] ?? $item['seller_sku_id'] ?? $item['sku_seller_id'] ?? null;
-
-            if ($sellerSku) {
-                $sellerSku = trim($sellerSku);
-            }
-
-            $marketplaceProductId = null;
-            if ($skuId) {
-                $mapping = \App\Models\MarketplaceProduct::where('marketplace_variant_id', $skuId)
-                            ->orWhere('marketplace_product_id', $productId)
-                            ->first();
-                if ($mapping) {
-                    $masterProduct = $mapping->masterProduct;
-                    $marketplaceProductId = $mapping->id;
+            
+            // Extract seller_sku properly without taking sku_name (variation title) as SKU
+            $sellerSku = null;
+            foreach (['seller_sku', 'sku', 'seller_sku_id', 'sku_seller_id'] as $skuKey) {
+                if (!empty($item[$skuKey]) && is_string($item[$skuKey])) {
+                    $candidate = trim($item[$skuKey]);
+                    // Don't treat integer IDs or empty strings as SKU if seller_sku is present
+                    if ($candidate !== '') {
+                        $sellerSku = $candidate;
+                        break;
+                    }
                 }
             }
 
+            // 1. Cari MarketplaceProduct milik toko ini
+            $marketplaceProduct = null;
+            if ($skuId || $productId) {
+                $marketplaceProduct = \App\Models\MarketplaceProduct::where('store_id', $this->store->id)
+                    ->where(function ($q) use ($skuId, $productId) {
+                        if ($skuId) {
+                            $q->where('marketplace_variant_id', (string) $skuId);
+                        }
+                        if ($productId) {
+                            $q->orWhere('marketplace_product_id', (string) $productId);
+                        }
+                    })
+                    ->first();
+            }
+
+            $marketplaceProductId = $marketplaceProduct ? $marketplaceProduct->id : null;
+            $masterProduct = $marketplaceProduct ? $marketplaceProduct->masterProduct : null;
+
+            // 2. Fallback: Cari MasterProduct langsung berdasarkan sellerSku jika belum terhubung
             if (!$masterProduct && $sellerSku) {
                 $skuClean = $sellerSku;
                 $masterProduct = MasterProduct::where('tenant_id', $this->store->tenant_id)
                     ->where(function ($q) use ($skuClean) {
                         $q->where('sku', $skuClean)
-                          ->orWhereRaw('LOWER(sku) = LOWER(?)', [$skuClean]);
+                          ->orWhereRaw('LOWER(sku) = LOWER(?)', [strtolower($skuClean)]);
                     })
                     ->first();
+            }
+
+            // 3. Auto-link MarketplaceProduct ke MasterProduct jika baru ditemukan via SKU
+            if ($masterProduct && $marketplaceProduct && !$marketplaceProduct->master_product_id) {
+                $marketplaceProduct->update([
+                    'master_product_id' => $masterProduct->id,
+                    'sync_stock'        => true,
+                ]);
             }
 
             // Snapshot HPP dari MasterProduct saat pesanan dibuat
@@ -363,7 +387,7 @@ class PullOrdersFromTiktok implements ShouldQueue
             $price = $item['sku_sale_price'] ?? $item['sale_price'] ?? $item['price'] ?? $item['sku_original_price'] ?? $item['original_price'] ?? 0;
             $price = (float) $price;
 
-            $itemSku = $sellerSku ?: ($productId ?: 'TIKTOK-ITEM-' . rand(100, 999));
+            $itemSku = $sellerSku ?: ($skuId ?: ($productId ?: 'TIKTOK-ITEM-' . ($item['id'] ?? $order->id)));
 
             OrderItem::updateOrCreate(
                 [
@@ -383,7 +407,8 @@ class PullOrdersFromTiktok implements ShouldQueue
             );
         }
 
-        // Process stock deduction or return
+        // Process stock deduction or return (pastikan relasi items selalu segar dari DB)
+        $order->load('items');
         $order->processStockDeduction();
     }
 

@@ -147,18 +147,37 @@ class Order extends Model
 
     public function processStockDeduction(): void
     {
+        // Pastikan relasi items selalu diperbarui dari database (mencegah memory cache stale)
+        $this->load('items');
+
         // 1. Deduct stock if not already deducted and not cancelled
         if (!$this->is_stock_deducted && $this->order_status !== self::STATUS_CANCELLED) {
             $allDeducted = true;
             foreach ($this->items as $item) {
                 $masterProductId = $item->master_product_id;
 
-                // Fallback 1: Jika di item belum ter-set, coba cari dari MarketplaceProduct
+                // Fallback 1: Jika di item belum ter-set master_product_id, coba cari dari MarketplaceProduct
                 if (!$masterProductId && $item->marketplace_product_id) {
                     $mp = MarketplaceProduct::find($item->marketplace_product_id);
-                    if ($mp && $mp->master_product_id) {
-                        $masterProductId = $mp->master_product_id;
-                        $item->update(['master_product_id' => $masterProductId]);
+                    if ($mp) {
+                        if ($mp->master_product_id) {
+                            $masterProductId = $mp->master_product_id;
+                        } elseif (!empty($mp->marketplace_sku)) {
+                            // Coba hubungkan mp ke MasterProduct via SKU jika belum terhubung
+                            $skuClean = trim($mp->marketplace_sku);
+                            $mpDirect = MasterProduct::where('tenant_id', $this->tenant_id)
+                                ->where(function ($q) use ($skuClean) {
+                                    $q->where('sku', $skuClean)
+                                      ->orWhereRaw('LOWER(sku) = LOWER(?)', [strtolower($skuClean)]);
+                                })->first();
+                            if ($mpDirect) {
+                                $masterProductId = $mpDirect->id;
+                                $mp->update(['master_product_id' => $masterProductId, 'sync_stock' => true]);
+                            }
+                        }
+                        if ($masterProductId) {
+                            $item->update(['master_product_id' => $masterProductId]);
+                        }
                     }
                 }
 
@@ -168,11 +187,30 @@ class Order extends Model
                     $mpDirect = MasterProduct::where('tenant_id', $this->tenant_id)
                         ->where(function ($q) use ($skuClean) {
                             $q->where('sku', $skuClean)
-                              ->orWhereRaw('LOWER(sku) = LOWER(?)', [$skuClean]);
+                              ->orWhereRaw('LOWER(sku) = LOWER(?)', [strtolower($skuClean)]);
                         })->first();
                     if ($mpDirect) {
                         $masterProductId = $mpDirect->id;
                         $item->update(['master_product_id' => $masterProductId]);
+                    }
+                }
+
+                // Fallback 3: Cari ke MarketplaceProduct milik toko ini berdasarkan SKU atau variant ID
+                if (!$masterProductId && $this->store_id) {
+                    $mp = MarketplaceProduct::where('store_id', $this->store_id)
+                        ->where(function ($q) use ($item) {
+                            if (!empty($item->sku)) {
+                                $q->where('marketplace_sku', trim($item->sku))
+                                  ->orWhere('marketplace_variant_id', trim($item->sku));
+                            }
+                        })->first();
+
+                    if ($mp && $mp->master_product_id) {
+                        $masterProductId = $mp->master_product_id;
+                        $item->update([
+                            'marketplace_product_id' => $mp->id,
+                            'master_product_id'      => $masterProductId
+                        ]);
                     }
                 }
 
