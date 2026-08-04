@@ -122,26 +122,31 @@ class FixTiktokPendingStockDeductions extends Command
         $defaultFromDate = date('Y-m-01'); // e.g. 2026-08-01
         $fromDate = $fromDateOption ?: $defaultFromDate;
 
-        $query = Order::where('is_stock_deducted', false)
-            ->where('order_status', '!=', Order::STATUS_CANCELLED)
+        $query = Order::where('order_status', '!=', Order::STATUS_CANCELLED)
             ->whereHas('store.channel', function ($q) {
                 $q->whereIn('code', ['tiktok', 'tokopedia']);
             });
 
         if ($orderIdOption) {
-            $query->where('id', $orderIdOption);
-            $this->info("Filter: Memproses Pesanan Spesifik #{$orderIdOption}");
-        } elseif (!$allTimeOption) {
-            $query->whereDate('order_date', '>=', $fromDate);
-            $this->info("Filter Tanggal: Hanya memproses pesanan TikTok tanggal {$fromDate} onwards (Agustus 2026).");
+            $query->where(function ($q) use ($orderIdOption) {
+                $q->where('id', $orderIdOption)
+                  ->orWhere('order_marketplace_id', (string) $orderIdOption);
+            });
+            $this->info("Filter: Memproses Pesanan Spesifik TikTok #{$orderIdOption}");
         } else {
-            $this->info("Filter Tanggal: Memproses seluruh periode transaksi pesanan TikTok (--all_time).");
+            $query->where('is_stock_deducted', false);
+            if (!$allTimeOption) {
+                $query->whereDate('order_date', '>=', $fromDate);
+                $this->info("Filter Tanggal: Hanya memproses pesanan TikTok tanggal {$fromDate} onwards (Agustus 2026).");
+            } else {
+                $this->info("Filter Tanggal: Memproses seluruh periode transaksi pesanan TikTok (--all_time).");
+            }
         }
 
         $pendingOrders = $query->get();
 
         if ($pendingOrders->isEmpty()) {
-            $this->info("Tidak ada pesanan TikTok tertahan yang perlu dipotong stoknya" . (!$allTimeOption && !$orderIdOption ? " sejak tanggal {$fromDate}." : "."));
+            $this->info("Pesanan TikTok #{$orderIdOption} atau pesanan tertahan tidak ditemukan.");
             return 0;
         }
 
