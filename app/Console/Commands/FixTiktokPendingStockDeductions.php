@@ -13,20 +13,25 @@ class FixTiktokPendingStockDeductions extends Command
      *
      * @var string
      */
-    protected $signature = 'tiktok:fix-stock-deduction {--order_id= : ID pesanan tertentu}';
+    protected $signature = 'tiktok:fix-stock-deduction 
+                            {--order_id= : ID pesanan tertentu} 
+                            {--from_date= : Tanggal mulai pesanan (Format YYYY-MM-DD, contoh: 2026-08-01)} 
+                            {--all_time : Memproses semua transaksi tanpa batasan tanggal}';
 
     /**
      * The console command description.
      *
      * @var string
      */
-    protected $description = 'Memproses potongan stok dan mutasi kartu stok untuk pesanan TikTok yang tertahan';
+    protected $description = 'Memproses potongan stok dan mutasi kartu stok untuk pesanan TikTok yang tertahan (Bulan Agustus 2026)';
 
     /**
      * Execute the console command.
      */
     public function handle()
     {
+        $this->info('Memulai pengecekan dan perbaikan potongan stok pesanan TikTok...');
+
         // Langkah 1: Sinkronisasi dan tautkan otomatis MarketplaceProduct ke MasterProduct berdasarkan SKU
         $unlinkedMp = \App\Models\MarketplaceProduct::whereNull('master_product_id')
             ->whereNotNull('marketplace_sku')
@@ -58,6 +63,12 @@ class FixTiktokPendingStockDeductions extends Command
         }
 
         $orderIdOption = $this->option('order_id');
+        $fromDateOption = $this->option('from_date');
+        $allTimeOption = $this->option('all_time');
+
+        // Default tanggal mulai: Awal bulan Agustus 2026 (atau tanggal 1 bulan berjalan)
+        $defaultFromDate = date('Y-m-01'); // e.g. 2026-08-01
+        $fromDate = $fromDateOption ?: $defaultFromDate;
 
         $query = Order::where('is_stock_deducted', false)
             ->where('order_status', '!=', Order::STATUS_CANCELLED)
@@ -67,12 +78,18 @@ class FixTiktokPendingStockDeductions extends Command
 
         if ($orderIdOption) {
             $query->where('id', $orderIdOption);
+            $this->info("Filter: Memproses Pesanan Spesifik #{$orderIdOption}");
+        } elseif (!$allTimeOption) {
+            $query->whereDate('order_date', '>=', $fromDate);
+            $this->info("Filter Tanggal: Hanya memproses pesanan TikTok tanggal {$fromDate} onwards (Agustus 2026).");
+        } else {
+            $this->info("Filter Tanggal: Memproses seluruh periode transaksi pesanan TikTok (--all_time).");
         }
 
         $pendingOrders = $query->get();
 
         if ($pendingOrders->isEmpty()) {
-            $this->info('Tidak ada pesanan TikTok yang tertahan potongan stoknya.');
+            $this->info("Tidak ada pesanan TikTok tertahan yang perlu dipotong stoknya" . (!$allTimeOption && !$orderIdOption ? " sejak tanggal {$fromDate}." : "."));
             return 0;
         }
 
