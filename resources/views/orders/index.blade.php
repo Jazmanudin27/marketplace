@@ -322,7 +322,7 @@
                                                             <i class="fas fa-minus-circle me-1"></i>Belum SPK
                                                         </span>
                                                     @endif
-                                                \u003c/div\u003e
+                                                </div>
 
                                                 {{-- SKU Item Pesanan --}}
                                                 @if($order->items->isNotEmpty())
