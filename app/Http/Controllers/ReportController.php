@@ -15,13 +15,77 @@ class ReportController extends Controller
         $tenantId = Auth::user()->tenant_id;
         $categories = Category::where('tenant_id', $tenantId)->orderBy('name')->get();
         $brands = Brand::where('tenant_id', $tenantId)->orderBy('name')->get();
+        
+        $storesQuery = \App\Models\Store::with('channel')
+            ->where('tenant_id', $tenantId);
+        
+        if ($request->filled('store_id')) {
+            $storesQuery->where('id', $request->store_id);
+        }
 
-        return view('reports.stock', compact('categories', 'brands'));
+        $stores = $storesQuery->orderBy('store_name')->get();
+
+        $query = MasterProduct::with(['category', 'brand', 'marketplaceProducts.store.channel'])
+            ->where('tenant_id', $tenantId);
+
+        if ($request->filled('category_id')) {
+            $query->where('category_id', $request->category_id);
+        }
+
+        if ($request->filled('brand_id')) {
+            $query->where('brand_id', $request->brand_id);
+        }
+
+        if ($request->filled('is_bundle')) {
+            $query->where('is_bundle', (bool)$request->is_bundle);
+        }
+
+        if ($request->filled('is_preorder')) {
+            if ($request->is_preorder === '1') {
+                $query->where('is_preorder', true);
+            } elseif ($request->is_preorder === '0') {
+                $query->where(function ($q) {
+                    $q->where('is_preorder', false)
+                        ->orWhereNull('is_preorder');
+                });
+            }
+        }
+
+        if ($request->filled('search')) {
+            $search = trim($request->search);
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('sku', 'like', "%{$search}%");
+            });
+        }
+
+        if ($request->boolean('hide_zero_stock')) {
+            $query->where(function ($q) {
+                $q->where('stock', '>', 0)
+                  ->orWhereHas('marketplaceProducts', function ($mq) {
+                      $mq->where('stock', '>', 0);
+                  });
+            });
+        }
+
+        $products = $query->orderBy('name')->paginate(50)->withQueryString();
+
+        return view('reports.stock', compact('categories', 'brands', 'stores', 'products'));
     }
 
     public function printStockReport(Request $request)
     {
         $tenantId = Auth::user()->tenant_id;
+        
+        $storesQuery = \App\Models\Store::with('channel')
+            ->where('tenant_id', $tenantId);
+
+        if ($request->filled('store_id')) {
+            $storesQuery->where('id', $request->store_id);
+        }
+
+        $stores = $storesQuery->orderBy('store_name')->get();
+
         $query = MasterProduct::with(['category', 'brand', 'marketplaceProducts.store.channel'])
             ->where('tenant_id', $tenantId);
 
@@ -71,7 +135,7 @@ class ReportController extends Controller
 
         $products = $query->orderBy('name')->get();
 
-        return view('reports.print_stock', compact('products'));
+        return view('reports.print_stock', compact('products', 'stores'));
     }
 
     public function opnameReport(Request $request)

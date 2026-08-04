@@ -4,44 +4,46 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Laporan Stok Barang</title>
+    <title>Laporan Stok Barang (Gudang & Marketplace)</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             color: #000;
             margin: 0;
-            padding: 20px;
+            padding: 15px;
+            background-color: #fff;
         }
 
         .header {
-            margin-bottom: 20px;
-            padding-bottom: 15px;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
             border-bottom: 2px solid #000;
         }
 
         .header h1 {
             margin: 0 0 5px 0;
-            font-size: 24px;
+            font-size: 22px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
         .header p {
             margin: 0;
-            font-size: 14px;
-            color: #555;
+            font-size: 13px;
+            color: #444;
         }
 
         .info-box {
             margin-bottom: 15px;
-            font-size: 12px;
+            font-size: 11px;
             background: #f8fafc;
             border: 1px solid #cbd5e1;
-            padding: 10px;
-            border-radius: 6px;
+            padding: 8px 12px;
+            border-radius: 4px;
         }
 
         table.data-table {
-            min-width: 100%;
-            max-width: 150%;
             width: 100%;
             border-collapse: collapse;
             font-size: 11px;
@@ -50,37 +52,46 @@
         table.data-table th,
         table.data-table td {
             border: 1px solid #000;
-            padding: 6px 6px;
+            padding: 6px 8px;
             text-align: left;
+            vertical-align: middle;
         }
 
-        /* Group Headers */
+        /* Group Headers matching user screenshot */
         table.data-table th.bg-blue {
             background-color: #3b82f6 !important;
-            color: white;
+            color: #ffffff;
             text-align: center;
-            border-color: #000;
+            font-weight: 700;
+            border: 1px solid #000;
+            vertical-align: middle;
         }
 
         table.data-table th.bg-green {
             background-color: #22c55e !important;
-            color: white;
+            color: #ffffff;
             text-align: center;
-            border-color: #000;
+            font-weight: 700;
+            border: 1px solid #000;
+            vertical-align: middle;
         }
 
-        table.data-table th.bg-info-header {
+        table.data-table th.bg-cyan {
             background-color: #0284c7 !important;
-            color: white;
+            color: #ffffff;
             text-align: center;
-            border-color: #000;
+            font-weight: 700;
+            border: 1px solid #000;
+            vertical-align: middle;
         }
 
-        table.data-table th.bg-gray {
-            background-color: #64748b !important;
-            color: white;
+        table.data-table th.bg-dark {
+            background-color: #334155 !important;
+            color: #ffffff;
             text-align: center;
-            border-color: #000;
+            font-weight: 700;
+            border: 1px solid #000;
+            vertical-align: middle;
         }
 
         .text-right {
@@ -92,30 +103,34 @@
         }
 
         a.product-link {
-            color: #1e293b;
+            color: #0f172a;
             text-decoration: none !important;
             font-weight: 600;
-            cursor: pointer;
         }
 
         a.product-link:hover {
             color: #0284c7;
-            text-decoration: none !important;
         }
 
         @media print {
             @page {
                 size: landscape;
+                margin: 8mm;
             }
 
             body {
                 padding: 0;
-                -webkit-print-color-adjust: exact;
-                print-color-adjust: exact;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
             }
 
             .no-print {
-                display: none;
+                display: none !important;
+            }
+
+            table.data-table th,
+            table.data-table td {
+                border: 1px solid #000 !important;
             }
 
             a.product-link {
@@ -155,22 +170,28 @@
     <table class="data-table">
         <thead>
             <tr>
-                <th class="bg-blue" style="width: 4%;">No</th>
-                <th class="bg-blue" style="width: 14%;">SKU</th>
-                <th class="bg-blue" style="width: 30%;">Nama Produk</th>
-                <th class="bg-blue" style="width: 15%;">Kategori / Merk</th>
-                <th class="bg-blue" style="width: 11%;">Status &amp; PO</th>
-                <th class="bg-green" style="width: 9%;">Stok Gudang</th>
-                <th class="bg-info-header" style="width: 9%;">Stok MP</th>
-                <th class="bg-gray" style="width: 8%;">Total Stok</th>
+                <th class="bg-blue" style="width: 3%;">No</th>
+                <th class="bg-blue" style="width: 12%;">SKU</th>
+                <th class="bg-blue">Nama Produk</th>
+                <th class="bg-blue" style="width: 13%;">Kategori / Merk</th>
+                <th class="bg-blue" style="width: 10%;">Status &amp; PO</th>
+                <th class="bg-green" style="width: 8%;">Stok Gudang</th>
+                @foreach($stores as $store)
+                    <th class="bg-cyan">
+                        {{ $store->store_name }}
+                        <span style="font-weight: normal; font-size: 10px; display: block;">
+                            ({{ ucfirst($store->channel->name ?? $store->channel->code ?? 'Marketplace') }})
+                        </span>
+                    </th>
+                @endforeach
+                <th class="bg-dark" style="width: 8%;">Total Stok</th>
             </tr>
         </thead>
         <tbody>
             @forelse($products as $index => $product)
                 @php
                     $stokGudang = (int) $product->stock;
-                    $stokMp = (int) $product->marketplaceProducts->sum('stock');
-                    $totalStok = $stokGudang + $stokMp;
+                    $totalStok = $stokGudang;
                     $ledgerUrl = route('reports.ledger.print', ['product_id' => $product->id]);
                 @endphp
                 <tr>
@@ -196,17 +217,29 @@
                             <span style="color: #16a34a; font-weight: bold;">📦 Ready Stock</span>
                         @endif
                     </td>
-                    <td class="text-right"><strong>{{ number_format($stokGudang, 0, ',', '.') }}</strong></td>
-                    <td class="text-right">{{ number_format($stokMp, 0, ',', '.') }}</td>
-                    <td class="text-right">
-                        <strong style="color: {{ $totalStok <= 0 ? '#dc2626' : '#16a34a' }};">
+                    <td class="text-right" style="background-color: #f0fdf4;">
+                        <strong style="color: #15803d;">{{ number_format($stokGudang, 0, ',', '.') }}</strong>
+                    </td>
+                    @foreach($stores as $store)
+                        @php
+                            $storeStock = (int) $product->marketplaceProducts->where('store_id', $store->id)->sum('stock');
+                            $totalStok += $storeStock;
+                        @endphp
+                        <td class="text-right">
+                            <span style="font-weight: {{ $storeStock > 0 ? 'bold' : 'normal' }}; color: {{ $storeStock > 0 ? '#0369a1' : '#94a3b8' }};">
+                                {{ number_format($storeStock, 0, ',', '.') }}
+                            </span>
+                        </td>
+                    @endforeach
+                    <td class="text-right" style="background-color: #f8fafc;">
+                        <strong style="color: {{ $totalStok <= 0 ? '#dc2626' : '#0f172a' }};">
                             {{ number_format($totalStok, 0, ',', '.') }}
                         </strong>
                     </td>
                 </tr>
             @empty
                 <tr>
-                    <td colspan="8" class="text-center" style="padding: 20px;">Tidak ada data barang yang sesuai dengan filter.</td>
+                    <td colspan="{{ 7 + count($stores) }}" class="text-center" style="padding: 20px;">Tidak ada data barang yang sesuai dengan filter.</td>
                 </tr>
             @endforelse
         </tbody>

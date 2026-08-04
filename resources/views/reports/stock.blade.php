@@ -1,70 +1,189 @@
 @extends('layouts.app')
-@section('title', 'Laporan Stok Barang')
-@section('page-title', 'Laporan Stok Barang')
+@section('title', 'Laporan Stok Barang (Gudang & Marketplace)')
+@section('page-title', 'Laporan Stok Barang (Gudang & Marketplace)')
 
 @section('content')
-    <div class="row justify-content-start">
-        <div class="col-md-5">
+    <div class="row mb-3">
+        <div class="col-12">
             <div class="card border-0 shadow-sm">
-                <div class="card-header bg-info bg-opacity-10 py-2 px-3">
-                    <h6 class="fw-bold mb-0 text-dark"><i class="fas fa-boxes text-info me-2"></i>Filter Laporan Stok Barang</h6>
+                <div class="card-header bg-primary bg-opacity-10 py-2.5 px-3 d-flex align-items-center justify-content-between">
+                    <h6 class="fw-bold mb-0 text-primary"><i class="fas fa-boxes me-2"></i>Filter Laporan Stok Barang (Gudang & Marketplace)</h6>
+                    <button class="btn btn-sm btn-outline-primary py-0.5 px-2 font-monospace text-xs" type="button" data-bs-toggle="collapse" data-bs-target="#filterCollapse">
+                        <i class="fas fa-filter me-1"></i> Toggle Filter
+                    </button>
                 </div>
-                <div class="card-body">
-                    <form action="{{ route('reports.stock.print') }}" method="GET" target="_blank">
-                        <div class="mb-3">
-                            <label class="form-label form-label-sm fw-semibold">Kategori</label>
-                            <select name="category_id" class="form-select form-select-sm">
-                                <option value="">Semua Kategori</option>
-                                @foreach ($categories as $category)
-                                    <option value="{{ $category->id }}">{{ $category->name }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label form-label-sm fw-semibold">Merk</label>
-                            <select name="brand_id" class="form-select form-select-sm">
-                                <option value="">Semua Merk</option>
-                                @foreach ($brands as $brand)
-                                    <option value="{{ $brand->id }}">{{ $brand->name }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label form-label-sm fw-semibold">Jenis Produk</label>
-                            <select name="is_bundle" class="form-select form-select-sm">
-                                <option value="">Semua Jenis (Single & BUNDLE)</option>
-                                <option value="0">📦 Single (Produk Standar)</option>
-                                <option value="1">🎁 BUNDLE / Paket Set</option>
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label form-label-sm fw-semibold">Tipe Pre-Order (PO)</label>
-                            <select name="is_preorder" class="form-select form-select-sm">
-                                <option value="">Semua Tipe (PO & Reguler)</option>
-                                <option value="1">⏳ Pre-Order (PO)</option>
-                                <option value="0">📦 Reguler (Bukan PO)</option>
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label form-label-sm fw-semibold">Cari Nama / SKU</label>
-                            <input type="text" name="search" class="form-control form-control-sm" placeholder="Ketik kata kunci nama produk atau SKU...">
-                        </div>
-                        <div class="mb-3">
-                            <div class="form-check form-switch">
-                                <input class="form-check-input" type="checkbox" name="hide_zero_stock" value="1" id="hideZeroStock">
-                                <label class="form-check-label small fw-semibold text-dark" for="hideZeroStock">
-                                    Sembunyikan / Hilangkan Produk Stok 0
-                                </label>
+                <div class="card-body collapse show" id="filterCollapse">
+                    <form action="{{ route('reports.stock') }}" method="GET" id="stockFilterForm">
+                        <div class="row g-2">
+                            <div class="col-md-3 col-sm-6">
+                                <label class="form-label form-label-sm fw-semibold mb-1">Kategori</label>
+                                <select name="category_id" class="form-select form-select-sm">
+                                    <option value="">Semua Kategori</option>
+                                    @foreach ($categories as $category)
+                                        <option value="{{ $category->id }}" {{ request('category_id') == $category->id ? 'selected' : '' }}>{{ $category->name }}</option>
+                                    @endforeach
+                                </select>
                             </div>
-                        </div>
-                        <div class="d-flex justify-content-end">
-                            <button type="submit" class="btn btn-sm btn-primary">
-                                <i class="fas fa-print me-1"></i> Cetak Laporan Stok
-                            </button>
+                            <div class="col-md-3 col-sm-6">
+                                <label class="form-label form-label-sm fw-semibold mb-1">Merk</label>
+                                <select name="brand_id" class="form-select form-select-sm">
+                                    <option value="">Semua Merk</option>
+                                    @foreach ($brands as $brand)
+                                        <option value="{{ $brand->id }}" {{ request('brand_id') == $brand->id ? 'selected' : '' }}>{{ $brand->name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="col-md-3 col-sm-6">
+                                <label class="form-label form-label-sm fw-semibold mb-1">Toko / Marketplace</label>
+                                <select name="store_id" class="form-select form-select-sm">
+                                    <option value="">Semua Toko Marketplace</option>
+                                    @foreach ($stores as $st)
+                                        <option value="{{ $st->id }}" {{ request('store_id') == $st->id ? 'selected' : '' }}>
+                                            {{ $st->store_name }} ({{ ucfirst($st->channel->name ?? $st->channel->code ?? 'MP') }})
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="col-md-3 col-sm-6">
+                                <label class="form-label form-label-sm fw-semibold mb-1">Jenis Produk</label>
+                                <select name="is_bundle" class="form-select form-select-sm">
+                                    <option value="">Semua Jenis (Single & BUNDLE)</option>
+                                    <option value="0" {{ request('is_bundle') === '0' ? 'selected' : '' }}>📦 Single (Produk Standar)</option>
+                                    <option value="1" {{ request('is_bundle') === '1' ? 'selected' : '' }}>🎁 BUNDLE / Paket Set</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3 col-sm-6">
+                                <label class="form-label form-label-sm fw-semibold mb-1">Tipe Pre-Order (PO)</label>
+                                <select name="is_preorder" class="form-select form-select-sm">
+                                    <option value="">Semua Tipe (PO & Reguler)</option>
+                                    <option value="1" {{ request('is_preorder') === '1' ? 'selected' : '' }}>⏳ Pre-Order (PO)</option>
+                                    <option value="0" {{ request('is_preorder') === '0' ? 'selected' : '' }}>📦 Reguler (Bukan PO)</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4 col-sm-6">
+                                <label class="form-label form-label-sm fw-semibold mb-1">Cari Nama / SKU</label>
+                                <input type="text" name="search" value="{{ request('search') }}" class="form-control form-control-sm" placeholder="Ketik nama produk atau SKU...">
+                            </div>
+                            <div class="col-md-5 col-sm-12 d-flex align-items-end justify-content-between pt-2">
+                                <div class="form-check form-switch mb-1">
+                                    <input class="form-check-input" type="checkbox" name="hide_zero_stock" value="1" id="hideZeroStock" {{ request()->boolean('hide_zero_stock') ? 'checked' : '' }}>
+                                    <label class="form-check-label small fw-semibold text-dark" for="hideZeroStock">
+                                        Hilangkan Produk Stok 0
+                                    </label>
+                                </div>
+                                <div>
+                                    <button type="submit" class="btn btn-sm btn-primary px-3 me-1">
+                                        <i class="fas fa-search me-1"></i> Tampilkan
+                                    </button>
+                                    <a href="{{ route('reports.stock.print', request()->all()) }}" target="_blank" class="btn btn-sm btn-success px-3">
+                                        <i class="fas fa-print me-1"></i> Cetak Laporan
+                                    </a>
+                                </div>
+                            </div>
                         </div>
                     </form>
                 </div>
             </div>
         </div>
+    </div>
+
+    {{-- Data Table Matching User Header Request --}}
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover align-middle mb-0" style="font-size: 0.78rem;">
+                    <thead>
+                        <tr style="border-bottom: 2px solid #000;">
+                            <th class="text-white text-center align-middle" style="background-color: #3b82f6; width: 40px;">No</th>
+                            <th class="text-white align-middle" style="background-color: #3b82f6; width: 140px;">SKU</th>
+                            <th class="text-white align-middle" style="background-color: #3b82f6;">Nama Produk</th>
+                            <th class="text-white align-middle" style="background-color: #3b82f6; width: 150px;">Kategori / Merk</th>
+                            <th class="text-white text-center align-middle" style="background-color: #3b82f6; width: 110px;">Status & PO</th>
+                            <th class="text-white text-center align-middle" style="background-color: #22c55e; width: 100px;">Stok Gudang</th>
+                            @foreach($stores as $st)
+                                <th class="text-white text-center align-middle" style="background-color: #0284c7;">
+                                    {{ $st->store_name }}
+                                    <span class="d-block fw-normal opacity-75" style="font-size: 0.68rem;">
+                                        ({{ ucfirst($st->channel->name ?? $st->channel->code ?? 'MP') }})
+                                    </span>
+                                </th>
+                            @endforeach
+                            <th class="text-white text-center align-middle" style="background-color: #334155; width: 100px;">Total Stok</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse ($products as $index => $product)
+                            @php
+                                $stokGudang = (int) $product->stock;
+                                $totalStok = $stokGudang;
+                                $ledgerUrl = route('reports.ledger.print', ['product_id' => $product->id]);
+                            @endphp
+                            <tr>
+                                <td class="text-center font-monospace text-muted">{{ $products->firstItem() + $index }}</td>
+                                <td>
+                                    <a href="{{ $ledgerUrl }}" target="_blank" class="fw-bold text-dark text-decoration-none" title="Buka Kartu Stok">
+                                        {{ $product->sku ?? '-' }}
+                                    </a>
+                                </td>
+                                <td>
+                                    <a href="{{ $ledgerUrl }}" target="_blank" class="fw-semibold text-dark text-decoration-none" title="Buka Kartu Stok">
+                                        {{ $product->name }}
+                                    </a>
+                                </td>
+                                <td>
+                                    <span class="fw-bold text-dark d-block">{{ $product->category->name ?? '-' }}</span>
+                                    <span class="text-muted small">{{ $product->brand->name ?? '-' }}</span>
+                                </td>
+                                <td class="text-center">
+                                    @if($product->is_preorder)
+                                        <span class="badge bg-warning-subtle text-warning border border-warning-subtle" style="font-size: 0.68rem;">
+                                            ⏳ PO ({{ $product->preorder_days ?: 7 }}hr)
+                                        </span>
+                                    @else
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle" style="font-size: 0.68rem;">
+                                            📦 Ready Stock
+                                        </span>
+                                    @endif
+                                </td>
+                                <td class="text-end fw-bold text-success" style="background-color: #f0fdf4;">
+                                    {{ number_format($stokGudang, 0, ',', '.') }}
+                                </td>
+                                @foreach($stores as $st)
+                                    @php
+                                        $storeStock = (int) $product->marketplaceProducts->where('store_id', $st->id)->sum('stock');
+                                        $totalStok += $storeStock;
+                                    @endphp
+                                    <td class="text-end font-monospace {{ $storeStock > 0 ? 'fw-bold text-primary' : 'text-muted' }}">
+                                        {{ number_format($storeStock, 0, ',', '.') }}
+                                    </td>
+                                @endforeach
+                                <td class="text-end font-monospace fw-bold {{ $totalStok <= 0 ? 'text-danger' : 'text-dark' }}" style="background-color: #f8fafc;">
+                                    {{ number_format($totalStok, 0, ',', '.') }}
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="{{ 7 + count($stores) }}" class="text-center text-muted py-4">
+                                    <i class="fas fa-inbox fa-2x mb-2 d-block opacity-25"></i>
+                                    Tidak ada data stok barang yang sesuai dengan filter.
+                                </td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        @if ($products->hasPages())
+            <div class="card-footer bg-white border-0 py-2 px-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div class="small text-muted">
+                        Menampilkan {{ $products->firstItem() }} - {{ $products->lastItem() }} dari total {{ $products->total() }} produk
+                    </div>
+                    <div>
+                        {{ $products->links() }}
+                    </div>
+                </div>
+            </div>
+        @endif
     </div>
 @endsection
