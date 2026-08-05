@@ -296,8 +296,7 @@
                                         <th>TOKO &amp; CHANNEL</th>
                                         <th class="text-end">TOTAL</th>
                                         <th>KURIR</th>
-                                        <th>TANGGAL</th>
-                                        <th>BATAS KIRIM</th>
+                                        <th>TANGGAL &amp; BATAS KIRIM</th>
                                         <th class="text-center">STATUS PRINT</th>
                                         <th class="text-center">STATUS KEMAS</th>
                                         <th class="text-center">STATUS PESANAN</th>
@@ -443,38 +442,33 @@
                                                     </div>
                                                 </div>
                                             </td>
-                                            <td class="small text-muted">
-                                                {{ $order->order_date->format('d/m/Y H:i') }}
-                                            </td>
-                                            <td class="small text-center">
-                                                @if ($order->ship_before_date)
-                                                    <div class="fw-bold text-dark mb-1" style="font-size: 0.72rem;">
-                                                        {{ $order->ship_before_date->format('d/m/Y H:i') }}
+                                            <td class="small">
+                                                <div class="lh-sm">
+                                                    <div class="small text-dark fw-semibold" title="Tanggal Pesanan">
+                                                        <i class="far fa-calendar-alt text-secondary me-1"></i>{{ $order->order_date->format('d/m/Y H:i') }}
                                                     </div>
-                                                    @if ($order->is_ship_overdue)
-                                                        <span
-                                                            class="badge bg-danger-subtle text-danger border border-danger-subtle"
-                                                            style="font-size: 0.65rem; padding: 0.25em 0.5em;">
-                                                            <i class="bi bi-exclamation-circle me-1"></i>Overdue
-                                                        </span>
-                                                    @elseif ($order->is_ship_urgent)
-                                                        <span
-                                                            class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle"
-                                                            style="font-size: 0.65rem; padding: 0.25em 0.5em;">
-                                                            <i
-                                                                class="bi bi-clock me-1"></i>{{ $order->ship_before_date->diffForHumans() }}
-                                                        </span>
-                                                    @else
-                                                        <span
-                                                            class="badge bg-success-subtle text-success border border-success-subtle"
-                                                            style="font-size: 0.65rem; padding: 0.25em 0.5em;">
-                                                            <i
-                                                                class="bi bi-check-circle me-1"></i>{{ $order->ship_before_date->diffForHumans() }}
-                                                        </span>
+                                                    @if ($order->ship_before_date)
+                                                        <div class="mt-1" style="font-size:0.7rem;" title="Batas Kirim">
+                                                            <span class="text-muted">Batas:</span> 
+                                                            <span class="fw-bold text-dark font-monospace">{{ $order->ship_before_date->format('d/m/Y H:i') }}</span>
+                                                        </div>
+                                                        <div class="mt-1">
+                                                            @if ($order->is_ship_overdue)
+                                                                <span class="badge bg-danger-subtle text-danger border border-danger-subtle" style="font-size: 0.62rem; padding: 0.2em 0.4em;">
+                                                                    <i class="bi bi-exclamation-circle me-1"></i>Overdue
+                                                                </span>
+                                                            @elseif ($order->is_ship_urgent)
+                                                                <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle" style="font-size: 0.62rem; padding: 0.2em 0.4em;">
+                                                                    <i class="bi bi-clock me-1"></i>{{ $order->ship_before_date->diffForHumans() }}
+                                                                </span>
+                                                            @else
+                                                                <span class="badge bg-success-subtle text-success border border-success-subtle" style="font-size: 0.62rem; padding: 0.2em 0.4em;">
+                                                                    <i class="bi bi-check-circle me-1"></i>{{ $order->ship_before_date->diffForHumans() }}
+                                                                </span>
+                                                            @endif
+                                                        </div>
                                                     @endif
-                                                @else
-                                                    <span class="text-muted">—</span>
-                                                @endif
+                                                </div>
                                             </td>
                                             <td class="text-center">
                                                 @if ($order->is_printed)
@@ -530,7 +524,7 @@
                                         </tr>
                                     @empty
                                         <tr>
-                                            <td colspan="11" class="text-center text-muted py-5">
+                                            <td colspan="10" class="text-center text-muted py-5">
                                                 <i class="fas fa-shopping-basket fa-2x mb-3 d-block opacity-25"></i>
                                                 <p class="mb-0 small">Belum ada data pesanan.</p>
                                             </td>
