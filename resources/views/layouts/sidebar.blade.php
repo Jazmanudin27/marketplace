@@ -415,9 +415,6 @@
                                 Stok</a>
                         @endcan
                         @can('fulfillment.index')
-                            <a href="{{ route('fulfillment.index') }}"
-                                class="nav-link py-1 {{ request()->routeIs('fulfillment.index') ? 'active text-white' : 'text-secondary' }}">Antrean
-                                Kemas Pesanan</a>
                             <a href="{{ route('fulfillment.scan_page') }}"
                                 class="nav-link py-1 {{ request()->routeIs('fulfillment.scan_page') ? 'active text-white' : 'text-secondary' }}">Scan
                                 & Kemas Barcode</a>

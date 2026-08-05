@@ -94,6 +94,22 @@ class OrderController extends Controller
             $query->where('cancel_reason', 'like', '%' . $request->cancel_reason . '%');
         }
 
+        // Filter Status Print (is_printed)
+        if ($request->filled('print_status')) {
+            if ($request->print_status === 'printed') {
+                $query->where('is_printed', true);
+            } elseif ($request->print_status === 'unprinted') {
+                $query->where(function ($q) {
+                    $q->where('is_printed', false)->orWhereNull('is_printed');
+                });
+            }
+        }
+
+        // Filter Status Kemas (packing_status)
+        if ($request->filled('packing_status')) {
+            $query->where('packing_status', $request->packing_status);
+        }
+
         $orders = $query->orderByDesc('order_date')
             ->paginate(20)
             ->withQueryString();

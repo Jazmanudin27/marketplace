@@ -225,6 +225,27 @@
                                             value="{{ request('end_date') }}">
                                     </div>
                                 </div>
+                                <div class="col-12 col-sm-6 col-md-2">
+                                    <label class="form-label fw-bold small text-dark mb-1">
+                                        <i class="fas fa-print me-1 text-secondary"></i>Status Print
+                                    </label>
+                                    <select name="print_status" class="form-select form-select-sm">
+                                        <option value="">Semua Status Print</option>
+                                        <option value="unprinted" {{ request('print_status') === 'unprinted' ? 'selected' : '' }}>Belum Diprint</option>
+                                        <option value="printed" {{ request('print_status') === 'printed' ? 'selected' : '' }}>Sudah Diprint</option>
+                                    </select>
+                                </div>
+                                <div class="col-12 col-sm-6 col-md-2">
+                                    <label class="form-label fw-bold small text-dark mb-1">
+                                        <i class="fas fa-box-open me-1 text-secondary"></i>Status Kemas
+                                    </label>
+                                    <select name="packing_status" class="form-select form-select-sm">
+                                        <option value="">Semua Status Kemas</option>
+                                        <option value="pending" {{ request('packing_status') === 'pending' ? 'selected' : '' }}>Menunggu (Pending)</option>
+                                        <option value="packing" {{ request('packing_status') === 'packing' ? 'selected' : '' }}>Sedang Dikemas (Packing)</option>
+                                        <option value="verified" {{ request('packing_status') === 'verified' ? 'selected' : '' }}>Selesai Scan (Verified)</option>
+                                    </select>
+                                </div>
                                 <div class="col-12 col-sm-6 col-md-3">
                                     <label class="form-label fw-bold small text-dark mb-1">
                                         <i class="fas fa-comment-slash me-1 text-secondary"></i>Alasan Batal
@@ -248,6 +269,8 @@
                                             'is_po',
                                             'spk_status',
                                             'cancel_reason',
+                                            'print_status',
+                                            'packing_status',
                                         ]))
                                         <a href="{{ route('orders.index') }}"
                                             class="btn btn-secondary btn-sm px-3 rounded-3">
@@ -275,7 +298,9 @@
                                         <th>KURIR</th>
                                         <th>TANGGAL</th>
                                         <th>BATAS KIRIM</th>
-                                        <th class="text-center">STATUS</th>
+                                        <th class="text-center">STATUS PRINT</th>
+                                        <th class="text-center">STATUS KEMAS</th>
+                                        <th class="text-center">STATUS PESANAN</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -452,6 +477,42 @@
                                                 @endif
                                             </td>
                                             <td class="text-center">
+                                                @if ($order->is_printed)
+                                                    <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-0-5" style="font-size:0.68rem;" title="{{ $order->printed_at ? $order->printed_at->format('d/m/Y H:i') : '' }}">
+                                                        <i class="fas fa-check-circle me-1"></i>Sudah Print
+                                                    </span>
+                                                    @if ($order->printed_at)
+                                                        <div class="small font-monospace text-muted mt-0.5" style="font-size:0.65rem;">
+                                                            {{ $order->printed_at->format('d/m H:i') }}
+                                                        </div>
+                                                    @endif
+                                                @else
+                                                    <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-2 py-0-5" style="font-size:0.68rem;">
+                                                        <i class="fas fa-clock me-1"></i>Belum Print
+                                                    </span>
+                                                @endif
+                                            </td>
+                                            <td class="text-center">
+                                                @if ($order->packing_status === 'verified')
+                                                    <span class="badge bg-success text-white px-2 py-0-5" style="font-size:0.68rem;">
+                                                        <i class="fas fa-check-circle me-1"></i>Verified
+                                                    </span>
+                                                    @if ($order->packed_at)
+                                                        <div class="small font-monospace text-muted mt-0.5" style="font-size:0.65rem;">
+                                                            {{ $order->packed_at->format('d/m H:i') }}
+                                                        </div>
+                                                    @endif
+                                                @elseif($order->packing_status === 'packing')
+                                                    <span class="badge bg-warning text-dark px-2 py-0-5" style="font-size:0.68rem;">
+                                                        <i class="fas fa-box-open me-1"></i>Packing
+                                                    </span>
+                                                @else
+                                                    <span class="badge bg-light text-muted border px-2 py-0-5" style="font-size:0.68rem;">
+                                                        <i class="fas fa-hourglass-start me-1"></i>Menunggu
+                                                    </span>
+                                                @endif
+                                            </td>
+                                            <td class="text-center">
                                                 <span
                                                     class="badge bg-{{ $order->status_badge ?? 'secondary' }}-subtle text-{{ $order->status_badge ?? 'secondary' }} border border-{{ $order->status_badge ?? 'secondary' }}-subtle"
                                                     style="font-size:0.7rem; padding: 0.25em 0.5em;"
@@ -469,7 +530,7 @@
                                         </tr>
                                     @empty
                                         <tr>
-                                            <td colspan="9" class="text-center text-muted py-5">
+                                            <td colspan="11" class="text-center text-muted py-5">
                                                 <i class="fas fa-shopping-basket fa-2x mb-3 d-block opacity-25"></i>
                                                 <p class="mb-0 small">Belum ada data pesanan.</p>
                                             </td>

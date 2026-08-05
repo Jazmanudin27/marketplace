@@ -71,6 +71,7 @@ class FulfillmentTest extends TestCase
             'order_marketplace_id' => 'ORD-MP-998877',
             'invoice_number' => 'INV-2026-999',
             'order_status' => Order::STATUS_READY_TO_SHIP,
+            'is_printed' => true,
             'packing_status' => 'pending',
             'buyer_name' => 'John Buyer',
             'courier' => 'J&T Express',

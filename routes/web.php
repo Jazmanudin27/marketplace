@@ -453,7 +453,9 @@ Route::middleware('auth')->group(function () {
 
     // Fulfillment (Kemas Pesanan)
     Route::middleware('permission:manage-fulfillment')->group(function () {
-        Route::get('/fulfillment', [FulfillmentController::class, 'index'])->name('fulfillment.index');
+        Route::get('/fulfillment', function () {
+            return redirect()->route('orders.index');
+        })->name('fulfillment.index');
         Route::get('/fulfillment/scan', [FulfillmentController::class, 'scanPage'])->name('fulfillment.scan_page');
         Route::get('/fulfillment/order/{identifier}', [FulfillmentController::class, 'getOrderDetails'])->name('fulfillment.order_details');
         Route::post('/fulfillment/order/{order}/complete', [FulfillmentController::class, 'completePack'])->name('fulfillment.complete_pack');
