@@ -34,7 +34,7 @@ class DashboardController extends Controller
             } elseif ($user->can('products.index')) {
                 return redirect()->route('products.index');
             } elseif ($user->can('inventory.index')) {
-                return redirect()->route('inventory.index');
+                return redirect()->route('inventory.mutations.index');
             } elseif ($user->can('purchase-orders.index')) {
                 return redirect()->route('purchase_orders.index');
             } elseif ($user->can('goods-receipts.index')) {

@@ -21,9 +21,6 @@
                     <a href="{{ route('inventory.mutations.create') }}" class="btn btn-primary btn-sm px-3 rounded-3 fw-semibold">
                         <i class="fas fa-plus-circle me-1.5"></i> + Input Mutasi Barang
                     </a>
-                    <a href="{{ route('inventory.index') }}" class="btn btn-outline-secondary btn-sm px-3 rounded-3">
-                        <i class="fas fa-boxes me-1"></i> Stok Gudang
-                    </a>
                 </div>
             </div>
         </div>

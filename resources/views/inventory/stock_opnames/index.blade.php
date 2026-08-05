@@ -64,10 +64,6 @@
                 <i class="fas fa-history text-primary"></i> Riwayat Stock Opname
             </h5>
             <div class="d-flex gap-2">
-                <a href="{{ route('inventory.index') }}"
-                    class="btn btn-outline-secondary btn-sm d-inline-flex align-items-center gap-1">
-                    <i class="fas fa-arrow-left"></i> Inventory
-                </a>
                 <a href="{{ route('stock_opnames.import') }}"
                     class="btn btn-outline-primary btn-sm d-inline-flex align-items-center gap-1">
                     <i class="fas fa-file-import"></i> Import Opname

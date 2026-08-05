@@ -105,7 +105,6 @@
                             <th class="text-white text-center align-middle" style="background-color: #3b82f6; width: 40px;">No</th>
                             <th class="text-white align-middle" style="background-color: #3b82f6; width: 140px;">SKU</th>
                             <th class="text-white align-middle" style="background-color: #3b82f6;">Nama Produk</th>
-                            <th class="text-white align-middle" style="background-color: #3b82f6; width: 150px;">Kategori / Merk</th>
                             <th class="text-white text-center align-middle" style="background-color: #3b82f6; width: 110px;">Status & PO</th>
                             <th class="text-white text-center align-middle" style="background-color: #22c55e; width: 100px;">Stok Gudang</th>
                             @foreach($stores as $st)
@@ -139,11 +138,6 @@
                                 <td>
                                     <a href="{{ $ledgerUrl }}" target="_blank" class="fw-semibold text-dark text-decoration-none" title="Buka Kartu Stok">
                                         {{ $product->name }}
-                                    </a>
-                                </td>
-                                <td>
-                                    <span class="fw-bold text-dark d-block">{{ $product->category->name ?? '-' }}</span>
-                                    <span class="text-muted small">{{ $product->brand->name ?? '-' }}</span>
                                 </td>
                                 <td class="text-center">
                                     @if($product->is_preorder)
@@ -202,7 +196,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="{{ 7 + count($stores) }}" class="text-center text-muted py-4">
+                                <td colspan="{{ 6 + count($stores) }}" class="text-center text-muted py-4">
                                     <i class="fas fa-inbox fa-2x mb-2 d-block opacity-25"></i>
                                     Tidak ada data stok barang yang sesuai dengan filter.
                                 </td>

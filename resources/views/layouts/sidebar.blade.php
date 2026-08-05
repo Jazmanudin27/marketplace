@@ -30,8 +30,6 @@
         request()->routeIs('product_recipes.*');
 
     $isGudangJadiActive =
-        request()->routeIs('inventory.index') ||
-        request()->routeIs('inventory.ledger') ||
         request()->routeIs('inventory.mutations.*') ||
         request()->routeIs('stock_opnames.*') ||
         request()->routeIs('inventory.stock_sync') ||
@@ -402,9 +400,6 @@
                 <div class="collapse {{ $isGudangJadiActive ? 'show' : '' }}" id="collapseGudangJadi">
                     <div class="nav flex-column ms-3 mt-1 gap-1 border-start ps-2">
                         @can('inventory.index')
-                            <a href="{{ route('inventory.index') }}"
-                                class="nav-link py-1 {{ request()->routeIs('inventory.index') || request()->routeIs('inventory.ledger') ? 'active text-white' : 'text-secondary' }}">Stok
-                                Gudang Jadi</a>
                             <a href="{{ route('inventory.mutations.index') }}"
                                 class="nav-link py-1 {{ request()->routeIs('inventory.mutations.*') ? 'active text-white' : 'text-secondary' }}">Mutasi
                                 Masuk & Keluar</a>

@@ -471,14 +471,18 @@ Route::middleware('auth')->group(function () {
 
     // Inventory & Stock
     Route::middleware('permission:manage-inventory')->group(function () {
-        Route::get('/inventory', [InventoryController::class, 'index'])->name('inventory.index');
+        Route::get('/inventory', function () {
+            return redirect()->route('inventory.mutations.index');
+        })->name('inventory.index');
         Route::get('/stock-opnames', [StockOpnameController::class, 'index'])->name('stock_opnames.index');
         Route::get('/stock-opnames/create', [StockOpnameController::class, 'create'])->name('stock_opnames.create');
         Route::post('/stock-opnames', [StockOpnameController::class, 'store'])->name('stock_opnames.store');
         Route::get('/stock-opnames/import', [StockOpnameController::class, 'importForm'])->name('stock_opnames.import');
         Route::post('/stock-opnames/import', [StockOpnameController::class, 'importStore'])->name('stock_opnames.import.store');
         Route::get('/stock-opnames/import-template', [StockOpnameController::class, 'downloadTemplate'])->name('stock_opnames.import.template');
-        Route::get('/inventory/{product}/ledger', [InventoryController::class, 'ledger'])->name('inventory.ledger');
+        Route::get('/inventory/{product}/ledger', function () {
+            return redirect()->route('inventory.mutations.index');
+        })->name('inventory.ledger');
         Route::post('/inventory/{product}/adjust', [InventoryController::class, 'adjust'])->name('inventory.adjust');
 
         // Purchase Orders

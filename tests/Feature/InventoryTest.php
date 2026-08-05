@@ -44,22 +44,19 @@ class InventoryTest extends TestCase
         ]);
     }
 
-    public function test_inventory_index_page_is_accessible_for_admin(): void
+    public function test_inventory_index_redirects_to_mutations(): void
     {
         $response = $this->actingAs($this->user)
             ->get(route('inventory.index'));
 
-        $response->assertStatus(200);
-        $response->assertViewIs('inventory.index');
-        $response->assertSee('Produk Inventory Test');
+        $response->assertRedirect(route('inventory.mutations.index'));
     }
 
-    public function test_inventory_ledger_page_is_accessible_for_admin(): void
+    public function test_inventory_ledger_redirects_to_mutations(): void
     {
         $response = $this->actingAs($this->user)
             ->get(route('inventory.ledger', $this->masterProduct));
 
-        $response->assertStatus(200);
-        $response->assertViewIs('inventory.ledger');
+        $response->assertRedirect(route('inventory.mutations.index'));
     }
 }
