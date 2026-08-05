@@ -624,6 +624,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/reports/summary', [ReportController::class, 'summaryReport'])->name('reports.summary');
         Route::get('/reports/summary/print', [ReportController::class, 'printSummaryReport'])->name('reports.summary.print');
         Route::get('/reports/stock', [ReportController::class, 'stockReport'])->name('reports.stock');
+        Route::post('/reports/stock/{product}/sync', [ReportController::class, 'syncStock'])->name('reports.stock.sync');
         Route::get('/reports/stock/print', [ReportController::class, 'printStockReport'])->name('reports.stock.print');
         Route::get('/reports/ledger', [ReportController::class, 'ledgerReport'])->name('reports.ledger');
         Route::get('/reports/ledger/print', [ReportController::class, 'printLedgerReport'])->name('reports.ledger.print');

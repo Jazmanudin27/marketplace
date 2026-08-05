@@ -116,7 +116,7 @@
                                     </span>
                                 </th>
                             @endforeach
-                            <th class="text-white text-center align-middle" style="background-color: #6366f1; width: 80px;">Aksi</th>
+                            <th class="text-white text-center align-middle" style="background-color: #4b5563; width: 90px;">Aksi</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -159,13 +159,19 @@
                                 <td class="text-end fw-bold text-success" style="background-color: #f0fdf4;">
                                     {{ number_format($stokGudang, 0, ',', '.') }}
                                 </td>
+                                @php
+                                    $hasDiscrepancy = false;
+                                @endphp
                                 @foreach($stores as $st)
                                     @php
                                         $storeMpProducts = $product->marketplaceProducts->where('store_id', $st->id);
                                         $storeStock = $storeMpProducts->isNotEmpty() ? (int) $storeMpProducts->max('stock') : 0;
                                         $isDifferent = ($storeMpProducts->isNotEmpty() && $storeStock !== $stokGudang);
+                                        if ($isDifferent) {
+                                            $hasDiscrepancy = true;
+                                        }
                                     @endphp
-                                    <td class="text-end font-monospace align-middle {{ $isDifferent ? 'bg-danger text-white fw-bold' : ($storeStock > 0 ? 'fw-bold text-primary' : 'text-muted') }}"
+                                    <td data-store-id="{{ $st->id }}" class="text-end font-monospace align-middle {{ $isDifferent ? 'bg-danger text-white fw-bold' : ($storeStock > 0 ? 'fw-bold text-primary' : 'text-muted') }}"
                                         @if($isDifferent) title="Beda Stok! Gudang: {{ $stokGudang }}, Toko {{ $st->store_name }}: {{ $storeStock }}" @endif>
                                         @if($isDifferent)
                                             <i class="fas fa-exclamation-triangle text-warning me-1"></i>
@@ -174,25 +180,23 @@
                                     </td>
                                 @endforeach
                                 <td class="text-center align-middle">
-                                    @php
-                                        $hasMpProduct = $product->marketplaceProducts->isNotEmpty();
-                                        $firstMpProduct = $product->marketplaceProducts->first();
-                                    @endphp
-                                    @if($hasMpProduct && $firstMpProduct)
-                                        <form method="POST"
-                                            action="{{ route('inventory.stock_sync.product', $firstMpProduct->id) }}"
-                                            class="d-inline form-sync-stock"
-                                            data-product-name="{{ $product->name }}">
-                                            @csrf
-                                            <button type="submit"
-                                                class="btn btn-sm btn-outline-indigo btn-sync-stock px-2 py-0"
-                                                style="font-size: 0.7rem; border-color: #6366f1; color: #6366f1;"
-                                                title="Sync stok gudang ke semua marketplace">
-                                                <i class="fas fa-sync-alt me-1"></i>Sync
-                                            </button>
-                                        </form>
+                                    @if($hasDiscrepancy)
+                                        <button type="button" 
+                                            class="btn btn-sm btn-danger py-0.5 px-2 fw-semibold btn-sync-stock" 
+                                            data-product-id="{{ $product->id }}" 
+                                            data-product-sku="{{ $product->sku ?? '-' }}"
+                                            data-product-name="{{ $product->name }}"
+                                            data-stok-gudang="{{ $stokGudang }}"
+                                            style="font-size: 0.72rem;">
+                                            <i class="fas fa-sync me-1"></i> Sync
+                                        </button>
                                     @else
-                                        <span class="text-muted" style="font-size: 0.68rem;" title="Belum ter-map ke produk marketplace">—</span>
+                                        <button type="button" 
+                                            class="btn btn-sm btn-outline-secondary py-0.5 px-2 fw-semibold" 
+                                            disabled
+                                            style="font-size: 0.72rem;">
+                                            <i class="fas fa-check me-1 text-success"></i> Sinkron
+                                        </button>
                                     @endif
                                 </td>
                             </tr>
@@ -225,51 +229,79 @@
 
 @push('scripts')
 <script>
-document.addEventListener('DOMContentLoaded', function () {
-    document.querySelectorAll('.form-sync-stock').forEach(function (form) {
-        form.addEventListener('submit', function (e) {
-            e.preventDefault();
-            const productName = this.dataset.productName;
-            const btn = this.querySelector('.btn-sync-stock');
-            const originalHtml = btn.innerHTML;
-
-            if (!confirm('Sync stok gudang ke marketplace untuk:\n"' + productName + '"?\n\nStok di semua toko marketplace akan diperbarui sesuai stok gudang.')) {
-                return;
-            }
-
-            // Loading state
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>...';
-
-            fetch(this.action, {
-                method: 'POST',
-                headers: {
-                    'X-CSRF-TOKEN': this.querySelector('[name=_token]').value,
-                    'Accept': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest',
-                },
-            })
-            .then(res => {
-                if (res.redirected || res.ok) {
-                    btn.innerHTML = '<i class="fas fa-check me-1"></i>Terkirim';
-                    btn.style.color = '#16a34a';
-                    btn.style.borderColor = '#16a34a';
-                    setTimeout(() => {
-                        btn.disabled = false;
-                        btn.innerHTML = originalHtml;
-                        btn.style.color = '#6366f1';
-                        btn.style.borderColor = '#6366f1';
-                    }, 2500);
+$(document).ready(function() {
+    $('.btn-sync-stock').on('click', function(e) {
+        e.preventDefault();
+        var $btn = $(this);
+        var productId = $btn.data('product-id');
+        var sku = $btn.data('product-sku');
+        var name = $btn.data('product-name');
+        var stokGudang = parseInt($btn.data('stok-gudang'));
+        var $row = $btn.closest('tr');
+        
+        // Show loading state on button
+        var originalHtml = $btn.html();
+        $btn.html('<i class="fas fa-spinner fa-spin me-1"></i> Syncing...').prop('disabled', true);
+        
+        $.ajax({
+            url: '/reports/stock/' + productId + '/sync',
+            type: 'POST',
+            data: {
+                _token: '{{ csrf_token() }}'
+            },
+            dataType: 'json',
+            success: function(response) {
+                if (response.success) {
+                    // Show success toast
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Berhasil',
+                        text: response.message,
+                        toast: true,
+                        position: 'top-end',
+                        showConfirmButton: false,
+                        timer: 3000,
+                        timerProgressBar: true
+                    });
+                    
+                    // Update the marketplace stock values in the row to match the warehouse stock
+                    $row.find('td[data-store-id]').each(function() {
+                        var $td = $(this);
+                        if ($td.hasClass('bg-danger')) {
+                            $td.removeClass('bg-danger text-white fw-bold')
+                               .addClass('fw-bold text-primary')
+                               .removeAttr('title')
+                               .html(stokGudang.toLocaleString('id-ID'));
+                        }
+                    });
+                    
+                    // Replace the button with the disabled "Sinkron" success button
+                    $btn.parent().html(
+                        '<button type="button" class="btn btn-sm btn-outline-secondary py-0.5 px-2 fw-semibold" disabled style="font-size: 0.72rem;">' +
+                        '<i class="fas fa-check me-1 text-success"></i> Sinkron' +
+                        '</button>'
+                    );
                 } else {
-                    btn.disabled = false;
-                    btn.innerHTML = originalHtml;
-                    alert('Gagal mengirim instruksi sync. Coba lagi.');
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Gagal',
+                        text: response.message || 'Gagal menyinkronkan stok.'
+                    });
+                    $btn.html(originalHtml).prop('disabled', false);
                 }
-            })
-            .catch(() => {
-                // fallback: submit form biasa
-                form.submit();
-            });
+            },
+            error: function(xhr) {
+                var errorMessage = 'Terjadi kesalahan sistem saat menyinkronkan stok.';
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    errorMessage = xhr.responseJSON.message;
+                }
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Gagal',
+                    text: errorMessage
+                });
+                $btn.html(originalHtml).prop('disabled', false);
+            }
         });
     });
 });

@@ -1114,4 +1114,25 @@ class ReportController extends Controller
 
         return view('reports.product_margins', compact('products', 'categories'));
     }
+
+    public function syncStock(Request $request, MasterProduct $product)
+    {
+        $tenantId = Auth::user()->tenant_id;
+        abort_unless($product->tenant_id === $tenantId, 403);
+
+        if ($product->tenant_id === 2) {
+            \App\Jobs\PushStockToMarketplaces::dispatchSync($product->id, $product->stock);
+        } else {
+            \App\Jobs\PushStockToMarketplaces::dispatch($product->id, $product->stock);
+        }
+
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => "Stok produk {$product->sku} ({$product->name}) berhasil disinkronkan ke marketplace."
+            ]);
+        }
+
+        return back()->with('success', "Stok produk {$product->sku} ({$product->name}) berhasil disinkronkan ke marketplace.");
+    }
 }
