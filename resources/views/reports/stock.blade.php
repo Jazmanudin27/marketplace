@@ -116,6 +116,7 @@
                                     </span>
                                 </th>
                             @endforeach
+                            <th class="text-white text-center align-middle" style="background-color: #6366f1; width: 80px;">Aksi</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -172,10 +173,32 @@
                                         {{ number_format($storeStock, 0, ',', '.') }}
                                     </td>
                                 @endforeach
+                                <td class="text-center align-middle">
+                                    @php
+                                        $hasMpProduct = $product->marketplaceProducts->isNotEmpty();
+                                        $firstMpProduct = $product->marketplaceProducts->first();
+                                    @endphp
+                                    @if($hasMpProduct && $firstMpProduct)
+                                        <form method="POST"
+                                            action="{{ route('inventory.stock_sync.product', $firstMpProduct->id) }}"
+                                            class="d-inline form-sync-stock"
+                                            data-product-name="{{ $product->name }}">
+                                            @csrf
+                                            <button type="submit"
+                                                class="btn btn-sm btn-outline-indigo btn-sync-stock px-2 py-0"
+                                                style="font-size: 0.7rem; border-color: #6366f1; color: #6366f1;"
+                                                title="Sync stok gudang ke semua marketplace">
+                                                <i class="fas fa-sync-alt me-1"></i>Sync
+                                            </button>
+                                        </form>
+                                    @else
+                                        <span class="text-muted" style="font-size: 0.68rem;" title="Belum ter-map ke produk marketplace">—</span>
+                                    @endif
+                                </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="{{ 6 + count($stores) }}" class="text-center text-muted py-4">
+                                <td colspan="{{ 7 + count($stores) }}" class="text-center text-muted py-4">
                                     <i class="fas fa-inbox fa-2x mb-2 d-block opacity-25"></i>
                                     Tidak ada data stok barang yang sesuai dengan filter.
                                 </td>
@@ -199,3 +222,56 @@
         @endif
     </div>
 @endsection
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.form-sync-stock').forEach(function (form) {
+        form.addEventListener('submit', function (e) {
+            e.preventDefault();
+            const productName = this.dataset.productName;
+            const btn = this.querySelector('.btn-sync-stock');
+            const originalHtml = btn.innerHTML;
+
+            if (!confirm('Sync stok gudang ke marketplace untuk:\n"' + productName + '"?\n\nStok di semua toko marketplace akan diperbarui sesuai stok gudang.')) {
+                return;
+            }
+
+            // Loading state
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>...';
+
+            fetch(this.action, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': this.querySelector('[name=_token]').value,
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+            })
+            .then(res => {
+                if (res.redirected || res.ok) {
+                    btn.innerHTML = '<i class="fas fa-check me-1"></i>Terkirim';
+                    btn.style.color = '#16a34a';
+                    btn.style.borderColor = '#16a34a';
+                    setTimeout(() => {
+                        btn.disabled = false;
+                        btn.innerHTML = originalHtml;
+                        btn.style.color = '#6366f1';
+                        btn.style.borderColor = '#6366f1';
+                    }, 2500);
+                } else {
+                    btn.disabled = false;
+                    btn.innerHTML = originalHtml;
+                    alert('Gagal mengirim instruksi sync. Coba lagi.');
+                }
+            })
+            .catch(() => {
+                // fallback: submit form biasa
+                form.submit();
+            });
+        });
+    });
+});
+</script>
+@endpush
