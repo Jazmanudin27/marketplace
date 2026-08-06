@@ -32,6 +32,20 @@
                             </select>
                         </div>
 
+                        {{-- Kategori --}}
+                        <div class="col-12 col-sm-6 col-md-3 col-lg-2">
+                            <label class="form-label small">
+                                <i class="fas fa-layer-group me-1"></i>Kategori
+                            </label>
+                            <select name="category" class="form-select form-select-sm select2">
+                                <option value="">-- Semua Kategori --</option>
+                                <option value="umum" {{ request('category') === 'umum' ? 'selected' : '' }}>Pelanggan Umum</option>
+                                <option value="biasa" {{ request('category') === 'biasa' ? 'selected' : '' }}>Pelanggan Biasa</option>
+                                <option value="dropship" {{ request('category') === 'dropship' ? 'selected' : '' }}>Pelanggan Dropship</option>
+                                <option value="marketplace" {{ request('category') === 'marketplace' ? 'selected' : '' }}>Pelanggan Marketplace</option>
+                            </select>
+                        </div>
+
                         {{-- Saluran / Marketplace --}}
                         <div class="col-12 col-sm-6 col-md-3 col-lg-2">
                             <label class="form-label small">
@@ -162,7 +176,18 @@
                                         <td>
                                             <div class="lh-sm">
                                                 <strong class="text-dark small">{{ $c->name }}</strong>
-                                                <div class="d-flex flex-wrap gap-1 mt-1">
+                                                <div class="d-flex flex-wrap gap-1 mt-1 align-items-center">
+                                                    @php
+                                                        $catBadgeClass = match($c->category) {
+                                                            'dropship' => 'bg-warning text-dark border-warning',
+                                                            'marketplace' => 'bg-info-subtle text-info border-info-subtle',
+                                                            'biasa' => 'bg-primary-subtle text-primary border-primary-subtle',
+                                                            default => 'bg-light text-dark border',
+                                                        };
+                                                    @endphp
+                                                    <span class="badge {{ $catBadgeClass }} small px-1.5 py-0.5">
+                                                        {{ $c->category_label }}
+                                                    </span>
                                                     @if ($c->tags)
                                                         @foreach (explode(',', $c->tags) as $tagVal)
                                                             <span
@@ -295,8 +320,17 @@
                                                                     <input type="text" name="phone" class="form-control form-control-sm" value="{{ $c->phone }}">
                                                                 </div>
                                                                 <div class="mb-3">
-                                                                    <label class="form-label form-label-sm text-muted fw-semibold">Kategori / Tag</label>
-                                                                    <input type="text" name="tags" class="form-control form-control-sm" value="{{ $c->tags }}" placeholder="Contoh: Reseller, Dropship, VIP">
+                                                                    <label class="form-label form-label-sm text-muted fw-semibold">Kategori Pelanggan <span class="text-danger">*</span></label>
+                                                                    <select name="category" class="form-select form-select-sm">
+                                                                        <option value="umum" {{ $c->category === 'umum' || empty($c->category) ? 'selected' : '' }}>Pelanggan Umum</option>
+                                                                        <option value="biasa" {{ $c->category === 'biasa' ? 'selected' : '' }}>Pelanggan Biasa</option>
+                                                                        <option value="dropship" {{ $c->category === 'dropship' ? 'selected' : '' }}>Pelanggan Dropship</option>
+                                                                        <option value="marketplace" {{ $c->category === 'marketplace' ? 'selected' : '' }}>Pelanggan Marketplace</option>
+                                                                    </select>
+                                                                </div>
+                                                                <div class="mb-3">
+                                                                    <label class="form-label form-label-sm text-muted fw-semibold">Tag Tambahan</label>
+                                                                    <input type="text" name="tags" class="form-control form-control-sm" value="{{ $c->tags }}" placeholder="Contoh: Reseller, VIP">
                                                                     <small class="text-muted" style="font-size:0.7rem;">Pisahkan dengan koma jika lebih dari satu tag.</small>
                                                                 </div>
                                                                 <div class="mb-3">
@@ -363,13 +397,17 @@
                             <input type="text" name="phone" class="form-control form-control-sm" placeholder="08123456789">
                         </div>
                         <div class="mb-3">
-                            <label class="form-label form-label-sm text-muted fw-semibold">Kategori / Tag</label>
-                            <select name="tags" class="form-select form-select-sm">
-                                <option value="Umum">Umum / Retail</option>
-                                <option value="Reseller">Reseller</option>
-                                <option value="Dropship">Dropship</option>
-                                <option value="VIP">VIP</option>
+                            <label class="form-label form-label-sm text-muted fw-semibold">Kategori Pelanggan <span class="text-danger">*</span></label>
+                            <select name="category" class="form-select form-select-sm">
+                                <option value="umum">Pelanggan Umum</option>
+                                <option value="biasa">Pelanggan Biasa</option>
+                                <option value="dropship">Pelanggan Dropship</option>
+                                <option value="marketplace">Pelanggan Marketplace</option>
                             </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label form-label-sm text-muted fw-semibold">Tag Tambahan</label>
+                            <input type="text" name="tags" class="form-control form-control-sm" placeholder="Contoh: VIP, Member">
                         </div>
                         <div class="mb-3">
                             <label class="form-label form-label-sm text-muted fw-semibold">Alamat Lengkap</label>

@@ -158,9 +158,9 @@
                                         @foreach ($customers as $cust)
                                             <option value="{{ $cust->id }}" data-name="{{ $cust->name }}"
                                                 data-phone="{{ $cust->phone }}" data-address="{{ $cust->address }}"
+                                                data-category="{{ $cust->category }}" data-category-label="{{ $cust->category_label }}"
                                                 data-tags="{{ $cust->tags }}" data-balance="{{ $cust->balance ?? 0 }}">
-                                                {{ $cust->name }} {{ $cust->phone ? '(' . $cust->phone . ')' : '' }}
-                                                {{ $cust->tags ? '[' . $cust->tags . ']' : '' }}
+                                                [{{ $cust->category_label }}] {{ $cust->name }} {{ $cust->phone ? '(' . $cust->phone . ')' : '' }}
                                             </option>
                                         @endforeach
                                     </select>

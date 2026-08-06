@@ -20,6 +20,7 @@ class CustomerController extends Controller
         $search = $request->query('search');
         $tag = $request->query('tag');
         $loyalty = $request->query('loyalty');
+        $category = $request->query('category');
         $tenantIdQuery = $request->query('tenant_id', $user->tenant_id);
         $channelId = $request->query('channel_id');
         $storeId = $request->query('store_id');
@@ -32,6 +33,21 @@ class CustomerController extends Controller
         } else {
             if ($tenantIdQuery && $tenantIdQuery > 1) {
                 $query->where('tenant_id', $tenantIdQuery);
+            }
+        }
+
+        // Filter category
+        if ($category) {
+            if ($category === 'marketplace') {
+                $query->where(function ($q) {
+                    $q->where('category', 'marketplace')
+                      ->orWhere(function($q2) {
+                          $q2->whereNotNull('marketplace_username')
+                             ->where('marketplace_username', '!=', '');
+                      });
+                });
+            } else {
+                $query->where('category', $category);
             }
         }
 
@@ -116,7 +132,7 @@ class CustomerController extends Controller
         sort($allTags);
 
         return view('master.customers.index', compact(
-            'customers', 'search', 'tag', 'loyalty', 'tenantIdQuery', 
+            'customers', 'search', 'tag', 'loyalty', 'category', 'tenantIdQuery', 
             'channelId', 'storeId', 'isSuperAdmin', 'tenants', 'channels', 
             'stores', 'allTags'
         ));
@@ -126,15 +142,17 @@ class CustomerController extends Controller
     {
         $user = Auth::user();
         $request->validate([
-            'name'    => 'required|string|max:255',
-            'phone'   => 'nullable|string|max:50',
-            'address' => 'nullable|string',
-            'tags'    => 'nullable|string|max:255',
+            'name'     => 'required|string|max:255',
+            'category' => 'nullable|string|in:umum,biasa,dropship,marketplace',
+            'phone'    => 'nullable|string|max:50',
+            'address'  => 'nullable|string',
+            'tags'     => 'nullable|string|max:255',
         ]);
 
         $customer = Customer::create([
             'tenant_id' => $user->tenant_id,
             'name'      => $request->name,
+            'category'  => $request->category ?? 'umum',
             'phone'     => $request->phone,
             'address'   => $request->address,
             'tags'      => $request->tags ?? 'Umum',
@@ -194,13 +212,14 @@ class CustomerController extends Controller
         }
 
         $request->validate([
-            'tags' => 'nullable|string|max:255',
-            'name' => 'nullable|string|max:255',
-            'phone' => 'nullable|string|max:50',
-            'address' => 'nullable|string',
+            'name'     => 'nullable|string|max:255',
+            'category' => 'nullable|string|in:umum,biasa,dropship,marketplace',
+            'phone'    => 'nullable|string|max:50',
+            'address'  => 'nullable|string',
+            'tags'     => 'nullable|string|max:255',
         ]);
 
-        $customer->update($request->only(['tags', 'name', 'phone', 'address']));
+        $customer->update($request->only(['name', 'category', 'tags', 'phone', 'address']));
 
         return back()->with('success', 'Profil pelanggan berhasil diperbarui.');
     }

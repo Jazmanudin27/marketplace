@@ -83,6 +83,10 @@ class OfflineSaleController extends Controller
 
         $customers = \App\Models\Customer::where('tenant_id', $tenantId)
             ->where(function ($q) {
+                $q->whereNull('category')
+                  ->orWhere('category', '!=', 'marketplace');
+            })
+            ->where(function ($q) {
                 $q->whereNull('marketplace_username')
                   ->orWhere('marketplace_username', '');
             })

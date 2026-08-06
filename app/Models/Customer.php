@@ -9,12 +9,28 @@ class Customer extends Model
     protected $fillable = [
         'tenant_id',
         'name',
+        'category',
         'marketplace_username',
         'phone',
         'address',
         'tags',
         'balance',
     ];
+
+    public const CATEGORIES = [
+        'umum'        => 'Pelanggan Umum',
+        'biasa'       => 'Pelanggan Biasa',
+        'dropship'    => 'Pelanggan Dropship',
+        'marketplace' => 'Pelanggan Marketplace',
+    ];
+
+    public function getCategoryLabelAttribute(): string
+    {
+        if (!empty($this->marketplace_username) || $this->category === 'marketplace') {
+            return 'Pelanggan Marketplace';
+        }
+        return self::CATEGORIES[$this->category] ?? 'Pelanggan Umum';
+    }
 
     protected $casts = [
         'balance' => 'decimal:2',
