@@ -297,7 +297,7 @@
                                         <th class="text-end">TOTAL</th>
                                         <th>KURIR</th>
                                         <th>TANGGAL &amp; BATAS KIRIM</th>
-                                        <th class="text-center">STATUS PESANAN, PRINT &amp; KEMAS</th>
+                                        <th class="text-center">STATUS</th>
                                     </tr>
                                 </thead>
                                 <tbody>
