@@ -191,8 +191,8 @@
                                                  </div>
                                                  @if ($offlineSale->resi_number)
                                                      <div class="col-md-6 text-dark small mt-2">
-                                                         <span class="text-muted">No. Resi / Tracking:</span>
-                                                         <strong class="font-monospace text-primary bg-white px-2 py-0.5 rounded border border-primary border-opacity-25">{{ $offlineSale->resi_number }}</strong>
+                                                         <span class="text-muted">Jasa Kirim / Ekspedisi:</span>
+                                                         <strong class="fw-bold text-primary bg-white px-2 py-0.5 rounded border border-primary border-opacity-25">{{ $offlineSale->resi_number }}</strong>
                                                      </div>
                                                  @endif
                                                  @if ($offlineSale->resi_file)

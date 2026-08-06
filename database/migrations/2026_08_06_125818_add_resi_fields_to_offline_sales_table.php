@@ -12,8 +12,12 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('offline_sales', function (Blueprint $table) {
-            $table->string('resi_number')->nullable()->after('dropshipper_phone');
-            $table->string('resi_file')->nullable()->after('resi_number');
+            if (!Schema::hasColumn('offline_sales', 'resi_number')) {
+                $table->string('resi_number')->nullable()->after('dropshipper_phone');
+            }
+            if (!Schema::hasColumn('offline_sales', 'resi_file')) {
+                $table->string('resi_file')->nullable()->after('resi_number');
+            }
         });
     }
 
@@ -23,7 +27,12 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('offline_sales', function (Blueprint $table) {
-            $table->dropColumn(['resi_number', 'resi_file']);
+            if (Schema::hasColumn('offline_sales', 'resi_number')) {
+                $table->dropColumn('resi_number');
+            }
+            if (Schema::hasColumn('offline_sales', 'resi_file')) {
+                $table->dropColumn('resi_file');
+            }
         });
     }
 };

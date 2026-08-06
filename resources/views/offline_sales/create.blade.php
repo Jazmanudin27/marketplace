@@ -94,9 +94,9 @@
                                     <div class="row g-2 mt-1">
                                         <div class="col-md-6">
                                             <label class="form-label form-label-sm text-muted fw-semibold mb-1">
-                                                <i class="fas fa-barcode me-1 text-primary"></i>Nomor Resi / AWB Tracking
+                                                <i class="fas fa-truck me-1 text-primary"></i>Jenis Jasa Kirim / Ekspedisi
                                             </label>
-                                            <input type="text" name="resi_number" id="resi-number-input" class="form-control form-control-sm font-monospace" placeholder="Contoh: JP123456789 / JNT001...">
+                                            <input type="text" name="resi_number" id="resi-number-input" class="form-control form-control-sm" placeholder="Contoh: J&amp;T Express, JNE REG, SiCepat, Shopee Xpress, Cargo...">
                                         </div>
                                         <div class="col-md-6">
                                             <label class="form-label form-label-sm text-muted fw-semibold mb-1">
