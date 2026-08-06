@@ -1420,7 +1420,7 @@ class ReportController extends Controller
         ];
     }
 
-    private function getSalesReportPerChannelData($tenantId, $dateFrom, $dateTo, $channelCode = 'all', $customerCat = 'all')
+    private function getSalesReportPerChannelData($tenantId, $dateFrom, $dateTo, $channelCode = 'all', $customerCat = 'all', $statusFilter = 'all')
     {
         $stores = \App\Models\Store::where('tenant_id', $tenantId)->with('channel')->get();
         
@@ -1429,41 +1429,50 @@ class ReportController extends Controller
         $grandTotalQty = 0;
         $grandTotalOrders = 0;
 
-        // POS Offline
+        // POS Offline - Grouped by Instansi / Channel
         if ($channelCode === 'all' || $channelCode === 'offline') {
-            $offSales = \App\Models\OfflineSale::where('tenant_id', $tenantId)
-                ->where('status', '!=', \App\Models\OfflineSale::STATUS_CANCELLED)
+            $offSalesQuery = \App\Models\OfflineSale::where('tenant_id', $tenantId)
                 ->whereBetween('sold_at', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59']);
 
+            $this->applyOfflineStatusFilter($offSalesQuery, $statusFilter);
+
             if ($customerCat === 'dropship') {
-                $offSales->where(function($q) {
+                $offSalesQuery->where(function($q) {
                     $q->where('is_dropship', true)
                       ->orWhereHas('customer', fn($cq) => $cq->where('category', 'dropship'));
                 });
             } elseif ($customerCat === 'umum') {
-                $offSales->where('is_dropship', false);
+                $offSalesQuery->where('is_dropship', false);
             }
 
-            $offSalesGet = $offSales->get();
-            $offOmset = (float) $offSalesGet->sum('grand_total');
-            $offOrders = $offSalesGet->count();
-            $offQty = 0;
-            foreach ($offSalesGet as $s) {
-                $offQty += $s->items()->sum('quantity');
+            $offSalesGet = $offSalesQuery->get();
+
+            // Group offline sales by institution_name
+            $groupedOffline = $offSalesGet->groupBy(function($s) {
+                return !empty(trim($s->institution_name ?? '')) ? trim($s->institution_name) : 'Toko Fisik / Umum';
+            });
+
+            foreach ($groupedOffline as $instName => $salesList) {
+                $offOmset = (float) $salesList->sum('grand_total');
+                $offOrders = $salesList->count();
+                $offQty = 0;
+                foreach ($salesList as $s) {
+                    $offQty += $s->items()->sum('quantity');
+                }
+
+                $channels[] = [
+                    'name' => 'Penjualan Offline (' . $instName . ')',
+                    'type' => 'Offline',
+                    'orders' => $offOrders,
+                    'qty' => $offQty,
+                    'omset' => $offOmset,
+                    'aov' => $offOrders > 0 ? $offOmset / $offOrders : 0,
+                ];
+
+                $grandTotalOmset += $offOmset;
+                $grandTotalQty += $offQty;
+                $grandTotalOrders += $offOrders;
             }
-
-            $channels[] = [
-                'name' => 'POS Offline (Toko Fisik)',
-                'type' => 'Offline',
-                'orders' => $offOrders,
-                'qty' => $offQty,
-                'omset' => $offOmset,
-                'aov' => $offOrders > 0 ? $offOmset / $offOrders : 0,
-            ];
-
-            $grandTotalOmset += $offOmset;
-            $grandTotalQty += $offQty;
-            $grandTotalOrders += $offOrders;
         }
 
         // Marketplace Online Stores

@@ -77,6 +77,14 @@
                                         <label class="form-label form-label-sm text-muted fw-semibold mb-1">Alamat Pelanggan</label>
                                         <textarea name="buyer_address" id="buyer-address-input" class="form-control form-control-sm bg-light" rows="1" placeholder="Otomatis dari Master Data" readonly></textarea>
                                     </div>
+
+                                    {{-- Instansi / Saluran / Channel (Opsional) --}}
+                                    <div class="col-md-6">
+                                        <label class="form-label form-label-sm text-dark fw-semibold mb-1">
+                                            <i class="fas fa-building text-primary me-1"></i>Instansi / Saluran / Channel <span class="badge bg-secondary opacity-75 fw-normal" style="font-size:0.65rem;">Opsional</span>
+                                        </label>
+                                        <input type="text" name="institution_name" id="institution-name-input" class="form-control form-control-sm" placeholder="Contoh: Dinas Pendidikan, Sekolah ABC, PT Sinar Harapan...">
+                                    </div>
                                 </div>
 
                                 <!-- Hidden fields for dropship (auto-filled if customer is dropship type) -->

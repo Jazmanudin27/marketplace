@@ -115,6 +115,15 @@
                                             class="font-monospace fw-semibold text-dark small">{{ $offlineSale->buyer_phone ?? '-' }}</span>
                                     </div>
                                 </div>
+                                @if ($offlineSale->institution_name)
+                                    <div class="col-md-12">
+                                        <div class="p-3 border border-info border-opacity-25 rounded bg-info bg-opacity-10">
+                                            <small class="text-info d-block text-uppercase fw-bold mb-1"
+                                                style="font-size: 0.65rem;"><i class="fas fa-building me-1"></i>Instansi / Saluran / Channel</small>
+                                            <span class="fw-bold text-dark fs-6">{{ $offlineSale->institution_name }}</span>
+                                        </div>
+                                    </div>
+                                @endif
                                 <div class="col-md-4">
                                     <div class="p-3 border rounded h-100 bg-light">
                                         <small class="text-muted d-block text-uppercase fw-semibold mb-1 small"
