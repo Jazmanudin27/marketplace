@@ -295,34 +295,34 @@
                     @csrf
                     <div class="modal-body p-3">
                         <div class="mb-3">
-                            <label class="form-label form-label-sm text-muted fw-semibold">Nama Pelanggan <span
-                                    class="text-danger">*</span></label>
-                            <input type="text" name="name" class="form-control form-control-sm"
-                                placeholder="Contoh: Budi Santoso" required>
+                            <label class="form-label form-label-sm text-muted fw-semibold">Nama Pelanggan <span class="text-danger">*</span></label>
+                            <input type="text" name="name" class="form-control form-control-sm" placeholder="Nama pelanggan..." required>
                         </div>
                         <div class="mb-3">
                             <label class="form-label form-label-sm text-muted fw-semibold">No. Handphone / WhatsApp</label>
-                            <input type="text" name="phone" class="form-control form-control-sm"
-                                placeholder="Contoh: 08123456789">
+                            <input type="text" name="phone" class="form-control form-control-sm" placeholder="08123456789">
                         </div>
                         <div class="mb-3">
-                            <label class="form-label form-label-sm text-muted fw-semibold">Kategori / Tag</label>
-                            <select name="tags" class="form-select form-select-sm">
-                                <option value="Umum">Umum / Retail</option>
-                                <option value="Reseller">Reseller</option>
-                                <option value="Dropship">Dropship</option>
-                                <option value="VIP">VIP</option>
+                            <label class="form-label form-label-sm text-muted fw-semibold">Kategori Pelanggan <span class="text-danger">*</span></label>
+                            <select name="category" class="form-select form-select-sm" required>
+                                <option value="umum">Pelanggan Umum</option>
+                                <option value="biasa">Pelanggan Biasa</option>
+                                <option value="dropship">Pelanggan Dropship</option>
+                                <option value="marketplace">Pelanggan Marketplace</option>
                             </select>
                         </div>
                         <div class="mb-3">
+                            <label class="form-label form-label-sm text-muted fw-semibold">Tag Tambahan</label>
+                            <input type="text" name="tags" class="form-control form-control-sm" placeholder="Contoh: VIP, Member">
+                        </div>
+                        <div class="mb-3">
                             <label class="form-label form-label-sm text-muted fw-semibold">Alamat Lengkap</label>
-                            <textarea name="address" class="form-control form-control-sm" rows="2" placeholder="Alamat pelanggan..."></textarea>
+                            <textarea name="address" class="form-control form-control-sm" rows="2" placeholder="Alamat lengkap..."></textarea>
                         </div>
                     </div>
                     <div class="modal-footer py-2 bg-light">
                         <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Batal</button>
-                        <button type="submit" class="btn btn-primary btn-sm" id="btn-save-customer">Simpan & Pilih
-                            Pelanggan</button>
+                        <button type="submit" class="btn btn-primary btn-sm" id="btn-save-customer">Simpan &amp; Pilih Pelanggan</button>
                     </div>
                 </form>
             </div>
@@ -477,20 +477,23 @@
                         btn.prop('disabled', false).html('Simpan & Pilih Pelanggan');
                         if (res.success && res.customer) {
                             const c = res.customer;
-                            const labelText =
-                                `${c.name} ${c.phone ? '(' + c.phone + ')' : ''} ${c.tags ? '[' + c.tags + ']' : ''}`;
+                            const catLabels = { 'umum': 'Umum', 'biasa': 'Biasa', 'dropship': 'Dropship', 'marketplace': 'Marketplace' };
+                            const categoryLabel = catLabels[c.category] || 'Umum';
+                            const labelText = `[${categoryLabel}] ${c.name} ${c.phone ? '(' + c.phone + ')' : ''}`;
                             const newOption = new Option(labelText, c.id, true, true);
 
                             $(newOption).attr('data-name', c.name);
                             $(newOption).attr('data-phone', c.phone || '');
                             $(newOption).attr('data-address', c.address || '');
+                            $(newOption).attr('data-category', c.category || 'umum');
+                            $(newOption).attr('data-category-label', categoryLabel);
                             $(newOption).attr('data-tags', c.tags || '');
                             $(newOption).attr('data-balance', c.balance || 0);
 
                             $('#customer-select').append(newOption).trigger('change');
                             $('#modalCreateCustomer').modal('hide');
                             $('#form-quick-customer')[0].reset();
-                            alert('Pelanggan berhasil ditambahkan ke Data Master!');
+                            alert('Pelanggan baru berhasil ditambahkan ke Data Master!');
                         }
                     },
                     error: function(xhr) {
