@@ -1515,16 +1515,17 @@ class ReportController extends Controller
         return compact('channels', 'grandTotalOmset', 'grandTotalQty', 'grandTotalOrders');
     }
 
-    private function getSalesReportDetailData($tenantId, $dateFrom, $dateTo, $categoryId = null, $brandId = null, $channelCode = 'all', $customerCat = 'all', $search = null, $isBundle = null, $isPo = null)
+    private function getSalesReportDetailData($tenantId, $dateFrom, $dateTo, $categoryId = null, $brandId = null, $channelCode = 'all', $customerCat = 'all', $statusFilter = 'all', $search = null, $isBundle = null, $isPo = null)
     {
         $transactions = [];
 
         // 1. Offline Sales
         if ($channelCode === 'all' || $channelCode === 'offline') {
             $offQuery = \App\Models\OfflineSale::where('tenant_id', $tenantId)
-                ->where('status', '!=', \App\Models\OfflineSale::STATUS_CANCELLED)
                 ->whereBetween('sold_at', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59'])
                 ->with(['customer', 'items.masterProduct']);
+
+            $this->applyOfflineStatusFilter($offQuery, $statusFilter);
 
             if ($customerCat === 'dropship') {
                 $offQuery->where(function($q) {
@@ -1558,11 +1559,12 @@ class ReportController extends Controller
         // 2. Online Orders
         if ($channelCode === 'all' || $channelCode !== 'offline') {
             $onQuery = \App\Models\Order::where('tenant_id', $tenantId)
-                ->whereNotIn('order_status', ['CANCELLED', 'RETURNED'])
                 ->whereBetween('order_date', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59'])
                 ->with(['store.channel', 'customer', 'items']);
 
-            if ($channelCode !== 'all') {
+            $this->applyOnlineStatusFilter($onQuery, $statusFilter);
+
+            if ($channelCode !== 'all' && $channelCode !== 'online') {
                 $onQuery->whereHas('store.channel', fn($cq) => $cq->where('code', strtolower($channelCode)));
             }
 
@@ -1573,7 +1575,7 @@ class ReportController extends Controller
                 }
 
                 $transactions[] = [
-                    'date' => $o->order_date ? date('Y-m-01 H:i', strtotime($o->order_date)) : '—',
+                    'date' => $o->order_date ? date('Y-m-d H:i', strtotime($o->order_date)) : '—',
                     'ref' => $o->order_number ?: $o->marketplace_order_number,
                     'channel' => $o->store->channel->name ?? 'Marketplace',
                     'customer' => $o->customer_name ?: ($o->customer->name ?? 'Pelanggan MP'),
@@ -1594,7 +1596,7 @@ class ReportController extends Controller
         return compact('transactions', 'grandTotalOmset', 'grandTotalQty');
     }
 
-    private function getSalesReportPerDateData($tenantId, $dateFrom, $dateTo, $channelCode = 'all', $customerCat = 'all')
+    private function getSalesReportPerDateData($tenantId, $dateFrom, $dateTo, $channelCode = 'all', $customerCat = 'all', $statusFilter = 'all')
     {
         $dates = [];
         $current = strtotime($dateFrom);
@@ -1609,10 +1611,10 @@ class ReportController extends Controller
             // POS Offline
             $offQty = 0; $offOmset = 0.0;
             if ($channelCode === 'all' || $channelCode === 'offline') {
-                $offQuery = \App\Models\OfflineSaleItem::whereHas('offlineSale', function ($q) use ($tenantId, $dt, $customerCat) {
+                $offQuery = \App\Models\OfflineSaleItem::whereHas('offlineSale', function ($q) use ($tenantId, $dt, $customerCat, $statusFilter) {
                     $q->where('tenant_id', $tenantId)
-                      ->where('status', '!=', \App\Models\OfflineSale::STATUS_CANCELLED)
                       ->whereDate('sold_at', $dt);
+                    $this->applyOfflineStatusFilter($q, $statusFilter);
                     if ($customerCat === 'dropship') $q->where('is_dropship', true);
                     elseif ($customerCat === 'umum') $q->where('is_dropship', false);
                 });
@@ -1623,11 +1625,11 @@ class ReportController extends Controller
             // Online Orders
             $onQty = 0; $onOmset = 0.0;
             if ($channelCode === 'all' || $channelCode !== 'offline') {
-                $onQuery = \App\Models\OrderItem::whereHas('order', function ($q) use ($tenantId, $dt, $channelCode) {
+                $onQuery = \App\Models\OrderItem::whereHas('order', function ($q) use ($tenantId, $dt, $channelCode, $statusFilter) {
                     $q->where('tenant_id', $tenantId)
-                      ->whereNotIn('order_status', ['CANCELLED', 'RETURNED'])
                       ->whereDate('order_date', $dt);
-                    if ($channelCode !== 'all') {
+                    $this->applyOnlineStatusFilter($q, $statusFilter);
+                    if ($channelCode !== 'all' && $channelCode !== 'online') {
                         $q->whereHas('store.channel', fn($cq) => $cq->where('code', strtolower($channelCode)));
                     }
                 });
@@ -1658,7 +1660,7 @@ class ReportController extends Controller
         return compact('dates', 'grandTotalQty', 'grandTotalOmset');
     }
 
-    private function getSalesReportPerCustomerCategoryData($tenantId, $dateFrom, $dateTo, $channelCode = 'all')
+    private function getSalesReportPerCustomerCategoryData($tenantId, $dateFrom, $dateTo, $channelCode = 'all', $statusFilter = 'all')
     {
         $categoriesData = [];
         $categoriesList = ['dropship' => 'Pelanggan Dropship', 'umum' => 'Pelanggan Umum', 'biasa' => 'Pelanggan Biasa', 'marketplace' => 'Pelanggan Marketplace'];
@@ -1672,10 +1674,14 @@ class ReportController extends Controller
 
             if ($catKey === 'marketplace') {
                 // Online Marketplace
-                $orders = \App\Models\Order::where('tenant_id', $tenantId)
-                    ->whereNotIn('order_status', ['CANCELLED', 'RETURNED'])
-                    ->whereBetween('order_date', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59'])
-                    ->get();
+                $ordersQuery = \App\Models\Order::where('tenant_id', $tenantId)
+                    ->whereBetween('order_date', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59']);
+                $this->applyOnlineStatusFilter($ordersQuery, $statusFilter);
+                if ($channelCode !== 'all' && $channelCode !== 'online') {
+                    $ordersQuery->whereHas('store.channel', fn($cq) => $cq->where('code', strtolower($channelCode)));
+                }
+
+                $orders = $ordersQuery->get();
                 $ordersCount = $orders->count();
                 $omset = (float) $orders->sum('total_amount');
                 foreach ($orders as $o) {
@@ -1683,21 +1689,21 @@ class ReportController extends Controller
                 }
             } else {
                 // Offline Sales matching category
-                $offSales = \App\Models\OfflineSale::where('tenant_id', $tenantId)
-                    ->where('status', '!=', \App\Models\OfflineSale::STATUS_CANCELLED)
+                $offSalesQuery = \App\Models\OfflineSale::where('tenant_id', $tenantId)
                     ->whereBetween('sold_at', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59']);
+                $this->applyOfflineStatusFilter($offSalesQuery, $statusFilter);
 
                 if ($catKey === 'dropship') {
-                    $offSales->where(function($q) {
+                    $offSalesQuery->where(function($q) {
                         $q->where('is_dropship', true)
                           ->orWhereHas('customer', fn($cq) => $cq->where('category', 'dropship'));
                     });
                 } else {
-                    $offSales->where('is_dropship', false)
-                             ->whereHas('customer', fn($cq) => $cq->where('category', $catKey));
+                    $offSalesQuery->where('is_dropship', false)
+                                 ->whereHas('customer', fn($cq) => $cq->where('category', $catKey));
                 }
 
-                $offGet = $offSales->get();
+                $offGet = $offSalesQuery->get();
                 $ordersCount = $offGet->count();
                 $omset = (float) $offGet->sum('grand_total');
                 foreach ($offGet as $s) {
@@ -1742,20 +1748,43 @@ class ReportController extends Controller
     private function applyOnlineStatusFilter($query, $statusFilter)
     {
         if ($statusFilter === 'completed') {
-            $query->whereIn('order_status', ['COMPLETED', 'DELIVERED']);
+            $query->where(function($q) {
+                $q->whereIn('order_status', ['COMPLETED', 'DELIVERED', 'SELESAI', 'FINISHED'])
+                  ->orWhere('order_status', 'like', '%COMPLETE%')
+                  ->orWhere('order_status', 'like', '%DELIVER%');
+            });
         } elseif ($statusFilter === 'shipped') {
-            $query->whereIn('order_status', ['SHIPPED', 'IN_TRANSIT']);
+            $query->where(function($q) {
+                $q->whereIn('order_status', ['SHIPPED', 'IN_TRANSIT', 'DIKIRIM'])
+                  ->orWhere('order_status', 'like', '%SHIP%')
+                  ->orWhere('order_status', 'like', '%TRANSIT%');
+            });
         } elseif ($statusFilter === 'processing') {
-            $query->whereIn('order_status', ['READY_TO_SHIP', 'PROCESSING', 'PROCESSED']);
+            $query->where(function($q) {
+                $q->whereIn('order_status', ['READY_TO_SHIP', 'PROCESSING', 'PROCESSED', 'DIKEMAS'])
+                  ->orWhere('order_status', 'like', '%PROCESS%')
+                  ->orWhere('order_status', 'like', '%READY%');
+            });
         } elseif ($statusFilter === 'pending') {
-            $query->whereIn('order_status', ['UNPAID', 'PENDING']);
+            $query->where(function($q) {
+                $q->whereIn('order_status', ['UNPAID', 'PENDING', 'BELUM_BAYAR']);
+            });
         } elseif ($statusFilter === 'cancelled') {
-            $query->where('order_status', 'CANCELLED');
+            $query->where(function($q) {
+                $q->whereIn('order_status', ['CANCELLED', 'BATAL'])
+                  ->orWhere('order_status', 'like', '%CANCEL%');
+            });
         } elseif ($statusFilter === 'returned') {
-            $query->whereIn('order_status', ['RETURNED', 'REFUNDED']);
+            $query->where(function($q) {
+                $q->whereIn('order_status', ['RETURNED', 'REFUNDED', 'RETUR'])
+                  ->orWhere('order_status', 'like', '%RETURN%')
+                  ->orWhere('order_status', 'like', '%REFUND%');
+            });
         } else {
             // 'all' -> default exclude cancelled & returned
-            $query->whereNotIn('order_status', ['CANCELLED', 'RETURNED']);
+            $query->whereNotIn('order_status', ['CANCELLED', 'RETURNED', 'BATAL', 'RETUR', 'REFUNDED'])
+                  ->where('order_status', 'not like', '%CANCEL%')
+                  ->where('order_status', 'not like', '%RETURN%');
         }
     }
 }
