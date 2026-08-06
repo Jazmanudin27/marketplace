@@ -1150,16 +1150,18 @@ class ReportController extends Controller
         $dateTo         = $request->input('date_to', date('Y-m-d'));
         $categoryId     = $request->input('category_id');
         $brandId        = $request->input('brand_id');
+        $isBundle       = $request->input('is_bundle');
+        $isPo           = $request->input('po_status');
         $channelCode    = $request->input('channel_code', 'all');
         $customerCat    = $request->input('customer_category', 'all');
         $search         = $request->input('search');
         $hideZeroSales  = $request->boolean('hide_zero_sales');
 
-        $data = $this->getSalesReportData($tenantId, $dateFrom, $dateTo, $categoryId, $brandId, $channelCode, $customerCat, $search, $hideZeroSales);
+        $data = $this->getSalesReportData($tenantId, $dateFrom, $dateTo, $categoryId, $brandId, $channelCode, $customerCat, $search, $hideZeroSales, $isBundle, $isPo);
 
         return view('reports.sales_report', array_merge($data, compact(
             'categories', 'brands', 'stores', 'dateFrom', 'dateTo', 'categoryId',
-            'brandId', 'channelCode', 'customerCat', 'search', 'hideZeroSales'
+            'brandId', 'isBundle', 'isPo', 'channelCode', 'customerCat', 'search', 'hideZeroSales'
         )));
     }
 
@@ -1170,12 +1172,14 @@ class ReportController extends Controller
         $dateTo         = $request->input('date_to', date('Y-m-d'));
         $categoryId     = $request->input('category_id');
         $brandId        = $request->input('brand_id');
+        $isBundle       = $request->input('is_bundle');
+        $isPo           = $request->input('po_status');
         $channelCode    = $request->input('channel_code', 'all');
         $customerCat    = $request->input('customer_category', 'all');
         $search         = $request->input('search');
         $hideZeroSales  = $request->boolean('hide_zero_sales');
 
-        $data = $this->getSalesReportData($tenantId, $dateFrom, $dateTo, $categoryId, $brandId, $channelCode, $customerCat, $search, $hideZeroSales);
+        $data = $this->getSalesReportData($tenantId, $dateFrom, $dateTo, $categoryId, $brandId, $channelCode, $customerCat, $search, $hideZeroSales, $isBundle, $isPo);
 
         return view('reports.print_sales_report', array_merge($data, compact('dateFrom', 'dateTo')));
     }
@@ -1187,12 +1191,14 @@ class ReportController extends Controller
         $dateTo         = $request->input('date_to', date('Y-m-d'));
         $categoryId     = $request->input('category_id');
         $brandId        = $request->input('brand_id');
+        $isBundle       = $request->input('is_bundle');
+        $isPo           = $request->input('po_status');
         $channelCode    = $request->input('channel_code', 'all');
         $customerCat    = $request->input('customer_category', 'all');
         $search         = $request->input('search');
         $hideZeroSales  = $request->boolean('hide_zero_sales');
 
-        $data = $this->getSalesReportData($tenantId, $dateFrom, $dateTo, $categoryId, $brandId, $channelCode, $customerCat, $search, $hideZeroSales);
+        $data = $this->getSalesReportData($tenantId, $dateFrom, $dateTo, $categoryId, $brandId, $channelCode, $customerCat, $search, $hideZeroSales, $isBundle, $isPo);
 
         $filename = "Laporan_Penjualan_Produk_" . date('Ymd_His') . ".csv";
         $headers = [
@@ -1233,7 +1239,7 @@ class ReportController extends Controller
         return response()->stream($callback, 200, $headers);
     }
 
-    private function getSalesReportData($tenantId, $dateFrom, $dateTo, $categoryId = null, $brandId = null, $channelCode = 'all', $customerCat = 'all', $search = null, $hideZeroSales = false)
+    private function getSalesReportData($tenantId, $dateFrom, $dateTo, $categoryId = null, $brandId = null, $channelCode = 'all', $customerCat = 'all', $search = null, $hideZeroSales = false, $isBundle = null, $isPo = null)
     {
         $productsQuery = MasterProduct::where('tenant_id', $tenantId)
             ->with(['category', 'brand']);
@@ -1243,6 +1249,18 @@ class ReportController extends Controller
         }
         if (!empty($brandId)) {
             $productsQuery->where('brand_id', $brandId);
+        }
+        if ($isBundle !== null && $isBundle !== '') {
+            $productsQuery->where('is_bundle', (bool)$isBundle);
+        }
+        if ($isPo !== null && $isPo !== '') {
+            if ($isPo === '1') {
+                $productsQuery->where('is_preorder', true);
+            } elseif ($isPo === '0') {
+                $productsQuery->where(function ($q) {
+                    $q->where('is_preorder', false)->orWhereNull('is_preorder');
+                });
+            }
         }
         if (!empty($search)) {
             $search = trim($search);
