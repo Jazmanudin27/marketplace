@@ -223,7 +223,7 @@
                                         </div>
                                     @endif
                                     <div>
-                                        <a href="{{ route('products.show', $product->id) }}"
+                                        <a href="{{ route('products.edit', $product->id) }}"
                                             class="fw-bold text-dark text-decoration-none">
                                             {{ $product->name }}
                                         </a>
