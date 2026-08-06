@@ -363,10 +363,11 @@
                     const name = selectedOption.data('name');
                     const phone = selectedOption.data('phone');
                     const address = selectedOption.data('address');
+                    const category = String(selectedOption.data('category') || '');
                     const tags = String(selectedOption.data('tags') || '');
 
-                    // Check if Reseller / Dropshipper berdasarkan tag
-                    if (tags.toLowerCase().includes('reseller') || tags.toLowerCase().includes('dropship')) {
+                    // Check if Reseller / Dropshipper berdasarkan kategori atau tag
+                    if (category === 'dropship' || tags.toLowerCase().includes('reseller') || tags.toLowerCase().includes('dropship')) {
                         // Aktifkan mode dropship otomatis
                         setDropshipMode(true);
                         $('#dropshipper-name-input').val(name);
