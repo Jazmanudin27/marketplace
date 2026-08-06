@@ -240,9 +240,6 @@
             📄 Laporan Stok Barang (Gudang &amp; Marketplace)
         </div>
         <div style="display: flex; gap: 8px; align-items: center;">
-            <button type="button" class="btn-action btn-sync-all" id="btnSyncAll">
-                🔄 Sinkronkan Semua Produk (Mass Sync)
-            </button>
             <button type="button" class="btn-action btn-print" onclick="window.print();">
                 🖨️ Cetak / Print Halaman
             </button>
@@ -283,10 +280,9 @@
         <thead>
             <tr>
                 <th class="bg-blue" style="width: 3%;">No</th>
-                <th class="bg-blue" style="width: 13%;">SKU</th>
+                <th class="bg-blue" style="width: 15%;">SKU</th>
                 <th class="bg-blue">Nama Produk</th>
-                <th class="bg-blue" style="width: 14%;">Kategori / Merk</th>
-                <th class="bg-blue" style="width: 10%;">Status &amp; PO</th>
+                <th class="bg-blue" style="width: 11%;">Status &amp; PO</th>
                 <th class="bg-green" style="width: 9%;">Stok Gudang</th>
                 @foreach($stores as $store)
                     @php
@@ -332,10 +328,6 @@
                             {{ $product->name }}
                         </a>
                     </td>
-                    <td>
-                        <strong>{{ $product->category->name ?? '-' }}</strong>
-                        <small style="color: #64748b; display: block;">{{ $product->brand->name ?? '-' }}</small>
-                    </td>
                     <td class="text-center">
                         @if($product->is_preorder)
                             <span style="color: #c2410c; font-weight: bold;">⏳ PO ({{ $product->preorder_days ?: 7 }}hr)</span>
@@ -376,7 +368,7 @@
                 </tr>
             @empty
                 <tr>
-                    <td colspan="{{ 7 + count($stores) }}" class="text-center" style="padding: 20px;">Tidak ada data barang yang sesuai dengan filter.</td>
+                    <td colspan="{{ 6 + count($stores) }}" class="text-center" style="padding: 20px;">Tidak ada data barang yang sesuai dengan filter.</td>
                 </tr>
             @endforelse
         </tbody>
@@ -434,41 +426,6 @@
                     });
                 });
             });
-
-            // Batch sync all single buttons
-            const btnSyncAll = document.getElementById('btnSyncAll');
-            if (btnSyncAll) {
-                btnSyncAll.addEventListener('click', function () {
-                    const buttons = Array.from(document.querySelectorAll('.btn-sync-single'));
-                    if (!buttons.length) {
-                        showToast('Semua produk pada laporan ini sudah sinkron! ✅');
-                        return;
-                    }
-
-                    if (!confirm(`Sinkronkan ${buttons.length} produk yang berbeda stok ke marketplace?`)) {
-                        return;
-                    }
-
-                    btnSyncAll.disabled = true;
-                    btnSyncAll.textContent = `🔄 Memproses 0/${buttons.length}...`;
-
-                    let completedCount = 0;
-                    buttons.forEach((btn, idx) => {
-                        setTimeout(() => {
-                            btn.click();
-                            completedCount++;
-                            btnSyncAll.textContent = `🔄 Memproses ${completedCount}/${buttons.length}...`;
-                            if (completedCount === buttons.length) {
-                                setTimeout(() => {
-                                    btnSyncAll.disabled = false;
-                                    btnSyncAll.textContent = '🔄 Sinkronkan Semua Produk (Mass Sync)';
-                                    showToast(`🎉 Selesai! ${completedCount} produk telah disinkronkan ke marketplace.`);
-                                }, 1000);
-                            }
-                        }, idx * 400); // Stagger requests by 400ms
-                    });
-                });
-            }
         });
     </script>
 </body>
