@@ -57,7 +57,7 @@ class ProductMutationController extends Controller
             ->paginate(25)
             ->withQueryString();
 
-        // Summary Stats
+        // Summary Stats (Disatukan dalam 1 query agregat cepat)
         $statsQuery = StockMovement::where('tenant_id', $tenantId)
             ->whereNotNull('master_product_id');
 
@@ -68,9 +68,15 @@ class ProductMutationController extends Controller
             $statsQuery->whereDate('created_at', '<=', $request->end_date);
         }
 
-        $totalTransactions = (clone $statsQuery)->count();
-        $totalInbound = (clone $statsQuery)->where('type', 'in')->sum('quantity');
-        $totalOutbound = (clone $statsQuery)->where('type', 'out')->sum(DB::raw('ABS(quantity)'));
+        $stats = $statsQuery->selectRaw("
+            COUNT(*) as total_transactions,
+            COALESCE(SUM(CASE WHEN type = 'in' THEN quantity ELSE 0 END), 0) as total_inbound,
+            COALESCE(SUM(CASE WHEN type = 'out' THEN ABS(quantity) ELSE 0 END), 0) as total_outbound
+        ")->first();
+
+        $totalTransactions = $stats->total_transactions ?? 0;
+        $totalInbound = $stats->total_inbound ?? 0;
+        $totalOutbound = $stats->total_outbound ?? 0;
 
         return view('inventory.mutations.index', compact(
             'mutations',
