@@ -634,9 +634,9 @@ Route::middleware('auth')->group(function () {
         Route::get('/reports/stock/print', [ReportController::class, 'printStockReport'])->name('reports.stock.print');
         Route::get('/reports/ledger', [ReportController::class, 'ledgerReport'])->name('reports.ledger');
         Route::get('/reports/ledger/print', [ReportController::class, 'printLedgerReport'])->name('reports.ledger.print');
-        Route::get('/reports/opname', [ReportController::class, 'opnameReport'])->name('reports.opname');
+        Route::get('/reports/opname', fn() => redirect()->route('stock_opnames.index'))->name('reports.opname');
         Route::get('/reports/opname/print', [ReportController::class, 'printOpnameReport'])->name('reports.opname.print');
-        Route::get('/reports/analytics', [ReportController::class, 'inventoryAnalytics'])->name('reports.analytics');
+        Route::get('/reports/analytics', fn() => redirect()->route('reports.stock'))->name('reports.analytics');
         Route::get('/reports/production-hpp', [ReportController::class, 'productionHppReport'])->name('reports.production_hpp');
         Route::get('/reports/production-hpp/print', [ReportController::class, 'printProductionHppReport'])->name('reports.production_hpp.print');
         Route::get('/reports/master-product', [ReportController::class, 'masterProductReport'])->name('reports.master_product');

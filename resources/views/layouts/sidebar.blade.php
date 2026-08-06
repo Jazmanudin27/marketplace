@@ -667,14 +667,6 @@
                                 <a href="{{ route('reports.ledger') }}"
                                     class="nav-link py-1 {{ request()->routeIs('reports.ledger*') ? 'active text-white' : 'text-secondary' }}">Kartu Stok Jadi</a>
                             @endcan
-                            @can('reports.opname')
-                                <a href="{{ route('reports.opname') }}"
-                                    class="nav-link py-1 {{ request()->routeIs('reports.opname*') ? 'active text-white' : 'text-secondary' }}">Riwayat Opname</a>
-                            @endcan
-                            @can('reports.analytics')
-                                <a href="{{ route('reports.analytics') }}"
-                                    class="nav-link py-1 {{ request()->routeIs('reports.analytics*') ? 'active text-white' : 'text-secondary' }}">Analitik Inventori</a>
-                            @endcan
                         @endif
 
                         <!-- Laporan Produksi -->
