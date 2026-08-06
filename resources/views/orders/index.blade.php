@@ -482,30 +482,32 @@
                                                         </div>
                                                     @endif
 
-                                                    {{-- Status Print --}}
-                                                    @if ($order->is_printed)
-                                                        <span class="badge bg-success-subtle text-success border border-success-subtle px-1.5 py-0.5" style="font-size:0.65rem;" title="{{ $order->printed_at ? 'Print: ' . $order->printed_at->format('d/m/Y H:i') : '' }}">
-                                                            <i class="fas fa-print me-1"></i>Sudah Print
-                                                        </span>
-                                                    @else
-                                                        <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-1.5 py-0.5" style="font-size:0.65rem;">
-                                                            <i class="fas fa-print me-1"></i>Belum Print
-                                                        </span>
-                                                    @endif
+                                                    @if ($order->order_status !== 'CANCELLED')
+                                                        {{-- Status Print --}}
+                                                        @if ($order->is_printed)
+                                                            <span class="badge bg-success-subtle text-success border border-success-subtle px-1.5 py-0.5" style="font-size:0.65rem;" title="{{ $order->printed_at ? 'Print: ' . $order->printed_at->format('d/m/Y H:i') : '' }}">
+                                                                <i class="fas fa-print me-1"></i>Sudah Print
+                                                            </span>
+                                                        @else
+                                                            <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-1.5 py-0.5" style="font-size:0.65rem;">
+                                                                <i class="fas fa-print me-1"></i>Belum Print
+                                                            </span>
+                                                        @endif
 
-                                                    {{-- Status Kemas --}}
-                                                    @if ($order->packing_status === 'verified')
-                                                        <span class="badge bg-success text-white px-1.5 py-0.5" style="font-size:0.65rem;" title="{{ $order->packed_at ? 'Kemas: ' . $order->packed_at->format('d/m/Y H:i') : '' }}">
-                                                            <i class="fas fa-check-circle me-1"></i>Verified
-                                                        </span>
-                                                    @elseif($order->packing_status === 'packing')
-                                                        <span class="badge bg-warning text-dark px-1.5 py-0.5" style="font-size:0.65rem;">
-                                                            <i class="fas fa-box-open me-1"></i>Packing
-                                                        </span>
-                                                    @else
-                                                        <span class="badge bg-light text-muted border px-1.5 py-0.5" style="font-size:0.65rem;">
-                                                            <i class="fas fa-hourglass-start me-1"></i>Menunggu
-                                                        </span>
+                                                        {{-- Status Kemas --}}
+                                                        @if ($order->packing_status === 'verified')
+                                                            <span class="badge bg-success text-white px-1.5 py-0.5" style="font-size:0.65rem;" title="{{ $order->packed_at ? 'Kemas: ' . $order->packed_at->format('d/m/Y H:i') : '' }}">
+                                                                <i class="fas fa-check-circle me-1"></i>Verified
+                                                            </span>
+                                                        @elseif($order->packing_status === 'packing')
+                                                            <span class="badge bg-warning text-dark px-1.5 py-0.5" style="font-size:0.65rem;">
+                                                                <i class="fas fa-box-open me-1"></i>Packing
+                                                            </span>
+                                                        @else
+                                                            <span class="badge bg-light text-muted border px-1.5 py-0.5" style="font-size:0.65rem;">
+                                                                <i class="fas fa-hourglass-start me-1"></i>Menunggu
+                                                            </span>
+                                                        @endif
                                                     @endif
                                                 </div>
                                             </td>
