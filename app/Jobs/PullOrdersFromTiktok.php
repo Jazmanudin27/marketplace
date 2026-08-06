@@ -182,9 +182,10 @@ class PullOrdersFromTiktok implements ShouldQueue
                 'phone' => $buyerPhone ?: '000000000',
             ],
             [
-                'name' => $buyerName,
-                'email' => null,
-                'address' => $buyerAddress,
+                'name'     => $buyerName,
+                'category' => 'marketplace',
+                'email'    => null,
+                'address'  => $buyerAddress,
             ]
         );
 

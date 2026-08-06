@@ -119,9 +119,10 @@ class PullOrdersFromShopee implements ShouldQueue
                 'marketplace_username' => $username,
             ],
             [
-                'name' => $username,
-                'phone' => $shopeeOrder['recipient_address']['phone'] ?? null,
-                'address' => $shopeeOrder['recipient_address']['full_address'] ?? null,
+                'name'     => $username,
+                'category' => 'marketplace',
+                'phone'    => $shopeeOrder['recipient_address']['phone'] ?? null,
+                'address'  => $shopeeOrder['recipient_address']['full_address'] ?? null,
             ]
         );
 

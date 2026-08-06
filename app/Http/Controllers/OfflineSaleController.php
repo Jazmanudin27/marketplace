@@ -78,6 +78,10 @@ class OfflineSaleController extends Controller
         $tenantId = Auth::user()->tenant_id;
         $products = MasterProduct::where('tenant_id', $tenantId)
             ->where('is_active', true)
+            ->where(function ($q) {
+                $q->where('is_bundle', false)
+                  ->orWhereNull('is_bundle');
+            })
             ->orderBy('name')
             ->get();
 
