@@ -524,7 +524,13 @@
                             $('#customer-select').append(newOption).trigger('change');
                             $('#modalCreateCustomer').modal('hide');
                             $('#form-quick-customer')[0].reset();
-                            alert('Pelanggan baru berhasil ditambahkan ke Data Master!');
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Pelanggan Disimpan!',
+                                text: 'Pelanggan baru berhasil ditambahkan ke Data Master!',
+                                timer: 1800,
+                                showConfirmButton: false
+                            });
                         }
                     },
                     error: function(xhr) {
@@ -533,7 +539,12 @@
                         if (xhr.responseJSON && xhr.responseJSON.message) {
                             errMsg = xhr.responseJSON.message;
                         }
-                        alert(errMsg);
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Gagal Menyimpan!',
+                            text: errMsg,
+                            confirmButtonColor: '#dc3545'
+                        });
                     }
                 });
             });
@@ -550,15 +561,27 @@
 
                 const activePrice = isDropshipCustomer ? resellerPrice : normalPrice;
 
-                // Jika PO Mode OFF dan stok <= 0, tampilkan alert stok kosong & batalkan
+                // Jika PO Mode OFF dan stok <= 0, tampilkan SweetAlert stok kosong & batalkan
                 if (!isPoMode && stock <= 0) {
-                    alert('Stok produk ini kosong (Stok: 0). Aktifkan switch Pre-Order / PO Produksi di atas jika ingin membuat pesanan PO!');
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Stok Produk Kosong!',
+                        html: `Stok untuk <strong>${name}</strong> saat ini <strong>0 Pcs</strong>.<br><br>Aktifkan switch <strong><i class="fas fa-hammer text-primary"></i> Pre-Order / PO Produksi (SPK)</strong> di atas jika ingin membuat pesanan PO untuk produk ini!`,
+                        confirmButtonText: 'Saya Mengerti',
+                        confirmButtonColor: '#0d6efd'
+                    });
                     return;
                 }
 
                 if (cartItems[id]) {
                     if (!isPoMode && cartItems[id].qty >= stock) {
-                        alert('Stok tidak mencukupi! Maksimal stok tersedia: ' + stock);
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Stok Tidak Mencukupi!',
+                            html: `Jumlah pesanan melebihi stok yang tersedia.<br>Maksimal stok <strong>${name}</strong> saat ini: <strong>${stock} Pcs</strong>.`,
+                            confirmButtonText: 'Tutup',
+                            confirmButtonColor: '#fd7e14'
+                        });
                         return;
                     }
                     cartItems[id].qty++;
@@ -723,7 +746,13 @@
                 }
                 const isPoMode = $('#is-po-switch').is(':checked');
                 if (!isPoMode && newQty > cartItems[id].stock) {
-                    alert('Stok tidak mencukupi! Maksimal stok tersedia: ' + cartItems[id].stock);
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Stok Tidak Mencukupi!',
+                        html: `Jumlah pesanan melebihi stok yang tersedia.<br>Maksimal stok <strong>${cartItems[id].name}</strong> saat ini: <strong>${cartItems[id].stock} Pcs</strong>.`,
+                        confirmButtonText: 'Tutup',
+                        confirmButtonColor: '#fd7e14'
+                    });
                     return;
                 }
                 cartItems[id].qty = newQty;
@@ -738,7 +767,13 @@
                 }
                 const isPoMode = $('#is-po-switch').is(':checked');
                 if (!isPoMode && qty > cartItems[id].stock) {
-                    alert('Stok tidak mencukupi! Maksimal stok tersedia: ' + cartItems[id].stock);
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Stok Tidak Mencukupi!',
+                        html: `Jumlah pesanan melebihi stok yang tersedia.<br>Maksimal stok <strong>${cartItems[id].name}</strong> saat ini: <strong>${cartItems[id].stock} Pcs</strong>.`,
+                        confirmButtonText: 'Tutup',
+                        confirmButtonColor: '#fd7e14'
+                    });
                     cartItems[id].qty = cartItems[id].stock;
                 } else {
                     cartItems[id].qty = qty;

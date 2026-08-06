@@ -101,13 +101,6 @@
                         </div>
                     </div>
 
-                    <div class="mb-3">
-                        <div class="form-check form-switch">
-                            <input class="form-check-input" type="checkbox" name="hide_zero_sales" value="1" id="hideZeroSales" {{ !empty($hideZeroSales) ? 'checked' : '' }}>
-                            <label class="form-check-label small fw-semibold text-dark" for="hideZeroSales">
-                                Sembunyikan / Hilangkan Produk 0 Penjualan
-                            </label>
-                        </div>
                     </div>
 
                     <div class="d-flex justify-content-end">
