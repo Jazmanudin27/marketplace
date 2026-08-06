@@ -22,6 +22,12 @@ class MasterProduct extends Model
         'price',
         'reseller_price',
         'cost_price',
+        'shopee_price',
+        'tiktok_price',
+        'lazada_price',
+        'shopee_dropship_price',
+        'tiktok_dropship_price',
+        'lazada_dropship_price',
         'stock',
         'min_stock',
         'unit',
@@ -37,13 +43,19 @@ class MasterProduct extends Model
     ];
 
     protected $casts = [
-        'price'     => 'decimal:2',
-        'reseller_price' => 'decimal:2',
-        'cost_price'=> 'decimal:2',
-        'is_active' => 'boolean',
-        'is_preorder' => 'boolean',
-        'preorder_days' => 'integer',
-        'is_bundle' => 'boolean',
+        'price'                 => 'decimal:2',
+        'reseller_price'        => 'decimal:2',
+        'cost_price'            => 'decimal:2',
+        'shopee_price'          => 'decimal:2',
+        'tiktok_price'          => 'decimal:2',
+        'lazada_price'          => 'decimal:2',
+        'shopee_dropship_price' => 'decimal:2',
+        'tiktok_dropship_price' => 'decimal:2',
+        'lazada_dropship_price' => 'decimal:2',
+        'is_active'             => 'boolean',
+        'is_preorder'           => 'boolean',
+        'preorder_days'         => 'integer',
+        'is_bundle'             => 'boolean',
     ];
 
     public function category()

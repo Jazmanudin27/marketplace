@@ -53,53 +53,72 @@ class PushPriceToMarketplaces implements ShouldQueue
                     continue;
                 }
 
+                $channelCode = strtolower($mp->store->channel->code ?? '');
+                $targetPrice = 0;
+
+                if ($channelCode === 'shopee') {
+                    $targetPrice = (float) ($masterProduct->shopee_price ?? 0);
+                } elseif ($channelCode === 'tiktok') {
+                    $targetPrice = (float) ($masterProduct->tiktok_price ?? 0);
+                } elseif ($channelCode === 'lazada') {
+                    $targetPrice = (float) ($masterProduct->lazada_price ?? 0);
+                } elseif ($channelCode === 'tokopedia') {
+                    $targetPrice = (float) ($masterProduct->shopee_price ?? 0);
+                }
+
+                // HARGA OFFLINE (price / reseller_price) TIDAK BOLEH PUSH KE MARKETPLACE
+                // Hanya push jika harga khusus channel tersebut diisi dan > 0
+                if ($targetPrice <= 0) {
+                    Log::info("[Marketplace Push] Skip update harga untuk channel {$channelCode} pada MP Product ID: {$mp->id} karena harga khusus channel ({$channelCode}_price) belum diisi.");
+                    continue;
+                }
+
                 $accessToken = $mp->store->getValidAccessToken();
 
-                if ($mp->store->channel->code === 'shopee') {
+                if ($channelCode === 'shopee') {
                     $shopeeService->updatePrice(
                         $accessToken,
                         (int) $mp->store->marketplace_store_id,
                         (int) $mp->marketplace_product_id,
-                        $this->newPrice,
+                        $targetPrice,
                         $mp->marketplace_variant_id
                     );
-                    Log::info("[Shopee] Berhasil update harga untuk MP Product ID: {$mp->id} menjadi {$this->newPrice}");
-                } elseif ($mp->store->channel->code === 'tiktok') {
+                    Log::info("[Shopee] Berhasil update harga untuk MP Product ID: {$mp->id} menjadi {$targetPrice}");
+                } elseif ($channelCode === 'tiktok') {
                     $tiktokService = app(\App\Services\TiktokService::class);
                     $tiktokService->updatePrice(
                         $accessToken,
                         $mp->store->shop_cipher,
                         $mp->marketplace_product_id,
                         $mp->marketplace_variant_id,
-                        $this->newPrice
+                        $targetPrice
                     );
-                    Log::info("[TikTok] Berhasil update harga untuk MP Product ID: {$mp->id} menjadi {$this->newPrice}");
-                } elseif ($mp->store->channel->code === 'tokopedia') {
+                    Log::info("[TikTok] Berhasil update harga untuk MP Product ID: {$mp->id} menjadi {$targetPrice}");
+                } elseif ($channelCode === 'tokopedia') {
                     $tokopediaService = app(\App\Services\TokopediaService::class);
                     $tokopediaService->updatePrice(
                         $accessToken,
                         $mp->store->marketplace_store_id,
                         $mp->marketplace_product_id,
                         $mp->marketplace_variant_id,
-                        $this->newPrice
+                        $targetPrice
                     );
-                    Log::info("[Tokopedia] Berhasil update harga untuk MP Product ID: {$mp->id} menjadi {$this->newPrice}");
-                } elseif ($mp->store->channel->code === 'lazada') {
+                    Log::info("[Tokopedia] Berhasil update harga untuk MP Product ID: {$mp->id} menjadi {$targetPrice}");
+                } elseif ($channelCode === 'lazada') {
                     $lazadaService = app(\App\Services\LazadaService::class);
                     $lazadaService->updatePrice(
                         $accessToken,
                         $mp->store->marketplace_store_id,
                         $mp->marketplace_product_id,
                         $mp->marketplace_variant_id,
-                        $this->newPrice
+                        $targetPrice
                     );
-                    Log::info("[Lazada] Berhasil update harga untuk MP Product ID: {$mp->id} menjadi {$this->newPrice}");
+                    Log::info("[Lazada] Berhasil update harga untuk MP Product ID: {$mp->id} menjadi {$targetPrice}");
                 }
-
 
                 // Update local price in marketplace_products table
                 $mp->update([
-                    'price' => $this->newPrice,
+                    'price' => $targetPrice,
                     'last_synced_at' => now()
                 ]);
 

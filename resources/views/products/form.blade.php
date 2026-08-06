@@ -84,47 +84,104 @@
                             @enderror
                         </div>
 
-                        <div class="row">
-                            <div class="col-md-4 mb-3">
-                                <label for="price" class="form-label form-label-sm fw-semibold">Harga Normal (Rp) <span
-                                        class="text-danger">*</span></label>
-                                <div class="input-group input-group-sm">
-                                    <span class="input-group-text"><i class="fas fa-money-bill"></i></span>
-                                    <input type="text" id="price" name="price"
-                                        class="form-control form-control-sm formatted-number-input"
-                                        value="{{ old('price', isset($product->price) ? (int) $product->price : '') }}"
-                                        required placeholder="0">
-                                    <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal"
-                                        data-bs-target="#priceCalculatorModal">
-                                        <i class="fas fa-calculator me-1"></i> Hitung Profit
-                                    </button>
+                        {{-- HARGA OFFLINE & HPP --}}
+                        <div class="card border border-light shadow-sm p-3 mb-3 bg-light bg-opacity-50 rounded">
+                            <h6 class="fw-bold text-dark mb-3"><i class="fas fa-store text-primary me-2"></i>Harga Toko Offline &amp; HPP Modal</h6>
+                            <div class="row">
+                                <div class="col-md-4 mb-3">
+                                    <label for="price" class="form-label form-label-sm fw-semibold">Harga Normal (Offline POS) <span class="text-danger">*</span></label>
+                                    <div class="input-group input-group-sm">
+                                        <span class="input-group-text"><i class="fas fa-money-bill"></i></span>
+                                        <input type="text" id="price" name="price"
+                                            class="form-control form-control-sm formatted-number-input"
+                                            value="{{ old('price', isset($product->price) ? (int) $product->price : '') }}"
+                                            required placeholder="0">
+                                        <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal"
+                                            data-bs-target="#priceCalculatorModal">
+                                            <i class="fas fa-calculator me-1"></i> Hitung
+                                        </button>
+                                    </div>
+                                    <div class="small text-muted" style="font-size:0.7rem;">⚠️ Tidak di-push ke marketplace</div>
+                                    @error('price')
+                                        <div class="text-danger mt-1 small">{{ $message }}</div>
+                                    @enderror
                                 </div>
-                                @error('price')
-                                    <div class="text-danger mt-1 small">{{ $message }}</div>
-                                @enderror
-                            </div>
-                            <div class="col-md-4 mb-3">
-                                <label for="reseller_price" class="form-label form-label-sm fw-semibold">Harga Dropship (Rp)</label>
-                                <div class="input-group input-group-sm">
-                                    <span class="input-group-text"><i class="fas fa-hand-holding-usd"></i></span>
-                                    <input type="text" id="reseller_price" name="reseller_price"
-                                        class="form-control form-control-sm formatted-number-input"
-                                        value="{{ old('reseller_price', isset($product->reseller_price) ? (int) $product->reseller_price : '') }}"
-                                        placeholder="0">
+
+                                <div class="col-md-4 mb-3">
+                                    <label for="reseller_price" class="form-label form-label-sm fw-semibold">Harga Dropship (Offline POS)</label>
+                                    <div class="input-group input-group-sm">
+                                        <span class="input-group-text"><i class="fas fa-hand-holding-usd"></i></span>
+                                        <input type="text" id="reseller_price" name="reseller_price"
+                                            class="form-control form-control-sm formatted-number-input"
+                                            value="{{ old('reseller_price', isset($product->reseller_price) ? (int) $product->reseller_price : '') }}"
+                                            placeholder="0">
+                                    </div>
+                                    <div class="small text-muted" style="font-size:0.7rem;">⚠️ Tidak di-push ke marketplace</div>
+                                    @error('reseller_price')
+                                        <div class="text-danger mt-1 small">{{ $message }}</div>
+                                    @enderror
                                 </div>
-                                @error('reseller_price')
-                                    <div class="text-danger mt-1 small">{{ $message }}</div>
-                                @enderror
+
+                                <div class="col-md-4 mb-3">
+                                    <label for="cost_price" class="form-label form-label-sm fw-semibold">HPP Produk / Modal (Rp)</label>
+                                    <div class="input-group input-group-sm">
+                                        <span class="input-group-text"><i class="fas fa-wallet"></i></span>
+                                        <input type="text" id="cost_price" name="cost_price"
+                                            class="form-control form-control-sm formatted-number-input"
+                                            value="{{ old('cost_price', isset($product->cost_price) ? (int) $product->cost_price : '') }}"
+                                            placeholder="0">
+                                    </div>
+                                </div>
                             </div>
-                            <div class="col-md-4 mb-3">
-                                <label for="cost_price" class="form-label form-label-sm fw-semibold">HPP PRODUK / Harga
-                                    Modal (Rp)</label>
-                                <div class="input-group input-group-sm">
-                                    <span class="input-group-text"><i class="fas fa-wallet"></i></span>
-                                    <input type="text" id="cost_price" name="cost_price"
-                                        class="form-control form-control-sm formatted-number-input"
-                                        value="{{ old('cost_price', isset($product->cost_price) ? (int) $product->cost_price : '') }}"
-                                        placeholder="0">
+                        </div>
+
+                        {{-- HARGA MARKETPLACE --}}
+                        <div class="card border border-primary border-opacity-25 p-3 mb-3 rounded bg-white">
+                            <h6 class="fw-bold text-primary mb-3"><i class="fas fa-shopping-bag me-2"></i>Harga Toko Marketplace (Normal &amp; Dropship)</h6>
+                            <div class="row g-3">
+                                {{-- Shopee Prices --}}
+                                <div class="col-md-4">
+                                    <div class="p-2.5 border border-danger border-opacity-25 rounded bg-danger bg-opacity-10">
+                                        <div class="fw-bold text-danger mb-2 small"><i class="fas fa-store me-1"></i>Shopee</div>
+                                        <div class="mb-2">
+                                            <label for="shopee_price" class="form-label form-label-sm text-muted fw-semibold mb-1">Harga Normal Shopee</label>
+                                            <input type="text" id="shopee_price" name="shopee_price" class="form-control form-control-sm formatted-number-input" value="{{ old('shopee_price', isset($product->shopee_price) ? (int) $product->shopee_price : '') }}" placeholder="0">
+                                        </div>
+                                        <div>
+                                            <label for="shopee_dropship_price" class="form-label form-label-sm text-muted fw-semibold mb-1">Harga Dropship Shopee</label>
+                                            <input type="text" id="shopee_dropship_price" name="shopee_dropship_price" class="form-control form-control-sm formatted-number-input" value="{{ old('shopee_dropship_price', isset($product->shopee_dropship_price) ? (int) $product->shopee_dropship_price : '') }}" placeholder="0">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {{-- TikTok Shop Prices --}}
+                                <div class="col-md-4">
+                                    <div class="p-2.5 border border-dark border-opacity-25 rounded bg-dark bg-opacity-10">
+                                        <div class="fw-bold text-dark mb-2 small"><i class="fab fa-tiktok me-1"></i>TikTok Shop</div>
+                                        <div class="mb-2">
+                                            <label for="tiktok_price" class="form-label form-label-sm text-muted fw-semibold mb-1">Harga Normal TikTok</label>
+                                            <input type="text" id="tiktok_price" name="tiktok_price" class="form-control form-control-sm formatted-number-input" value="{{ old('tiktok_price', isset($product->tiktok_price) ? (int) $product->tiktok_price : '') }}" placeholder="0">
+                                        </div>
+                                        <div>
+                                            <label for="tiktok_dropship_price" class="form-label form-label-sm text-muted fw-semibold mb-1">Harga Dropship TikTok</label>
+                                            <input type="text" id="tiktok_dropship_price" name="tiktok_dropship_price" class="form-control form-control-sm formatted-number-input" value="{{ old('tiktok_dropship_price', isset($product->tiktok_dropship_price) ? (int) $product->tiktok_dropship_price : '') }}" placeholder="0">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {{-- Lazada Prices --}}
+                                <div class="col-md-4">
+                                    <div class="p-2.5 border border-primary border-opacity-25 rounded bg-primary bg-opacity-10">
+                                        <div class="fw-bold text-primary mb-2 small"><i class="fas fa-shopping-cart me-1"></i>Lazada</div>
+                                        <div class="mb-2">
+                                            <label for="lazada_price" class="form-label form-label-sm text-muted fw-semibold mb-1">Harga Normal Lazada</label>
+                                            <input type="text" id="lazada_price" name="lazada_price" class="form-control form-control-sm formatted-number-input" value="{{ old('lazada_price', isset($product->lazada_price) ? (int) $product->lazada_price : '') }}" placeholder="0">
+                                        </div>
+                                        <div>
+                                            <label for="lazada_dropship_price" class="form-label form-label-sm text-muted fw-semibold mb-1">Harga Dropship Lazada</label>
+                                            <input type="text" id="lazada_dropship_price" name="lazada_dropship_price" class="form-control form-control-sm formatted-number-input" value="{{ old('lazada_dropship_price', isset($product->lazada_dropship_price) ? (int) $product->lazada_dropship_price : '') }}" placeholder="0">
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>

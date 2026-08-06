@@ -742,13 +742,12 @@
                 @csrf
                 <div class="modal-body p-4">
                     <div class="alert alert-info py-2.5 px-3 small border-0 bg-info bg-opacity-10 text-dark mb-3">
-                        <div class="fw-bold mb-1"><i class="fas fa-info-circle text-info me-1"></i>Format Kolom File CSV:</div>
-                        <code class="d-block bg-white p-2 rounded border font-monospace text-primary">sku,hpp,harga_normal,harga_dropship</code>
-                        <div class="mt-2 text-muted" style="font-size: 0.75rem;">
-                            &bull; <code>sku</code>: Kode SKU variasi produk (Wajib)<br>
-                            &bull; <code>hpp</code>: Harga Pokok Produksi / Harga Modal (Rp)<br>
-                            &bull; <code>harga_normal</code>: Harga Jual Standar / Eceran (Rp)<br>
-                            &bull; <code>harga_dropship</code>: Harga Khusus Reseller / Dropshipper (Rp)
+                        <div class="fw-bold mb-1"><i class="fas fa-info-circle text-info me-1"></i>Format Kolom File CSV / Excel:</div>
+                        <code class="d-block bg-white p-2 rounded border font-monospace text-primary" style="font-size:0.7rem;overflow-x:auto;white-space:nowrap;">sku,hpp,harga_normal,harga_dropship,harga_shopee,harga_tiktok,harga_lazada,harga_dropship_shopee,harga_dropship_tiktok,harga_dropship_lazada</code>
+                        <div class="mt-2 text-muted" style="font-size: 0.72rem;">
+                            &bull; <code>sku</code>: Kode SKU Produk (Wajib)<br>
+                            &bull; <code>harga_normal</code> / <code>harga_dropship</code>: Khusus Kasir Offline POS (<strong>Tidak di-push ke marketplace</strong>)<br>
+                            &bull; <code>harga_shopee</code>, <code>harga_tiktok</code>, <code>harga_lazada</code>: Khusus Push Sync ke toko masing-masing marketplace
                         </div>
                     </div>
 

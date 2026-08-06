@@ -233,9 +233,15 @@ class MasterProductController extends Controller
             'sku'          => 'nullable|string|max:100|unique:master_products,sku',
             'sku_induk'    => 'nullable|string|max:100',
             'name'         => 'required|string|min:30|max:255',
-            'price'        => 'required|numeric|min:0',
-            'reseller_price' => 'nullable|numeric|min:0',
-            'cost_price'   => 'nullable|numeric|min:0',
+            'price'                 => 'required|numeric|min:0',
+            'reseller_price'        => 'nullable|numeric|min:0',
+            'cost_price'            => 'nullable|numeric|min:0',
+            'shopee_price'          => 'nullable|numeric|min:0',
+            'tiktok_price'          => 'nullable|numeric|min:0',
+            'lazada_price'          => 'nullable|numeric|min:0',
+            'shopee_dropship_price' => 'nullable|numeric|min:0',
+            'tiktok_dropship_price' => 'nullable|numeric|min:0',
+            'lazada_dropship_price' => 'nullable|numeric|min:0',
             'stock'        => 'required|integer|min:0',
             'min_stock'    => 'nullable|integer|min:0',
             'unit'         => 'nullable|string|max:50',
@@ -431,9 +437,15 @@ class MasterProductController extends Controller
             'sku'          => 'nullable|string|max:100|unique:master_products,sku,' . $product->id,
             'sku_induk'    => 'nullable|string|max:100',
             'name'         => 'required|string|min:30|max:255',
-            'price'        => 'required|numeric|min:0',
-            'reseller_price' => 'nullable|numeric|min:0',
-            'cost_price'   => 'nullable|numeric|min:0',
+            'price'                 => 'required|numeric|min:0',
+            'reseller_price'        => 'nullable|numeric|min:0',
+            'cost_price'            => 'nullable|numeric|min:0',
+            'shopee_price'          => 'nullable|numeric|min:0',
+            'tiktok_price'          => 'nullable|numeric|min:0',
+            'lazada_price'          => 'nullable|numeric|min:0',
+            'shopee_dropship_price' => 'nullable|numeric|min:0',
+            'tiktok_dropship_price' => 'nullable|numeric|min:0',
+            'lazada_dropship_price' => 'nullable|numeric|min:0',
             'stock'        => 'required|integer|min:0',
             'min_stock'    => 'nullable|integer|min:0',
             'unit'         => 'nullable|string|max:50',
@@ -1461,15 +1473,21 @@ class MasterProductController extends Controller
             // Add UTF-8 BOM for Excel compatibility
             fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF));
 
-            // Headers: sku, hpp, harga_normal, harga_dropship
-            fputcsv($file, ['sku', 'hpp', 'harga_normal', 'harga_dropship']);
+            // Headers: sku, hpp, harga_normal, harga_dropship, harga_shopee, harga_tiktok, harga_lazada, harga_dropship_shopee, harga_dropship_tiktok, harga_dropship_lazada
+            fputcsv($file, ['sku', 'hpp', 'harga_normal', 'harga_dropship', 'harga_shopee', 'harga_tiktok', 'harga_lazada', 'harga_dropship_shopee', 'harga_dropship_tiktok', 'harga_dropship_lazada']);
 
             foreach ($products as $p) {
                 fputcsv($file, [
                     $p->sku,
                     (int)$p->cost_price,
                     (int)$p->price,
-                    (int)$p->reseller_price
+                    (int)$p->reseller_price,
+                    (int)$p->shopee_price,
+                    (int)$p->tiktok_price,
+                    (int)$p->lazada_price,
+                    (int)$p->shopee_dropship_price,
+                    (int)$p->tiktok_dropship_price,
+                    (int)$p->lazada_dropship_price
                 ]);
             }
 
@@ -1480,7 +1498,7 @@ class MasterProductController extends Controller
     }
 
     /**
-     * Import Harga Masal (SKU, HPP, Harga Normal, Harga Dropship)
+     * Import Harga Masal (SKU, HPP, Harga Normal, Harga Dropship, Harga Marketplace)
      */
     public function importPrices(Request $request)
     {
@@ -1530,10 +1548,16 @@ class MasterProductController extends Controller
             $headerMap[$clean] = $idx;
         }
 
-        $skuIdx           = $headerMap['sku'] ?? null;
-        $hppIdx           = $headerMap['hpp'] ?? $headerMap['cost_price'] ?? null;
-        $hargaNormalIdx   = $headerMap['harga_normal'] ?? $headerMap['harganormal'] ?? $headerMap['harga_jual'] ?? $headerMap['price'] ?? null;
-        $hargaDropshipIdx = $headerMap['harga_dropship'] ?? $headerMap['hargadropship'] ?? $headerMap['harga_reseller'] ?? $headerMap['reseller_price'] ?? null;
+        $skuIdx                 = $headerMap['sku'] ?? null;
+        $hppIdx                 = $headerMap['hpp'] ?? $headerMap['cost_price'] ?? null;
+        $hargaNormalIdx         = $headerMap['harga_normal'] ?? $headerMap['harganormal'] ?? $headerMap['harga_jual'] ?? $headerMap['price'] ?? null;
+        $hargaDropshipIdx       = $headerMap['harga_dropship'] ?? $headerMap['hargadropship'] ?? $headerMap['harga_reseller'] ?? $headerMap['reseller_price'] ?? null;
+        $hargaShopeeIdx         = $headerMap['harga_shopee'] ?? $headerMap['shopee_price'] ?? null;
+        $hargaTiktokIdx         = $headerMap['harga_tiktok'] ?? $headerMap['tiktok_price'] ?? null;
+        $hargaLazadaIdx         = $headerMap['harga_lazada'] ?? $headerMap['lazada_price'] ?? null;
+        $hargaDropshipShopeeIdx = $headerMap['harga_dropship_shopee'] ?? $headerMap['shopee_dropship_price'] ?? null;
+        $hargaDropshipTiktokIdx = $headerMap['harga_dropship_tiktok'] ?? $headerMap['tiktok_dropship_price'] ?? null;
+        $hargaDropshipLazadaIdx = $headerMap['harga_dropship_lazada'] ?? $headerMap['lazada_dropship_price'] ?? null;
 
         if ($skuIdx === null) {
             fclose($handle);
@@ -1568,26 +1592,45 @@ class MasterProductController extends Controller
                     $val = (float) str_replace(['.', ',', 'Rp', ' '], ['', '.', '', ''], trim($row[$hppIdx]));
                     $updateData['cost_price'] = max(0, $val);
                 }
-
                 if ($hargaNormalIdx !== null && isset($row[$hargaNormalIdx]) && trim($row[$hargaNormalIdx]) !== '') {
                     $val = (float) str_replace(['.', ',', 'Rp', ' '], ['', '.', '', ''], trim($row[$hargaNormalIdx]));
                     $updateData['price'] = max(0, $val);
                 }
-
                 if ($hargaDropshipIdx !== null && isset($row[$hargaDropshipIdx]) && trim($row[$hargaDropshipIdx]) !== '') {
                     $val = (float) str_replace(['.', ',', 'Rp', ' '], ['', '.', '', ''], trim($row[$hargaDropshipIdx]));
                     $updateData['reseller_price'] = max(0, $val);
+                }
+                if ($hargaShopeeIdx !== null && isset($row[$hargaShopeeIdx]) && trim($row[$hargaShopeeIdx]) !== '') {
+                    $val = (float) str_replace(['.', ',', 'Rp', ' '], ['', '.', '', ''], trim($row[$hargaShopeeIdx]));
+                    $updateData['shopee_price'] = max(0, $val);
+                }
+                if ($hargaTiktokIdx !== null && isset($row[$hargaTiktokIdx]) && trim($row[$hargaTiktokIdx]) !== '') {
+                    $val = (float) str_replace(['.', ',', 'Rp', ' '], ['', '.', '', ''], trim($row[$hargaTiktokIdx]));
+                    $updateData['tiktok_price'] = max(0, $val);
+                }
+                if ($hargaLazadaIdx !== null && isset($row[$hargaLazadaIdx]) && trim($row[$hargaLazadaIdx]) !== '') {
+                    $val = (float) str_replace(['.', ',', 'Rp', ' '], ['', '.', '', ''], trim($row[$hargaLazadaIdx]));
+                    $updateData['lazada_price'] = max(0, $val);
+                }
+                if ($hargaDropshipShopeeIdx !== null && isset($row[$hargaDropshipShopeeIdx]) && trim($row[$hargaDropshipShopeeIdx]) !== '') {
+                    $val = (float) str_replace(['.', ',', 'Rp', ' '], ['', '.', '', ''], trim($row[$hargaDropshipShopeeIdx]));
+                    $updateData['shopee_dropship_price'] = max(0, $val);
+                }
+                if ($hargaDropshipTiktokIdx !== null && isset($row[$hargaDropshipTiktokIdx]) && trim($row[$hargaDropshipTiktokIdx]) !== '') {
+                    $val = (float) str_replace(['.', ',', 'Rp', ' '], ['', '.', '', ''], trim($row[$hargaDropshipTiktokIdx]));
+                    $updateData['tiktok_dropship_price'] = max(0, $val);
+                }
+                if ($hargaDropshipLazadaIdx !== null && isset($row[$hargaDropshipLazadaIdx]) && trim($row[$hargaDropshipLazadaIdx]) !== '') {
+                    $val = (float) str_replace(['.', ',', 'Rp', ' '], ['', '.', '', ''], trim($row[$hargaDropshipLazadaIdx]));
+                    $updateData['lazada_dropship_price'] = max(0, $val);
                 }
 
                 if (!empty($updateData)) {
                     $product->update($updateData);
                     $updatedCount++;
 
-                    if ($syncMarketplace && isset($updateData['price'])) {
-                        $productsToSync[] = [
-                            'product_id' => $product->id,
-                            'price'      => $updateData['price'],
-                        ];
+                    if ($syncMarketplace) {
+                        $productsToSync[] = $product->id;
                     }
                 }
             }
@@ -1597,8 +1640,8 @@ class MasterProductController extends Controller
 
             // Dispatch background sync price to connected stores
             if (!empty($productsToSync)) {
-                foreach ($productsToSync as $pSync) {
-                    \App\Jobs\PushPriceToMarketplaces::dispatch($pSync['product_id'], $pSync['price']);
+                foreach ($productsToSync as $pId) {
+                    \App\Jobs\PushPriceToMarketplaces::dispatch($pId);
                 }
             }
         } catch (\Exception $e) {
