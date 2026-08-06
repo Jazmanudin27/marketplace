@@ -13,7 +13,7 @@ class OfflineSale extends Model
         'buyer_name', 'buyer_phone', 'buyer_address', 'payment_method', 'payment_destination',
         'total_amount', 'discount_amount', 'discount_type', 'discount_value', 'grand_total',
         'paid_amount', 'change_amount', 'notes', 'sold_at',
-        'is_dropship', 'dropshipper_name', 'dropshipper_phone', 'is_po',
+        'is_dropship', 'dropshipper_name', 'dropshipper_phone', 'resi_number', 'resi_file', 'is_po',
         'approved_by', 'approved_at',
         'cancellation_reason', 'cancelled_by',
     ];

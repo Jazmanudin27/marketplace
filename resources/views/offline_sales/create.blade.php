@@ -24,7 +24,7 @@
                 </a>
             </div>
 
-            <form id="offline-form" action="{{ route('offline_sales.store') }}" method="POST">
+            <form id="offline-form" action="{{ route('offline_sales.store') }}" method="POST" enctype="multipart/form-data">
                 @csrf
 
                 {{-- ========================================================================= --}}
@@ -83,6 +83,30 @@
                                 <input type="hidden" name="is_dropship" id="is-dropship-toggle" value="0">
                                 <input type="hidden" name="dropshipper_name" id="dropshipper-name-input" value="">
                                 <input type="hidden" name="dropshipper_phone" id="dropshipper-phone-input" value="">
+
+                                {{-- SECTION DROPSHIP & UPLOAD RESI --}}
+                                <div id="dropship-detail-section" class="card border border-warning border-opacity-50 bg-warning bg-opacity-10 mt-3 p-3 rounded" style="display: none;">
+                                    <div class="d-flex align-items-center mb-2">
+                                        <span class="badge bg-warning text-dark me-2 fw-bold"><i class="fas fa-shipping-fast me-1"></i>MODE DROPSHIP</span>
+                                        <span class="small fw-semibold text-dark">Informasi Resi &amp; Label Pengiriman</span>
+                                    </div>
+
+                                    <div class="row g-2 mt-1">
+                                        <div class="col-md-6">
+                                            <label class="form-label form-label-sm text-muted fw-semibold mb-1">
+                                                <i class="fas fa-barcode me-1 text-primary"></i>Nomor Resi / AWB Tracking
+                                            </label>
+                                            <input type="text" name="resi_number" id="resi-number-input" class="form-control form-control-sm font-monospace" placeholder="Contoh: JP123456789 / JNT001...">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label form-label-sm text-muted fw-semibold mb-1">
+                                                <i class="fas fa-file-upload me-1 text-primary"></i>Upload Label / Dokumen Resi
+                                            </label>
+                                            <input type="file" name="resi_file" id="resi-file-input" class="form-control form-control-sm" accept="image/*,.pdf">
+                                            <div class="small text-muted" style="font-size:0.7rem;">Format: JPG, PNG, PDF (Maks. 5MB)</div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -384,6 +408,7 @@
                         setDropshipMode(true);
                         $('#dropshipper-name-input').val(name);
                         $('#dropshipper-phone-input').val(phone || '');
+                        $('#dropship-detail-section').slideDown(150);
                         updateResellerDiscount();
                         $('#reseller-info-badge').html(
                                 '<i class="fas fa-percent me-1"></i> Mode Dropship Aktif — Menggunakan Harga Dropship')
@@ -393,6 +418,9 @@
                         setDropshipMode(false);
                         $('#dropshipper-name-input').val('');
                         $('#dropshipper-phone-input').val('');
+                        $('#dropship-detail-section').slideUp(150);
+                        $('#resi-number-input').val('');
+                        $('#resi-file-input').val('');
                         $('#discount-input').val('0');
                         $('#reseller-info-badge').hide();
                     }
@@ -409,6 +437,9 @@
                     setDropshipMode(false);
                     $('#dropshipper-name-input').val('');
                     $('#dropshipper-phone-input').val('');
+                    $('#dropship-detail-section').slideUp(150);
+                    $('#resi-number-input').val('');
+                    $('#resi-file-input').val('');
                     $('#discount-input').val('0');
                     $('#reseller-info-badge').hide();
 

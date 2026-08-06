@@ -174,25 +174,39 @@
                                     </div>
                                 @endif
                                 @if ($offlineSale->is_dropship)
-                                    <div class="col-md-12">
-                                        <div class="p-3 border border-warning rounded h-100 bg-warning bg-opacity-10">
-                                            <small class="text-warning-emphasis d-block text-uppercase fw-bold mb-2"
-                                                style="font-size: 0.65rem;">
-                                                <i class="fas fa-shipping-fast me-1"></i> Informasi Dropshipper
-                                            </small>
-                                            <div class="row g-2">
-                                                <div class="col-md-6 text-dark small">
-                                                    <span class="text-muted">Nama Pengirim:</span>
-                                                    <strong>{{ $offlineSale->dropshipper_name ?? '-' }}</strong>
-                                                </div>
-                                                <div class="col-md-6 text-dark small">
-                                                    <span class="text-muted">No. Telepon:</span> <strong
-                                                        class="font-monospace text-dark">{{ $offlineSale->dropshipper_phone ?? '-' }}</strong>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                @endif
+                                     <div class="col-md-12">
+                                         <div class="p-3 border border-warning rounded h-100 bg-warning bg-opacity-10">
+                                             <small class="text-warning-emphasis d-block text-uppercase fw-bold mb-2"
+                                                 style="font-size: 0.65rem;">
+                                                 <i class="fas fa-shipping-fast me-1"></i> Informasi Dropshipper &amp; Resi Pengiriman
+                                             </small>
+                                             <div class="row g-2">
+                                                 <div class="col-md-6 text-dark small">
+                                                     <span class="text-muted">Nama Pengirim:</span>
+                                                     <strong>{{ $offlineSale->dropshipper_name ?? '-' }}</strong>
+                                                 </div>
+                                                 <div class="col-md-6 text-dark small">
+                                                     <span class="text-muted">No. Telepon:</span> <strong
+                                                         class="font-monospace text-dark">{{ $offlineSale->dropshipper_phone ?? '-' }}</strong>
+                                                 </div>
+                                                 @if ($offlineSale->resi_number)
+                                                     <div class="col-md-6 text-dark small mt-2">
+                                                         <span class="text-muted">No. Resi / Tracking:</span>
+                                                         <strong class="font-monospace text-primary bg-white px-2 py-0.5 rounded border border-primary border-opacity-25">{{ $offlineSale->resi_number }}</strong>
+                                                     </div>
+                                                 @endif
+                                                 @if ($offlineSale->resi_file)
+                                                     <div class="col-md-6 text-dark small mt-2">
+                                                         <span class="text-muted">Dokumen Resi / Label:</span>
+                                                         <a href="{{ Storage::url($offlineSale->resi_file) }}" target="_blank" class="btn btn-sm btn-outline-primary py-0 px-2.5 fw-bold ms-1" style="font-size:0.75rem;">
+                                                             <i class="fas fa-file-download me-1"></i>Buka / Download Label Resi
+                                                         </a>
+                                                     </div>
+                                                 @endif
+                                             </div>
+                                         </div>
+                                     </div>
+                                 @endif
                                 @if ($offlineSale->status === \App\Models\OfflineSale::STATUS_CANCELLED && $offlineSale->cancellation_reason)
                                     <div class="col-md-12">
                                         <div class="p-3 border border-danger rounded h-100 bg-danger bg-opacity-10">

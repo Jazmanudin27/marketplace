@@ -118,6 +118,8 @@ class OfflineSaleController extends Controller
             'is_dropship'               => 'nullable|boolean',
             'dropshipper_name'          => 'nullable|required_if:is_dropship,1|string|max:100',
             'dropshipper_phone'         => 'nullable|required_if:is_dropship,1|string|max:20',
+            'resi_number'               => 'nullable|string|max:100',
+            'resi_file'                 => 'nullable|file|mimes:jpeg,jpg,png,pdf,webp|max:5120',
         ];
 
         if ($request->payment_method === 'piutang') {
@@ -133,6 +135,11 @@ class OfflineSaleController extends Controller
 
         $request->validate($rules);
 
+        $resiFilePath = null;
+        if ($request->hasFile('resi_file') && $request->file('resi_file')->isValid()) {
+            $resiFilePath = $request->file('resi_file')->store('dropship_resi', 'public');
+        }
+
         $tenantId = Auth::user()->tenant_id;
 
         if ($request->filled('customer_id')) {
@@ -142,7 +149,7 @@ class OfflineSaleController extends Controller
             }
         }
 
-        DB::transaction(function () use ($request, $tenantId) {
+        DB::transaction(function () use ($request, $tenantId, $resiFilePath) {
             $totalAmount    = 0;
             $globalDiscType = $request->discount_type ?? 'fixed';
             $globalDiscVal  = (float) ($request->discount_value ?? $request->discount_amount ?? 0);
@@ -253,10 +260,11 @@ class OfflineSaleController extends Controller
                 'change_amount'   => $changeAmount,
                 'notes'           => $request->notes,
                 'sold_at'         => now(),
-                'is_po'            => $request->boolean('is_po'),
                 'is_dropship'      => (bool) $request->is_dropship,
                 'dropshipper_name'  => $request->is_dropship ? $request->dropshipper_name : null,
                 'dropshipper_phone' => $request->is_dropship ? $request->dropshipper_phone : null,
+                'resi_number'       => $request->is_dropship ? $request->resi_number : null,
+                'resi_file'         => $request->is_dropship ? $resiFilePath : null,
             ]);
 
             foreach ($itemsData as $itemData) {
