@@ -638,6 +638,10 @@
                                 <a href="{{ route('reports.reseller_receivables') }}"
                                     class="nav-link py-1 {{ request()->routeIs('reports.reseller_receivables') ? 'active text-white' : 'text-secondary' }}">Saldo & Piutang</a>
                             @endif
+                            @if(auth()->user()->isSuperAdmin() || auth()->user()->can('reports.sales') || auth()->user()->can('view-warehouse-reports') || auth()->user()->can('view-financial-reports'))
+                                <a href="{{ route('reports.sales') }}"
+                                    class="nav-link py-1 {{ request()->routeIs('reports.sales') ? 'active text-white' : 'text-secondary' }}">Laporan Rekap Penjualan</a>
+                            @endif
                             @if(auth()->user()->isSuperAdmin() || auth()->user()->can('reports.inventory_turnover') || auth()->user()->can('view-financial-reports'))
                                 <a href="{{ route('reports.inventory_turnover') }}"
                                     class="nav-link py-1 {{ request()->routeIs('reports.inventory_turnover') ? 'active text-white' : 'text-secondary' }}">Perputaran Stok</a>

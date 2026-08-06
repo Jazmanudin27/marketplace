@@ -1135,4 +1135,225 @@ class ReportController extends Controller
 
         return back()->with('success', "Stok produk {$product->sku} ({$product->name}) berhasil disinkronkan ke marketplace.");
     }
+
+    /**
+     * Laporan Rekap Penjualan Produk (Filter Lengkap seperti Rekap Persediaan Stok)
+     */
+    public function salesReport(Request $request)
+    {
+        $tenantId = Auth::user()->tenant_id;
+        $categories = Category::where('tenant_id', $tenantId)->orderBy('name')->get();
+        $brands = Brand::where('tenant_id', $tenantId)->orderBy('name')->get();
+        $stores = \App\Models\Store::where('tenant_id', $tenantId)->with('channel')->orderBy('store_name')->get();
+
+        $dateFrom       = $request->input('date_from', date('Y-m-01'));
+        $dateTo         = $request->input('date_to', date('Y-m-d'));
+        $categoryId     = $request->input('category_id');
+        $brandId        = $request->input('brand_id');
+        $channelCode    = $request->input('channel_code', 'all');
+        $customerCat    = $request->input('customer_category', 'all');
+        $search         = $request->input('search');
+        $hideZeroSales  = $request->boolean('hide_zero_sales');
+
+        $data = $this->getSalesReportData($tenantId, $dateFrom, $dateTo, $categoryId, $brandId, $channelCode, $customerCat, $search, $hideZeroSales);
+
+        return view('reports.sales_report', array_merge($data, compact(
+            'categories', 'brands', 'stores', 'dateFrom', 'dateTo', 'categoryId',
+            'brandId', 'channelCode', 'customerCat', 'search', 'hideZeroSales'
+        )));
+    }
+
+    public function printSalesReport(Request $request)
+    {
+        $tenantId = Auth::user()->tenant_id;
+        $dateFrom       = $request->input('date_from', date('Y-m-01'));
+        $dateTo         = $request->input('date_to', date('Y-m-d'));
+        $categoryId     = $request->input('category_id');
+        $brandId        = $request->input('brand_id');
+        $channelCode    = $request->input('channel_code', 'all');
+        $customerCat    = $request->input('customer_category', 'all');
+        $search         = $request->input('search');
+        $hideZeroSales  = $request->boolean('hide_zero_sales');
+
+        $data = $this->getSalesReportData($tenantId, $dateFrom, $dateTo, $categoryId, $brandId, $channelCode, $customerCat, $search, $hideZeroSales);
+
+        return view('reports.print_sales_report', array_merge($data, compact('dateFrom', 'dateTo')));
+    }
+
+    public function exportSalesReport(Request $request)
+    {
+        $tenantId = Auth::user()->tenant_id;
+        $dateFrom       = $request->input('date_from', date('Y-m-01'));
+        $dateTo         = $request->input('date_to', date('Y-m-d'));
+        $categoryId     = $request->input('category_id');
+        $brandId        = $request->input('brand_id');
+        $channelCode    = $request->input('channel_code', 'all');
+        $customerCat    = $request->input('customer_category', 'all');
+        $search         = $request->input('search');
+        $hideZeroSales  = $request->boolean('hide_zero_sales');
+
+        $data = $this->getSalesReportData($tenantId, $dateFrom, $dateTo, $categoryId, $brandId, $channelCode, $customerCat, $search, $hideZeroSales);
+
+        $filename = "Laporan_Penjualan_Produk_" . date('Ymd_His') . ".csv";
+        $headers = [
+            "Content-Type"        => "text/csv; charset=UTF-8",
+            "Content-Disposition" => "attachment; filename=\"$filename\"",
+            "Pragma"              => "no-cache",
+            "Cache-Control"       => "must-revalidate, post-check=0, pre-check=0",
+            "Expires"             => "0"
+        ];
+
+        $callback = function () use ($data) {
+            $file = fopen('php://output', 'w');
+            fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF)); // BOM UTF-8
+
+            fputcsv($file, ['SKU', 'Nama Produk', 'Kategori', 'Brand', 'Stok Fisik', 'Qty Offline POS', 'Qty Online MP', 'Total Qty Terjual', 'HPP Modal (Rp)', 'Total Omset (Rp)', 'Total HPP (Rp)', 'Laba Kotor (Rp)', 'Margin (%)']);
+
+            foreach ($data['items'] as $item) {
+                fputcsv($file, [
+                    $item['sku'],
+                    $item['name'],
+                    $item['category_name'],
+                    $item['brand_name'],
+                    $item['stock'],
+                    $item['qty_offline'],
+                    $item['qty_online'],
+                    $item['qty_total'],
+                    (int)$item['cost_price'],
+                    (int)$item['total_omset'],
+                    (int)$item['total_hpp'],
+                    (int)$item['gross_profit'],
+                    round($item['profit_margin'], 2) . '%'
+                ]);
+            }
+
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
+    }
+
+    private function getSalesReportData($tenantId, $dateFrom, $dateTo, $categoryId = null, $brandId = null, $channelCode = 'all', $customerCat = 'all', $search = null, $hideZeroSales = false)
+    {
+        $productsQuery = MasterProduct::where('tenant_id', $tenantId)
+            ->with(['category', 'brand']);
+
+        if (!empty($categoryId)) {
+            $productsQuery->where('category_id', $categoryId);
+        }
+        if (!empty($brandId)) {
+            $productsQuery->where('brand_id', $brandId);
+        }
+        if (!empty($search)) {
+            $search = trim($search);
+            $productsQuery->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('sku', 'like', "%{$search}%");
+            });
+        }
+
+        $products = $productsQuery->orderBy('name')->get();
+
+        $items = [];
+        $grandTotalOmset = 0;
+        $grandTotalQty = 0;
+        $grandTotalHpp = 0;
+        $grandTotalProfit = 0;
+
+        foreach ($products as $p) {
+            $qtyOffline = 0;
+            $omsetOffline = 0.0;
+            $qtyOnline = 0;
+            $omsetOnline = 0.0;
+
+            // 1. Ambil Penjualan Offline POS (jika channel !== online)
+            if ($channelCode === 'all' || $channelCode === 'offline') {
+                $offQuery = \App\Models\OfflineSaleItem::where('master_product_id', $p->id)
+                    ->whereHas('offlineSale', function ($q) use ($tenantId, $dateFrom, $dateTo, $customerCat) {
+                        $q->where('tenant_id', $tenantId)
+                          ->whereIn('status', [\App\Models\OfflineSale::STATUS_COMPLETED, \App\Models\OfflineSale::STATUS_APPROVED])
+                          ->whereBetween('sold_at', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59']);
+                        
+                        if ($customerCat === 'dropship') {
+                            $q->where(function($dq) {
+                                $dq->where('is_dropship', true)
+                                  ->orWhereHas('customer', fn($cq) => $cq->where('category', 'dropship'));
+                            });
+                        } elseif ($customerCat === 'umum') {
+                            $q->where('is_dropship', false)
+                              ->where(function($cq) {
+                                  $cq->whereNull('customer_id')
+                                     ->orWhereHas('customer', fn($c) => $c->where('category', '!=', 'dropship'));
+                              });
+                        }
+                    });
+
+                $qtyOffline = (int) $offQuery->sum('quantity');
+                $omsetOffline = (float) $offQuery->sum('subtotal');
+            }
+
+            // 2. Ambil Penjualan Online Marketplace (jika channel !== offline)
+            if ($channelCode === 'all' || $channelCode !== 'offline') {
+                $onQuery = \App\Models\OrderItem::where('master_product_id', $p->id)
+                    ->whereHas('order', function ($q) use ($tenantId, $dateFrom, $dateTo, $channelCode) {
+                        $q->where('tenant_id', $tenantId)
+                          ->whereNotIn('order_status', ['CANCELLED', 'RETURNED'])
+                          ->whereBetween('order_date', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59']);
+
+                        if ($channelCode !== 'all') {
+                            $q->whereHas('store.channel', function ($cq) use ($channelCode) {
+                                $cq->where('code', strtolower($channelCode));
+                            });
+                        }
+                    });
+
+                $qtyOnline = (int) $onQuery->sum('quantity');
+                $omsetOnline = (float) $onQuery->sum('total_price');
+            }
+
+            $qtyTotal = $qtyOffline + $qtyOnline;
+            if ($hideZeroSales && $qtyTotal <= 0) {
+                continue;
+            }
+
+            $totalOmset = $omsetOffline + $omsetOnline;
+            $costPrice = (float) ($p->cost_price ?? 0);
+            $totalHpp = $qtyTotal * $costPrice;
+            $grossProfit = $totalOmset - $totalHpp;
+            $profitMargin = $totalOmset > 0 ? ($grossProfit / $totalOmset) * 100 : 0;
+
+            $grandTotalQty += $qtyTotal;
+            $grandTotalOmset += $totalOmset;
+            $grandTotalHpp += $totalHpp;
+            $grandTotalProfit += $grossProfit;
+
+            $items[] = [
+                'id'            => $p->id,
+                'sku'           => $p->sku,
+                'name'          => $p->name,
+                'category_name' => $p->category->name ?? '—',
+                'brand_name'    => $p->brand->name ?? '—',
+                'stock'         => $p->stock,
+                'qty_offline'   => $qtyOffline,
+                'qty_online'    => $qtyOnline,
+                'qty_total'     => $qtyTotal,
+                'cost_price'    => $costPrice,
+                'total_omset'   => $totalOmset,
+                'total_hpp'     => $totalHpp,
+                'gross_profit'  => $grossProfit,
+                'profit_margin' => $profitMargin,
+            ];
+        }
+
+        $overallMargin = $grandTotalOmset > 0 ? ($grandTotalProfit / $grandTotalOmset) * 100 : 0;
+
+        return [
+            'items'             => $items,
+            'grandTotalQty'     => $grandTotalQty,
+            'grandTotalOmset'   => $grandTotalOmset,
+            'grandTotalHpp'     => $grandTotalHpp,
+            'grandTotalProfit'  => $grandTotalProfit,
+            'overallMargin'     => $overallMargin,
+        ];
+    }
 }

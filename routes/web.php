@@ -643,6 +643,11 @@ Route::middleware('auth')->group(function () {
         Route::get('/reports/master-product', [ReportController::class, 'masterProductReport'])->name('reports.master_product');
         Route::get('/reports/master-product/print', [ReportController::class, 'printMasterProductReport'])->name('reports.master_product.print');
         Route::get('/reports/master-product/export', [ReportController::class, 'exportMasterProductReport'])->name('reports.master_product.export');
+        
+        // Laporan Rekap Penjualan Produk
+        Route::get('/reports/sales', [ReportController::class, 'salesReport'])->name('reports.sales');
+        Route::get('/reports/sales/print', [ReportController::class, 'printSalesReport'])->name('reports.sales.print');
+        Route::get('/reports/sales/export', [ReportController::class, 'exportSalesReport'])->name('reports.sales.export');
     });
 
     // =========================================================================
