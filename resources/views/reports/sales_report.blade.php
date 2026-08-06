@@ -90,6 +90,16 @@
                         </select>
                     </div>
 
+                    {{-- TIPE PENJUALAN DROPSHIP --}}
+                    <div class="mb-3">
+                        <label class="form-label form-label-sm fw-semibold">Tipe Penjualan Dropship</label>
+                        <select name="is_dropship" class="form-select form-select-sm">
+                            <option value="all" {{ ($dropshipFilter ?? 'all') === 'all' ? 'selected' : '' }}>Semua Transaksi (Dropship &amp; Non-Dropship)</option>
+                            <option value="1" {{ ($dropshipFilter ?? '') === '1' ? 'selected' : '' }}>🚚 Khusus Penjualan Dropship</option>
+                            <option value="0" {{ ($dropshipFilter ?? '') === '0' ? 'selected' : '' }}>🛍️ Khusus Penjualan Non-Dropship (Reguler / Eceran)</option>
+                        </select>
+                    </div>
+
                     {{-- STATUS TRANSAKSI --}}
                     <div class="mb-3">
                         <label class="form-label form-label-sm fw-semibold">Status Transaksi</label>

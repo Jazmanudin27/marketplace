@@ -1163,15 +1163,22 @@ class ReportController extends Controller
         $isPo           = $request->input('po_status');
         $channelCode    = $request->input('channel_code', 'all');
         $customerCat    = $request->input('customer_category', 'all');
+        $dropshipFilter = $request->input('is_dropship', 'all');
         $statusFilter   = $request->input('status', 'all');
         $reportFormat   = $request->input('report_format', 'per_produk');
         $search         = $request->input('search');
         $hideZeroSales  = $request->boolean('hide_zero_sales');
 
+        if ($dropshipFilter === '1') {
+            $customerCat = 'dropship';
+        } elseif ($dropshipFilter === '0') {
+            $customerCat = 'umum';
+        }
+
         return view('reports.sales_report', compact(
             'categories', 'brands', 'stores', 'customerCategories', 'customerCategoryLabels',
             'dateFrom', 'dateTo', 'categoryId', 'brandId', 'isBundle', 'isPo',
-            'channelCode', 'customerCat', 'statusFilter', 'reportFormat', 'search', 'hideZeroSales'
+            'channelCode', 'customerCat', 'dropshipFilter', 'statusFilter', 'reportFormat', 'search', 'hideZeroSales'
         ));
     }
 
@@ -1186,10 +1193,17 @@ class ReportController extends Controller
         $isPo           = $request->input('po_status');
         $channelCode    = $request->input('channel_code', 'all');
         $customerCat    = $request->input('customer_category', 'all');
+        $dropshipFilter = $request->input('is_dropship', 'all');
         $statusFilter   = $request->input('status', 'all');
         $reportFormat   = $request->input('report_format', 'per_produk');
         $search         = $request->input('search');
         $hideZeroSales  = $request->boolean('hide_zero_sales');
+
+        if ($dropshipFilter === '1') {
+            $customerCat = 'dropship';
+        } elseif ($dropshipFilter === '0') {
+            $customerCat = 'umum';
+        }
 
         $customerCategoryLabels = \App\Models\Customer::CATEGORIES;
 
