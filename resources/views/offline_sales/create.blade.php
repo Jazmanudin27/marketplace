@@ -46,9 +46,9 @@
                                 <div class="row g-3">
                                     {{-- Select Master Pelanggan --}}
                                     <div class="col-md-6" id="customer-select-wrapper">
-                                        <label class="form-label form-label-sm text-muted fw-semibold mb-1">Pilih Master Pelanggan</label>
-                                        <select name="customer_id" id="customer-select" class="form-select form-select-sm select2" style="width: 100%;">
-                                            <option value="">-- Pelanggan Umum --</option>
+                                        <label class="form-label form-label-sm text-muted fw-semibold mb-1">Pilih Master Pelanggan <span class="text-danger">*</span></label>
+                                        <select name="customer_id" id="customer-select" class="form-select form-select-sm select2" style="width: 100%;" required>
+                                            <option value="">-- Pilih Pelanggan (Wajib Pilih) --</option>
                                             @foreach ($customers as $cust)
                                                 <option value="{{ $cust->id }}" data-name="{{ $cust->name }}"
                                                     data-phone="{{ $cust->phone }}" data-address="{{ $cust->address }}"
@@ -63,19 +63,19 @@
                                     {{-- Nama Pembeli --}}
                                     <div class="col-md-6">
                                         <label class="form-label form-label-sm text-muted fw-semibold mb-1" id="buyer-name-label">Nama Pembeli</label>
-                                        <input type="text" name="buyer_name" id="buyer-name-input" class="form-control form-control-sm" placeholder="Pelanggan Umum">
+                                        <input type="text" name="buyer_name" id="buyer-name-input" class="form-control form-control-sm bg-light" placeholder="Otomatis dari Master Data" readonly required>
                                     </div>
 
                                     {{-- No HP --}}
                                     <div class="col-md-6">
                                         <label class="form-label form-label-sm text-muted fw-semibold mb-1" id="buyer-phone-label">No. HP / WA Pembeli</label>
-                                        <input type="text" name="buyer_phone" id="buyer-phone-input" class="form-control form-control-sm" placeholder="0812...">
+                                        <input type="text" name="buyer_phone" id="buyer-phone-input" class="form-control form-control-sm bg-light" placeholder="Otomatis dari Master Data" readonly>
                                     </div>
 
                                     {{-- Alamat --}}
                                     <div class="col-md-6">
                                         <label class="form-label form-label-sm text-muted fw-semibold mb-1">Alamat Pelanggan</label>
-                                        <textarea name="buyer_address" id="buyer-address-input" class="form-control form-control-sm" rows="1" placeholder="Alamat lengkap pelanggan..."></textarea>
+                                        <textarea name="buyer_address" id="buyer-address-input" class="form-control form-control-sm bg-light" rows="1" placeholder="Otomatis dari Master Data" readonly></textarea>
                                     </div>
                                 </div>
 
@@ -128,16 +128,25 @@
                 <div class="row g-4">
                     {{-- PILIH PRODUK & KERANJANG BELANJA (COL 8) --}}
                     <div class="col-lg-8">
-                        <div class="card border-0 shadow-sm mb-3">
+                        <div class="card border-0 shadow-sm mb-3 pe-none opacity-50" id="product-section-card">
                             <div class="card-header bg-light py-2 px-3 border-bottom">
                                 <h6 class="fw-bold mb-0 text-dark"><i class="fas fa-box me-2 text-primary"></i>Pilih Produk &amp; Keranjang Belanja</h6>
                             </div>
                             <div class="card-body p-3">
+                                {{-- Warning banner if customer not selected --}}
+                                <div id="customer-warning-banner" class="alert alert-warning py-2.5 px-3 mb-3 border-warning rounded-3 d-flex align-items-center gap-2">
+                                    <i class="fas fa-exclamation-triangle text-warning fs-5"></i>
+                                    <div>
+                                        <strong class="d-block text-dark small">Pelanggan Belum Dipilih!</strong>
+                                        <span class="text-muted small">Silakan pilih pelanggan terlebih dahulu pada form di atas (atau klik <strong>+ Pelanggan Baru</strong>) untuk membuka pilihan produk &amp; keranjang belanja.</span>
+                                    </div>
+                                </div>
+
                                 {{-- Pencarian produk --}}
                                 <div class="mb-3">
                                     <div class="input-group input-group-sm">
                                         <span class="input-group-text bg-light border"><i class="fas fa-search"></i></span>
-                                        <input type="text" id="product-search" class="form-control form-control-sm border" placeholder="Cari nama produk atau SKU...">
+                                        <input type="text" id="product-search" class="form-control form-control-sm border" placeholder="Cari nama produk atau SKU..." disabled>
                                     </div>
                                 </div>
 
@@ -354,11 +363,20 @@
                 const customerId = $('#customer-select').val();
 
                 if (customerId) {
+                    // Pelanggan dipilih -> Aktifkan area produk
+                    $('#customer-warning-banner').slideUp(150);
+                    $('#product-section-card').removeClass('pe-none opacity-50');
+                    $('#product-search').prop('disabled', false);
+
                     const name = selectedOption.data('name');
                     const phone = selectedOption.data('phone');
                     const address = selectedOption.data('address');
                     const category = String(selectedOption.data('category') || '');
                     const tags = String(selectedOption.data('tags') || '');
+
+                    $('#buyer-name-input').val(name).prop('readonly', true);
+                    $('#buyer-phone-input').val(phone || '').prop('readonly', true);
+                    $('#buyer-address-input').val(address || '').prop('readonly', true);
 
                     // Check if Reseller / Dropshipper berdasarkan kategori atau tag
                     if (category === 'dropship' || tags.toLowerCase().includes('reseller') || tags.toLowerCase().includes('dropship')) {
@@ -366,57 +384,36 @@
                         setDropshipMode(true);
                         $('#dropshipper-name-input').val(name);
                         $('#dropshipper-phone-input').val(phone || '');
-
-                        // Buyer fields kosong untuk diisi (pelanggan akhir dari dropshipper)
-                        $('#buyer-name-input').val('').prop('readonly', false);
-                        $('#buyer-phone-input').val('').prop('readonly', false);
-                        $('#buyer-address-input').val('').prop('readonly', false);
-
-                        $('#buyer-name-label').html('Nama Pembeli <span class="text-danger">*</span>');
-                        $('#buyer-phone-label').html('No. HP Pembeli <span class="text-danger">*</span>');
-                        $('#buyer-name-input').prop('required', true);
-                        $('#buyer-phone-input').prop('required', true);
-
-                        // Terapkan diskon reseller
                         updateResellerDiscount();
                         $('#reseller-info-badge').html(
-                                '<i class="fas fa-percent me-1"></i> Diskon Reseller 10% diterapkan otomatis')
+                                '<i class="fas fa-percent me-1"></i> Mode Dropship Aktif — Menggunakan Harga Dropship')
                             .show();
                     } else {
                         // Pelanggan biasa — harga normal
                         setDropshipMode(false);
                         $('#dropshipper-name-input').val('');
                         $('#dropshipper-phone-input').val('');
-
-                        $('#buyer-name-input').val(name).prop('readonly', true);
-                        $('#buyer-phone-input').val(phone || '').prop('readonly', true);
-                        $('#buyer-address-input').val(address || '').prop('readonly', true);
-
-                        $('#buyer-name-label').html('Nama Pembeli');
-                        $('#buyer-phone-label').html('No. HP Pembeli');
-                        $('#buyer-name-input').prop('required', false);
-                        $('#buyer-phone-input').prop('required', false);
-
                         $('#discount-input').val('0');
                         $('#reseller-info-badge').hide();
                     }
                 } else {
-                    // Pelanggan Umum — reset ke harga normal
+                    // Pelanggan belum dipilih -> Nonaktifkan area produk & reset
+                    $('#customer-warning-banner').slideDown(150);
+                    $('#product-section-card').addClass('pe-none opacity-50');
+                    $('#product-search').val('').prop('disabled', true);
+
+                    $('#buyer-name-input').val('').prop('readonly', true);
+                    $('#buyer-phone-input').val('').prop('readonly', true);
+                    $('#buyer-address-input').val('').prop('readonly', true);
+
                     setDropshipMode(false);
                     $('#dropshipper-name-input').val('');
                     $('#dropshipper-phone-input').val('');
-
-                    $('#buyer-name-input').val('').prop('readonly', false);
-                    $('#buyer-phone-input').val('').prop('readonly', false);
-                    $('#buyer-address-input').val('').prop('readonly', false);
-
-                    $('#buyer-name-label').html('Nama Pembeli');
-                    $('#buyer-phone-label').html('No. HP Pembeli');
-                    $('#buyer-name-input').prop('required', false);
-                    $('#buyer-phone-input').prop('required', false);
-
                     $('#discount-input').val('0');
                     $('#reseller-info-badge').hide();
+
+                    cartItems = {};
+                    renderCart();
                 }
                 recalculate();
             }
@@ -672,6 +669,9 @@
                 $('#global-discount-value').val(discVal);
                 $('#paid-input').val(unformatNumber($('#paid-input').val()));
             });
+
+            // Inisialisasi awal status pilihan pelanggan saat halaman dibuka
+            triggerCustomerSelectChange();
 
             function changeQty(id, delta) {
                 if (!cartItems[id]) return;
