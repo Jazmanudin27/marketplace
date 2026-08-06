@@ -1163,6 +1163,7 @@ class ReportController extends Controller
         $isPo           = $request->input('po_status');
         $channelCode    = $request->input('channel_code', 'all');
         $customerCat    = $request->input('customer_category', 'all');
+        $statusFilter   = $request->input('status', 'all');
         $reportFormat   = $request->input('report_format', 'per_produk');
         $search         = $request->input('search');
         $hideZeroSales  = $request->boolean('hide_zero_sales');
@@ -1170,7 +1171,7 @@ class ReportController extends Controller
         return view('reports.sales_report', compact(
             'categories', 'brands', 'stores', 'customerCategories', 'customerCategoryLabels',
             'dateFrom', 'dateTo', 'categoryId', 'brandId', 'isBundle', 'isPo',
-            'channelCode', 'customerCat', 'reportFormat', 'search', 'hideZeroSales'
+            'channelCode', 'customerCat', 'statusFilter', 'reportFormat', 'search', 'hideZeroSales'
         ));
     }
 
@@ -1185,6 +1186,7 @@ class ReportController extends Controller
         $isPo           = $request->input('po_status');
         $channelCode    = $request->input('channel_code', 'all');
         $customerCat    = $request->input('customer_category', 'all');
+        $statusFilter   = $request->input('status', 'all');
         $reportFormat   = $request->input('report_format', 'per_produk');
         $search         = $request->input('search');
         $hideZeroSales  = $request->boolean('hide_zero_sales');
@@ -1192,20 +1194,20 @@ class ReportController extends Controller
         $customerCategoryLabels = \App\Models\Customer::CATEGORIES;
 
         if ($reportFormat === 'per_channel') {
-            $data = $this->getSalesReportPerChannelData($tenantId, $dateFrom, $dateTo, $customerCat);
+            $data = $this->getSalesReportPerChannelData($tenantId, $dateFrom, $dateTo, $channelCode, $customerCat, $statusFilter);
             return view('reports.print_sales_report_channel', array_merge($data, compact('dateFrom', 'dateTo', 'customerCat')));
         } elseif ($reportFormat === 'detail') {
-            $data = $this->getSalesReportDetailData($tenantId, $dateFrom, $dateTo, $categoryId, $brandId, $channelCode, $customerCat, $search, $isBundle, $isPo);
+            $data = $this->getSalesReportDetailData($tenantId, $dateFrom, $dateTo, $categoryId, $brandId, $channelCode, $customerCat, $statusFilter, $search, $isBundle, $isPo);
             return view('reports.print_sales_report_detail', array_merge($data, compact('dateFrom', 'dateTo')));
         } elseif ($reportFormat === 'per_tanggal') {
-            $data = $this->getSalesReportPerDateData($tenantId, $dateFrom, $dateTo, $channelCode, $customerCat);
+            $data = $this->getSalesReportPerDateData($tenantId, $dateFrom, $dateTo, $channelCode, $customerCat, $statusFilter);
             return view('reports.print_sales_report_date', array_merge($data, compact('dateFrom', 'dateTo')));
         } elseif ($reportFormat === 'per_kategori_pelanggan') {
-            $data = $this->getSalesReportPerCustomerCategoryData($tenantId, $dateFrom, $dateTo, $channelCode);
+            $data = $this->getSalesReportPerCustomerCategoryData($tenantId, $dateFrom, $dateTo, $channelCode, $statusFilter);
             return view('reports.print_sales_report_customer_category', array_merge($data, compact('dateFrom', 'dateTo', 'customerCategoryLabels')));
         } else {
             // Default: per_produk
-            $data = $this->getSalesReportData($tenantId, $dateFrom, $dateTo, $categoryId, $brandId, $channelCode, $customerCat, $search, $hideZeroSales, $isBundle, $isPo);
+            $data = $this->getSalesReportData($tenantId, $dateFrom, $dateTo, $categoryId, $brandId, $channelCode, $customerCat, $statusFilter, $search, $hideZeroSales, $isBundle, $isPo);
             return view('reports.print_sales_report', array_merge($data, compact('dateFrom', 'dateTo')));
         }
     }
@@ -1221,10 +1223,11 @@ class ReportController extends Controller
         $isPo           = $request->input('po_status');
         $channelCode    = $request->input('channel_code', 'all');
         $customerCat    = $request->input('customer_category', 'all');
+        $statusFilter   = $request->input('status', 'all');
         $search         = $request->input('search');
         $hideZeroSales  = $request->boolean('hide_zero_sales');
 
-        $data = $this->getSalesReportData($tenantId, $dateFrom, $dateTo, $categoryId, $brandId, $channelCode, $customerCat, $search, $hideZeroSales, $isBundle, $isPo);
+        $data = $this->getSalesReportData($tenantId, $dateFrom, $dateTo, $categoryId, $brandId, $channelCode, $customerCat, $statusFilter, $search, $hideZeroSales, $isBundle, $isPo);
 
         $filename = "Laporan_Penjualan_Produk_" . date('Ymd_His') . ".csv";
         $headers = [
@@ -1265,7 +1268,7 @@ class ReportController extends Controller
         return response()->stream($callback, 200, $headers);
     }
 
-    private function getSalesReportData($tenantId, $dateFrom, $dateTo, $categoryId = null, $brandId = null, $channelCode = 'all', $customerCat = 'all', $search = null, $hideZeroSales = false, $isBundle = null, $isPo = null)
+    private function getSalesReportData($tenantId, $dateFrom, $dateTo, $categoryId = null, $brandId = null, $channelCode = 'all', $customerCat = 'all', $statusFilter = 'all', $search = null, $hideZeroSales = false, $isBundle = null, $isPo = null)
     {
         $productsQuery = MasterProduct::where('tenant_id', $tenantId)
             ->with(['category', 'brand']);
@@ -1313,11 +1316,12 @@ class ReportController extends Controller
             // 1. Ambil Penjualan Offline POS (jika channel !== online)
             if ($channelCode === 'all' || $channelCode === 'offline') {
                 $offQuery = \App\Models\OfflineSaleItem::where('master_product_id', $p->id)
-                    ->whereHas('offlineSale', function ($q) use ($tenantId, $dateFrom, $dateTo, $customerCat) {
+                    ->whereHas('offlineSale', function ($q) use ($tenantId, $dateFrom, $dateTo, $customerCat, $statusFilter) {
                         $q->where('tenant_id', $tenantId)
-                          ->where('status', '!=', \App\Models\OfflineSale::STATUS_CANCELLED)
                           ->whereBetween('sold_at', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59']);
                         
+                        $this->applyOfflineStatusFilter($q, $statusFilter);
+
                         if ($customerCat === 'dropship') {
                             $q->where(function($dq) {
                                 $dq->where('is_dropship', true)
@@ -1339,12 +1343,13 @@ class ReportController extends Controller
             // 2. Ambil Penjualan Online Marketplace (jika channel !== offline)
             if ($channelCode === 'all' || $channelCode !== 'offline') {
                 $onQuery = \App\Models\OrderItem::where('master_product_id', $p->id)
-                    ->whereHas('order', function ($q) use ($tenantId, $dateFrom, $dateTo, $channelCode) {
+                    ->whereHas('order', function ($q) use ($tenantId, $dateFrom, $dateTo, $channelCode, $statusFilter) {
                         $q->where('tenant_id', $tenantId)
-                          ->whereNotIn('order_status', ['CANCELLED', 'RETURNED'])
                           ->whereBetween('order_date', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59']);
 
-                        if ($channelCode !== 'all') {
+                        $this->applyOnlineStatusFilter($q, $statusFilter);
+
+                        if ($channelCode !== 'all' && $channelCode !== 'online') {
                             $q->whereHas('store.channel', function ($cq) use ($channelCode) {
                                 $cq->where('code', strtolower($channelCode));
                             });
@@ -1356,7 +1361,7 @@ class ReportController extends Controller
             }
 
             $qtyTotal = $qtyOffline + $qtyOnline;
-            if ($hideZeroSales && $qtyTotal <= 0) {
+            if ($qtyTotal <= 0) {
                 continue;
             }
 
@@ -1691,5 +1696,43 @@ class ReportController extends Controller
         }
 
         return compact('categoriesData', 'grandTotalOmset', 'grandTotalQty', 'grandTotalOrders');
+    }
+
+    private function applyOfflineStatusFilter($query, $statusFilter)
+    {
+        if ($statusFilter === 'completed') {
+            $query->where('status', 'completed');
+        } elseif ($statusFilter === 'processing') {
+            $query->where('status', 'pending_approval');
+        } elseif ($statusFilter === 'pending') {
+            $query->where('status', 'pending');
+        } elseif ($statusFilter === 'cancelled') {
+            $query->where('status', 'cancelled');
+        } elseif ($statusFilter === 'shipped' || $statusFilter === 'returned') {
+            $query->whereRaw('1 = 0');
+        } else {
+            // 'all' -> default exclude cancelled
+            $query->where('status', '!=', \App\Models\OfflineSale::STATUS_CANCELLED);
+        }
+    }
+
+    private function applyOnlineStatusFilter($query, $statusFilter)
+    {
+        if ($statusFilter === 'completed') {
+            $query->whereIn('order_status', ['COMPLETED', 'DELIVERED']);
+        } elseif ($statusFilter === 'shipped') {
+            $query->whereIn('order_status', ['SHIPPED', 'IN_TRANSIT']);
+        } elseif ($statusFilter === 'processing') {
+            $query->whereIn('order_status', ['READY_TO_SHIP', 'PROCESSING', 'PROCESSED']);
+        } elseif ($statusFilter === 'pending') {
+            $query->whereIn('order_status', ['UNPAID', 'PENDING']);
+        } elseif ($statusFilter === 'cancelled') {
+            $query->where('order_status', 'CANCELLED');
+        } elseif ($statusFilter === 'returned') {
+            $query->whereIn('order_status', ['RETURNED', 'REFUNDED']);
+        } else {
+            // 'all' -> default exclude cancelled & returned
+            $query->whereNotIn('order_status', ['CANCELLED', 'RETURNED']);
+        }
     }
 }

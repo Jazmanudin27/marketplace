@@ -90,6 +90,20 @@
                         </select>
                     </div>
 
+                    {{-- STATUS TRANSAKSI --}}
+                    <div class="mb-3">
+                        <label class="form-label form-label-sm fw-semibold">Status Transaksi</label>
+                        <select name="status" class="form-select form-select-sm">
+                            <option value="all" {{ ($statusFilter ?? 'all') === 'all' ? 'selected' : '' }}>Semua Status Transaksi (Default: Tanpa Cancel)</option>
+                            <option value="completed" {{ ($statusFilter ?? '') === 'completed' ? 'selected' : '' }}>✅ Selesai / Completed</option>
+                            <option value="shipped" {{ ($statusFilter ?? '') === 'shipped' ? 'selected' : '' }}>🚚 Dikirim / Shipped</option>
+                            <option value="processing" {{ ($statusFilter ?? '') === 'processing' ? 'selected' : '' }}>⚙️ Diproses / Siap Kirim</option>
+                            <option value="pending" {{ ($statusFilter ?? '') === 'pending' ? 'selected' : '' }}>⏳ Pending / Belum Bayar</option>
+                            <option value="cancelled" {{ ($statusFilter ?? '') === 'cancelled' ? 'selected' : '' }}>❌ Dibatalkan / Cancelled</option>
+                            <option value="returned" {{ ($statusFilter ?? '') === 'returned' ? 'selected' : '' }}>↩️ Retur / Refunded</option>
+                        </select>
+                    </div>
+
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label class="form-label form-label-sm fw-semibold">Dari Tanggal</label>
