@@ -1502,31 +1502,42 @@ class ReportController extends Controller
 
             $offSalesGet = $offSalesQuery->get();
 
-            // Group offline sales by institution_name
-            $groupedOffline = $offSalesGet->groupBy(function($s) {
-                return !empty(trim($s->institution_name ?? '')) ? trim($s->institution_name) : 'Toko Fisik / Umum';
-            });
+            if ($offSalesGet->count() > 0) {
+                // Group offline sales by institution_name
+                $groupedOffline = $offSalesGet->groupBy(function($s) {
+                    return !empty(trim($s->institution_name ?? '')) ? trim($s->institution_name) : 'Toko Fisik / Umum';
+                });
 
-            foreach ($groupedOffline as $instName => $salesList) {
-                $offOmset = (float) $salesList->sum('grand_total');
-                $offOrders = $salesList->count();
-                $offQty = 0;
-                foreach ($salesList as $s) {
-                    $offQty += $s->items()->sum('quantity');
+                foreach ($groupedOffline as $instName => $salesList) {
+                    $offOmset = (float) $salesList->sum('grand_total');
+                    $offOrders = $salesList->count();
+                    $offQty = 0;
+                    foreach ($salesList as $s) {
+                        $offQty += $s->items()->sum('quantity');
+                    }
+
+                    $channels[] = [
+                        'name' => 'Penjualan Offline (' . $instName . ')',
+                        'type' => 'Offline',
+                        'orders' => $offOrders,
+                        'qty' => $offQty,
+                        'omset' => $offOmset,
+                        'aov' => $offOrders > 0 ? $offOmset / $offOrders : 0,
+                    ];
+
+                    $grandTotalOmset += $offOmset;
+                    $grandTotalQty += $offQty;
+                    $grandTotalOrders += $offOrders;
                 }
-
+            } else {
                 $channels[] = [
-                    'name' => 'Penjualan Offline (' . $instName . ')',
+                    'name' => 'Penjualan Offline (Toko Fisik)',
                     'type' => 'Offline',
-                    'orders' => $offOrders,
-                    'qty' => $offQty,
-                    'omset' => $offOmset,
-                    'aov' => $offOrders > 0 ? $offOmset / $offOrders : 0,
+                    'orders' => 0,
+                    'qty' => 0,
+                    'omset' => 0,
+                    'aov' => 0,
                 ];
-
-                $grandTotalOmset += $offOmset;
-                $grandTotalQty += $offQty;
-                $grandTotalOrders += $offOrders;
             }
         }
 
