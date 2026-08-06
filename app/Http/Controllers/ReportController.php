@@ -1275,6 +1275,13 @@ class ReportController extends Controller
                     round($item['profit_margin'], 2) . '%'
                 ]);
             }
+
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
+    }
+
     private function getSalesReportData($tenantId, $dateFrom, $dateTo, $categoryId = null, $brandId = null, $channelCode = 'all', $customerCat = 'all', $statusFilter = 'all', $search = null, $hideZeroSales = false, $isBundle = null, $isPo = null)
     {
         // 1. Fetch Master Products for fast lookup
