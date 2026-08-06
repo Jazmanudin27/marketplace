@@ -160,9 +160,12 @@
                                         </span>
                                     @endif
                                 </td>
-                                <td class="text-end fw-bold text-success" style="background-color: #f0fdf4;">
-                                    {{ number_format($stokGudang, 0, ',', '.') }}
-                                </td>
+                                 <td class="text-end fw-bold {{ $stokGudang < 0 ? 'bg-danger text-white' : 'text-success' }}" style="{{ $stokGudang >= 0 ? 'background-color: #f0fdf4;' : '' }}" @if($stokGudang < 0) title="Stok Minus! Segera Lakukan Restock / Penyesuaian Stock Opname" @endif>
+                                     @if($stokGudang < 0)
+                                         <i class="fas fa-exclamation-circle text-warning me-1" title="Stok Minus"></i>
+                                     @endif
+                                     {{ number_format($stokGudang, 0, ',', '.') }}
+                                 </td>
                                 @php
                                     $hasDiscrepancy = false;
                                 @endphp

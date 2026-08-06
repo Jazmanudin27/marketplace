@@ -587,8 +587,8 @@ Route::middleware('auth')->group(function () {
         Route::post('/spks/{spk}/toggle-urgent', [\App\Http\Controllers\Inventory\SpkController::class, 'toggleUrgent'])->name('spks.toggle_urgent');
         Route::post('/spks/{spk}/pay-labor', [\App\Http\Controllers\Inventory\SpkController::class, 'payLabor'])->name('spks.pay_labor');
 
-        // Stock Sync
-        Route::get('/stock-sync', [StockSyncController::class, 'index'])->name('inventory.stock_sync');
+        // Stock Sync Redirect to Laporan Stok
+        Route::get('/stock-sync', fn() => redirect()->route('reports.stock'))->name('inventory.stock_sync');
         Route::post('/stock-sync/all', [StockSyncController::class, 'forceSyncAll'])->name('inventory.stock_sync.all');
         Route::post('/stock-sync/{product}', [StockSyncController::class, 'forceSyncProduct'])->name('inventory.stock_sync.product');
 

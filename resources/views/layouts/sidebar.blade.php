@@ -32,7 +32,6 @@
     $isGudangJadiActive =
         request()->routeIs('inventory.mutations.*') ||
         request()->routeIs('stock_opnames.*') ||
-        request()->routeIs('inventory.stock_sync') ||
         request()->routeIs('fulfillment.*');
 
     $isTitipanBarangActive = request()->routeIs('supplier_consignments.*');
@@ -408,11 +407,6 @@
                             <a href="{{ route('stock_opnames.index') }}"
                                 class="nav-link py-1 {{ request()->routeIs('stock_opnames.*') ? 'active text-white' : 'text-secondary' }}">Opname
                                 Stok Jadi</a>
-                        @endcan
-                        @can('inventory.stock_sync')
-                            <a href="{{ route('inventory.stock_sync') }}"
-                                class="nav-link py-1 {{ request()->routeIs('inventory.stock_sync') ? 'active text-white' : 'text-secondary' }}">Sinkronisasi
-                                Stok</a>
                         @endcan
                         @can('fulfillment.index')
                             <a href="{{ route('fulfillment.scan_page') }}"
