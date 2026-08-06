@@ -387,8 +387,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/products/bulk-publish', [MasterProductController::class, 'bulkPublish'])->name('products.bulk_publish');
         Route::post('/products/bulk-publish', [MasterProductController::class, 'storeBulkPublish'])->name('products.bulk_publish.store');
         Route::post('/products/bulk-delete', [MasterProductController::class, 'bulkDelete'])->name('products.bulk_delete');
-        Route::get('/products/bulk-price-calculator', [MasterProductController::class, 'bulkPriceCalculator'])->name('products.bulk_price_calculator');
-        Route::post('/products/bulk-price-calculator', [MasterProductController::class, 'updateBulkPrice'])->name('products.bulk_price_calculator.update');
+
         Route::get('/products/download-price-template', [MasterProductController::class, 'downloadPriceTemplate'])->name('products.download_price_template');
         Route::post('/products/import-prices', [MasterProductController::class, 'importPrices'])->name('products.import_prices');
         Route::post('/products/auto-bundle', [MasterProductController::class, 'autoBundle'])->name('products.auto_bundle');

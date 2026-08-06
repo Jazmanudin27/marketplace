@@ -21,9 +21,7 @@
                     <i class="fas fa-magic me-1"></i>Auto Set / Bundling
                 </button>
             </form>
-            <a href="{{ route('products.bulk_price_calculator') }}" class="btn btn-outline-success btn-sm px-3 rounded-3 fw-semibold" title="Setting & Kalkulasi Harga Masal">
-                <i class="fas fa-calculator me-1"></i>Kalkulator Harga Masal
-            </a>
+
             <button type="button" class="btn btn-outline-success btn-sm px-3 rounded-3 fw-semibold" data-bs-toggle="modal" data-bs-target="#modalImportPrices">
                 <i class="fas fa-file-excel me-1"></i>Import Harga Masal
             </button>
