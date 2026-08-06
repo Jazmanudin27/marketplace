@@ -25,32 +25,7 @@
         <div class="small text-muted">Periode Penjualan: {{ date('d F Y', strtotime($dateFrom)) }} s/d {{ date('d F Y', strtotime($dateTo)) }}</div>
     </div>
 
-    <div class="row mb-3">
-        <div class="col-3">
-            <div class="p-2 border rounded text-center">
-                <small class="text-muted d-block">TOTAL OMSET</small>
-                <strong class="fs-6">Rp {{ number_format($grandTotalOmset, 0, ',', '.') }}</strong>
-            </div>
-        </div>
-        <div class="col-3">
-            <div class="p-2 border rounded text-center">
-                <small class="text-muted d-block">TOTAL QTY TERJUAL</small>
-                <strong class="fs-6">{{ number_format($grandTotalQty) }} Pcs</strong>
-            </div>
-        </div>
-        <div class="col-3">
-            <div class="p-2 border rounded text-center">
-                <small class="text-muted d-block">TOTAL HPP MODAL</small>
-                <strong class="fs-6">Rp {{ number_format($grandTotalHpp, 0, ',', '.') }}</strong>
-            </div>
-        </div>
-        <div class="col-3">
-            <div class="p-2 border rounded text-center">
-                <small class="text-muted d-block">ESTIMASI LABA KOTOR</small>
-                <strong class="fs-6 text-success">Rp {{ number_format($grandTotalProfit, 0, ',', '.') }} ({{ number_format($overallMargin, 1) }}%)</strong>
-            </div>
-        </div>
-    </div>
+
 
     <table class="table table-print w-100">
         <thead>

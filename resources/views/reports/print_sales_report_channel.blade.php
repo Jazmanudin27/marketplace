@@ -25,27 +25,6 @@
         <div class="small text-muted">Periode: {{ date('d F Y', strtotime($dateFrom)) }} s/d {{ date('d F Y', strtotime($dateTo)) }}</div>
     </div>
 
-    <div class="row mb-3">
-        <div class="col-4">
-            <div class="p-2.5 border rounded text-center">
-                <small class="text-muted d-block">TOTAL OMSET PENJUALAN</small>
-                <strong class="fs-6 text-primary">Rp {{ number_format($grandTotalOmset, 0, ',', '.') }}</strong>
-            </div>
-        </div>
-        <div class="col-4">
-            <div class="p-2.5 border rounded text-center">
-                <small class="text-muted d-block">TOTAL TRANSAKSI</small>
-                <strong class="fs-6">{{ number_format($grandTotalOrders) }} Transaksi</strong>
-            </div>
-        </div>
-        <div class="col-4">
-            <div class="p-2.5 border rounded text-center">
-                <small class="text-muted d-block">TOTAL ITEM TERJUAL</small>
-                <strong class="fs-6 text-success">{{ number_format($grandTotalQty) }} Pcs</strong>
-            </div>
-        </div>
-    </div>
-
     <table class="table table-print w-100 align-middle">
         <thead>
             <tr>
@@ -55,7 +34,6 @@
                 <th class="text-center">Jumlah Transaksi</th>
                 <th class="text-center">Total Item Terjual</th>
                 <th class="text-end">Total Omset Penjualan</th>
-                <th class="text-end">Rata-rata Order (AOV)</th>
             </tr>
         </thead>
         <tbody>
@@ -67,7 +45,6 @@
                     <td class="text-center fw-bold">{{ number_format($row['orders']) }}</td>
                     <td class="text-center font-monospace">{{ number_format($row['qty']) }}</td>
                     <td class="text-end font-monospace fw-bold text-primary">Rp {{ number_format($row['omset'], 0, ',', '.') }}</td>
-                    <td class="text-end font-monospace">Rp {{ number_format($row['aov'], 0, ',', '.') }}</td>
                 </tr>
             @endforeach
         </tbody>
@@ -77,7 +54,6 @@
                 <td class="text-center">{{ number_format($grandTotalOrders) }}</td>
                 <td class="text-center">{{ number_format($grandTotalQty) }}</td>
                 <td class="text-end fs-6 text-primary">Rp {{ number_format($grandTotalOmset, 0, ',', '.') }}</td>
-                <td class="text-end">Rp {{ number_format($grandTotalOrders > 0 ? $grandTotalOmset / $grandTotalOrders : 0, 0, ',', '.') }}</td>
             </tr>
         </tfoot>
     </table>
