@@ -546,13 +546,19 @@
                 const normalPrice = parseFloat($(this).data('price'));
                 const resellerPrice = parseFloat($(this).data('reseller-price'));
                 const stock = parseInt($(this).data('stock'));
-                const isPoProduct = $(this).data('is-po') == 1 || $('#is-po-switch').is(':checked');
+                const isPoMode = $('#is-po-switch').is(':checked');
 
                 const activePrice = isDropshipCustomer ? resellerPrice : normalPrice;
 
+                // Jika PO Mode OFF dan stok <= 0, tampilkan alert stok kosong & batalkan
+                if (!isPoMode && stock <= 0) {
+                    alert('Stok produk ini kosong (Stok: 0). Aktifkan switch Pre-Order / PO Produksi di atas jika ingin membuat pesanan PO!');
+                    return;
+                }
+
                 if (cartItems[id]) {
-                    if (!isPoProduct && cartItems[id].qty >= stock) {
-                        alert('Stok tidak mencukupi! Maks: ' + stock);
+                    if (!isPoMode && cartItems[id].qty >= stock) {
+                        alert('Stok tidak mencukupi! Maksimal stok tersedia: ' + stock);
                         return;
                     }
                     cartItems[id].qty++;
@@ -565,7 +571,6 @@
                         normal_price: normalPrice,
                         dropship_price: resellerPrice,
                         stock,
-                        is_po: isPoProduct,
                         qty: 1,
                         discount_type: 'fixed',
                         discount_value: 0,
@@ -716,9 +721,9 @@
                     removeItem(id);
                     return;
                 }
-                const isPo = $('#is-po-switch').is(':checked') || cartItems[id].is_po == 1;
-                if (!isPo && newQty > cartItems[id].stock) {
-                    alert('Stok tidak mencukupi! Maks: ' + cartItems[id].stock);
+                const isPoMode = $('#is-po-switch').is(':checked');
+                if (!isPoMode && newQty > cartItems[id].stock) {
+                    alert('Stok tidak mencukupi! Maksimal stok tersedia: ' + cartItems[id].stock);
                     return;
                 }
                 cartItems[id].qty = newQty;
@@ -731,9 +736,9 @@
                     removeItem(id);
                     return;
                 }
-                const isPo = $('#is-po-switch').is(':checked') || cartItems[id].is_po == 1;
-                if (!isPo && qty > cartItems[id].stock) {
-                    alert('Stok tidak mencukupi!');
+                const isPoMode = $('#is-po-switch').is(':checked');
+                if (!isPoMode && qty > cartItems[id].stock) {
+                    alert('Stok tidak mencukupi! Maksimal stok tersedia: ' + cartItems[id].stock);
                     cartItems[id].qty = cartItems[id].stock;
                 } else {
                     cartItems[id].qty = qty;
