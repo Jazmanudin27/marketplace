@@ -108,10 +108,20 @@
                             <th class="text-white text-center align-middle" style="background-color: #3b82f6; width: 110px;">Status & PO</th>
                             <th class="text-white text-center align-middle" style="background-color: #22c55e; width: 100px;">Stok Gudang</th>
                             @foreach($stores as $st)
-                                <th class="text-white text-center align-middle" style="background-color: #0284c7;">
-                                    {{ $st->store_name }}
-                                    <span class="d-block fw-normal opacity-75" style="font-size: 0.68rem;">
-                                        ({{ ucfirst($st->channel->name ?? $st->channel->code ?? 'MP') }})
+                                @php
+                                    $channelCode = strtolower($st->channel->code ?? $st->channel->name ?? '');
+                                    $channelShort = match(true) {
+                                        str_contains($channelCode, 'shopee') => 'Shopee',
+                                        str_contains($channelCode, 'tiktok') => 'TikTok',
+                                        str_contains($channelCode, 'lazada') => 'Lazada',
+                                        str_contains($channelCode, 'tokopedia') => 'Tokopedia',
+                                        default => ucfirst($st->channel->name ?? 'MP'),
+                                    };
+                                @endphp
+                                <th class="text-white text-center align-middle py-2" style="background-color: #0284c7; min-width: 100px;" title="{{ $st->store_name }} ({{ $st->channel->name ?? '' }})">
+                                    <div class="fw-bold" style="font-size: 0.78rem;">{{ $st->short_name }}</div>
+                                    <span class="badge bg-white text-primary border-0 px-1.5 py-0.5 fw-semibold mt-0.5" style="font-size: 0.63rem;">
+                                        {{ $channelShort }}
                                     </span>
                                 </th>
                             @endforeach

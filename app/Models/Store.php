@@ -62,6 +62,36 @@ class Store extends Model
         return $this->token_expires_at && $this->token_expires_at->isPast();
     }
 
+    /**
+     * Get clean shortened store name for reports and tables
+     */
+    public function getShortNameAttribute(): string
+    {
+        $name = $this->store_name;
+
+        if (preg_match('/azsa/i', $name)) {
+            return 'AZSA';
+        }
+        if (preg_match('/nusantara/i', $name)) {
+            return 'Nusantara';
+        }
+        if (preg_match('/ragantara/i', $name)) {
+            return 'Ragantara';
+        }
+        if (preg_match('/ruang/i', $name)) {
+            return 'Ruang Srg';
+        }
+        if (preg_match('/sekolah/i', $name)) {
+            return 'Srg Sekolah';
+        }
+
+        // Clean common redundant words
+        $clean = preg_replace('/(official|store|shop|seragam|uniform|\.|\-|_)/i', ' ', $name);
+        $clean = preg_replace('/\s+/', ' ', trim($clean));
+
+        return \Illuminate\Support\Str::limit($clean ?: $name, 14, '..');
+    }
+
     public function getValidAccessToken(bool $force = false): string
     {
         if ($this->channel && $this->channel->code === 'shopee') {

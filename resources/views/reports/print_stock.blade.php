@@ -182,10 +182,20 @@
                 <th class="bg-blue" style="width: 11%;">Status &amp; PO</th>
                 <th class="bg-green" style="width: 10%;">Stok Gudang</th>
                 @foreach($stores as $store)
-                    <th class="bg-cyan">
-                        {{ $store->store_name }}
-                        <span style="font-weight: normal; font-size: 10px; display: block;">
-                            ({{ ucfirst($store->channel->name ?? $store->channel->code ?? 'Marketplace') }})
+                    @php
+                        $channelCode = strtolower($store->channel->code ?? $store->channel->name ?? '');
+                        $channelShort = match(true) {
+                            str_contains($channelCode, 'shopee') => 'Shopee',
+                            str_contains($channelCode, 'tiktok') => 'TikTok',
+                            str_contains($channelCode, 'lazada') => 'Lazada',
+                            str_contains($channelCode, 'tokopedia') => 'Tokopedia',
+                            default => ucfirst($store->channel->name ?? 'MP'),
+                        };
+                    @endphp
+                    <th class="bg-cyan text-center" style="font-size: 11px;">
+                        {{ $store->short_name }}
+                        <span style="font-weight: normal; font-size: 9px; display: block; opacity: 0.9;">
+                            ({{ $channelShort }})
                         </span>
                     </th>
                 @endforeach
