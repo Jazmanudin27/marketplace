@@ -33,8 +33,6 @@
                 <th style="width: 30px;">No</th>
                 <th>SKU</th>
                 <th>Nama Produk</th>
-                <th>Kategori</th>
-                <th>Brand</th>
                 <th class="text-center">Stok</th>
                 <th class="text-center">Qty POS</th>
                 <th class="text-center">Qty MP</th>
@@ -52,8 +50,6 @@
                     <td class="text-center">{{ $idx + 1 }}</td>
                     <td class="font-monospace">{{ $row['sku'] ?: '—' }}</td>
                     <td>{{ $row['name'] }}</td>
-                    <td>{{ $row['category_name'] }}</td>
-                    <td>{{ $row['brand_name'] }}</td>
                     <td class="text-center">{{ number_format($row['stock']) }}</td>
                     <td class="text-center">{{ number_format($row['qty_offline']) }}</td>
                     <td class="text-center">{{ number_format($row['qty_online']) }}</td>
@@ -68,7 +64,7 @@
         </tbody>
         <tfoot>
             <tr class="fw-bold bg-light">
-                <td colspan="6" class="text-end">TOTAL REKAPITULASI:</td>
+                <td colspan="4" class="text-end">TOTAL REKAPITULASI:</td>
                 <td class="text-center"></td>
                 <td class="text-center"></td>
                 <td class="text-center">{{ number_format($grandTotalQty) }}</td>
