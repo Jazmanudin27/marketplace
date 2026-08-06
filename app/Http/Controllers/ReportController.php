@@ -1401,7 +1401,7 @@ class ReportController extends Controller
         ];
     }
 
-    private function getSalesReportPerChannelData($tenantId, $dateFrom, $dateTo, $customerCat = 'all')
+    private function getSalesReportPerChannelData($tenantId, $dateFrom, $dateTo, $channelCode = 'all', $customerCat = 'all')
     {
         $stores = \App\Models\Store::where('tenant_id', $tenantId)->with('channel')->get();
         
@@ -1411,67 +1411,77 @@ class ReportController extends Controller
         $grandTotalOrders = 0;
 
         // POS Offline
-        $offSales = \App\Models\OfflineSale::where('tenant_id', $tenantId)
-            ->where('status', '!=', \App\Models\OfflineSale::STATUS_CANCELLED)
-            ->whereBetween('sold_at', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59']);
+        if ($channelCode === 'all' || $channelCode === 'offline') {
+            $offSales = \App\Models\OfflineSale::where('tenant_id', $tenantId)
+                ->where('status', '!=', \App\Models\OfflineSale::STATUS_CANCELLED)
+                ->whereBetween('sold_at', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59']);
 
-        if ($customerCat === 'dropship') {
-            $offSales->where(function($q) {
-                $q->where('is_dropship', true)
-                  ->orWhereHas('customer', fn($cq) => $cq->where('category', 'dropship'));
-            });
-        } elseif ($customerCat === 'umum') {
-            $offSales->where('is_dropship', false);
-        }
+            if ($customerCat === 'dropship') {
+                $offSales->where(function($q) {
+                    $q->where('is_dropship', true)
+                      ->orWhereHas('customer', fn($cq) => $cq->where('category', 'dropship'));
+                });
+            } elseif ($customerCat === 'umum') {
+                $offSales->where('is_dropship', false);
+            }
 
-        $offSalesGet = $offSales->get();
-        $offOmset = (float) $offSalesGet->sum('grand_total');
-        $offOrders = $offSalesGet->count();
-        $offQty = 0;
-        foreach ($offSalesGet as $s) {
-            $offQty += $s->items()->sum('quantity');
-        }
-
-        $channels[] = [
-            'name' => 'POS Offline (Toko Fisik)',
-            'type' => 'Offline',
-            'orders' => $offOrders,
-            'qty' => $offQty,
-            'omset' => $offOmset,
-            'aov' => $offOrders > 0 ? $offOmset / $offOrders : 0,
-        ];
-
-        $grandTotalOmset += $offOmset;
-        $grandTotalQty += $offQty;
-        $grandTotalOrders += $offOrders;
-
-        // Marketplace Online Stores
-        foreach ($stores as $st) {
-            $ordersQuery = \App\Models\Order::where('tenant_id', $tenantId)
-                ->where('store_id', $st->id)
-                ->whereNotIn('order_status', ['CANCELLED', 'RETURNED'])
-                ->whereBetween('order_date', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59']);
-
-            $ordersGet = $ordersQuery->get();
-            $omset = (float) $ordersGet->sum('total_amount');
-            $ordCount = $ordersGet->count();
-            $qty = 0;
-            foreach ($ordersGet as $o) {
-                $qty += $o->items()->sum('quantity');
+            $offSalesGet = $offSales->get();
+            $offOmset = (float) $offSalesGet->sum('grand_total');
+            $offOrders = $offSalesGet->count();
+            $offQty = 0;
+            foreach ($offSalesGet as $s) {
+                $offQty += $s->items()->sum('quantity');
             }
 
             $channels[] = [
-                'name' => $st->store_name . ' (' . ($st->channel->name ?? 'Online') . ')',
-                'type' => $st->channel->name ?? 'Online',
-                'orders' => $ordCount,
-                'qty' => $qty,
-                'omset' => $omset,
-                'aov' => $ordCount > 0 ? $omset / $ordCount : 0,
+                'name' => 'POS Offline (Toko Fisik)',
+                'type' => 'Offline',
+                'orders' => $offOrders,
+                'qty' => $offQty,
+                'omset' => $offOmset,
+                'aov' => $offOrders > 0 ? $offOmset / $offOrders : 0,
             ];
 
-            $grandTotalOmset += $omset;
-            $grandTotalQty += $qty;
-            $grandTotalOrders += $ordCount;
+            $grandTotalOmset += $offOmset;
+            $grandTotalQty += $offQty;
+            $grandTotalOrders += $offOrders;
+        }
+
+        // Marketplace Online Stores
+        if ($channelCode !== 'offline') {
+            foreach ($stores as $st) {
+                if ($channelCode !== 'all' && $channelCode !== 'online') {
+                    if (strtolower($st->channel->code ?? '') !== strtolower($channelCode)) {
+                        continue;
+                    }
+                }
+
+                $ordersQuery = \App\Models\Order::where('tenant_id', $tenantId)
+                    ->where('store_id', $st->id)
+                    ->whereNotIn('order_status', ['CANCELLED', 'RETURNED'])
+                    ->whereBetween('order_date', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59']);
+
+                $ordersGet = $ordersQuery->get();
+                $omset = (float) $ordersGet->sum('total_amount');
+                $ordCount = $ordersGet->count();
+                $qty = 0;
+                foreach ($ordersGet as $o) {
+                    $qty += $o->items()->sum('quantity');
+                }
+
+                $channels[] = [
+                    'name' => $st->store_name . ' (' . ($st->channel->name ?? 'Online') . ')',
+                    'type' => $st->channel->name ?? 'Online',
+                    'orders' => $ordCount,
+                    'qty' => $qty,
+                    'omset' => $omset,
+                    'aov' => $ordCount > 0 ? $omset / $ordCount : 0,
+                ];
+
+                $grandTotalOmset += $omset;
+                $grandTotalQty += $qty;
+                $grandTotalOrders += $ordCount;
+            }
         }
 
         return compact('channels', 'grandTotalOmset', 'grandTotalQty', 'grandTotalOrders');
