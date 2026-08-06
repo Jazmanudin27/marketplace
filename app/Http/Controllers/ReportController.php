@@ -1237,16 +1237,9 @@ class ReportController extends Controller
         $isPo           = $request->input('po_status');
         $channelCode    = $request->input('channel_code', 'all');
         $customerCat    = $request->input('customer_category', 'all');
-        $dropshipFilter = $request->input('is_dropship', 'all');
         $statusFilter   = $request->input('status', 'all');
         $search         = $request->input('search');
         $hideZeroSales  = $request->boolean('hide_zero_sales');
-
-        if ($dropshipFilter === '1') {
-            $customerCat = 'dropship';
-        } elseif ($dropshipFilter === '0') {
-            $customerCat = 'umum';
-        }
 
         $data = $this->getSalesReportData($tenantId, $dateFrom, $dateTo, $categoryId, $brandId, $channelCode, $customerCat, $statusFilter, $search, $hideZeroSales, $isBundle, $isPo);
 
@@ -1263,12 +1256,14 @@ class ReportController extends Controller
             $file = fopen('php://output', 'w');
             fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF)); // BOM UTF-8
 
-            fputcsv($file, ['SKU', 'Nama Produk', 'Stok Fisik', 'Qty Offline POS', 'Qty Online MP', 'Total Qty Terjual', 'HPP Modal (Rp)', 'Total Omset (Rp)', 'Total HPP (Rp)', 'Laba Kotor (Rp)', 'Margin (%)']);
+            fputcsv($file, ['SKU', 'Nama Produk', 'Kategori', 'Brand', 'Stok Fisik', 'Qty Offline POS', 'Qty Online MP', 'Total Qty Terjual', 'HPP Modal (Rp)', 'Total Omset (Rp)', 'Total HPP (Rp)', 'Laba Kotor (Rp)', 'Margin (%)']);
 
             foreach ($data['items'] as $item) {
                 fputcsv($file, [
                     $item['sku'],
                     $item['name'],
+                    $item['category_name'],
+                    $item['brand_name'],
                     $item['stock'],
                     $item['qty_offline'],
                     $item['qty_online'],
@@ -1285,93 +1280,6 @@ class ReportController extends Controller
         };
 
         return response()->stream($callback, 200, $headers);
-    }
-
-    private function buildOfflineSalesQuery($tenantId, $dateFrom, $dateTo, $categoryId = null, $brandId = null, $channelCode = 'all', $customerCat = 'all', $statusFilter = 'all', $search = null, $isBundle = null, $isPo = null)
-    {
-        $query = \App\Models\OfflineSale::where('tenant_id', $tenantId)
-            ->whereBetween('sold_at', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59']);
-
-        if ($channelCode !== 'all' && $channelCode !== 'offline') {
-            $query->whereRaw('1 = 0');
-            return $query;
-        }
-
-        $this->applyOfflineStatusFilter($query, $statusFilter);
-
-        if ($customerCat === 'dropship') {
-            $query->where(function($q) {
-                $q->where('is_dropship', true)
-                  ->orWhereHas('customer', fn($cq) => $cq->where('category', 'dropship'));
-            });
-        } elseif ($customerCat === 'umum') {
-            $query->where('is_dropship', false)
-                  ->where(function($cq) {
-                      $cq->whereNull('customer_id')
-                         ->orWhereHas('customer', fn($c) => $c->where('category', '!=', 'dropship'));
-                  });
-        } elseif ($customerCat !== 'all' && $customerCat !== 'marketplace') {
-            $query->whereHas('customer', fn($cq) => $cq->where('category', $customerCat));
-        }
-
-        if (!empty($categoryId) || !empty($brandId) || ($isBundle !== null && $isBundle !== '') || ($isPo !== null && $isPo !== '') || !empty($search)) {
-            $query->whereHas('items.masterProduct', function($pq) use ($categoryId, $brandId, $isBundle, $isPo, $search) {
-                if (!empty($categoryId)) $pq->where('category_id', $categoryId);
-                if (!empty($brandId)) $pq->where('brand_id', $brandId);
-                if ($isBundle !== null && $isBundle !== '') $pq->where('is_bundle', (bool)$isBundle);
-                if ($isPo !== null && $isPo !== '') {
-                    if ($isPo === '1') $pq->where('is_preorder', true);
-                    elseif ($isPo === '0') $pq->where(fn($q) => $q->where('is_preorder', false)->orWhereNull('is_preorder'));
-                }
-                if (!empty($search)) {
-                    $s = trim($search);
-                    $pq->where(fn($q) => $q->where('name', 'like', "%{$s}%")->orWhere('sku', 'like', "%{$s}%"));
-                }
-            });
-        }
-
-        return $query;
-    }
-
-    private function buildOnlineOrdersQuery($tenantId, $dateFrom, $dateTo, $categoryId = null, $brandId = null, $channelCode = 'all', $customerCat = 'all', $statusFilter = 'all', $search = null, $isBundle = null, $isPo = null)
-    {
-        $query = \App\Models\Order::where('tenant_id', $tenantId)
-            ->whereBetween('order_date', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59']);
-
-        if ($channelCode === 'offline') {
-            $query->whereRaw('1 = 0');
-            return $query;
-        }
-
-        if ($channelCode !== 'all' && $channelCode !== 'online') {
-            $query->whereHas('store.channel', fn($cq) => $cq->where('code', strtolower($channelCode)));
-        }
-
-        $this->applyOnlineStatusFilter($query, $statusFilter);
-
-        if ($customerCat === 'dropship') {
-            $query->where('is_dropship', true);
-        } elseif ($customerCat === 'umum') {
-            $query->where('is_dropship', false);
-        }
-
-        if (!empty($categoryId) || !empty($brandId) || ($isBundle !== null && $isBundle !== '') || ($isPo !== null && $isPo !== '') || !empty($search)) {
-            $query->whereHas('items.masterProduct', function($pq) use ($categoryId, $brandId, $isBundle, $isPo, $search) {
-                if (!empty($categoryId)) $pq->where('category_id', $categoryId);
-                if (!empty($brandId)) $pq->where('brand_id', $brandId);
-                if ($isBundle !== null && $isBundle !== '') $pq->where('is_bundle', (bool)$isBundle);
-                if ($isPo !== null && $isPo !== '') {
-                    if ($isPo === '1') $pq->where('is_preorder', true);
-                    elseif ($isPo === '0') $pq->where(fn($q) => $q->where('is_preorder', false)->orWhereNull('is_preorder'));
-                }
-                if (!empty($search)) {
-                    $s = trim($search);
-                    $pq->where(fn($q) => $q->where('name', 'like', "%{$s}%")->orWhere('sku', 'like', "%{$s}%"));
-                }
-            });
-        }
-
-        return $query;
     }
 
     private function getSalesReportData($tenantId, $dateFrom, $dateTo, $categoryId = null, $brandId = null, $channelCode = 'all', $customerCat = 'all', $statusFilter = 'all', $search = null, $hideZeroSales = false, $isBundle = null, $isPo = null)
@@ -1419,30 +1327,55 @@ class ReportController extends Controller
             $qtyOnline = 0;
             $omsetOnline = 0.0;
 
+            // 1. Ambil Penjualan Offline POS (jika channel !== online)
             if ($channelCode === 'all' || $channelCode === 'offline') {
-                $offQuery = $this->buildOfflineSalesQuery($tenantId, $dateFrom, $dateTo, null, null, 'offline', $customerCat, $statusFilter, null, null, null)
-                    ->whereHas('items', fn($q) => $q->where('master_product_id', $p->id));
-                
-                $itemsQuery = \App\Models\OfflineSaleItem::whereIn('offline_sale_id', $offQuery->pluck('id'))
-                    ->where('master_product_id', $p->id);
+                $offQuery = \App\Models\OfflineSaleItem::where('master_product_id', $p->id)
+                    ->whereHas('offlineSale', function ($q) use ($tenantId, $dateFrom, $dateTo, $customerCat, $statusFilter) {
+                        $q->where('tenant_id', $tenantId)
+                          ->whereBetween('sold_at', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59']);
+                        
+                        $this->applyOfflineStatusFilter($q, $statusFilter);
 
-                $qtyOffline = (int) $itemsQuery->sum('quantity');
-                $omsetOffline = (float) $itemsQuery->sum('subtotal');
+                        if ($customerCat === 'dropship') {
+                            $q->where(function($dq) {
+                                $dq->where('is_dropship', true)
+                                  ->orWhereHas('customer', fn($cq) => $cq->where('category', 'dropship'));
+                            });
+                        } elseif ($customerCat === 'umum') {
+                            $q->where('is_dropship', false)
+                              ->where(function($cq) {
+                                  $cq->whereNull('customer_id')
+                                     ->orWhereHas('customer', fn($c) => $c->where('category', '!=', 'dropship'));
+                              });
+                        }
+                    });
+
+                $qtyOffline = (int) $offQuery->sum('quantity');
+                $omsetOffline = (float) $offQuery->sum('subtotal');
             }
 
+            // 2. Ambil Penjualan Online Marketplace (jika channel !== offline)
             if ($channelCode === 'all' || $channelCode !== 'offline') {
-                $onQuery = $this->buildOnlineOrdersQuery($tenantId, $dateFrom, $dateTo, null, null, $channelCode, $customerCat, $statusFilter, null, null, null)
-                    ->whereHas('items', fn($q) => $q->where('master_product_id', $p->id));
-                
-                $itemsQuery = \App\Models\OrderItem::whereIn('order_id', $onQuery->pluck('id'))
-                    ->where('master_product_id', $p->id);
+                $onQuery = \App\Models\OrderItem::where('master_product_id', $p->id)
+                    ->whereHas('order', function ($q) use ($tenantId, $dateFrom, $dateTo, $channelCode, $statusFilter) {
+                        $q->where('tenant_id', $tenantId)
+                          ->whereBetween('order_date', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59']);
 
-                $qtyOnline = (int) $itemsQuery->sum('quantity');
-                $omsetOnline = (float) $itemsQuery->sum('total_price');
+                        $this->applyOnlineStatusFilter($q, $statusFilter);
+
+                        if ($channelCode !== 'all' && $channelCode !== 'online') {
+                            $q->whereHas('store.channel', function ($cq) use ($channelCode) {
+                                $cq->where('code', strtolower($channelCode));
+                            });
+                        }
+                    });
+
+                $qtyOnline = (int) $onQuery->sum('quantity');
+                $omsetOnline = (float) $onQuery->sum('total_price');
             }
 
             $qtyTotal = $qtyOffline + $qtyOnline;
-            if ($qtyTotal <= 0 && $hideZeroSales) {
+            if ($qtyTotal <= 0) {
                 continue;
             }
 
@@ -1459,8 +1392,8 @@ class ReportController extends Controller
 
             $items[] = [
                 'id'            => $p->id,
-                'name'          => $p->name,
                 'sku'           => $p->sku,
+                'name'          => $p->name,
                 'category_name' => $p->category->name ?? '—',
                 'brand_name'    => $p->brand->name ?? '—',
                 'stock'         => $p->stock,
@@ -1487,7 +1420,7 @@ class ReportController extends Controller
         ];
     }
 
-    private function getSalesReportPerChannelData($tenantId, $dateFrom, $dateTo, $categoryId = null, $brandId = null, $channelCode = 'all', $customerCat = 'all', $statusFilter = 'all', $search = null, $isBundle = null, $isPo = null)
+    private function getSalesReportPerChannelData($tenantId, $dateFrom, $dateTo, $channelCode = 'all', $customerCat = 'all', $statusFilter = 'all')
     {
         $stores = \App\Models\Store::where('tenant_id', $tenantId)->with('channel')->get();
         
@@ -1498,46 +1431,47 @@ class ReportController extends Controller
 
         // POS Offline - Grouped by Instansi / Channel
         if ($channelCode === 'all' || $channelCode === 'offline') {
-            $offSalesQuery = $this->buildOfflineSalesQuery($tenantId, $dateFrom, $dateTo, $categoryId, $brandId, $channelCode, $customerCat, $statusFilter, $search, $isBundle, $isPo);
+            $offSalesQuery = \App\Models\OfflineSale::where('tenant_id', $tenantId)
+                ->whereBetween('sold_at', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59']);
+
+            $this->applyOfflineStatusFilter($offSalesQuery, $statusFilter);
+
+            if ($customerCat === 'dropship') {
+                $offSalesQuery->where(function($q) {
+                    $q->where('is_dropship', true)
+                      ->orWhereHas('customer', fn($cq) => $cq->where('category', 'dropship'));
+                });
+            } elseif ($customerCat === 'umum') {
+                $offSalesQuery->where('is_dropship', false);
+            }
 
             $offSalesGet = $offSalesQuery->get();
 
-            if ($offSalesGet->count() > 0) {
-                // Group offline sales by institution_name
-                $groupedOffline = $offSalesGet->groupBy(function($s) {
-                    return !empty(trim($s->institution_name ?? '')) ? trim($s->institution_name) : 'Toko Fisik / Umum';
-                });
+            // Group offline sales by institution_name
+            $groupedOffline = $offSalesGet->groupBy(function($s) {
+                return !empty(trim($s->institution_name ?? '')) ? trim($s->institution_name) : 'Toko Fisik / Umum';
+            });
 
-                foreach ($groupedOffline as $instName => $salesList) {
-                    $offOmset = (float) $salesList->sum('grand_total');
-                    $offOrders = $salesList->count();
-                    $offQty = 0;
-                    foreach ($salesList as $s) {
-                        $offQty += $s->items()->sum('quantity');
-                    }
-
-                    $channels[] = [
-                        'name' => 'Penjualan Offline (' . $instName . ')',
-                        'type' => 'Offline',
-                        'orders' => $offOrders,
-                        'qty' => $offQty,
-                        'omset' => $offOmset,
-                        'aov' => $offOrders > 0 ? $offOmset / $offOrders : 0,
-                    ];
-
-                    $grandTotalOmset += $offOmset;
-                    $grandTotalQty += $offQty;
-                    $grandTotalOrders += $offOrders;
+            foreach ($groupedOffline as $instName => $salesList) {
+                $offOmset = (float) $salesList->sum('grand_total');
+                $offOrders = $salesList->count();
+                $offQty = 0;
+                foreach ($salesList as $s) {
+                    $offQty += $s->items()->sum('quantity');
                 }
-            } else {
+
                 $channels[] = [
-                    'name' => 'Penjualan Offline (Toko Fisik)',
+                    'name' => 'Penjualan Offline (' . $instName . ')',
                     'type' => 'Offline',
-                    'orders' => 0,
-                    'qty' => 0,
-                    'omset' => 0,
-                    'aov' => 0,
+                    'orders' => $offOrders,
+                    'qty' => $offQty,
+                    'omset' => $offOmset,
+                    'aov' => $offOrders > 0 ? $offOmset / $offOrders : 0,
                 ];
+
+                $grandTotalOmset += $offOmset;
+                $grandTotalQty += $offQty;
+                $grandTotalOrders += $offOrders;
             }
         }
 
@@ -1550,8 +1484,10 @@ class ReportController extends Controller
                     }
                 }
 
-                $ordersQuery = $this->buildOnlineOrdersQuery($tenantId, $dateFrom, $dateTo, $categoryId, $brandId, $channelCode, $customerCat, $statusFilter, $search, $isBundle, $isPo)
-                    ->where('store_id', $st->id);
+                $ordersQuery = \App\Models\Order::where('tenant_id', $tenantId)
+                    ->where('store_id', $st->id)
+                    ->whereNotIn('order_status', ['CANCELLED', 'RETURNED'])
+                    ->whereBetween('order_date', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59']);
 
                 $ordersGet = $ordersQuery->get();
                 $omset = (float) $ordersGet->sum('total_amount');
@@ -1585,8 +1521,20 @@ class ReportController extends Controller
 
         // 1. Offline Sales
         if ($channelCode === 'all' || $channelCode === 'offline') {
-            $offQuery = $this->buildOfflineSalesQuery($tenantId, $dateFrom, $dateTo, $categoryId, $brandId, $channelCode, $customerCat, $statusFilter, $search, $isBundle, $isPo)
+            $offQuery = \App\Models\OfflineSale::where('tenant_id', $tenantId)
+                ->whereBetween('sold_at', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59'])
                 ->with(['customer', 'items.masterProduct']);
+
+            $this->applyOfflineStatusFilter($offQuery, $statusFilter);
+
+            if ($customerCat === 'dropship') {
+                $offQuery->where(function($q) {
+                    $q->where('is_dropship', true)
+                      ->orWhereHas('customer', fn($cq) => $cq->where('category', 'dropship'));
+                });
+            } elseif ($customerCat === 'umum') {
+                $offQuery->where('is_dropship', false);
+            }
 
             foreach ($offQuery->get() as $s) {
                 $itemSummary = [];
@@ -1597,7 +1545,7 @@ class ReportController extends Controller
                 $transactions[] = [
                     'date' => $s->sold_at ? $s->sold_at->format('Y-m-d H:i') : '—',
                     'ref' => $s->sale_number,
-                    'channel' => 'POS Offline' . (!empty($s->institution_name) ? ' (' . $s->institution_name . ')' : ''),
+                    'channel' => 'POS Offline',
                     'customer' => $s->is_dropship ? ($s->dropshipper_name . ' (Dropship)') : ($s->buyer_name ?: ($s->customer->name ?? 'Pelanggan Umum')),
                     'customer_cat' => $s->is_dropship ? 'Dropship' : ($s->customer->category ?? 'Umum'),
                     'items_summary' => implode(', ', $itemSummary),
@@ -1610,8 +1558,15 @@ class ReportController extends Controller
 
         // 2. Online Orders
         if ($channelCode === 'all' || $channelCode !== 'offline') {
-            $onQuery = $this->buildOnlineOrdersQuery($tenantId, $dateFrom, $dateTo, $categoryId, $brandId, $channelCode, $customerCat, $statusFilter, $search, $isBundle, $isPo)
+            $onQuery = \App\Models\Order::where('tenant_id', $tenantId)
+                ->whereBetween('order_date', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59'])
                 ->with(['store.channel', 'customer', 'items']);
+
+            $this->applyOnlineStatusFilter($onQuery, $statusFilter);
+
+            if ($channelCode !== 'all' && $channelCode !== 'online') {
+                $onQuery->whereHas('store.channel', fn($cq) => $cq->where('code', strtolower($channelCode)));
+            }
 
             foreach ($onQuery->get() as $o) {
                 $itemSummary = [];
@@ -1641,7 +1596,7 @@ class ReportController extends Controller
         return compact('transactions', 'grandTotalOmset', 'grandTotalQty');
     }
 
-    private function getSalesReportPerDateData($tenantId, $dateFrom, $dateTo, $categoryId = null, $brandId = null, $channelCode = 'all', $customerCat = 'all', $statusFilter = 'all', $search = null, $isBundle = null, $isPo = null)
+    private function getSalesReportPerDateData($tenantId, $dateFrom, $dateTo, $channelCode = 'all', $customerCat = 'all', $statusFilter = 'all')
     {
         $dates = [];
         $current = strtotime($dateFrom);
@@ -1656,21 +1611,30 @@ class ReportController extends Controller
             // POS Offline
             $offQty = 0; $offOmset = 0.0;
             if ($channelCode === 'all' || $channelCode === 'offline') {
-                $offQuery = $this->buildOfflineSalesQuery($tenantId, $dt, $dt, $categoryId, $brandId, $channelCode, $customerCat, $statusFilter, $search, $isBundle, $isPo)->get();
-                $offOmset = (float) $offQuery->sum('grand_total');
-                foreach ($offQuery as $s) {
-                    $offQty += $s->items->sum('quantity');
-                }
+                $offQuery = \App\Models\OfflineSaleItem::whereHas('offlineSale', function ($q) use ($tenantId, $dt, $customerCat, $statusFilter) {
+                    $q->where('tenant_id', $tenantId)
+                      ->whereDate('sold_at', $dt);
+                    $this->applyOfflineStatusFilter($q, $statusFilter);
+                    if ($customerCat === 'dropship') $q->where('is_dropship', true);
+                    elseif ($customerCat === 'umum') $q->where('is_dropship', false);
+                });
+                $offQty = (int) $offQuery->sum('quantity');
+                $offOmset = (float) $offQuery->sum('subtotal');
             }
 
             // Online Orders
             $onQty = 0; $onOmset = 0.0;
             if ($channelCode === 'all' || $channelCode !== 'offline') {
-                $onQuery = $this->buildOnlineOrdersQuery($tenantId, $dt, $dt, $categoryId, $brandId, $channelCode, $customerCat, $statusFilter, $search, $isBundle, $isPo)->get();
-                $onOmset = (float) $onQuery->sum('total_amount');
-                foreach ($onQuery as $o) {
-                    $onQty += $o->items->sum('quantity');
-                }
+                $onQuery = \App\Models\OrderItem::whereHas('order', function ($q) use ($tenantId, $dt, $channelCode, $statusFilter) {
+                    $q->where('tenant_id', $tenantId)
+                      ->whereDate('order_date', $dt);
+                    $this->applyOnlineStatusFilter($q, $statusFilter);
+                    if ($channelCode !== 'all' && $channelCode !== 'online') {
+                        $q->whereHas('store.channel', fn($cq) => $cq->where('code', strtolower($channelCode)));
+                    }
+                });
+                $onQty = (int) $onQuery->sum('quantity');
+                $onOmset = (float) $onQuery->sum('total_price');
             }
 
             $tQty = $offQty + $onQty;
@@ -1696,7 +1660,7 @@ class ReportController extends Controller
         return compact('dates', 'grandTotalQty', 'grandTotalOmset');
     }
 
-    private function getSalesReportPerCustomerCategoryData($tenantId, $dateFrom, $dateTo, $categoryId = null, $brandId = null, $channelCode = 'all', $customerCat = 'all', $statusFilter = 'all', $search = null, $isBundle = null, $isPo = null)
+    private function getSalesReportPerCustomerCategoryData($tenantId, $dateFrom, $dateTo, $channelCode = 'all', $statusFilter = 'all')
     {
         $categoriesData = [];
         $categoriesList = ['dropship' => 'Pelanggan Dropship', 'umum' => 'Pelanggan Umum', 'biasa' => 'Pelanggan Biasa', 'marketplace' => 'Pelanggan Marketplace'];
@@ -1710,19 +1674,40 @@ class ReportController extends Controller
 
             if ($catKey === 'marketplace') {
                 // Online Marketplace
-                $orders = $this->buildOnlineOrdersQuery($tenantId, $dateFrom, $dateTo, $categoryId, $brandId, $channelCode, $customerCat, $statusFilter, $search, $isBundle, $isPo)->get();
+                $ordersQuery = \App\Models\Order::where('tenant_id', $tenantId)
+                    ->whereBetween('order_date', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59']);
+                $this->applyOnlineStatusFilter($ordersQuery, $statusFilter);
+                if ($channelCode !== 'all' && $channelCode !== 'online') {
+                    $ordersQuery->whereHas('store.channel', fn($cq) => $cq->where('code', strtolower($channelCode)));
+                }
+
+                $orders = $ordersQuery->get();
                 $ordersCount = $orders->count();
                 $omset = (float) $orders->sum('total_amount');
                 foreach ($orders as $o) {
-                    $qty += $o->items->sum('quantity');
+                    $qty += $o->items()->sum('quantity');
                 }
             } else {
                 // Offline Sales matching category
-                $offSales = $this->buildOfflineSalesQuery($tenantId, $dateFrom, $dateTo, $categoryId, $brandId, $channelCode, $catKey, $statusFilter, $search, $isBundle, $isPo)->get();
-                $ordersCount = $offSales->count();
-                $omset = (float) $offSales->sum('grand_total');
-                foreach ($offSales as $s) {
-                    $qty += $s->items->sum('quantity');
+                $offSalesQuery = \App\Models\OfflineSale::where('tenant_id', $tenantId)
+                    ->whereBetween('sold_at', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59']);
+                $this->applyOfflineStatusFilter($offSalesQuery, $statusFilter);
+
+                if ($catKey === 'dropship') {
+                    $offSalesQuery->where(function($q) {
+                        $q->where('is_dropship', true)
+                          ->orWhereHas('customer', fn($cq) => $cq->where('category', 'dropship'));
+                    });
+                } else {
+                    $offSalesQuery->where('is_dropship', false)
+                                 ->whereHas('customer', fn($cq) => $cq->where('category', $catKey));
+                }
+
+                $offGet = $offSalesQuery->get();
+                $ordersCount = $offGet->count();
+                $omset = (float) $offGet->sum('grand_total');
+                foreach ($offGet as $s) {
+                    $qty += $s->items()->sum('quantity');
                 }
             }
 
