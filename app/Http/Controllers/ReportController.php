@@ -1748,43 +1748,20 @@ class ReportController extends Controller
     private function applyOnlineStatusFilter($query, $statusFilter)
     {
         if ($statusFilter === 'completed') {
-            $query->where(function($q) {
-                $q->whereIn('order_status', ['COMPLETED', 'DELIVERED', 'SELESAI', 'FINISHED'])
-                  ->orWhere('order_status', 'like', '%COMPLETE%')
-                  ->orWhere('order_status', 'like', '%DELIVER%');
-            });
+            $query->whereIn('order_status', ['COMPLETED', 'DELIVERED', 'SELESAI', 'FINISHED']);
         } elseif ($statusFilter === 'shipped') {
-            $query->where(function($q) {
-                $q->whereIn('order_status', ['SHIPPED', 'IN_TRANSIT', 'DIKIRIM'])
-                  ->orWhere('order_status', 'like', '%SHIP%')
-                  ->orWhere('order_status', 'like', '%TRANSIT%');
-            });
+            $query->whereIn('order_status', ['SHIPPED', 'IN_TRANSIT', 'DIKIRIM']);
         } elseif ($statusFilter === 'processing') {
-            $query->where(function($q) {
-                $q->whereIn('order_status', ['READY_TO_SHIP', 'PROCESSING', 'PROCESSED', 'DIKEMAS'])
-                  ->orWhere('order_status', 'like', '%PROCESS%')
-                  ->orWhere('order_status', 'like', '%READY%');
-            });
+            $query->whereIn('order_status', ['READY_TO_SHIP', 'PROCESSING', 'PROCESSED', 'PENDING_APPROVAL']);
         } elseif ($statusFilter === 'pending') {
-            $query->where(function($q) {
-                $q->whereIn('order_status', ['UNPAID', 'PENDING', 'BELUM_BAYAR']);
-            });
+            $query->whereIn('order_status', ['UNPAID', 'PENDING']);
         } elseif ($statusFilter === 'cancelled') {
-            $query->where(function($q) {
-                $q->whereIn('order_status', ['CANCELLED', 'BATAL'])
-                  ->orWhere('order_status', 'like', '%CANCEL%');
-            });
+            $query->whereIn('order_status', ['CANCELLED', 'BATAL']);
         } elseif ($statusFilter === 'returned') {
-            $query->where(function($q) {
-                $q->whereIn('order_status', ['RETURNED', 'REFUNDED', 'RETUR'])
-                  ->orWhere('order_status', 'like', '%RETURN%')
-                  ->orWhere('order_status', 'like', '%REFUND%');
-            });
+            $query->whereIn('order_status', ['RETURNED', 'REFUNDED', 'RETURN']);
         } else {
             // 'all' -> default exclude cancelled & returned
-            $query->whereNotIn('order_status', ['CANCELLED', 'RETURNED', 'BATAL', 'RETUR', 'REFUNDED'])
-                  ->where('order_status', 'not like', '%CANCEL%')
-                  ->where('order_status', 'not like', '%RETURN%');
+            $query->whereNotIn('order_status', ['CANCELLED', 'RETURNED', 'RETURN', 'BATAL']);
         }
     }
 }

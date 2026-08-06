@@ -125,8 +125,6 @@
                         </div>
                     </div>
 
-                    </div>
-
                     <div class="d-flex justify-content-end">
                         <button type="submit" class="btn btn-sm btn-primary px-4 fw-bold">
                             <i class="fas fa-print me-1"></i> Cetak Rekap Penjualan
