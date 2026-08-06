@@ -184,7 +184,7 @@
                                             style="cursor:pointer;transition:.15s;" data-id="{{ $product->id }}"
                                             data-name="{{ $product->name }}" data-sku="{{ $product->sku }}"
                                             data-price="{{ $product->price }}" data-reseller-price="{{ $resellerPrice }}"
-                                            data-stock="{{ $product->stock }}">
+                                            data-stock="{{ $product->stock }}" data-is-po="{{ $product->is_preorder ? 1 : 0 }}">
                                             <div>
                                                 <div class="fw-semibold text-dark">{{ $product->name }}</div>
                                                 <div class="text-muted small font-monospace">{{ $product->sku }} &bull;
@@ -546,11 +546,12 @@
                 const normalPrice = parseFloat($(this).data('price'));
                 const resellerPrice = parseFloat($(this).data('reseller-price'));
                 const stock = parseInt($(this).data('stock'));
+                const isPoProduct = $(this).data('is-po') == 1 || $('#is-po-switch').is(':checked');
 
                 const activePrice = isDropshipCustomer ? resellerPrice : normalPrice;
 
                 if (cartItems[id]) {
-                    if (cartItems[id].qty >= stock) {
+                    if (!isPoProduct && cartItems[id].qty >= stock) {
                         alert('Stok tidak mencukupi! Maks: ' + stock);
                         return;
                     }
@@ -564,6 +565,7 @@
                         normal_price: normalPrice,
                         dropship_price: resellerPrice,
                         stock,
+                        is_po: isPoProduct,
                         qty: 1,
                         discount_type: 'fixed',
                         discount_value: 0,
@@ -714,7 +716,8 @@
                     removeItem(id);
                     return;
                 }
-                if (newQty > cartItems[id].stock) {
+                const isPo = $('#is-po-switch').is(':checked') || cartItems[id].is_po == 1;
+                if (!isPo && newQty > cartItems[id].stock) {
                     alert('Stok tidak mencukupi! Maks: ' + cartItems[id].stock);
                     return;
                 }
@@ -728,7 +731,8 @@
                     removeItem(id);
                     return;
                 }
-                if (qty > cartItems[id].stock) {
+                const isPo = $('#is-po-switch').is(':checked') || cartItems[id].is_po == 1;
+                if (!isPo && qty > cartItems[id].stock) {
                     alert('Stok tidak mencukupi!');
                     cartItems[id].qty = cartItems[id].stock;
                 } else {

@@ -178,7 +178,7 @@ class OfflineSaleController extends Controller
                 $isPo = $request->boolean('is_po');
 
                 // Pastikan stok cukup jika bukan pesanan Pre-Order / PO Produksi
-                if (!$isPo && $product->stock < $qty) {
+                if (!$isPo && !$product->is_preorder && $product->stock < $qty) {
                     abort(422, "Stok {$product->name} tidak mencukupi. Stok tersedia: {$product->stock}");
                 }
 

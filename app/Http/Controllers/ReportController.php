@@ -1137,7 +1137,7 @@ class ReportController extends Controller
     }
 
     /**
-     * Laporan Rekap Penjualan Produk (Filter Lengkap seperti Rekap Persediaan Stok)
+     * Laporan Rekap Penjualan Produk & Multi Format
      */
     public function salesReport(Request $request)
     {
@@ -1146,6 +1146,15 @@ class ReportController extends Controller
         $brands = Brand::where('tenant_id', $tenantId)->orderBy('name')->get();
         $stores = \App\Models\Store::where('tenant_id', $tenantId)->with('channel')->orderBy('store_name')->get();
 
+        $masterCustCats = \App\Models\Customer::where('tenant_id', $tenantId)
+            ->whereNotNull('category')
+            ->where('category', '!=', '')
+            ->pluck('category')
+            ->unique()
+            ->toArray();
+        $customerCategories = array_values(array_unique(array_merge(array_keys(\App\Models\Customer::CATEGORIES), $masterCustCats)));
+        $customerCategoryLabels = \App\Models\Customer::CATEGORIES;
+
         $dateFrom       = $request->input('date_from', date('Y-m-01'));
         $dateTo         = $request->input('date_to', date('Y-m-d'));
         $categoryId     = $request->input('category_id');
@@ -1154,20 +1163,20 @@ class ReportController extends Controller
         $isPo           = $request->input('po_status');
         $channelCode    = $request->input('channel_code', 'all');
         $customerCat    = $request->input('customer_category', 'all');
+        $reportFormat   = $request->input('report_format', 'per_produk');
         $search         = $request->input('search');
         $hideZeroSales  = $request->boolean('hide_zero_sales');
 
-        $data = $this->getSalesReportData($tenantId, $dateFrom, $dateTo, $categoryId, $brandId, $channelCode, $customerCat, $search, $hideZeroSales, $isBundle, $isPo);
-
-        return view('reports.sales_report', array_merge($data, compact(
-            'categories', 'brands', 'stores', 'dateFrom', 'dateTo', 'categoryId',
-            'brandId', 'isBundle', 'isPo', 'channelCode', 'customerCat', 'search', 'hideZeroSales'
-        )));
+        return view('reports.sales_report', compact(
+            'categories', 'brands', 'stores', 'customerCategories', 'customerCategoryLabels',
+            'dateFrom', 'dateTo', 'categoryId', 'brandId', 'isBundle', 'isPo',
+            'channelCode', 'customerCat', 'reportFormat', 'search', 'hideZeroSales'
+        ));
     }
 
     public function printSalesReport(Request $request)
     {
-        $tenantId = Auth::user()->tenant_id;
+        $tenantId       = Auth::user()->tenant_id;
         $dateFrom       = $request->input('date_from', date('Y-m-01'));
         $dateTo         = $request->input('date_to', date('Y-m-d'));
         $categoryId     = $request->input('category_id');
@@ -1176,12 +1185,29 @@ class ReportController extends Controller
         $isPo           = $request->input('po_status');
         $channelCode    = $request->input('channel_code', 'all');
         $customerCat    = $request->input('customer_category', 'all');
+        $reportFormat   = $request->input('report_format', 'per_produk');
         $search         = $request->input('search');
         $hideZeroSales  = $request->boolean('hide_zero_sales');
 
-        $data = $this->getSalesReportData($tenantId, $dateFrom, $dateTo, $categoryId, $brandId, $channelCode, $customerCat, $search, $hideZeroSales, $isBundle, $isPo);
+        $customerCategoryLabels = \App\Models\Customer::CATEGORIES;
 
-        return view('reports.print_sales_report', array_merge($data, compact('dateFrom', 'dateTo')));
+        if ($reportFormat === 'per_channel') {
+            $data = $this->getSalesReportPerChannelData($tenantId, $dateFrom, $dateTo, $customerCat);
+            return view('reports.print_sales_report_channel', array_merge($data, compact('dateFrom', 'dateTo', 'customerCat')));
+        } elseif ($reportFormat === 'detail') {
+            $data = $this->getSalesReportDetailData($tenantId, $dateFrom, $dateTo, $categoryId, $brandId, $channelCode, $customerCat, $search, $isBundle, $isPo);
+            return view('reports.print_sales_report_detail', array_merge($data, compact('dateFrom', 'dateTo')));
+        } elseif ($reportFormat === 'per_tanggal') {
+            $data = $this->getSalesReportPerDateData($tenantId, $dateFrom, $dateTo, $channelCode, $customerCat);
+            return view('reports.print_sales_report_date', array_merge($data, compact('dateFrom', 'dateTo')));
+        } elseif ($reportFormat === 'per_kategori_pelanggan') {
+            $data = $this->getSalesReportPerCustomerCategoryData($tenantId, $dateFrom, $dateTo, $channelCode);
+            return view('reports.print_sales_report_customer_category', array_merge($data, compact('dateFrom', 'dateTo', 'customerCategoryLabels')));
+        } else {
+            // Default: per_produk
+            $data = $this->getSalesReportData($tenantId, $dateFrom, $dateTo, $categoryId, $brandId, $channelCode, $customerCat, $search, $hideZeroSales, $isBundle, $isPo);
+            return view('reports.print_sales_report', array_merge($data, compact('dateFrom', 'dateTo')));
+        }
     }
 
     public function exportSalesReport(Request $request)
@@ -1373,5 +1399,287 @@ class ReportController extends Controller
             'grandTotalProfit'  => $grandTotalProfit,
             'overallMargin'     => $overallMargin,
         ];
+    }
+
+    private function getSalesReportPerChannelData($tenantId, $dateFrom, $dateTo, $customerCat = 'all')
+    {
+        $stores = \App\Models\Store::where('tenant_id', $tenantId)->with('channel')->get();
+        
+        $channels = [];
+        $grandTotalOmset = 0;
+        $grandTotalQty = 0;
+        $grandTotalOrders = 0;
+
+        // POS Offline
+        $offSales = \App\Models\OfflineSale::where('tenant_id', $tenantId)
+            ->where('status', '!=', \App\Models\OfflineSale::STATUS_CANCELLED)
+            ->whereBetween('sold_at', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59']);
+
+        if ($customerCat === 'dropship') {
+            $offSales->where(function($q) {
+                $q->where('is_dropship', true)
+                  ->orWhereHas('customer', fn($cq) => $cq->where('category', 'dropship'));
+            });
+        } elseif ($customerCat === 'umum') {
+            $offSales->where('is_dropship', false);
+        }
+
+        $offSalesGet = $offSales->get();
+        $offOmset = (float) $offSalesGet->sum('grand_total');
+        $offOrders = $offSalesGet->count();
+        $offQty = 0;
+        foreach ($offSalesGet as $s) {
+            $offQty += $s->items()->sum('quantity');
+        }
+
+        $channels[] = [
+            'name' => 'POS Offline (Toko Fisik)',
+            'type' => 'Offline',
+            'orders' => $offOrders,
+            'qty' => $offQty,
+            'omset' => $offOmset,
+            'aov' => $offOrders > 0 ? $offOmset / $offOrders : 0,
+        ];
+
+        $grandTotalOmset += $offOmset;
+        $grandTotalQty += $offQty;
+        $grandTotalOrders += $offOrders;
+
+        // Marketplace Online Stores
+        foreach ($stores as $st) {
+            $ordersQuery = \App\Models\Order::where('tenant_id', $tenantId)
+                ->where('store_id', $st->id)
+                ->whereNotIn('order_status', ['CANCELLED', 'RETURNED'])
+                ->whereBetween('order_date', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59']);
+
+            $ordersGet = $ordersQuery->get();
+            $omset = (float) $ordersGet->sum('total_amount');
+            $ordCount = $ordersGet->count();
+            $qty = 0;
+            foreach ($ordersGet as $o) {
+                $qty += $o->items()->sum('quantity');
+            }
+
+            $channels[] = [
+                'name' => $st->store_name . ' (' . ($st->channel->name ?? 'Online') . ')',
+                'type' => $st->channel->name ?? 'Online',
+                'orders' => $ordCount,
+                'qty' => $qty,
+                'omset' => $omset,
+                'aov' => $ordCount > 0 ? $omset / $ordCount : 0,
+            ];
+
+            $grandTotalOmset += $omset;
+            $grandTotalQty += $qty;
+            $grandTotalOrders += $ordCount;
+        }
+
+        return compact('channels', 'grandTotalOmset', 'grandTotalQty', 'grandTotalOrders');
+    }
+
+    private function getSalesReportDetailData($tenantId, $dateFrom, $dateTo, $categoryId = null, $brandId = null, $channelCode = 'all', $customerCat = 'all', $search = null, $isBundle = null, $isPo = null)
+    {
+        $transactions = [];
+
+        // 1. Offline Sales
+        if ($channelCode === 'all' || $channelCode === 'offline') {
+            $offQuery = \App\Models\OfflineSale::where('tenant_id', $tenantId)
+                ->where('status', '!=', \App\Models\OfflineSale::STATUS_CANCELLED)
+                ->whereBetween('sold_at', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59'])
+                ->with(['customer', 'items.masterProduct']);
+
+            if ($customerCat === 'dropship') {
+                $offQuery->where(function($q) {
+                    $q->where('is_dropship', true)
+                      ->orWhereHas('customer', fn($cq) => $cq->where('category', 'dropship'));
+                });
+            } elseif ($customerCat === 'umum') {
+                $offQuery->where('is_dropship', false);
+            }
+
+            foreach ($offQuery->get() as $s) {
+                $itemSummary = [];
+                foreach ($s->items as $it) {
+                    $itemSummary[] = ($it->masterProduct->sku ?? $it->sku) . ' x' . $it->quantity;
+                }
+
+                $transactions[] = [
+                    'date' => $s->sold_at ? $s->sold_at->format('Y-m-d H:i') : '—',
+                    'ref' => $s->sale_number,
+                    'channel' => 'POS Offline',
+                    'customer' => $s->is_dropship ? ($s->dropshipper_name . ' (Dropship)') : ($s->buyer_name ?: ($s->customer->name ?? 'Pelanggan Umum')),
+                    'customer_cat' => $s->is_dropship ? 'Dropship' : ($s->customer->category ?? 'Umum'),
+                    'items_summary' => implode(', ', $itemSummary),
+                    'total_qty' => $s->items->sum('quantity'),
+                    'omset' => (float)$s->grand_total,
+                    'status' => ucfirst($s->status),
+                ];
+            }
+        }
+
+        // 2. Online Orders
+        if ($channelCode === 'all' || $channelCode !== 'offline') {
+            $onQuery = \App\Models\Order::where('tenant_id', $tenantId)
+                ->whereNotIn('order_status', ['CANCELLED', 'RETURNED'])
+                ->whereBetween('order_date', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59'])
+                ->with(['store.channel', 'customer', 'items']);
+
+            if ($channelCode !== 'all') {
+                $onQuery->whereHas('store.channel', fn($cq) => $cq->where('code', strtolower($channelCode)));
+            }
+
+            foreach ($onQuery->get() as $o) {
+                $itemSummary = [];
+                foreach ($o->items as $it) {
+                    $itemSummary[] = ($it->sku) . ' x' . $it->quantity;
+                }
+
+                $transactions[] = [
+                    'date' => $o->order_date ? date('Y-m-01 H:i', strtotime($o->order_date)) : '—',
+                    'ref' => $o->order_number ?: $o->marketplace_order_number,
+                    'channel' => $o->store->channel->name ?? 'Marketplace',
+                    'customer' => $o->customer_name ?: ($o->customer->name ?? 'Pelanggan MP'),
+                    'customer_cat' => 'Marketplace',
+                    'items_summary' => implode(', ', $itemSummary),
+                    'total_qty' => $o->items->sum('quantity'),
+                    'omset' => (float)$o->total_amount,
+                    'status' => $o->order_status,
+                ];
+            }
+        }
+
+        usort($transactions, fn($a, $b) => strcmp($b['date'], $a['date']));
+
+        $grandTotalOmset = array_sum(array_column($transactions, 'omset'));
+        $grandTotalQty = array_sum(array_column($transactions, 'total_qty'));
+
+        return compact('transactions', 'grandTotalOmset', 'grandTotalQty');
+    }
+
+    private function getSalesReportPerDateData($tenantId, $dateFrom, $dateTo, $channelCode = 'all', $customerCat = 'all')
+    {
+        $dates = [];
+        $current = strtotime($dateFrom);
+        $last = strtotime($dateTo);
+
+        $grandTotalOmset = 0;
+        $grandTotalQty = 0;
+
+        while ($current <= $last) {
+            $dt = date('Y-m-d', $current);
+
+            // POS Offline
+            $offQty = 0; $offOmset = 0.0;
+            if ($channelCode === 'all' || $channelCode === 'offline') {
+                $offQuery = \App\Models\OfflineSaleItem::whereHas('offlineSale', function ($q) use ($tenantId, $dt, $customerCat) {
+                    $q->where('tenant_id', $tenantId)
+                      ->where('status', '!=', \App\Models\OfflineSale::STATUS_CANCELLED)
+                      ->whereDate('sold_at', $dt);
+                    if ($customerCat === 'dropship') $q->where('is_dropship', true);
+                    elseif ($customerCat === 'umum') $q->where('is_dropship', false);
+                });
+                $offQty = (int) $offQuery->sum('quantity');
+                $offOmset = (float) $offQuery->sum('subtotal');
+            }
+
+            // Online Orders
+            $onQty = 0; $onOmset = 0.0;
+            if ($channelCode === 'all' || $channelCode !== 'offline') {
+                $onQuery = \App\Models\OrderItem::whereHas('order', function ($q) use ($tenantId, $dt, $channelCode) {
+                    $q->where('tenant_id', $tenantId)
+                      ->whereNotIn('order_status', ['CANCELLED', 'RETURNED'])
+                      ->whereDate('order_date', $dt);
+                    if ($channelCode !== 'all') {
+                        $q->whereHas('store.channel', fn($cq) => $cq->where('code', strtolower($channelCode)));
+                    }
+                });
+                $onQty = (int) $onQuery->sum('quantity');
+                $onOmset = (float) $onQuery->sum('total_price');
+            }
+
+            $tQty = $offQty + $onQty;
+            $tOmset = $offOmset + $onOmset;
+
+            if ($tQty > 0 || $tOmset > 0) {
+                $dates[] = [
+                    'date' => $dt,
+                    'qty_offline' => $offQty,
+                    'omset_offline' => $offOmset,
+                    'qty_online' => $onQty,
+                    'omset_online' => $onOmset,
+                    'total_qty' => $tQty,
+                    'total_omset' => $tOmset,
+                ];
+                $grandTotalQty += $tQty;
+                $grandTotalOmset += $tOmset;
+            }
+
+            $current = strtotime('+1 day', $current);
+        }
+
+        return compact('dates', 'grandTotalQty', 'grandTotalOmset');
+    }
+
+    private function getSalesReportPerCustomerCategoryData($tenantId, $dateFrom, $dateTo, $channelCode = 'all')
+    {
+        $categoriesData = [];
+        $categoriesList = ['dropship' => 'Pelanggan Dropship', 'umum' => 'Pelanggan Umum', 'biasa' => 'Pelanggan Biasa', 'marketplace' => 'Pelanggan Marketplace'];
+
+        $grandTotalOmset = 0;
+        $grandTotalQty = 0;
+        $grandTotalOrders = 0;
+
+        foreach ($categoriesList as $catKey => $catLabel) {
+            $qty = 0; $omset = 0.0; $ordersCount = 0;
+
+            if ($catKey === 'marketplace') {
+                // Online Marketplace
+                $orders = \App\Models\Order::where('tenant_id', $tenantId)
+                    ->whereNotIn('order_status', ['CANCELLED', 'RETURNED'])
+                    ->whereBetween('order_date', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59'])
+                    ->get();
+                $ordersCount = $orders->count();
+                $omset = (float) $orders->sum('total_amount');
+                foreach ($orders as $o) {
+                    $qty += $o->items()->sum('quantity');
+                }
+            } else {
+                // Offline Sales matching category
+                $offSales = \App\Models\OfflineSale::where('tenant_id', $tenantId)
+                    ->where('status', '!=', \App\Models\OfflineSale::STATUS_CANCELLED)
+                    ->whereBetween('sold_at', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59']);
+
+                if ($catKey === 'dropship') {
+                    $offSales->where(function($q) {
+                        $q->where('is_dropship', true)
+                          ->orWhereHas('customer', fn($cq) => $cq->where('category', 'dropship'));
+                    });
+                } else {
+                    $offSales->where('is_dropship', false)
+                             ->whereHas('customer', fn($cq) => $cq->where('category', $catKey));
+                }
+
+                $offGet = $offSales->get();
+                $ordersCount = $offGet->count();
+                $omset = (float) $offGet->sum('grand_total');
+                foreach ($offGet as $s) {
+                    $qty += $s->items()->sum('quantity');
+                }
+            }
+
+            $categoriesData[] = [
+                'category_key' => $catKey,
+                'category_label' => $catLabel,
+                'orders_count' => $ordersCount,
+                'qty_sold' => $qty,
+                'total_omset' => $omset,
+            ];
+
+            $grandTotalOmset += $omset;
+            $grandTotalQty += $qty;
+            $grandTotalOrders += $ordersCount;
+        }
+
+        return compact('categoriesData', 'grandTotalOmset', 'grandTotalQty', 'grandTotalOrders');
     }
 }
