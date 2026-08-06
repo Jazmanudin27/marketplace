@@ -24,6 +24,9 @@
             <a href="{{ route('products.bulk_price_calculator') }}" class="btn btn-outline-success btn-sm px-3 rounded-3 fw-semibold" title="Setting & Kalkulasi Harga Masal">
                 <i class="fas fa-calculator me-1"></i>Kalkulator Harga Masal
             </a>
+            <button type="button" class="btn btn-outline-success btn-sm px-3 rounded-3 fw-semibold" data-bs-toggle="modal" data-bs-target="#modalImportPrices">
+                <i class="fas fa-file-excel me-1"></i>Import Harga Masal
+            </button>
             <a href="{{ route('reports.master_product') }}" class="btn btn-outline-secondary btn-sm px-3 rounded-3" title="Laporan & Cetak Master Produk">
                 <i class="fas fa-file-alt me-1"></i>Laporan Master Produk
             </a>
@@ -190,7 +193,7 @@
                         <th>SKU INDUK</th>
                         <th>KATEGORI / MERK</th>
                         <th class="text-center">VARIASI</th>
-                        <th class="text-end">HARGA (HPP / JUAL)</th>
+                        <th class="text-end">HARGA (NORMAL / DROPSHIP)</th>
                         <th class="text-center">STOK</th>
                         <th class="text-center">STATUS & PO</th>
                         <th>MARKETPLACE</th>
@@ -220,13 +223,14 @@
                                         </div>
                                     @endif
                                     <div>
-                                        <div class="text-dark fw-semibold text-wrap lh-sm" title="{{ $product->name }}">
+                                        <a href="{{ route('products.show', $product->id) }}"
+                                            class="fw-bold text-dark text-decoration-none">
                                             {{ $product->name }}
-                                        </div>
+                                        </a>
                                         <div class="mt-1 d-flex align-items-center gap-1 flex-wrap">
                                             @if ($product->is_bundle)
-                                                <span class="badge text-white px-2 py-0.5 fw-bold" style="background-color: #e11d48; font-size: 0.68rem;" title="Produk Bundling / Paket">
-                                                    <i class="fas fa-boxes me-1"></i>BUNDLE
+                                                <span class="badge text-white px-2 py-0.5 fw-bold" style="background-color: #ec4899; font-size: 0.68rem;" title="Produk Bundling / Paket">
+                                                    <i class="fas fa-cubes me-1"></i>BUNDLE / SET
                                                 </span>
                                             @else
                                                 <span class="badge px-2 py-0.5 fw-bold" style="background-color: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; font-size: 0.68rem;">
@@ -259,13 +263,12 @@
                             </td>
                             <td>
                                 <div class="lh-sm">
-                                    <div class="text-dark-50 small">
-                                        {{ $product->category->name ?? '—' }}
-                                    </div>
-                                    <div class="text-muted mt-1 small">
+                                    <strong class="small">{{ $product->category->name ?? '-' }}</strong>
+                                    <div class="mt-1">
                                         @if ($product->brand)
-                                            <span>Merk:</span> <span
-                                                class="text-dark">{{ $product->brand->name }}</span>
+                                            <span class="badge bg-light text-dark border me-1">
+                                                <i class="fas fa-tag me-1"></i>{{ $product->brand->name }}
+                                            </span>
                                         @else
                                             <span>Merk:</span> <span class="text-muted opacity-50">—</span>
                                         @endif
@@ -291,17 +294,14 @@
                                             class="font-monospace text-muted">{{ $product->cost_price ? 'Rp ' . number_format($product->cost_price, 0, ',', '.') : '—' }}</span>
                                     </div>
                                     <div class="mt-1">
-                                        <span class="text-muted">Jual:</span> <strong
+                                        <span class="text-muted">Normal:</span> <strong
                                             class="font-monospace text-primary">Rp
                                             {{ number_format($product->price, 0, ',', '.') }}</strong>
                                     </div>
-                                    @if($product->reseller_price)
                                     <div class="mt-1">
-                                        <span class="text-muted">Rsl:</span> <strong
-                                            class="font-monospace text-success">Rp
-                                            {{ number_format($product->reseller_price, 0, ',', '.') }}</strong>
+                                        <span class="text-muted">Dropship:</span> <strong
+                                            class="font-monospace text-success">{{ $product->reseller_price > 0 ? 'Rp ' . number_format($product->reseller_price, 0, ',', '.') : '—' }}</strong>
                                     </div>
-                                    @endif
                                 </div>
                             </td>
                             <td class="text-center">
@@ -727,3 +727,57 @@
         });
     });
 </script>
+
+<!-- MODAL IMPORT HARGA MASAL -->
+<div class="modal fade" id="modalImportPrices" tabindex="-1" aria-labelledby="modalImportPricesLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header py-2.5 bg-light">
+                <h6 class="modal-title fw-bold text-dark" id="modalImportPricesLabel">
+                    <i class="fas fa-file-excel me-2 text-success"></i>Import Harga Produk Masal (CSV)
+                </h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{{ route('products.import_prices') }}" method="POST" enctype="multipart/form-data">
+                @csrf
+                <div class="modal-body p-4">
+                    <div class="alert alert-info py-2.5 px-3 small border-0 bg-info bg-opacity-10 text-dark mb-3">
+                        <div class="fw-bold mb-1"><i class="fas fa-info-circle text-info me-1"></i>Format Kolom File CSV:</div>
+                        <code class="d-block bg-white p-2 rounded border font-monospace text-primary">sku,hpp,harga_normal,harga_dropship</code>
+                        <div class="mt-2 text-muted" style="font-size: 0.75rem;">
+                            &bull; <code>sku</code>: Kode SKU variasi produk (Wajib)<br>
+                            &bull; <code>hpp</code>: Harga Pokok Produksi / Harga Modal (Rp)<br>
+                            &bull; <code>harga_normal</code>: Harga Jual Standar / Eceran (Rp)<br>
+                            &bull; <code>harga_dropship</code>: Harga Khusus Reseller / Dropshipper (Rp)
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label form-label-sm fw-semibold text-dark">Pilih File CSV / Excel Template</label>
+                        <input type="file" name="file" class="form-control form-control-sm" accept=".csv,.txt,.xlsx,.xls" required>
+                    </div>
+
+                    <div class="form-check form-switch mb-3 p-2.5 bg-light rounded border">
+                        <input class="form-check-input ms-0 me-2" type="checkbox" name="sync_to_marketplace" value="1" id="syncToMarketplaceImport" checked>
+                        <label class="form-check-label small fw-bold text-dark" for="syncToMarketplaceImport">
+                            ⚡ Otomatis Push &amp; Update Harga Baru ke Toko Marketplace (Shopee, TikTok Shop, dll)
+                        </label>
+                    </div>
+
+                    <div class="p-3 bg-light rounded border text-center">
+                        <small class="text-muted d-block mb-2">Belum memiliki file template dengan data produk Anda?</small>
+                        <a href="{{ route('products.download_price_template') }}" class="btn btn-sm btn-outline-success px-3 fw-bold">
+                            <i class="fas fa-file-download me-1"></i>Unduh Template CSV Harga Produk
+                        </a>
+                    </div>
+                </div>
+                <div class="modal-footer py-2 bg-light">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-success btn-sm px-4 fw-bold">
+                        <i class="fas fa-upload me-1"></i>Upload &amp; Update Harga
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

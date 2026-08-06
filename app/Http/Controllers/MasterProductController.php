@@ -1437,4 +1437,184 @@ class MasterProductController extends Controller
 
         return redirect()->route('products.bulk_price_calculator')->with('success', $msg);
     }
+
+    /**
+     * Download Template CSV Import Harga
+     */
+    public function downloadPriceTemplate()
+    {
+        $tenantId = Auth::user()->tenant_id;
+        $products = MasterProduct::where('tenant_id', $tenantId)->orderBy('sku')->get();
+
+        $filename = "template_import_harga_" . date('Y-m-d_H-i-s') . ".csv";
+
+        $headers = [
+            "Content-Type"        => "text/csv; charset=UTF-8",
+            "Content-Disposition" => "attachment; filename=\"$filename\"",
+            "Pragma"              => "no-cache",
+            "Cache-Control"       => "must-revalidate, post-check=0, pre-check=0",
+            "Expires"             => "0"
+        ];
+
+        $callback = function () use ($products) {
+            $file = fopen('php://output', 'w');
+            // Add UTF-8 BOM for Excel compatibility
+            fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF));
+
+            // Headers: sku, hpp, harga_normal, harga_dropship
+            fputcsv($file, ['sku', 'hpp', 'harga_normal', 'harga_dropship']);
+
+            foreach ($products as $p) {
+                fputcsv($file, [
+                    $p->sku,
+                    (int)$p->cost_price,
+                    (int)$p->price,
+                    (int)$p->reseller_price
+                ]);
+            }
+
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
+    }
+
+    /**
+     * Import Harga Masal (SKU, HPP, Harga Normal, Harga Dropship)
+     */
+    public function importPrices(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|file|max:10240',
+        ], [
+            'file.required' => 'File CSV/Excel wajib diunggah.',
+        ]);
+
+        $tenantId = Auth::user()->tenant_id;
+        $file = $request->file('file');
+        $path = $file->getRealPath();
+
+        $handle = fopen($path, 'r');
+        if (!$handle) {
+            return back()->with('error', 'Gagal membuka file import.');
+        }
+
+        // Read BOM if present
+        $bom = fread($handle, 3);
+        if ($bom !== "\xEF\xBB\xBF") {
+            rewind($handle);
+        }
+
+        $delimiter = ',';
+        $header = fgetcsv($handle, 2000, $delimiter);
+
+        if (!$header) {
+            fclose($handle);
+            return back()->with('error', 'File CSV kosong atau tidak memiliki header.');
+        }
+
+        // Auto detect delimiter if semicolon is used
+        if (count($header) === 1 && str_contains($header[0], ';')) {
+            rewind($handle);
+            if ($bom !== "\xEF\xBB\xBF") {
+                rewind($handle);
+            }
+            $delimiter = ';';
+            $header = fgetcsv($handle, 2000, $delimiter);
+        }
+
+        // Normalize header columns
+        $headerMap = [];
+        foreach ($header as $idx => $col) {
+            $clean = strtolower(trim(preg_replace('/[^a-zA-Z0-9_]/', '', $col)));
+            $headerMap[$clean] = $idx;
+        }
+
+        $skuIdx           = $headerMap['sku'] ?? null;
+        $hppIdx           = $headerMap['hpp'] ?? $headerMap['cost_price'] ?? null;
+        $hargaNormalIdx   = $headerMap['harga_normal'] ?? $headerMap['harganormal'] ?? $headerMap['harga_jual'] ?? $headerMap['price'] ?? null;
+        $hargaDropshipIdx = $headerMap['harga_dropship'] ?? $headerMap['hargadropship'] ?? $headerMap['harga_reseller'] ?? $headerMap['reseller_price'] ?? null;
+
+        if ($skuIdx === null) {
+            fclose($handle);
+            return back()->with('error', 'Format header CSV tidak valid. Wajib memiliki kolom "sku".');
+        }
+
+        $syncMarketplace = $request->boolean('sync_to_marketplace');
+        $productsToSync  = [];
+        $updatedCount    = 0;
+        $notFoundCount   = 0;
+
+        \DB::beginTransaction();
+        try {
+            while (($row = fgetcsv($handle, 2000, $delimiter)) !== FALSE) {
+                if (!isset($row[$skuIdx])) continue;
+
+                $sku = trim($row[$skuIdx]);
+                if (empty($sku)) continue;
+
+                $product = MasterProduct::where('tenant_id', $tenantId)
+                    ->where('sku', $sku)
+                    ->first();
+
+                if (!$product) {
+                    $notFoundCount++;
+                    continue;
+                }
+
+                $updateData = [];
+
+                if ($hppIdx !== null && isset($row[$hppIdx]) && trim($row[$hppIdx]) !== '') {
+                    $val = (float) str_replace(['.', ',', 'Rp', ' '], ['', '.', '', ''], trim($row[$hppIdx]));
+                    $updateData['cost_price'] = max(0, $val);
+                }
+
+                if ($hargaNormalIdx !== null && isset($row[$hargaNormalIdx]) && trim($row[$hargaNormalIdx]) !== '') {
+                    $val = (float) str_replace(['.', ',', 'Rp', ' '], ['', '.', '', ''], trim($row[$hargaNormalIdx]));
+                    $updateData['price'] = max(0, $val);
+                }
+
+                if ($hargaDropshipIdx !== null && isset($row[$hargaDropshipIdx]) && trim($row[$hargaDropshipIdx]) !== '') {
+                    $val = (float) str_replace(['.', ',', 'Rp', ' '], ['', '.', '', ''], trim($row[$hargaDropshipIdx]));
+                    $updateData['reseller_price'] = max(0, $val);
+                }
+
+                if (!empty($updateData)) {
+                    $product->update($updateData);
+                    $updatedCount++;
+
+                    if ($syncMarketplace && isset($updateData['price'])) {
+                        $productsToSync[] = [
+                            'product_id' => $product->id,
+                            'price'      => $updateData['price'],
+                        ];
+                    }
+                }
+            }
+
+            \DB::commit();
+            fclose($handle);
+
+            // Dispatch background sync price to connected stores
+            if (!empty($productsToSync)) {
+                foreach ($productsToSync as $pSync) {
+                    \App\Jobs\PushPriceToMarketplaces::dispatch($pSync['product_id'], $pSync['price']);
+                }
+            }
+        } catch (\Exception $e) {
+            \DB::rollBack();
+            fclose($handle);
+            return back()->with('error', 'Terjadi kesalahan saat mengimpor harga: ' . $e->getMessage());
+        }
+
+        $msg = "✅ Berhasil memperbarui harga untuk {$updatedCount} produk!";
+        if ($syncMarketplace && count($productsToSync) > 0) {
+            $msg .= " ⚡ Sinkronisasi harga " . count($productsToSync) . " produk ke toko marketplace sedang berjalan di latar belakang.";
+        }
+        if ($notFoundCount > 0) {
+            $msg .= " ({$notFoundCount} SKU tidak ditemukan di sistem)";
+        }
+
+        return back()->with('success', $msg);
+    }
 }

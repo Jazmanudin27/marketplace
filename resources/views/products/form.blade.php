@@ -86,7 +86,7 @@
 
                         <div class="row">
                             <div class="col-md-4 mb-3">
-                                <label for="price" class="form-label form-label-sm fw-semibold">Harga Jual (Rp) <span
+                                <label for="price" class="form-label form-label-sm fw-semibold">Harga Normal (Rp) <span
                                         class="text-danger">*</span></label>
                                 <div class="input-group input-group-sm">
                                     <span class="input-group-text"><i class="fas fa-money-bill"></i></span>
@@ -104,7 +104,7 @@
                                 @enderror
                             </div>
                             <div class="col-md-4 mb-3">
-                                <label for="reseller_price" class="form-label form-label-sm fw-semibold">Harga Reseller / Dropship (Rp)</label>
+                                <label for="reseller_price" class="form-label form-label-sm fw-semibold">Harga Dropship (Rp)</label>
                                 <div class="input-group input-group-sm">
                                     <span class="input-group-text"><i class="fas fa-hand-holding-usd"></i></span>
                                     <input type="text" id="reseller_price" name="reseller_price"
