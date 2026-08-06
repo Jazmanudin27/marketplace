@@ -26,35 +26,126 @@
 
             <form id="offline-form" action="{{ route('offline_sales.store') }}" method="POST">
                 @csrf
-                <div class="row g-4">
 
-                    {{-- LEFT: Daftar Item --}}
+                {{-- ========================================================================= --}}
+                {{-- BARIS 1 (ATAS): PELANGGAN (COL-8) & RINGKASAN TOTAL PENJUALAN (COL-4)     --}}
+                {{-- ========================================================================= --}}
+                <div class="row g-4 mb-4">
+                    {{-- PELANGGAN / PEMBELI (COL 8) --}}
+                    <div class="col-lg-8">
+                        <div class="card border-0 shadow-sm h-100">
+                            <div class="card-header bg-light py-2 px-3 border-bottom d-flex align-items-center justify-content-between">
+                                <h6 class="fw-bold mb-0 text-dark">
+                                    <i class="fas fa-user-circle me-2 text-primary"></i>Pelanggan / Pembeli (Master Data)
+                                </h6>
+                                <button type="button" class="btn btn-primary btn-sm px-2.5 py-1 fw-bold" style="font-size:0.75rem;" data-bs-toggle="modal" data-bs-target="#modalCreateCustomer">
+                                    <i class="fas fa-plus-circle me-1"></i>+ Pelanggan Baru
+                                </button>
+                            </div>
+                            <div class="card-body p-3">
+                                <div class="row g-3">
+                                    {{-- Select Master Pelanggan --}}
+                                    <div class="col-md-6" id="customer-select-wrapper">
+                                        <label class="form-label form-label-sm text-muted fw-semibold mb-1">Pilih Master Pelanggan</label>
+                                        <select name="customer_id" id="customer-select" class="form-select form-select-sm select2" style="width: 100%;">
+                                            <option value="">-- Pelanggan Umum --</option>
+                                            @foreach ($customers as $cust)
+                                                <option value="{{ $cust->id }}" data-name="{{ $cust->name }}"
+                                                    data-phone="{{ $cust->phone }}" data-address="{{ $cust->address }}"
+                                                    data-category="{{ $cust->category }}" data-category-label="{{ $cust->category_label }}"
+                                                    data-tags="{{ $cust->tags }}" data-balance="{{ $cust->balance ?? 0 }}">
+                                                    [{{ $cust->category_label }}] {{ $cust->name }} {{ $cust->phone ? '(' . $cust->phone . ')' : '' }}
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+
+                                    {{-- Nama Pembeli --}}
+                                    <div class="col-md-6">
+                                        <label class="form-label form-label-sm text-muted fw-semibold mb-1" id="buyer-name-label">Nama Pembeli</label>
+                                        <input type="text" name="buyer_name" id="buyer-name-input" class="form-control form-control-sm" placeholder="Pelanggan Umum">
+                                    </div>
+
+                                    {{-- No HP --}}
+                                    <div class="col-md-6">
+                                        <label class="form-label form-label-sm text-muted fw-semibold mb-1" id="buyer-phone-label">No. HP / WA Pembeli</label>
+                                        <input type="text" name="buyer_phone" id="buyer-phone-input" class="form-control form-control-sm" placeholder="0812...">
+                                    </div>
+
+                                    {{-- Alamat --}}
+                                    <div class="col-md-6">
+                                        <label class="form-label form-label-sm text-muted fw-semibold mb-1">Alamat Pelanggan</label>
+                                        <textarea name="buyer_address" id="buyer-address-input" class="form-control form-control-sm" rows="1" placeholder="Alamat lengkap pelanggan..."></textarea>
+                                    </div>
+                                </div>
+
+                                <!-- Hidden fields for dropship (auto-filled if customer is dropship type) -->
+                                <input type="hidden" name="is_dropship" id="is-dropship-toggle" value="0">
+                                <input type="hidden" name="dropshipper_name" id="dropshipper-name-input" value="">
+                                <input type="hidden" name="dropshipper_phone" id="dropshipper-phone-input" value="">
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- RINGKASAN TOTAL & TYPE TRANS (COL 4) --}}
+                    <div class="col-lg-4">
+                        <div class="card border-0 shadow-sm h-100">
+                            <div class="card-header bg-light py-2 px-3 border-bottom">
+                                <h6 class="fw-bold mb-0 text-dark">
+                                    <i class="fas fa-calculator me-2 text-success"></i>Total &amp; Tipe Pesanan
+                                </h6>
+                            </div>
+                            <div class="card-body p-3 d-flex flex-column justify-content-between">
+                                {{-- Switch PO Produksi --}}
+                                <div class="card border border-primary border-opacity-25 bg-primary bg-opacity-10 p-2.5 rounded mb-3">
+                                    <div class="form-check form-switch mb-0">
+                                        <input class="form-check-input" type="checkbox" name="is_po" id="is-po-switch" value="1">
+                                        <label class="form-check-label fw-bold text-dark small" for="is-po-switch">
+                                            <i class="fas fa-hammer text-primary me-1"></i> Pre-Order / PO Produksi (SPK)
+                                        </label>
+                                    </div>
+                                    <div id="po-deadline-container" class="mt-2 pt-2 border-top border-primary border-opacity-25" style="display: none;">
+                                        <label class="form-label form-label-sm fw-bold text-dark mb-1">
+                                            <i class="fas fa-calendar-alt text-primary me-1"></i> Deadline SPK Produksi
+                                        </label>
+                                        <input type="date" name="deadline" id="po-deadline-input" class="form-control form-control-sm" value="{{ now()->addDays(7)->format('Y-m-d') }}">
+                                    </div>
+                                </div>
+
+                                {{-- Display Grand Total Banner --}}
+                                <div class="p-3 bg-success bg-opacity-10 border border-success border-opacity-25 rounded text-center my-auto">
+                                    <span class="fw-bold text-dark small d-block mb-1">TOTAL PEMBAYARAN</span>
+                                    <span class="fw-extrabold text-success fs-3 font-monospace" id="display-grand-total">Rp 0</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- ========================================================================= --}}
+                {{-- BARIS 2 (BAWAH): PILIH PRODUK & KERANJANG (COL-8) & DETAIL PEMBAYARAN (COL-4) --}}
+                {{-- ========================================================================= --}}
+                <div class="row g-4">
+                    {{-- PILIH PRODUK & KERANJANG BELANJA (COL 8) --}}
                     <div class="col-lg-8">
                         <div class="card border-0 shadow-sm mb-3">
                             <div class="card-header bg-light py-2 px-3 border-bottom">
-                                <h6 class="fw-bold mb-0 text-dark"><i class="fas fa-box me-2 text-primary"></i>Pilih Produk
-                                </h6>
+                                <h6 class="fw-bold mb-0 text-dark"><i class="fas fa-box me-2 text-primary"></i>Pilih Produk &amp; Keranjang Belanja</h6>
                             </div>
                             <div class="card-body p-3">
                                 {{-- Pencarian produk --}}
                                 <div class="mb-3">
                                     <div class="input-group input-group-sm">
                                         <span class="input-group-text bg-light border"><i class="fas fa-search"></i></span>
-                                        <input type="text" id="product-search"
-                                            class="form-control form-control-sm border"
-                                            placeholder="Cari nama produk atau SKU...">
+                                        <input type="text" id="product-search" class="form-control form-control-sm border" placeholder="Cari nama produk atau SKU...">
                                     </div>
                                 </div>
 
                                 {{-- Product list (scrollable) --}}
-                                <div id="product-list" class="border rounded mb-3"
-                                    style="max-height:300px;overflow-y:auto;">
+                                <div id="product-list" class="border rounded mb-3" style="max-height:260px;overflow-y:auto;">
                                     @foreach ($products as $product)
                                         @php
-                                            $resellerPrice =
-                                                $product->reseller_price && $product->reseller_price > 0
-                                                    ? $product->reseller_price
-                                                    : $product->price;
+                                            $resellerPrice = $product->reseller_price && $product->reseller_price > 0 ? $product->reseller_price : $product->price;
                                         @endphp
                                         <div class="product-row d-flex align-items-center justify-content-between px-3 py-2 border-bottom"
                                             style="cursor:pointer;transition:.15s;" data-id="{{ $product->id }}"
@@ -64,19 +155,15 @@
                                             <div>
                                                 <div class="fw-semibold text-dark">{{ $product->name }}</div>
                                                 <div class="text-muted small font-monospace">{{ $product->sku }} &bull;
-                                                    <span class="text-secondary fw-semibold">Stok: {{ $product->stock }}
-                                                        {{ $product->unit }}</span>
+                                                    <span class="text-secondary fw-semibold">Stok: {{ $product->stock }} {{ $product->unit }}</span>
                                                 </div>
                                             </div>
                                             <div class="text-end">
-                                                <div
-                                                    class="price-normal-display fw-bold text-success text-nowrap font-monospace">
-                                                    Rp
-                                                    {{ number_format($product->price, 0, ',', '.') }}</div>
-                                                <div class="price-dropship-display fw-bold text-warning text-nowrap font-monospace"
-                                                    style="display:none;">
-                                                    <span class="badge bg-warning text-dark me-1"
-                                                        style="font-size:0.65rem;">DROPSHIP</span>
+                                                <div class="price-normal-display fw-bold text-success text-nowrap font-monospace">
+                                                    Rp {{ number_format($product->price, 0, ',', '.') }}
+                                                </div>
+                                                <div class="price-dropship-display fw-bold text-warning text-nowrap font-monospace" style="display:none;">
+                                                    <span class="badge bg-warning text-dark me-1" style="font-size:0.65rem;">DROPSHIP</span>
                                                     Rp {{ number_format($resellerPrice, 0, ',', '.') }}
                                                 </div>
                                             </div>
@@ -85,10 +172,8 @@
                                 </div>
 
                                 {{-- Cart items --}}
-                                <h6 class="fw-bold text-dark mb-2 mt-4"><i
-                                        class="fas fa-shopping-cart me-2 text-primary"></i>Keranjang Belanja</h6>
-                                <div id="cart-empty"
-                                    class="text-center py-5 text-muted rounded border border-dashed bg-light">
+                                <h6 class="fw-bold text-dark mb-2 mt-4"><i class="fas fa-shopping-cart me-2 text-primary"></i>Keranjang Belanja</h6>
+                                <div id="cart-empty" class="text-center py-4 text-muted rounded border border-dashed bg-light">
                                     <i class="fas fa-shopping-cart fa-2x mb-1 d-block opacity-25"></i>
                                     Belum ada produk yang dipilih
                                 </div>
@@ -113,94 +198,20 @@
                         </div>
                     </div>
 
-                    {{-- RIGHT: Detail Transaksi --}}
+                    {{-- DETAIL PEMBAYARAN (COL 4) --}}
                     <div class="col-lg-4">
                         <div class="card border-0 shadow-sm mb-3">
                             <div class="card-header bg-light py-2 px-3 border-bottom">
-                                <h6 class="fw-bold mb-0 text-dark"><i class="fas fa-receipt me-2 text-success"></i>Detail
-                                    Pembayaran</h6>
+                                <h6 class="fw-bold mb-0 text-dark"><i class="fas fa-receipt me-2 text-success"></i>Detail Pembayaran</h6>
                             </div>
                             <div class="card-body p-3">
-                                {{-- Switch PO Produksi --}}
-                                <div class="card border border-primary border-opacity-25 bg-primary bg-opacity-10 mb-3 p-3 rounded">
-                                    <div class="form-check form-switch mb-0">
-                                        <input class="form-check-input" type="checkbox" name="is_po" id="is-po-switch" value="1">
-                                        <label class="form-check-label fw-bold text-dark small" for="is-po-switch">
-                                            <i class="fas fa-hammer text-primary me-1"></i> Pesanan Pre-Order / PO Produksi
-                                        </label>
-                                    </div>
-                                    <div class="small text-muted mt-1" style="font-size: 0.72rem;">
-                                        Centang jika pesanan ini butuh dibuatkan SPK Produksi otomatis.
-                                    </div>
-                                    <div id="po-deadline-container" class="mt-2 pt-2 border-top border-primary border-opacity-25" style="display: none;">
-                                        <label class="form-label form-label-sm fw-bold text-dark mb-1">
-                                            <i class="fas fa-calendar-alt text-primary me-1"></i> Tenggat Selesai (Deadline SPK)
-                                        </label>
-                                        <input type="date" name="deadline" id="po-deadline-input" class="form-control form-control-sm" value="{{ now()->addDays(7)->format('Y-m-d') }}">
-                                        <div class="text-muted" style="font-size: 0.7rem;">Tanggal target produksi harus diselesaikan.</div>
-                                    </div>
-                                </div>
-
-                                {{-- 1. Pelanggan / Pembeli (Master Data) --}}
-                                <div class="mb-3" id="customer-select-wrapper">
-                                    <div class="d-flex justify-content-between align-items-center mb-1">
-                                        <label class="form-label form-label-sm text-muted fw-semibold mb-0">Pelanggan /
-                                            Pembeli (Master Data)</label>
-                                        <button type="button"
-                                            class="btn btn-link btn-sm p-0 text-decoration-none fw-bold small text-primary"
-                                            data-bs-toggle="modal" data-bs-target="#modalCreateCustomer">
-                                            <i class="fas fa-plus-circle me-1"></i>+ Pelanggan Baru
-                                        </button>
-                                    </div>
-                                    <select name="customer_id" id="customer-select"
-                                        class="form-select form-select-sm select2" style="width: 100%;">
-                                        <option value="">-- Pelanggan Umum --</option>
-                                        @foreach ($customers as $cust)
-                                            <option value="{{ $cust->id }}" data-name="{{ $cust->name }}"
-                                                data-phone="{{ $cust->phone }}" data-address="{{ $cust->address }}"
-                                                data-category="{{ $cust->category }}" data-category-label="{{ $cust->category_label }}"
-                                                data-tags="{{ $cust->tags }}" data-balance="{{ $cust->balance ?? 0 }}">
-                                                [{{ $cust->category_label }}] {{ $cust->name }} {{ $cust->phone ? '(' . $cust->phone . ')' : '' }}
-                                            </option>
-                                        @endforeach
-                                    </select>
-                                </div>
-
-
-                                <div class="mb-3">
-                                    <label class="form-label form-label-sm text-muted" id="buyer-name-label">Nama
-                                        Pembeli</label>
-                                    <input type="text" name="buyer_name" id="buyer-name-input"
-                                        class="form-control form-control-sm" placeholder="Pelanggan Umum">
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label form-label-sm text-muted" id="buyer-phone-label">No. HP
-                                        Pembeli</label>
-                                    <input type="text" name="buyer_phone" id="buyer-phone-input"
-                                        class="form-control form-control-sm" placeholder="0812...">
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label form-label-sm text-muted">Alamat Pelanggan</label>
-                                    <textarea name="buyer_address" id="buyer-address-input" class="form-control form-control-sm" rows="2"
-                                        placeholder="Alamat lengkap pelanggan..."></textarea>
-                                </div>
-
-                                <!-- Hidden fields for dropship (auto-filled if customer is dropship type) -->
-                                <input type="hidden" name="is_dropship" id="is-dropship-toggle" value="0">
-                                <input type="hidden" name="dropshipper_name" id="dropshipper-name-input"
-                                    value="">
-                                <input type="hidden" name="dropshipper_phone" id="dropshipper-phone-input"
-                                    value="">
-
-                                <hr class="my-3">
-
-                                {{-- 2. Subtotal & diskon --}}
+                                {{-- Subtotal & Diskon Nota --}}
                                 <div class="d-flex justify-content-between mb-2 align-items-center text-dark">
                                     <span class="text-muted small">Subtotal</span>
                                     <span class="fw-semibold font-monospace" id="display-subtotal">Rp 0</span>
                                 </div>
                                 <div class="mb-3">
-                                    <label class="form-label form-label-sm text-muted fw-semibold mb-1">Diskon Transaksi / Nota Total</label>
+                                    <label class="form-label form-label-sm text-muted fw-semibold mb-1">Diskon Nota / Transaksi</label>
                                     <div class="input-group input-group-sm">
                                         <button type="button" class="btn btn-outline-primary fw-bold" id="btn-global-disc-toggle" style="width:50px;">
                                             Rp
@@ -210,26 +221,15 @@
                                         <input type="hidden" name="discount_value" id="global-discount-value" value="0">
                                         <input type="hidden" name="discount_amount" id="global-discount-amount" value="0">
                                     </div>
-                                    <span id="reseller-info-badge" class="badge bg-success text-white mt-1 w-100 py-1"
-                                        style="display: none; font-size: 0.7rem; white-space: normal;"></span>
-                                </div>
-                                <div
-                                    class="d-flex justify-content-between mb-3 p-3 bg-success bg-opacity-10 border border-success border-opacity-10 rounded">
-                                    <span class="fw-bold text-dark small align-self-center">GRAND TOTAL</span>
-                                    <span class="fw-extrabold text-success fs-5 font-monospace"
-                                        id="display-grand-total">Rp
-                                        0</span>
+                                    <span id="reseller-info-badge" class="badge bg-success text-white mt-1 w-100 py-1" style="display: none; font-size: 0.7rem; white-space: normal;"></span>
                                 </div>
 
                                 <hr class="my-3">
 
-                                {{-- 3. Pembayaran --}}
+                                {{-- Metode Pembayaran --}}
                                 <div class="mb-3">
-                                    <label class="form-label form-label-sm text-muted fw-semibold">Metode Pembayaran <span
-                                            class="text-danger">*</span></label>
-                                    <select name="payment_method" id="payment-method-select"
-                                        class="form-select form-select-sm select2 fw-semibold text-dark"
-                                        style="width: 100%;" required>
+                                    <label class="form-label form-label-sm text-muted fw-semibold">Metode Pembayaran <span class="text-danger">*</span></label>
+                                    <select name="payment_method" id="payment-method-select" class="form-select form-select-sm select2 fw-semibold text-dark" style="width: 100%;" required>
                                         @foreach (\App\Models\OfflineSale::PAYMENT_METHODS as $key => $label)
                                             <option value="{{ $key }}" {{ $key === 'tunai' ? 'selected' : '' }}>
                                                 {{ $label }}
@@ -243,36 +243,30 @@
                                         <label class="form-label form-label-sm text-muted fw-semibold mb-0">Uang Diterima / DP (Rp)</label>
                                         <span id="payment-status-badge" class="badge bg-secondary" style="font-size: 0.7rem;">Belum Diisi</span>
                                     </div>
-                                    <input type="text" name="paid_amount" id="paid-input"
-                                        class="form-control form-control-sm fw-bold font-monospace text-dark"
-                                        value="0" placeholder="0 (Bisa isi DP/Partial)" required>
+                                    <input type="text" name="paid_amount" id="paid-input" class="form-control form-control-sm fw-bold font-monospace text-dark" value="0" placeholder="0 (Bisa isi DP/Partial)" required>
                                     <div id="payment-summary-hint" class="small text-muted mt-1" style="font-size: 0.72rem;">
                                         Bisa diisi lunas atau DP (Transfer, QRIS, Tunai).
                                     </div>
                                 </div>
-                                <div class="mb-3 p-3 text-center rounded bg-primary bg-opacity-10 border border-primary border-opacity-10"
-                                    id="change-section">
+
+                                <div class="mb-3 p-3 text-center rounded bg-primary bg-opacity-10 border border-primary border-opacity-10" id="change-section">
                                     <div class="text-muted small">Kembalian</div>
-                                    <div class="fw-extrabold fs-4 text-primary font-monospace" id="display-change">Rp 0
-                                    </div>
+                                    <div class="fw-extrabold fs-4 text-primary font-monospace" id="display-change">Rp 0</div>
                                 </div>
 
                                 <div class="mb-3">
                                     <label class="form-label form-label-sm text-muted">Catatan</label>
-                                    <textarea name="notes" class="form-control form-control-sm" rows="2"
-                                        placeholder="Tulis catatan transaksi jika ada..."></textarea>
+                                    <textarea name="notes" class="form-control form-control-sm" rows="2" placeholder="Tulis catatan transaksi jika ada..."></textarea>
                                 </div>
 
                                 <div class="d-grid mt-4">
-                                    <button type="submit" class="btn btn-success btn-sm py-2 fw-semibold"
-                                        id="btn-submit" disabled>
+                                    <button type="submit" class="btn btn-success btn-sm py-2 fw-semibold" id="btn-submit" disabled>
                                         <i class="fas fa-check-circle me-2"></i>Selesaikan Transaksi
                                     </button>
                                 </div>
                             </div>
                         </div>
                     </div>
-
                 </div>
             </form>
         </div>
