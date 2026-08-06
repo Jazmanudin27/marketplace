@@ -111,7 +111,7 @@
                                 </button>
                             </div>
 
-                            <div class="table-responsive rounded-3 border">
+                            <div class="table-responsive rounded-3 border" style="overflow: visible !important;">
                                 <table class="table table-hover align-middle mb-0" id="tableItems">
                                     <thead class="table-light border-bottom">
                                         <tr class="text-uppercase text-secondary small fw-bold" style="font-size: 0.72rem;">
@@ -273,13 +273,19 @@
         });
 
         input.addEventListener('focus', () => {
+            const tr = wrapper.closest('tr');
+            if (tr) tr.style.zIndex = '1050';
             if (input.value.trim().length >= 1 && !hidden.value) {
                 input.dispatchEvent(new Event('input'));
             }
         });
 
         input.addEventListener('blur', () => {
-            setTimeout(() => { dropdown.style.display = 'none'; }, 200);
+            setTimeout(() => { 
+                dropdown.style.display = 'none';
+                const tr = wrapper.closest('tr');
+                if (tr) tr.style.zIndex = '1';
+            }, 200);
             if (!hidden.value) input.value = '';
         });
 
@@ -414,6 +420,19 @@
     .btn-check:checked + .type-card-out .type-icon {
         background-color: #ef4444 !important;
         color: #ffffff !important;
+    }
+    #tableItems tr {
+        position: relative;
+        z-index: 1;
+    }
+    .autocomplete-wrapper {
+        position: relative;
+    }
+    .autocomplete-dropdown {
+        z-index: 99999 !important;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2), 0 8px 10px -6px rgba(0, 0, 0, 0.1) !important;
+        border: 1px solid #cbd5e1 !important;
+        margin-top: 4px;
     }
     .autocomplete-item {
         color: #1e293b;
