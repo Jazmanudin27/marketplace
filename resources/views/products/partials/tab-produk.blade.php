@@ -758,7 +758,7 @@
                     </div>
 
                     <div class="form-check form-switch mb-3 p-2.5 bg-light rounded border">
-                        <input class="form-check-input ms-0 me-2" type="checkbox" name="sync_to_marketplace" value="1" id="syncToMarketplaceImport" checked>
+                        <input class="form-check-input ms-0 me-2" type="checkbox" name="sync_to_marketplace" value="1" id="syncToMarketplaceImport">
                         <label class="form-check-label small fw-bold text-dark" for="syncToMarketplaceImport">
                             ⚡ Otomatis Push &amp; Update Harga Baru ke Toko Marketplace (Shopee, TikTok Shop, dll)
                         </label>
