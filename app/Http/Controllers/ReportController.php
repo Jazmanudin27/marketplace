@@ -1271,7 +1271,7 @@ class ReportController extends Controller
                 $offQuery = \App\Models\OfflineSaleItem::where('master_product_id', $p->id)
                     ->whereHas('offlineSale', function ($q) use ($tenantId, $dateFrom, $dateTo, $customerCat) {
                         $q->where('tenant_id', $tenantId)
-                          ->whereIn('status', [\App\Models\OfflineSale::STATUS_COMPLETED, \App\Models\OfflineSale::STATUS_APPROVED])
+                          ->where('status', '!=', \App\Models\OfflineSale::STATUS_CANCELLED)
                           ->whereBetween('sold_at', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59']);
                         
                         if ($customerCat === 'dropship') {
