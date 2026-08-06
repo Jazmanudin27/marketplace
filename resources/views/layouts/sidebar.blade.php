@@ -489,11 +489,7 @@
                                 class="nav-link py-1 {{ request()->routeIs('offline_sales.*') ? 'active text-white' : 'text-secondary' }}">Penjualan
                                 Offline</a>
                         @endcan
-                        @can('chats.index')
-                            <a href="{{ route('chats.index') }}"
-                                class="nav-link py-1 {{ request()->routeIs('chats.*') ? 'active text-white' : 'text-secondary' }}">Inbox
-                                Chat</a>
-                        @endcan
+{{-- Inbox Chat disembunyikan sementara --}}
 
                         @if (auth()->user()->isSuperAdmin() ||
                                 auth()->user()->role === 'admin' ||
@@ -501,12 +497,8 @@
                             <a href="{{ route('marketing.ads.index') }}"
                                 class="nav-link py-1 {{ request()->routeIs('marketing.ads.*') ? 'active text-white' : 'text-secondary' }}">Dashboard
                                 Keputusan</a>
-                            <a href="{{ route('marketing.flash_sales.index') }}"
-                                class="nav-link py-1 {{ request()->routeIs('marketing.flash_sales.*') ? 'active text-white' : 'text-secondary' }}">Flash
-                                Sale</a>
-                            <a href="{{ route('marketing.tiered_discounts.index') }}"
-                                class="nav-link py-1 {{ request()->routeIs('marketing.tiered_discounts.*') ? 'active text-white' : 'text-secondary' }}">Diskon
-                                Bertingkat</a>
+{{-- Flash Sale disembunyikan sementara --}}
+{{-- Diskon Bertingkat disembunyikan sementara --}}
                         @endif
                     </div>
                 </div>
