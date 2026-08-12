@@ -356,9 +356,14 @@ class Order extends Model
             ?? 0
         );
 
-        // 5. Biaya Lainnya (Shipping Seller Protection / Coins / Tax / Adjustments)
+        // 5. Biaya Lainnya (Shipping Seller Protection / Pajak PPN / Coins / Tax / Adjustments)
         $otherFee = (float) (
             $fb['shipping_seller_protection_fee_amount'] 
+            ?? $fb['escrow_tax']
+            ?? $fb['vat']
+            ?? $fb['withholding_tax']
+            ?? $fb['buyer_tax_amount']
+            ?? $fb['final_product_vat_tax']
             ?? $fb['other_fees'] 
             ?? $fb['coins'] 
             ?? $fb['ddu_custom_tax_fee'] 

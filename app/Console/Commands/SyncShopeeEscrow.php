@@ -84,6 +84,19 @@ class SyncShopeeEscrow extends Command
                         $income = $escrowResponse['order_income'];
                         $order->financial_breakdown = $income;
 
+                        // Ambil Tanggal Selesai / Tanggal Diterima Resmi dari Shopee API (update_time)
+                        try {
+                            $orderDetailRes = $shopeeService->getOrderDetail($accessToken, (int) $store->marketplace_store_id, [$orderSn]);
+                            $shopeeOrder = $orderDetailRes['order_list'][0] ?? [];
+                            if (!empty($shopeeOrder['update_time'])) {
+                                $order->completed_at = date('Y-m-d H:i:s', $shopeeOrder['update_time']);
+                            }
+                        } catch (\Exception $exDetail) {
+                            if (!$order->completed_at) {
+                                $order->completed_at = now();
+                            }
+                        }
+
                         // Ambil Subtotal Produk Penjual (merchant_subtotal / cost_of_goods_sold) untuk menghilangkan Biaya Penanganan Pembeli (buyer_service_fee)
                         $merchantSubtotal = (float) ($income['cost_of_goods_sold'] ?? $income['order_selling_price'] ?? $income['order_original_price'] ?? 0);
                         if ($merchantSubtotal > 0) {
@@ -109,7 +122,7 @@ class SyncShopeeEscrow extends Command
 
                         $order->saveQuietly();
                         $totalSuccess++;
-                        $this->line("  [OK] Order {$orderSn} -> Subtotal: Rp " . number_format($order->total_amount, 0) . " | Fee: Rp " . number_format($order->marketplace_fee, 0) . " | Escrow Cair: Rp " . number_format($order->net_amount, 0));
+                        $this->line("  [OK] Order {$orderSn} -> Tgl Selesai: " . ($order->completed_at ? $order->completed_at->format('Y-m-d H:i:s') : '-') . " | Subtotal: Rp " . number_format($order->total_amount, 0) . " | Fee: Rp " . number_format($order->marketplace_fee, 0) . " | Escrow Cair: Rp " . number_format($order->net_amount, 0));
                     } else {
                         $this->warn("  [SKIP] Order {$orderSn} belum memiliki data order_income dari Shopee (Pesanan belum selesai).");
                     }
