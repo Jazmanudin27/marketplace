@@ -1161,6 +1161,7 @@ class ReportController extends Controller
         $brandId        = $request->input('brand_id');
         $isBundle       = $request->input('is_bundle');
         $isPo           = $request->input('po_status');
+        $storeId        = $request->input('store_id');
         $channelCode    = $request->input('channel_code', 'all');
         $customerCat    = $request->input('customer_category', 'all');
         $dropshipFilter = $request->input('is_dropship', 'all');
@@ -1177,7 +1178,7 @@ class ReportController extends Controller
 
         return view('reports.sales_report', compact(
             'categories', 'brands', 'stores', 'customerCategories', 'customerCategoryLabels',
-            'dateFrom', 'dateTo', 'categoryId', 'brandId', 'isBundle', 'isPo',
+            'dateFrom', 'dateTo', 'categoryId', 'brandId', 'isBundle', 'isPo', 'storeId',
             'channelCode', 'customerCat', 'dropshipFilter', 'statusFilter', 'reportFormat', 'search', 'hideZeroSales'
         ));
     }
@@ -1191,6 +1192,7 @@ class ReportController extends Controller
         $brandId        = $request->input('brand_id');
         $isBundle       = $request->input('is_bundle');
         $isPo           = $request->input('po_status');
+        $storeId        = $request->input('store_id');
         $channelCode    = $request->input('channel_code', 'all');
         $customerCat    = $request->input('customer_category', 'all');
         $dropshipFilter = $request->input('is_dropship', 'all');
@@ -1208,20 +1210,20 @@ class ReportController extends Controller
         $customerCategoryLabels = \App\Models\Customer::CATEGORIES;
 
         if ($reportFormat === 'per_channel') {
-            $data = $this->getSalesReportPerChannelData($tenantId, $dateFrom, $dateTo, $channelCode, $customerCat, $statusFilter);
+            $data = $this->getSalesReportPerChannelData($tenantId, $dateFrom, $dateTo, $channelCode, $customerCat, $statusFilter, $storeId);
             return view('reports.print_sales_report_channel', array_merge($data, compact('dateFrom', 'dateTo', 'customerCat')));
         } elseif ($reportFormat === 'detail') {
-            $data = $this->getSalesReportDetailData($tenantId, $dateFrom, $dateTo, $categoryId, $brandId, $channelCode, $customerCat, $statusFilter, $search, $isBundle, $isPo);
+            $data = $this->getSalesReportDetailData($tenantId, $dateFrom, $dateTo, $categoryId, $brandId, $channelCode, $customerCat, $statusFilter, $search, $isBundle, $isPo, $storeId);
             return view('reports.print_sales_report_detail', array_merge($data, compact('dateFrom', 'dateTo')));
         } elseif ($reportFormat === 'per_tanggal') {
-            $data = $this->getSalesReportPerDateData($tenantId, $dateFrom, $dateTo, $channelCode, $customerCat, $statusFilter);
+            $data = $this->getSalesReportPerDateData($tenantId, $dateFrom, $dateTo, $channelCode, $customerCat, $statusFilter, $storeId);
             return view('reports.print_sales_report_date', array_merge($data, compact('dateFrom', 'dateTo')));
         } elseif ($reportFormat === 'per_kategori_pelanggan') {
             $data = $this->getSalesReportPerCustomerCategoryData($tenantId, $dateFrom, $dateTo, $channelCode, $statusFilter);
             return view('reports.print_sales_report_customer_category', array_merge($data, compact('dateFrom', 'dateTo', 'customerCategoryLabels')));
         } else {
             // Default: per_produk
-            $data = $this->getSalesReportData($tenantId, $dateFrom, $dateTo, $categoryId, $brandId, $channelCode, $customerCat, $statusFilter, $search, $hideZeroSales, $isBundle, $isPo);
+            $data = $this->getSalesReportData($tenantId, $dateFrom, $dateTo, $categoryId, $brandId, $channelCode, $customerCat, $statusFilter, $search, $hideZeroSales, $isBundle, $isPo, $storeId);
             return view('reports.print_sales_report', array_merge($data, compact('dateFrom', 'dateTo')));
         }
     }
@@ -1235,13 +1237,14 @@ class ReportController extends Controller
         $brandId        = $request->input('brand_id');
         $isBundle       = $request->input('is_bundle');
         $isPo           = $request->input('po_status');
+        $storeId        = $request->input('store_id');
         $channelCode    = $request->input('channel_code', 'all');
         $customerCat    = $request->input('customer_category', 'all');
         $statusFilter   = $request->input('status', 'all');
         $search         = $request->input('search');
         $hideZeroSales  = $request->boolean('hide_zero_sales');
 
-        $data = $this->getSalesReportData($tenantId, $dateFrom, $dateTo, $categoryId, $brandId, $channelCode, $customerCat, $statusFilter, $search, $hideZeroSales, $isBundle, $isPo);
+        $data = $this->getSalesReportData($tenantId, $dateFrom, $dateTo, $categoryId, $brandId, $channelCode, $customerCat, $statusFilter, $search, $hideZeroSales, $isBundle, $isPo, $storeId);
 
         $filename = "Laporan_Penjualan_Produk_" . date('Ymd_His') . ".csv";
         $headers = [
@@ -1342,7 +1345,16 @@ class ReportController extends Controller
         $customerCat = 'all';
         $statusFilter = 'completed'; // Strictly completed / released sales
 
-        if ($reportFormat === 'per_channel') {
+        if ($reportFormat === 'ringkasan_penghasilan') {
+            $data = $this->getIncomeStatementData($tenantId, $dateFrom, $dateTo, $channelCode, $customerCat, $statusFilter, $storeId);
+            $storeObj = $storeId ? \App\Models\Store::with('channel')->find($storeId) : null;
+            return view('reports.print_income_statement', array_merge($data, [
+                'dateFrom' => $dateFrom, 
+                'dateTo' => $dateTo,
+                'store' => $storeObj,
+                'title' => 'Laporan Ringkasan Penghasilan & Biaya Escrow Marketplace'
+            ]));
+        } elseif ($reportFormat === 'per_channel') {
             $data = $this->getSalesReportPerChannelData($tenantId, $dateFrom, $dateTo, $channelCode, $customerCat, $statusFilter, $storeId);
             return view('reports.print_sales_report_channel', array_merge($data, [
                 'dateFrom' => $dateFrom, 
@@ -1410,6 +1422,7 @@ class ReportController extends Controller
 
             fputcsv($file, [
                 'No.',
+                'Tanggal Order',
                 'Tanggal Dilepas',
                 'No. Pesanan',
                 'Toko / Channel',
@@ -1429,7 +1442,8 @@ class ReportController extends Controller
             foreach ($detailData['transactions'] as $idx => $row) {
                 fputcsv($file, [
                     $idx + 1,
-                    $row['date'],
+                    $row['order_date'],
+                    $row['released_date'],
                     $row['ref'],
                     $row['channel'],
                     $row['customer'],
@@ -1450,6 +1464,27 @@ class ReportController extends Controller
         };
 
         return response()->stream($callback, 200, $headers);
+    }
+
+    public function syncFees()
+    {
+        $tenantId = Auth::user()->tenant_id;
+        $count = 0;
+        \App\Models\Order::where('tenant_id', $tenantId)->chunk(100, function ($orders) use (&$count) {
+            foreach ($orders as $order) {
+                $details = $order->fee_breakdown_details;
+                $totalFee = abs($details['total_fee'] ?? 0);
+                
+                if ($totalFee > 0) {
+                    $order->marketplace_fee = $totalFee;
+                    $order->net_amount = max(0.0, (float) $order->total_amount - $totalFee);
+                    $order->saveQuietly();
+                    $count++;
+                }
+            }
+        });
+
+        return redirect()->back()->with('success', "Berhasil menyinkronkan & memperbarui potongan biaya escrow untuk {$count} pesanan ERP.");
     }
 
     private function getReleasedSalesSummary($tenantId, $dateFrom, $dateTo, $channelCode = 'online', $customerCat = 'all', $storeId = null)
@@ -1903,8 +1938,12 @@ class ReportController extends Controller
                     $itemSummary[] = ($it->masterProduct->sku ?? $it->sku) . ' x' . $it->quantity;
                 }
 
+                $txDate = $s->sold_at ? $s->sold_at->format('Y-m-d H:i') : '—';
+
                 $transactions[] = [
-                    'date' => $s->sold_at ? $s->sold_at->format('Y-m-d H:i') : '—',
+                    'order_date' => $txDate,
+                    'released_date' => $txDate,
+                    'date' => $txDate,
                     'ref' => $s->sale_number,
                     'channel' => 'POS Offline',
                     'customer' => $s->is_dropship ? ($s->dropshipper_name . ' (Dropship)') : ($s->buyer_name ?: ($s->customer->name ?? 'Pelanggan Umum')),
@@ -1955,15 +1994,16 @@ class ReportController extends Controller
                     $itemSummary[] = ($it->sku) . ' x' . $it->quantity;
                 }
 
-                $txDate = ($statusFilter === 'completed')
-                    ? ($o->completed_at ? $o->completed_at->format('Y-m-d H:i') : ($o->order_date ? date('Y-m-d H:i', strtotime($o->order_date)) : '—'))
-                    : ($o->order_date ? date('Y-m-d H:i', strtotime($o->order_date)) : '—');
+                $orderDate = $o->order_date ? date('Y-m-d H:i', strtotime($o->order_date)) : '—';
+                $releasedDate = $o->completed_at ? $o->completed_at->format('Y-m-d H:i') : ($o->order_date ? date('Y-m-d H:i', strtotime($o->order_date)) : '—');
 
                 $fees = $o->fee_breakdown_details;
                 $netAmt = (float)($o->net_amount ?? ($o->total_amount + $fees['total_fee']));
 
                 $transactions[] = [
-                    'date' => $txDate,
+                    'order_date' => $orderDate,
+                    'released_date' => $releasedDate,
+                    'date' => $releasedDate,
                     'ref' => $o->order_marketplace_id ?: ($o->order_number ?: $o->invoice_number),
                     'channel' => $o->store->channel->name ?? 'Marketplace',
                     'customer' => $o->buyer_name ?: ($o->customer->name ?? 'Pelanggan MP'),
@@ -2206,5 +2246,32 @@ class ReportController extends Controller
             // 'all' -> default exclude cancelled & returned
             $query->whereNotIn('order_status', ['CANCELLED', 'RETURNED', 'RETURN', 'BATAL']);
         }
+    }
+
+    private function getIncomeStatementData($tenantId, $dateFrom, $dateTo, $channelCode = 'online', $customerCat = 'all', $statusFilter = 'completed', $storeId = null)
+    {
+        $detailData = $this->getSalesReportDetailData($tenantId, $dateFrom, $dateTo, null, null, $channelCode, $customerCat, $statusFilter, null, null, null, $storeId);
+
+        $grossSales = (float) $detailData['grandTotalOmset'];
+        $refunds = 0.0;
+        $subtotalPesanan = $grossSales - $refunds;
+        $vouchers = 0.0;
+
+        $platformFee = (float) ($detailData['grandTotalPlatformFee'] ?? 0);
+        $freeShippingFee = (float) ($detailData['grandTotalFreeShipping'] ?? 0);
+        $serviceFee = (float) ($detailData['grandTotalServiceFee'] ?? 0);
+        $promoFee = (float) ($detailData['grandTotalPromoFee'] ?? 0);
+        $otherFee = (float) ($detailData['grandTotalOtherFee'] ?? 0);
+        $tax = 0.0;
+
+        $totalPengeluaran = $platformFee + $freeShippingFee + $serviceFee + $promoFee + $otherFee + $tax;
+        $totalPendapatan = $subtotalPesanan + $vouchers;
+        $totalDilepas = $totalPendapatan + $totalPengeluaran;
+
+        return compact(
+            'grossSales', 'refunds', 'subtotalPesanan', 'vouchers', 'totalPendapatan',
+            'platformFee', 'freeShippingFee', 'serviceFee', 'promoFee', 'otherFee', 'tax',
+            'totalPengeluaran', 'totalDilepas'
+        );
     }
 }

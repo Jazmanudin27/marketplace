@@ -44,7 +44,8 @@
         <thead>
             <tr>
                 <th style="width: 25px;">No.</th>
-                <th>Tanggal</th>
+                <th>Tanggal Order</th>
+                <th>Tanggal Dilepas</th>
                 <th>No. Pesanan / Invoice</th>
                 <th>Toko / Channel</th>
                 <th>Pelanggan</th>
@@ -64,7 +65,8 @@
             @forelse($transactions as $idx => $row)
                 <tr>
                     <td class="text-center">{{ $idx + 1 }}</td>
-                    <td class="font-monospace small">{{ $row['date'] }}</td>
+                    <td class="font-monospace small">{{ $row['order_date'] }}</td>
+                    <td class="font-monospace small text-success fw-bold">{{ $row['released_date'] }}</td>
                     <td class="font-monospace fw-bold">{{ $row['ref'] }}</td>
                     <td>{{ $row['channel'] }}</td>
                     <td>{{ $row['customer'] }}</td>
@@ -81,13 +83,13 @@
                 </tr>
             @empty
                 <tr>
-                    <td colspan="15" class="text-center py-3 text-muted">Tidak ada data detail transaksi ditemukan.</td>
+                    <td colspan="16" class="text-center py-3 text-muted">Tidak ada data detail transaksi ditemukan.</td>
                 </tr>
             @endforelse
         </tbody>
         <tfoot>
             <tr class="fw-bold bg-light">
-                <td colspan="6" class="text-end">TOTAL REKAPITULASI:</td>
+                <td colspan="7" class="text-end">TOTAL REKAPITULASI:</td>
                 <td class="text-center font-monospace">{{ number_format($grandTotalQty) }}</td>
                 <td class="text-end font-monospace text-primary">Rp {{ number_format($grandTotalOmset, 0, ',', '.') }}</td>
                 <td class="text-end font-monospace text-danger">{{ number_format($grandTotalPlatformFee ?? 0, 0, ',', '.') }}</td>

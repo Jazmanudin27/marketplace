@@ -64,15 +64,14 @@
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label form-label-sm fw-semibold">Saluran Penjualan / Channel</label>
-                        <select name="channel_code" class="form-select form-select-sm">
-                            <option value="all" {{ $channelCode === 'all' ? 'selected' : '' }}>🌐 Semua Saluran (Offline POS &amp; Online)</option>
-                            <option value="offline" {{ $channelCode === 'offline' ? 'selected' : '' }}>🏪 Penjualan Offline (POS Toko Fisik)</option>
-                            <option value="online" {{ $channelCode === 'online' ? 'selected' : '' }}>🛒 Penjualan Online (Semua Marketplace)</option>
-                            <option value="shopee" {{ $channelCode === 'shopee' ? 'selected' : '' }}>🟠 Shopee</option>
-                            <option value="tiktok" {{ $channelCode === 'tiktok' ? 'selected' : '' }}>🎵 TikTok Shop</option>
-                            <option value="lazada" {{ $channelCode === 'lazada' ? 'selected' : '' }}>🔵 Lazada</option>
-                            <option value="tokopedia" {{ $channelCode === 'tokopedia' ? 'selected' : '' }}>🟢 Tokopedia</option>
+                        <label class="form-label form-label-sm fw-semibold">Toko Marketplace</label>
+                        <select name="store_id" class="form-select form-select-sm">
+                            <option value="" {{ empty($storeId) ? 'selected' : '' }}>🛒 Semua Toko Marketplace</option>
+                            @foreach ($stores as $store)
+                                <option value="{{ $store->id }}" {{ (isset($storeId) && $storeId == $store->id) ? 'selected' : '' }}>
+                                    {{ $store->store_name }} ({{ $store->channel->name ?? 'Marketplace' }})
+                                </option>
+                            @endforeach
                         </select>
                     </div>
 

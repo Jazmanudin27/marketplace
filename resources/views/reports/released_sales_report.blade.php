@@ -87,6 +87,7 @@
                     <div class="mb-3">
                         <label class="form-label form-label-sm fw-bold text-success">Format Laporan Penjualan Dilepas</label>
                         <select name="report_format" class="form-select form-select-sm border-success fw-bold text-success bg-success bg-opacity-10">
+                            <option value="ringkasan_penghasilan" {{ $reportFormat === 'ringkasan_penghasilan' ? 'selected' : '' }}>📄 Laporan Ringkasan Penghasilan &amp; Biaya Escrow (Format Shopee/Marketplace)</option>
                             <option value="per_produk" {{ $reportFormat === 'per_produk' ? 'selected' : '' }}>📦 Laporan Per Produk (Dilepas)</option>
                             <option value="per_channel" {{ $reportFormat === 'per_channel' ? 'selected' : '' }}>🏪 Laporan Per Channel Marketplace (Dilepas)</option>
                             <option value="detail" {{ $reportFormat === 'detail' ? 'selected' : '' }}>📑 Laporan Detail Transaksi (Dilepas)</option>
@@ -152,9 +153,14 @@
                     </div>
 
                     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-                        <a href="{{ route('reports.released_sales.export', request()->all()) }}" class="btn btn-sm btn-outline-success px-3 fw-bold">
-                            <i class="bi bi-file-earmark-spreadsheet me-1"></i> Export CSV
-                        </a>
+                        <div class="d-flex gap-2">
+                            <a href="{{ route('reports.released_sales.export', request()->all()) }}" class="btn btn-sm btn-outline-success px-3 fw-bold">
+                                <i class="bi bi-file-earmark-spreadsheet me-1"></i> Export CSV
+                            </a>
+                            <button type="button" onclick="if(confirm('Sync & Update Biaya akan menghitung ulang potongan biaya marketplace dan dana dilepas pada database ERP berdasarkan rincian resmi. Lanjutkan?')) document.getElementById('syncFeesForm').submit();" class="btn btn-sm btn-outline-warning text-dark fw-bold px-3">
+                                <i class="bi bi-arrow-repeat me-1"></i> Sync &amp; Update Biaya ERP
+                            </button>
+                        </div>
                         <div class="d-flex gap-2">
                             <button type="submit" onclick="this.form.action='{{ route('reports.released_sales') }}'; this.form.target='_self';" class="btn btn-sm btn-primary px-3 fw-bold">
                                 <i class="bi bi-funnel-fill me-1"></i> Terapkan Filter
@@ -164,6 +170,9 @@
                             </button>
                         </div>
                     </div>
+                </form>
+                <form id="syncFeesForm" action="{{ route('reports.released_sales.sync_fees') }}" method="POST" class="d-none">
+                    @csrf
                 </form>
             </div>
         </div>

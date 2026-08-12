@@ -653,6 +653,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/reports/released-sales', [ReportController::class, 'releasedSalesReport'])->name('reports.released_sales');
         Route::get('/reports/released-sales/print', [ReportController::class, 'printReleasedSalesReport'])->name('reports.released_sales.print');
         Route::get('/reports/released-sales/export', [ReportController::class, 'exportReleasedSalesReport'])->name('reports.released_sales.export');
+        Route::post('/reports/released-sales/sync-fees', [ReportController::class, 'syncFees'])->name('reports.released_sales.sync_fees');
     });
 
     // =========================================================================
