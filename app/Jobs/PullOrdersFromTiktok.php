@@ -307,8 +307,10 @@ class PullOrdersFromTiktok implements ShouldQueue
                 'marketplace_fee' => $marketplaceFee,
                 'courier' => $courier,
                 'tracking_number' => $trackingNumber,
-                'order_date' => date('Y-m-d H:i:s', $createTime),
-                'completed_at' => in_array($erpStatus, ['COMPLETED', 'DELIVERED', 'SELESAI', 'FINISHED']) ? date('Y-m-d H:i:s', isset($tiktokOrder['update_time']) ? (int)($tiktokOrder['update_time'] / 1000) : $createTime) : null,
+                'completed_at' => in_array($erpStatus, ['COMPLETED', 'DELIVERED', 'SELESAI', 'FINISHED']) ? date('Y-m-d H:i:s', (function() use ($tiktokOrder, $createTime) {
+                    $ts = $tiktokOrder['delivery_time'] ?? $tiktokOrder['update_time'] ?? $tiktokOrder['paid_time'] ?? $createTime;
+                    return (is_numeric($ts) && strlen((string)$ts) >= 13) ? (int)($ts / 1000) : (int)$ts;
+                })()) : null,
                 'ship_before_date' => $this->resolveShipBeforeDate($tiktokOrder),
                 'financial_breakdown' => $financialBreakdown,
                 'tiktok_creator_name' => $tiktokCreatorName,

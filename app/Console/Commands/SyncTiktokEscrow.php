@@ -128,8 +128,10 @@ class SyncTiktokEscrow extends Command
                             'escrow_amount' => $escrowAmount > 0 ? $escrowAmount : max(0.0, $totalAmount - $totalTiktokFees),
                         ];
 
-                        if (!empty($tOrder['update_time'])) {
-                            $dbOrder->completed_at = date('Y-m-d H:i:s', is_numeric($tOrder['update_time']) && strlen((string)$tOrder['update_time']) >= 13 ? (int)($tOrder['update_time']/1000) : $tOrder['update_time']);
+                        $compTs = $tOrder['delivery_time'] ?? $tOrder['update_time'] ?? $tOrder['paid_time'] ?? null;
+                        if ($compTs) {
+                            $compTsSec = (is_numeric($compTs) && strlen((string)$compTs) >= 13) ? (int)($compTs / 1000) : (int)$compTs;
+                            $dbOrder->completed_at = date('Y-m-d H:i:s', $compTsSec);
                         }
 
                         $dbOrder->save();
