@@ -1399,13 +1399,12 @@ class ReportController extends Controller
         $channelCode    = $request->input('channel_code', 'online');
         if ($channelCode === 'all') $channelCode = 'online';
 
+        $reportFormat   = $request->input('report_format', 'ringkasan_penghasilan');
         $search         = $request->input('search');
         $hideZeroSales  = $request->boolean('hide_zero_sales');
         $isPo           = null;
         $customerCat    = 'all';
         $statusFilter   = 'completed'; // Strictly completed / released sales
-
-        $detailData = $this->getSalesReportDetailData($tenantId, $dateFrom, $dateTo, $categoryId, $brandId, $channelCode, $customerCat, $statusFilter, $search, $isBundle, $isPo, $storeId);
 
         $filename = "Laporan_Penjualan_Dilepas_" . date('Ymd_His') . ".csv";
         $headers = [
@@ -1416,52 +1415,114 @@ class ReportController extends Controller
             "Expires"             => "0"
         ];
 
-        $callback = function () use ($detailData) {
-            $file = fopen('php://output', 'w');
-            fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF)); // BOM UTF-8
+        if ($reportFormat === 'per_channel') {
+            $channelData = $this->getSalesReportPerChannelData($tenantId, $dateFrom, $dateTo, $channelCode, $customerCat, $statusFilter, $storeId);
+            $callback = function () use ($channelData) {
+                $file = fopen('php://output', 'w');
+                fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF)); // BOM UTF-8
 
-            fputcsv($file, [
-                'No.',
-                'Tanggal Order',
-                'Tanggal Dilepas',
-                'No. Pesanan',
-                'Toko / Channel',
-                'Pelanggan',
-                'Ringkasan Produk',
-                'Qty',
-                'Omset Kotor (Rp)',
-                'Biaya Platform (Rp)',
-                'Biaya Gratis Ongkir (Rp)',
-                'Biaya Layanan (Rp)',
-                'Biaya Promosi (Rp)',
-                'Biaya Lainnya (Rp)',
-                'Dana Dilepas Net (Rp)',
-                'Status'
-            ]);
-
-            foreach ($detailData['transactions'] as $idx => $row) {
                 fputcsv($file, [
-                    $idx + 1,
-                    $row['order_date'],
-                    $row['released_date'],
-                    $row['ref'],
-                    $row['channel'],
-                    $row['customer'],
-                    $row['items_summary'],
-                    $row['total_qty'],
-                    (int)$row['omset'],
-                    (int)$row['platform_fee'],
-                    (int)$row['free_shipping_fee'],
-                    (int)$row['service_fee'],
-                    (int)$row['promo_fee'],
-                    (int)$row['other_fee'],
-                    (int)$row['net_released'],
-                    $row['status']
+                    'No.',
+                    'Toko Marketplace / Saluran',
+                    'Tipe Saluran',
+                    'Jumlah Order',
+                    'Total Item Terjual',
+                    'Omset Kotor (Rp)',
+                    'Biaya Platform (Rp)',
+                    'Biaya Gratis Ongkir (Rp)',
+                    'Biaya Layanan (Rp)',
+                    'Biaya Promosi (Rp)',
+                    'Biaya Lainnya (Rp)',
+                    'Total Potongan Marketplace (Rp)',
+                    'Dana Dilepas Net (Rp)'
                 ]);
-            }
 
-            fclose($file);
-        };
+                foreach ($channelData['channels'] as $idx => $row) {
+                    fputcsv($file, [
+                        $idx + 1,
+                        $row['name'],
+                        $row['type'],
+                        $row['orders'],
+                        $row['qty'],
+                        (int)$row['omset'],
+                        (int)($row['fee_platform'] ?? 0),
+                        (int)($row['fee_free_shipping'] ?? 0),
+                        (int)($row['fee_service'] ?? 0),
+                        (int)($row['fee_promo'] ?? 0),
+                        (int)($row['fee_other'] ?? 0),
+                        (int)($row['total_fee'] ?? 0),
+                        (int)($row['net_released'] ?? 0)
+                    ]);
+                }
+
+                // Summary Row
+                fputcsv($file, [
+                    '',
+                    'TOTAL REKAPITULASI',
+                    '',
+                    $channelData['grandTotalOrders'],
+                    $channelData['grandTotalQty'],
+                    (int)$channelData['grandTotalOmset'],
+                    (int)($channelData['grandPlatformFee'] ?? 0),
+                    (int)($channelData['grandFreeShippingFee'] ?? 0),
+                    (int)($channelData['grandServiceFee'] ?? 0),
+                    (int)($channelData['grandPromoFee'] ?? 0),
+                    (int)($channelData['grandOtherFee'] ?? 0),
+                    (int)($channelData['grandMarketplaceFee'] ?? 0),
+                    (int)($channelData['grandNetReleased'] ?? 0)
+                ]);
+
+                fclose($file);
+            };
+        } else {
+            $detailData = $this->getSalesReportDetailData($tenantId, $dateFrom, $dateTo, $categoryId, $brandId, $channelCode, $customerCat, $statusFilter, $search, $isBundle, $isPo, $storeId);
+            $callback = function () use ($detailData) {
+                $file = fopen('php://output', 'w');
+                fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF)); // BOM UTF-8
+
+                fputcsv($file, [
+                    'No.',
+                    'Tanggal Order',
+                    'Tanggal Dilepas',
+                    'No. Pesanan',
+                    'Toko / Channel',
+                    'Pelanggan',
+                    'Ringkasan Produk',
+                    'Qty',
+                    'Omset Kotor (Rp)',
+                    'Biaya Platform (Rp)',
+                    'Biaya Gratis Ongkir (Rp)',
+                    'Biaya Layanan (Rp)',
+                    'Biaya Promosi (Rp)',
+                    'Biaya Lainnya (Rp)',
+                    'Dana Dilepas Net (Rp)',
+                    'Status'
+                ]);
+
+                foreach ($detailData['transactions'] as $idx => $row) {
+                    fputcsv($file, [
+                        $idx + 1,
+                        $row['order_date'],
+                        $row['released_date'],
+                        $row['ref'],
+                        $row['channel'],
+                        $row['customer'],
+                        $row['items_summary'],
+                        $row['total_qty'],
+                        (int)$row['omset'],
+                        (int)$row['platform_fee'],
+                        (int)$row['free_shipping_fee'],
+                        (int)$row['service_fee'],
+                        (int)$row['promo_fee'],
+                        (int)$row['other_fee'],
+                        (int)$row['net_released'],
+                        $row['status']
+                    ]);
+                }
+
+                fclose($file);
+            };
+        }
 
         return response()->stream($callback, 200, $headers);
     }
@@ -1812,6 +1873,13 @@ class ReportController extends Controller
         $grandTotalOmset = 0;
         $grandTotalQty = 0;
         $grandTotalOrders = 0;
+        $grandPlatformFee = 0;
+        $grandFreeShippingFee = 0;
+        $grandServiceFee = 0;
+        $grandPromoFee = 0;
+        $grandOtherFee = 0;
+        $grandMarketplaceFee = 0;
+        $grandNetReleased = 0;
 
         // POS Offline - Grouped by Instansi / Channel
         if (($channelCode === 'all' || $channelCode === 'offline') && empty($storeId)) {
@@ -1852,12 +1920,20 @@ class ReportController extends Controller
                     'orders' => $offOrders,
                     'qty' => $offQty,
                     'omset' => $offOmset,
+                    'fee_platform' => 0,
+                    'fee_free_shipping' => 0,
+                    'fee_service' => 0,
+                    'fee_promo' => 0,
+                    'fee_other' => 0,
+                    'total_fee' => 0,
+                    'net_released' => $offOmset,
                     'aov' => $offOrders > 0 ? $offOmset / $offOrders : 0,
                 ];
 
                 $grandTotalOmset += $offOmset;
                 $grandTotalQty += $offQty;
                 $grandTotalOrders += $offOrders;
+                $grandNetReleased += $offOmset;
             }
         }
 
@@ -1895,9 +1971,28 @@ class ReportController extends Controller
                 $omset = (float) $ordersGet->sum('total_amount');
                 $ordCount = $ordersGet->count();
                 $qty = 0;
+                $feePlatform = 0;
+                $feeFreeShipping = 0;
+                $feeService = 0;
+                $feePromo = 0;
+                $feeOther = 0;
+                $totalFee = 0;
+                $netReleased = 0;
+
                 foreach ($ordersGet as $o) {
                     $iQty = $o->items->sum('quantity');
                     $qty += ($iQty > 0 ? $iQty : 1);
+
+                    $details = $o->fee_breakdown_details;
+                    $feePlatform += abs($details['platform_fee'] ?? $o->fee_platform_amount ?? 0);
+                    $feeFreeShipping += abs($details['free_shipping'] ?? $o->fee_free_shipping_amount ?? 0);
+                    $feeService += abs($details['service_fee'] ?? $o->fee_service_amount ?? 0);
+                    $feePromo += abs($details['promo_fee'] ?? $o->fee_promo_amount ?? 0);
+                    $feeOther += abs($details['other_fee'] ?? $o->fee_other_amount ?? 0);
+
+                    $oFee = abs($details['total_fee'] ?? $o->marketplace_fee ?? 0);
+                    $totalFee += $oFee;
+                    $netReleased += (float) $o->net_amount;
                 }
 
                 $channels[] = [
@@ -1906,16 +2001,34 @@ class ReportController extends Controller
                     'orders' => $ordCount,
                     'qty' => $qty,
                     'omset' => $omset,
+                    'fee_platform' => $feePlatform,
+                    'fee_free_shipping' => $feeFreeShipping,
+                    'fee_service' => $feeService,
+                    'fee_promo' => $feePromo,
+                    'fee_other' => $feeOther,
+                    'total_fee' => $totalFee,
+                    'net_released' => $netReleased,
                     'aov' => $ordCount > 0 ? $omset / $ordCount : 0,
                 ];
 
                 $grandTotalOmset += $omset;
                 $grandTotalQty += $qty;
                 $grandTotalOrders += $ordCount;
+                $grandPlatformFee += $feePlatform;
+                $grandFreeShippingFee += $feeFreeShipping;
+                $grandServiceFee += $feeService;
+                $grandPromoFee += $feePromo;
+                $grandOtherFee += $feeOther;
+                $grandMarketplaceFee += $totalFee;
+                $grandNetReleased += $netReleased;
             }
         }
 
-        return compact('channels', 'grandTotalOmset', 'grandTotalQty', 'grandTotalOrders');
+        return compact(
+            'channels', 'grandTotalOmset', 'grandTotalQty', 'grandTotalOrders',
+            'grandPlatformFee', 'grandFreeShippingFee', 'grandServiceFee',
+            'grandPromoFee', 'grandOtherFee', 'grandMarketplaceFee', 'grandNetReleased'
+        );
     }
 
     private function getSalesReportDetailData($tenantId, $dateFrom, $dateTo, $categoryId = null, $brandId = null, $channelCode = 'all', $customerCat = 'all', $statusFilter = 'all', $search = null, $isBundle = null, $isPo = null, $storeId = null)

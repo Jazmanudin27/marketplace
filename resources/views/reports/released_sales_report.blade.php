@@ -153,26 +153,17 @@
                     </div>
 
                     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-                        <div class="d-flex gap-2">
+                        <div>
                             <a href="{{ route('reports.released_sales.export', request()->all()) }}" class="btn btn-sm btn-outline-success px-3 fw-bold">
                                 <i class="bi bi-file-earmark-spreadsheet me-1"></i> Export CSV
                             </a>
-                            <button type="button" onclick="if(confirm('Sync & Update Biaya akan menghitung ulang potongan biaya marketplace dan dana dilepas pada database ERP berdasarkan rincian resmi. Lanjutkan?')) document.getElementById('syncFeesForm').submit();" class="btn btn-sm btn-outline-warning text-dark fw-bold px-3">
-                                <i class="bi bi-arrow-repeat me-1"></i> Sync &amp; Update Biaya ERP
-                            </button>
                         </div>
-                        <div class="d-flex gap-2">
-                            <button type="submit" onclick="this.form.action='{{ route('reports.released_sales') }}'; this.form.target='_self';" class="btn btn-sm btn-primary px-3 fw-bold">
-                                <i class="bi bi-funnel-fill me-1"></i> Terapkan Filter
-                            </button>
+                        <div>
                             <button type="submit" onclick="this.form.action='{{ route('reports.released_sales.print') }}'; this.form.target='_blank';" class="btn btn-sm btn-success px-3 fw-bold">
                                 <i class="bi bi-printer-fill me-1"></i> Cetak Rekap
                             </button>
                         </div>
                     </div>
-                </form>
-                <form id="syncFeesForm" action="{{ route('reports.released_sales.sync_fees') }}" method="POST" class="d-none">
-                    @csrf
                 </form>
             </div>
         </div>
