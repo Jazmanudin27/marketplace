@@ -1767,8 +1767,21 @@ class ReportController extends Controller
                         }
 
                         $rawItemOmset = (float) ($item->total_price ?? ($item->unit_price * $item->quantity));
+                        $scaledItemOmset = $rawItemOmset * $scale;
+
                         $grouped[$key]['qty_online']   += (int) $item->quantity;
-                        $grouped[$key]['omset_online']  += $rawItemOmset * $scale;
+                        $grouped[$key]['omset_online']  += $scaledItemOmset;
+
+                        $fees = $order->fee_breakdown_details;
+                        $orderFee = abs($fees['total_fee'] ?? $order->marketplace_fee ?? 0);
+                        $itemShare = $order->total_amount > 0 ? ($scaledItemOmset / $order->total_amount) : 0;
+
+                        $grouped[$key]['fee_platform']      += abs($fees['platform_fee'] ?? 0) * $itemShare;
+                        $grouped[$key]['fee_free_shipping'] += abs($fees['free_shipping'] ?? 0) * $itemShare;
+                        $grouped[$key]['fee_service']       += abs($fees['service_fee'] ?? 0) * $itemShare;
+                        $grouped[$key]['fee_promo']         += abs($fees['promo_fee'] ?? 0) * $itemShare;
+                        $grouped[$key]['fee_other']         += abs($fees['other_fee'] ?? 0) * $itemShare;
+                        $grouped[$key]['total_fee']         += $orderFee * $itemShare;
                     }
                 } else {
                     $key = 'unassigned_on';
@@ -1785,6 +1798,12 @@ class ReportController extends Controller
                             'qty_online'     => 0,
                             'omset_offline'  => 0.0,
                             'omset_online'   => 0.0,
+                            'fee_platform'   => 0.0,
+                            'fee_free_shipping' => 0.0,
+                            'fee_service'    => 0.0,
+                            'fee_promo'      => 0.0,
+                            'fee_other'      => 0.0,
+                            'total_fee'      => 0.0,
                             'category_id'    => null,
                             'brand_id'       => null,
                             'is_bundle'      => false,
@@ -1793,6 +1812,14 @@ class ReportController extends Controller
                     }
                     $grouped[$key]['qty_online']   += 1;
                     $grouped[$key]['omset_online'] += (float) $order->total_amount;
+
+                    $fees = $order->fee_breakdown_details;
+                    $grouped[$key]['fee_platform']      += abs($fees['platform_fee'] ?? 0);
+                    $grouped[$key]['fee_free_shipping'] += abs($fees['free_shipping'] ?? 0);
+                    $grouped[$key]['fee_service']       += abs($fees['service_fee'] ?? 0);
+                    $grouped[$key]['fee_promo']         += abs($fees['promo_fee'] ?? 0);
+                    $grouped[$key]['fee_other']         += abs($fees['other_fee'] ?? 0);
+                    $grouped[$key]['total_fee']         += abs($fees['total_fee'] ?? 0);
                 }
             }
         }
@@ -1803,6 +1830,13 @@ class ReportController extends Controller
         $grandTotalQty = 0;
         $grandTotalHpp = 0;
         $grandTotalProfit = 0;
+        $grandPlatformFee = 0;
+        $grandFreeShippingFee = 0;
+        $grandServiceFee = 0;
+        $grandPromoFee = 0;
+        $grandOtherFee = 0;
+        $grandMarketplaceFee = 0;
+        $grandNetReleased = 0;
 
         foreach ($grouped as $row) {
             if (!empty($categoryId) && $row['category_id'] != $categoryId) continue;
@@ -1828,25 +1862,47 @@ class ReportController extends Controller
             $grossProfit = $totalOmset - $totalHpp;
             $profitMargin = $totalOmset > 0 ? ($grossProfit / $totalOmset) * 100 : 0;
 
+            $feePlatform = $row['fee_platform'] ?? 0;
+            $feeFreeShipping = $row['fee_free_shipping'] ?? 0;
+            $feeService = $row['fee_service'] ?? 0;
+            $feePromo = $row['fee_promo'] ?? 0;
+            $feeOther = $row['fee_other'] ?? 0;
+            $totalFee = $row['total_fee'] ?? 0;
+            $netReleased = max(0.0, $totalOmset - $totalFee);
+
             $grandTotalQty += $qtyTotal;
             $grandTotalOmset += $totalOmset;
             $grandTotalHpp += $totalHpp;
             $grandTotalProfit += $grossProfit;
+            $grandPlatformFee += $feePlatform;
+            $grandFreeShippingFee += $feeFreeShipping;
+            $grandServiceFee += $feeService;
+            $grandPromoFee += $feePromo;
+            $grandOtherFee += $feeOther;
+            $grandMarketplaceFee += $totalFee;
+            $grandNetReleased += $netReleased;
 
             $items[] = [
-                'sku'           => $row['sku'],
-                'name'          => $row['name'],
-                'category_name' => $row['category_name'],
-                'brand_name'    => $row['brand_name'],
-                'stock'         => $row['stock'],
-                'qty_offline'   => $row['qty_offline'],
-                'qty_online'    => $row['qty_online'],
-                'qty_total'     => $qtyTotal,
-                'cost_price'    => $costPrice,
-                'total_omset'   => $totalOmset,
-                'total_hpp'     => $totalHpp,
-                'gross_profit'  => $grossProfit,
-                'profit_margin' => $profitMargin,
+                'sku'               => $row['sku'],
+                'name'              => $row['name'],
+                'category_name'     => $row['category_name'],
+                'brand_name'        => $row['brand_name'],
+                'stock'             => $row['stock'],
+                'qty_offline'       => $row['qty_offline'],
+                'qty_online'        => $row['qty_online'],
+                'qty_total'         => $qtyTotal,
+                'cost_price'        => $costPrice,
+                'total_omset'       => $totalOmset,
+                'fee_platform'      => $feePlatform,
+                'fee_free_shipping' => $feeFreeShipping,
+                'fee_service'       => $feeService,
+                'fee_promo'         => $feePromo,
+                'fee_other'         => $feeOther,
+                'total_fee'         => $totalFee,
+                'net_released'      => $netReleased,
+                'total_hpp'         => $totalHpp,
+                'gross_profit'      => $grossProfit,
+                'profit_margin'     => $profitMargin,
             ];
         }
 
@@ -1856,12 +1912,19 @@ class ReportController extends Controller
         $overallMargin = $grandTotalOmset > 0 ? ($grandTotalProfit / $grandTotalOmset) * 100 : 0;
 
         return [
-            'items'            => $items,
-            'grandTotalQty'    => $grandTotalQty,
-            'grandTotalOmset'  => $grandTotalOmset,
-            'grandTotalHpp'    => $grandTotalHpp,
-            'grandTotalProfit' => $grandTotalProfit,
-            'overallMargin'    => $overallMargin,
+            'items'                 => $items,
+            'grandTotalQty'         => $grandTotalQty,
+            'grandTotalOmset'       => $grandTotalOmset,
+            'grandTotalHpp'         => $grandTotalHpp,
+            'grandTotalProfit'      => $grandTotalProfit,
+            'overallMargin'         => $overallMargin,
+            'grandPlatformFee'      => $grandPlatformFee,
+            'grandFreeShippingFee'  => $grandFreeShippingFee,
+            'grandServiceFee'       => $grandServiceFee,
+            'grandPromoFee'         => $grandPromoFee,
+            'grandOtherFee'         => $grandOtherFee,
+            'grandMarketplaceFee'   => $grandMarketplaceFee,
+            'grandNetReleased'      => $grandNetReleased,
         ];
     }
 
@@ -2123,7 +2186,7 @@ class ReportController extends Controller
                 $releasedDate = $o->completed_at ? $o->completed_at->format('Y-m-d H:i') : ($o->order_date ? date('Y-m-d H:i', strtotime($o->order_date)) : '—');
 
                 $fees = $o->fee_breakdown_details;
-                $netAmt = (float)($o->net_amount ?? ($o->total_amount + $fees['total_fee']));
+                $netAmt = max(0.0, (float)$o->total_amount - abs($fees['total_fee']));
 
                 $transactions[] = [
                     'order_date' => $orderDate,
@@ -2170,6 +2233,13 @@ class ReportController extends Controller
 
         $grandTotalOmset = 0;
         $grandTotalQty = 0;
+        $grandPlatformFee = 0;
+        $grandFreeShippingFee = 0;
+        $grandServiceFee = 0;
+        $grandPromoFee = 0;
+        $grandOtherFee = 0;
+        $grandMarketplaceFee = 0;
+        $grandNetReleased = 0;
 
         while ($current <= $last) {
             $dt = date('Y-m-d', $current);
@@ -2202,6 +2272,7 @@ class ReportController extends Controller
 
             // Online Orders
             $onQty = 0; $onOmset = 0.0;
+            $onPlatformFee = 0; $onFreeShippingFee = 0; $onServiceFee = 0; $onPromoFee = 0; $onOtherFee = 0; $onTotalFee = 0;
             if ($channelCode === 'all' || $channelCode !== 'offline') {
                 $onQuery = \App\Models\Order::where('tenant_id', $tenantId)
                     ->with('items');
@@ -2231,11 +2302,20 @@ class ReportController extends Controller
                 foreach ($onOrdersGet as $o) {
                     $iQty = $o->items->sum('quantity');
                     $onQty += ($iQty > 0 ? $iQty : 1);
+
+                    $details = $o->fee_breakdown_details;
+                    $onPlatformFee += abs($details['platform_fee'] ?? $o->fee_platform_amount ?? 0);
+                    $onFreeShippingFee += abs($details['free_shipping'] ?? $o->fee_free_shipping_amount ?? 0);
+                    $onServiceFee += abs($details['service_fee'] ?? $o->fee_service_amount ?? 0);
+                    $onPromoFee += abs($details['promo_fee'] ?? $o->fee_promo_amount ?? 0);
+                    $onOtherFee += abs($details['other_fee'] ?? $o->fee_other_amount ?? 0);
+                    $onTotalFee += abs($details['total_fee'] ?? $o->marketplace_fee ?? 0);
                 }
             }
 
             $tQty = $offQty + $onQty;
             $tOmset = $offOmset + $onOmset;
+            $onNetReleased = max(0.0, $onOmset - $onTotalFee);
 
             if ($tQty > 0 || $tOmset > 0) {
                 $dates[] = [
@@ -2246,15 +2326,33 @@ class ReportController extends Controller
                     'omset_online' => $onOmset,
                     'total_qty' => $tQty,
                     'total_omset' => $tOmset,
+                    'fee_platform' => $onPlatformFee,
+                    'fee_free_shipping' => $onFreeShippingFee,
+                    'fee_service' => $onServiceFee,
+                    'fee_promo' => $onPromoFee,
+                    'fee_other' => $onOtherFee,
+                    'total_fee' => $onTotalFee,
+                    'net_released' => $onNetReleased + $offOmset,
                 ];
                 $grandTotalQty += $tQty;
                 $grandTotalOmset += $tOmset;
+                $grandPlatformFee += $onPlatformFee;
+                $grandFreeShippingFee += $onFreeShippingFee;
+                $grandServiceFee += $onServiceFee;
+                $grandPromoFee += $onPromoFee;
+                $grandOtherFee += $onOtherFee;
+                $grandMarketplaceFee += $onTotalFee;
+                $grandNetReleased += ($onNetReleased + $offOmset);
             }
 
             $current = strtotime('+1 day', $current);
         }
 
-        return compact('dates', 'grandTotalQty', 'grandTotalOmset');
+        return compact(
+            'dates', 'grandTotalQty', 'grandTotalOmset',
+            'grandPlatformFee', 'grandFreeShippingFee', 'grandServiceFee',
+            'grandPromoFee', 'grandOtherFee', 'grandMarketplaceFee', 'grandNetReleased'
+        );
     }
 
     private function getSalesReportPerCustomerCategoryData($tenantId, $dateFrom, $dateTo, $channelCode = 'all', $statusFilter = 'all')

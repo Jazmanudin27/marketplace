@@ -136,10 +136,6 @@
                         </select>
                     </div>
 
-                    <div class="mb-3">
-                        <label class="form-label form-label-sm fw-semibold">Status Transaksi</label>
-                        <input type="text" class="form-control form-control-sm bg-light text-success fw-bold" value="✅ Selesai / Completed (Khusus Penjualan Dilepas)" readonly>
-                    </div>
 
                     <div class="row">
                         <div class="col-md-6 mb-3">
