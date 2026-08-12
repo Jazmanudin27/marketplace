@@ -1282,6 +1282,230 @@ class ReportController extends Controller
         return response()->stream($callback, 200, $headers);
     }
 
+    /**
+     * Laporan Penjualan Dilepas (Dana Cair / Escrow Released)
+     */
+    public function releasedSalesReport(Request $request)
+    {
+        $tenantId = Auth::user()->tenant_id;
+        $categories = Category::where('tenant_id', $tenantId)->orderBy('name')->get();
+        $brands = Brand::where('tenant_id', $tenantId)->orderBy('name')->get();
+        $stores = \App\Models\Store::where('tenant_id', $tenantId)->with('channel')->orderBy('store_name')->get();
+
+        $masterCustCats = \App\Models\Customer::where('tenant_id', $tenantId)
+            ->whereNotNull('category')
+            ->where('category', '!=', '')
+            ->pluck('category')
+            ->unique()
+            ->toArray();
+        $customerCategories = array_values(array_unique(array_merge(array_keys(\App\Models\Customer::CATEGORIES), $masterCustCats)));
+        $customerCategoryLabels = \App\Models\Customer::CATEGORIES;
+
+        $dateFrom       = $request->input('date_from', date('Y-m-01'));
+        $dateTo         = $request->input('date_to', date('Y-m-d'));
+        $categoryId     = $request->input('category_id');
+        $brandId        = $request->input('brand_id');
+        $isBundle       = $request->input('is_bundle');
+        $isPo           = $request->input('po_status');
+        $channelCode    = $request->input('channel_code', 'all');
+        $customerCat    = $request->input('customer_category', 'all');
+        $dropshipFilter = $request->input('is_dropship', 'all');
+        $reportFormat   = $request->input('report_format', 'per_produk');
+        $search         = $request->input('search');
+        $hideZeroSales  = $request->boolean('hide_zero_sales');
+
+        if ($dropshipFilter === '1') {
+            $customerCat = 'dropship';
+        } elseif ($dropshipFilter === '0') {
+            $customerCat = 'umum';
+        }
+
+        // Summary Statistics for Released Sales (COMPLETED status)
+        $summary = $this->getReleasedSalesSummary($tenantId, $dateFrom, $dateTo, $channelCode, $customerCat);
+
+        return view('reports.released_sales_report', compact(
+            'categories', 'brands', 'stores', 'customerCategories', 'customerCategoryLabels',
+            'dateFrom', 'dateTo', 'categoryId', 'brandId', 'isBundle', 'isPo',
+            'channelCode', 'customerCat', 'dropshipFilter', 'reportFormat', 'search', 'hideZeroSales', 'summary'
+        ));
+    }
+
+    public function printReleasedSalesReport(Request $request)
+    {
+        $tenantId       = Auth::user()->tenant_id;
+        $dateFrom       = $request->input('date_from', date('Y-m-01'));
+        $dateTo         = $request->input('date_to', date('Y-m-d'));
+        $categoryId     = $request->input('category_id');
+        $brandId        = $request->input('brand_id');
+        $isBundle       = $request->input('is_bundle');
+        $isPo           = $request->input('po_status');
+        $channelCode    = $request->input('channel_code', 'all');
+        $customerCat    = $request->input('customer_category', 'all');
+        $dropshipFilter = $request->input('is_dropship', 'all');
+        $reportFormat   = $request->input('report_format', 'per_produk');
+        $search         = $request->input('search');
+        $hideZeroSales  = $request->boolean('hide_zero_sales');
+
+        if ($dropshipFilter === '1') {
+            $customerCat = 'dropship';
+        } elseif ($dropshipFilter === '0') {
+            $customerCat = 'umum';
+        }
+
+        $customerCategoryLabels = \App\Models\Customer::CATEGORIES;
+        $statusFilter = 'completed'; // Strictly completed / released sales
+
+        if ($reportFormat === 'per_channel') {
+            $data = $this->getSalesReportPerChannelData($tenantId, $dateFrom, $dateTo, $channelCode, $customerCat, $statusFilter);
+            return view('reports.print_sales_report_channel', array_merge($data, [
+                'dateFrom' => $dateFrom, 
+                'dateTo' => $dateTo, 
+                'customerCat' => $customerCat,
+                'title' => 'Laporan Penjualan Dilepas Per Channel'
+            ]));
+        } elseif ($reportFormat === 'detail') {
+            $data = $this->getSalesReportDetailData($tenantId, $dateFrom, $dateTo, $categoryId, $brandId, $channelCode, $customerCat, $statusFilter, $search, $isBundle, $isPo);
+            return view('reports.print_sales_report_detail', array_merge($data, [
+                'dateFrom' => $dateFrom, 
+                'dateTo' => $dateTo,
+                'title' => 'Laporan Detail Transaksi Penjualan Dilepas'
+            ]));
+        } elseif ($reportFormat === 'per_tanggal') {
+            $data = $this->getSalesReportPerDateData($tenantId, $dateFrom, $dateTo, $channelCode, $customerCat, $statusFilter);
+            return view('reports.print_sales_report_date', array_merge($data, [
+                'dateFrom' => $dateFrom, 
+                'dateTo' => $dateTo,
+                'title' => 'Laporan Penjualan Dilepas Per Tanggal'
+            ]));
+        } elseif ($reportFormat === 'per_kategori_pelanggan') {
+            $data = $this->getSalesReportPerCustomerCategoryData($tenantId, $dateFrom, $dateTo, $channelCode, $statusFilter);
+            return view('reports.print_sales_report_customer_category', array_merge($data, [
+                'dateFrom' => $dateFrom, 
+                'dateTo' => $dateTo, 
+                'customerCategoryLabels' => $customerCategoryLabels,
+                'title' => 'Laporan Penjualan Dilepas Per Kategori Pelanggan'
+            ]));
+        } else {
+            // Default: per_produk
+            $data = $this->getSalesReportData($tenantId, $dateFrom, $dateTo, $categoryId, $brandId, $channelCode, $customerCat, $statusFilter, $search, $hideZeroSales, $isBundle, $isPo);
+            return view('reports.print_sales_report', array_merge($data, [
+                'dateFrom' => $dateFrom, 
+                'dateTo' => $dateTo,
+                'title' => 'Laporan Rekap Penjualan Produk Dilepas (Dana Cair)'
+            ]));
+        }
+    }
+
+    public function exportReleasedSalesReport(Request $request)
+    {
+        $tenantId       = Auth::user()->tenant_id;
+        $dateFrom       = $request->input('date_from', date('Y-m-01'));
+        $dateTo         = $request->input('date_to', date('Y-m-d'));
+        $categoryId     = $request->input('category_id');
+        $brandId        = $request->input('brand_id');
+        $isBundle       = $request->input('is_bundle');
+        $isPo           = $request->input('po_status');
+        $channelCode    = $request->input('channel_code', 'all');
+        $customerCat    = $request->input('customer_category', 'all');
+        $search         = $request->input('search');
+        $hideZeroSales  = $request->boolean('hide_zero_sales');
+        $statusFilter   = 'completed'; // Strictly completed / released sales
+
+        $data = $this->getSalesReportData($tenantId, $dateFrom, $dateTo, $categoryId, $brandId, $channelCode, $customerCat, $statusFilter, $search, $hideZeroSales, $isBundle, $isPo);
+
+        $filename = "Laporan_Penjualan_Dilepas_" . date('Ymd_His') . ".csv";
+        $headers = [
+            "Content-Type"        => "text/csv; charset=UTF-8",
+            "Content-Disposition" => "attachment; filename=\"$filename\"",
+            "Pragma"              => "no-cache",
+            "Cache-Control"       => "must-revalidate, post-check=0, pre-check=0",
+            "Expires"             => "0"
+        ];
+
+        $callback = function () use ($data) {
+            $file = fopen('php://output', 'w');
+            fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF)); // BOM UTF-8
+
+            fputcsv($file, ['SKU', 'Nama Produk', 'Kategori', 'Brand', 'Stok Fisik', 'Qty Offline POS', 'Qty Online MP', 'Total Qty Terjual', 'HPP Modal (Rp)', 'Total Omset Dilepas (Rp)', 'Total HPP (Rp)', 'Laba Kotor (Rp)', 'Margin (%)']);
+
+            foreach ($data['items'] as $item) {
+                fputcsv($file, [
+                    $item['sku'],
+                    $item['name'],
+                    $item['category_name'],
+                    $item['brand_name'],
+                    $item['stock'],
+                    $item['qty_offline'],
+                    $item['qty_online'],
+                    $item['qty_total'],
+                    (int)$item['cost_price'],
+                    (int)$item['total_omset'],
+                    (int)$item['total_hpp'],
+                    (int)$item['gross_profit'],
+                    round($item['profit_margin'], 2) . '%'
+                ]);
+            }
+
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
+    }
+
+    private function getReleasedSalesSummary($tenantId, $dateFrom, $dateTo, $channelCode = 'all', $customerCat = 'all')
+    {
+        $totalOrders = 0;
+        $grossRevenue = 0.0;
+        $marketplaceFee = 0.0;
+        $netReleased = 0.0;
+
+        // 1. Online Orders (COMPLETED)
+        if ($channelCode === 'all' || $channelCode !== 'offline') {
+            $query = \App\Models\Order::where('tenant_id', $tenantId)
+                ->whereIn('order_status', ['COMPLETED', 'DELIVERED', 'SELESAI', 'FINISHED'])
+                ->whereBetween('order_date', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59']);
+
+            if ($channelCode !== 'all' && $channelCode !== 'online') {
+                $query->whereHas('store.channel', fn($cq) => $cq->where('code', strtolower($channelCode)));
+            }
+
+            $orders = $query->get();
+            $totalOrders += $orders->count();
+            $grossRevenue += (float) $orders->sum('total_amount');
+            $marketplaceFee += (float) $orders->sum('marketplace_fee');
+            $netReleased += (float) $orders->sum('net_amount');
+        }
+
+        // 2. Offline POS Sales (COMPLETED)
+        if ($channelCode === 'all' || $channelCode === 'offline') {
+            $offQuery = \App\Models\OfflineSale::where('tenant_id', $tenantId)
+                ->where('status', \App\Models\OfflineSale::STATUS_COMPLETED)
+                ->whereBetween('sold_at', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59']);
+
+            if ($customerCat === 'dropship') {
+                $offQuery->where(function($q) {
+                    $q->where('is_dropship', true)
+                      ->orWhereHas('customer', fn($cq) => $cq->where('category', 'dropship'));
+                });
+            } elseif ($customerCat === 'umum') {
+                $offQuery->where('is_dropship', false);
+            }
+
+            $offSales = $offQuery->get();
+            $totalOrders += $offSales->count();
+            $offTotal = (float) $offSales->sum('grand_total');
+            $grossRevenue += $offTotal;
+            $netReleased += $offTotal;
+        }
+
+        return [
+            'total_orders' => $totalOrders,
+            'gross_revenue' => $grossRevenue,
+            'marketplace_fee' => $marketplaceFee,
+            'net_released' => $netReleased,
+        ];
+    }
+
     private function getSalesReportData($tenantId, $dateFrom, $dateTo, $categoryId = null, $brandId = null, $channelCode = 'all', $customerCat = 'all', $statusFilter = 'all', $search = null, $hideZeroSales = false, $isBundle = null, $isPo = null)
     {
         $allMasterProducts = MasterProduct::where('tenant_id', $tenantId)->with(['category', 'brand'])->get();

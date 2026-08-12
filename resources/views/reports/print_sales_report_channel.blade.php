@@ -21,8 +21,8 @@
     </div>
 
     <div class="text-center mb-3">
-        <h4 class="fw-bold mb-1">LAPORAN PENJUALAN PER SALURAN / CHANNEL</h4>
-        <div class="small text-muted">Periode: {{ date('d F Y', strtotime($dateFrom)) }} s/d {{ date('d F Y', strtotime($dateTo)) }}</div>
+        <h4 class="fw-bold mb-1">{{ strtoupper($title ?? 'LAPORAN PENJUALAN PER SALURAN / CHANNEL') }}</h4>
+        <div class="small text-muted">Periode Penjualan: {{ date('d F Y', strtotime($dateFrom)) }} s/d {{ date('d F Y', strtotime($dateTo)) }}</div>
     </div>
 
     <table class="table table-print w-100 align-middle">

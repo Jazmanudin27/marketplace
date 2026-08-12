@@ -648,6 +648,11 @@ Route::middleware('auth')->group(function () {
         Route::get('/reports/sales', [ReportController::class, 'salesReport'])->name('reports.sales');
         Route::get('/reports/sales/print', [ReportController::class, 'printSalesReport'])->name('reports.sales.print');
         Route::get('/reports/sales/export', [ReportController::class, 'exportSalesReport'])->name('reports.sales.export');
+
+        // Laporan Penjualan Dilepas (Dana Cair / Escrow Released)
+        Route::get('/reports/released-sales', [ReportController::class, 'releasedSalesReport'])->name('reports.released_sales');
+        Route::get('/reports/released-sales/print', [ReportController::class, 'printReleasedSalesReport'])->name('reports.released_sales.print');
+        Route::get('/reports/released-sales/export', [ReportController::class, 'exportReleasedSalesReport'])->name('reports.released_sales.export');
     });
 
     // =========================================================================

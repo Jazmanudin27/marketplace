@@ -21,7 +21,7 @@
     </div>
 
     <div class="text-center mb-3">
-        <h4 class="fw-bold mb-1">LAPORAN REKAP PENJUALAN PRODUK</h4>
+        <h4 class="fw-bold mb-1">{{ strtoupper($title ?? 'LAPORAN REKAP PENJUALAN PRODUK') }}</h4>
         <div class="small text-muted">Periode Penjualan: {{ date('d F Y', strtotime($dateFrom)) }} s/d {{ date('d F Y', strtotime($dateTo)) }}</div>
     </div>
 
