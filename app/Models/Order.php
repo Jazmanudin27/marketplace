@@ -23,6 +23,11 @@ class Order extends Model
         'shipping_fee',
         'discount_amount',
         'marketplace_fee',
+        'fee_platform_amount',
+        'fee_free_shipping_amount',
+        'fee_service_amount',
+        'fee_promo_amount',
+        'fee_other_amount',
         'net_amount',
         'courier',
         'tracking_number',
@@ -72,6 +77,11 @@ class Order extends Model
         'shipping_fee' => 'decimal:2',
         'discount_amount' => 'decimal:2',
         'marketplace_fee' => 'decimal:2',
+        'fee_platform_amount' => 'decimal:2',
+        'fee_free_shipping_amount' => 'decimal:2',
+        'fee_service_amount' => 'decimal:2',
+        'fee_promo_amount' => 'decimal:2',
+        'fee_other_amount' => 'decimal:2',
         'net_amount' => 'decimal:2',
         'is_stock_deducted' => 'boolean',
         'is_stock_returned' => 'boolean',
@@ -85,12 +95,20 @@ class Order extends Model
                 $order->completed_at = now();
             }
 
-            // Sync marketplace_fee & net_amount from fee_breakdown_details if available
+            // Sync 5 fee breakdown columns & marketplace_fee & net_amount
             $details = $order->fee_breakdown_details;
+            $order->fee_platform_amount = abs($details['platform_fee'] ?? 0);
+            $order->fee_free_shipping_amount = abs($details['free_shipping'] ?? 0);
+            $order->fee_service_amount = abs($details['service_fee'] ?? 0);
+            $order->fee_promo_amount = abs($details['promo_fee'] ?? 0);
+            $order->fee_other_amount = abs($details['other_fee'] ?? 0);
+
             $totalFee = abs($details['total_fee'] ?? 0);
             if ($totalFee > 0) {
                 $order->marketplace_fee = $totalFee;
-                $order->net_amount = max(0.0, (float) $order->total_amount - $totalFee);
+                if (empty($order->financial_breakdown['escrow_amount'])) {
+                    $order->net_amount = max(0.0, (float) $order->total_amount - $totalFee);
+                }
             }
         });
     }

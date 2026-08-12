@@ -32,14 +32,21 @@ class SyncOrderFees extends Command
         Order::chunk(100, function ($orders) use (&$count) {
             foreach ($orders as $order) {
                 $details = $order->fee_breakdown_details;
+                $order->fee_platform_amount = abs($details['platform_fee'] ?? 0);
+                $order->fee_free_shipping_amount = abs($details['free_shipping'] ?? 0);
+                $order->fee_service_amount = abs($details['service_fee'] ?? 0);
+                $order->fee_promo_amount = abs($details['promo_fee'] ?? 0);
+                $order->fee_other_amount = abs($details['other_fee'] ?? 0);
+
                 $totalFee = abs($details['total_fee'] ?? 0);
-                
                 if ($totalFee > 0) {
                     $order->marketplace_fee = $totalFee;
-                    $order->net_amount = max(0.0, (float) $order->total_amount - $totalFee);
-                    $order->saveQuietly();
-                    $count++;
+                    if (empty($order->financial_breakdown['escrow_amount'])) {
+                        $order->net_amount = max(0.0, (float) $order->total_amount - $totalFee);
+                    }
                 }
+                $order->saveQuietly();
+                $count++;
             }
         });
 
