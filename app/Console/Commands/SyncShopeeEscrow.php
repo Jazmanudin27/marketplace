@@ -15,7 +15,7 @@ class SyncShopeeEscrow extends Command
      *
      * @var string
      */
-    protected $signature = 'shopee:sync-escrow {--store_id= : ID Toko Shopee tertentu (opsional)} {--limit=100 : Jumlah orderan per batch}';
+    protected $signature = 'shopee:sync-escrow {--store_id= : ID Toko Shopee tertentu (opsional)} {--order_sn= : Nomor pesanan Shopee tertentu untuk dites (opsional)} {--limit=100 : Jumlah orderan per batch}';
 
     /**
      * The console command description.
@@ -33,6 +33,7 @@ class SyncShopeeEscrow extends Command
 
         $shopeeService = app(ShopeeService::class);
         $storeId = $this->option('store_id');
+        $orderSnOption = $this->option('order_sn');
 
         $query = Store::whereHas('channel', function ($q) {
             $q->where('code', 'shopee');
@@ -63,9 +64,14 @@ class SyncShopeeEscrow extends Command
             }
 
             // Ambil orderan Shopee di toko ini
-            $orders = Order::where('store_id', $store->id)
-                ->whereNotNull('order_marketplace_id')
-                ->get();
+            $ordersQuery = Order::where('store_id', $store->id)
+                ->whereNotNull('order_marketplace_id');
+
+            if ($orderSnOption) {
+                $ordersQuery->where('order_marketplace_id', $orderSnOption);
+            }
+
+            $orders = $ordersQuery->get();
 
             $this->info("Menemukan {$orders->count()} pesanan untuk disinkronkan dengan API Escrow Shopee...");
 
