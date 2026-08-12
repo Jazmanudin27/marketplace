@@ -1463,7 +1463,13 @@ class ReportController extends Controller
         if ($channelCode === 'all' || $channelCode !== 'offline') {
             $query = \App\Models\Order::where('tenant_id', $tenantId)
                 ->whereIn('order_status', ['COMPLETED', 'DELIVERED', 'SELESAI', 'FINISHED'])
-                ->whereBetween('order_date', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59']);
+                ->where(function($q) use ($dateFrom, $dateTo) {
+                    $q->whereBetween('completed_at', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59'])
+                      ->orWhere(function($subQ) use ($dateFrom, $dateTo) {
+                          $subQ->whereNull('completed_at')
+                               ->whereBetween('updated_at', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59']);
+                      });
+                });
 
             if ($channelCode !== 'all' && $channelCode !== 'online') {
                 $query->whereHas('store.channel', fn($cq) => $cq->where('code', strtolower($channelCode)));
@@ -1596,8 +1602,19 @@ class ReportController extends Controller
         // 2. Fetch Online Orders and aggregate
         if ($channelCode === 'all' || $channelCode !== 'offline') {
             $ordersQuery = \App\Models\Order::where('tenant_id', $tenantId)
-                ->whereBetween('order_date', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59'])
                 ->with('items');
+
+            if ($statusFilter === 'completed') {
+                $ordersQuery->where(function($q) use ($dateFrom, $dateTo) {
+                    $q->whereBetween('completed_at', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59'])
+                      ->orWhere(function($subQ) use ($dateFrom, $dateTo) {
+                          $subQ->whereNull('completed_at')
+                               ->whereBetween('updated_at', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59']);
+                      });
+                });
+            } else {
+                $ordersQuery->whereBetween('order_date', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59']);
+            }
 
             $this->applyOnlineStatusFilter($ordersQuery, $statusFilter);
 
@@ -1809,8 +1826,19 @@ class ReportController extends Controller
 
                 $ordersQuery = \App\Models\Order::where('tenant_id', $tenantId)
                     ->where('store_id', $st->id)
-                    ->whereBetween('order_date', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59'])
                     ->with('items');
+
+                if ($statusFilter === 'completed') {
+                    $ordersQuery->where(function($q) use ($dateFrom, $dateTo) {
+                        $q->whereBetween('completed_at', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59'])
+                          ->orWhere(function($subQ) use ($dateFrom, $dateTo) {
+                              $subQ->whereNull('completed_at')
+                                   ->whereBetween('updated_at', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59']);
+                          });
+                    });
+                } else {
+                    $ordersQuery->whereBetween('order_date', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59']);
+                }
 
                 $this->applyOnlineStatusFilter($ordersQuery, $statusFilter);
 
@@ -1885,8 +1913,19 @@ class ReportController extends Controller
         // 2. Online Orders
         if ($channelCode === 'all' || $channelCode !== 'offline') {
             $onQuery = \App\Models\Order::where('tenant_id', $tenantId)
-                ->whereBetween('order_date', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59'])
                 ->with(['store.channel', 'customer', 'items']);
+
+            if ($statusFilter === 'completed') {
+                $onQuery->where(function($q) use ($dateFrom, $dateTo) {
+                    $q->whereBetween('completed_at', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59'])
+                      ->orWhere(function($subQ) use ($dateFrom, $dateTo) {
+                          $subQ->whereNull('completed_at')
+                               ->whereBetween('updated_at', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59']);
+                      });
+                });
+            } else {
+                $onQuery->whereBetween('order_date', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59']);
+            }
 
             $this->applyOnlineStatusFilter($onQuery, $statusFilter);
 
@@ -1900,8 +1939,12 @@ class ReportController extends Controller
                     $itemSummary[] = ($it->sku) . ' x' . $it->quantity;
                 }
 
+                $txDate = ($statusFilter === 'completed')
+                    ? ($o->completed_at ? $o->completed_at->format('Y-m-d H:i') : ($o->updated_at ? $o->updated_at->format('Y-m-d H:i') : '—'))
+                    : ($o->order_date ? date('Y-m-d H:i', strtotime($o->order_date)) : '—');
+
                 $transactions[] = [
-                    'date' => $o->order_date ? date('Y-m-d H:i', strtotime($o->order_date)) : '—',
+                    'date' => $txDate,
                     'ref' => $o->order_number ?: $o->order_marketplace_id ?: $o->invoice_number,
                     'channel' => $o->store->channel->name ?? 'Marketplace',
                     'customer' => $o->buyer_name ?: ($o->customer->name ?? 'Pelanggan MP'),
@@ -1964,8 +2007,19 @@ class ReportController extends Controller
             $onQty = 0; $onOmset = 0.0;
             if ($channelCode === 'all' || $channelCode !== 'offline') {
                 $onQuery = \App\Models\Order::where('tenant_id', $tenantId)
-                    ->whereDate('order_date', $dt)
                     ->with('items');
+
+                if ($statusFilter === 'completed') {
+                    $onQuery->where(function($q) use ($dt) {
+                        $q->whereDate('completed_at', $dt)
+                          ->orWhere(function($subQ) use ($dt) {
+                              $subQ->whereNull('completed_at')
+                                   ->whereDate('updated_at', $dt);
+                          });
+                    });
+                } else {
+                    $onQuery->whereDate('order_date', $dt);
+                }
 
                 $this->applyOnlineStatusFilter($onQuery, $statusFilter);
 
@@ -2018,8 +2072,19 @@ class ReportController extends Controller
 
             if ($catKey === 'marketplace') {
                 // Online Marketplace
-                $ordersQuery = \App\Models\Order::where('tenant_id', $tenantId)
-                    ->whereBetween('order_date', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59']);
+                $ordersQuery = \App\Models\Order::where('tenant_id', $tenantId);
+
+                if ($statusFilter === 'completed') {
+                    $ordersQuery->where(function($q) use ($dateFrom, $dateTo) {
+                        $q->whereBetween('completed_at', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59'])
+                          ->orWhere(function($subQ) use ($dateFrom, $dateTo) {
+                              $subQ->whereNull('completed_at')
+                                   ->whereBetween('updated_at', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59']);
+                          });
+                    });
+                } else {
+                    $ordersQuery->whereBetween('order_date', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59']);
+                }
                 $this->applyOnlineStatusFilter($ordersQuery, $statusFilter);
                 if ($channelCode !== 'all' && $channelCode !== 'online') {
                     $ordersQuery->whereHas('store.channel', fn($cq) => $cq->where('code', strtolower($channelCode)));

@@ -175,12 +175,12 @@
 
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label class="form-label form-label-sm fw-semibold">Dari Tanggal</label>
-                            <input type="date" name="date_from" class="form-control form-control-sm" value="{{ $dateFrom }}">
+                            <label class="form-label form-label-sm fw-semibold text-success"><i class="bi bi-calendar-check me-1"></i>Dari Tanggal (Dilepas / Cair)</label>
+                            <input type="date" name="date_from" class="form-control form-control-sm border-success" value="{{ $dateFrom }}">
                         </div>
                         <div class="col-md-6 mb-3">
-                            <label class="form-label form-label-sm fw-semibold">Sampai Tanggal</label>
-                            <input type="date" name="date_to" class="form-control form-control-sm" value="{{ $dateTo }}">
+                            <label class="form-label form-label-sm fw-semibold text-success"><i class="bi bi-calendar-check me-1"></i>Sampai Tanggal (Dilepas / Cair)</label>
+                            <input type="date" name="date_to" class="form-control form-control-sm border-success" value="{{ $dateTo }}">
                         </div>
                     </div>
 

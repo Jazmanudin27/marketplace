@@ -27,6 +27,7 @@ class Order extends Model
         'courier',
         'tracking_number',
         'order_date',
+        'completed_at',
         'ship_before_date',
         'packed_at',
         'is_stock_deducted',
@@ -59,6 +60,7 @@ class Order extends Model
 
     protected $casts = [
         'order_date' => 'datetime',
+        'completed_at' => 'datetime',
         'ship_before_date' => 'datetime',
         'packed_at' => 'datetime',
         'printed_at' => 'datetime',
