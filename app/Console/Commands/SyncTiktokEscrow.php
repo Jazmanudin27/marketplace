@@ -93,7 +93,7 @@ class SyncTiktokEscrow extends Command
                 $orderIds = $chunk->pluck('order_marketplace_id')->toArray();
                 try {
                     $detailRes = $tiktokService->getOrderDetail($accessToken, $shopCipher, $orderIds);
-                    $tiktokOrders = $detailRes['orders'] ?? [];
+                    $tiktokOrders = $detailRes['order_list'] ?? $detailRes['orders'] ?? [];
 
                     foreach ($tiktokOrders as $tOrder) {
                         $mId = $tOrder['id'] ?? $tOrder['order_id'] ?? null;

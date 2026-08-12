@@ -101,7 +101,8 @@ class SyncOrderFees extends Command
                         $ids = $chunk->pluck('order_marketplace_id')->toArray();
                         try {
                             $detailRes = $tiktokService->getOrderDetail($accToken, $shopCipher, $ids);
-                            foreach ($detailRes['orders'] ?? [] as $tOrder) {
+                            $tOrdersRes = $detailRes['order_list'] ?? $detailRes['orders'] ?? [];
+                            foreach ($tOrdersRes as $tOrder) {
                                 $mId = $tOrder['id'] ?? $tOrder['order_id'] ?? null;
                                 if (!$mId) continue;
                                 $dbOrder = $tOrders->firstWhere('order_marketplace_id', $mId);
