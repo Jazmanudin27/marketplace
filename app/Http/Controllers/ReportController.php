@@ -1996,8 +1996,9 @@ class ReportController extends Controller
 
                     $oFee = abs($details['total_fee'] ?? $o->marketplace_fee ?? 0);
                     $totalFee += $oFee;
-                    $netReleased += (float) $o->net_amount;
                 }
+
+                $netReleased = max(0.0, $omset - $totalFee);
 
                 $channels[] = [
                     'name' => $storeName,
