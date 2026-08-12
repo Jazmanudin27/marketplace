@@ -286,6 +286,76 @@ class Order extends Model
     }
 
     /**
+     * Get 5 Shopee/TikTok Fee Breakdown Components:
+     * - platform_fee (Biaya Platform)
+     * - free_shipping (Biaya Gratis Ongkir)
+     * - service_fee (Biaya Layanan)
+     * - promo_fee (Biaya Promosi)
+     * - other_fee (Biaya Lainnya)
+     */
+    public function getFeeBreakdownDetailsAttribute(): array
+    {
+        $fb = $this->financial_breakdown ?? [];
+
+        // 1. Biaya Platform (Commission Fee / Platform Fee / Net Platform Commission)
+        $platformFee = (float) (
+            $fb['commission_fee'] 
+            ?? $fb['platform_fee'] 
+            ?? $fb['net_platform_commission'] 
+            ?? 0
+        );
+
+        // 2. Biaya Gratis Ongkir (Free Shipping / Shipping Rebate / Growth Xtra Fee)
+        $freeShipping = (float) (
+            $fb['free_shipping_fee'] 
+            ?? $fb['shopee_shipping_rebate'] 
+            ?? $fb['growth_xtra_fee'] 
+            ?? 0
+        );
+
+        // 3. Biaya Layanan (Service Fee / Seller Transaction Fee / Processing Fee)
+        $serviceFee = (float) (
+            $fb['service_fee'] 
+            ?? $fb['seller_transaction_fee'] 
+            ?? $fb['order_processing_fee'] 
+            ?? $fb['preorder_service_fee'] 
+            ?? 0
+        );
+
+        // 4. Biaya Promosi (Voucher Seller / Discount)
+        $promoFee = (float) (
+            $fb['voucher_from_seller'] 
+            ?? $fb['seller_discount'] 
+            ?? $fb['voucher_seller'] 
+            ?? $this->discount_amount 
+            ?? 0
+        );
+
+        // 5. Biaya Lainnya (Coins, Tax, Adjustments, Dynamic Commission, etc.)
+        $otherFee = (float) (
+            $fb['other_fees'] 
+            ?? $fb['coins'] 
+            ?? $fb['ddu_custom_tax_fee'] 
+            ?? $fb['dynamic_commission'] 
+            ?? 0
+        );
+
+        // Fallback: If marketplace_fee is filled on Order model but fb has no breakdown, assign to platform_fee
+        if ($platformFee == 0 && $freeShipping == 0 && $serviceFee == 0 && $promoFee == 0 && $otherFee == 0 && $this->marketplace_fee > 0) {
+            $platformFee = (float) $this->marketplace_fee;
+        }
+
+        return [
+            'platform_fee'   => $platformFee > 0 ? -$platformFee : 0,
+            'free_shipping'  => $freeShipping > 0 ? -$freeShipping : 0,
+            'service_fee'    => $serviceFee > 0 ? -$serviceFee : 0,
+            'promo_fee'      => $promoFee > 0 ? -$promoFee : 0,
+            'other_fee'      => $otherFee > 0 ? -$otherFee : 0,
+            'total_fee'      => -($platformFee + $freeShipping + $serviceFee + $promoFee + $otherFee),
+        ];
+    }
+
+    /**
      * Pendapatan Bersih (Escrow).
      * Jika ada financial_breakdown['escrow_amount'] > 0, gunakan escrow_amount resmi marketplace.
      * Jika ada rincian biaya TikTok (net_platform_commission, dynamic_commission, dll), hitung net_amount presisi.

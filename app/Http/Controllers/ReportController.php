@@ -1300,6 +1300,7 @@ class ReportController extends Controller
         $categoryId     = $request->input('category_id');
         $brandId        = $request->input('brand_id');
         $isBundle       = $request->input('is_bundle');
+        $storeId        = $request->input('store_id');
         $channelCode    = $request->input('channel_code', 'online');
         if ($channelCode === 'all') $channelCode = 'online';
 
@@ -1312,12 +1313,12 @@ class ReportController extends Controller
         $dropshipFilter = 'all';
 
         // Summary Statistics for Released Sales (COMPLETED status)
-        $summary = $this->getReleasedSalesSummary($tenantId, $dateFrom, $dateTo, $channelCode, $customerCat);
+        $summary = $this->getReleasedSalesSummary($tenantId, $dateFrom, $dateTo, $channelCode, $customerCat, $storeId);
 
         return view('reports.released_sales_report', compact(
             'categories', 'brands', 'stores',
             'dateFrom', 'dateTo', 'categoryId', 'brandId', 'isBundle',
-            'channelCode', 'reportFormat', 'search', 'hideZeroSales', 'summary'
+            'channelCode', 'storeId', 'reportFormat', 'search', 'hideZeroSales', 'summary'
         ));
     }
 
@@ -1329,6 +1330,7 @@ class ReportController extends Controller
         $categoryId     = $request->input('category_id');
         $brandId        = $request->input('brand_id');
         $isBundle       = $request->input('is_bundle');
+        $storeId        = $request->input('store_id');
         $channelCode    = $request->input('channel_code', 'online');
         if ($channelCode === 'all') $channelCode = 'online';
 
@@ -1346,10 +1348,10 @@ class ReportController extends Controller
                 'dateFrom' => $dateFrom, 
                 'dateTo' => $dateTo, 
                 'customerCat' => $customerCat,
-                'title' => 'Laporan Penjualan Dilepas Per Channel Marketplace'
+                'title' => 'Laporan Penjualan Dilepas Per Toko Marketplace'
             ]));
         } elseif ($reportFormat === 'detail') {
-            $data = $this->getSalesReportDetailData($tenantId, $dateFrom, $dateTo, $categoryId, $brandId, $channelCode, $customerCat, $statusFilter, $search, $isBundle, $isPo);
+            $data = $this->getSalesReportDetailData($tenantId, $dateFrom, $dateTo, $categoryId, $brandId, $channelCode, $customerCat, $statusFilter, $search, $isBundle, $isPo, $storeId);
             return view('reports.print_sales_report_detail', array_merge($data, [
                 'dateFrom' => $dateFrom, 
                 'dateTo' => $dateTo,
@@ -1364,7 +1366,7 @@ class ReportController extends Controller
             ]));
         } else {
             // Default: per_produk
-            $data = $this->getSalesReportData($tenantId, $dateFrom, $dateTo, $categoryId, $brandId, $channelCode, $customerCat, $statusFilter, $search, $hideZeroSales, $isBundle, $isPo);
+            $data = $this->getSalesReportData($tenantId, $dateFrom, $dateTo, $categoryId, $brandId, $channelCode, $customerCat, $statusFilter, $search, $hideZeroSales, $isBundle, $isPo, $storeId);
             return view('reports.print_sales_report', array_merge($data, [
                 'dateFrom' => $dateFrom, 
                 'dateTo' => $dateTo,
@@ -1381,6 +1383,7 @@ class ReportController extends Controller
         $categoryId     = $request->input('category_id');
         $brandId        = $request->input('brand_id');
         $isBundle       = $request->input('is_bundle');
+        $storeId        = $request->input('store_id');
         $channelCode    = $request->input('channel_code', 'online');
         if ($channelCode === 'all') $channelCode = 'online';
 
@@ -1390,7 +1393,7 @@ class ReportController extends Controller
         $customerCat    = 'all';
         $statusFilter   = 'completed'; // Strictly completed / released sales
 
-        $data = $this->getSalesReportData($tenantId, $dateFrom, $dateTo, $categoryId, $brandId, $channelCode, $customerCat, $statusFilter, $search, $hideZeroSales, $isBundle, $isPo);
+        $detailData = $this->getSalesReportDetailData($tenantId, $dateFrom, $dateTo, $categoryId, $brandId, $channelCode, $customerCat, $statusFilter, $search, $isBundle, $isPo, $storeId);
 
         $filename = "Laporan_Penjualan_Dilepas_" . date('Ymd_His') . ".csv";
         $headers = [
@@ -1401,27 +1404,45 @@ class ReportController extends Controller
             "Expires"             => "0"
         ];
 
-        $callback = function () use ($data) {
+        $callback = function () use ($detailData) {
             $file = fopen('php://output', 'w');
             fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF)); // BOM UTF-8
 
-            fputcsv($file, ['SKU', 'Nama Produk', 'Kategori', 'Brand', 'Stok Fisik', 'Qty Offline POS', 'Qty Online MP', 'Total Qty Terjual', 'HPP Modal (Rp)', 'Total Omset Dilepas (Rp)', 'Total HPP (Rp)', 'Laba Kotor (Rp)', 'Margin (%)']);
+            fputcsv($file, [
+                'No.',
+                'Tanggal Dilepas',
+                'No. Pesanan',
+                'Toko / Channel',
+                'Pelanggan',
+                'Ringkasan Produk',
+                'Qty',
+                'Omset Kotor (Rp)',
+                'Biaya Platform (Rp)',
+                'Biaya Gratis Ongkir (Rp)',
+                'Biaya Layanan (Rp)',
+                'Biaya Promosi (Rp)',
+                'Biaya Lainnya (Rp)',
+                'Dana Dilepas Net (Rp)',
+                'Status'
+            ]);
 
-            foreach ($data['items'] as $item) {
+            foreach ($detailData['transactions'] as $idx => $row) {
                 fputcsv($file, [
-                    $item['sku'],
-                    $item['name'],
-                    $item['category_name'],
-                    $item['brand_name'],
-                    $item['stock'],
-                    $item['qty_offline'],
-                    $item['qty_online'],
-                    $item['qty_total'],
-                    (int)$item['cost_price'],
-                    (int)$item['total_omset'],
-                    (int)$item['total_hpp'],
-                    (int)$item['gross_profit'],
-                    round($item['profit_margin'], 2) . '%'
+                    $idx + 1,
+                    $row['date'],
+                    $row['ref'],
+                    $row['channel'],
+                    $row['customer'],
+                    $row['items_summary'],
+                    $row['total_qty'],
+                    (int)$row['omset'],
+                    (int)$row['platform_fee'],
+                    (int)$row['free_shipping_fee'],
+                    (int)$row['service_fee'],
+                    (int)$row['promo_fee'],
+                    (int)$row['other_fee'],
+                    (int)$row['net_released'],
+                    $row['status']
                 ]);
             }
 
@@ -1431,7 +1452,7 @@ class ReportController extends Controller
         return response()->stream($callback, 200, $headers);
     }
 
-    private function getReleasedSalesSummary($tenantId, $dateFrom, $dateTo, $channelCode = 'all', $customerCat = 'all')
+    private function getReleasedSalesSummary($tenantId, $dateFrom, $dateTo, $channelCode = 'online', $customerCat = 'all', $storeId = null)
     {
         $totalOrders = 0;
         $grossRevenue = 0.0;
@@ -1439,7 +1460,7 @@ class ReportController extends Controller
         $netReleased = 0.0;
 
         // 1. Online Orders (COMPLETED)
-        if ($channelCode === 'all' || $channelCode !== 'offline') {
+        if ($channelCode !== 'offline') {
             $query = \App\Models\Order::where('tenant_id', $tenantId)
                 ->whereIn('order_status', ['COMPLETED', 'DELIVERED', 'SELESAI', 'FINISHED'])
                 ->where(function($q) use ($dateFrom, $dateTo) {
@@ -1450,7 +1471,9 @@ class ReportController extends Controller
                       });
                 });
 
-            if ($channelCode !== 'all' && $channelCode !== 'online') {
+            if (!empty($storeId)) {
+                $query->where('store_id', $storeId);
+            } elseif ($channelCode !== 'all' && $channelCode !== 'online') {
                 $query->whereHas('store.channel', fn($cq) => $cq->where('code', strtolower($channelCode)));
             }
 
@@ -1491,7 +1514,7 @@ class ReportController extends Controller
         ];
     }
 
-    private function getSalesReportData($tenantId, $dateFrom, $dateTo, $categoryId = null, $brandId = null, $channelCode = 'all', $customerCat = 'all', $statusFilter = 'all', $search = null, $hideZeroSales = false, $isBundle = null, $isPo = null)
+    private function getSalesReportData($tenantId, $dateFrom, $dateTo, $categoryId = null, $brandId = null, $channelCode = 'all', $customerCat = 'all', $statusFilter = 'all', $search = null, $hideZeroSales = false, $isBundle = null, $isPo = null, $storeId = null)
     {
         $allMasterProducts = MasterProduct::where('tenant_id', $tenantId)->with(['category', 'brand'])->get();
         $masterById = $allMasterProducts->keyBy('id');
@@ -1597,7 +1620,9 @@ class ReportController extends Controller
 
             $this->applyOnlineStatusFilter($ordersQuery, $statusFilter);
 
-            if ($channelCode !== 'all' && $channelCode !== 'online') {
+            if (!empty($storeId)) {
+                $ordersQuery->where('store_id', $storeId);
+            } elseif ($channelCode !== 'all' && $channelCode !== 'online') {
                 $ordersQuery->whereHas('store.channel', function ($cq) use ($channelCode) {
                     $cq->where('code', strtolower($channelCode));
                 });
@@ -1848,7 +1873,7 @@ class ReportController extends Controller
         return compact('channels', 'grandTotalOmset', 'grandTotalQty', 'grandTotalOrders');
     }
 
-    private function getSalesReportDetailData($tenantId, $dateFrom, $dateTo, $categoryId = null, $brandId = null, $channelCode = 'all', $customerCat = 'all', $statusFilter = 'all', $search = null, $isBundle = null, $isPo = null)
+    private function getSalesReportDetailData($tenantId, $dateFrom, $dateTo, $categoryId = null, $brandId = null, $channelCode = 'all', $customerCat = 'all', $statusFilter = 'all', $search = null, $isBundle = null, $isPo = null, $storeId = null)
     {
         $transactions = [];
 
@@ -1884,6 +1909,13 @@ class ReportController extends Controller
                     'items_summary' => implode(', ', $itemSummary) ?: '—',
                     'total_qty' => max(1, $s->items->sum('quantity')),
                     'omset' => (float)$s->grand_total,
+                    'platform_fee' => 0,
+                    'free_shipping_fee' => 0,
+                    'service_fee' => 0,
+                    'promo_fee' => 0,
+                    'other_fee' => 0,
+                    'total_fee' => 0,
+                    'net_released' => (float)$s->grand_total,
                     'status' => ucfirst($s->status),
                 ];
             }
@@ -1908,7 +1940,9 @@ class ReportController extends Controller
 
             $this->applyOnlineStatusFilter($onQuery, $statusFilter);
 
-            if ($channelCode !== 'all' && $channelCode !== 'online') {
+            if (!empty($storeId)) {
+                $onQuery->where('store_id', $storeId);
+            } elseif ($channelCode !== 'all' && $channelCode !== 'online') {
                 $onQuery->whereHas('store.channel', fn($cq) => $cq->where('code', strtolower($channelCode)));
             }
 
@@ -1922,15 +1956,25 @@ class ReportController extends Controller
                     ? ($o->completed_at ? $o->completed_at->format('Y-m-d H:i') : ($o->updated_at ? $o->updated_at->format('Y-m-d H:i') : '—'))
                     : ($o->order_date ? date('Y-m-d H:i', strtotime($o->order_date)) : '—');
 
+                $fees = $o->fee_breakdown_details;
+                $netAmt = (float)($o->net_amount ?? ($o->total_amount + $fees['total_fee']));
+
                 $transactions[] = [
                     'date' => $txDate,
-                    'ref' => $o->order_number ?: $o->order_marketplace_id ?: $o->invoice_number,
+                    'ref' => $o->order_marketplace_id ?: ($o->order_number ?: $o->invoice_number),
                     'channel' => $o->store->channel->name ?? 'Marketplace',
                     'customer' => $o->buyer_name ?: ($o->customer->name ?? 'Pelanggan MP'),
                     'customer_cat' => 'Marketplace',
                     'items_summary' => implode(', ', $itemSummary) ?: '—',
                     'total_qty' => max(1, $o->items->sum('quantity')),
                     'omset' => (float)$o->total_amount,
+                    'platform_fee' => $fees['platform_fee'],
+                    'free_shipping_fee' => $fees['free_shipping'],
+                    'service_fee' => $fees['service_fee'],
+                    'promo_fee' => $fees['promo_fee'],
+                    'other_fee' => $fees['other_fee'],
+                    'total_fee' => $fees['total_fee'],
+                    'net_released' => $netAmt,
                     'status' => $o->order_status,
                 ];
             }
@@ -1940,8 +1984,14 @@ class ReportController extends Controller
 
         $grandTotalOmset = array_sum(array_column($transactions, 'omset'));
         $grandTotalQty = array_sum(array_column($transactions, 'total_qty'));
+        $grandTotalPlatformFee = array_sum(array_column($transactions, 'platform_fee'));
+        $grandTotalFreeShipping = array_sum(array_column($transactions, 'free_shipping_fee'));
+        $grandTotalServiceFee = array_sum(array_column($transactions, 'service_fee'));
+        $grandTotalPromoFee = array_sum(array_column($transactions, 'promo_fee'));
+        $grandTotalOtherFee = array_sum(array_column($transactions, 'other_fee'));
+        $grandTotalNetReleased = array_sum(array_column($transactions, 'net_released'));
 
-        return compact('transactions', 'grandTotalOmset', 'grandTotalQty');
+        return compact('transactions', 'grandTotalOmset', 'grandTotalQty', 'grandTotalPlatformFee', 'grandTotalFreeShipping', 'grandTotalServiceFee', 'grandTotalPromoFee', 'grandTotalOtherFee', 'grandTotalNetReleased');
     }
 
     private function getSalesReportPerDateData($tenantId, $dateFrom, $dateTo, $channelCode = 'all', $customerCat = 'all', $statusFilter = 'all')

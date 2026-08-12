@@ -209,48 +209,52 @@
 
             <!-- Payment Breakdown Card -->
             <div class="card border shadow-sm mb-3 rounded-3">
-                <div class="card-header bg-primary bg-opacity-10 py-2 px-3 border-bottom">
-                    <h6 class="mb-0 fw-bold text-dark small"><i class="fas fa-wallet me-1.5 text-primary"></i>Ringkasan Pembayaran</h6>
+                <div class="card-header bg-success bg-opacity-10 py-2 px-3 border-bottom d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0 fw-bold text-dark small"><i class="fas fa-wallet me-1.5 text-success"></i>Rincian Potongan Biaya Marketplace (Shopee / MP Format)</h6>
+                    <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-25">Dana Cair / Escrow</span>
                 </div>
                 <div class="card-body p-3" style="font-size: 0.8rem;">
                     @php 
-                        $fb = $order->financial_breakdown ?? []; 
-                        $buyerTotal = $fb['buyer_total_amount'] ?? $fb['buyer_paid_amount'] ?? $order->total_amount ?? 0;
-                        $subtotalAfterSeller = $fb['subtotal_after_seller_discounts'] ?? ($order->total_amount - $order->discount_amount);
-                        $buyerShipping = $fb['buyer_paid_shipping_fee'] ?? $order->shipping_fee ?? 0;
-                        $actualShipping = $fb['actual_shipping_fee'] ?? $order->shipping_fee ?? 0;
-                        $sellerVoucher = $fb['voucher_from_seller'] ?? $fb['seller_discount'] ?? $order->discount_amount ?? 0;
-                        $serviceFee = $fb['service_fee'] ?? 0;
-                        $commissionFee = $fb['commission_fee'] ?? $fb['affiliate_commission'] ?? $order->affiliate_commission ?? 0;
-                        $transactionFee = $fb['seller_transaction_fee'] ?? $fb['order_processing_fee'] ?? 0;
+                        $fees = $order->fee_breakdown_details;
                     @endphp
 
-                    <div class="d-flex justify-content-between mb-1.5 align-items-center">
-                        <span class="text-muted">Total Pembayaran Pembeli</span>
-                        <span class="font-monospace fw-bold text-dark">Rp {{ number_format($buyerTotal, 0, ',', '.') }}</span>
+                    <table class="table table-sm table-bordered align-middle mb-2 font-monospace" style="font-size: 0.75rem;">
+                        <thead class="table-light text-center fw-bold">
+                            <tr>
+                                <th>Biaya Platform</th>
+                                <th>Biaya Gratis Ongkir</th>
+                                <th>Biaya Layanan</th>
+                                <th>Biaya Promosi</th>
+                                <th>Biaya Lainnya</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="text-center">
+                                <td class="{{ $fees['platform_fee'] < 0 ? 'text-danger fw-bold' : 'text-muted' }}">{{ $fees['platform_fee'] != 0 ? number_format($fees['platform_fee'], 0, ',', '.') : '0' }}</td>
+                                <td class="{{ $fees['free_shipping'] < 0 ? 'text-danger fw-bold' : 'text-muted' }}">{{ $fees['free_shipping'] != 0 ? number_format($fees['free_shipping'], 0, ',', '.') : '0' }}</td>
+                                <td class="{{ $fees['service_fee'] < 0 ? 'text-danger fw-bold' : 'text-muted' }}">{{ $fees['service_fee'] != 0 ? number_format($fees['service_fee'], 0, ',', '.') : '0' }}</td>
+                                <td class="{{ $fees['promo_fee'] < 0 ? 'text-danger fw-bold' : 'text-muted' }}">{{ $fees['promo_fee'] != 0 ? number_format($fees['promo_fee'], 0, ',', '.') : '0' }}</td>
+                                <td class="{{ $fees['other_fee'] < 0 ? 'text-danger fw-bold' : 'text-muted' }}">{{ $fees['other_fee'] != 0 ? number_format($fees['other_fee'], 0, ',', '.') : '0' }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <div class="d-flex justify-content-between mb-1 align-items-center">
+                        <span class="text-muted">Total Omset Kotor (Nilai Transaksi)</span>
+                        <span class="font-monospace text-dark">Rp {{ number_format($order->total_amount, 0, ',', '.') }}</span>
                     </div>
 
-                    <div class="d-flex justify-content-between mb-1.5 align-items-center">
-                        <span class="text-muted">Ongkir Dibayar Pembeli</span>
-                        <span class="font-monospace text-dark">Rp {{ number_format($buyerShipping, 0, ',', '.') }}</span>
-                    </div>
-
-                    <div class="d-flex justify-content-between mb-1.5 align-items-center">
-                        <span class="text-muted">Voucher Toko (Seller)</span>
-                        <span class="font-monospace text-danger">- Rp {{ number_format($sellerVoucher, 0, ',', '.') }}</span>
-                    </div>
-
-                    <hr class="my-2 border-dashed opacity-50">
-
-                    <div class="d-flex justify-content-between mb-1.5 align-items-center">
-                        <span class="text-muted">Biaya Layanan & Komisi</span>
-                        <span class="font-monospace text-danger">- Rp {{ number_format($serviceFee + $commissionFee + $transactionFee, 0, ',', '.') }}</span>
+                    <div class="d-flex justify-content-between mb-1 align-items-center">
+                        <span class="text-muted">Total Potongan Marketplace</span>
+                        <span class="font-monospace text-danger font-bold">
+                            {{ $fees['total_fee'] != 0 ? number_format($fees['total_fee'], 0, ',', '.') : 'Rp 0' }}
+                        </span>
                     </div>
 
                     <hr class="my-2 border-dashed opacity-50">
 
                     <div class="d-flex justify-content-between align-items-center">
-                        <span class="fw-bold text-dark">Jumlah Settlement/Bersih</span>
+                        <span class="fw-bold text-dark">Jumlah Dana Dilepas / Cair (Net)</span>
                         <span class="font-monospace text-success fw-bold fs-6">
                             Rp {{ number_format($order->net_amount, 0, ',', '.') }}
                         </span>
