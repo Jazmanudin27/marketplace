@@ -305,43 +305,43 @@ class Order extends Model
     {
         $fb = $this->financial_breakdown ?? [];
 
-        // 1. Biaya Platform (Commission Fee / Platform Fee / Net Platform Commission)
-        $platformFee = (float) (
-            $fb['commission_fee'] 
-            ?? $fb['platform_fee'] 
-            ?? $fb['net_platform_commission'] 
-            ?? 0
-        );
+        // 1. Biaya Platform (Commission Fee + Seller Order Processing Fee)
+        $commissionFee = (float) ($fb['commission_fee'] ?? $fb['platform_fee'] ?? $fb['net_platform_commission'] ?? 0);
+        $processingFee = (float) ($fb['seller_order_processing_fee'] ?? 0);
+        $platformFee = $commissionFee + $processingFee;
 
-        // 2. Biaya Gratis Ongkir (Free Shipping / Shipping Rebate / Growth Xtra Fee)
+        // 2. Biaya Gratis Ongkir (Service Fee / Free Shipping Fee / Growth Xtra Fee)
         $freeShipping = (float) (
             $fb['free_shipping_fee'] 
-            ?? $fb['shopee_shipping_rebate'] 
+            ?? $fb['service_fee'] 
+            ?? $fb['shopee_shipping_rebate_fee'] 
             ?? $fb['growth_xtra_fee'] 
             ?? 0
         );
 
-        // 3. Biaya Layanan (Service Fee / Seller Transaction Fee / Processing Fee)
+        // 3. Biaya Layanan (Seller Transaction Fee / Buyer Transaction Fee / Processing Fee)
         $serviceFee = (float) (
-            $fb['service_fee'] 
-            ?? $fb['seller_transaction_fee'] 
+            $fb['seller_transaction_fee'] 
+            ?? $fb['buyer_transaction_fee'] 
             ?? $fb['order_processing_fee'] 
             ?? $fb['preorder_service_fee'] 
             ?? 0
         );
 
-        // 4. Biaya Promosi (Voucher Seller / Discount)
+        // 4. Biaya Promosi (Order AMS Commission / Voucher Seller / Seller Discount)
         $promoFee = (float) (
-            $fb['voucher_from_seller'] 
+            $fb['order_ams_commission_fee'] 
+            ?? $fb['ams_commission_fee'] 
+            ?? $fb['voucher_from_seller'] 
             ?? $fb['seller_discount'] 
             ?? $fb['voucher_seller'] 
-            ?? $this->discount_amount 
             ?? 0
         );
 
-        // 5. Biaya Lainnya (Coins, Tax, Adjustments, Dynamic Commission, etc.)
+        // 5. Biaya Lainnya (Shipping Seller Protection / Coins / Tax / Adjustments)
         $otherFee = (float) (
-            $fb['other_fees'] 
+            $fb['shipping_seller_protection_fee_amount'] 
+            ?? $fb['other_fees'] 
             ?? $fb['coins'] 
             ?? $fb['ddu_custom_tax_fee'] 
             ?? $fb['dynamic_commission'] 
