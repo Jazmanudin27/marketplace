@@ -207,7 +207,7 @@ class PullOrdersFromShopee implements ShouldQueue
         $cancelledBy = $shopeeOrder['cancel_by'] ?? null;
 
         $escrowAmount = (float) ($shopeeOrder['escrow_amount'] ?? 0);
-        $totalAmount = (float) ($shopeeOrder['total_amount'] ?? 0);
+        $totalAmount = (float) ($financialBreakdown['cost_of_goods_sold'] ?? $shopeeOrder['total_amount'] ?? 0);
         $shippingFee = (float) ($shopeeOrder['actual_shipping_fee'] ?? $shopeeOrder['estimated_shipping_fee'] ?? 0);
         $sellerDiscount = (float) ($shopeeOrder['seller_discount_amount'] ?? 0);
 

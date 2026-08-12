@@ -84,25 +84,32 @@ class SyncShopeeEscrow extends Command
                         $income = $escrowResponse['order_income'];
                         $order->financial_breakdown = $income;
 
-                        // Jika escrow cair ada, update order_status ke COMPLETED
-                        if (!empty($income['escrow_amount']) && $income['escrow_amount'] > 0) {
+                        // Ambil Subtotal Produk Penjual (merchant_subtotal / cost_of_goods_sold) untuk menghilangkan Biaya Penanganan Pembeli (buyer_service_fee)
+                        $merchantSubtotal = (float) ($income['cost_of_goods_sold'] ?? $income['order_selling_price'] ?? $income['order_original_price'] ?? 0);
+                        if ($merchantSubtotal > 0) {
+                            $order->total_amount = $merchantSubtotal;
+                        }
+
+                        // Update rincian 5 potongan biaya Shopee
+                        $details = $order->fee_breakdown_details;
+                        $totalFee = abs($details['total_fee'] ?? 0);
+                        $order->marketplace_fee = $totalFee;
+
+                        // Net Amount SELALU menggunakan escrow_amount resmi dari Shopee
+                        $escrowAmount = (float) ($income['escrow_amount'] ?? 0);
+                        if ($escrowAmount > 0) {
+                            $order->net_amount = $escrowAmount;
                             $order->order_status = 'COMPLETED';
                             if (!$order->completed_at) {
                                 $order->completed_at = now();
                             }
-                        }
-
-                        // Sync marketplace_fee dan net_amount
-                        $details = $order->fee_breakdown_details;
-                        $totalFee = abs($details['total_fee'] ?? 0);
-                        if ($totalFee > 0) {
-                            $order->marketplace_fee = $totalFee;
+                        } else {
                             $order->net_amount = max(0.0, (float) $order->total_amount - $totalFee);
                         }
 
                         $order->saveQuietly();
                         $totalSuccess++;
-                        $this->line("  [OK] Order {$orderSn} -> Escrow: Rp " . number_format($order->net_amount, 0) . " | Fee: Rp " . number_format($order->marketplace_fee, 0));
+                        $this->line("  [OK] Order {$orderSn} -> Subtotal: Rp " . number_format($order->total_amount, 0) . " | Fee: Rp " . number_format($order->marketplace_fee, 0) . " | Escrow Cair: Rp " . number_format($order->net_amount, 0));
                     } else {
                         $this->warn("  [SKIP] Order {$orderSn} belum memiliki data order_income dari Shopee (Pesanan belum selesai).");
                     }
