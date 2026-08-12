@@ -239,6 +239,7 @@ class PullOrdersFromShopee implements ShouldQueue
                 'courier' => $shopeeOrder['shipping_carrier'] ?? null,
                 'tracking_number' => current($shopeeOrder['package_list'] ?? [])['tracking_number'] ?? current($shopeeOrder['package_list'] ?? [])['package_number'] ?? null,
                 'order_date' => date('Y-m-d H:i:s', $shopeeOrder['create_time'] ?? time()),
+                'completed_at' => in_array($shopeeOrder['order_status'], ['COMPLETED', 'DELIVERED', 'SELESAI', 'FINISHED']) ? date('Y-m-d H:i:s', $shopeeOrder['update_time'] ?? ($shopeeOrder['create_time'] ?? time())) : null,
                 'ship_before_date' => $this->resolveShipBeforeDate($shopeeOrder),
                 'financial_breakdown' => $financialBreakdown,
                 'voucher_code' => $voucherCode,

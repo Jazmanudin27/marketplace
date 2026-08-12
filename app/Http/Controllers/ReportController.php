@@ -1343,7 +1343,7 @@ class ReportController extends Controller
         $statusFilter = 'completed'; // Strictly completed / released sales
 
         if ($reportFormat === 'per_channel') {
-            $data = $this->getSalesReportPerChannelData($tenantId, $dateFrom, $dateTo, $channelCode, $customerCat, $statusFilter);
+            $data = $this->getSalesReportPerChannelData($tenantId, $dateFrom, $dateTo, $channelCode, $customerCat, $statusFilter, $storeId);
             return view('reports.print_sales_report_channel', array_merge($data, [
                 'dateFrom' => $dateFrom, 
                 'dateTo' => $dateTo, 
@@ -1358,7 +1358,7 @@ class ReportController extends Controller
                 'title' => 'Laporan Detail Transaksi Penjualan Dilepas'
             ]));
         } elseif ($reportFormat === 'per_tanggal') {
-            $data = $this->getSalesReportPerDateData($tenantId, $dateFrom, $dateTo, $channelCode, $customerCat, $statusFilter);
+            $data = $this->getSalesReportPerDateData($tenantId, $dateFrom, $dateTo, $channelCode, $customerCat, $statusFilter, $storeId);
             return view('reports.print_sales_report_date', array_merge($data, [
                 'dateFrom' => $dateFrom, 
                 'dateTo' => $dateTo,
@@ -1467,7 +1467,7 @@ class ReportController extends Controller
                     $q->whereBetween('completed_at', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59'])
                       ->orWhere(function($subQ) use ($dateFrom, $dateTo) {
                           $subQ->whereNull('completed_at')
-                               ->whereBetween('updated_at', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59']);
+                               ->whereBetween('order_date', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59']);
                       });
                 });
 
@@ -1611,7 +1611,7 @@ class ReportController extends Controller
                     $q->whereBetween('completed_at', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59'])
                       ->orWhere(function($subQ) use ($dateFrom, $dateTo) {
                           $subQ->whereNull('completed_at')
-                               ->whereBetween('updated_at', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59']);
+                               ->whereBetween('order_date', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59']);
                       });
                 });
             } else {
@@ -1762,7 +1762,7 @@ class ReportController extends Controller
         ];
     }
 
-    private function getSalesReportPerChannelData($tenantId, $dateFrom, $dateTo, $channelCode = 'all', $customerCat = 'all', $statusFilter = 'all')
+    private function getSalesReportPerChannelData($tenantId, $dateFrom, $dateTo, $channelCode = 'all', $customerCat = 'all', $statusFilter = 'all', $storeId = null)
     {
         $stores = \App\Models\Store::where('tenant_id', $tenantId)->with('channel')->get();
         
@@ -1772,7 +1772,7 @@ class ReportController extends Controller
         $grandTotalOrders = 0;
 
         // POS Offline - Grouped by Instansi / Channel
-        if ($channelCode === 'all' || $channelCode === 'offline') {
+        if (($channelCode === 'all' || $channelCode === 'offline') && empty($storeId)) {
             $offSalesQuery = \App\Models\OfflineSale::where('tenant_id', $tenantId)
                 ->whereBetween('sold_at', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59'])
                 ->with('items');
@@ -1822,7 +1822,10 @@ class ReportController extends Controller
         // Marketplace Online Stores
         if ($channelCode !== 'offline') {
             foreach ($stores as $st) {
-                if ($channelCode !== 'all' && $channelCode !== 'online') {
+                if (!empty($storeId) && $st->id != $storeId) {
+                    continue;
+                }
+                if ($channelCode !== 'all' && $channelCode !== 'online' && empty($storeId)) {
                     if (strtolower($st->channel->code ?? '') !== strtolower($channelCode)) {
                         continue;
                     }
@@ -1837,7 +1840,7 @@ class ReportController extends Controller
                         $q->whereBetween('completed_at', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59'])
                           ->orWhere(function($subQ) use ($dateFrom, $dateTo) {
                               $subQ->whereNull('completed_at')
-                                   ->whereBetween('updated_at', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59']);
+                                   ->whereBetween('order_date', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59']);
                           });
                     });
                 } else {
@@ -1931,7 +1934,7 @@ class ReportController extends Controller
                     $q->whereBetween('completed_at', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59'])
                       ->orWhere(function($subQ) use ($dateFrom, $dateTo) {
                           $subQ->whereNull('completed_at')
-                               ->whereBetween('updated_at', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59']);
+                               ->whereBetween('order_date', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59']);
                       });
                 });
             } else {
@@ -1953,7 +1956,7 @@ class ReportController extends Controller
                 }
 
                 $txDate = ($statusFilter === 'completed')
-                    ? ($o->completed_at ? $o->completed_at->format('Y-m-d H:i') : ($o->updated_at ? $o->updated_at->format('Y-m-d H:i') : '—'))
+                    ? ($o->completed_at ? $o->completed_at->format('Y-m-d H:i') : ($o->order_date ? date('Y-m-d H:i', strtotime($o->order_date)) : '—'))
                     : ($o->order_date ? date('Y-m-d H:i', strtotime($o->order_date)) : '—');
 
                 $fees = $o->fee_breakdown_details;
@@ -1994,7 +1997,7 @@ class ReportController extends Controller
         return compact('transactions', 'grandTotalOmset', 'grandTotalQty', 'grandTotalPlatformFee', 'grandTotalFreeShipping', 'grandTotalServiceFee', 'grandTotalPromoFee', 'grandTotalOtherFee', 'grandTotalNetReleased');
     }
 
-    private function getSalesReportPerDateData($tenantId, $dateFrom, $dateTo, $channelCode = 'all', $customerCat = 'all', $statusFilter = 'all')
+    private function getSalesReportPerDateData($tenantId, $dateFrom, $dateTo, $channelCode = 'all', $customerCat = 'all', $statusFilter = 'all', $storeId = null)
     {
         $dates = [];
         $current = strtotime($dateFrom);
@@ -2008,7 +2011,7 @@ class ReportController extends Controller
 
             // POS Offline
             $offQty = 0; $offOmset = 0.0;
-            if ($channelCode === 'all' || $channelCode === 'offline') {
+            if (($channelCode === 'all' || $channelCode === 'offline') && empty($storeId)) {
                 $offQuery = \App\Models\OfflineSale::where('tenant_id', $tenantId)
                     ->whereDate('sold_at', $dt)
                     ->with('items');
@@ -2043,7 +2046,7 @@ class ReportController extends Controller
                         $q->whereDate('completed_at', $dt)
                           ->orWhere(function($subQ) use ($dt) {
                               $subQ->whereNull('completed_at')
-                                   ->whereDate('updated_at', $dt);
+                                   ->whereDate('order_date', $dt);
                           });
                     });
                 } else {
@@ -2052,7 +2055,9 @@ class ReportController extends Controller
 
                 $this->applyOnlineStatusFilter($onQuery, $statusFilter);
 
-                if ($channelCode !== 'all' && $channelCode !== 'online') {
+                if (!empty($storeId)) {
+                    $onQuery->where('store_id', $storeId);
+                } elseif ($channelCode !== 'all' && $channelCode !== 'online') {
                     $onQuery->whereHas('store.channel', fn($cq) => $cq->where('code', strtolower($channelCode)));
                 }
 

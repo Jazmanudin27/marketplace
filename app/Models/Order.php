@@ -84,6 +84,14 @@ class Order extends Model
             if (in_array($order->order_status, [self::STATUS_COMPLETED, self::STATUS_DELIVERED, 'SELESAI', 'FINISHED']) && empty($order->completed_at)) {
                 $order->completed_at = now();
             }
+
+            // Sync marketplace_fee & net_amount from fee_breakdown_details if available
+            $details = $order->fee_breakdown_details;
+            $totalFee = abs($details['total_fee'] ?? 0);
+            if ($totalFee > 0) {
+                $order->marketplace_fee = $totalFee;
+                $order->net_amount = max(0.0, (float) $order->total_amount - $totalFee);
+            }
         });
     }
 
@@ -341,25 +349,45 @@ class Order extends Model
         );
 
         // Fallback: If marketplace_fee is filled on Order model but fb has no breakdown, assign to platform_fee
-        if ($platformFee == 0 && $freeShipping == 0 && $serviceFee == 0 && $promoFee == 0 && $otherFee == 0 && $this->marketplace_fee > 0) {
-            $platformFee = (float) $this->marketplace_fee;
+        $rawMarketplaceFee = (float) ($this->attributes['marketplace_fee'] ?? 0);
+        if ($platformFee == 0 && $freeShipping == 0 && $serviceFee == 0 && $promoFee == 0 && $otherFee == 0 && $rawMarketplaceFee > 0) {
+            $platformFee = $rawMarketplaceFee;
         }
 
         return [
-            'platform_fee'   => $platformFee > 0 ? -$platformFee : 0,
-            'free_shipping'  => $freeShipping > 0 ? -$freeShipping : 0,
-            'service_fee'    => $serviceFee > 0 ? -$serviceFee : 0,
-            'promo_fee'      => $promoFee > 0 ? -$promoFee : 0,
-            'other_fee'      => $otherFee > 0 ? -$otherFee : 0,
+            'platform_fee'   => $platformFee > 0 ? -$platformFee : ($platformFee < 0 ? $platformFee : 0),
+            'free_shipping'  => $freeShipping > 0 ? -$freeShipping : ($freeShipping < 0 ? $freeShipping : 0),
+            'service_fee'    => $serviceFee > 0 ? -$serviceFee : ($serviceFee < 0 ? $serviceFee : 0),
+            'promo_fee'      => $promoFee > 0 ? -$promoFee : ($promoFee < 0 ? $promoFee : 0),
+            'other_fee'      => $otherFee > 0 ? -$otherFee : ($otherFee < 0 ? $otherFee : 0),
             'total_fee'      => -($platformFee + $freeShipping + $serviceFee + $promoFee + $otherFee),
         ];
     }
 
     /**
+     * Potongan Biaya Marketplace Presisi.
+     * Mengambil total rincian potongan jika tersedia di financial_breakdown.
+     */
+    public function getMarketplaceFeeAttribute($value): float
+    {
+        $details = $this->fee_breakdown_details;
+        $totalFee = abs($details['total_fee'] ?? 0);
+        if ($totalFee > 0) {
+            return (float) $totalFee;
+        }
+
+        $val = (float) $value;
+        if ($val > 0) {
+            return $val;
+        }
+
+        return round((float) $this->total_amount * 0.05);
+    }
+
+    /**
      * Pendapatan Bersih (Escrow).
      * Jika ada financial_breakdown['escrow_amount'] > 0, gunakan escrow_amount resmi marketplace.
-     * Jika ada rincian biaya TikTok (net_platform_commission, dynamic_commission, dll), hitung net_amount presisi.
-     * Jika net_amount tersimpan > 0, gunakan nilainya.
+     * Jika ada rincian 5 komponen biaya, hitung (total_amount - total_fee).
      * Fallback: hitung estimasi (total_amount - discount_amount - marketplace_fee).
      */
     public function getNetAmountAttribute($value): float
@@ -368,6 +396,12 @@ class Order extends Model
 
         if (!empty($fb['escrow_amount']) && (float) $fb['escrow_amount'] > 0) {
             return (float) $fb['escrow_amount'];
+        }
+
+        $details = $this->fee_breakdown_details;
+        $totalFee = abs($details['total_fee'] ?? 0);
+        if ($totalFee > 0) {
+            return max(0.0, (float) $this->total_amount - $totalFee);
         }
 
         if (!empty($fb['net_platform_commission']) || !empty($fb['growth_xtra_fee']) || !empty($fb['preorder_service_fee'])) {

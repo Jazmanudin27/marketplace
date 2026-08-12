@@ -82,7 +82,7 @@
                 </h6>
             </div>
             <div class="card-body">
-                <form id="releasedSalesReportForm" action="{{ route('reports.released_sales.print') }}" method="GET" target="_blank">
+                <form id="releasedSalesReportForm" action="{{ route('reports.released_sales') }}" method="GET" target="_self">
                     {{-- PILIHAN FORMAT LAPORAN --}}
                     <div class="mb-3">
                         <label class="form-label form-label-sm fw-bold text-success">Format Laporan Penjualan Dilepas</label>
@@ -125,7 +125,7 @@
 
                     <div class="mb-3">
                         <label class="form-label form-label-sm fw-semibold">Toko Marketplace</label>
-                        <select name="store_id" class="form-select form-select-sm">
+                        <select name="store_id" class="form-select form-select-sm" onchange="this.form.action='{{ route('reports.released_sales') }}'; this.form.target='_self'; this.form.submit();">
                             <option value="" {{ empty($storeId) ? 'selected' : '' }}>🛒 Semua Toko Marketplace</option>
                             @foreach ($stores as $store)
                                 <option value="{{ $store->id }}" {{ (isset($storeId) && $storeId == $store->id) ? 'selected' : '' }}>
@@ -151,13 +151,18 @@
                         </div>
                     </div>
 
-                    <div class="d-flex justify-content-between align-items-center">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
                         <a href="{{ route('reports.released_sales.export', request()->all()) }}" class="btn btn-sm btn-outline-success px-3 fw-bold">
                             <i class="bi bi-file-earmark-spreadsheet me-1"></i> Export CSV
                         </a>
-                        <button type="submit" class="btn btn-sm btn-success px-4 fw-bold">
-                            <i class="bi bi-printer-fill me-1"></i> Cetak Rekap Penjualan Dilepas
-                        </button>
+                        <div class="d-flex gap-2">
+                            <button type="submit" onclick="this.form.action='{{ route('reports.released_sales') }}'; this.form.target='_self';" class="btn btn-sm btn-primary px-3 fw-bold">
+                                <i class="bi bi-funnel-fill me-1"></i> Terapkan Filter
+                            </button>
+                            <button type="submit" onclick="this.form.action='{{ route('reports.released_sales.print') }}'; this.form.target='_blank';" class="btn btn-sm btn-success px-3 fw-bold">
+                                <i class="bi bi-printer-fill me-1"></i> Cetak Rekap
+                            </button>
+                        </div>
                     </div>
                 </form>
             </div>
