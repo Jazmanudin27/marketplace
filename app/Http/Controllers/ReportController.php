@@ -1285,6 +1285,9 @@ class ReportController extends Controller
     /**
      * Laporan Penjualan Dilepas (Dana Cair / Escrow Released)
      */
+    /**
+     * Laporan Penjualan Dilepas (Dana Cair / Escrow Released)
+     */
     public function releasedSalesReport(Request $request)
     {
         $tenantId = Auth::user()->tenant_id;
@@ -1292,41 +1295,29 @@ class ReportController extends Controller
         $brands = Brand::where('tenant_id', $tenantId)->orderBy('name')->get();
         $stores = \App\Models\Store::where('tenant_id', $tenantId)->with('channel')->orderBy('store_name')->get();
 
-        $masterCustCats = \App\Models\Customer::where('tenant_id', $tenantId)
-            ->whereNotNull('category')
-            ->where('category', '!=', '')
-            ->pluck('category')
-            ->unique()
-            ->toArray();
-        $customerCategories = array_values(array_unique(array_merge(array_keys(\App\Models\Customer::CATEGORIES), $masterCustCats)));
-        $customerCategoryLabels = \App\Models\Customer::CATEGORIES;
-
         $dateFrom       = $request->input('date_from', date('Y-m-01'));
         $dateTo         = $request->input('date_to', date('Y-m-d'));
         $categoryId     = $request->input('category_id');
         $brandId        = $request->input('brand_id');
         $isBundle       = $request->input('is_bundle');
-        $isPo           = $request->input('po_status');
-        $channelCode    = $request->input('channel_code', 'all');
-        $customerCat    = $request->input('customer_category', 'all');
-        $dropshipFilter = $request->input('is_dropship', 'all');
+        $channelCode    = $request->input('channel_code', 'online');
+        if ($channelCode === 'all') $channelCode = 'online';
+
         $reportFormat   = $request->input('report_format', 'per_produk');
         $search         = $request->input('search');
         $hideZeroSales  = $request->boolean('hide_zero_sales');
 
-        if ($dropshipFilter === '1') {
-            $customerCat = 'dropship';
-        } elseif ($dropshipFilter === '0') {
-            $customerCat = 'umum';
-        }
+        $isPo = null;
+        $customerCat = 'all';
+        $dropshipFilter = 'all';
 
         // Summary Statistics for Released Sales (COMPLETED status)
         $summary = $this->getReleasedSalesSummary($tenantId, $dateFrom, $dateTo, $channelCode, $customerCat);
 
         return view('reports.released_sales_report', compact(
-            'categories', 'brands', 'stores', 'customerCategories', 'customerCategoryLabels',
-            'dateFrom', 'dateTo', 'categoryId', 'brandId', 'isBundle', 'isPo',
-            'channelCode', 'customerCat', 'dropshipFilter', 'reportFormat', 'search', 'hideZeroSales', 'summary'
+            'categories', 'brands', 'stores',
+            'dateFrom', 'dateTo', 'categoryId', 'brandId', 'isBundle',
+            'channelCode', 'reportFormat', 'search', 'hideZeroSales', 'summary'
         ));
     }
 
@@ -1338,21 +1329,15 @@ class ReportController extends Controller
         $categoryId     = $request->input('category_id');
         $brandId        = $request->input('brand_id');
         $isBundle       = $request->input('is_bundle');
-        $isPo           = $request->input('po_status');
-        $channelCode    = $request->input('channel_code', 'all');
-        $customerCat    = $request->input('customer_category', 'all');
-        $dropshipFilter = $request->input('is_dropship', 'all');
+        $channelCode    = $request->input('channel_code', 'online');
+        if ($channelCode === 'all') $channelCode = 'online';
+
         $reportFormat   = $request->input('report_format', 'per_produk');
         $search         = $request->input('search');
         $hideZeroSales  = $request->boolean('hide_zero_sales');
 
-        if ($dropshipFilter === '1') {
-            $customerCat = 'dropship';
-        } elseif ($dropshipFilter === '0') {
-            $customerCat = 'umum';
-        }
-
-        $customerCategoryLabels = \App\Models\Customer::CATEGORIES;
+        $isPo = null;
+        $customerCat = 'all';
         $statusFilter = 'completed'; // Strictly completed / released sales
 
         if ($reportFormat === 'per_channel') {
@@ -1361,7 +1346,7 @@ class ReportController extends Controller
                 'dateFrom' => $dateFrom, 
                 'dateTo' => $dateTo, 
                 'customerCat' => $customerCat,
-                'title' => 'Laporan Penjualan Dilepas Per Channel'
+                'title' => 'Laporan Penjualan Dilepas Per Channel Marketplace'
             ]));
         } elseif ($reportFormat === 'detail') {
             $data = $this->getSalesReportDetailData($tenantId, $dateFrom, $dateTo, $categoryId, $brandId, $channelCode, $customerCat, $statusFilter, $search, $isBundle, $isPo);
@@ -1376,14 +1361,6 @@ class ReportController extends Controller
                 'dateFrom' => $dateFrom, 
                 'dateTo' => $dateTo,
                 'title' => 'Laporan Penjualan Dilepas Per Tanggal'
-            ]));
-        } elseif ($reportFormat === 'per_kategori_pelanggan') {
-            $data = $this->getSalesReportPerCustomerCategoryData($tenantId, $dateFrom, $dateTo, $channelCode, $statusFilter);
-            return view('reports.print_sales_report_customer_category', array_merge($data, [
-                'dateFrom' => $dateFrom, 
-                'dateTo' => $dateTo, 
-                'customerCategoryLabels' => $customerCategoryLabels,
-                'title' => 'Laporan Penjualan Dilepas Per Kategori Pelanggan'
             ]));
         } else {
             // Default: per_produk
@@ -1404,11 +1381,13 @@ class ReportController extends Controller
         $categoryId     = $request->input('category_id');
         $brandId        = $request->input('brand_id');
         $isBundle       = $request->input('is_bundle');
-        $isPo           = $request->input('po_status');
-        $channelCode    = $request->input('channel_code', 'all');
-        $customerCat    = $request->input('customer_category', 'all');
+        $channelCode    = $request->input('channel_code', 'online');
+        if ($channelCode === 'all') $channelCode = 'online';
+
         $search         = $request->input('search');
         $hideZeroSales  = $request->boolean('hide_zero_sales');
+        $isPo           = null;
+        $customerCat    = 'all';
         $statusFilter   = 'completed'; // Strictly completed / released sales
 
         $data = $this->getSalesReportData($tenantId, $dateFrom, $dateTo, $categoryId, $brandId, $channelCode, $customerCat, $statusFilter, $search, $hideZeroSales, $isBundle, $isPo);

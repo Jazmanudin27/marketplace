@@ -88,10 +88,9 @@
                         <label class="form-label form-label-sm fw-bold text-success">Format Laporan Penjualan Dilepas</label>
                         <select name="report_format" class="form-select form-select-sm border-success fw-bold text-success bg-success bg-opacity-10">
                             <option value="per_produk" {{ $reportFormat === 'per_produk' ? 'selected' : '' }}>📦 Laporan Per Produk (Dilepas)</option>
-                            <option value="per_channel" {{ $reportFormat === 'per_channel' ? 'selected' : '' }}>🏪 Laporan Per Channel / Saluran (Dilepas)</option>
+                            <option value="per_channel" {{ $reportFormat === 'per_channel' ? 'selected' : '' }}>🏪 Laporan Per Channel Marketplace (Dilepas)</option>
                             <option value="detail" {{ $reportFormat === 'detail' ? 'selected' : '' }}>📑 Laporan Detail Transaksi (Dilepas)</option>
                             <option value="per_tanggal" {{ $reportFormat === 'per_tanggal' ? 'selected' : '' }}>📅 Laporan Per Tanggal (Dilepas)</option>
-                            <option value="per_kategori_pelanggan" {{ $reportFormat === 'per_kategori_pelanggan' ? 'selected' : '' }}>👥 Laporan Per Kategori Pelanggan (Dilepas)</option>
                         </select>
                     </div>
 
@@ -125,46 +124,13 @@
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label form-label-sm fw-semibold">Tipe Pre-Order (PO)</label>
-                        <select name="po_status" class="form-select form-select-sm">
-                            <option value="">Semua Tipe (PO &amp; Reguler)</option>
-                            <option value="1" {{ $isPo === '1' ? 'selected' : '' }}>⏳ Pre-Order (PO)</option>
-                            <option value="0" {{ $isPo === '0' ? 'selected' : '' }}>📦 Reguler (Bukan PO)</option>
-                        </select>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label form-label-sm fw-semibold">Saluran Penjualan / Channel</label>
+                        <label class="form-label form-label-sm fw-semibold">Channel Marketplace</label>
                         <select name="channel_code" class="form-select form-select-sm">
-                            <option value="all" {{ $channelCode === 'all' ? 'selected' : '' }}>🌐 Semua Saluran (Offline POS &amp; Online)</option>
-                            <option value="offline" {{ $channelCode === 'offline' ? 'selected' : '' }}>🏪 Penjualan Offline (POS Toko Fisik)</option>
-                            <option value="online" {{ $channelCode === 'online' ? 'selected' : '' }}>🛒 Penjualan Online (Semua Marketplace)</option>
+                            <option value="online" {{ ($channelCode === 'online' || $channelCode === 'all') ? 'selected' : '' }}>🛒 Semua Channel Marketplace</option>
                             <option value="shopee" {{ $channelCode === 'shopee' ? 'selected' : '' }}>🟠 Shopee</option>
                             <option value="tiktok" {{ $channelCode === 'tiktok' ? 'selected' : '' }}>🎵 TikTok Shop</option>
                             <option value="lazada" {{ $channelCode === 'lazada' ? 'selected' : '' }}>🔵 Lazada</option>
                             <option value="tokopedia" {{ $channelCode === 'tokopedia' ? 'selected' : '' }}>🟢 Tokopedia</option>
-                        </select>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label form-label-sm fw-semibold">Kategori Pelanggan (Master Data)</label>
-                        <select name="customer_category" class="form-select form-select-sm">
-                            <option value="all" {{ $customerCat === 'all' ? 'selected' : '' }}>Semua Kategori Pelanggan</option>
-                            @foreach ($customerCategories as $catVal)
-                                @php
-                                    $label = $customerCategoryLabels[$catVal] ?? ucfirst($catVal);
-                                @endphp
-                                <option value="{{ $catVal }}" {{ $customerCat === $catVal ? 'selected' : '' }}>{{ $label }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label form-label-sm fw-semibold">Tipe Penjualan Dropship</label>
-                        <select name="is_dropship" class="form-select form-select-sm">
-                            <option value="all" {{ ($dropshipFilter ?? 'all') === 'all' ? 'selected' : '' }}>Semua Transaksi (Dropship &amp; Non-Dropship)</option>
-                            <option value="1" {{ ($dropshipFilter ?? '') === '1' ? 'selected' : '' }}>🚚 Khusus Penjualan Dropship</option>
-                            <option value="0" {{ ($dropshipFilter ?? '') === '0' ? 'selected' : '' }}>🛍️ Khusus Penjualan Non-Dropship (Reguler / Eceran)</option>
                         </select>
                     </div>
 
