@@ -1469,6 +1469,13 @@ class ReportController extends Controller
     public function syncFees()
     {
         $tenantId = Auth::user()->tenant_id;
+
+        try {
+            \Illuminate\Support\Facades\Artisan::call('shopee:sync-escrow');
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::warning('[syncFees] Call to shopee:sync-escrow failed: ' . $e->getMessage());
+        }
+
         $count = 0;
         \App\Models\Order::where('tenant_id', $tenantId)->chunk(100, function ($orders) use (&$count) {
             foreach ($orders as $order) {
@@ -1484,7 +1491,7 @@ class ReportController extends Controller
             }
         });
 
-        return redirect()->back()->with('success', "Berhasil menyinkronkan & memperbarui potongan biaya escrow untuk {$count} pesanan ERP.");
+        return redirect()->back()->with('success', "Berhasil menarik data escrow resmi dari API Marketplace & memperbarui rincian potongan biaya untuk {$count} pesanan ERP.");
     }
 
     private function getReleasedSalesSummary($tenantId, $dateFrom, $dateTo, $channelCode = 'online', $customerCat = 'all', $storeId = null)
