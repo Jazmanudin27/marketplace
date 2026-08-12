@@ -1939,35 +1939,39 @@ class ReportController extends Controller
 
         // Marketplace Online Stores
         if ($channelCode !== 'offline') {
-            foreach ($stores as $st) {
-                if (!empty($storeId) && $st->id != $storeId) {
-                    continue;
-                }
-                if ($channelCode !== 'all' && $channelCode !== 'online' && empty($storeId)) {
-                    if (strtolower($st->channel->code ?? '') !== strtolower($channelCode)) {
-                        continue;
-                    }
-                }
+            $ordersQuery = \App\Models\Order::where('tenant_id', $tenantId)
+                ->with(['store.channel', 'items']);
 
-                $ordersQuery = \App\Models\Order::where('tenant_id', $tenantId)
-                    ->where('store_id', $st->id)
-                    ->with('items');
+            if ($statusFilter === 'completed') {
+                $ordersQuery->where(function($q) use ($dateFrom, $dateTo) {
+                    $q->whereBetween('completed_at', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59'])
+                      ->orWhere(function($subQ) use ($dateFrom, $dateTo) {
+                          $subQ->whereNull('completed_at')
+                               ->whereBetween('order_date', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59']);
+                      });
+                });
+            } else {
+                $ordersQuery->whereBetween('order_date', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59']);
+            }
 
-                if ($statusFilter === 'completed') {
-                    $ordersQuery->where(function($q) use ($dateFrom, $dateTo) {
-                        $q->whereBetween('completed_at', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59'])
-                          ->orWhere(function($subQ) use ($dateFrom, $dateTo) {
-                              $subQ->whereNull('completed_at')
-                                   ->whereBetween('order_date', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59']);
-                          });
-                    });
-                } else {
-                    $ordersQuery->whereBetween('order_date', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59']);
-                }
+            $this->applyOnlineStatusFilter($ordersQuery, $statusFilter);
 
-                $this->applyOnlineStatusFilter($ordersQuery, $statusFilter);
+            if (!empty($storeId)) {
+                $ordersQuery->where('store_id', $storeId);
+            } elseif ($channelCode !== 'all' && $channelCode !== 'online') {
+                $ordersQuery->whereHas('store.channel', fn($cq) => $cq->where('code', strtolower($channelCode)));
+            }
 
-                $ordersGet = $ordersQuery->get();
+            $allOnlineOrders = $ordersQuery->get();
+
+            // Group by store_id
+            $groupedByStore = $allOnlineOrders->groupBy('store_id');
+
+            foreach ($groupedByStore as $stId => $ordersGet) {
+                $st = $ordersGet->first()->store ?? null;
+                $storeName = $st ? $st->store_name . ' (' . ($st->channel->name ?? 'Online') . ')' : 'Marketplace (Lainnya)';
+                $channelType = $st->channel->name ?? 'Online';
+
                 $omset = (float) $ordersGet->sum('total_amount');
                 $ordCount = $ordersGet->count();
                 $qty = 0;
@@ -1996,8 +2000,8 @@ class ReportController extends Controller
                 }
 
                 $channels[] = [
-                    'name' => $st->store_name . ' (' . ($st->channel->name ?? 'Online') . ')',
-                    'type' => $st->channel->name ?? 'Online',
+                    'name' => $storeName,
+                    'type' => $channelType,
                     'orders' => $ordCount,
                     'qty' => $qty,
                     'omset' => $omset,
