@@ -17,9 +17,8 @@ if (!$orderSn) {
     exit;
 }
 
-$order = Order::where('order_marketplace_id', $orderSn)
-    ->orWhere('order_number', $orderSn)
-    ->orWhere('invoice_number', $orderSn)
+$order = Order::where('order_marketplace_id', (string)$orderSn)
+    ->orWhere('invoice_number', (string)$orderSn)
     ->first();
 
 if (!$order) {
