@@ -78,6 +78,15 @@ class Order extends Model
         'is_dropship' => 'boolean',
     ];
 
+    protected static function booted(): void
+    {
+        static::saving(function ($order) {
+            if (in_array($order->order_status, [self::STATUS_COMPLETED, self::STATUS_DELIVERED, 'SELESAI', 'FINISHED']) && empty($order->completed_at)) {
+                $order->completed_at = now();
+            }
+        });
+    }
+
     // Status constants
     const STATUS_PENDING_APPROVAL = 'PENDING_APPROVAL';
     const STATUS_UNPAID = 'UNPAID';
