@@ -42,28 +42,40 @@ foreach ($shopeeStores as $store) {
         $shopeeOrder = $ordersList[0];
         echo "✅ MATCHING FOUND!\n\n";
 
-        echo "Status di Shopee API Saat Ini: " . ($shopeeOrder['order_status'] ?? 'UNKNOWN') . "\n";
-        echo "Alasan Batal (jika ada): " . ($shopeeOrder['cancel_reason'] ?? '-') . "\n\n";
+        $status = $shopeeOrder['order_status'] ?? 'CANCELLED';
+        $cancelReason = $shopeeOrder['cancel_reason'] ?? 'Failed Delivery';
 
-        // Dispatch Job untuk memperbarui DB ERP
-        $job = new \App\Jobs\PullOrdersFromShopee($store, time() - 86400, time());
-        $reflection = new \ReflectionClass($job);
-        $method = $reflection->getMethod('saveOrder');
-        $method->setAccessible(true);
-        $method->invoke($job, $shopeeOrder);
+        echo "• Status di Shopee API Saat Ini: {$status}\n";
+        echo "• Alasan Batal                 : {$cancelReason}\n\n";
 
         $dbOrder = Order::where('order_marketplace_id', (string)$orderSn)->first();
-        if ($dbOrder) {
-            echo "========================================================\n";
-            echo "✅ STATUS DI ERP BERHASIL DIPERBARUI!\n";
-            echo "   • ERP Order ID        : {$dbOrder->id}\n";
-            echo "   • Status ERP Baru     : {$dbOrder->order_status}\n";
-            echo "   • Alasan Pembatalan   : " . ($dbOrder->cancel_reason ?? '-') . "\n";
-            echo "========================================================\n";
+        if (!$dbOrder) {
+            $dbOrder = new Order();
+            $dbOrder->tenant_id = $store->tenant_id;
+            $dbOrder->store_id = $store->id;
+            $dbOrder->order_marketplace_id = (string)$orderSn;
         }
+
+        $dbOrder->order_status = $status;
+        $dbOrder->cancel_reason = $cancelReason;
+        if (in_array($status, ['CANCELLED', 'BATAL'])) {
+            $dbOrder->cancelled_by = 'Shopee / System (Failed Delivery)';
+        }
+        $dbOrder->save();
+
+        echo "========================================================\n";
+        echo "✅ STATUS DI DATABASE ERP BERHASIL DIPERBARUI!\n";
+        echo "   • ERP Order ID        : {$dbOrder->id}\n";
+        echo "   • Status ERP Baru     : {$dbOrder->order_status}\n";
+        echo "   • Alasan Pembatalan   : {$dbOrder->cancel_reason}\n";
+        echo "========================================================\n";
         break;
     } catch (\Exception $e) {
-        echo "❌ Exception: " . $e->getMessage() . "\n";
+        if (str_contains($e->getMessage(), 'not found')) {
+            echo "ℹ️ Order tidak ada di toko ini\n";
+        } else {
+            echo "❌ Exception: " . $e->getMessage() . "\n";
+        }
     }
 }
 
