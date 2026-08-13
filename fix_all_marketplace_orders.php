@@ -46,9 +46,13 @@ Order::with('items')->chunk(100, function ($orders) use (&$updatedCount) {
         // 3. Omset Bersih (Net Amount / Settlement): Gunakan escrow_amount resmi jika ada, atau (total_amount - totalFee)
         if (!empty($fb['escrow_amount']) && (float)$fb['escrow_amount'] > 0) {
             $order->net_amount = (float)$fb['escrow_amount'];
+        }
+
+        if ((float)$order->net_amount > 0 && (float)$order->total_amount > 0) {
             $order->marketplace_fee = max(0.0, (float)$order->total_amount - (float)$order->net_amount);
             $changed = true;
         } elseif ($totalFee > 0) {
+            $order->marketplace_fee = $totalFee;
             $order->net_amount = max(0.0, (float)$order->total_amount - $totalFee);
             $changed = true;
         }
