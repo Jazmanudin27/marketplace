@@ -34,7 +34,7 @@ Order::with(['items', 'store'])->chunk(100, function ($orders) use ($shopeeServi
                     if ($store) {
                         $accessToken = $store->getValidAccessToken();
                         $escrowRes = $shopeeService->getEscrowDetail($accessToken, (int)$store->marketplace_store_id, $orderSn);
-                        $income = $escrowRes['response']['order_income'] ?? $escrowRes['order_income'] ?? [];
+                        $income = $escrowRes['order_income'] ?? $escrowRes['response']['order_income'] ?? $escrowRes;
                         if (!empty($income)) {
                             $order->financial_breakdown = array_merge($order->financial_breakdown ?? [], $income);
                             $shopeeEscrowFetched++;

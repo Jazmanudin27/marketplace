@@ -63,7 +63,7 @@ foreach ($orders as $order) {
     $apiData = [];
     try {
         $escrowRes = $shopeeService->getEscrowDetail($accessToken, (int)$store->marketplace_store_id, $orderSn);
-        $apiData = $escrowRes['response']['order_income'] ?? $escrowRes['order_income'] ?? [];
+        $apiData = $escrowRes['order_income'] ?? $escrowRes['response']['order_income'] ?? $escrowRes;
     } catch (\Exception $e) {}
 
     // Simpan API Escrow real ke DB
