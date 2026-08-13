@@ -208,6 +208,32 @@ class SyncOrderFees extends Command
                                 $growthXtraFee = (float) ($paymentInfo['growth_xtra_fee'] ?? 0);
                                 $orderProcessingFee = (float) ($paymentInfo['order_processing_fee'] ?? $paymentInfo['transaction_fee'] ?? 0);
 
+                                // Tembak API Finance TikTok jika settlement belum ada di data order
+                                if ($escrowAmount <= 0) {
+                                    try {
+                                        $stmtData = $tiktokService->getOrderStatementTransactions($accToken, $shopCipher, $mId);
+                                        $stmtList = $stmtData['statement_transactions'] ?? $stmtData['statement_transaction_list'] ?? [];
+                                        foreach ($stmtList as $st) {
+                                            $amount = (float) ($st['amount'] ?? $st['settlement_amount'] ?? 0);
+                                            $type = strtoupper((string)($st['type'] ?? $st['fee_type'] ?? ''));
+
+                                            if (str_contains($type, 'SETTLEMENT') || str_contains($type, 'ESCROW') || str_contains($type, 'REVENUE')) {
+                                                if ($amount > 0) $escrowAmount = $amount;
+                                            } elseif (str_contains($type, 'COMMISSION') || str_contains($type, 'PLATFORM')) {
+                                                $netPlatformCommission = abs($amount);
+                                            } elseif (str_contains($type, 'PREORDER')) {
+                                                $preorderServiceFee = abs($amount);
+                                            } elseif (str_contains($type, 'GROWTH') || str_contains($type, 'XTRA')) {
+                                                $growthXtraFee = abs($amount);
+                                            } elseif (str_contains($type, 'PROCESSING') || str_contains($type, 'TRANSACTION')) {
+                                                $orderProcessingFee = abs($amount);
+                                            } elseif (str_contains($type, 'AFFILIATE') || str_contains($type, 'DYNAMIC')) {
+                                                $dynamicCommission = abs($amount);
+                                            }
+                                        }
+                                    } catch (\Exception $exStmt) {}
+                                }
+
                                 $totalTiktokFees = $netPlatformCommission + $preorderServiceFee + $dynamicCommission + $growthXtraFee + $orderProcessingFee;
 
                                 $netAmount = $escrowAmount > 0 ? $escrowAmount : max(0.0, $totalAmount - $totalTiktokFees);

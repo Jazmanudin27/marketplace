@@ -272,10 +272,38 @@ class TiktokService
         $result = $data['data'] ?? [];
 
         // Standarisasi response order_list agar kompatibel dengan pemanggil (PullOrdersFromTiktok)
-        return [
-            'order_list' => $result['orders'] ?? []
-        ];
     }
+
+    /**
+     * Mendapatkan rincian transaksi settlement / biaya resmi dari API Finance TikTok (v202309)
+     */
+    public function getOrderStatementTransactions(string $accessToken, string $shopCipher, string $orderId)
+    {
+        $path = "/finance/202309/orders/{$orderId}/statement_transactions";
+        
+        $queryParams = [
+            'app_key' => $this->appKey,
+            'timestamp' => time(),
+            'shop_cipher' => $shopCipher,
+        ];
+
+        $sign = $this->generateSignature($path, $queryParams);
+        $queryParams['sign'] = $sign;
+        $queryParams['access_token'] = $accessToken;
+
+        $response = Http::timeout(15)->withHeaders([
+            'x-tts-access-token' => $accessToken,
+        ])->get($this->baseUrl . $path, $queryParams);
+
+        $data = $response->json();
+        
+        if (isset($data['code']) && $data['code'] !== 0) {
+            throw new \RuntimeException('TikTok Finance API Error: ' . ($data['message'] ?? 'Unknown Error'));
+        }
+
+        return $data['data'] ?? [];
+    }
+
     /**
      * Mendapatkan daftar produk dari TikTok Shop
      */
