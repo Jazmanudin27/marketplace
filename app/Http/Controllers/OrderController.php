@@ -16,6 +16,17 @@ class OrderController extends Controller
         $query = Order::with(['store.channel', 'items.masterProduct', 'spks'])
             ->where('tenant_id', $tenantId);
 
+        // Filter Nomor Pesanan / Invoice / Resi / Buyer Name
+        if ($request->filled('order_number')) {
+            $search = trim($request->order_number);
+            $query->where(function ($q) use ($search) {
+                $q->where('order_marketplace_id', 'like', '%' . $search . '%')
+                  ->orWhere('invoice_number', 'like', '%' . $search . '%')
+                  ->orWhere('tracking_number', 'like', '%' . $search . '%')
+                  ->orWhere('buyer_name', 'like', '%' . $search . '%');
+            });
+        }
+
         // Filter Channel
         if ($request->filled('channel_id')) {
             $query->whereHas('store', function ($q) use ($request) {
@@ -882,6 +893,17 @@ class OrderController extends Controller
 
         $query = Order::with('store.channel')
             ->where('tenant_id', $tenantId);
+
+        // Filter Nomor Pesanan / Invoice / Resi / Buyer Name
+        if ($request->filled('order_number')) {
+            $search = trim($request->order_number);
+            $query->where(function ($q) use ($search) {
+                $q->where('order_marketplace_id', 'like', '%' . $search . '%')
+                  ->orWhere('invoice_number', 'like', '%' . $search . '%')
+                  ->orWhere('tracking_number', 'like', '%' . $search . '%')
+                  ->orWhere('buyer_name', 'like', '%' . $search . '%');
+            });
+        }
 
         // Filter Channel
         if ($request->filled('channel_id')) {

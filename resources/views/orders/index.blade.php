@@ -109,6 +109,14 @@
                     <div class="card border shadow-sm p-3 mb-3">
                         <form method="GET" action="{{ route('orders.index') }}">
                             <div class="row g-2 align-items-end">
+                                <div class="col-12 col-sm-6 col-md-3">
+                                    <label class="form-label fw-bold small text-dark mb-1">
+                                        <i class="fas fa-search me-1 text-primary"></i>No. Pesanan / Resi / Buyer
+                                    </label>
+                                    <input type="text" name="order_number" class="form-control form-control-sm font-monospace"
+                                        placeholder="Cari ID Pesanan / Resi / Pembeli..."
+                                        value="{{ request('order_number') }}">
+                                </div>
                                 <div class="col-12 col-sm-6 col-md-2">
                                     <label class="form-label fw-bold small text-dark mb-1">
                                         <i class="fas fa-shopping-bag me-1 text-secondary"></i>Channel
