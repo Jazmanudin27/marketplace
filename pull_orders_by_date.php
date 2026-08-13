@@ -37,11 +37,11 @@ foreach ($stores as $store) {
     try {
         if (str_contains($channelCode, 'shopee')) {
             $job = new PullOrdersFromShopee($store, $timeFrom, $timeTo);
-            $job->handle();
+            app()->call([$job, 'handle']);
             echo "✅ SELESAI (Shopee)\n";
         } elseif (str_contains($channelCode, 'tiktok') || str_contains($channelCode, 'tokopedia')) {
             $job = new PullOrdersFromTiktok($store, $timeFrom, $timeTo);
-            $job->handle();
+            app()->call([$job, 'handle']);
             echo "✅ SELESAI (TikTok)\n";
         }
     } catch (\Exception $e) {
