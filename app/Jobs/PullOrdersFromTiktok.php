@@ -321,10 +321,10 @@ class PullOrdersFromTiktok implements ShouldQueue
         $order = Order::updateOrCreate(
             [
                 'tenant_id' => $this->store->tenant_id,
-                'store_id' => $this->store->id,
-                'order_marketplace_id' => $orderMarketplaceId,
+                'order_marketplace_id' => trim($orderMarketplaceId),
             ],
             [
+                'store_id' => $this->store->id,
                 'customer_id' => $customer->id,
                 'order_status' => $erpStatus,
                 'buyer_name' => $buyerName,

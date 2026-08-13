@@ -235,10 +235,10 @@ class PullOrdersFromShopee implements ShouldQueue
         $order = Order::updateOrCreate(
             [
                 'tenant_id' => $this->store->tenant_id,
-                'store_id' => $this->store->id,
-                'order_marketplace_id' => $shopeeOrder['order_sn'],
+                'order_marketplace_id' => trim($shopeeOrder['order_sn']),
             ],
             [
+                'store_id' => $this->store->id,
                 'customer_id' => $customer->id,
                 'order_status' => $shopeeOrder['order_status'],
                 'buyer_name' => $shopeeOrder['buyer_username'] ?? 'Buyer',
