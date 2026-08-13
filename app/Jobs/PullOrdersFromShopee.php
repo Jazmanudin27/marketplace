@@ -52,30 +52,37 @@ class PullOrdersFromShopee implements ShouldQueue
             $hasMore    = true;
             $allOrderSn = [];
 
-            // 1. Fetch Order List
-            while ($hasMore) {
-                $response = $this->getValidAccessTokenWithRetry(function($token) use ($shopeeService, $cursor) {
-                    return $shopeeService->getOrderList(
-                        $token,
-                        (int) $this->store->marketplace_store_id,
-                        $this->timeFrom,
-                        $this->timeTo,
-                        'create_time',
-                        $cursor
-                    );
-                });
+            // 1. Fetch Order List (Search by create_time & update_time to capture status changes)
+            $timeFields = ['create_time', 'update_time'];
+            foreach ($timeFields as $field) {
+                $cursor  = '';
+                $hasMore = true;
+                while ($hasMore) {
+                    $response = $this->getValidAccessTokenWithRetry(function($token) use ($shopeeService, $cursor, $field) {
+                        return $shopeeService->getOrderList(
+                            $token,
+                            (int) $this->store->marketplace_store_id,
+                            $this->timeFrom,
+                            $this->timeTo,
+                            $field,
+                            $cursor
+                        );
+                    });
 
-                if (empty($response['order_list'])) {
-                    break;
+                    if (empty($response['order_list'])) {
+                        break;
+                    }
+
+                    foreach ($response['order_list'] as $order) {
+                        $allOrderSn[] = $order['order_sn'];
+                    }
+
+                    $hasMore = $response['more'] ?? false;
+                    $cursor  = $response['next_cursor'] ?? '';
                 }
-
-                foreach ($response['order_list'] as $order) {
-                    $allOrderSn[] = $order['order_sn'];
-                }
-
-                $hasMore = $response['more'] ?? false;
-                $cursor  = $response['next_cursor'] ?? '';
             }
+
+            $allOrderSn = array_unique($allOrderSn);
 
             if (empty($allOrderSn)) {
                 Log::info('[Shopee] No orders found in this period.');
