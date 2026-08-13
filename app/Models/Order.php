@@ -103,28 +103,22 @@ class Order extends Model
             $order->fee_promo_amount = abs($details['promo_fee'] ?? 0);
             $order->fee_other_amount = abs($details['other_fee'] ?? 0);
 
-            $totalFee = abs($details['total_fee'] ?? 0);
-            
-            // KUNCI MATEMATIKA PRESISI 100%: 
-            // Total Omset Kotor (total_amount) = Dana Cair Bersih (net_amount) + Total Biaya Potongan (marketplace_fee)
-            $net = (float) $order->net_amount;
-            $fee = (float) $order->marketplace_fee;
-
-            if ($fee <= 0 && $totalFee > 0) {
-                $fee = $totalFee;
-                $order->marketplace_fee = $fee;
-            }
-
-            if ($net > 0 && $fee > 0) {
-                // Jika total_amount di DB kurang dari net_amount atau tidak konsisten dengan (net + fee)
-                if ((float)$order->total_amount < $net || abs((float)$order->total_amount - ($net + $fee)) > 1.0) {
-                    $order->total_amount = $net + $fee;
+            // KUNCI PRESISI 100%: 
+            // 1. Omset Kotor (total_amount) SELALU = Penjumlahan Subtotal Harga Produk Murni di Item Pesanan
+            if ($order->relationLoaded('items') && $order->items->count() > 0) {
+                $itemsSubtotal = (float) $order->items->sum('total_price');
+                if ($itemsSubtotal > 0) {
+                    $order->total_amount = $itemsSubtotal;
                 }
-            } elseif ($net > 0 && (float)$order->total_amount > $net) {
-                $order->marketplace_fee = max(0.0, (float)$order->total_amount - $net);
-            } elseif ($fee > 0 && (float)$order->total_amount > $fee) {
-                $order->net_amount = max(0.0, (float)$order->total_amount - $fee);
             }
+
+            // 2. Biaya Admin Marketplace
+            if ($totalFee > 0) {
+                $order->marketplace_fee = $totalFee;
+            }
+
+            // 3. Omset Bersih / Net Amount = Omset Kotor - Diskon Penjual - Biaya Admin
+            $order->net_amount = max(0.0, (float)$order->total_amount - (float)$order->discount_amount - (float)$order->marketplace_fee);
         });
     }
 

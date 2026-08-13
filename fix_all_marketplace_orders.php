@@ -19,13 +19,11 @@ $updatedCount = 0;
 Order::with('items')->chunk(100, function ($orders) use (&$updatedCount) {
     foreach ($orders as $order) {
         $fb = $order->financial_breakdown ?? [];
-        $changed = false;
 
-        // 1. Omset Kotor (Product Subtotal): Gunakan penjumlahan harga item produk jika total_amount menyimpan total bayar pembeli yang salah
+        // 1. Omset Kotor (Product Subtotal Murni dari Item Produk)
         $itemsSubtotal = (float) $order->items->sum('total_price');
-        if ($itemsSubtotal > 0 && abs((float)$order->total_amount - $itemsSubtotal) > 1.0) {
+        if ($itemsSubtotal > 0) {
             $order->total_amount = $itemsSubtotal;
-            $changed = true;
         }
 
         // 2. Perbarui 5 Komponen Biaya ERP (Platform, Free Shipping, Service, Promo/Affiliate, Other)
@@ -40,38 +38,13 @@ Order::with('items')->chunk(100, function ($orders) use (&$updatedCount) {
         
         if ($totalFee > 0) {
             $order->marketplace_fee = $totalFee;
-            $changed = true;
         }
 
-        // 3. Omset Bersih (Net Amount / Settlement): Gunakan escrow_amount resmi jika ada, atau (total_amount - totalFee)
-        if (!empty($fb['escrow_amount']) && (float)$fb['escrow_amount'] > 0) {
-            $order->net_amount = (float)$fb['escrow_amount'];
-        }
+        // 3. Omset Bersih (Net Amount = Omset Kotor Produk - Biaya Admin Marketplace)
+        $order->net_amount = max(0.0, (float)$order->total_amount - (float)$order->discount_amount - (float)$order->marketplace_fee);
 
-        $net = (float) $order->net_amount;
-        $fee = (float) $order->marketplace_fee;
-
-        if ($fee <= 0 && $totalFee > 0) {
-            $fee = $totalFee;
-            $order->marketplace_fee = $fee;
-        }
-
-        if ($net > 0 && $fee > 0) {
-            // Omset Kotor (total_amount) SELALU = Net Amount + Marketplace Fee!
-            $order->total_amount = $net + $fee;
-            $changed = true;
-        } elseif ($net > 0 && (float)$order->total_amount > $net) {
-            $order->marketplace_fee = max(0.0, (float)$order->total_amount - $net);
-            $changed = true;
-        } elseif ($fee > 0 && (float)$order->total_amount > $fee) {
-            $order->net_amount = max(0.0, (float)$order->total_amount - $fee);
-            $changed = true;
-        }
-
-        if ($changed) {
-            $order->saveQuietly();
-            $updatedCount++;
-        }
+        $order->saveQuietly();
+        $updatedCount++;
     }
 });
 
