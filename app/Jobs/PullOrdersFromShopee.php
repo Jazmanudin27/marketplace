@@ -155,28 +155,6 @@ class PullOrdersFromShopee implements ShouldQueue
         $voucherCode = $shopeeOrder['voucher_info']['voucher_code'] ?? $shopeeOrder['voucher_code'] ?? null;
         $shopeeUtmKeyword = $shopeeOrder['utm_keyword'] ?? $shopeeOrder['utm_source'] ?? null;
 
-        // Simulasi untuk keperluan testing agar visual dashboard langsung cantik
-        if (empty($voucherCode) && (rand(1, 100) <= 25)) {
-            $randomVoucher = \App\Models\Voucher::where('tenant_id', $this->store->tenant_id)
-                ->where(function($q) {
-                    $q->where('store_id', $this->store->id)
-                      ->orWhereNull('store_id');
-                })
-                ->inRandomOrder()
-                ->first();
-            
-            if ($randomVoucher) {
-                $voucherCode = $randomVoucher->code;
-            } else {
-                $voucherCode = 'DISKONSHP' . rand(10, 99);
-            }
-        }
-
-        if (empty($shopeeUtmKeyword) && (rand(1, 100) <= 15)) {
-            $mockInfluencers = ['INDONESIA_CULTURE_UTM', 'FASHION_HAUL_TIKTOK', 'IG_STORY_PROMO', 'SHOPEE_VIDEO_FEST'];
-            $shopeeUtmKeyword = $mockInfluencers[array_rand($mockInfluencers)];
-        }
-
         // Cek apakah ada sesi LIVE Shopee yang aktif untuk toko ini saat order dibuat
         $createTime = $shopeeOrder['create_time'] ?? time();
         $orderDateTime = date('Y-m-d H:i:s', $createTime);
@@ -189,14 +167,6 @@ class PullOrdersFromShopee implements ShouldQueue
             })
             ->first();
 
-        // Simulasi: 20% order dipetakan ke live session terbaru (jika ada) untuk visual testing
-        if (!$liveSession && (rand(1, 100) <= 20)) {
-            $liveSession = \App\Models\ShopeeLiveSession::where('tenant_id', $this->store->tenant_id)
-                ->where('store_id', $this->store->id)
-                ->latest()
-                ->first();
-        }
-
         $liveSessionId = $liveSession ? $liveSession->id : null;
 
         $dropshipperName = isset($shopeeOrder['dropshipper']) ? trim($shopeeOrder['dropshipper']) : null;
@@ -206,17 +176,36 @@ class PullOrdersFromShopee implements ShouldQueue
         $cancelReason = $shopeeOrder['cancel_reason'] ?? $shopeeOrder['buyer_cancel_reason'] ?? null;
         $cancelledBy = $shopeeOrder['cancel_by'] ?? null;
 
-        $escrowAmount = (float) ($shopeeOrder['escrow_amount'] ?? 0);
-        $totalAmount = (float) ($financialBreakdown['cost_of_goods_sold'] ?? $shopeeOrder['total_amount'] ?? 0);
-        $shippingFee = (float) ($shopeeOrder['actual_shipping_fee'] ?? $shopeeOrder['estimated_shipping_fee'] ?? 0);
-        $sellerDiscount = (float) ($shopeeOrder['seller_discount_amount'] ?? 0);
+        // Hitung Subtotal Harga Produk Murni dari API Shopee item_list
+        $productSubtotal = 0.0;
+        if (!empty($shopeeOrder['item_list'])) {
+            foreach ($shopeeOrder['item_list'] as $item) {
+                $itemPrice = (float) ($item['model_discounted_price'] ?? $item['model_original_price'] ?? 0);
+                $itemQty = (int) ($item['model_quantity_purchased'] ?? 1);
+                $productSubtotal += ($itemPrice * $itemQty);
+            }
+        }
 
+        $totalAmount = $productSubtotal > 0 
+            ? $productSubtotal 
+            : (float) ($financialBreakdown['cost_of_goods_sold'] ?? $financialBreakdown['order_selling_price'] ?? $shopeeOrder['total_amount'] ?? 0);
+
+        $shippingFee = (float) ($shopeeOrder['actual_shipping_fee'] ?? $shopeeOrder['estimated_shipping_fee'] ?? 0);
+        $sellerDiscount = (float) ($shopeeOrder['seller_discount_amount'] ?? $financialBreakdown['seller_discount'] ?? 0);
+        $escrowAmount = (float) ($shopeeOrder['escrow_amount'] ?? $financialBreakdown['escrow_amount'] ?? 0);
+
+        // Ambil Potongan Biaya Murni dari API Escrow Shopee (jika sudah cair)
         if ($escrowAmount > 0) {
             $netAmount = $escrowAmount;
-            $marketplaceFee = max(0.0, $totalAmount - $shippingFee - $escrowAmount);
+            $sellerFee = (float) ($financialBreakdown['seller_coin_cash_back'] ?? 0)
+                       + (float) ($financialBreakdown['commission_fee'] ?? 0)
+                       + (float) ($financialBreakdown['service_fee'] ?? 0)
+                       + (float) ($financialBreakdown['seller_transaction_fee'] ?? 0)
+                       + (float) ($financialBreakdown['ams_commission_fee'] ?? 0);
+            $marketplaceFee = $sellerFee > 0 ? $sellerFee : max(0.0, $totalAmount - $escrowAmount);
         } else {
-            $marketplaceFee = round($totalAmount * 0.05);
-            $netAmount = max(0.0, $totalAmount - $sellerDiscount - $marketplaceFee);
+            $marketplaceFee = 0.0;
+            $netAmount = max(0.0, $totalAmount - $sellerDiscount);
         }
 
         $order = Order::updateOrCreate(
