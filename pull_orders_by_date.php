@@ -24,10 +24,9 @@ echo "PENARIKAN PESANAN MARKETPLACE BERDASARKAN RENTANG TANGGAL\n";
 echo "Periode Tanggal: " . date('Y-m-d H:i:s', $timeFrom) . " s/d " . date('Y-m-d H:i:s', $timeTo) . "\n";
 echo "========================================================================\n\n";
 
-$stores = Store::where('is_active', true)
-    ->whereHas('channel', function($q) {
-        $q->whereIn('code', ['shopee', 'tiktok', 'tokopedia']);
-    })->get();
+$stores = Store::whereHas('channel', function($q) {
+    $q->whereIn('code', ['shopee', 'tiktok', 'tokopedia']);
+})->get();
 
 echo "Menemukan " . $stores->count() . " toko online terhubung.\n\n";
 
