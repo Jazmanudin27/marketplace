@@ -57,6 +57,7 @@
                 <th class="text-end text-danger">Biaya Layanan</th>
                 <th class="text-end text-danger">Biaya Promosi</th>
                 <th class="text-end text-danger">Biaya Lainnya</th>
+                <th class="text-end text-danger fw-bold">Total Biaya Admin</th>
                 <th class="text-end text-success">Dana Dilepas Net</th>
                 <th class="text-center">Status</th>
             </tr>
@@ -78,12 +79,13 @@
                     <td class="text-end font-monospace {{ $row['service_fee'] < 0 ? 'text-danger' : 'text-muted' }}">{{ $row['service_fee'] != 0 ? number_format($row['service_fee'], 0, ',', '.') : '0' }}</td>
                     <td class="text-end font-monospace {{ $row['promo_fee'] < 0 ? 'text-danger' : 'text-muted' }}">{{ $row['promo_fee'] != 0 ? number_format($row['promo_fee'], 0, ',', '.') : '0' }}</td>
                     <td class="text-end font-monospace {{ $row['other_fee'] < 0 ? 'text-danger' : 'text-muted' }}">{{ $row['other_fee'] != 0 ? number_format($row['other_fee'], 0, ',', '.') : '0' }}</td>
+                    <td class="text-end font-monospace text-danger fw-bold">{{ number_format(($row['total_fee'] ?? 0) < 0 ? $row['total_fee'] : -($row['total_fee'] ?? 0), 0, ',', '.') }}</td>
                     <td class="text-end font-monospace fw-bold text-success">Rp {{ number_format($row['net_released'], 0, ',', '.') }}</td>
                     <td class="text-center"><span class="badge bg-success">{{ $row['status'] }}</span></td>
                 </tr>
             @empty
                 <tr>
-                    <td colspan="16" class="text-center py-3 text-muted">Tidak ada data detail transaksi ditemukan.</td>
+                    <td colspan="17" class="text-center py-3 text-muted">Tidak ada data detail transaksi ditemukan.</td>
                 </tr>
             @endforelse
         </tbody>
@@ -97,6 +99,7 @@
                 <td class="text-end font-monospace text-danger">{{ number_format($grandTotalServiceFee ?? 0, 0, ',', '.') }}</td>
                 <td class="text-end font-monospace text-danger">{{ number_format($grandTotalPromoFee ?? 0, 0, ',', '.') }}</td>
                 <td class="text-end font-monospace text-danger">{{ number_format($grandTotalOtherFee ?? 0, 0, ',', '.') }}</td>
+                <td class="text-end font-monospace text-danger fw-bold">{{ number_format($grandTotalTotalFee ?? 0, 0, ',', '.') }}</td>
                 <td class="text-end font-monospace text-success fs-6">Rp {{ number_format($grandTotalNetReleased ?? $grandTotalOmset, 0, ',', '.') }}</td>
                 <td></td>
             </tr>

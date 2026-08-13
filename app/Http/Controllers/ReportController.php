@@ -2226,9 +2226,10 @@ class ReportController extends Controller
         $grandTotalServiceFee = array_sum(array_column($transactions, 'service_fee'));
         $grandTotalPromoFee = array_sum(array_column($transactions, 'promo_fee'));
         $grandTotalOtherFee = array_sum(array_column($transactions, 'other_fee'));
+        $grandTotalTotalFee = array_sum(array_column($transactions, 'total_fee'));
         $grandTotalNetReleased = array_sum(array_column($transactions, 'net_released'));
 
-        return compact('transactions', 'grandTotalOmset', 'grandTotalQty', 'grandTotalPlatformFee', 'grandTotalFreeShipping', 'grandTotalServiceFee', 'grandTotalPromoFee', 'grandTotalOtherFee', 'grandTotalNetReleased');
+        return compact('transactions', 'grandTotalOmset', 'grandTotalQty', 'grandTotalPlatformFee', 'grandTotalFreeShipping', 'grandTotalServiceFee', 'grandTotalPromoFee', 'grandTotalOtherFee', 'grandTotalTotalFee', 'grandTotalNetReleased');
     }
 
     private function getSalesReportPerDateData($tenantId, $dateFrom, $dateTo, $channelCode = 'all', $customerCat = 'all', $statusFilter = 'all', $storeId = null)
