@@ -110,9 +110,22 @@ class PullOrdersFromTiktok implements ShouldQueue
                 return;
             }
 
+            // OPTIMISASI KILAT: Skip order yang sudah ada dan berstatus COMPLETED/CANCELLED di DB ERP
+            $existingCompletedSns = \App\Models\Order::whereIn('order_marketplace_id', $orderIds)
+                ->whereIn('order_status', ['COMPLETED', 'CANCELLED', 'SELESAI', 'FINISHED', 'BATAL'])
+                ->pluck('order_marketplace_id')
+                ->toArray();
+
+            $neededOrderIds = array_diff($orderIds, $existingCompletedSns);
+
+            if (empty($neededOrderIds)) {
+                Log::info("[TikTok] Semua pesanan TikTok periode ini sudah ada dan selesai di ERP.");
+                return;
+            }
+
             // TikTok mengharuskan kita fetch detail menggunakan order_id
             // Kita chunk per 50 id sesuai limit API TikTok
-            $chunks = array_chunk($orderIds, 50);
+            $chunks = array_chunk(array_values($neededOrderIds), 50);
 
             foreach ($chunks as $chunk) {
                 $detailResponse = $tiktokService->getOrderDetail(

@@ -89,8 +89,21 @@ class PullOrdersFromShopee implements ShouldQueue
                 return;
             }
 
+            // OPTIMISASI KILAT: Skip order yang sudah ada dan berstatus COMPLETED/CANCELLED di DB ERP
+            $existingCompletedSns = \App\Models\Order::whereIn('order_marketplace_id', $allOrderSn)
+                ->whereIn('order_status', ['COMPLETED', 'CANCELLED', 'SELESAI', 'FINISHED', 'BATAL'])
+                ->pluck('order_marketplace_id')
+                ->toArray();
+
+            $neededOrderSns = array_diff($allOrderSn, $existingCompletedSns);
+
+            if (empty($neededOrderSns)) {
+                Log::info('[Shopee] All orders in this period are already up-to-date in ERP.');
+                return;
+            }
+
             // 2. Fetch Order Details (Max 50 per request)
-            $chunks = array_chunk($allOrderSn, 50);
+            $chunks = array_chunk(array_values($neededOrderSns), 50);
             foreach ($chunks as $chunk) {
                 $detailsResponse = $this->getValidAccessTokenWithRetry(function($token) use ($shopeeService, $chunk) {
                     return $shopeeService->getOrderDetail(
