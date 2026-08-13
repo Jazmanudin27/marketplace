@@ -346,19 +346,19 @@ class Order extends Model
             ?? 0
         );
 
-        // 4. Biaya Promosi (Order AMS Commission / Voucher Seller / Seller Discount)
+        // 4. Biaya Promosi (Order AMS Commission / Affiliate Commission / Dynamic Commission)
         $promoFee = (float) (
             $fb['order_ams_commission_fee'] 
             ?? $fb['ams_commission_fee'] 
-            ?? $fb['voucher_from_seller'] 
-            ?? $fb['seller_discount'] 
-            ?? $fb['voucher_seller'] 
+            ?? $fb['dynamic_commission']
+            ?? $fb['affiliate_commission']
             ?? 0
         );
 
         // 5. Biaya Lainnya (Shipping Seller Protection / Pajak PPN / Coins / Tax / Adjustments)
         $otherFee = (float) (
-            $fb['shipping_seller_protection_fee_amount'] 
+            $fb['shipping_fee_adjustment']
+            ?? $fb['shipping_seller_protection_fee_amount'] 
             ?? $fb['escrow_tax']
             ?? $fb['vat']
             ?? $fb['withholding_tax']
@@ -367,13 +367,12 @@ class Order extends Model
             ?? $fb['other_fees'] 
             ?? $fb['coins'] 
             ?? $fb['ddu_custom_tax_fee'] 
-            ?? $fb['dynamic_commission'] 
             ?? 0
         );
 
         // Fallback: If marketplace_fee is filled on Order model but fb has no breakdown, assign to platform_fee
         $rawMarketplaceFee = (float) ($this->attributes['marketplace_fee'] ?? 0);
-        if ($platformFee == 0 && $freeShipping == 0 && $serviceFee == 0 && $promoFee == 0 && $otherFee == 0 && $rawMarketplaceFee > 0) {
+        if (empty($this->financial_breakdown) && $platformFee == 0 && $freeShipping == 0 && $serviceFee == 0 && $promoFee == 0 && $otherFee == 0 && $rawMarketplaceFee > 0) {
             $platformFee = $rawMarketplaceFee;
         }
 
@@ -393,10 +392,9 @@ class Order extends Model
      */
     public function getMarketplaceFeeAttribute($value): float
     {
-        $details = $this->fee_breakdown_details;
-        $totalFee = abs($details['total_fee'] ?? 0);
-        if ($totalFee > 0) {
-            return (float) $totalFee;
+        if (!empty($this->financial_breakdown)) {
+            $details = $this->fee_breakdown_details;
+            return (float) abs($details['total_fee'] ?? 0);
         }
 
         $val = (float) $value;
@@ -445,10 +443,9 @@ class Order extends Model
         }
 
         $total = (float) $this->total_amount;
-        $disc = (float) $this->discount_amount;
         $fee = (float) $this->marketplace_fee;
 
-        $estimated = $total - $disc - $fee;
+        $estimated = $total - $fee;
         return max(0.0, $estimated);
     }
 

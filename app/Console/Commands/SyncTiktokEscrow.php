@@ -103,7 +103,22 @@ class SyncTiktokEscrow extends Command
                         if (!$dbOrder) continue;
 
                         $paymentInfo = $tOrder['payment'] ?? $tOrder['payment_info'] ?? [];
-                        $totalAmount = (float) ($paymentInfo['total_amount'] ?? $tOrder['total_amount'] ?? $dbOrder->total_amount);
+                        
+                        $productSubtotal = (float) ($paymentInfo['original_total_product_price'] 
+                            ?? $paymentInfo['sub_total'] 
+                            ?? $paymentInfo['subtotal_after_seller_discounts'] 
+                            ?? 0);
+
+                        if ($productSubtotal <= 0 && !empty($tOrder['line_items'])) {
+                            foreach ($tOrder['line_items'] as $lItem) {
+                                $itemPrice = (float) ($lItem['original_price'] ?? $lItem['sale_price'] ?? 0);
+                                $itemQty = (int) ($lItem['quantity'] ?? 1);
+                                $productSubtotal += ($itemPrice * $itemQty);
+                            }
+                        }
+
+                        $totalAmount = $productSubtotal > 0 ? $productSubtotal : (float) ($paymentInfo['total_amount'] ?? $tOrder['total_amount'] ?? $dbOrder->total_amount);
+                        $buyerPaidTotal = (float) ($paymentInfo['total_amount'] ?? $paymentInfo['total'] ?? $totalAmount);
                         $escrowAmount = (float) ($paymentInfo['settlement_amount'] ?? $paymentInfo['escrow_amount'] ?? 0);
                         
                         $platformCommission = (float) ($paymentInfo['platform_commission'] ?? $paymentInfo['commission_before_discount'] ?? 0);
@@ -117,15 +132,23 @@ class SyncTiktokEscrow extends Command
 
                         $totalTiktokFees = $netPlatformCommission + $preorderServiceFee + $dynamicCommission + $growthXtraFee + $orderProcessingFee;
 
+                        $netAmount = $escrowAmount > 0 ? $escrowAmount : max(0.0, $totalAmount - $totalTiktokFees);
+                        $marketplaceFee = $totalTiktokFees > 0 ? $totalTiktokFees : max(0.0, $totalAmount - $netAmount);
+
+                        $dbOrder->total_amount = $totalAmount;
+                        $dbOrder->marketplace_fee = $marketplaceFee;
+                        $dbOrder->net_amount = $netAmount;
+
                         $dbOrder->financial_breakdown = [
                             'original_price' => $totalAmount,
+                            'buyer_paid_total' => $buyerPaidTotal,
                             'net_platform_commission' => $netPlatformCommission,
                             'preorder_service_fee' => $preorderServiceFee,
                             'dynamic_commission' => $dynamicCommission,
                             'growth_xtra_fee' => $growthXtraFee,
                             'order_processing_fee' => $orderProcessingFee,
                             'service_fee' => $totalTiktokFees,
-                            'escrow_amount' => $escrowAmount > 0 ? $escrowAmount : max(0.0, $totalAmount - $totalTiktokFees),
+                            'escrow_amount' => $escrowAmount > 0 ? $escrowAmount : $netAmount,
                         ];
 
                         $compTs = $tOrder['delivery_time'] ?? $tOrder['update_time'] ?? $tOrder['paid_time'] ?? null;

@@ -191,12 +191,27 @@ class PullOrdersFromTiktok implements ShouldQueue
 
         $paymentInfo = $tiktokOrder['payment_info'] ?? $tiktokOrder['payment'] ?? [];
         
-        $totalAmount = (float) ($paymentInfo['total_amount'] ?? $paymentInfo['total'] ?? 0);
+        // 1. Omset Kotor (Gross Product Sales): Acuan resmi Seller Center TikTok = Subtotal Harga Produk
+        $productSubtotal = (float) ($paymentInfo['original_total_product_price'] 
+            ?? $paymentInfo['sub_total'] 
+            ?? $paymentInfo['subtotal_after_seller_discounts'] 
+            ?? 0);
+
+        if ($productSubtotal <= 0 && !empty($tiktokOrder['line_items'])) {
+            foreach ($tiktokOrder['line_items'] as $lItem) {
+                $itemPrice = (float) ($lItem['original_price'] ?? $lItem['sale_price'] ?? 0);
+                $itemQty = (int) ($lItem['quantity'] ?? 1);
+                $productSubtotal += ($itemPrice * $itemQty);
+            }
+        }
+
+        $totalAmount = $productSubtotal > 0 ? $productSubtotal : (float) ($paymentInfo['total_amount'] ?? $paymentInfo['total'] ?? 0);
+        $buyerPaidTotal = (float) ($paymentInfo['total_amount'] ?? $paymentInfo['total'] ?? $totalAmount);
         $shippingFee = (float) ($paymentInfo['shipping_fee'] ?? $paymentInfo['shipping_amount'] ?? 0);
         $discountAmount = (float) ($paymentInfo['seller_discount'] ?? $paymentInfo['discount_amount'] ?? 0);
         $escrowAmount = (float) ($paymentInfo['escrow_amount'] ?? $paymentInfo['net_amount'] ?? $paymentInfo['settlement_amount'] ?? 0);
 
-        $subtotalAfterSeller = (float) ($paymentInfo['subtotal_after_seller_discounts'] ?? $paymentInfo['sub_total'] ?? max(0.0, $totalAmount - $shippingFee));
+        $subtotalAfterSeller = (float) ($paymentInfo['subtotal_after_seller_discounts'] ?? ($totalAmount - $discountAmount));
         $platformCommission = (float) ($paymentInfo['platform_commission'] ?? $paymentInfo['commission_before_discount'] ?? 0);
         $platformCommissionDiscount = (float) ($paymentInfo['platform_commission_discount'] ?? $paymentInfo['commission_discount'] ?? 0);
         $netPlatformCommission = (float) ($paymentInfo['net_platform_commission'] ?? ($platformCommission > 0 ? max(0.0, $platformCommission - $platformCommissionDiscount) : 0));
@@ -208,19 +223,21 @@ class PullOrdersFromTiktok implements ShouldQueue
 
         $totalTiktokFees = $netPlatformCommission + $preorderServiceFee + $dynamicCommission + $growthXtraFee + $orderProcessingFee;
         
+        // 2. Omset Bersih (Net Settlement / Payout): Total Cair ke Rekening Bank Penjual
         if ($escrowAmount > 0) {
             $netAmount = $escrowAmount;
-            $marketplaceFee = max(0.0, $totalAmount - $shippingFee - $netAmount);
+            $marketplaceFee = max(0.0, $totalAmount - $netAmount);
         } elseif ($totalTiktokFees > 0) {
             $marketplaceFee = $totalTiktokFees;
             $netAmount = max(0.0, $subtotalAfterSeller - $totalTiktokFees);
         } else {
-            $marketplaceFee = round($totalAmount * 0.05);
-            $netAmount = max(0.0, $totalAmount - $discountAmount - $marketplaceFee);
+            $marketplaceFee = 0.0;
+            $netAmount = max(0.0, $subtotalAfterSeller);
         }
 
         $financialBreakdown = [
-            'original_price' => max(0.0, $totalAmount - $shippingFee),
+            'original_price' => $totalAmount,
+            'buyer_paid_total' => $buyerPaidTotal,
             'subtotal_after_seller_discounts' => $subtotalAfterSeller,
             'actual_shipping_fee' => $shippingFee,
             'platform_commission' => $platformCommission,
