@@ -7,8 +7,9 @@ $app->make('Illuminate\Contracts\Console\Kernel')->bootstrap();
 use App\Models\Order;
 use App\Models\Store;
 use App\Services\ShopeeService;
+use App\Jobs\PullOrdersFromShopee;
 
-$orderSn = $argv[1] ?? '2608018602RNJ2';
+$orderSn = $argv[1] ?? '260715QBX82JJB';
 
 echo "========================================================\n";
 echo "SINKRONISASI SINGLE ORDER SHOPEE LANGSUNG DARI API\n";
@@ -42,32 +43,40 @@ foreach ($shopeeStores as $store) {
         $shopeeOrder = $ordersList[0];
         echo "✅ MATCHING FOUND!\n\n";
 
-        $status = $shopeeOrder['order_status'] ?? 'CANCELLED';
-        $cancelReason = $shopeeOrder['cancel_reason'] ?? 'Failed Delivery';
+        $status = $shopeeOrder['order_status'] ?? 'COMPLETED';
+        echo "• Status di Shopee API Saat Ini : {$status}\n";
 
-        echo "• Status di Shopee API Saat Ini: {$status}\n";
-        echo "• Alasan Batal                 : {$cancelReason}\n\n";
+        // Panggil Job PullOrdersFromShopee secara langsung untuk memproses simpan lengkap
+        $job = new PullOrdersFromShopee($store, time() - 86400, time());
+        app()->call([$job, 'handle']);
+
+        // Tarik detail escrow khusus jika sudah selesai
+        try {
+            $escrowRes = $shopeeService->getEscrowDetail($accessToken, (int)$store->marketplace_store_id, $orderSn);
+            $responseOrder = $escrowRes['response']['order_income'] ?? $escrowRes['order_income'] ?? [];
+            if (!empty($responseOrder)) {
+                $shopeeOrder['financial_breakdown'] = $responseOrder;
+            }
+        } catch (\Exception $exEsc) {}
 
         $dbOrder = Order::where('order_marketplace_id', (string)$orderSn)->first();
-        if (!$dbOrder) {
-            $dbOrder = new Order();
-            $dbOrder->tenant_id = $store->tenant_id;
-            $dbOrder->store_id = $store->id;
-            $dbOrder->order_marketplace_id = (string)$orderSn;
+        if ($dbOrder) {
+            $dbOrder->order_status = $status;
+            if (!empty($shopeeOrder['financial_breakdown'])) {
+                $dbOrder->financial_breakdown = array_merge($dbOrder->financial_breakdown ?? [], $shopeeOrder['financial_breakdown']);
+            }
+            $dbOrder->save();
         }
 
-        $dbOrder->order_status = $status;
-        $dbOrder->cancel_reason = $cancelReason;
-        if (in_array($status, ['CANCELLED', 'BATAL'])) {
-            $dbOrder->cancelled_by = 'Shopee / System (Failed Delivery)';
-        }
-        $dbOrder->save();
+        $dbOrder = Order::where('order_marketplace_id', (string)$orderSn)->first();
 
         echo "========================================================\n";
-        echo "✅ STATUS DI DATABASE ERP BERHASIL DIPERBARUI!\n";
-        echo "   • ERP Order ID        : {$dbOrder->id}\n";
-        echo "   • Status ERP Baru     : {$dbOrder->order_status}\n";
-        echo "   • Alasan Pembatalan   : {$dbOrder->cancel_reason}\n";
+        echo "✅ STATUS & ESCROW DI DATABASE ERP BERHASIL DIPERBARUI!\n";
+        echo "   • ERP Order ID        : " . ($dbOrder ? $dbOrder->id : '-') . "\n";
+        echo "   • Status ERP Baru     : " . ($dbOrder ? $dbOrder->order_status : '-') . "\n";
+        echo "   • Total Omset Kotor   : Rp " . number_format($dbOrder ? $dbOrder->total_amount : 0, 2) . "\n";
+        echo "   • Total Biaya Admin   : Rp " . number_format($dbOrder ? $dbOrder->marketplace_fee : 0, 2) . "\n";
+        echo "   • Dana Cair Bersih    : Rp " . number_format($dbOrder ? $dbOrder->net_amount : 0, 2) . "\n";
         echo "========================================================\n";
         break;
     } catch (\Exception $e) {
