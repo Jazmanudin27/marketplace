@@ -25,7 +25,15 @@ if (!$store) {
 }
 
 $shopeeService = app(ShopeeService::class);
-$accessToken = $store->getValidAccessToken();
+
+echo "1. Memperbarui Access Token Shopee Toko {$store->store_name}... ";
+try {
+    $accessToken = $store->getValidAccessToken(true);
+    echo "✅ Token Berhasil Di-refresh!\n\n";
+} catch (\Exception $eToken) {
+    echo "⚠️ Refresh Token Gagal, Mencoba Token Saat Ini... (" . $eToken->getMessage() . ")\n\n";
+    $accessToken = $store->access_token;
+}
 
 $order = Order::where('order_marketplace_id', trim($targetOrderSn))->first();
 

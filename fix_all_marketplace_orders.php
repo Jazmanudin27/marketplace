@@ -32,7 +32,11 @@ Order::with(['items', 'store'])->chunk(100, function ($orders) use ($shopeeServi
                 try {
                     $store = $shopeeStores->get($order->store_id) ?? $order->store;
                     if ($store) {
-                        $accessToken = $store->getValidAccessToken();
+                        try {
+                            $accessToken = $store->getValidAccessToken(true);
+                        } catch (\Exception $eTok) {
+                            $accessToken = $store->access_token;
+                        }
                         $escrowRes = $shopeeService->getEscrowDetail($accessToken, (int)$store->marketplace_store_id, $orderSn);
                         $income = $escrowRes['order_income'] ?? $escrowRes['response']['order_income'] ?? $escrowRes;
                         if (!empty($income)) {
