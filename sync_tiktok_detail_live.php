@@ -62,7 +62,7 @@ $order->financial_breakdown = [
     'escrow_amount'                   => $escrowAmount,
 ];
 
-$order->save();
+$order->saveQuietly();
 
 echo "✅ DANA BERHASIL DISIMPANKAN & DISINKRONKAN KE DATABASE SERVER ERP!\n\n";
 echo "========================================================================\n";
