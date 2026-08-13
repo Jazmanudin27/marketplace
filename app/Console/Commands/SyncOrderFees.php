@@ -234,10 +234,8 @@ class SyncOrderFees extends Command
                                     } catch (\Exception $exStmt) {}
                                 }
 
-                                $totalTiktokFees = $netPlatformCommission + $preorderServiceFee + $dynamicCommission + $growthXtraFee + $orderProcessingFee;
-
-                                $netAmount = $escrowAmount > 0 ? $escrowAmount : max(0.0, $totalAmount - $totalTiktokFees);
-                                $marketplaceFee = $totalTiktokFees > 0 ? $totalTiktokFees : max(0.0, $totalAmount - $netAmount);
+                                $marketplaceFee = $totalTiktokFees > 0 ? $totalTiktokFees : max(0.0, $totalAmount - $escrowAmount);
+                                $netAmount = max(0.0, (float)$totalAmount - (float)$marketplaceFee);
 
                                 $dbOrder->total_amount = $totalAmount;
                                 $dbOrder->marketplace_fee = $marketplaceFee;
