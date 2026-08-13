@@ -350,10 +350,11 @@ class Order extends Model
                     + (float) ($fb['order_ams_commission_fee'] ?? $fb['ams_commission_fee'] ?? 0)
                     + (float) ($fb['dynamic_commission'] ?? $fb['affiliate_commission'] ?? 0);
 
-        // 5. Biaya Lainnya (Shopee: seller_transaction_fee + shipping_fee_adjustment | TikTok: other_fees)
+        // 5. Biaya Lainnya (Shopee: seller_transaction_fee + shipping_fee_adjustment + protection_fee | TikTok: other_fees)
         $otherFee    = (float) ($fb['seller_transaction_fee'] ?? 0)
                     + (float) ($fb['shipping_fee_adjustment'] ?? 0)
                     + (float) ($fb['shipping_seller_protection_fee_amount'] ?? 0)
+                    + (float) ($fb['delivery_seller_protection_fee_premium_amount'] ?? 0)
                     + (float) ($fb['escrow_tax'] ?? $fb['vat'] ?? $fb['withholding_tax'] ?? $fb['buyer_tax_amount'] ?? $fb['other_fees'] ?? 0);
 
         // Total Potongan Marketplace SELALU murni penjumlahan dari 5 komponen biaya admin
