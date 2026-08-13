@@ -334,35 +334,27 @@ class Order extends Model
     {
         $fb = $this->financial_breakdown ?? [];
 
-        // 1. Biaya Platform (Net Platform Commission / Commission Fee)
-        $platformFee = (float) ($fb['net_platform_commission'] ?? $fb['platform_fee'] ?? $fb['commission_fee'] ?? 0);
+        // 1. Biaya Platform (Shopee: commission_fee | TikTok: net_platform_commission)
+        $platformFee = (float) ($fb['commission_fee'] ?? $fb['net_platform_commission'] ?? $fb['platform_fee'] ?? 0);
 
-        // 2. Biaya Gratis Ongkir / Program XTRA (Di Shopee API bernama service_fee)
-        $freeShipping = (float) ($fb['growth_xtra_fee'] ?? $fb['free_shipping_fee'] ?? $fb['service_fee'] ?? $fb['shopee_shipping_rebate_fee'] ?? 0);
+        // 2. Biaya Gratis Ongkir XTRA (Shopee: service_fee | TikTok: growth_xtra_fee)
+        $freeShipping = (float) ($fb['service_fee'] ?? $fb['growth_xtra_fee'] ?? $fb['free_shipping_fee'] ?? $fb['shopee_shipping_rebate_fee'] ?? 0);
 
-        // 3. Biaya Pemrosesan & Transaksi (seller_order_processing_fee / order_processing_fee / seller_transaction_fee)
-        $serviceFee = (float) ($fb['seller_order_processing_fee'] ?? $fb['order_processing_fee'] ?? $fb['seller_transaction_fee'] ?? $fb['buyer_transaction_fee'] ?? 0)
+        // 3. Biaya Layanan (Shopee: seller_order_processing_fee | TikTok: preorder_service_fee + order_processing_fee)
+        $serviceFee  = (float) ($fb['seller_order_processing_fee'] ?? 0)
                     + (float) ($fb['preorder_service_fee'] ?? $fb['preorder_fee'] ?? 0);
 
-        // 4. Biaya Promosi / AMS / Afiliasi / Coin Cashback
-        $promoFee = (float) ($fb['order_ams_commission_fee'] ?? $fb['ams_commission_fee'] ?? 0)
-                  + (float) ($fb['dynamic_commission'] ?? $fb['affiliate_commission'] ?? 0)
-                  + (float) ($fb['seller_coin_cash_back'] ?? 0);
+        // 4. Biaya Promosi (Shopee: voucher_from_seller / seller_coin_cash_back / ams_commission_fee | TikTok: dynamic_commission)
+        $promoFee    = (float) ($fb['voucher_from_seller'] ?? 0)
+                    + (float) ($fb['seller_coin_cash_back'] ?? 0)
+                    + (float) ($fb['order_ams_commission_fee'] ?? $fb['ams_commission_fee'] ?? 0)
+                    + (float) ($fb['dynamic_commission'] ?? $fb['affiliate_commission'] ?? 0);
 
-        // 5. Biaya Lainnya (Shipping Adjustment + Pajak / Tax)
-        $otherFee = (float) (
-            $fb['shipping_fee_adjustment']
-            ?? $fb['shipping_seller_protection_fee_amount'] 
-            ?? $fb['escrow_tax']
-            ?? $fb['vat']
-            ?? $fb['withholding_tax']
-            ?? $fb['buyer_tax_amount']
-            ?? $fb['final_product_vat_tax']
-            ?? $fb['other_fees'] 
-            ?? $fb['coins'] 
-            ?? $fb['ddu_custom_tax_fee'] 
-            ?? 0
-        );
+        // 5. Biaya Lainnya (Shopee: seller_transaction_fee + shipping_fee_adjustment | TikTok: other_fees)
+        $otherFee    = (float) ($fb['seller_transaction_fee'] ?? 0)
+                    + (float) ($fb['shipping_fee_adjustment'] ?? 0)
+                    + (float) ($fb['shipping_seller_protection_fee_amount'] ?? 0)
+                    + (float) ($fb['escrow_tax'] ?? $fb['vat'] ?? $fb['withholding_tax'] ?? $fb['buyer_tax_amount'] ?? $fb['other_fees'] ?? 0);
 
         // Total Potongan Marketplace SELALU murni penjumlahan dari 5 komponen biaya admin
         $totalFee = $platformFee + $freeShipping + $serviceFee + $promoFee + $otherFee;
