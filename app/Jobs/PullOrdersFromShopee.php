@@ -201,11 +201,15 @@ class PullOrdersFromShopee implements ShouldQueue
                        + (float) ($financialBreakdown['commission_fee'] ?? 0)
                        + (float) ($financialBreakdown['service_fee'] ?? 0)
                        + (float) ($financialBreakdown['seller_transaction_fee'] ?? 0)
+                       + (float) ($financialBreakdown['seller_order_processing_fee'] ?? 0)
                        + (float) ($financialBreakdown['ams_commission_fee'] ?? 0);
             $marketplaceFee = $sellerFee > 0 ? $sellerFee : max(0.0, $totalAmount - $escrowAmount);
         } else {
-            $marketplaceFee = 0.0;
-            $netAmount = max(0.0, $totalAmount - $sellerDiscount);
+            // Untuk pesanan Shopee baru (belum COMPLETED), pasang estimasi biaya admin Shopee (~9.5%)
+            // agar pesanan baru TIDAK NOL biaya adminnya di ERP!
+            $shopeeEstimatedRatio = 0.095;
+            $marketplaceFee = round($totalAmount * $shopeeEstimatedRatio);
+            $netAmount = max(0.0, $totalAmount - $sellerDiscount - $marketplaceFee);
         }
 
         $order = Order::updateOrCreate(
