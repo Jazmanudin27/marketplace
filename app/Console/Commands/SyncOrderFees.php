@@ -193,9 +193,9 @@ class SyncOrderFees extends Command
             } catch (\Exception $e) {}
         }
 
-        // 3. Update Order Model attributes (fee columns & net_amount) for all orders
+        // 3. Update Order Model attributes (fee columns & net_amount) for ALL orders in database
         $count = 0;
-        $allQuery = Order::query();
+        $allQuery = Order::with('items');
         if ($orderSn) {
             $allQuery->where('order_marketplace_id', $orderSn);
         }
@@ -205,6 +205,15 @@ class SyncOrderFees extends Command
 
         $allQuery->chunk(100, function ($orders) use (&$count) {
             foreach ($orders as $order) {
+                $fb = $order->financial_breakdown ?? [];
+
+                // 1. Omset Kotor (Product Subtotal): Gunakan items sum jika total_amount menyimpan total bayar pembeli yang salah
+                $itemsSubtotal = (float) $order->items->sum('total_price');
+                if ($itemsSubtotal > 0 && abs((float)$order->total_amount - $itemsSubtotal) > 1.0) {
+                    $order->total_amount = $itemsSubtotal;
+                }
+
+                // 2. Rincian 5 Komponen Biaya ERP
                 $details = $order->fee_breakdown_details;
                 $order->fee_platform_amount = abs($details['platform_fee'] ?? 0);
                 $order->fee_free_shipping_amount = abs($details['free_shipping'] ?? 0);
@@ -215,8 +224,16 @@ class SyncOrderFees extends Command
                 $totalFee = abs($details['total_fee'] ?? 0);
                 if ($totalFee > 0) {
                     $order->marketplace_fee = $totalFee;
-                    $order->net_amount = max(0.0, (float) $order->total_amount - $totalFee);
                 }
+
+                // 3. Omset Bersih (Net Amount): Jika escrow_amount ada dari API, pakai escrow_amount. Jika belum cair, pakai (total_amount - totalFee)
+                $escrowAmount = (float)($fb['escrow_amount'] ?? 0);
+                if ($escrowAmount > 0) {
+                    $order->net_amount = $escrowAmount;
+                } else {
+                    $order->net_amount = max(0.0, (float)$order->total_amount - (float)$order->discount_amount - $totalFee);
+                }
+
                 $order->saveQuietly();
                 $count++;
             }
