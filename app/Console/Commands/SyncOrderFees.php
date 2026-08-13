@@ -81,6 +81,11 @@ class SyncOrderFees extends Command
         $tiktokStores = Store::whereHas('channel', fn($q) => $q->whereIn('code', ['tiktok', 'tokopedia']));
         if ($storeId) {
             $tiktokStores->where('id', $storeId);
+        } elseif ($orderSn) {
+            $dbMatch = Order::where('order_marketplace_id', $orderSn)->first();
+            if ($dbMatch && $dbMatch->store_id) {
+                $tiktokStores->where('id', $dbMatch->store_id);
+            }
         }
 
         foreach ($tiktokStores->get() as $s) {

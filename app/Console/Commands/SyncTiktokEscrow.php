@@ -42,8 +42,12 @@ class SyncTiktokEscrow extends Command
             $q->whereIn('code', ['tiktok', 'tokopedia']);
         });
 
-        if ($storeIdOption) {
-            $query->where('id', $storeIdOption);
+        // Jika order_id spesifik diberikan, cari toko pemilik order secara presisi lebih dulu
+        if ($orderIdOption) {
+            $dbMatch = Order::where('order_marketplace_id', $orderIdOption)->first();
+            if ($dbMatch && $dbMatch->store_id) {
+                $query->where('id', $dbMatch->store_id);
+            }
         }
 
         $stores = $query->get();
