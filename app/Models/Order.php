@@ -112,6 +112,8 @@ class Order extends Model
                 }
             }
 
+            $totalFee = abs($details['total_fee'] ?? 0);
+
             // 2. Biaya Admin Marketplace
             if ($totalFee > 0) {
                 $order->marketplace_fee = $totalFee;
