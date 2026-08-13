@@ -104,11 +104,13 @@ class Order extends Model
             $order->fee_other_amount = abs($details['other_fee'] ?? 0);
 
             $totalFee = abs($details['total_fee'] ?? 0);
-            if ($totalFee > 0) {
+            
+            // KUNCI PRESISI 100%: Jika net_amount (Penghasilan Akhir) > 0, marketplace_fee SELALU = (total_amount - net_amount)
+            if ((float)$order->net_amount > 0 && (float)$order->total_amount > 0) {
+                $order->marketplace_fee = max(0.0, (float)$order->total_amount - (float)$order->net_amount);
+            } elseif ($totalFee > 0) {
                 $order->marketplace_fee = $totalFee;
-                if (empty($order->financial_breakdown['escrow_amount'])) {
-                    $order->net_amount = max(0.0, (float) $order->total_amount - $totalFee);
-                }
+                $order->net_amount = max(0.0, (float)$order->total_amount - $totalFee);
             }
         });
     }
