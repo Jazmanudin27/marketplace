@@ -48,12 +48,23 @@ Order::with('items')->chunk(100, function ($orders) use (&$updatedCount) {
             $order->net_amount = (float)$fb['escrow_amount'];
         }
 
-        if ((float)$order->net_amount > 0 && (float)$order->total_amount > 0) {
-            $order->marketplace_fee = max(0.0, (float)$order->total_amount - (float)$order->net_amount);
+        $net = (float) $order->net_amount;
+        $fee = (float) $order->marketplace_fee;
+
+        if ($fee <= 0 && $totalFee > 0) {
+            $fee = $totalFee;
+            $order->marketplace_fee = $fee;
+        }
+
+        if ($net > 0 && $fee > 0) {
+            // Omset Kotor (total_amount) SELALU = Net Amount + Marketplace Fee!
+            $order->total_amount = $net + $fee;
             $changed = true;
-        } elseif ($totalFee > 0) {
-            $order->marketplace_fee = $totalFee;
-            $order->net_amount = max(0.0, (float)$order->total_amount - $totalFee);
+        } elseif ($net > 0 && (float)$order->total_amount > $net) {
+            $order->marketplace_fee = max(0.0, (float)$order->total_amount - $net);
+            $changed = true;
+        } elseif ($fee > 0 && (float)$order->total_amount > $fee) {
+            $order->net_amount = max(0.0, (float)$order->total_amount - $fee);
             $changed = true;
         }
 
