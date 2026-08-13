@@ -127,7 +127,11 @@ foreach ($allStores as $store) {
         break;
 
     } catch (\Exception $e) {
-        echo "❌ Exception: " . $e->getMessage() . "\n";
+        if (str_contains($e->getMessage(), 'Internal error')) {
+            echo "ℹ️ Order tidak ditemukan di toko ini (TikTok API Code 105001)\n";
+        } else {
+            echo "❌ Exception: " . $e->getMessage() . "\n";
+        }
     }
 }
 
