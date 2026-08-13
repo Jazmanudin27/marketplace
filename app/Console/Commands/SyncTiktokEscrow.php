@@ -77,16 +77,44 @@ class SyncTiktokEscrow extends Command
             }
 
             $orders = $ordersQuery->get();
-            $this->info("Menemukan {$orders->count()} pesanan TikTok untuk disinkronkan...");
+
+            if ($orderIdOption && $orders->isEmpty()) {
+                // Jika order_id spesifik dicari tetapi belum ada di DB lokal toko ini, tembak langsung TikTok API
+                try {
+                    $detailRes = $tiktokService->getOrderDetail($accessToken, $shopCipher, [$orderIdOption]);
+                    $tiktokOrders = $detailRes['order_list'] ?? $detailRes['orders'] ?? [];
+
+                    if (!empty($tiktokOrders)) {
+                        $this->info("✅ Order ID '{$orderIdOption}' DITEMUKAN di Toko TikTok: {$store->store_name} (ID: {$store->id})!");
+                        // Gunakan PullOrdersFromTiktok processOrder via Job / Helper
+                        $job = new PullOrdersFromTiktok($store, time() - 86400, time());
+                        $reflection = new \ReflectionClass($job);
+                        $method = $reflection->getMethod('processOrder');
+                        $method->setAccessible(true);
+                        $method->invoke($job, $tiktokOrders[0]);
+
+                        $orders = Order::where('store_id', $store->id)
+                            ->where('order_marketplace_id', $orderIdOption)
+                            ->get();
+                    }
+                } catch (\Exception $e) {
+                    // Lanjut ke toko berikutnya jika bukan pemilik order
+                }
+            }
 
             if ($orders->isEmpty()) {
-                // Tarik pesanan 7 hari terakhir
+                if ($orderIdOption) {
+                    continue; // Jika sedang mencari order_id spesifik, lanjut cari ke toko lain
+                }
+                // Tarik pesanan 7 hari terakhir jika tidak ada filter order_id
                 $timeTo = time();
                 $timeFrom = strtotime('-7 days', $timeTo);
                 PullOrdersFromTiktok::dispatch($store, $timeFrom, $timeTo);
                 $this->info("Job penarikan pesanan TikTok telah dikirim ke antrean.");
                 continue;
             }
+
+            $this->info("Menemukan {$orders->count()} pesanan TikTok untuk disinkronkan...");
 
             $chunked = $orders->chunk(50);
             foreach ($chunked as $chunk) {
