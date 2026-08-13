@@ -323,39 +323,21 @@ class Order extends Model
     {
         $fb = $this->financial_breakdown ?? [];
 
-        // 1. Biaya Platform (Commission Fee + Seller Order Processing Fee)
-        $commissionFee = (float) ($fb['commission_fee'] ?? $fb['platform_fee'] ?? $fb['net_platform_commission'] ?? 0);
-        $processingFee = (float) ($fb['seller_order_processing_fee'] ?? 0);
-        $platformFee = $commissionFee + $processingFee;
+        // 1. Biaya Platform (Net Platform Commission)
+        $platformFee = (float) ($fb['net_platform_commission'] ?? $fb['platform_fee'] ?? $fb['commission_fee'] ?? 0);
 
-        // 2. Biaya Gratis Ongkir (Service Fee / Free Shipping Fee / Growth Xtra Fee)
-        $freeShipping = (float) (
-            $fb['free_shipping_fee'] 
-            ?? $fb['service_fee'] 
-            ?? $fb['shopee_shipping_rebate_fee'] 
-            ?? $fb['growth_xtra_fee'] 
-            ?? 0
-        );
+        // 2. Biaya Gratis Ongkir (Growth Xtra Fee / Free Shipping Fee)
+        $freeShipping = (float) ($fb['growth_xtra_fee'] ?? $fb['free_shipping_fee'] ?? $fb['shopee_shipping_rebate_fee'] ?? 0);
 
-        // 3. Biaya Layanan (Seller Transaction Fee / Buyer Transaction Fee / Processing Fee)
-        $serviceFee = (float) (
-            $fb['seller_transaction_fee'] 
-            ?? $fb['buyer_transaction_fee'] 
-            ?? $fb['order_processing_fee'] 
-            ?? $fb['preorder_service_fee'] 
-            ?? 0
-        );
+        // 3. Biaya Layanan (Order Processing Fee + Pre-order Service Fee + Transaction Fee)
+        $serviceFee = (float) ($fb['order_processing_fee'] ?? $fb['seller_transaction_fee'] ?? $fb['buyer_transaction_fee'] ?? 0)
+                    + (float) ($fb['preorder_service_fee'] ?? $fb['preorder_fee'] ?? 0);
 
-        // 4. Biaya Promosi (Order AMS Commission / Affiliate Commission / Dynamic Commission)
-        $promoFee = (float) (
-            $fb['order_ams_commission_fee'] 
-            ?? $fb['ams_commission_fee'] 
-            ?? $fb['dynamic_commission']
-            ?? $fb['affiliate_commission']
-            ?? 0
-        );
+        // 4. Biaya Promosi / Afiliasi (AMS Commission + Dynamic / Affiliate Commission)
+        $promoFee = (float) ($fb['order_ams_commission_fee'] ?? $fb['ams_commission_fee'] ?? 0)
+                  + (float) ($fb['dynamic_commission'] ?? $fb['affiliate_commission'] ?? 0);
 
-        // 5. Biaya Lainnya (Shipping Seller Protection / Pajak PPN / Coins / Tax / Adjustments)
+        // 5. Biaya Lainnya (Shipping Adjustment + Pajak / Tax)
         $otherFee = (float) (
             $fb['shipping_fee_adjustment']
             ?? $fb['shipping_seller_protection_fee_amount'] 

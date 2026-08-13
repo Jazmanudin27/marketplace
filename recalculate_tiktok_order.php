@@ -123,7 +123,7 @@ if ($orderMarketplaceId === '585293879388046348' || empty($fb['escrow_amount']))
     }
 }
 
-$order->save();
+$order->saveQuietly();
 
 echo "DATA HASIL PERBAIKAN DI ERP:\n";
 echo "- Total Amount (Omset Kotor) : Rp " . number_format($order->total_amount, 2, '.', ',') . "\n";
