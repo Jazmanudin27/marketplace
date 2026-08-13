@@ -362,22 +362,12 @@ class Order extends Model
             ?? 0
         );
 
+        // Total Potongan Marketplace SELALU murni penjumlahan dari 5 komponen biaya admin
         $totalFee = $platformFee + $freeShipping + $serviceFee + $promoFee + $otherFee;
 
-        // JIKA DANA CAIR (escrow_amount) ADA DI API, TOTAL POTONGAN PASTI SAMA DENGAN DANA CAIR DARI SUBTOTAL PRODUK
-        $escrowAmount = (float) ($fb['escrow_amount'] ?? $fb['settlement_amount'] ?? 0);
-        $totalAmount = (float) ($this->attributes['total_amount'] ?? $fb['cost_of_goods_sold'] ?? $fb['original_price'] ?? 0);
-
-        if ($escrowAmount > 0 && $totalAmount > 0) {
-            $realFeeFromEscrow = max(0.0, $totalAmount - $escrowAmount);
-            if ($realFeeFromEscrow > 0) {
-                $totalFee = $realFeeFromEscrow;
-            }
-        }
-
-        // Fallback: If marketplace_fee is filled on Order model but fb has no breakdown, assign to platform_fee
+        // Fallback: Jika rincian breakdown di financial_breakdown belum ada namun marketplace_fee di model diisi
         $rawMarketplaceFee = (float) ($this->attributes['marketplace_fee'] ?? 0);
-        if (empty($this->financial_breakdown) && $platformFee == 0 && $freeShipping == 0 && $serviceFee == 0 && $promoFee == 0 && $otherFee == 0 && $rawMarketplaceFee > 0) {
+        if (empty($this->financial_breakdown) && $totalFee == 0 && $rawMarketplaceFee > 0) {
             $platformFee = $rawMarketplaceFee;
             $totalFee = $rawMarketplaceFee;
         }

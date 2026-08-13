@@ -43,7 +43,7 @@ Order::with('items')->chunk(100, function ($orders) use (&$updatedCount) {
         // 3. Omset Bersih (Net Amount = Omset Kotor Produk - Biaya Admin Marketplace)
         $order->net_amount = max(0.0, (float)$order->total_amount - (float)$order->discount_amount - (float)$order->marketplace_fee);
 
-        $order->saveQuietly();
+        $order->save();
         $updatedCount++;
     }
 });
