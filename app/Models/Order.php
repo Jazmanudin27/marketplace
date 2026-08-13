@@ -325,19 +325,20 @@ class Order extends Model
     {
         $fb = $this->financial_breakdown ?? [];
 
-        // 1. Biaya Platform (Net Platform Commission)
+        // 1. Biaya Platform (Net Platform Commission / Commission Fee)
         $platformFee = (float) ($fb['net_platform_commission'] ?? $fb['platform_fee'] ?? $fb['commission_fee'] ?? 0);
 
-        // 2. Biaya Gratis Ongkir (Growth Xtra Fee / Free Shipping Fee)
-        $freeShipping = (float) ($fb['growth_xtra_fee'] ?? $fb['free_shipping_fee'] ?? $fb['shopee_shipping_rebate_fee'] ?? 0);
+        // 2. Biaya Gratis Ongkir / Program XTRA (Di Shopee API bernama service_fee)
+        $freeShipping = (float) ($fb['growth_xtra_fee'] ?? $fb['free_shipping_fee'] ?? $fb['service_fee'] ?? $fb['shopee_shipping_rebate_fee'] ?? 0);
 
-        // 3. Biaya Layanan (Order Processing Fee + Pre-order Service Fee + Transaction Fee)
-        $serviceFee = (float) ($fb['order_processing_fee'] ?? $fb['seller_transaction_fee'] ?? $fb['buyer_transaction_fee'] ?? 0)
+        // 3. Biaya Pemrosesan & Transaksi (seller_order_processing_fee / order_processing_fee / seller_transaction_fee)
+        $serviceFee = (float) ($fb['seller_order_processing_fee'] ?? $fb['order_processing_fee'] ?? $fb['seller_transaction_fee'] ?? $fb['buyer_transaction_fee'] ?? 0)
                     + (float) ($fb['preorder_service_fee'] ?? $fb['preorder_fee'] ?? 0);
 
-        // 4. Biaya Promosi / Afiliasi (AMS Commission + Dynamic / Affiliate Commission)
+        // 4. Biaya Promosi / AMS / Afiliasi / Coin Cashback
         $promoFee = (float) ($fb['order_ams_commission_fee'] ?? $fb['ams_commission_fee'] ?? 0)
-                  + (float) ($fb['dynamic_commission'] ?? $fb['affiliate_commission'] ?? 0);
+                  + (float) ($fb['dynamic_commission'] ?? $fb['affiliate_commission'] ?? 0)
+                  + (float) ($fb['seller_coin_cash_back'] ?? 0);
 
         // 5. Biaya Lainnya (Shipping Adjustment + Pajak / Tax)
         $otherFee = (float) (
@@ -354,10 +355,24 @@ class Order extends Model
             ?? 0
         );
 
+        $totalFee = $platformFee + $freeShipping + $serviceFee + $promoFee + $otherFee;
+
+        // JIKA DANA CAIR (escrow_amount) ADA DI API, TOTAL POTONGAN PASTI SAMA DENGAN DANA CAIR DARI SUBTOTAL PRODUK
+        $escrowAmount = (float) ($fb['escrow_amount'] ?? $fb['settlement_amount'] ?? 0);
+        $totalAmount = (float) ($this->attributes['total_amount'] ?? $fb['cost_of_goods_sold'] ?? $fb['original_price'] ?? 0);
+
+        if ($escrowAmount > 0 && $totalAmount > 0) {
+            $realFeeFromEscrow = max(0.0, $totalAmount - $escrowAmount);
+            if ($realFeeFromEscrow > 0) {
+                $totalFee = $realFeeFromEscrow;
+            }
+        }
+
         // Fallback: If marketplace_fee is filled on Order model but fb has no breakdown, assign to platform_fee
         $rawMarketplaceFee = (float) ($this->attributes['marketplace_fee'] ?? 0);
         if (empty($this->financial_breakdown) && $platformFee == 0 && $freeShipping == 0 && $serviceFee == 0 && $promoFee == 0 && $otherFee == 0 && $rawMarketplaceFee > 0) {
             $platformFee = $rawMarketplaceFee;
+            $totalFee = $rawMarketplaceFee;
         }
 
         return [
@@ -366,7 +381,7 @@ class Order extends Model
             'service_fee'    => $serviceFee > 0 ? -$serviceFee : ($serviceFee < 0 ? $serviceFee : 0),
             'promo_fee'      => $promoFee > 0 ? -$promoFee : ($promoFee < 0 ? $promoFee : 0),
             'other_fee'      => $otherFee > 0 ? -$otherFee : ($otherFee < 0 ? $otherFee : 0),
-            'total_fee'      => -($platformFee + $freeShipping + $serviceFee + $promoFee + $otherFee),
+            'total_fee'      => -$totalFee,
         ];
     }
 
