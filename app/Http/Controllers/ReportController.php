@@ -1759,6 +1759,12 @@ class ReportController extends Controller
                                 'qty_online'     => 0,
                                 'omset_offline'  => 0.0,
                                 'omset_online'   => 0.0,
+                                'fee_platform'   => 0.0,
+                                'fee_free_shipping' => 0.0,
+                                'fee_service'    => 0.0,
+                                'fee_promo'      => 0.0,
+                                'fee_other'      => 0.0,
+                                'total_fee'      => 0.0,
                                 'category_id'    => $mp ? $mp->category_id : null,
                                 'brand_id'       => $mp ? $mp->brand_id : null,
                                 'is_bundle'      => $mp ? $mp->is_bundle : false,
@@ -1776,12 +1782,12 @@ class ReportController extends Controller
                         $orderFee = abs($fees['total_fee'] ?? $order->marketplace_fee ?? 0);
                         $itemShare = $order->total_amount > 0 ? ($scaledItemOmset / $order->total_amount) : 0;
 
-                        $grouped[$key]['fee_platform']      += abs($fees['platform_fee'] ?? 0) * $itemShare;
-                        $grouped[$key]['fee_free_shipping'] += abs($fees['free_shipping'] ?? 0) * $itemShare;
-                        $grouped[$key]['fee_service']       += abs($fees['service_fee'] ?? 0) * $itemShare;
-                        $grouped[$key]['fee_promo']         += abs($fees['promo_fee'] ?? 0) * $itemShare;
-                        $grouped[$key]['fee_other']         += abs($fees['other_fee'] ?? 0) * $itemShare;
-                        $grouped[$key]['total_fee']         += $orderFee * $itemShare;
+                        $grouped[$key]['fee_platform']      = ($grouped[$key]['fee_platform'] ?? 0.0) + (abs($fees['platform_fee'] ?? 0) * $itemShare);
+                        $grouped[$key]['fee_free_shipping'] = ($grouped[$key]['fee_free_shipping'] ?? 0.0) + (abs($fees['free_shipping'] ?? 0) * $itemShare);
+                        $grouped[$key]['fee_service']       = ($grouped[$key]['fee_service'] ?? 0.0) + (abs($fees['service_fee'] ?? 0) * $itemShare);
+                        $grouped[$key]['fee_promo']         = ($grouped[$key]['fee_promo'] ?? 0.0) + (abs($fees['promo_fee'] ?? 0) * $itemShare);
+                        $grouped[$key]['fee_other']         = ($grouped[$key]['fee_other'] ?? 0.0) + (abs($fees['other_fee'] ?? 0) * $itemShare);
+                        $grouped[$key]['total_fee']         = ($grouped[$key]['total_fee'] ?? 0.0) + ($orderFee * $itemShare);
                     }
                 } else {
                     $key = 'unassigned_on';
@@ -1814,12 +1820,12 @@ class ReportController extends Controller
                     $grouped[$key]['omset_online'] += (float) $order->total_amount;
 
                     $fees = $order->fee_breakdown_details;
-                    $grouped[$key]['fee_platform']      += abs($fees['platform_fee'] ?? 0);
-                    $grouped[$key]['fee_free_shipping'] += abs($fees['free_shipping'] ?? 0);
-                    $grouped[$key]['fee_service']       += abs($fees['service_fee'] ?? 0);
-                    $grouped[$key]['fee_promo']         += abs($fees['promo_fee'] ?? 0);
-                    $grouped[$key]['fee_other']         += abs($fees['other_fee'] ?? 0);
-                    $grouped[$key]['total_fee']         += abs($fees['total_fee'] ?? 0);
+                    $grouped[$key]['fee_platform']      = ($grouped[$key]['fee_platform'] ?? 0.0) + abs($fees['platform_fee'] ?? 0);
+                    $grouped[$key]['fee_free_shipping'] = ($grouped[$key]['fee_free_shipping'] ?? 0.0) + abs($fees['free_shipping'] ?? 0);
+                    $grouped[$key]['fee_service']       = ($grouped[$key]['fee_service'] ?? 0.0) + abs($fees['service_fee'] ?? 0);
+                    $grouped[$key]['fee_promo']         = ($grouped[$key]['fee_promo'] ?? 0.0) + abs($fees['promo_fee'] ?? 0);
+                    $grouped[$key]['fee_other']         = ($grouped[$key]['fee_other'] ?? 0.0) + abs($fees['other_fee'] ?? 0);
+                    $grouped[$key]['total_fee']         = ($grouped[$key]['total_fee'] ?? 0.0) + abs($fees['total_fee'] ?? 0);
                 }
             }
         }
