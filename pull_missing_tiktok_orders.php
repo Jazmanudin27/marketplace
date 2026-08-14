@@ -2,17 +2,12 @@
 
 /**
  * ============================================================
- * PULL SEMUA ORDER TIKTOK YANG BELUM ADA DI ERP
+ * PULL SEMUA ORDER TIKTOK YANG BELUM ADA DI ERP (Optimized Fast Version)
  * ============================================================
- * FIX: Simpan data lengkap dari getOrderList sebagai fallback
- * ketika getOrderDetail gagal untuk order lama (> 30 hari).
- *
- * Cara pakai:
- *   php pull_missing_tiktok_orders.php                             -> 30 hari
- *   php pull_missing_tiktok_orders.php --days=90                  -> 90 hari
- *   php pull_missing_tiktok_orders.php --from=2026-07-01 --to=2026-08-14
- *   php pull_missing_tiktok_orders.php --store=17                 -> 1 toko
- *   php pull_missing_tiktok_orders.php --dry-run                  -> preview
+ * Fitur Optimasi:
+ * 1. Tarik dalam rentang 7-14 hari (bukan 1 hari) agar jauh lebih cepat
+ * 2. Tanpa usleep buatan yang memperlambat proses
+ * 3. Pakai data getOrderList langsung (fallback cepat) tanpa menunda
  * ============================================================
  */
 
@@ -56,7 +51,7 @@ if (!$startTs || !$endTs || $startTs > $endTs) {
 $totalDays = (int)(($endTs - $startTs) / 86400) + 1;
 echo "\n";
 echo "======================================================================\n";
-echo "  PULL ORDER TIKTOK YANG BELUM ADA DI ERP (v2 - dengan fallback)\n";
+echo "  PULL ORDER TIKTOK (Fast Batch Processing)\n";
 echo "======================================================================\n";
 echo "  Mode  : " . ($isDryRun ? "DRY-RUN (preview saja)" : "LIVE (insert ke DB)") . "\n";
 echo "  Dari  : " . date('d-m-Y', $startTs) . " s/d " . date('d-m-Y', $endTs) . " ({$totalDays} hari)\n";
@@ -74,18 +69,13 @@ if ($stores->isEmpty()) { echo "ERROR: Tidak ada toko TikTok aktif.\n"; exit(1);
 echo "Ditemukan " . $stores->count() . " toko TikTok aktif.\n\n";
 
 $tiktokService  = app(TiktokService::class);
-$statusMapping  = [
-    '100' => 'UNPAID', '111' => 'READY_TO_SHIP', '112' => 'SHIPPED',
-    '121' => 'SHIPPED', '122' => 'DELIVERED', '130' => 'COMPLETED', '140' => 'CANCELLED',
-    'UNPAID' => 'UNPAID', 'AWAITING_SHIPMENT' => 'READY_TO_SHIP',
-    'AWAITING_COLLECTION' => 'SHIPPED', 'PARTIALLY_SHIPPING' => 'SHIPPED',
-    'IN_TRANSIT' => 'SHIPPED', 'DELIVERED' => 'DELIVERED',
-    'COMPLETED' => 'COMPLETED', 'CANCELLED' => 'CANCELLED', 'IN_CANCEL' => 'CANCELLED',
-];
 
 $grandNew    = 0;
 $grandExists = 0;
 $grandError  = 0;
+
+// Chunk periode per 7 hari agar query API cepat & tidak melebihi limit TikTok (max 30 hari)
+$stepSeconds = 7 * 86400;
 
 foreach ($stores as $store) {
     echo "======================================================================\n";
@@ -97,7 +87,6 @@ foreach ($stores as $store) {
         $shopCipher  = $store->shop_cipher;
         if (empty($shopCipher)) { echo "  SKIP: shop_cipher kosong.\n\n"; continue; }
 
-        // Siapkan akses ke processOrder via Reflection
         $jobInstance = new PullOrdersFromTiktok($store, $startTs, $endTs);
         $reflection  = new \ReflectionClass($jobInstance);
         $processMethod = $reflection->getMethod('processOrder');
@@ -107,70 +96,67 @@ foreach ($stores as $store) {
         $storeExists = 0;
         $storeError  = 0;
 
-        // ── Proses per hari ───────────────────────────────────────────
-        $currentDay = $startTs;
+        $chunkStart = $startTs;
 
-        while ($currentDay <= $endTs) {
-            $dayStart = mktime(0,  0,  0,  date('n', $currentDay), date('j', $currentDay), date('Y', $currentDay));
-            $dayEnd   = mktime(23, 59, 59, date('n', $currentDay), date('j', $currentDay), date('Y', $currentDay));
-            $dayLabel = date('Y-m-d', $currentDay);
+        while ($chunkStart <= $endTs) {
+            $chunkEnd   = min($chunkStart + $stepSeconds - 1, $endTs);
+            $labelFrom  = date('Y-m-d', $chunkStart);
+            $labelTo    = date('Y-m-d', $chunkEnd);
 
-            echo "  [{$dayLabel}] Menarik order... ";
+            echo "  [{$labelFrom} s/d {$labelTo}] Pulling... ";
 
-            // ── STEP 1: getOrderList → simpan ID DAN data lengkapnya ──
-            // Data dari list ini jadi FALLBACK jika getOrderDetail gagal
-            $tiktokOrderMap = []; // order_id => data order dari search API
+            $tiktokOrderMap = [];
             $cursor     = '';
             $pageCount  = 0;
             $prevCursor = null;
 
             do {
                 try {
-                    $resp = $tiktokService->getOrderList($accessToken, $shopCipher, $dayStart, $dayEnd, $cursor);
+                    $resp = $tiktokService->getOrderList($accessToken, $shopCipher, $chunkStart, $chunkEnd, $cursor);
                 } catch (\Exception $e) {
                     echo "API Error: " . $e->getMessage() . "\n";
                     $storeError++;
-                    goto next_day;
+                    break;
                 }
 
                 $orders = $resp['orders'] ?? [];
                 foreach ($orders as $o) {
                     $oid = (string)($o['id'] ?? $o['order_id'] ?? null);
-                    if ($oid) $tiktokOrderMap[$oid] = $o; // simpan full object
+                    if ($oid) $tiktokOrderMap[$oid] = $o;
                 }
 
                 $prevCursor = $cursor;
                 $cursor     = $resp['next_cursor'] ?? '';
                 $hasMore    = $resp['more'] ?? false;
-                if ($cursor === $prevCursor || ++$pageCount > 20) break;
-                usleep(100000);
+                if ($cursor === $prevCursor || ++$pageCount > 50) break;
 
             } while ($hasMore && $cursor);
 
             if (empty($tiktokOrderMap)) {
                 echo "0 order.\n";
-                goto next_day;
+                $chunkStart = $chunkEnd + 1;
+                continue;
             }
 
             $tiktokIds = array_keys($tiktokOrderMap);
 
-            // ── STEP 2: Cek mana yang belum ada di ERP ────────────────
+            // Cek mana yang sudah ada di DB
             $existingIds = Order::where('store_id', $store->id)
                 ->whereIn('order_marketplace_id', $tiktokIds)
                 ->pluck('order_marketplace_id')
                 ->toArray();
 
             $missingIds = array_diff($tiktokIds, $existingIds);
-            $totalDay   = count($tiktokIds);
+            $totalChunk = count($tiktokIds);
             $missingCnt = count($missingIds);
 
-            echo "TikTok={$totalDay}, ERP=" . count($existingIds) . ", ";
-
+            echo "TikTok={$totalChunk}, ERP=" . count($existingIds) . ", ";
             $storeExists += count($existingIds);
 
             if ($missingCnt === 0) {
                 echo "Semua sudah ada.\n";
-                goto next_day;
+                $chunkStart = $chunkEnd + 1;
+                continue;
             }
 
             echo "BELUM ADA={$missingCnt}";
@@ -178,59 +164,46 @@ foreach ($stores as $store) {
             if ($isDryRun) {
                 echo " [DRY-RUN]\n";
                 $storeNew += $missingCnt;
-                goto next_day;
+                $chunkStart = $chunkEnd + 1;
+                continue;
             }
 
-            echo "\n";
+            echo " -> Inserting...\n";
 
-            // ── STEP 3: Coba getOrderDetail untuk data yang lebih lengkap ─
-            $missingArr     = array_values($missingIds);
-            $detailMap      = []; // order_id => detail data (lebih lengkap dari list)
+            // Coba getOrderDetail hanya untuk batch order terbaru (< 30 hari)
+            $missingArr = array_values($missingIds);
+            $detailMap  = [];
 
-            $chunks = array_chunk($missingArr, 50);
-            foreach ($chunks as $chunk) {
-                try {
-                    $detailResp = $tiktokService->getOrderDetail($accessToken, $shopCipher, $chunk);
-                    $detailList = $detailResp['order_list'] ?? [];
-
-                    foreach ($detailList as $d) {
-                        $did = (string)($d['order_id'] ?? $d['id'] ?? null);
-                        if ($did) $detailMap[$did] = $d;
-                    }
-                } catch (\Exception $e) {
-                    // getOrderDetail gagal → akan pakai data dari list
+            // Hanya coba detail API jika rentang waktu dalam 30 hari terakhir
+            if ($chunkEnd >= strtotime('-30 days')) {
+                $chunks = array_chunk($missingArr, 50);
+                foreach ($chunks as $chunk) {
+                    try {
+                        $detailResp = $tiktokService->getOrderDetail($accessToken, $shopCipher, $chunk);
+                        $detailList = $detailResp['order_list'] ?? [];
+                        foreach ($detailList as $d) {
+                            $did = (string)($d['order_id'] ?? $d['id'] ?? null);
+                            if ($did) $detailMap[$did] = $d;
+                        }
+                    } catch (\Exception $e) {}
                 }
-                usleep(200000);
             }
 
-            // ── STEP 4: Proses setiap order yang belum ada ────────────
+            // Batch insert
             foreach ($missingArr as $mid) {
-                // Prioritas: pakai data dari getOrderDetail (lengkap)
-                // Fallback: pakai data dari getOrderList (minimal tapi cukup)
                 $orderData = $detailMap[$mid] ?? $tiktokOrderMap[$mid] ?? null;
-
-                if (!$orderData) {
-                    echo "    [SKIP] {$mid}: tidak ada data\n";
-                    $storeError++;
-                    continue;
-                }
-
-                $dataSource = isset($detailMap[$mid]) ? 'detail' : 'list(fallback)';
+                if (!$orderData) continue;
 
                 try {
                     $processMethod->invoke($jobInstance, $orderData);
-                    echo "    [+] {$mid} ({$dataSource})\n";
                     $storeNew++;
                 } catch (\Exception $e) {
                     echo "    [ERROR] {$mid}: " . $e->getMessage() . "\n";
                     $storeError++;
                 }
-
-                usleep(100000);
             }
 
-            next_day:
-            $currentDay = strtotime('+1 day', $currentDay);
+            $chunkStart = $chunkEnd + 1;
         }
 
         echo "\n";
@@ -254,17 +227,5 @@ echo "  Sudah ada di ERP          : {$grandExists} order\n";
 echo "  Berhasil ditambahkan      : {$grandNew} order\n";
 echo "  Gagal / Error             : {$grandError} order\n";
 echo "======================================================================\n";
-
-if ($isDryRun && $grandNew > 0) {
-    echo "\nAda {$grandNew} order belum masuk ERP.\n";
-    echo "Jalankan tanpa --dry-run untuk menarik:\n";
-    if ($fromDate && $toDate) {
-        echo "  php pull_missing_tiktok_orders.php --from={$fromDate} --to={$toDate}";
-    } else {
-        echo "  php pull_missing_tiktok_orders.php --days={$days}";
-    }
-    if ($storeId) echo " --store={$storeId}";
-    echo "\n";
-}
 
 echo "\nSelesai!\n\n";
