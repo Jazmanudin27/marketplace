@@ -5,8 +5,10 @@
  * CEK ORDER SPESIFIK: ERP vs TikTok API
  * ============================================================
  * Cara pakai:
- *   php check_order_tiktok.php 585317667425191149
- *   php check_order_tiktok.php 585317667425191149 --fix   (langsung update ERP)
+ *   php check_order_tiktok.php 585052996251845745
+ *   php check_order_tiktok.php 585052996251845745 --fix
+ *   php check_order_tiktok.php 585052996251845745 --store=30
+ *   php check_order_tiktok.php 585052996251845745 --store=30 --date=2026-07-16
  * ============================================================
  */
 
@@ -18,14 +20,18 @@ use App\Models\Order;
 use App\Models\Store;
 use App\Services\TiktokService;
 
-$args              = array_slice($argv, 1);
+$args               = array_slice($argv, 1);
 $orderMarketplaceId = null;
-$doFix             = in_array('--fix', $args);
+$doFix              = in_array('--fix', $args);
+$filterStoreId      = null;
+$hintDate           = null; // tanggal order dibuat (untuk mempercepat search)
 
 foreach ($args as $arg) {
     if (!str_starts_with($arg, '--')) {
         $orderMarketplaceId = trim($arg);
     }
+    if (str_starts_with($arg, '--store=')) $filterStoreId = (int) str_replace('--store=', '', $arg);
+    if (str_starts_with($arg, '--date='))  $hintDate      = str_replace('--date=', '', $arg);
 }
 
 if (!$orderMarketplaceId) {
@@ -80,42 +86,67 @@ echo "\n";
 // ── STEP 2: Cek ke TikTok API ─────────────────────────────────
 echo "[ TIKTOK API ]\n";
 
-// Tentukan toko: pakai toko dari order ERP, atau cari semua toko TikTok
+// Tentukan toko yang akan dicek
 $storesToCheck = [];
-if ($order && $order->store) {
+if ($filterStoreId) {
+    // --store= diberikan: langsung cari di toko itu
+    $s = Store::find($filterStoreId);
+    if ($s) $storesToCheck = [$s];
+    echo "  (Mencari di toko: {$s->store_name} sesuai --store={$filterStoreId})\n";
+} elseif ($order && $order->store) {
+    // Order ada di ERP: pakai toko dari ERP
     $storesToCheck = [$order->store];
 } else {
+    // Cari di semua toko TikTok
     $storesToCheck = Store::whereHas('channel', fn($q) => $q->where('code', 'tiktok'))
         ->where('status', '!=', 'disconnected')
         ->whereNotNull('access_token')
-        ->get()
-        ->all();
-    echo "  (Order tidak ada di ERP, mencari di semua " . count($storesToCheck) . " toko TikTok...)\n";
+        ->get()->all();
+    echo "  (Order tidak ada di ERP. Mencari di " . count($storesToCheck) . " toko...)\n";
+    echo "  TIP: Gunakan --store=ID untuk langsung ke toko tertentu (lebih cepat)\n";
+    if ($hintDate) echo "  Hint tanggal: {$hintDate}\n";
 }
 
 $tiktokService = app(TiktokService::class);
 $tiktokFound   = false;
 
 foreach ($storesToCheck as $store) {
+    echo "  Cek toko: {$store->store_name} (ID: {$store->id})... ";
     try {
         $accessToken = $store->getValidAccessToken();
         $shopCipher  = $store->shop_cipher;
 
-        if (empty($shopCipher)) continue;
+        if (empty($shopCipher)) { echo "skip (no cipher)\n"; continue; }
 
-        // Fetch detail order langsung by ID
-        $detailResponse = $tiktokService->getOrderDetail($accessToken, $shopCipher, [$orderMarketplaceId]);
-        $orderList      = $detailResponse['order_list'] ?? [];
+        // ── Coba fetch by ID ──────────────────────────────────────
+        $orderList = [];
+        try {
+            $detailResponse = $tiktokService->getOrderDetail($accessToken, $shopCipher, [$orderMarketplaceId]);
+            $orderList      = $detailResponse['order_list'] ?? [];
+        } catch (\Exception $eDetail) {
+            $msg = $eDetail->getMessage();
+            // "Internal error" = order bukan milik toko ini → skip ke toko berikutnya
+            if (str_contains($msg, 'Internal error') || str_contains($msg, '105001')) {
+                echo "bukan toko ini.\n";
+                continue;
+            }
+            // Error lain → tetap lanjut ke fallback search
+        }
 
-        // Jika fetch-by-ID tidak mengembalikan hasil (order lama),
-        // coba dengan getOrderList search di 90 hari terakhir
+        // ── Fallback: search by date range ────────────────────────
         if (empty($orderList)) {
-            echo "  Fetch by ID tidak ada hasil, mencoba via search (90 hari)...\n";
+            echo "coba via search... ";
 
-            $timeFrom = strtotime('-90 days');
-            $timeTo   = time();
-            $cursor   = '';
+            // Gunakan hint date jika ada (jauh lebih cepat)
+            if ($hintDate) {
+                $timeFrom = strtotime($hintDate . ' 00:00:00');
+                $timeTo   = strtotime($hintDate . ' 23:59:59');
+            } else {
+                $timeFrom = strtotime('-90 days');
+                $timeTo   = time();
+            }
 
+            $cursor = '';
             do {
                 $listResponse = $tiktokService->getOrderList($accessToken, $shopCipher, $timeFrom, $timeTo, $cursor);
                 $orders       = $listResponse['orders'] ?? [];
@@ -124,17 +155,15 @@ foreach ($storesToCheck as $store) {
                     $oid = (string)($o['id'] ?? $o['order_id'] ?? null);
                     if ($oid === $orderMarketplaceId) {
                         $orderList[] = $o;
-                        break 2; // Ketemu, stop loop
+                        break 2;
                     }
                 }
 
                 $prevCursor = $cursor;
                 $cursor     = $listResponse['next_cursor'] ?? '';
                 $hasMore    = $listResponse['more'] ?? false;
-
                 if ($cursor === $prevCursor) break;
                 usleep(200000);
-
             } while ($hasMore && $cursor);
         }
 
