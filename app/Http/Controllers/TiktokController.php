@@ -185,7 +185,7 @@ class TiktokController extends Controller
         abort_if($store->status === 'disconnected', 400, 'Toko telah dinonaktifkan.');
 
         try {
-            $timeFrom = now()->subDays(15)->timestamp;
+            $timeFrom = now()->subDays(90)->timestamp;
             $timeTo = now()->timestamp;
 
             PullOrdersFromTiktok::dispatch($store, $timeFrom, $timeTo);
