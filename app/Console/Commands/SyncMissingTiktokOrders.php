@@ -12,15 +12,8 @@ use Illuminate\Support\Facades\Log;
 
 class SyncMissingTiktokOrders extends Command
 {
-    /**
-     * Signature command artisan
-     * Contoh:
-     *   php artisan tiktok:sync-missing
-     *   php artisan tiktok:sync-missing --store=30 --days=90
-     *   php artisan tiktok:sync-missing --from=2026-06-15 --to=2026-07-14
-     */
     protected $signature = 'tiktok:sync-missing 
-                            {--store= : ID Toko TikTok (Opsional, jika kosong semua toko)}
+                            {--store= : ID Toko TikTok}
                             {--days=90 : Jumlah hari ke belakang (maksimal 90)}
                             {--from= : Tanggal awal YYYY-MM-DD}
                             {--to= : Tanggal akhir YYYY-MM-DD}';
@@ -43,7 +36,7 @@ class SyncMissingTiktokOrders extends Command
         }
 
         if (!$startTs || !$endTs || $startTs > $endTs) {
-            $this->error('Format tanggal dari/sampai tidak valid.');
+            $this->error('Format tanggal tidak valid.');
             return 1;
         }
 
@@ -64,7 +57,7 @@ class SyncMissingTiktokOrders extends Command
         $stores = $storeQuery->get();
 
         if ($stores->isEmpty()) {
-            $this->error("Tidak ada toko TikTok aktif yang sesuai.");
+            $this->error("Tidak ada toko TikTok aktif.");
             return 1;
         }
 
@@ -74,7 +67,7 @@ class SyncMissingTiktokOrders extends Command
         $grandExists = 0;
         $grandError  = 0;
 
-        $stepSeconds = 30 * 86400; // 30 hari per batch API
+        $stepSeconds = 30 * 86400;
 
         foreach ($stores as $store) {
             $this->info("--------------------------------------------------------------------");
@@ -177,33 +170,22 @@ class SyncMissingTiktokOrders extends Command
                         }
                     }
 
-                    // DB Transaction + Realtime Output
-                    DB::beginTransaction();
-                    $batchSuccessCount = 0;
+                    // Direct Commit Per Order (Tanpa menunggu batch commit)
+                    // Sehingga bila di-Ctrl+C / dihentikan paksa, order yang sudah tercetak [+] tetap TERSIMPAN PERMANEN
+                    foreach ($missingArr as $mid) {
+                        $orderData = $detailMap[$mid] ?? $tiktokOrderMap[$mid] ?? null;
+                        if (!$orderData) continue;
 
-                    try {
-                        foreach ($missingArr as $mid) {
-                            $orderData = $detailMap[$mid] ?? $tiktokOrderMap[$mid] ?? null;
-                            if (!$orderData) continue;
-
-                            try {
+                        try {
+                            DB::transaction(function() use ($processMethod, $jobInstance, $orderData) {
                                 $processMethod->invoke($jobInstance, $orderData);
-                                $batchSuccessCount++;
-                                $this->line("    <info>[+] Saved: {$mid}</info>");
-                            } catch (\Exception $e) {
-                                $this->error("    [ERROR] {$mid}: " . $e->getMessage());
-                                $storeError++;
-                            }
+                            });
+                            $storeNew++;
+                            $this->line("    <info>[+] Saved & Committed: {$mid}</info>");
+                        } catch (\Exception $e) {
+                            $this->error("    [ERROR] {$mid}: " . $e->getMessage());
+                            $storeError++;
                         }
-
-                        DB::commit();
-                        $storeNew += $batchSuccessCount;
-                        $this->info("    -> Batch Selesai: {$batchSuccessCount} order tersimpan.");
-
-                    } catch (\Exception $eTx) {
-                        DB::rollBack();
-                        $this->error("    [TRANSACTION ERROR] Gagal simpan batch: " . $eTx->getMessage());
-                        $storeError += count($missingArr);
                     }
 
                     $chunkStart = $chunkEnd + 1;
