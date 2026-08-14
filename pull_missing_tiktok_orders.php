@@ -2,7 +2,7 @@
 
 /**
  * ============================================================
- * PULL SEMUA ORDER TIKTOK (Realtime Direct Commit)
+ * PULL SEMUA ORDER TIKTOK (Realtime Direct Commit + Deadlock Auto-Retry)
  * ============================================================
  */
 
@@ -45,7 +45,7 @@ if (!$startTs || !$endTs || $startTs > $endTs) {
 $totalDays = (int)(($endTs - $startTs) / 86400) + 1;
 echo "\n";
 echo "======================================================================\n";
-echo "  PULL ORDER TIKTOK (Realtime Direct Commit)\n";
+echo "  PULL ORDER TIKTOK (Realtime Direct Commit + Auto Retry Deadlock)\n";
 echo "======================================================================\n";
 echo "  Mode  : " . ($isDryRun ? "DRY-RUN (preview saja)" : "LIVE (insert ke DB)") . "\n";
 echo "  Dari  : " . date('d-m-Y', $startTs) . " s/d " . date('d-m-Y', $endTs) . " ({$totalDays} hari)\n";
@@ -170,15 +170,18 @@ foreach ($stores as $store) {
                 }
             }
 
-            // Direct Commit per Order
+            // Direct Commit per Order + Auto-Retry jika Deadlock
             foreach ($missingArr as $mid) {
                 $orderData = $detailMap[$mid] ?? $tiktokOrderMap[$mid] ?? null;
                 if (!$orderData) continue;
 
                 try {
-                    DB::transaction(function() use ($processMethod, $jobInstance, $orderData) {
-                        $processMethod->invoke($jobInstance, $orderData);
-                    });
+                    retry(4, function() use ($processMethod, $jobInstance, $orderData) {
+                        DB::transaction(function() use ($processMethod, $jobInstance, $orderData) {
+                            $processMethod->invoke($jobInstance, $orderData);
+                        });
+                    }, 150);
+
                     $storeNew++;
                     echo "    [+] Saved & Committed: {$mid}\n";
                 } catch (\Exception $e) {

@@ -43,7 +43,7 @@ class SyncMissingTiktokOrders extends Command
         $totalDays = (int)(($endTs - $startTs) / 86400) + 1;
 
         $this->info("======================================================================");
-        $this->info("  SINKRONISASI PESANAN TIKTOK YANG BELUM MASUK ERP");
+        $this->info("  SINKRONISASI PESANAN TIKTOK YANG BELUM MASUK ERP (Auto-Retry Deadlock)");
         $this->info("======================================================================");
         $this->info("  Periode : " . date('d-m-Y', $startTs) . " s/d " . date('d-m-Y', $endTs) . " ({$totalDays} hari)");
         $this->info("  Toko    : " . ($storeId ? "Store ID #{$storeId}" : "Semua toko TikTok aktif"));
@@ -170,16 +170,19 @@ class SyncMissingTiktokOrders extends Command
                         }
                     }
 
-                    // Direct Commit Per Order (Tanpa menunggu batch commit)
-                    // Sehingga bila di-Ctrl+C / dihentikan paksa, order yang sudah tercetak [+] tetap TERSIMPAN PERMANEN
+                    // Otomatis Retry jika terjadi Deadlock / Lock Timeout dari background worker lain
                     foreach ($missingArr as $mid) {
                         $orderData = $detailMap[$mid] ?? $tiktokOrderMap[$mid] ?? null;
                         if (!$orderData) continue;
 
                         try {
-                            DB::transaction(function() use ($processMethod, $jobInstance, $orderData) {
-                                $processMethod->invoke($jobInstance, $orderData);
-                            });
+                            // Retry hingga 4 kali jika kena MySQL Deadlock (1213) atau Lock Timeout (1205)
+                            retry(4, function() use ($processMethod, $jobInstance, $orderData) {
+                                DB::transaction(function() use ($processMethod, $jobInstance, $orderData) {
+                                    $processMethod->invoke($jobInstance, $orderData);
+                                });
+                            }, 150); // jeda 150ms jika bentrok lock
+
                             $storeNew++;
                             $this->line("    <info>[+] Saved & Committed: {$mid}</info>");
                         } catch (\Exception $e) {
