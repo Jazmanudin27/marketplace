@@ -415,10 +415,7 @@ class PullOrdersFromTiktok implements ShouldQueue
             if (!$masterProduct && $sellerSku) {
                 $skuClean = $sellerSku;
                 $masterProduct = MasterProduct::where('tenant_id', $this->store->tenant_id)
-                    ->where(function ($q) use ($skuClean) {
-                        $q->where('sku', $skuClean)
-                          ->orWhereRaw('LOWER(sku) = LOWER(?)', [$skuClean]);
-                    })
+                    ->where('sku', $skuClean)
                     ->first();
             }
 

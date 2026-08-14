@@ -216,10 +216,8 @@ class Order extends Model
                 if (!$masterProductId && !empty($item->sku)) {
                     $skuClean = trim($item->sku);
                     $mpDirect = MasterProduct::where('tenant_id', $this->tenant_id)
-                        ->where(function ($q) use ($skuClean) {
-                            $q->where('sku', $skuClean)
-                              ->orWhereRaw('LOWER(sku) = LOWER(?)', [$skuClean]);
-                        })->first();
+                        ->where('sku', $skuClean)
+                        ->first();
                     if ($mpDirect) {
                         $masterProductId = $mpDirect->id;
                         $item->update(['master_product_id' => $masterProductId]);
