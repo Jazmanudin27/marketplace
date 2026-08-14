@@ -2,12 +2,7 @@
 
 /**
  * ============================================================
- * PULL SEMUA ORDER TIKTOK YANG BELUM ADA DI ERP (Optimized Fast Version)
- * ============================================================
- * Fitur Optimasi:
- * 1. Tarik dalam rentang 7-14 hari (bukan 1 hari) agar jauh lebih cepat
- * 2. Tanpa usleep buatan yang memperlambat proses
- * 3. Pakai data getOrderList langsung (fallback cepat) tanpa menunda
+ * PULL SEMUA ORDER TIKTOK YANG BELUM ADA DI ERP (Live Output Version)
  * ============================================================
  */
 
@@ -51,7 +46,7 @@ if (!$startTs || !$endTs || $startTs > $endTs) {
 $totalDays = (int)(($endTs - $startTs) / 86400) + 1;
 echo "\n";
 echo "======================================================================\n";
-echo "  PULL ORDER TIKTOK (Fast Batch Processing)\n";
+echo "  PULL ORDER TIKTOK (Realtime Batch Processing)\n";
 echo "======================================================================\n";
 echo "  Mode  : " . ($isDryRun ? "DRY-RUN (preview saja)" : "LIVE (insert ke DB)") . "\n";
 echo "  Dari  : " . date('d-m-Y', $startTs) . " s/d " . date('d-m-Y', $endTs) . " ({$totalDays} hari)\n";
@@ -74,7 +69,7 @@ $grandNew    = 0;
 $grandExists = 0;
 $grandError  = 0;
 
-// Chunk periode per 7 hari agar query API cepat & tidak melebihi limit TikTok (max 30 hari)
+// Chunk 7 hari
 $stepSeconds = 7 * 86400;
 
 foreach ($stores as $store) {
@@ -108,7 +103,6 @@ foreach ($stores as $store) {
             $tiktokOrderMap = [];
             $cursor     = '';
             $pageCount  = 0;
-            $prevCursor = null;
 
             do {
                 try {
@@ -125,10 +119,9 @@ foreach ($stores as $store) {
                     if ($oid) $tiktokOrderMap[$oid] = $o;
                 }
 
-                $prevCursor = $cursor;
-                $cursor     = $resp['next_cursor'] ?? '';
-                $hasMore    = $resp['more'] ?? false;
-                if ($cursor === $prevCursor || ++$pageCount > 50) break;
+                $cursor  = $resp['next_cursor'] ?? '';
+                $hasMore = $resp['more'] ?? false;
+                if (++$pageCount > 50) break;
 
             } while ($hasMore && $cursor);
 
@@ -159,18 +152,15 @@ foreach ($stores as $store) {
                 continue;
             }
 
-            echo "BELUM ADA={$missingCnt}";
+            echo "BELUM ADA={$missingCnt}\n";
 
             if ($isDryRun) {
-                echo " [DRY-RUN]\n";
+                echo "    [DRY-RUN] Skip simpan.\n";
                 $storeNew += $missingCnt;
                 $chunkStart = $chunkEnd + 1;
                 continue;
             }
 
-            echo " -> Inserting...\n";
-
-            // Coba getOrderDetail hanya untuk batch order terbaru (< 30 hari)
             $missingArr = array_values($missingIds);
             $detailMap  = [];
 
@@ -189,13 +179,14 @@ foreach ($stores as $store) {
                 }
             }
 
-            // Batch insert
+            // Realtime Output simpan per order
             foreach ($missingArr as $mid) {
                 $orderData = $detailMap[$mid] ?? $tiktokOrderMap[$mid] ?? null;
                 if (!$orderData) continue;
 
                 try {
                     $processMethod->invoke($jobInstance, $orderData);
+                    echo "    + Saved: {$mid}\n";
                     $storeNew++;
                 } catch (\Exception $e) {
                     echo "    [ERROR] {$mid}: " . $e->getMessage() . "\n";
