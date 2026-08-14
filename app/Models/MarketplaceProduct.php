@@ -64,10 +64,7 @@ class MarketplaceProduct extends Model
             if (!$master && !empty($this->marketplace_sku) && $this->store) {
                 $skuClean = trim($this->marketplace_sku);
                 $master = MasterProduct::where('tenant_id', $this->store->tenant_id)
-                    ->where(function ($q) use ($skuClean) {
-                        $q->where('sku', $skuClean)
-                          ->orWhereRaw('LOWER(sku) = LOWER(?)', [$skuClean]);
-                    })
+                    ->where('sku', $skuClean)
                     ->first();
             }
             if ($master) {
@@ -92,10 +89,7 @@ class MarketplaceProduct extends Model
                 if ($store) {
                     $skuClean = trim($product->marketplace_sku);
                     $master = MasterProduct::where('tenant_id', $store->tenant_id)
-                        ->where(function ($q) use ($skuClean) {
-                            $q->where('sku', $skuClean)
-                              ->orWhereRaw('LOWER(sku) = LOWER(?)', [$skuClean]);
-                        })
+                        ->where('sku', $skuClean)
                         ->first();
                     if ($master) {
                         $product->master_product_id = $master->id;

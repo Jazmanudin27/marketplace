@@ -84,10 +84,8 @@ class ReprocessTiktokStock extends Command
                     if (!$masterProduct && !empty($item->sku)) {
                         $skuClean = trim($item->sku);
                         $masterProduct = MasterProduct::where('tenant_id', $order->tenant_id)
-                            ->where(function ($q) use ($skuClean) {
-                                $q->where('sku', $skuClean)
-                                  ->orWhereRaw('LOWER(sku) = LOWER(?)', [$skuClean]);
-                            })->first();
+                            ->where('sku', $skuClean)
+                            ->first();
                     }
 
                     if ($masterProduct) {

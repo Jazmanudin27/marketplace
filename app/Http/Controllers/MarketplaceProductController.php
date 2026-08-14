@@ -352,12 +352,9 @@ class MarketplaceProductController extends Controller
             $skuClean = trim($product->marketplace_sku ?? '');
 
             if ($skuClean !== '') {
-                $master = MasterProduct::where('tenant_id', $tenantId)
-                    ->where(function ($q) use ($skuClean) {
-                        $q->where('sku', $skuClean)
-                          ->orWhereRaw('LOWER(sku) = LOWER(?)', [$skuClean]);
-                    })
-                    ->first();
+                $master = MasterProduct::where('tenant_id', $product->store->tenant_id)
+                            ->where('sku', $skuClean)
+                            ->first();
 
                 if ($master) {
                     if ($product->master_product_id !== $master->id) {
