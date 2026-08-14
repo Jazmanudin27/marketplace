@@ -330,6 +330,7 @@ class PullOrdersFromTiktok implements ShouldQueue
                 'store_id' => $this->store->id,
                 'customer_id' => $customer->id,
                 'order_status' => $erpStatus,
+                'order_date' => $orderDateTime,   // ← FIX: pakai create_time dari TikTok
                 'buyer_name' => $buyerName,
                 'buyer_phone' => $buyerPhone,
                 'shipping_address' => $buyerAddress,
@@ -354,6 +355,7 @@ class PullOrdersFromTiktok implements ShouldQueue
                 'cancelled_by' => $cancelledBy,
             ]
         );
+
 
         // Process Items - Ambil array item dari semua kemungkinan key TikTok API v2
         $itemList = $tiktokOrder['item_list']
