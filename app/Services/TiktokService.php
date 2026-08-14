@@ -306,6 +306,70 @@ class TiktokService
     }
 
     /**
+     * Mendapatkan semua transaksi settlement TikTok Finance by date range (v202309)
+     * Ini adalah sumber data "Waktu pembayaran pesanan" di Seller Center
+     * Endpoint: GET /finance/202309/payments/search
+     *
+     * @param string $accessToken
+     * @param string $shopCipher
+     * @param int    $startTime   Unix timestamp (start)
+     * @param int    $endTime     Unix timestamp (end)
+     * @param string $pageToken   Pagination cursor
+     * @return array  ['transactions' => [...], 'next_page_token' => '...', 'more' => bool]
+     */
+    public function getFinanceTransactions(
+        string $accessToken,
+        string $shopCipher,
+        int $startTime,
+        int $endTime,
+        string $pageToken = ''
+    ): array {
+        // TikTok Finance Search API — mengembalikan semua transaksi keuangan
+        // termasuk pesanan yang sudah dilepas (status = RELEASE)
+        $path = '/finance/202309/payments/search';
+
+        $body = [
+            'create_time_ge' => $startTime,
+            'create_time_lt' => $endTime,
+        ];
+        $bodyJson = json_encode($body);
+
+        $queryParams = [
+            'app_key'    => $this->appKey,
+            'timestamp'  => time(),
+            'shop_cipher'=> $shopCipher,
+            'page_size'  => 50,
+        ];
+
+        if ($pageToken) {
+            $queryParams['page_token'] = $pageToken;
+        }
+
+        $sign = $this->generateSignature($path, $queryParams, $bodyJson);
+        $queryParams['sign']         = $sign;
+        $queryParams['access_token'] = $accessToken;
+
+        $response = Http::timeout(20)->withHeaders([
+            'x-tts-access-token' => $accessToken,
+            'Content-Type'       => 'application/json',
+        ])->post($this->baseUrl . $path . '?' . http_build_query($queryParams), $body);
+
+        $data = $response->json();
+
+        if (isset($data['code']) && $data['code'] !== 0) {
+            throw new \RuntimeException('TikTok Finance API Error: ' . ($data['message'] ?? 'Unknown Error'));
+        }
+
+        $result = $data['data'] ?? [];
+
+        // Standarisasi pagination
+        $result['next_page_token'] = $result['next_page_token'] ?? ($result['page_token'] ?? '');
+        $result['more']            = !empty($result['next_page_token']);
+
+        return $result;
+    }
+
+    /**
      * Mendapatkan daftar produk dari TikTok Shop
      */
     public function getProductSearch(string $accessToken, string $shopCipher, string $pageToken = '')
