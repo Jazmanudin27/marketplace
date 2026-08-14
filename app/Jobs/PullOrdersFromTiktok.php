@@ -110,16 +110,19 @@ class PullOrdersFromTiktok implements ShouldQueue
                 return;
             }
 
-            // OPTIMISASI KILAT: Skip order yang sudah ada dan berstatus COMPLETED/CANCELLED di DB ERP
-            $existingCompletedSns = \App\Models\Order::whereIn('order_marketplace_id', $orderIds)
-                ->whereIn('order_status', ['COMPLETED', 'CANCELLED', 'SELESAI', 'FINISHED', 'BATAL'])
-                ->pluck('order_marketplace_id')
-                ->toArray();
-
-            $neededOrderIds = array_diff($orderIds, $existingCompletedSns);
+            // OPTIMISASI: Skip order yang sudah ada di ERP dengan status final,
+            // NAMUN tetap sertakan order yang statusnya mungkin berubah di Marketplace.
+            // Contoh kasus: di ERP berstatus CANCELLED, tapi di TikTok sudah COMPLETED.
+            // Solusi: Tidak skip sama sekali berdasarkan status lokal — biarkan updateOrCreate
+            // yang menangani perubahan status. Kita hanya skip order yang benar-benar
+            // tidak perlu di-update (belum ada di DB sama sekali tidak perlu dilewati).
+            //
+            // Catatan: Optimasi lama di-disable karena menyebabkan bug status tidak sinkron:
+            // order CANCELLED di ERP tidak pernah diupdate meski TikTok sudah COMPLETED.
+            $neededOrderIds = $orderIds;
 
             if (empty($neededOrderIds)) {
-                Log::info("[TikTok] Semua pesanan TikTok periode ini sudah ada dan selesai di ERP.");
+                Log::info("[TikTok] Tidak ada pesanan TikTok yang perlu diproses untuk toko {$this->store->store_name}.");
                 return;
             }
 

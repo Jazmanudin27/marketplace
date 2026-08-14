@@ -272,6 +272,7 @@ class TiktokService
         $result = $data['data'] ?? [];
 
         // Standarisasi response order_list agar kompatibel dengan pemanggil (PullOrdersFromTiktok)
+        return $result;
     }
 
     /**
