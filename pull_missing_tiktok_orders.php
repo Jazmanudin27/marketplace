@@ -2,12 +2,11 @@
 
 /**
  * ============================================================
- * PULL SEMUA ORDER TIKTOK (ULTRA FAST - Transaction Batching)
+ * PULL SEMUA ORDER TIKTOK (Realtime Stream & Transaction)
  * ============================================================
- * Optimasi Maksimal:
- * 1. Rentang Query API: 30 Hari per Request (Maksimal TikTok API limit)
- * 2. Database Transaction: Membungkus Insert per batch (1 Disk Commit per batch)
- * 3. Kecepatan: 100+ order diproses dalam < 1 detik!
+ * Fitur:
+ * 1. Output Realtime: Cetak log per order yang disimpan
+ * 2. Transaction Batching: Kecepatan tinggi
  * ============================================================
  */
 
@@ -52,7 +51,7 @@ if (!$startTs || !$endTs || $startTs > $endTs) {
 $totalDays = (int)(($endTs - $startTs) / 86400) + 1;
 echo "\n";
 echo "======================================================================\n";
-echo "  PULL ORDER TIKTOK (ULTRA FAST - Transaction Batching)\n";
+echo "  PULL ORDER TIKTOK (Realtime Batch Processing)\n";
 echo "======================================================================\n";
 echo "  Mode  : " . ($isDryRun ? "DRY-RUN (preview saja)" : "LIVE (insert ke DB)") . "\n";
 echo "  Dari  : " . date('d-m-Y', $startTs) . " s/d " . date('d-m-Y', $endTs) . " ({$totalDays} hari)\n";
@@ -74,7 +73,7 @@ $grandNew    = 0;
 $grandExists = 0;
 $grandError  = 0;
 
-// Chunk rentang waktu per 30 hari (Maksimal limit TikTok API dalam 1 query)
+// Chunk rentang waktu per 30 hari
 $stepSeconds = 30 * 86400;
 
 foreach ($stores as $store) {
@@ -184,8 +183,7 @@ foreach ($stores as $store) {
                 }
             }
 
-            // 🚀 BATCH DB TRANSACTION: Kunci kecepatan kilat!
-            // Mengelompokkan semua query simpan ke dalam 1 DB transaction
+            // Realtime save per order + DB transaction
             DB::beginTransaction();
             $batchSuccessCount = 0;
 
@@ -197,6 +195,7 @@ foreach ($stores as $store) {
                     try {
                         $processMethod->invoke($jobInstance, $orderData);
                         $batchSuccessCount++;
+                        echo "    [+] Saved: {$mid}\n";
                     } catch (\Exception $e) {
                         echo "    [ERROR] {$mid}: " . $e->getMessage() . "\n";
                         $storeError++;
@@ -205,7 +204,7 @@ foreach ($stores as $store) {
 
                 DB::commit();
                 $storeNew += $batchSuccessCount;
-                echo "    ⚡ KILAT: {$batchSuccessCount} order berhasil disimpan ke DB sekaligus!\n";
+                echo "    -> Batch Selesai: {$batchSuccessCount} order tersimpan.\n";
 
             } catch (\Exception $eTx) {
                 DB::rollBack();
