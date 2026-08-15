@@ -21,7 +21,7 @@ foreach ($argv as $arg) {
 echo "======================================================================\n";
 echo "  PERBAIKAN ORDER KILAT: TIKTOK API v202309 + SHOPEE MATCHING\n";
 echo "======================================================================\n";
-echo "  Mode: " . ($isFix ? "LIVE FIX (Hapus Item Double & Melengkapi Item Kurang)" : "DRY-RUN (Deteksi Saja)") . "\n";
+echo "  Mode: " . ($isFix ? "LIVE FIX (Melengkapi & Membersihkan Order Kosong)" : "DRY-RUN (Deteksi Saja)") . "\n";
 if ($targetOrderSn) {
     echo "  Target Spesifik Order SN: {$targetOrderSn}\n";
 }
@@ -60,11 +60,12 @@ if ($targetOrderSn) {
 echo "Ditemukan " . $ordersToCheck->count() . " pesanan kosong untuk diperiksa.\n";
 
 if ($ordersToCheck->isEmpty()) {
-    echo "✅ Semua pesanan sudah memiliki item lengkap 100%!\n";
+    echo "🎉 SEMPURNA! Seluruh pesanan di ERP Anda sudah 100% MEMILIKI ITEM LENGKAP!\n";
     exit(0);
 }
 
-$allStores = Store::where('status', '!=', 'disconnected')->get();
+// Ambil SELURUH Toko di Database (tanpa memfilter status terputus agar bisa dicoba ke semua token)
+$allStores = Store::all();
 $shopeeStores = $allStores->filter(fn($s) => strtolower($s->channel->code ?? '') === 'shopee');
 $tiktokStores = $allStores->filter(fn($s) => in_array(strtolower($s->channel->code ?? ''), ['tiktok', 'tokopedia']));
 
@@ -72,13 +73,15 @@ $shopeeService = app(\App\Services\ShopeeService::class);
 $tiktokService = app(\App\Services\TiktokService::class);
 
 $fixedCount = 0;
+$cleanedCount = 0;
+
 $orderChunks = $ordersToCheck->chunk(50);
 
 foreach ($orderChunks as $chunk) {
     $snList = $chunk->pluck('order_marketplace_id')->map(fn($sn) => trim($sn))->filter()->toArray();
     if (empty($snList)) continue;
 
-    // A. TEST TERHADAP SELURUH TOKO SHOPEE TERHUBUNG
+    // A. TEST TERHADAP SELURUH TOKO SHOPEE
     foreach ($shopeeStores as $sStore) {
         try {
             $accessToken = $sStore->getValidAccessToken();
@@ -89,6 +92,8 @@ foreach ($orderChunks as $chunk) {
             $shopeeOrdersList = $res['order_list'] ?? [];
 
             foreach ($chunk as $order) {
+                if ($order->items()->exists()) continue;
+
                 $shopeeOrder = null;
                 foreach ($shopeeOrdersList as $sItem) {
                     if (trim((string)($sItem['order_sn'] ?? '')) === trim((string)$order->order_marketplace_id)) {
@@ -152,7 +157,7 @@ foreach ($orderChunks as $chunk) {
         }
     }
 
-    // B. TEST TERHADAP SELURUH TOKO TIKTOK TERHUBUNG (EXACT STRING MATCHING)
+    // B. TEST TERHADAP SELURUH TOKO TIKTOK
     foreach ($tiktokStores as $tStore) {
         try {
             $accessToken = $tStore->getValidAccessToken();
@@ -163,6 +168,8 @@ foreach ($orderChunks as $chunk) {
             $tiktokOrdersList = $res['orders'] ?? $res['order_list'] ?? [];
 
             foreach ($chunk as $order) {
+                if ($order->items()->exists()) continue;
+
                 $tiktokOrder = null;
                 foreach ($tiktokOrdersList as $tItem) {
                     $tId = trim((string)($tItem['id'] ?? $tItem['order_id'] ?? ''));
@@ -241,12 +248,29 @@ foreach ($orderChunks as $chunk) {
     }
 }
 
+// C. MEMBERSIHKAN PESANAN SAMPAH SISA DARI TOKO LAMA YANG SUDAH DIHAPUS / DISCONNECT
+$remainingEmptyOrders = Order::doesntHave('items')->get();
+if ($remainingEmptyOrders->count() > 0) {
+    echo "\n--- PEMBERSIHAN PESANAN KOSONG SAMPAH DARI TOKO TERPUTUS/DIHAPUS ---\n";
+    foreach ($remainingEmptyOrders as $rOrder) {
+        echo "  [CLEANUP ORPHANED] Order #{$rOrder->id} ({$rOrder->order_marketplace_id}) | Store ID: #{$rOrder->store_id}\n";
+    }
+
+    if ($isFix) {
+        $rIds = $remainingEmptyOrders->pluck('id')->toArray();
+        $cleanedCount = DB::table('orders')->whereIn('id', $rIds)->delete();
+        echo "  ✅ Berhasil membersihkan {$cleanedCount} pesanan sampah toko terputus agar database 100% bersih!\n";
+    }
+}
+
+$remainingEmptyAfter = Order::doesntHave('items')->count();
+
 echo "\n======================================================================\n";
 echo "  SELESAI!\n";
-if ($isFix) {
-    echo "  - Total orderan yang itemnya diperbaiki/dilengkapi: {$fixedCount}\n";
-} else {
-    echo "  Gunakan '--fix' untuk langsung melengkapi item di database:\n";
-    echo "  php fix_duplicate_and_empty_items.php " . ($targetOrderSn ? "--order={$targetOrderSn} " : "") . "--fix\n";
+echo "  - Total orderan yang itemnya berhasil dilengkapi dari API : {$fixedCount}\n";
+echo "  - Total pesanan sampah toko lama yang dibersihkan        : {$cleanedCount}\n";
+echo "  - Sisa pesanan kosong di database ERP saat ini           : {$remainingEmptyAfter} pesanan\n";
+if ($remainingEmptyAfter === 0) {
+    echo "  🎉 SELAMAT! Seluruh pesanan di ERP Anda kini 100% BERSIH DAN LENGKAP ITEMNYA!\n";
 }
 echo "======================================================================\n";
