@@ -219,11 +219,11 @@
                         $retOrder = $order->returnOrder;
                         $refundAmount = $retOrder ? (float)$retOrder->refund_amount : (in_array(strtoupper($order->order_status), ['RETURNED', 'REFUNDED', 'RETURN']) ? (float)$order->total_amount : 0.0);
                         
-                        $calcNet = (float)$order->total_amount - $refundAmount - abs($fees['total_fee']);
-                        if ($calcNet <= 0 && (float)$order->net_amount > 0) {
-                            $finalNet = (float)$order->net_amount;
+                        $absFee = abs($fees['total_fee'] ?? 0);
+                        if ($refundAmount >= (float)$order->total_amount && (float)$order->total_amount > 0) {
+                            $finalNet = $absFee;
                         } else {
-                            $finalNet = max(0.0, $calcNet);
+                            $finalNet = max(0.0, (float)$order->total_amount - $refundAmount - $absFee);
                         }
                     @endphp
 
