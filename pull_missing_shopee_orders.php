@@ -156,7 +156,6 @@ foreach ($stores as $store) {
 
             $existingIds = Order::where('store_id', $store->id)
                 ->whereIn('order_marketplace_id', $allOrderSn)
-                ->whereIn('order_status', ['COMPLETED', 'CANCELLED', 'SELESAI', 'FINISHED', 'BATAL'])
                 ->pluck('order_marketplace_id')
                 ->toArray();
 

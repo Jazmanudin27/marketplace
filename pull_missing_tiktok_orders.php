@@ -150,7 +150,6 @@ foreach ($stores as $store) {
             // Cek mana yang sudah ada di DB ERP
             $existingIds = Order::where('store_id', $store->id)
                 ->whereIn('order_marketplace_id', $allOrderIds)
-                ->whereIn('order_status', ['COMPLETED', 'CANCELLED', 'SELESAI', 'FINISHED', 'BATAL'])
                 ->pluck('order_marketplace_id')
                 ->toArray();
 
