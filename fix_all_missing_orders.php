@@ -11,16 +11,26 @@ use App\Jobs\PullOrdersFromTiktok;
 use App\Jobs\PullOrdersFromShopee;
 use Illuminate\Support\Facades\DB;
 
-echo "======================================================================\n";
-echo "  PULL & PERBAIKAN TOTAL ORDERAN MARKETPLACE (SHOPEE & TIKTOK SHOP)\n";
-echo "======================================================================\n\n";
+$fromDate = '2026-08-01 00:00:00';
+$toDate   = '2026-08-16 23:59:59';
 
-$channels = DB::table('channels')->get();
-echo "DAFTAR CHANNEL DI DATABASE:\n";
-foreach ($channels as $c) {
-    echo "  Channel ID #{$c->id}: Code = '{$c->code}', Name = '{$c->name}'\n";
+foreach ($argv as $arg) {
+    if (str_starts_with($arg, '--from=')) {
+        $fromDate = trim(explode('=', $arg)[1]) . ' 00:00:00';
+    }
+    if (str_starts_with($arg, '--to=')) {
+        $toDate = trim(explode('=', $arg)[1]) . ' 23:59:59';
+    }
 }
-echo "\n";
+
+$timeFrom = strtotime($fromDate);
+$timeTo   = strtotime($toDate);
+
+echo "======================================================================\n";
+echo "  PENARIKAN KILAT ORDER MARKETPLACE PERIODE BULAN AGUSTUS 2026\n";
+echo "======================================================================\n";
+echo "  Rentang Waktu : " . date('Y-m-d H:i:s', $timeFrom) . " s/d " . date('Y-m-d H:i:s', $timeTo) . "\n";
+echo "======================================================================\n\n";
 
 $activeStores = Store::where('status', 'connected')->get();
 echo "Ditemukan " . $activeStores->count() . " Toko Berstatus CONNECTED untuk ditarik orderannya:\n\n";
@@ -35,32 +45,31 @@ foreach ($activeStores as $store) {
     echo "   Channel: {$channelCode} (Channel ID #{$store->channel_id})\n";
 
     if (in_array($channelCode, ['tiktok', 'tiktok_shop', 'tokopedia']) || $store->channel_id == 3) {
-        echo "   🚀 Memulai Penarikan & Pembaruan Order TikTok Shop (15 Hari Terakhir)...\n";
+        echo "   🚀 Memulai Penarikan & Pembaruan Order TikTok Shop (Agustus 2026)...\n";
         try {
-            // Jalankan penarikan 15 hari ke belakang
-            $timeFrom = now()->subDays(15)->timestamp;
-            $timeTo = now()->timestamp;
-            
             $job = new PullOrdersFromTiktok($store, $timeFrom, $timeTo, false);
             $job->handle(app(\App\Services\TiktokService::class));
             
-            $count = DB::table('orders')->where('store_id', $store->id)->count();
-            echo "   ✅ SUKSES! Total orderan di toko ini sekarang: {$count} pesanan.\n";
+            $count = DB::table('orders')
+                ->where('store_id', $store->id)
+                ->whereBetween('order_date', [$fromDate, $toDate])
+                ->count();
+            echo "   ✅ SUKSES! Total orderan di toko ini pada 1-16 Agustus: {$count} pesanan.\n";
             $tiktokCount++;
         } catch (\Throwable $e) {
             echo "   ❌ Error TikTok Shop Toko #{$store->id}: " . $e->getMessage() . "\n";
         }
     } elseif ($channelCode === 'shopee' || $store->channel_id == 1) {
-        echo "   🚀 Memulai Penarikan & Pembaruan Order Shopee (15 Hari Terakhir)...\n";
+        echo "   🚀 Memulai Penarikan & Pembaruan Order Shopee (Agustus 2026)...\n";
         try {
-            $timeFrom = now()->subDays(15)->timestamp;
-            $timeTo = now()->timestamp;
-
             $job = new PullOrdersFromShopee($store, $timeFrom, $timeTo, false);
             $job->handle(app(\App\Services\ShopeeService::class));
 
-            $count = DB::table('orders')->where('store_id', $store->id)->count();
-            echo "   ✅ SUKSES! Total orderan di toko ini sekarang: {$count} pesanan.\n";
+            $count = DB::table('orders')
+                ->where('store_id', $store->id)
+                ->whereBetween('order_date', [$fromDate, $toDate])
+                ->count();
+            echo "   ✅ SUKSES! Total orderan di toko ini pada 1-16 Agustus: {$count} pesanan.\n";
             $shopeeCount++;
         } catch (\Throwable $e) {
             echo "   ❌ Error Shopee Toko #{$store->id}: " . $e->getMessage() . "\n";
@@ -69,5 +78,5 @@ foreach ($activeStores as $store) {
 }
 
 echo "\n======================================================================\n";
-echo "  SELESAI! SINKRONISASI PENUH SEMUA TOKO MARKEPLACE TELAH DIPROSES!\n";
+echo "  SELESAI! SINKRONISASI PENUH PERIODE AGUSTUS 2026 TELAH DIPROSES!\n";
 echo "======================================================================\n";
