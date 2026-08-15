@@ -212,11 +212,9 @@ class MasterProduct extends Model
              
         // 4. Push stok ke API Marketplace secara otomatis (Shopee, TikTok, dll)
         try {
-            if (app()->runningInConsole()) {
-                \App\Jobs\PushStockToMarketplaces::dispatchSync($this->id, $newStock);
-            } else {
-                \App\Jobs\PushStockToMarketplaces::dispatch($this->id, $newStock);
-            }
+            // Selalu gunakan async dispatch agar request HTTP API marketplace 
+            // tidak menahan lock transaksi MySQL (mencegah Lock Wait Timeout 1205)
+            \App\Jobs\PushStockToMarketplaces::dispatch($this->id, $newStock);
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::warning('[StockSync] Push stock error: ' . $e->getMessage());
         }

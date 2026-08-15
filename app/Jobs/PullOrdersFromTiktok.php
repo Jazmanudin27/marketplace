@@ -197,7 +197,15 @@ class PullOrdersFromTiktok implements ShouldQueue
 
         if (isset(self::$customerCache[$cacheKey])) {
             $customer = self::$customerCache[$cacheKey];
+            if (!Customer::where('id', $customer->id)->exists()) {
+                unset(self::$customerCache[$cacheKey]);
+                $customer = null;
+            }
         } else {
+            $customer = null;
+        }
+
+        if (!$customer) {
             if ($buyerPhone) {
                 $customer = Customer::firstOrCreate(
                     [

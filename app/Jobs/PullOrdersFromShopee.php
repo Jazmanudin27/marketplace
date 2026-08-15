@@ -146,7 +146,15 @@ class PullOrdersFromShopee implements ShouldQueue
 
         if (isset(self::$customerCache[$cacheKey])) {
             $customer = self::$customerCache[$cacheKey];
+            if (!\App\Models\Customer::where('id', $customer->id)->exists()) {
+                unset(self::$customerCache[$cacheKey]);
+                $customer = null;
+            }
         } else {
+            $customer = null;
+        }
+
+        if (!$customer) {
             if ($username) {
                 $customer = \App\Models\Customer::firstOrCreate(
                     [
