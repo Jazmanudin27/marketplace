@@ -78,7 +78,7 @@ class SyncOrderFees extends Command
                     if ($escrowAmount > 0) {
                         $order->net_amount = $escrowAmount;
                     } else {
-                        $order->net_amount = max(0.0, (float)$order->total_amount - (float)$order->discount_amount - $totalFee);
+                        $order->net_amount = max(0.0, (float)$order->total_amount - $totalFee);
                     }
 
                     $order->saveQuietly();
