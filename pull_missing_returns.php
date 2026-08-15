@@ -24,13 +24,10 @@ echo "  Jangkauan : {$days} hari terakhir\n";
 echo "======================================================================\n\n";
 
 $stores = Store::where('status', '!=', 'disconnected')->get();
-$timeFrom = now()->subDays($days)->timestamp;
-$timeTo = now()->timestamp;
-
 $totalApiReturns = 0;
 $totalErpStatusReturns = 0;
 
-// 1. PULL DARI API SHOPEE & TIKTOK (90 HARI)
+// 1. PULL DARI API SHOPEE & TIKTOK
 foreach ($stores as $store) {
     $channelCode = strtolower($store->channel->code ?? '');
     echo "🏬 Toko: {$store->name} ({$channelCode})\n";
@@ -50,45 +47,60 @@ foreach ($stores as $store) {
                 continue;
             }
 
-            $res = $shopeeService->getReturnList($accessToken, $shopId, 0, 100, $timeFrom, $timeTo);
-            $returnList = $res['return'] ?? [];
-            echo "  Ditemukan " . count($returnList) . " kasus retur di Shopee API (90 hari).\n";
+            // Shopee membatasi interval maksimal 15 hari per request.
+            // Kita bagi rentang 90 hari menjadi blok-blok 15 hari (6 blok)
+            $storeReturnCount = 0;
+            $stepDays = 15;
+            for ($startDay = 0; $startDay < $days; $startDay += $stepDays) {
+                $endDay = min($days, $startDay + $stepDays);
+                $timeFrom = now()->subDays($endDay)->timestamp;
+                $timeTo = now()->subDays($startDay)->timestamp;
 
-            foreach ($returnList as $rItem) {
-                $returnSn = $rItem['return_sn'];
-                $detail = $shopeeService->getReturnDetail($accessToken, $shopId, $returnSn);
+                try {
+                    $res = $shopeeService->getReturnList($accessToken, $shopId, 0, 100, $timeFrom, $timeTo);
+                    $returnList = $res['return'] ?? [];
 
-                if (empty($detail)) continue;
+                    foreach ($returnList as $rItem) {
+                        $returnSn = $rItem['return_sn'];
+                        $detail = $shopeeService->getReturnDetail($accessToken, $shopId, $returnSn);
 
-                $orderSn = $detail['order_sn'] ?? null;
-                $order = Order::where('tenant_id', $store->tenant_id)
-                    ->where('order_marketplace_id', $orderSn)
-                    ->first();
+                        if (empty($detail)) continue;
 
-                $refundAmt = (float) ($detail['refund_amount'] ?? 0);
-                if ($refundAmt == 0 && $order) {
-                    $refundAmt = (float) $order->total_amount;
+                        $orderSn = $detail['order_sn'] ?? null;
+                        $order = Order::where('tenant_id', $store->tenant_id)
+                            ->where('order_marketplace_id', $orderSn)
+                            ->first();
+
+                        $refundAmt = (float) ($detail['refund_amount'] ?? 0);
+                        if ($refundAmt == 0 && $order) {
+                            $refundAmt = (float) $order->total_amount;
+                        }
+
+                        ReturnOrder::updateOrCreate(
+                            [
+                                'tenant_id' => $store->tenant_id,
+                                'return_sn' => $returnSn,
+                            ],
+                            [
+                                'store_id' => $store->id,
+                                'order_id' => $order ? $order->id : null,
+                                'return_tracking_number' => $detail['tracking_number'] ?? null,
+                                'shipping_provider' => $detail['shipping_carrier'] ?? null,
+                                'reason' => $detail['reason'] ?? 'Shopee Return',
+                                'status' => strtoupper($detail['status'] ?? 'COMPLETED'),
+                                'refund_amount' => $refundAmt,
+                                'created_at' => date('Y-m-d H:i:s', $detail['create_time'] ?? time()),
+                                'updated_at' => now(),
+                            ]
+                        );
+                        $storeReturnCount++;
+                        $totalApiReturns++;
+                    }
+                } catch (\Throwable $subE) {
+                    // Lanjutkan blok berikutnya jika ada error di 1 blok
                 }
-
-                ReturnOrder::updateOrCreate(
-                    [
-                        'tenant_id' => $store->tenant_id,
-                        'return_sn' => $returnSn,
-                    ],
-                    [
-                        'store_id' => $store->id,
-                        'order_id' => $order ? $order->id : null,
-                        'return_tracking_number' => $detail['tracking_number'] ?? null,
-                        'shipping_provider' => $detail['shipping_carrier'] ?? null,
-                        'reason' => $detail['reason'] ?? 'Shopee Return',
-                        'status' => strtoupper($detail['status'] ?? 'COMPLETED'),
-                        'refund_amount' => $refundAmt,
-                        'created_at' => date('Y-m-d H:i:s', $detail['create_time'] ?? time()),
-                        'updated_at' => now(),
-                    ]
-                );
-                $totalApiReturns++;
             }
+            echo "  -> Total {$storeReturnCount} kasus retur ditarik dari API Shopee ({$days} hari).\n";
         } catch (\Throwable $e) {
             echo "  [ERROR Shopee API] " . $e->getMessage() . "\n";
         }
@@ -107,7 +119,7 @@ foreach ($stores as $store) {
                 continue;
             }
 
-            // TikTok Reverse API Search
+            // Fetch return list dari TikTok
             $res = $tiktokService->getReturnList($accessToken, $shopCipher, 1, 100);
             $returnList = $res['returns'] ?? $res['return_list'] ?? [];
             echo "  Ditemukan " . count($returnList) . " kasus retur di TikTok API.\n";
@@ -151,29 +163,33 @@ foreach ($stores as $store) {
 
 // 2. REKONSILIASI OTOMATIS: DARI PESANAN BERSTATUS RETURNED / REFUNDED DI ERP
 echo "\n--- 2. REKONSILIASI PESANAN BERSTATUS RETURNED/REFUNDED DI ERP ---\n";
-$returnedOrders = Order::whereIn('order_status', ['RETURNED', 'REFUNDED', 'RETURN', 'CANCELLED'])
+$returnedOrders = Order::where(function($q) {
+        $q->whereIn('order_status', ['RETURNED', 'REFUNDED', 'RETURN'])
+          ->orWhere('cancel_reason', 'LIKE', '%retur%')
+          ->orWhere('cancel_reason', 'LIKE', '%refund%')
+          ->orWhere('cancel_reason', 'LIKE', '%kembali%');
+    })
     ->where('order_date', '>=', now()->subDays($days))
     ->get();
 
 echo "Memeriksa " . $returnedOrders->count() . " pesanan berstatus retur/refund di ERP...\n";
 
 foreach ($returnedOrders as $order) {
-    if (in_array(strtoupper($order->order_status), ['RETURNED', 'REFUNDED', 'RETURN'])) {
-        $exists = ReturnOrder::where('order_id', $order->id)->exists();
-        if (!$exists) {
-            ReturnOrder::create([
-                'tenant_id'     => $order->tenant_id,
-                'store_id'      => $order->store_id,
-                'order_id'      => $order->id,
-                'return_sn'     => 'RET-' . $order->order_marketplace_id,
-                'reason'        => 'Pengembalian / Refund Pesanan (' . $order->order_status . ')',
-                'status'        => 'COMPLETED',
-                'refund_amount' => (float) $order->total_amount,
-                'created_at'    => $order->completed_at ?? $order->order_date ?? now(),
-                'updated_at'    => now(),
-            ]);
-            $totalErpStatusReturns++;
-        }
+    $exists = ReturnOrder::where('order_id', $order->id)->exists();
+    if (!$exists) {
+        ReturnOrder::create([
+            'tenant_id'     => $order->tenant_id,
+            'store_id'      => $order->store_id,
+            'order_id'      => $order->id,
+            'return_sn'     => 'RET-' . $order->order_marketplace_id,
+            'reason'        => $order->cancel_reason ?: ('Pengembalian / Refund Pesanan (' . $order->order_status . ')'),
+            'status'        => 'COMPLETED',
+            'refund_amount' => (float) $order->total_amount,
+            'created_at'    => $order->completed_at ?? $order->order_date ?? now(),
+            'updated_at'    => now(),
+        ]);
+        $totalErpStatusReturns++;
+        echo "  [RECONCILED] Order #{$order->id} ({$order->order_marketplace_id}) -> Dibuatkan Catatan Retur (Rp " . number_format($order->total_amount, 0, ',', '.') . ")\n";
     }
 }
 
