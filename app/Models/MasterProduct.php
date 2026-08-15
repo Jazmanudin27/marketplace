@@ -11,6 +11,7 @@ use App\Models\Category;
 use App\Models\Brand;
 use App\Models\Tenant;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class MasterProduct extends Model
 {
@@ -72,21 +73,21 @@ class MasterProduct extends Model
 
     public function components(): BelongsToMany
     {
-        return $this->belongsToMany(MasterProduct::class, 'product_bundles', 'bundle_id', 'component_id')
+        return $this->belongsToMany(MasterProduct::class, 'master_product_bundles', 'parent_id', 'child_id')
                     ->withPivot('quantity')
                     ->withTimestamps();
     }
 
     public function bundles(): BelongsToMany
     {
-        return $this->belongsToMany(MasterProduct::class, 'product_bundles', 'component_id', 'bundle_id')
+        return $this->belongsToMany(MasterProduct::class, 'master_product_bundles', 'child_id', 'parent_id')
                     ->withPivot('quantity')
                     ->withTimestamps();
     }
 
     public function getStockAttribute()
     {
-        if ($this->is_bundle) {
+        if ($this->is_bundle && Schema::hasTable('master_product_bundles')) {
             $comps = $this->components;
             if ($comps->isEmpty()) {
                 return 0;
@@ -101,7 +102,7 @@ class MasterProduct extends Model
 
     public function getCostPriceAttribute()
     {
-        if ($this->is_bundle) {
+        if ($this->is_bundle && Schema::hasTable('master_product_bundles')) {
             $comps = $this->components;
             if ($comps->isEmpty()) {
                 return 0.0;
@@ -118,7 +119,7 @@ class MasterProduct extends Model
      */
     public function recordStockMovement(int $quantity, string $type, string $reference, ?int $userId = null, ?string $date = null): void
     {
-        if ($this->is_bundle) {
+        if ($this->is_bundle && Schema::hasTable('master_product_bundles')) {
             // Deduct components instead of bundle parent directly
             foreach ($this->components as $component) {
                 $compQty = $quantity * $component->pivot->quantity;
@@ -197,7 +198,6 @@ class MasterProduct extends Model
             ]);
              
         // 4. 🚀 Push stok ke API Marketplace secara ASYNC / NON-BLOCKING
-        // Pengguna tidak perlu menunggu HTTP request API toko selesai (langsung redirect simpan instan!)
         try {
             DB::afterCommit(function() use ($newStock) {
                 if (function_exists('dispatchAfterResponse')) {
