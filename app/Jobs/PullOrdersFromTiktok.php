@@ -410,75 +410,69 @@ class PullOrdersFromTiktok implements ShouldQueue
             OrderItem::where('order_id', $order->id)->delete();
         }
 
-        foreach ($itemList as $item) {
-            $masterProduct = null;
-            $skuId = !empty($item['sku_id']) ? (string) $item['sku_id'] : null;
-            $productId = !empty($item['product_id']) ? (string) $item['product_id'] : (!empty($item['id']) ? (string) $item['id'] : null);
-            $sellerSku = $item['seller_sku'] ?? $item['sku'] ?? $item['seller_sku_id'] ?? $item['sku_seller_id'] ?? null;
+        if (!empty($itemList)) {
+            $insertRows = [];
+            foreach ($itemList as $item) {
+                $productId = (string)($item['product_id'] ?? '');
+                $skuId     = (string)($item['sku_id'] ?? '');
+                $sellerSku = $item['seller_sku'] ?? $item['sku'] ?? null;
 
-            if ($sellerSku) {
-                $sellerSku = trim($sellerSku);
-            }
+                $marketplaceProduct = null;
+                if ($productId) {
+                    $query = \App\Models\MarketplaceProduct::where('store_id', $this->store->id)
+                        ->where('marketplace_product_id', $productId);
+                    if ($skuId) {
+                        $query->where('marketplace_variant_id', $skuId);
+                    }
+                    $marketplaceProduct = $query->first();
 
-            $marketplaceProduct = null;
-
-            // 1. Cari MarketplaceProduct berdasarkan store_id + variant_id (jika varian tersedia)
-            if ($skuId) {
-                $marketplaceProduct = \App\Models\MarketplaceProduct::where('store_id', $this->store->id)
-                    ->where('marketplace_variant_id', $skuId)
-                    ->first();
-            }
-
-            // 2. Fallback: Cari MarketplaceProduct berdasarkan store_id + product_id
-            if (!$marketplaceProduct && $productId) {
-            if ($productId) {
-                $query = \App\Models\MarketplaceProduct::where('store_id', $this->store->id)
-                    ->where('marketplace_product_id', $productId);
-                if ($skuId) {
-                    $query->where('marketplace_variant_id', $skuId);
+                    if (!$marketplaceProduct && $skuId) {
+                        $marketplaceProduct = \App\Models\MarketplaceProduct::where('store_id', $this->store->id)
+                            ->where('marketplace_product_id', $productId)
+                            ->first();
+                    }
                 }
-                $marketplaceProduct = $query->first();
 
-                if (!$marketplaceProduct && $skuId) {
-                    $marketplaceProduct = \App\Models\MarketplaceProduct::where('store_id', $this->store->id)
-                        ->where('marketplace_product_id', $productId)
+                $masterProduct = $marketplaceProduct ? $marketplaceProduct->masterProduct : null;
+                if (!$masterProduct && $sellerSku) {
+                    $skuClean = trim($sellerSku);
+                    $masterProduct = \App\Models\MasterProduct::where('tenant_id', $this->store->tenant_id)
+                        ->where('sku', $skuClean)
                         ->first();
                 }
+
+                $marketplaceProductId = $marketplaceProduct ? $marketplaceProduct->id : null;
+                $masterProductId = $masterProduct ? $masterProduct->id : null;
+
+                // Snapshot HPP dari MasterProduct saat pesanan dibuat
+                $costPrice = $masterProduct ? (float) $masterProduct->cost_price : 0;
+                $qty = (int) ($item['quantity'] ?? 1);
+                
+                // Standardisasi harga
+                $price = $item['sku_sale_price'] ?? $item['sale_price'] ?? $item['price'] ?? $item['sku_original_price'] ?? $item['original_price'] ?? 0;
+                $price = (float) $price;
+
+                $itemSku = $sellerSku ?: ($skuId ?: ($productId ?: 'TIKTOK-ITEM-' . rand(100, 999)));
+
+                $insertRows[] = [
+                    'order_id'               => $order->id,
+                    'sku'                    => $itemSku,
+                    'marketplace_product_id' => $marketplaceProductId,
+                    'master_product_id'      => $masterProductId,
+                    'product_name'           => mb_substr($item['product_name'] ?? $item['item_name'] ?? 'TikTok Item', 0, 250),
+                    'price'                  => $price,
+                    'quantity'               => $qty,
+                    'total_price'            => $price * $qty,
+                    'cost_price'             => $costPrice,
+                    'hpp_subtotal'           => $costPrice * $qty,
+                    'created_at'             => now(),
+                    'updated_at'             => now(),
+                ];
             }
 
-            $masterProduct = $marketplaceProduct ? $marketplaceProduct->masterProduct : null;
-            if (!$masterProduct && $sellerSku) {
-                $skuClean = trim($sellerSku);
-                $masterProduct = \App\Models\MasterProduct::where('tenant_id', $this->store->tenant_id)
-                    ->where('sku', $skuClean)
-                    ->first();
+            if (!empty($insertRows)) {
+                \Illuminate\Support\Facades\DB::table('order_items')->insert($insertRows);
             }
-
-            $marketplaceProductId = $marketplaceProduct ? $marketplaceProduct->id : null;
-            $masterProductId = $masterProduct ? $masterProduct->id : null;
-
-            // Snapshot HPP dari MasterProduct saat pesanan dibuat
-            $costPrice = $masterProduct ? (float) $masterProduct->cost_price : 0;
-            $qty = $item['quantity'] ?? 1;
-            
-            // Standardisasi harga
-            $price = $item['sku_sale_price'] ?? $item['sale_price'] ?? $item['price'] ?? $item['sku_original_price'] ?? $item['original_price'] ?? 0;
-            $price = (float) $price;
-
-            $itemSku = $sellerSku ?: ($skuId ?: ($productId ?: 'TIKTOK-ITEM-' . rand(100, 999)));
-
-            OrderItem::create([
-                'order_id'               => $order->id,
-                'sku'                    => $itemSku,
-                'marketplace_product_id' => $marketplaceProductId,
-                'master_product_id'      => $masterProductId,
-                'product_name'           => $item['product_name'] ?? $item['item_name'] ?? 'TikTok Item',
-                'price'                  => $price,
-                'quantity'               => $qty,
-                'total_price'            => $price * $qty,
-                'cost_price'             => $costPrice,
-                'hpp_subtotal'           => $costPrice * $qty,
-            ]);
         }
 
         // Unset relation memory cache agar processStockDeduction membaca item terbaru dari DB
