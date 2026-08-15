@@ -2,75 +2,62 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use App\Models\Category;
+use App\Models\Brand;
+use App\Models\Tenant;
+use Illuminate\Support\Facades\DB;
 
 class MasterProduct extends Model
 {
+    use HasFactory;
+
     protected $fillable = [
         'tenant_id',
-        'sku',
-        'sku_induk',
+        'category_id',
+        'brand_id',
         'name',
+        'sku',
+        'barcode',
         'description',
-        'weight',
-        'length',
-        'width',
-        'height',
-        'image_url',
-        'price',
-        'reseller_price',
         'cost_price',
-        'shopee_price',
-        'tiktok_price',
-        'lazada_price',
-        'shopee_dropship_price',
-        'tiktok_dropship_price',
-        'lazada_dropship_price',
+        'price',
         'stock',
         'min_stock',
-        'unit',
-        'category_id',
-        'sub_kategori',
-        'brand_id',
-        'is_active',
-        'ukuran',
-        'warna',
+        'safety_stock',
         'is_preorder',
-        'preorder_days',
         'is_bundle',
+        'image',
+        'status',
     ];
 
     protected $casts = [
-        'price'                 => 'decimal:2',
-        'reseller_price'        => 'decimal:2',
-        'cost_price'            => 'decimal:2',
-        'shopee_price'          => 'decimal:2',
-        'tiktok_price'          => 'decimal:2',
-        'lazada_price'          => 'decimal:2',
-        'shopee_dropship_price' => 'decimal:2',
-        'tiktok_dropship_price' => 'decimal:2',
-        'lazada_dropship_price' => 'decimal:2',
-        'is_active'             => 'boolean',
-        'is_preorder'           => 'boolean',
-        'preorder_days'         => 'integer',
-        'is_bundle'             => 'boolean',
+        'cost_price' => 'decimal:2',
+        'price' => 'decimal:2',
+        'stock' => 'integer',
+        'min_stock' => 'integer',
+        'safety_stock' => 'integer',
+        'is_preorder' => 'boolean',
+        'is_bundle' => 'boolean',
     ];
-
-    public function category()
-    {
-        return $this->belongsTo(Category::class);
-    }
-
-    public function brand()
-    {
-        return $this->belongsTo(Brand::class);
-    }
 
     public function tenant(): BelongsTo
     {
         return $this->belongsTo(Tenant::class);
+    }
+
+    public function category(): BelongsTo
+    {
+        return $this->belongsTo(Category::class);
+    }
+
+    public function brand(): BelongsTo
+    {
+        return $this->belongsTo(Brand::class);
     }
 
     public function marketplaceProducts(): HasMany
@@ -78,21 +65,23 @@ class MasterProduct extends Model
         return $this->hasMany(MarketplaceProduct::class, 'master_product_id');
     }
 
-    public function orderItems(): HasMany
+    public function stockMovements(): HasMany
     {
-        return $this->hasMany(OrderItem::class);
+        return $this->hasMany(StockMovement::class, 'master_product_id');
     }
 
-    public function activeRecipe()
+    public function components(): BelongsToMany
     {
-        return $this->hasOne(ProductRecipe::class, 'master_product_id')->where('is_active', true);
+        return $this->belongsToMany(MasterProduct::class, 'product_bundles', 'bundle_id', 'component_id')
+                    ->withPivot('quantity')
+                    ->withTimestamps();
     }
 
-    public function components()
+    public function bundles(): BelongsToMany
     {
-        return $this->belongsToMany(MasterProduct::class, 'master_product_bundles', 'parent_id', 'child_id')
-            ->withPivot('quantity')
-            ->withTimestamps();
+        return $this->belongsToMany(MasterProduct::class, 'product_bundles', 'component_id', 'bundle_id')
+                    ->withPivot('quantity')
+                    ->withTimestamps();
     }
 
     public function getStockAttribute()
@@ -125,7 +114,7 @@ class MasterProduct extends Model
     }
 
     /**
-     * Catat pergerakan stok, perbarui stok lokal, dan sinkronisasikan ke marketplace.
+     * Catat pergerakan stok, perbarui stok lokal kilat, dan push async ke toko marketplace.
      */
     public function recordStockMovement(int $quantity, string $type, string $reference, ?int $userId = null, ?string $date = null): void
     {
@@ -137,33 +126,33 @@ class MasterProduct extends Model
             }
 
             // Sync parent set stock to connected marketplace listings
-            $newStock = $this->stock; // Calls getStockAttribute() dynamically
-            MarketplaceProduct::where(function ($q) {
-                $q->where('master_product_id', $this->id);
-                if ($this->sku) {
-                    $q->orWhere('marketplace_sku', $this->sku);
-                }
-            })->each(function ($mp) use ($newStock) {
-                $mp->update([
+            $newStock = $this->stock;
+            
+            DB::table('marketplace_products')
+                ->where('master_product_id', $this->id)
+                ->when($this->sku, fn($q) => $q->orWhere('marketplace_sku', $this->sku))
+                ->update([
                     'master_product_id' => $this->id,
                     'stock' => $newStock,
                     'sync_stock' => true,
+                    'updated_at' => now(),
                 ]);
-            });
 
             try {
-                if (app()->runningInConsole()) {
-                    \App\Jobs\PushStockToMarketplaces::dispatchSync($this->id, $newStock);
-                } else {
-                    \App\Jobs\PushStockToMarketplaces::dispatch($this->id, $newStock);
-                }
+                DB::afterCommit(function() use ($newStock) {
+                    if (function_exists('dispatchAfterResponse')) {
+                        \App\Jobs\PushStockToMarketplaces::dispatchAfterResponse($this->id, $newStock);
+                    } else {
+                        \App\Jobs\PushStockToMarketplaces::dispatch($this->id, $newStock);
+                    }
+                });
             } catch (\Exception $e) {
                 \Illuminate\Support\Facades\Log::warning('[StockSync] Push bundle stock error: ' . $e->getMessage());
             }
             return;
         }
 
-        // 1. Update stok
+        // 1. Update stok master
         if ($type === 'out') {
             $this->decrement('stock', abs($quantity));
             $actualQty = -abs($quantity);
@@ -172,7 +161,7 @@ class MasterProduct extends Model
             $actualQty = abs($quantity);
         } else {
             // type == 'adj' (penyesuaian manual)
-            $this->increment('stock', $quantity); // quantity can be negative or positive
+            $this->increment('stock', $quantity);
             $actualQty = $quantity;
         }
 
@@ -196,113 +185,29 @@ class MasterProduct extends Model
         // 2. Catat ke stock_movements
         StockMovement::create($movementData);
 
-        // 3. Sinkronisasi ke semua marketplace produk yang terhubung (by ID maupun SKU)
-        MarketplaceProduct::where(function ($q) {
-            $q->where('master_product_id', $this->id);
-            if ($this->sku) {
-                $q->orWhere('marketplace_sku', $this->sku);
-            }
-        })->get()->each(function ($mp) use ($newStock) {
-            $mp->update([
+        // 3. ⚡ Bulk Update ke seluruh marketplace_products lokal dalam 1 Query (KILAT)
+        DB::table('marketplace_products')
+            ->where('master_product_id', $this->id)
+            ->when($this->sku, fn($q) => $q->orWhere('marketplace_sku', $this->sku))
+            ->update([
                 'master_product_id' => $this->id,
                 'stock' => $newStock,
                 'sync_stock' => true,
+                'updated_at' => now(),
             ]);
-        });
              
-        // 4. Push stok ke API Marketplace secara otomatis (Shopee, TikTok, dll)
+        // 4. 🚀 Push stok ke API Marketplace secara ASYNC / NON-BLOCKING
+        // Pengguna tidak perlu menunggu HTTP request API toko selesai (langsung redirect simpan instan!)
         try {
-            // Selalu gunakan async dispatch agar request HTTP API marketplace 
-            // tidak menahan lock transaksi MySQL (mencegah Lock Wait Timeout 1205)
-            \App\Jobs\PushStockToMarketplaces::dispatch($this->id, $newStock);
+            DB::afterCommit(function() use ($newStock) {
+                if (function_exists('dispatchAfterResponse')) {
+                    \App\Jobs\PushStockToMarketplaces::dispatchAfterResponse($this->id, $newStock);
+                } else {
+                    \App\Jobs\PushStockToMarketplaces::dispatch($this->id, $newStock);
+                }
+            });
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::warning('[StockSync] Push stock error: ' . $e->getMessage());
         }
-
-        // 5. Update bundle parent stocks if this product is a component of any bundle
-        $parentIds = \Illuminate\Support\Facades\DB::table('master_product_bundles')
-            ->where('child_id', $this->id)
-            ->pluck('parent_id');
-
-        if ($parentIds->isNotEmpty()) {
-            $parentBundles = MasterProduct::whereIn('id', $parentIds)
-                ->where('is_bundle', true)
-                ->get();
-
-            foreach ($parentBundles as $parent) {
-                $parentStock = $parent->stock; // Recalculates dynamically from component stocks
-                MarketplaceProduct::where(function ($q) use ($parent) {
-                    $q->where('master_product_id', $parent->id);
-                    if ($parent->sku) {
-                        $q->orWhere('marketplace_sku', $parent->sku);
-                    }
-                })->get()->each(function ($mp) use ($parent, $parentStock) {
-                    $mp->update([
-                        'master_product_id' => $parent->id,
-                        'stock' => $parentStock,
-                        'sync_stock' => true,
-                    ]);
-                });
-
-                try {
-                    if (app()->runningInConsole()) {
-                        \App\Jobs\PushStockToMarketplaces::dispatchSync($parent->id, $parentStock);
-                    } else {
-                        \App\Jobs\PushStockToMarketplaces::dispatch($parent->id, $parentStock);
-                    }
-                } catch (\Exception $e) {}
-            }
-        }
-    }
-
-    /**
-     * Backward compatibility
-     */
-    public function decrementStock(int $qty): void
-    {
-        $this->recordStockMovement($qty, 'out', 'System decrement', null);
-    }
-
-    public function recipes(): HasMany
-    {
-        return $this->hasMany(ProductRecipe::class);
-    }
-
-    /**
-     * Boot model listener untuk otomatis menautkan MarketplaceProduct yang cocok dengan SKU
-     */
-    protected static function booted()
-    {
-        static::saved(function (MasterProduct $master) {
-            if (!empty($master->sku)) {
-                $skuClean = trim($master->sku);
-                MarketplaceProduct::whereHas('store', function ($q) use ($master) {
-                        $q->where('tenant_id', $master->tenant_id);
-                    })
-                    ->where('marketplace_sku', $skuClean)
-                    ->where(function ($q) use ($master) {
-                        $q->whereNull('master_product_id')
-                          ->orWhere('master_product_id', '!=', $master->id);
-                    })
-                    ->update([
-                        'master_product_id' => $master->id,
-                        'sync_stock' => true
-                    ]);
-            }
-        });
-    }
-
-    /**
-     * Cek apakah produk master terhubung ke setidaknya 1 toko marketplace
-     */
-    public function isLinked(): bool
-    {
-        if (!$this->relationLoaded('marketplaceProducts')) {
-            $this->load('marketplaceProducts');
-        }
-
-        return $this->marketplaceProducts->filter(function ($mp) {
-            return empty($mp->marketplace_sku) || strtolower(trim($mp->marketplace_sku)) === strtolower(trim($this->sku));
-        })->isNotEmpty();
     }
 }
