@@ -51,7 +51,7 @@ $emptyOrderIds = DB::select("
     FROM orders o 
     LEFT JOIN order_items i ON o.id = i.order_id 
     WHERE i.id IS NULL 
-    LIMIT 200
+    LIMIT 300
 ");
 
 echo "Ditemukan " . count($emptyOrderIds) . " pesanan tanpa item.\n";
@@ -69,8 +69,19 @@ if ($isFix && count($emptyOrderIds) > 0) {
             $channelCode = strtolower($store->channel->code ?? '');
             if ($channelCode === 'shopee') {
                 $shopeeService = app(\App\Services\ShopeeService::class);
-                $accessToken = $store->shopee_access_token;
-                $shopId = (int) $store->shopee_shop_id;
+                
+                try {
+                    $accessToken = $store->getValidAccessToken();
+                } catch (\Throwable $te) {
+                    $accessToken = null;
+                }
+                
+                $shopId = (int) ($store->marketplace_store_id ?: $store->shopee_shop_id);
+
+                if (empty($accessToken) || empty($shopId)) {
+                    echo "    -> [SKIP] Token Shopee / Shop ID kosong untuk Toko '{$store->name}'.\n";
+                    continue;
+                }
 
                 $res = $shopeeService->getOrderDetail($accessToken, $shopId, [$order->order_marketplace_id]);
                 $shopeeOrder = $res['order_list'][0] ?? null;
