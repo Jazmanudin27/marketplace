@@ -316,6 +316,9 @@ class PullOrdersFromShopee implements ShouldQueue
             ]
         );
 
+        // Clean existing order items for this order before inserting fresh items
+        OrderItem::where('order_id', $order->id)->delete();
+
         // Save Items
         if (!empty($shopeeOrder['item_list'])) {
             foreach ($shopeeOrder['item_list'] as $item) {
@@ -351,22 +354,18 @@ class PullOrdersFromShopee implements ShouldQueue
                 $masterProductId = $masterProduct ? $masterProduct->id : null;
                 $costPrice = $masterProduct ? (float) $masterProduct->cost_price : 0;
 
-                OrderItem::updateOrCreate(
-                    [
-                        'order_id' => $order->id,
-                        'sku' => $itemSku,
-                    ],
-                    [
-                        'marketplace_product_id' => $marketplaceProduct ? $marketplaceProduct->id : null,
-                        'master_product_id'      => $masterProductId,
-                        'product_name'           => $item['item_name'] . (!empty($item['model_name']) ? ' - ' . $item['model_name'] : ''),
-                        'price'                  => $price,
-                        'quantity'               => $qty,
-                        'total_price'            => $price * $qty,
-                        'cost_price'             => $costPrice,
-                        'hpp_subtotal'           => $costPrice * $qty,
-                    ]
-                );
+                OrderItem::create([
+                    'order_id'               => $order->id,
+                    'sku'                    => $itemSku,
+                    'marketplace_product_id' => $marketplaceProduct ? $marketplaceProduct->id : null,
+                    'master_product_id'      => $masterProductId,
+                    'product_name'           => $item['item_name'] . (!empty($item['model_name']) ? ' - ' . $item['model_name'] : ''),
+                    'price'                  => $price,
+                    'quantity'               => $qty,
+                    'total_price'            => $price * $qty,
+                    'cost_price'             => $costPrice,
+                    'hpp_subtotal'           => $costPrice * $qty,
+                ]);
             }
         }
 

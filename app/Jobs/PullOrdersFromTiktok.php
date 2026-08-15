@@ -426,26 +426,25 @@ class PullOrdersFromTiktok implements ShouldQueue
 
             // 2. Fallback: Cari MarketplaceProduct berdasarkan store_id + product_id
             if (!$marketplaceProduct && $productId) {
-                $marketplaceProduct = \App\Models\MarketplaceProduct::where('store_id', $this->store->id)
-                    ->where('marketplace_product_id', $productId)
-                    ->first();
+            if ($productId) {
+                $query = \App\Models\MarketplaceProduct::where('store_id', $this->store->id)
+                    ->where('marketplace_product_id', $productId);
+                if ($skuId) {
+                    $query->where('marketplace_variant_id', $skuId);
+                }
+                $marketplaceProduct = $query->first();
+
+                if (!$marketplaceProduct && $skuId) {
+                    $marketplaceProduct = \App\Models\MarketplaceProduct::where('store_id', $this->store->id)
+                        ->where('marketplace_product_id', $productId)
+                        ->first();
+                }
             }
 
-            // 3. Fallback: Cari MarketplaceProduct berdasarkan store_id + seller_sku
-            if (!$marketplaceProduct && $sellerSku) {
-                $marketplaceProduct = \App\Models\MarketplaceProduct::where('store_id', $this->store->id)
-                    ->where('marketplace_sku', $sellerSku)
-                    ->first();
-            }
-
-            if ($marketplaceProduct) {
-                $masterProduct = $marketplaceProduct->masterProduct;
-            }
-
-            // 4. Direct Fallback: Cari langsung ke MasterProduct berdasarkan SKU jika MarketplaceProduct belum terhubung ke MasterProduct
+            $masterProduct = $marketplaceProduct ? $marketplaceProduct->masterProduct : null;
             if (!$masterProduct && $sellerSku) {
-                $skuClean = $sellerSku;
-                $masterProduct = MasterProduct::where('tenant_id', $this->store->tenant_id)
+                $skuClean = trim($sellerSku);
+                $masterProduct = \App\Models\MasterProduct::where('tenant_id', $this->store->tenant_id)
                     ->where('sku', $skuClean)
                     ->first();
             }
@@ -463,22 +462,18 @@ class PullOrdersFromTiktok implements ShouldQueue
 
             $itemSku = $sellerSku ?: ($skuId ?: ($productId ?: 'TIKTOK-ITEM-' . rand(100, 999)));
 
-            OrderItem::updateOrCreate(
-                [
-                    'order_id' => $order->id,
-                    'sku'      => $itemSku,
-                ],
-                [
-                    'marketplace_product_id' => $marketplaceProductId,
-                    'master_product_id'      => $masterProductId,
-                    'product_name'           => $item['product_name'] ?? $item['item_name'] ?? 'TikTok Item',
-                    'price'                  => $price,
-                    'quantity'               => $qty,
-                    'total_price'            => $price * $qty,
-                    'cost_price'             => $costPrice,
-                    'hpp_subtotal'           => $costPrice * $qty,
-                ]
-            );
+            OrderItem::create([
+                'order_id'               => $order->id,
+                'sku'                    => $itemSku,
+                'marketplace_product_id' => $marketplaceProductId,
+                'master_product_id'      => $masterProductId,
+                'product_name'           => $item['product_name'] ?? $item['item_name'] ?? 'TikTok Item',
+                'price'                  => $price,
+                'quantity'               => $qty,
+                'total_price'            => $price * $qty,
+                'cost_price'             => $costPrice,
+                'hpp_subtotal'           => $costPrice * $qty,
+            ]);
         }
 
         // Unset relation memory cache agar processStockDeduction membaca item terbaru dari DB
