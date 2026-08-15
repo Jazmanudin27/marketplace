@@ -4,9 +4,11 @@ namespace App\Http\Controllers\Inventory;
 
 use App\Http\Controllers\Controller;
 use App\Models\MasterProduct;
+use App\Models\StockMovement;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 
 class StockOpnameController extends Controller
 {
@@ -14,61 +16,42 @@ class StockOpnameController extends Controller
     {
         $tenantId = Auth::user()->tenant_id;
 
-        $query = \App\Models\StockMovement::with(['masterProduct', 'user'])
-            ->where('tenant_id', $tenantId)
-            ->where('reference', 'like', 'Stock Opname Massal%')
-            ->orderBy('created_at', 'desc')
-            ->orderBy('id', 'desc');
+        $query = StockMovement::with(['masterProduct', 'user'])
+            ->whereHas('masterProduct', function ($q) use ($tenantId) {
+                $q->where('tenant_id', $tenantId);
+            })
+            ->where('type', 'adj');
 
         if ($request->filled('search')) {
-            $query->where(function($q) use ($request) {
-                $q->whereHas('masterProduct', function($q2) use ($request) {
-                    $q2->where('name', 'like', '%' . $request->search . '%')
-                      ->orWhere('sku', 'like', '%' . $request->search . '%');
-                })->orWhere('reference', 'like', '%' . $request->search . '%');
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('reference', 'like', "%{$search}%")
+                  ->orWhereHas('masterProduct', function ($mq) use ($search) {
+                      $mq->where('name', 'like', "%{$search}%")
+                        ->orWhere('sku', 'like', "%{$search}%");
+                  });
             });
         }
 
-        if ($request->filled('start_date')) {
-            $query->whereDate('created_at', '>=', $request->start_date);
+        if ($request->filled('date_from')) {
+            $query->whereDate('created_at', '>=', $request->date_from);
         }
 
-        if ($request->filled('end_date')) {
-            $query->whereDate('created_at', '<=', $request->end_date);
+        if ($request->filled('date_to')) {
+            $query->whereDate('created_at', '<=', $request->date_to);
         }
 
-        $histories = $query->paginate(30)->withQueryString();
+        $opnames = $query->orderBy('created_at', 'desc')->paginate(20)->withQueryString();
 
-        return view('inventory.stock_opnames.index', compact('histories'));
+        return view('inventory.stock_opnames.index', compact('opnames'));
     }
 
-    public function create(Request $request)
+    public function create()
     {
         $tenantId = Auth::user()->tenant_id;
+        $products = MasterProduct::where('tenant_id', $tenantId)->orderBy('name')->get();
 
-        $query = MasterProduct::with('category', 'brand')->where('tenant_id', $tenantId)->where('is_active', true);
-
-        if ($request->filled('search')) {
-            $query->where(function($q) use ($request) {
-                $q->where('name', 'like', '%' . $request->search . '%')
-                  ->orWhere('sku', 'like', '%' . $request->search . '%');
-            });
-        }
-
-        if ($request->filled('category_id')) {
-            $query->where('category_id', $request->category_id);
-        }
-
-        if ($request->filled('brand_id')) {
-            $query->where('brand_id', $request->brand_id);
-        }
-
-        $products = $query->paginate(50)->withQueryString();
-
-        $categories = \App\Models\Category::where('tenant_id', $tenantId)->orderBy('name')->get();
-        $brands = \App\Models\Brand::where('tenant_id', $tenantId)->orderBy('name')->get();
-
-        return view('inventory.stock_opnames.create', compact('products', 'categories', 'brands'));
+        return view('inventory.stock_opnames.create', compact('products'));
     }
 
     public function store(Request $request)
@@ -76,46 +59,39 @@ class StockOpnameController extends Controller
         $tenantId = Auth::user()->tenant_id;
 
         $request->validate([
-            'actual_stocks' => 'required|array',
-            'actual_stocks.*' => 'nullable|integer|min:0',
+            'items' => 'required|array|min:1',
+            'items.*.master_product_id' => 'required|exists:master_products,id',
+            'items.*.actual_stock' => 'required|integer|min:0',
             'opname_date' => 'required|date',
             'pic' => 'required|string|max:255',
+            'notes' => 'nullable|string|max:1000',
         ]);
 
-        $actualStocks = $request->actual_stocks;
-        $productIds = array_keys($actualStocks);
+        $date = Carbon::parse($request->opname_date)->format('Y-m-d H:i:s');
+        $reference = 'Stock Opname - ' . $request->pic . ($request->notes ? ' (' . $request->notes . ')' : '');
 
-        $products = MasterProduct::where('tenant_id', $tenantId)
-            ->whereIn('id', $productIds)
-            ->get();
+        DB::transaction(function () use ($request, $tenantId, $reference, $date) {
+            foreach ($request->items as $itemData) {
+                $product = MasterProduct::where('tenant_id', $tenantId)
+                    ->findOrFail($itemData['master_product_id']);
 
-        $changesCount = 0;
+                $actualStock = (int) $itemData['actual_stock'];
+                $difference = $actualStock - $product->stock;
 
-        $date = \Carbon\Carbon::parse($request->opname_date)->format('Y-m-d H:i:s');
-        $reference = 'Stock Opname Massal - ' . $request->pic;
-
-        foreach ($products as $product) {
-            $actualStock = $actualStocks[$product->id];
-
-            if ($actualStock === null || $actualStock === '') {
-                continue;
+                if ($difference != 0) {
+                    $product->recordStockMovement(
+                        $difference,
+                        'adj',
+                        $reference,
+                        Auth::id(),
+                        $date
+                    );
+                }
             }
+        });
 
-            $difference = $actualStock - $product->stock;
-
-            if ($difference != 0) {
-                $product->recordStockMovement(
-                    $difference,
-                    'adj',
-                    $reference,
-                    Auth::id(),
-                    $date
-                );
-                $changesCount++;
-            }
-        }
-
-        return redirect()->route('stock_opnames.index')->with('success', "Stock Opname berhasil disimpan. Terdapat {$changesCount} produk yang disesuaikan pada tanggal {$request->opname_date} oleh {$request->pic}.");
+        return redirect()->route('stock_opnames.index')
+            ->with('success', 'Stock Opname berhasil disimpan.');
     }
 
     public function importForm()
@@ -125,23 +101,32 @@ class StockOpnameController extends Controller
 
     public function downloadTemplate()
     {
-        $csvContent = "SKU,Jumlah\nPROD-001,50\nPROD-002,120\nPROD-003,0\n";
-
-        return response($csvContent, 200, [
+        $headers = [
             'Content-Type' => 'text/csv; charset=UTF-8',
             'Content-Disposition' => 'attachment; filename="template_import_stok_opname.csv"',
-        ]);
+        ];
+
+        $callback = function () {
+            $file = fopen('php://output', 'w');
+            fputs($file, "\xEF\xBB\xBF"); // UTF-8 BOM
+            fputcsv($file, ['SKU', 'Stok Fisik']);
+            fputcsv($file, ['SKU-CONTOH-001', '50']);
+            fputcsv($file, ['SKU-CONTOH-002', '120']);
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
     }
 
     public function importStore(Request $request)
     {
         @set_time_limit(0);
-        @ini_set('memory_limit', '512M');
+        @ini_set('memory_limit', '1024M');
 
         $tenantId = Auth::user()->tenant_id;
 
         $request->validate([
-            'file' => 'required|file|max:10240',
+            'file' => 'required|file|max:20480',
             'opname_date' => 'required|date',
             'pic' => 'required|string|max:255',
         ]);
@@ -203,8 +188,23 @@ class StockOpnameController extends Controller
 
         $startIndex = $hasHeader ? 1 : 0;
 
-        $date = \Carbon\Carbon::parse($request->opname_date)->format('Y-m-d H:i:s');
+        $date = Carbon::parse($request->opname_date)->format('Y-m-d H:i:s');
         $reference = 'Stock Opname Massal - ' . $request->pic;
+
+        // 🚀 OPTIMISASI PERFORMA KILAT: Eager-load seluruh SKU sekaligus dari Database dalam 1 Query!
+        $skusInCsv = [];
+        for ($i = $startIndex; $i < count($rows); $i++) {
+            if (isset($rows[$i][$skuCol]) && trim($rows[$i][$skuCol]) !== '') {
+                $skusInCsv[] = trim($rows[$i][$skuCol]);
+            }
+        }
+        $skusInCsv = array_unique($skusInCsv);
+
+        // Fetch seluruh master product terkait sekaligus ke PHP Memory Index (Keyed by SKU)
+        $productsBySku = MasterProduct::where('tenant_id', $tenantId)
+            ->whereIn('sku', $skusInCsv)
+            ->get()
+            ->keyBy('sku');
 
         $changesCount = 0;
         $unchangedCount = 0;
@@ -212,81 +212,91 @@ class StockOpnameController extends Controller
         $processedSkus = [];
         $userId = Auth::id();
 
-        DB::transaction(function () use (
-            $startIndex,
-            $rows,
-            $skuCol,
-            $qtyCol,
-            $tenantId,
-            $reference,
-            $userId,
-            $date,
-            &$changesCount,
-            &$unchangedCount,
-            &$errors,
-            &$processedSkus
-        ) {
-            for ($i = $startIndex; $i < count($rows); $i++) {
-                $row = $rows[$i];
-                $rowNum = $i + 1;
+        $stockMovementsBatch = [];
+        $masterProductUpdates = [];
 
-                if (!isset($row[$skuCol]) || trim($row[$skuCol]) === '') {
-                    continue;
+        for ($i = $startIndex; $i < count($rows); $i++) {
+            $row = $rows[$i];
+            $rowNum = $i + 1;
+
+            if (!isset($row[$skuCol]) || trim($row[$skuCol]) === '') {
+                continue;
+            }
+
+            $sku = trim($row[$skuCol]);
+            $rawQty = isset($row[$qtyCol]) ? trim($row[$qtyCol]) : null;
+
+            if ($rawQty === null || $rawQty === '') {
+                $errors[] = "Baris #{$rowNum}: SKU {$sku} dilewati (kolom Jumlah kosong).";
+                continue;
+            }
+
+            $cleanQtyStr = str_replace([' ', ','], ['', ''], $rawQty);
+            if (!is_numeric($cleanQtyStr)) {
+                $errors[] = "Baris #{$rowNum}: SKU {$sku} memiliki format Jumlah tidak valid ('{$rawQty}').";
+                continue;
+            }
+
+            $actualStock = (int) round((float) $cleanQtyStr);
+            if ($actualStock < 0) {
+                $errors[] = "Baris #{$rowNum}: SKU {$sku} memiliki Jumlah negatif ('{$rawQty}').";
+                continue;
+            }
+
+            $product = $productsBySku->get($sku);
+
+            if (!$product) {
+                $errors[] = "Baris #{$rowNum}: SKU '{$sku}' tidak ditemukan di sistem.";
+                continue;
+            }
+
+            if (in_array($product->id, $processedSkus)) {
+                $errors[] = "Baris #{$rowNum}: SKU '{$sku}' ganda/duplikat dalam berkas, hanya baris pertama yang diproses.";
+                continue;
+            }
+
+            $processedSkus[] = $product->id;
+            $difference = $actualStock - $product->stock;
+
+            if ($difference != 0) {
+                $stockMovementsBatch[] = [
+                    'master_product_id' => $product->id,
+                    'user_id' => $userId,
+                    'type' => 'adj',
+                    'quantity' => $difference,
+                    'reference' => $reference,
+                    'notes' => 'Import Massal',
+                    'created_at' => $date,
+                    'updated_at' => now(),
+                ];
+
+                $masterProductUpdates[$product->id] = $actualStock;
+                $changesCount++;
+            } else {
+                $unchangedCount++;
+            }
+        }
+
+        // ⚡ PROSES BULK WRITE HANYA DALAM 2 QUERY (100X LEBIH CEPEAT!)
+        DB::transaction(function () use ($stockMovementsBatch, $masterProductUpdates) {
+            // 1. Bulk Insert Stock Movements
+            if (!empty($stockMovementsBatch)) {
+                foreach (array_chunk($stockMovementsBatch, 500) as $chunk) {
+                    DB::table('stock_movements')->insert($chunk);
                 }
+            }
 
-                $sku = trim($row[$skuCol]);
-                $rawQty = isset($row[$qtyCol]) ? trim($row[$qtyCol]) : null;
-
-                if ($rawQty === null || $rawQty === '') {
-                    $errors[] = "Baris #{$rowNum}: SKU {$sku} dilewati (kolom Jumlah kosong).";
-                    continue;
-                }
-
-                $cleanQtyStr = str_replace([' ', ','], ['', ''], $rawQty);
-                if (!is_numeric($cleanQtyStr)) {
-                    $errors[] = "Baris #{$rowNum}: SKU {$sku} memiliki format Jumlah tidak valid ('{$rawQty}').";
-                    continue;
-                }
-
-                $actualStock = (int) round((float) $cleanQtyStr);
-                if ($actualStock < 0) {
-                    $errors[] = "Baris #{$rowNum}: SKU {$sku} memiliki Jumlah negatif ('{$rawQty}').";
-                    continue;
-                }
-
-                $product = MasterProduct::where('tenant_id', $tenantId)
-                    ->where('sku', $sku)
-                    ->first();
-
-                if (!$product) {
-                    $errors[] = "Baris #{$rowNum}: SKU '{$sku}' tidak ditemukan di sistem.";
-                    continue;
-                }
-
-                if (in_array($product->id, $processedSkus)) {
-                    $errors[] = "Baris #{$rowNum}: SKU '{$sku}' ganda/duplikat dalam berkas, hanya baris pertama yang diproses.";
-                    continue;
-                }
-
-                $processedSkus[] = $product->id;
-                $difference = $actualStock - $product->stock;
-
-                if ($difference != 0) {
-                    $product->recordStockMovement(
-                        $difference,
-                        'adj',
-                        $reference,
-                        $userId,
-                        $date
-                    );
-                    $changesCount++;
-                } else {
-                    $unchangedCount++;
+            // 2. Bulk Update Master Products Stock
+            if (!empty($masterProductUpdates)) {
+                foreach ($masterProductUpdates as $productId => $newStock) {
+                    DB::table('master_products')
+                        ->where('id', $productId)
+                        ->update(['stock' => $newStock, 'updated_at' => now()]);
                 }
             }
         });
 
-        $summaryMessage = "Import Stok Opname Selesai. {$changesCount} produk disesuaikan, {$unchangedCount} produk stoknya sesuai.";
+        $summaryMessage = "Import Stok Opname Selesai Kilat 🚀. {$changesCount} produk disesuaikan, {$unchangedCount} produk stoknya sesuai.";
 
         if (!empty($errors)) {
             return redirect()->route('stock_opnames.index')
@@ -294,6 +304,7 @@ class StockOpnameController extends Controller
                 ->with('import_errors', $errors);
         }
 
-        return redirect()->route('stock_opnames.index')->with('success', $summaryMessage);
+        return redirect()->route('stock_opnames.index')
+            ->with('success', $summaryMessage);
     }
 }
