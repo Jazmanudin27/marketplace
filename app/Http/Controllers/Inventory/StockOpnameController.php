@@ -42,8 +42,9 @@ class StockOpnameController extends Controller
         }
 
         $opnames = $query->orderBy('created_at', 'desc')->paginate(20)->withQueryString();
+        $histories = $opnames;
 
-        return view('inventory.stock_opnames.index', compact('opnames'));
+        return view('inventory.stock_opnames.index', compact('opnames', 'histories'));
     }
 
     public function create()
@@ -260,12 +261,13 @@ class StockOpnameController extends Controller
 
             if ($difference != 0) {
                 $stockMovementsBatch[] = [
+                    'tenant_id' => $tenantId,
                     'master_product_id' => $product->id,
                     'user_id' => $userId,
                     'type' => 'adj',
                     'quantity' => $difference,
                     'reference' => $reference,
-                    'notes' => 'Import Massal',
+                    'balance_after' => $actualStock,
                     'created_at' => $date,
                     'updated_at' => now(),
                 ];
