@@ -14,42 +14,49 @@ class SyncShopeeOrders extends Command
      *
      * @var string
      */
-    protected $signature = 'shopee:sync-orders';
+    protected $signature = 'shopee:sync-orders 
+                            {--store= : ID Toko Shopee (Opsional, jika kosong semua toko)}
+                            {--days=90 : Jumlah hari ke belakang (default 90 hari)}';
 
     /**
      * The console command description.
      *
      * @var string
      */
-    protected $description = 'Secara otomatis menarik pesanan terbaru dari semua toko Shopee';
+    protected $description = 'Secara otomatis menarik pesanan Shopee yang belum ada atau tertinggal di database ERP';
 
     /**
      * Execute the console command.
      */
     public function handle()
     {
-        $this->info('Memulai sinkronisasi pesanan otomatis dari Shopee...');
+        $storeId = $this->option('store') ? (int) $this->option('store') : null;
+        $days    = max(1, min(90, (int) ($this->option('days') ?? 90)));
+
+        $this->info("Memulai sinkronisasi pesanan Shopee ({$days} hari ke belakang)...");
         Log::info('[Cron] Memulai shopee:sync-orders');
 
-        $stores = Store::whereHas('channel', function($q) {
+        $query = Store::whereHas('channel', function($q) {
             $q->where('code', 'shopee');
-        })->get();
+        });
+
+        if ($storeId) {
+            $query->where('id', $storeId);
+        }
+
+        $stores = $query->get();
 
         if ($stores->isEmpty()) {
-            $this->info('Tidak ada toko Shopee yang terhubung.');
-            return;
+            $this->info('Tidak ada toko Shopee yang sesuai.');
+            return 0;
         }
 
-        // Tarik pesanan 1 hari terakhir (lebih pendek karena ditarik otomatis sering)
-        $timeTo = time();
-        $timeFrom = strtotime('-1 day', $timeTo);
-
-        foreach ($stores as $store) {
-            $this->info("Mengirim job untuk toko: {$store->store_name}");
-            PullOrdersFromShopee::dispatch($store, $timeFrom, $timeTo);
+        // Delegasikan ke SyncMissingShopeeOrders agar logika batching kilat dijalankan
+        $params = ['--days' => $days];
+        if ($storeId) {
+            $params['--store'] = $storeId;
         }
 
-        $this->info('Job sinkronisasi pesanan berhasil dikirim ke antrean.');
-        Log::info('[Cron] Selesai shopee:sync-orders. Job telah di-dispatch.');
+        return $this->call('shopee:sync-missing', $params);
     }
 }
