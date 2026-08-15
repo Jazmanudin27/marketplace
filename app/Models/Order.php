@@ -342,19 +342,11 @@ class Order extends Model
         $serviceFee  = (float) ($fb['seller_order_processing_fee'] ?? 0)
                     + (float) ($fb['preorder_service_fee'] ?? $fb['preorder_fee'] ?? 0);
 
-        // 4. Biaya Promosi & Voucher Seller (Shopee: voucher_from_seller / seller_discount / seller_subsidy / seller_coin_cash_back / ams_commission_fee | TikTok: seller_discount / dynamic_commission)
+        // 4. Biaya Promosi & AMS Resmi Marketplace (Shopee: voucher_from_seller / seller_coin_cash_back / ams_commission_fee | TikTok: dynamic_commission / affiliate_commission)
         $promoFee    = (float) ($fb['voucher_from_seller'] ?? 0)
-                    + (float) ($fb['seller_discount'] ?? 0)
-                    + (float) ($fb['seller_voucher_discount'] ?? 0)
-                    + (float) ($fb['seller_subsidy'] ?? $fb['subsidy_amount'] ?? $fb['seller_subsidy_amount'] ?? 0)
-                    + (float) ($fb['voucher_code_discount'] ?? $fb['voucher_discount'] ?? $fb['voucher_amount'] ?? 0)
                     + (float) ($fb['seller_coin_cash_back'] ?? 0)
                     + (float) ($fb['order_ams_commission_fee'] ?? $fb['ams_commission_fee'] ?? 0)
                     + (float) ($fb['dynamic_commission'] ?? $fb['affiliate_commission'] ?? 0);
-
-        if ($promoFee == 0 && (float) ($this->attributes['discount_amount'] ?? 0) > 0) {
-            $promoFee = (float) $this->attributes['discount_amount'];
-        }
 
         // 5. Biaya Lainnya (Shopee: seller_transaction_fee + shipping_fee_adjustment + protection_fee | TikTok: other_fees)
         $otherFee    = (float) ($fb['seller_transaction_fee'] ?? 0)
