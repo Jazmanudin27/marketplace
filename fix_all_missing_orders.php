@@ -23,20 +23,26 @@ foreach ($argv as $arg) {
     }
 }
 
-$timeFrom = strtotime($fromDate);
-$timeTo   = strtotime($toDate);
+$startTs = strtotime($fromDate);
+$endTs   = strtotime($toDate);
 
 echo "======================================================================\n";
 echo "  PENARIKAN KILAT ORDER MARKETPLACE PERIODE BULAN AGUSTUS 2026\n";
 echo "======================================================================\n";
-echo "  Rentang Waktu : " . date('Y-m-d H:i:s', $timeFrom) . " s/d " . date('Y-m-d H:i:s', $timeTo) . "\n";
+echo "  Rentang Waktu : " . date('Y-m-d H:i:s', $startTs) . " s/d " . date('Y-m-d H:i:s', $endTs) . "\n";
 echo "======================================================================\n\n";
 
 $activeStores = Store::where('status', 'connected')->get();
 echo "Ditemukan " . $activeStores->count() . " Toko Berstatus CONNECTED untuk ditarik orderannya:\n\n";
 
-$shopeeCount = 0;
-$tiktokCount = 0;
+// Bagi rentang waktu menjadi blok maksimal 14 hari agar sesuai aturan Shopee API
+$shopeeChunks = [];
+$currStart = $startTs;
+while ($currStart < $endTs) {
+    $currEnd = min($endTs, $currStart + (14 * 86400));
+    $shopeeChunks[] = ['from' => $currStart, 'to' => $currEnd];
+    $currStart = $currEnd + 1;
+}
 
 foreach ($activeStores as $store) {
     $channelCode = strtolower($store->channel->code ?? '');
@@ -47,7 +53,7 @@ foreach ($activeStores as $store) {
     if (in_array($channelCode, ['tiktok', 'tiktok_shop', 'tokopedia']) || $store->channel_id == 3) {
         echo "   🚀 Memulai Penarikan & Pembaruan Order TikTok Shop (Agustus 2026)...\n";
         try {
-            $job = new PullOrdersFromTiktok($store, $timeFrom, $timeTo, false);
+            $job = new PullOrdersFromTiktok($store, $startTs, $endTs, false);
             $job->handle(app(\App\Services\TiktokService::class));
             
             $count = DB::table('orders')
@@ -55,22 +61,23 @@ foreach ($activeStores as $store) {
                 ->whereBetween('order_date', [$fromDate, $toDate])
                 ->count();
             echo "   ✅ SUKSES! Total orderan di toko ini pada 1-16 Agustus: {$count} pesanan.\n";
-            $tiktokCount++;
         } catch (\Throwable $e) {
             echo "   ❌ Error TikTok Shop Toko #{$store->id}: " . $e->getMessage() . "\n";
         }
     } elseif ($channelCode === 'shopee' || $store->channel_id == 1) {
-        echo "   🚀 Memulai Penarikan & Pembaruan Order Shopee (Agustus 2026)...\n";
+        echo "   🚀 Memulai Penarikan & Pembaruan Order Shopee (Chunking 14 Hari)... \n";
         try {
-            $job = new PullOrdersFromShopee($store, $timeFrom, $timeTo, false);
-            $job->handle(app(\App\Services\ShopeeService::class));
+            foreach ($shopeeChunks as $cIdx => $sChunk) {
+                echo "      -> Sub-periode [" . ($cIdx + 1) . "]: " . date('Y-m-d', $sChunk['from']) . " s/d " . date('Y-m-d', $sChunk['to']) . "\n";
+                $job = new PullOrdersFromShopee($store, $sChunk['from'], $sChunk['to'], false);
+                $job->handle(app(\App\Services\ShopeeService::class));
+            }
 
             $count = DB::table('orders')
                 ->where('store_id', $store->id)
                 ->whereBetween('order_date', [$fromDate, $toDate])
                 ->count();
             echo "   ✅ SUKSES! Total orderan di toko ini pada 1-16 Agustus: {$count} pesanan.\n";
-            $shopeeCount++;
         } catch (\Throwable $e) {
             echo "   ❌ Error Shopee Toko #{$store->id}: " . $e->getMessage() . "\n";
         }
