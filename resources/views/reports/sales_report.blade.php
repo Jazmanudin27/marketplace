@@ -45,14 +45,7 @@
                         </select>
                     </div>
 
-                    <div class="mb-3">
-                        <label class="form-label form-label-sm fw-semibold">Jenis Produk</label>
-                        <select name="is_bundle" class="form-select form-select-sm">
-                            <option value="">Semua Jenis (Single &amp; BUNDLE)</option>
-                            <option value="0" {{ $isBundle === '0' ? 'selected' : '' }}>📦 Single (Produk Standar)</option>
-                            <option value="1" {{ $isBundle === '1' ? 'selected' : '' }}>🎁 BUNDLE / Paket Set</option>
-                        </select>
-                    </div>
+
 
                     <div class="mb-3">
                         <label class="form-label form-label-sm fw-semibold">Tipe Pre-Order (PO)</label>
