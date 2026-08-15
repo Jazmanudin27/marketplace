@@ -91,6 +91,13 @@ foreach ($stores as $store) {
 
         $jobInstance   = new PullOrdersFromShopee($store, $startTs, $endTs);
         $reflection    = new \ReflectionClass($jobInstance);
+
+        if ($reflection->hasProperty('store')) {
+            $storeProp = $reflection->getProperty('store');
+            $storeProp->setAccessible(true);
+            $storeProp->setValue($jobInstance, $store);
+        }
+
         $saveMethod    = $reflection->getMethod('saveOrder');
         $saveMethod->setAccessible(true);
 

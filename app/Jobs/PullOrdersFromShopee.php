@@ -20,10 +20,12 @@ class PullOrdersFromShopee implements ShouldQueue
     protected int $storeId;
     protected int $timeFrom;
     protected int $timeTo;
+    protected ?Store $store = null;
 
     public function __construct(Store $store, int $timeFrom, int $timeTo)
     {
         $this->storeId   = $store->id;
+        $this->store     = $store;
         $this->timeFrom  = $timeFrom;
         $this->timeTo    = $timeTo;
     }
