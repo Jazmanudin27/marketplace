@@ -52,7 +52,7 @@ if ($targetOrderSn) {
         ->orWhere('invoice_number', $targetOrderSn)
         ->get();
 } else {
-    // Jika tidak ada target spesifik, periksa seluruh pesanan yang memiliki item <= 3
+    // Jika tidak ada target spesifik, periksa pesanan yang memiliki item <= 3
     $ordersToCheck = Order::withCount('items')
         ->where(function($q) {
             $q->has('items', '<=', 3);
@@ -148,54 +148,93 @@ foreach ($ordersToCheck as $order) {
             }
         } elseif ($channelCode === 'tiktok' || $channelCode === 'tokopedia') {
             $tiktokService = app(\App\Services\TiktokService::class);
-            $tiktokOrder = $tiktokService->getOrderDetail($store, $order->order_marketplace_id);
+            
+            try {
+                $accessToken = $store->getValidAccessToken();
+            } catch (\Throwable $te) {
+                $accessToken = null;
+            }
+            
+            $shopCipher = $store->shop_cipher;
 
-            if ($tiktokOrder && !empty($tiktokOrder['item_list'])) {
-                $apiItemCount = count($tiktokOrder['item_list']);
-                $dbItemCount = DB::table('order_items')->where('order_id', $order->id)->count();
+            if (empty($accessToken) || empty($shopCipher)) {
+                echo "  [SKIP] Token / shop_cipher TikTok kosong untuk Toko '{$store->name}'.\n";
+                continue;
+            }
 
-                echo "  [ORDER CHECK] ID #{$order->id} ({$order->order_marketplace_id}) | Toko: {$store->name} | Item DB: {$dbItemCount} vs Item API: {$apiItemCount}\n";
+            $detailResponse = $tiktokService->getOrderDetail($accessToken, $shopCipher, [$order->order_marketplace_id]);
+            $orderList = $detailResponse['order_list'] ?? [];
+            $tiktokOrder = $orderList[0] ?? null;
 
-                if ($dbItemCount < $apiItemCount || $targetOrderSn) {
-                    if ($isFix) {
-                        DB::table('order_items')->where('order_id', $order->id)->delete();
+            if ($tiktokOrder) {
+                $itemList = $tiktokOrder['item_list']
+                    ?? $tiktokOrder['line_items']
+                    ?? $tiktokOrder['sku_list']
+                    ?? $tiktokOrder['items']
+                    ?? [];
 
-                        $insertRows = [];
-                        foreach ($tiktokOrder['item_list'] as $item) {
-                            $skuId = $item['sku_id'] ?? null;
-                            $mp = \App\Models\MarketplaceProduct::where('store_id', $store->id)
-                                ->where('marketplace_product_id', (string) $item['product_id'])
-                                ->when($skuId, fn($q) => $q->where('marketplace_variant_id', (string) $skuId))
-                                ->first();
-
-                            $price = $item['sku_display_price'] ?? $item['sku_original_price'] ?? 0;
-                            $qty = 1;
-                            $itemSku = $item['seller_sku'] ?? null;
-
-                            $masterProduct = $mp ? $mp->masterProduct : null;
-                            if (!$masterProduct && $itemSku) {
-                                $masterProduct = \App\Models\MasterProduct::where('tenant_id', $store->tenant_id)
-                                    ->where('sku', trim($itemSku))
-                                    ->first();
-                            }
-
-                            $insertRows[] = [
-                                'order_id' => $order->id,
-                                'marketplace_product_id' => $mp ? $mp->id : null,
-                                'master_product_id' => $masterProduct ? $masterProduct->id : null,
-                                'product_name' => $item['product_name'] . ($item['sku_name'] ? " ({$item['sku_name']})" : ''),
-                                'sku' => $itemSku,
-                                'price' => $price,
-                                'total_price' => $price * $qty,
-                                'cost_price' => $masterProduct ? (float) $masterProduct->cost_price : 0,
-                                'quantity' => $qty,
-                                'created_at' => now(),
-                                'updated_at' => now(),
-                            ];
+                if (empty($itemList) && !empty($tiktokOrder['packages'])) {
+                    foreach ($tiktokOrder['packages'] as $pkg) {
+                        if (!empty($pkg['items'])) {
+                            $itemList = array_merge($itemList, $pkg['items']);
+                        } elseif (!empty($pkg['item_list'])) {
+                            $itemList = array_merge($itemList, $pkg['item_list']);
                         }
-                        DB::table('order_items')->insert($insertRows);
-                        $fixedCount++;
-                        echo "    -> ✅ SANGAT SUKSES! Berhasil memperbarui & melengkapi {$apiItemCount} item lengkap dari API TikTok!\n";
+                    }
+                }
+
+                if (!empty($itemList)) {
+                    $apiItemCount = count($itemList);
+                    $dbItemCount = DB::table('order_items')->where('order_id', $order->id)->count();
+
+                    echo "  [ORDER CHECK] ID #{$order->id} ({$order->order_marketplace_id}) | Toko: {$store->name} | Item DB: {$dbItemCount} vs Item API: {$apiItemCount}\n";
+
+                    if ($dbItemCount < $apiItemCount || $targetOrderSn) {
+                        if ($isFix) {
+                            DB::table('order_items')->where('order_id', $order->id)->delete();
+
+                            $insertRows = [];
+                            foreach ($itemList as $item) {
+                                $productId = (string)($item['product_id'] ?? '');
+                                $skuId     = (string)($item['sku_id'] ?? '');
+                                $itemSku   = $item['seller_sku'] ?? $item['sku'] ?? null;
+
+                                $mp = \App\Models\MarketplaceProduct::where('store_id', $store->id)
+                                    ->where('marketplace_product_id', $productId)
+                                    ->when($skuId, fn($q) => $q->where('marketplace_variant_id', $skuId))
+                                    ->first();
+
+                                $price = $item['sku_display_price'] ?? $item['sku_original_price'] ?? $item['price'] ?? 0;
+                                $qty = $item['quantity'] ?? 1;
+
+                                $masterProduct = $mp ? $mp->masterProduct : null;
+                                if (!$masterProduct && $itemSku) {
+                                    $masterProduct = \App\Models\MasterProduct::where('tenant_id', $store->tenant_id)
+                                        ->where('sku', trim($itemSku))
+                                        ->first();
+                                }
+
+                                $pName = $item['product_name'] ?? $item['item_name'] ?? 'Produk TikTok';
+                                $vName = $item['sku_name'] ?? $item['variant_name'] ?? '';
+
+                                $insertRows[] = [
+                                    'order_id' => $order->id,
+                                    'marketplace_product_id' => $mp ? $mp->id : null,
+                                    'master_product_id' => $masterProduct ? $masterProduct->id : null,
+                                    'product_name' => $pName . ($vName ? " ({$vName})" : ''),
+                                    'sku' => $itemSku,
+                                    'price' => $price,
+                                    'total_price' => $price * $qty,
+                                    'cost_price' => $masterProduct ? (float) $masterProduct->cost_price : 0,
+                                    'quantity' => $qty,
+                                    'created_at' => now(),
+                                    'updated_at' => now(),
+                                ];
+                            }
+                            DB::table('order_items')->insert($insertRows);
+                            $fixedCount++;
+                            echo "    -> ✅ SANGAT SUKSES! Berhasil memperbarui & melengkapi {$apiItemCount} item lengkap dari API TikTok!\n";
+                        }
                     }
                 }
             }
@@ -211,6 +250,6 @@ if ($isFix) {
     echo "  - Total orderan yang itemnya diperbaiki/dilengkapi: {$fixedCount}\n";
 } else {
     echo "  Gunakan '--fix' untuk langsung melengkapi item di database:\n";
-    echo "  php fix_duplicate_and_empty_items.php --order={$targetOrderSn} --fix\n";
+    echo "  php fix_duplicate_and_empty_items.php " . ($targetOrderSn ? "--order={$targetOrderSn} " : "") . "--fix\n";
 }
 echo "======================================================================\n";
