@@ -1582,9 +1582,11 @@ class ReportController extends Controller
 
             $orders = $query->get();
             $totalOrders += $orders->count();
-            $grossRevenue += (float) $orders->sum('total_amount');
-            $marketplaceFee += (float) $orders->sum('marketplace_fee');
-            $netReleased += (float) $orders->sum('net_amount');
+            $gRev = (float) $orders->sum('total_amount');
+            $mpFee = (float) $orders->sum('marketplace_fee');
+            $grossRevenue += $gRev;
+            $marketplaceFee += $mpFee;
+            $netReleased += max(0.0, $gRev - $mpFee);
         }
 
         // 2. Offline POS Sales (COMPLETED)
