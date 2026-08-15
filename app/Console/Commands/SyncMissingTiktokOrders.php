@@ -84,6 +84,7 @@ class SyncMissingTiktokOrders extends Command
                 }
 
                 $jobInstance   = new PullOrdersFromTiktok($store, $startTs, $endTs);
+                $jobInstance->skipStockDeduction = true;
                 $reflection    = new \ReflectionClass($jobInstance);
                 $processMethod = $reflection->getMethod('processOrder');
                 $processMethod->setAccessible(true);

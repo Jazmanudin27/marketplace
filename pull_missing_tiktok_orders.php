@@ -98,7 +98,9 @@ foreach ($stores as $store) {
             $sp->setValue($jobInstance, $store);
         }
 
-        $saveMethod = $reflection->getMethod('saveOrder');
+        $saveMethod = $reflection->hasMethod('processOrder') 
+            ? $reflection->getMethod('processOrder') 
+            : $reflection->getMethod('saveOrder');
         $saveMethod->setAccessible(true);
 
         $storeNew    = 0;
