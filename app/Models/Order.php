@@ -457,12 +457,12 @@ class Order extends Model
         return round(($this->net_profit / (float) $this->net_amount) * 100, 2);
     }
     /**
-     * Apakah pesanan mendekati / sudah melewati batas pengiriman.
-     * true jika ship_before_date ada dan <= 24 jam dari sekarang (termasuk sudah lewat).
+     * Apakah pesanan mendekati batas pengiriman (kurang dari 24 jam).
+     * Hanya berlaku untuk pesanan yang BELUM dikirim/selesai.
      */
     public function getIsShipUrgentAttribute(): bool
     {
-        if (!$this->ship_before_date) {
+        if (!$this->ship_before_date || in_array($this->order_status, ['SHIPPED', 'DELIVERED', 'COMPLETED', 'FINISHED', 'CANCELLED', 'SELESAI', 'BATAL', 'IN_CANCEL'])) {
             return false;
         }
         return $this->ship_before_date->isFuture() && now()->diffInHours($this->ship_before_date) <= 24;
@@ -470,10 +470,14 @@ class Order extends Model
 
     /**
      * Apakah pesanan sudah melewati batas pengiriman.
+     * Hanya berlaku untuk pesanan yang BELUM dikirim/selesai (misal READY_TO_SHIP, UNPAID).
      */
     public function getIsShipOverdueAttribute(): bool
     {
-        return $this->ship_before_date && $this->ship_before_date->isPast();
+        if (!$this->ship_before_date || in_array($this->order_status, ['SHIPPED', 'DELIVERED', 'COMPLETED', 'FINISHED', 'CANCELLED', 'SELESAI', 'BATAL', 'IN_CANCEL'])) {
+            return false;
+        }
+        return $this->ship_before_date->isPast();
     }
 
     /**

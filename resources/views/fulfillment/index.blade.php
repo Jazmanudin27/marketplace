@@ -422,18 +422,20 @@
                                             <div class="fw-bold text-dark mb-1 font-monospace" style="font-size: 0.75rem;">
                                                 {{ $order->ship_before_date->format('d/m/Y H:i') }}
                                             </div>
-                                            @if ($order->is_ship_overdue)
-                                                <span class="badge bg-danger bg-opacity-15 text-danger border border-danger border-opacity-25 px-2 py-0.5 rounded-2" style="font-size: 0.68rem;">
-                                                    <i class="fas fa-triangle-exclamation me-1"></i>Terlewat
-                                                </span>
-                                            @elseif ($order->is_ship_urgent)
-                                                <span class="badge bg-warning bg-opacity-20 text-warning-emphasis border border-warning border-opacity-25 px-2 py-0.5 rounded-2" style="font-size: 0.68rem;">
-                                                    <i class="fas fa-clock me-1"></i>{{ $order->ship_before_date->diffForHumans() }}
-                                                </span>
-                                            @else
-                                                <span class="badge bg-success bg-opacity-15 text-success border border-success border-opacity-25 px-2 py-0.5 rounded-2" style="font-size: 0.68rem;">
-                                                    <i class="fas fa-check-circle me-1"></i>{{ $order->ship_before_date->diffForHumans() }}
-                                                </span>
+                                            @if (!in_array($order->order_status, ['SHIPPED', 'DELIVERED', 'COMPLETED', 'FINISHED', 'CANCELLED', 'SELESAI', 'BATAL', 'IN_CANCEL']))
+                                                @if ($order->is_ship_overdue)
+                                                    <span class="badge bg-danger bg-opacity-15 text-danger border border-danger border-opacity-25 px-2 py-0.5 rounded-2" style="font-size: 0.68rem;">
+                                                        <i class="fas fa-triangle-exclamation me-1"></i>Terlewat
+                                                    </span>
+                                                @elseif ($order->is_ship_urgent)
+                                                    <span class="badge bg-warning bg-opacity-20 text-warning-emphasis border border-warning border-opacity-25 px-2 py-0.5 rounded-2" style="font-size: 0.68rem;">
+                                                        <i class="fas fa-clock me-1"></i>{{ $order->ship_before_date->diffForHumans() }}
+                                                    </span>
+                                                @else
+                                                    <span class="badge bg-success bg-opacity-15 text-success border border-success border-opacity-25 px-2 py-0.5 rounded-2" style="font-size: 0.68rem;">
+                                                        <i class="fas fa-check-circle me-1"></i>{{ $order->ship_before_date->diffForHumans() }}
+                                                    </span>
+                                                @endif
                                             @endif
                                         @else
                                             <span class="text-muted">—</span>

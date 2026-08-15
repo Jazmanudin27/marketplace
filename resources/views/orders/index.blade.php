@@ -458,21 +458,23 @@
                                                             <span class="text-muted">Batas:</span> 
                                                             <span class="fw-bold text-dark font-monospace">{{ $order->ship_before_date->format('d/m/Y H:i') }}</span>
                                                         </div>
-                                                        <div class="mt-1">
-                                                            @if ($order->is_ship_overdue)
-                                                                <span class="badge bg-danger-subtle text-danger border border-danger-subtle" style="font-size: 0.62rem; padding: 0.2em 0.4em;">
-                                                                    <i class="bi bi-exclamation-circle me-1"></i>Overdue
-                                                                </span>
-                                                            @elseif ($order->is_ship_urgent)
-                                                                <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle" style="font-size: 0.62rem; padding: 0.2em 0.4em;">
-                                                                    <i class="bi bi-clock me-1"></i>{{ $order->ship_before_date->diffForHumans() }}
-                                                                </span>
-                                                            @else
-                                                                <span class="badge bg-success-subtle text-success border border-success-subtle" style="font-size: 0.62rem; padding: 0.2em 0.4em;">
-                                                                    <i class="bi bi-check-circle me-1"></i>{{ $order->ship_before_date->diffForHumans() }}
-                                                                </span>
-                                                            @endif
-                                                        </div>
+                                                        @if (!in_array($order->order_status, ['SHIPPED', 'DELIVERED', 'COMPLETED', 'FINISHED', 'CANCELLED', 'SELESAI', 'BATAL', 'IN_CANCEL']))
+                                                            <div class="mt-1">
+                                                                @if ($order->is_ship_overdue)
+                                                                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle" style="font-size: 0.62rem; padding: 0.2em 0.4em;">
+                                                                        <i class="bi bi-exclamation-circle me-1"></i>Overdue
+                                                                    </span>
+                                                                @elseif ($order->is_ship_urgent)
+                                                                    <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle" style="font-size: 0.62rem; padding: 0.2em 0.4em;">
+                                                                        <i class="bi bi-clock me-1"></i>{{ $order->ship_before_date->diffForHumans() }}
+                                                                    </span>
+                                                                @else
+                                                                    <span class="badge bg-success-subtle text-success border border-success-subtle" style="font-size: 0.62rem; padding: 0.2em 0.4em;">
+                                                                        <i class="bi bi-check-circle me-1"></i>{{ $order->ship_before_date->diffForHumans() }}
+                                                                    </span>
+                                                                @endif
+                                                            </div>
+                                                        @endif
                                                     @endif
                                                 </div>
                                             </td>
