@@ -49,7 +49,7 @@ echo "\n--- 2. MEMERIKSA KELENGKAPAN ITEM PESANAN ---\n";
 
 if ($targetOrderSn) {
     $ordersToCheck = Order::where('order_marketplace_id', $targetOrderSn)
-        ->orWhere('order_number', $targetOrderSn)
+        ->orWhere('invoice_number', $targetOrderSn)
         ->get();
 } else {
     // Jika tidak ada target spesifik, periksa seluruh pesanan yang memiliki item <= 3
