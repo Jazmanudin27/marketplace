@@ -1582,6 +1582,33 @@ class ReportController extends Controller
 
             $orders = $query->get();
             $totalOrders += $orders->count();
+            $gRev = (float) $orders->sum('total_amount');
+            $mpFee = (float) $orders->sum('marketplace_fee');
+            $grossRevenue += $gRev;
+            $marketplaceFee += $mpFee;
+        }
+
+        // 2. Offline POS Sales (COMPLETED)
+        if ($channelCode === 'all' || $channelCode === 'offline') {
+            $offQuery = \App\Models\OfflineSale::where('tenant_id', $tenantId)
+                ->where('status', \App\Models\OfflineSale::STATUS_COMPLETED)
+                ->whereBetween('sold_at', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59']);
+
+            if ($customerCat === 'dropship') {
+                $offQuery->where(function($q) {
+                    $q->where('is_dropship', true)
+                      ->orWhereHas('customer', fn($cq) => $cq->where('category', 'dropship'));
+                });
+            } elseif ($customerCat === 'umum') {
+                $offQuery->where('is_dropship', false);
+            }
+
+            $offSales = $offQuery->get();
+            $totalOrders += $offSales->count();
+            $offTotal = (float) $offSales->sum('grand_total');
+            $grossRevenue += $offTotal;
+        }
+
         // 3. Hitung Otomatis Total Refund / Retur
         $totalRefunds = (float) \App\Models\ReturnOrder::where('tenant_id', $tenantId)
             ->whereBetween('created_at', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59'])
