@@ -10,58 +10,66 @@ use Illuminate\Support\Facades\DB;
 
 $isFix = in_array('--fix', $argv);
 
+// Cek argumen --order=...
+$targetOrderSn = null;
+foreach ($argv as $arg) {
+    if (str_starts_with($arg, '--order=')) {
+        $targetOrderSn = trim(explode('=', $arg)[1]);
+    }
+}
+
 echo "======================================================================\n";
 echo "  PERBAIKAN ORDER TANPA ITEM, ITEM DOUBLE & ITEM KURANG LENGKAP\n";
 echo "======================================================================\n";
 echo "  Mode: " . ($isFix ? "LIVE FIX (Hapus Item Double & Tarik Ulang Item Kurang)" : "DRY-RUN (Deteksi Saja)") . "\n";
+if ($targetOrderSn) {
+    echo "  Target Spesifik Order SN: {$targetOrderSn}\n";
+}
 echo "======================================================================\n\n";
 
 // 1. MEMERIKSA & MENGHAPUS ITEM DOUBLE (DUPLICATE ITEMS)
-echo "--- 1. MEMERIKSA ITEM DOUBLE (DUPLICATE ORDER ITEMS) ---\n";
-
-if ($isFix) {
-    $deleted = DB::delete("
-        DELETE t1 FROM order_items t1
-        INNER JOIN order_items t2 
-        ON t1.order_id = t2.order_id 
-        AND t1.product_name = t2.product_name 
-        AND COALESCE(t1.sku, '') = COALESCE(t2.sku, '') 
-        AND t1.quantity = t2.quantity
-        AND t1.id > t2.id
-    ");
-    echo "  ✅ Berhasil menghapus {$deleted} baris item double!\n";
-} else {
-    $duplicates = DB::select("
-        SELECT order_id, product_name, COUNT(*) as cnt 
-        FROM order_items 
-        GROUP BY order_id, product_name, sku, quantity 
-        HAVING cnt > 1 
-        LIMIT 50
-    ");
-    echo "  Ditemukan " . count($duplicates) . " sampel item double.\n";
-    foreach ($duplicates as $dup) {
-        echo "  [DUPLICATE] Order ID #{$dup->order_id} | Item: {$dup->product_name} (Total: {$dup->cnt})\n";
+if (!$targetOrderSn) {
+    echo "--- 1. MEMERIKSA ITEM DOUBLE (DUPLICATE ORDER ITEMS) ---\n";
+    if ($isFix) {
+        $deleted = DB::delete("
+            DELETE t1 FROM order_items t1
+            INNER JOIN order_items t2 
+            ON t1.order_id = t2.order_id 
+            AND t1.product_name = t2.product_name 
+            AND COALESCE(t1.sku, '') = COALESCE(t2.sku, '') 
+            AND t1.quantity = t2.quantity
+            AND t1.id > t2.id
+        ");
+        echo "  ✅ Berhasil menghapus {$deleted} baris item double!\n";
     }
 }
 
 // 2. MEMERIKSA PESANAN TANPA ITEM ATAU ITEM KURANG LENGKAP
-echo "\n--- 2. MEMERIKSA PESANAN TANPA ITEM & ITEM KURANG LENGKAP ---\n";
+echo "\n--- 2. MEMERIKSA KELENGKAPAN ITEM PESANAN ---\n";
 
-// Ambil orderan yang tidak memiliki item ATAU yang jumlah itemnya sedikit (kemungkinan parsial/kurang)
-$ordersToCheck = Order::withCount('items')
-    ->where(function($q) {
-        $q->has('items', '=', 0)
-          ->orWhereHas('items', function($subQ) {}, '<', 5); // Cek orderan yang itemnya < 5 untuk verifikasi kecocokan API
-    })
-    ->orderBy('id', 'desc')
-    ->limit(500)
-    ->get();
+if ($targetOrderSn) {
+    $ordersToCheck = Order::where('order_marketplace_id', $targetOrderSn)
+        ->orWhere('order_number', $targetOrderSn)
+        ->get();
+} else {
+    // Jika tidak ada target spesifik, periksa seluruh pesanan yang memiliki item <= 3
+    $ordersToCheck = Order::withCount('items')
+        ->where(function($q) {
+            $q->has('items', '<=', 3);
+        })
+        ->orderBy('id', 'desc')
+        ->limit(2000)
+        ->get();
+}
 
-echo "Memeriksa " . $ordersToCheck->count() . " sampel pesanan untuk verifikasi kelengkapan item...\n";
+echo "Memeriksa " . $ordersToCheck->count() . " pesanan...\n";
 
 $fixedCount = 0;
 foreach ($ordersToCheck as $order) {
-    if (!$order->store) continue;
+    if (!$order->store) {
+        echo "  [SKIP] Order #{$order->id} ({$order->order_marketplace_id}): Toko tidak ditemukan.\n";
+        continue;
+    }
 
     $store = $order->store;
     $channelCode = strtolower($store->channel->code ?? '');
@@ -78,21 +86,23 @@ foreach ($ordersToCheck as $order) {
             
             $shopId = (int) ($store->marketplace_store_id ?: $store->shopee_shop_id);
 
-            if (empty($accessToken) || empty($shopId)) continue;
+            if (empty($accessToken) || empty($shopId)) {
+                echo "  [SKIP] Token Shopee / Shop ID kosong untuk Toko '{$store->name}'.\n";
+                continue;
+            }
 
             $res = $shopeeService->getOrderDetail($accessToken, $shopId, [$order->order_marketplace_id]);
             $shopeeOrder = $res['order_list'][0] ?? null;
 
             if ($shopeeOrder && !empty($shopeeOrder['item_list'])) {
                 $apiItemCount = count($shopeeOrder['item_list']);
-                $dbItemCount = $order->items_count;
+                $dbItemCount = DB::table('order_items')->where('order_id', $order->id)->count();
 
-                // Jika jumlah item di DB kurang dari jumlah item di API (misal DB=1, API=3)
-                if ($dbItemCount < $apiItemCount) {
-                    echo "  [LENGKAPI ITEM] Order #{$order->id} ({$order->order_marketplace_id}) | DB Item: {$dbItemCount} -> API Item: {$apiItemCount}\n";
+                echo "  [ORDER CHECK] ID #{$order->id} ({$order->order_marketplace_id}) | Toko: {$store->name} | Item DB: {$dbItemCount} vs Item API: {$apiItemCount}\n";
 
+                // Jika terdeteksi jumlah item di DB < API ATAU jika dipanggil spesifik dengan --order
+                if ($dbItemCount < $apiItemCount || $targetOrderSn) {
                     if ($isFix) {
-                        // Hapus item lama yang tidak lengkap
                         DB::table('order_items')->where('order_id', $order->id)->delete();
 
                         $insertRows = [];
@@ -130,9 +140,11 @@ foreach ($ordersToCheck as $order) {
                         }
                         DB::table('order_items')->insert($insertRows);
                         $fixedCount++;
-                        echo "    -> Berhasil melengkapi {$apiItemCount} item dari API Shopee!\n";
+                        echo "    -> ✅ SANGAT SUKSES! Berhasil memperbarui & melengkapi {$apiItemCount} item lengkap dari API Shopee!\n";
                     }
                 }
+            } else {
+                echo "    -> [WARN] API Shopee tidak mengembalikan item_list untuk order {$order->order_marketplace_id}.\n";
             }
         } elseif ($channelCode === 'tiktok' || $channelCode === 'tokopedia') {
             $tiktokService = app(\App\Services\TiktokService::class);
@@ -140,11 +152,11 @@ foreach ($ordersToCheck as $order) {
 
             if ($tiktokOrder && !empty($tiktokOrder['item_list'])) {
                 $apiItemCount = count($tiktokOrder['item_list']);
-                $dbItemCount = $order->items_count;
+                $dbItemCount = DB::table('order_items')->where('order_id', $order->id)->count();
 
-                if ($dbItemCount < $apiItemCount) {
-                    echo "  [LENGKAPI ITEM] Order #{$order->id} ({$order->order_marketplace_id}) | DB Item: {$dbItemCount} -> API Item: {$apiItemCount}\n";
+                echo "  [ORDER CHECK] ID #{$order->id} ({$order->order_marketplace_id}) | Toko: {$store->name} | Item DB: {$dbItemCount} vs Item API: {$apiItemCount}\n";
 
+                if ($dbItemCount < $apiItemCount || $targetOrderSn) {
                     if ($isFix) {
                         DB::table('order_items')->where('order_id', $order->id)->delete();
 
@@ -183,13 +195,13 @@ foreach ($ordersToCheck as $order) {
                         }
                         DB::table('order_items')->insert($insertRows);
                         $fixedCount++;
-                        echo "    -> Berhasil melengkapi {$apiItemCount} item dari API TikTok!\n";
+                        echo "    -> ✅ SANGAT SUKSES! Berhasil memperbarui & melengkapi {$apiItemCount} item lengkap dari API TikTok!\n";
                     }
                 }
             }
         }
     } catch (\Throwable $e) {
-        // Skip errors silently during bulk check
+        echo "    -> [ERROR] " . $e->getMessage() . "\n";
     }
 }
 
@@ -199,6 +211,6 @@ if ($isFix) {
     echo "  - Total orderan yang itemnya diperbaiki/dilengkapi: {$fixedCount}\n";
 } else {
     echo "  Gunakan '--fix' untuk langsung melengkapi item di database:\n";
-    echo "  php fix_duplicate_and_empty_items.php --fix\n";
+    echo "  php fix_duplicate_and_empty_items.php --order={$targetOrderSn} --fix\n";
 }
 echo "======================================================================\n";
