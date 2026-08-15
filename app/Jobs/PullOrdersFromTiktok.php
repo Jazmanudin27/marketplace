@@ -23,6 +23,7 @@ class PullOrdersFromTiktok implements ShouldQueue
     protected int $timeFrom;
     protected int $timeTo;
     protected ?Store $store = null;
+    private static array $customerCache = [];
 
     public function __construct(Store $store, int $timeFrom, int $timeTo)
     {
@@ -188,22 +189,43 @@ class PullOrdersFromTiktok implements ShouldQueue
 
         // Customer & Alamat secara aman dengan fallback
         $recipient = $tiktokOrder['recipient_address'] ?? [];
-        $buyerPhone = $recipient['phone'] ?? $recipient['phone_number'] ?? null;
-        $buyerName = $recipient['name'] ?? $recipient['recipient_name'] ?? 'Buyer TikTok';
+        $buyerPhone = !empty($recipient['phone']) ? trim($recipient['phone']) : (!empty($recipient['phone_number']) ? trim($recipient['phone_number']) : null);
+        $buyerName = !empty($recipient['name']) ? trim($recipient['name']) : (!empty($recipient['recipient_name']) ? trim($recipient['recipient_name']) : 'Buyer TikTok');
         $buyerAddress = $recipient['full_address'] ?? $recipient['address_line1'] ?? null;
 
-        $customer = Customer::firstOrCreate(
-            [
-                'tenant_id' => $this->store->tenant_id,
-                'phone' => $buyerPhone ?: '000000000',
-            ],
-            [
-                'name'     => $buyerName,
-                'category' => 'marketplace',
-                'email'    => null,
-                'address'  => $buyerAddress,
-            ]
-        );
+        $cacheKey = $this->store->tenant_id . '_' . ($buyerPhone ?: $buyerName);
+
+        if (isset(self::$customerCache[$cacheKey])) {
+            $customer = self::$customerCache[$cacheKey];
+        } else {
+            if ($buyerPhone) {
+                $customer = Customer::firstOrCreate(
+                    [
+                        'tenant_id' => $this->store->tenant_id,
+                        'phone' => $buyerPhone,
+                    ],
+                    [
+                        'name'     => $buyerName,
+                        'category' => 'marketplace',
+                        'email'    => null,
+                        'address'  => $buyerAddress,
+                    ]
+                );
+            } else {
+                $customer = Customer::firstOrCreate(
+                    [
+                        'tenant_id' => $this->store->tenant_id,
+                        'name'      => $buyerName,
+                    ],
+                    [
+                        'category' => 'marketplace',
+                        'email'    => null,
+                        'address'  => $buyerAddress,
+                    ]
+                );
+            }
+            self::$customerCache[$cacheKey] = $customer;
+        }
 
         $paymentInfo = $tiktokOrder['payment_info'] ?? $tiktokOrder['payment'] ?? [];
         
