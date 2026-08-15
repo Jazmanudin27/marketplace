@@ -405,6 +405,11 @@ class PullOrdersFromTiktok implements ShouldQueue
             }
         }
 
+        // Clean existing order items ONLY if updating an existing order (prevents InnoDB gap locks on new orders)
+        if (!$order->wasRecentlyCreated) {
+            OrderItem::where('order_id', $order->id)->delete();
+        }
+
         foreach ($itemList as $item) {
             $masterProduct = null;
             $skuId = !empty($item['sku_id']) ? (string) $item['sku_id'] : null;

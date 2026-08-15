@@ -316,8 +316,10 @@ class PullOrdersFromShopee implements ShouldQueue
             ]
         );
 
-        // Clean existing order items for this order before inserting fresh items
-        OrderItem::where('order_id', $order->id)->delete();
+        // Clean existing order items ONLY if updating an existing order (prevents InnoDB gap locks on new orders)
+        if (!$order->wasRecentlyCreated) {
+            OrderItem::where('order_id', $order->id)->delete();
+        }
 
         // Save Items
         if (!empty($shopeeOrder['item_list'])) {
