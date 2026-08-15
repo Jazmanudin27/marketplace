@@ -11,7 +11,7 @@ use App\Models\ReturnOrder;
 $sn = $argv[1] ?? '260714MK2GEVAK';
 
 echo "======================================================================\n";
-echo "  INSPEKSI DETAIL ORDER: {$sn}\n";
+echo "  INSPEKSI DETAIL ORDER & VERIFIKASI RETUR LIVE SHOPEE API: {$sn}\n";
 echo "======================================================================\n\n";
 
 $order = Order::with(['store', 'items', 'returnOrder'])
@@ -46,17 +46,17 @@ foreach ($order->items as $idx => $item) {
     echo "      Subtotal : Rp " . number_format($item->price * $item->quantity, 0, ',', '.') . "\n";
 }
 
-echo "\n3. DATA DI MODUL RETUR (return_orders):\n";
+echo "\n3. DATA DI MODUL RETUR ERP (return_orders):\n";
 $returns = ReturnOrder::where('order_id', $order->id)->get();
 if ($returns->count() > 0) {
     foreach ($returns as $ret) {
-        echo "   [ADA RETUR] ID #{$ret->id} | Return SN: {$ret->return_sn} | Status: {$ret->status} | Nominal Refund: Rp " . number_format($ret->refund_amount, 0, ',', '.') . " | Alasan: {$ret->reason}\n";
+        echo "   [ADA RETUR DI ERP] ID #{$ret->id} | Return SN: {$ret->return_sn} | Status: {$ret->status} | Nominal Refund: Rp " . number_format($ret->refund_amount, 0, ',', '.') . " | Alasan: {$ret->reason}\n";
     }
 } else {
     echo "   ✅ Tidak ada catatan di tabel return_orders.\n";
 }
 
-echo "\n4. MEMANGGIL API LIVE MARKETPLACE (VERIFIKASI REAL-TIME)...\n";
+echo "\n4. MEMANGGIL LIVE SHOPEE / TIKTOK API (VERIFIKASI RETUR REAL-TIME)...\n";
 
 try {
     $store = $order->store;
@@ -71,29 +71,38 @@ try {
         $shopeeOrder = $res['order_list'][0] ?? null;
 
         if ($shopeeOrder) {
-            echo "   Status Shopee API  : " . ($shopeeOrder['order_status'] ?? 'N/A') . "\n";
-            echo "   Alasan Cancel API  : " . ($shopeeOrder['cancel_reason'] ?? 'N/A') . "\n";
-            echo "   Jumlah Item API    : " . count($shopeeOrder['item_list'] ?? []) . " item\n";
-            foreach ($shopeeOrder['item_list'] ?? [] as $iIdx => $sItem) {
-                echo "      " . ($iIdx + 1) . ". " . $sItem['item_name'] . " (" . ($sItem['model_name'] ?? '') . ")\n";
-                echo "         SKU: " . ($sItem['model_sku'] ?: ($sItem['item_sku'] ?? 'N/A')) . " | Qty: " . ($sItem['model_quantity_purchased'] ?? 1) . " | Price: Rp " . number_format($sItem['model_discounted_price'] ?? 0, 0, ',', '.') . "\n";
-            }
+            echo "   Status Order Shopee API : " . ($shopeeOrder['order_status'] ?? 'N/A') . "\n";
+            echo "   Alasan Batal API        : " . ($shopeeOrder['cancel_reason'] ?? 'Tidak Ada Batal') . "\n";
         }
-    } elseif ($channelCode === 'tiktok' || $channelCode === 'tokopedia') {
-        $tiktokService = app(\App\Services\TiktokService::class);
-        $accessToken = $store->getValidAccessToken();
-        $shopCipher = $store->shop_cipher;
 
-        $res = $tiktokService->getOrderDetail($accessToken, $shopCipher, [$order->order_marketplace_id]);
-        $tiktokOrder = ($res['order_list'] ?? [])[0] ?? null;
-
-        if ($tiktokOrder) {
-            echo "   Status TikTok API  : " . ($tiktokOrder['order_status'] ?? 'N/A') . "\n";
-            echo "   Alasan Cancel API  : " . ($tiktokOrder['cancel_reason'] ?? 'N/A') . "\n";
+        // Cek Langsung ke Shopee Return API untuk Return SN ini
+        if ($returns->count() > 0) {
+            foreach ($returns as $ret) {
+                if ($ret->return_sn && !str_starts_with($ret->return_sn, 'RET-')) {
+                    echo "\n   🔍 MENGECEK RETURN SN REST SHOPEE API ({$ret->return_sn})...\n";
+                    try {
+                        $retDetail = $shopeeService->getReturnDetail($accessToken, $shopId, $ret->return_sn);
+                        if (!empty($retDetail)) {
+                            echo "   ✅ API SHOPEE MENGKONFIRMASI RETUR ADA:\n";
+                            echo "      Return SN API  : " . ($retDetail['return_sn'] ?? $ret->return_sn) . "\n";
+                            echo "      Status Retur    : " . ($retDetail['status'] ?? 'N/A') . "\n";
+                            echo "      Nominal Refund : Rp " . number_format($retDetail['refund_amount'] ?? 0, 0, ',', '.') . "\n";
+                            echo "      Alasan Retur   : " . ($retDetail['reason'] ?? 'N/A') . "\n";
+                            echo "      Text Penjelasan: " . ($retDetail['text_reason'] ?? 'N/A') . "\n";
+                        } else {
+                            echo "   ⚠️ API Shopee mengembalikan respons kosong untuk Return SN {$ret->return_sn}.\n";
+                        }
+                    } catch (\Throwable $retE) {
+                        echo "   ❌ Error Shopee Return API: " . $retE->getMessage() . "\n";
+                    }
+                } else {
+                    echo "   ℹ️ Catatan retur di ERP ini dibuat manual/rekonsiliasi internal (Return SN: {$ret->return_sn}).\n";
+                }
+            }
         }
     }
 } catch (\Throwable $e) {
-    echo "   [INFO API] " . $e->getMessage() . "\n";
+    echo "   [ERROR API] " . $e->getMessage() . "\n";
 }
 
 echo "\n======================================================================\n";
