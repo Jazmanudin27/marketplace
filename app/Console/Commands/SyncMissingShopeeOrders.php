@@ -69,6 +69,9 @@ class SyncMissingShopeeOrders extends Command
         }
 
         $shopeeService = app(ShopeeService::class);
+        try {
+            DB::statement("SET SESSION innodb_lock_wait_timeout = 5;");
+        } catch (\Exception $e) {}
 
         $grandNew    = 0;
         $grandExists = 0;

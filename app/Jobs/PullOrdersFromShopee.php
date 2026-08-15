@@ -134,19 +134,47 @@ class PullOrdersFromShopee implements ShouldQueue
 
     private function saveOrder(array $shopeeOrder)
     {
-        $username = $shopeeOrder['buyer_username'] ?? 'Buyer';
-        $customer = \App\Models\Customer::firstOrCreate(
-            [
-                'tenant_id' => $this->store->tenant_id,
-                'marketplace_username' => $username,
-            ],
-            [
-                'name'     => $username,
-                'category' => 'marketplace',
-                'phone'    => $shopeeOrder['recipient_address']['phone'] ?? null,
-                'address'  => $shopeeOrder['recipient_address']['full_address'] ?? null,
-            ]
-        );
+        $username = !empty($shopeeOrder['buyer_username']) ? trim($shopeeOrder['buyer_username']) : null;
+        $phone    = !empty($shopeeOrder['recipient_address']['phone']) ? trim($shopeeOrder['recipient_address']['phone']) : null;
+        $name     = !empty($shopeeOrder['recipient_address']['name']) ? trim($shopeeOrder['recipient_address']['name']) : ($username ?: 'Buyer Shopee');
+
+        if ($username) {
+            $customer = \App\Models\Customer::firstOrCreate(
+                [
+                    'tenant_id' => $this->store->tenant_id,
+                    'marketplace_username' => $username,
+                ],
+                [
+                    'name'     => $name,
+                    'category' => 'marketplace',
+                    'phone'    => $phone ?: '000000000',
+                    'address'  => $shopeeOrder['recipient_address']['full_address'] ?? null,
+                ]
+            );
+        } elseif ($phone) {
+            $customer = \App\Models\Customer::firstOrCreate(
+                [
+                    'tenant_id' => $this->store->tenant_id,
+                    'phone'     => $phone,
+                ],
+                [
+                    'name'     => $name,
+                    'category' => 'marketplace',
+                    'address'  => $shopeeOrder['recipient_address']['full_address'] ?? null,
+                ]
+            );
+        } else {
+            $customer = \App\Models\Customer::firstOrCreate(
+                [
+                    'tenant_id' => $this->store->tenant_id,
+                    'name'      => $name,
+                ],
+                [
+                    'category' => 'marketplace',
+                    'address'  => $shopeeOrder['recipient_address']['full_address'] ?? null,
+                ]
+            );
+        }
 
         // Fetch Escrow Detail if order is COMPLETED
         $financialBreakdown = null;
