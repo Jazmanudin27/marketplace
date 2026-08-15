@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Models\Customer;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Store;
@@ -17,23 +18,29 @@ class PullOrdersFromShopee implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    protected int $storeId;
-    protected int $timeFrom;
-    protected int $timeTo;
-    protected ?Store $store = null;
-    public bool $skipStockDeduction = false;
+    public int $storeId;
+    public ?int $timeFrom;
+    public ?int $timeTo;
+    public bool $skipStockDeduction;
 
-    public function __construct(Store $store, int $timeFrom, int $timeTo)
+    /**
+     * Create a new job instance.
+     */
+    public function __construct(Store|int $store, ?int $timeFrom = null, ?int $timeTo = null, bool $skipStockDeduction = false)
     {
-        $this->storeId   = $store->id;
-        $this->store     = $store;
-        $this->timeFrom  = $timeFrom;
-        $this->timeTo    = $timeTo;
+        $this->storeId = $store instanceof Store ? $store->id : $store;
+        $this->timeFrom = $timeFrom ?? now()->subDays(15)->timestamp;
+        $this->timeTo = $timeTo ?? now()->timestamp;
+        $this->skipStockDeduction = $skipStockDeduction;
     }
 
+    public Store $store;
+
+    /**
+     * Execute the job.
+     */
     public function handle(ShopeeService $shopeeService): void
     {
-        // Safely fetch the store — it may have been deleted since the job was queued.
         $store = Store::find($this->storeId);
 
         if (! $store) {
@@ -41,14 +48,14 @@ class PullOrdersFromShopee implements ShouldQueue
             return;
         }
 
-        // Expose as $this->store so saveOrder() can use it without changes.
         $this->store = $store;
 
-        Log::info('[Shopee] Starting PullOrdersFromShopee', [
-            'store_id'  => $this->store->id,
-            'time_from' => $this->timeFrom,
-            'time_to'   => $this->timeTo,
-        ]);
+        if ($this->store->status === 'disconnected' || (empty($this->store->access_token) && empty($this->store->refresh_token))) {
+            if (app()->environment('local') || str_contains($this->store->marketplace_store_id, 'DEMO')) {
+                $this->seedDemoReturns();
+            }
+            return;
+        }
 
         try {
             $cursor     = '';
@@ -92,16 +99,19 @@ class PullOrdersFromShopee implements ShouldQueue
                 return;
             }
 
-            // OPTIMISASI KILAT: Skip order yang sudah ada dan berstatus COMPLETED/CANCELLED di DB ERP
-            $existingCompletedSns = \App\Models\Order::whereIn('order_marketplace_id', $allOrderSn)
+            // OPTIMISASI PINTAR: Hanya skip order jika sudah COMPLETED/CANCELLED DAN SUDAH PUNYA ITEM & ESCROW BREAKDOWN!
+            // Jika pesanan belum punya item (0 item) atau belum punya rincian admin escrow, TETAP DI-FETCH!
+            $skipOrderSns = Order::whereIn('order_marketplace_id', $allOrderSn)
                 ->whereIn('order_status', ['COMPLETED', 'CANCELLED', 'SELESAI', 'FINISHED', 'BATAL'])
+                ->has('items')
+                ->whereNotNull('financial_breakdown')
                 ->pluck('order_marketplace_id')
                 ->toArray();
 
-            $neededOrderSns = array_diff($allOrderSn, $existingCompletedSns);
+            $neededOrderSns = array_diff($allOrderSn, $skipOrderSns);
 
             if (empty($neededOrderSns)) {
-                Log::info('[Shopee] All orders in this period are already up-to-date in ERP.');
+                Log::info('[Shopee] All orders in this period are already up-to-date with complete items and escrow breakdown.');
                 return;
             }
 
@@ -139,64 +149,27 @@ class PullOrdersFromShopee implements ShouldQueue
 
     private function saveOrder(array $shopeeOrder)
     {
-        $username = !empty($shopeeOrder['buyer_username']) ? trim($shopeeOrder['buyer_username']) : null;
-        $phone    = !empty($shopeeOrder['recipient_address']['phone']) ? trim($shopeeOrder['recipient_address']['phone']) : null;
-        $name     = !empty($shopeeOrder['recipient_address']['name']) ? trim($shopeeOrder['recipient_address']['name']) : ($username ?: 'Buyer Shopee');
+        $buyerPhone = $shopeeOrder['recipient_address']['phone'] ?? null;
+        $buyerName = $shopeeOrder['buyer_username'] ?? 'Buyer';
 
-        $cacheKey = $this->store->tenant_id . '_' . ($username ?: ($phone ?: $name));
-
+        $cacheKey = $this->store->tenant_id . '_' . ($buyerPhone ?: $buyerName);
         if (isset(self::$customerCache[$cacheKey])) {
             $customer = self::$customerCache[$cacheKey];
-            if (!\App\Models\Customer::where('id', $customer->id)->exists()) {
-                unset(self::$customerCache[$cacheKey]);
-                $customer = null;
-            }
         } else {
-            $customer = null;
-        }
-
-        if (!$customer) {
-            if ($username) {
-                $customer = \App\Models\Customer::firstOrCreate(
-                    [
-                        'tenant_id' => $this->store->tenant_id,
-                        'marketplace_username' => $username,
-                    ],
-                    [
-                        'name'     => $name,
-                        'category' => 'marketplace',
-                        'phone'    => $phone ?: '000000000',
-                        'address'  => $shopeeOrder['recipient_address']['full_address'] ?? null,
-                    ]
-                );
-            } elseif ($phone) {
-                $customer = \App\Models\Customer::firstOrCreate(
-                    [
-                        'tenant_id' => $this->store->tenant_id,
-                        'phone'     => $phone,
-                    ],
-                    [
-                        'name'     => $name,
-                        'category' => 'marketplace',
-                        'address'  => $shopeeOrder['recipient_address']['full_address'] ?? null,
-                    ]
-                );
-            } else {
-                $customer = \App\Models\Customer::firstOrCreate(
-                    [
-                        'tenant_id' => $this->store->tenant_id,
-                        'name'      => $name,
-                    ],
-                    [
-                        'category' => 'marketplace',
-                        'address'  => $shopeeOrder['recipient_address']['full_address'] ?? null,
-                    ]
-                );
-            }
+            $customer = Customer::firstOrCreate(
+                [
+                    'tenant_id' => $this->store->tenant_id,
+                    'phone' => $buyerPhone ?: '0000000000',
+                ],
+                [
+                    'name' => $buyerName,
+                    'address' => $shopeeOrder['recipient_address']['full_address'] ?? null,
+                ]
+            );
             self::$customerCache[$cacheKey] = $customer;
         }
 
-        // Fetch Escrow Detail if order is COMPLETED
+        // Ambil data Escrow / Income resmi Shopee jika order sudah COMPLETED
         $financialBreakdown = null;
         if ($shopeeOrder['order_status'] === 'COMPLETED') {
             try {
@@ -211,7 +184,6 @@ class PullOrdersFromShopee implements ShouldQueue
                 
                 if (!empty($escrowResponse['order_income'])) {
                     $financialBreakdown = $escrowResponse['order_income'];
-                    // We can refine net_amount, shipping_fee, marketplace_fee based on escrow
                     $shopeeOrder['escrow_amount'] = $financialBreakdown['escrow_amount'] ?? $shopeeOrder['escrow_amount'] ?? 0;
                     $shopeeOrder['seller_discount_amount'] = $financialBreakdown['seller_discount'] ?? $shopeeOrder['seller_discount_amount'] ?? 0;
                     $actualShipping = $financialBreakdown['actual_shipping_fee'] ?? 0;
@@ -225,7 +197,6 @@ class PullOrdersFromShopee implements ShouldQueue
         $voucherCode = $shopeeOrder['voucher_info']['voucher_code'] ?? $shopeeOrder['voucher_code'] ?? null;
         $shopeeUtmKeyword = $shopeeOrder['utm_keyword'] ?? $shopeeOrder['utm_source'] ?? null;
 
-        // Cek apakah ada sesi LIVE Shopee yang aktif untuk toko ini saat order dibuat
         $createTime = $shopeeOrder['create_time'] ?? time();
         $orderDateTime = date('Y-m-d H:i:s', $createTime);
         $liveSession = \App\Models\ShopeeLiveSession::where('tenant_id', $this->store->tenant_id)
@@ -246,7 +217,6 @@ class PullOrdersFromShopee implements ShouldQueue
         $cancelReason = $shopeeOrder['cancel_reason'] ?? $shopeeOrder['buyer_cancel_reason'] ?? null;
         $cancelledBy = $shopeeOrder['cancel_by'] ?? null;
 
-        // Hitung Subtotal Harga Produk Murni dari API Shopee item_list
         $productSubtotal = 0.0;
         if (!empty($shopeeOrder['item_list'])) {
             foreach ($shopeeOrder['item_list'] as $item) {
@@ -264,7 +234,6 @@ class PullOrdersFromShopee implements ShouldQueue
         $sellerDiscount = (float) ($shopeeOrder['seller_discount_amount'] ?? $financialBreakdown['seller_discount'] ?? 0);
         $escrowAmount = (float) ($shopeeOrder['escrow_amount'] ?? $financialBreakdown['escrow_amount'] ?? 0);
 
-        // Ambil Potongan Biaya Murni dari API Escrow Shopee (jika sudah cair)
         if ($escrowAmount > 0) {
             $netAmount = $escrowAmount;
             $sellerFee = (float) ($financialBreakdown['seller_coin_cash_back'] ?? 0)
@@ -275,8 +244,6 @@ class PullOrdersFromShopee implements ShouldQueue
                        + (float) ($financialBreakdown['ams_commission_fee'] ?? 0);
             $marketplaceFee = $sellerFee > 0 ? $sellerFee : max(0.0, $totalAmount - $escrowAmount);
         } else {
-            // Untuk pesanan Shopee baru (belum COMPLETED), pasang estimasi biaya admin Shopee (~9.5%)
-            // agar pesanan baru TIDAK NOL biaya adminnya di ERP!
             $shopeeEstimatedRatio = 0.095;
             $marketplaceFee = round($totalAmount * $shopeeEstimatedRatio);
             $netAmount = max(0.0, $totalAmount - $sellerDiscount - $marketplaceFee);
@@ -316,13 +283,10 @@ class PullOrdersFromShopee implements ShouldQueue
             ]
         );
 
-        // Clean existing order items ONLY if items actually exist (prevents InnoDB gap locks on empty sets)
-        if (OrderItem::where('order_id', $order->id)->exists()) {
-            OrderItem::where('order_id', $order->id)->delete();
-        }
-
-        // Save Items via Single Atomic Query (100x faster, zero lock timeout)
+        // Hapus item ganda/kosong lama hanya jika item dari API tersedia
         if (!empty($shopeeOrder['item_list'])) {
+            OrderItem::where('order_id', $order->id)->delete();
+
             $insertRows = [];
             foreach ($shopeeOrder['item_list'] as $item) {
                 $modelId = $item['model_id'] ?? null;
@@ -333,7 +297,6 @@ class PullOrdersFromShopee implements ShouldQueue
                 }
                 $marketplaceProduct = $query->first();
 
-                // Fallback without model_id
                 if (!$marketplaceProduct && $modelId) {
                     $marketplaceProduct = \App\Models\MarketplaceProduct::where('store_id', $this->store->id)
                         ->where('marketplace_product_id', (string) $item['item_id'])
@@ -343,11 +306,9 @@ class PullOrdersFromShopee implements ShouldQueue
                 $price = $item['model_discounted_price'] ?? $item['model_original_price'] ?? 0;
                 $qty = $item['model_quantity_purchased'] ?? 1;
 
-                // Snapshot HPP dari MasterProduct saat pesanan dibuat
                 $masterProduct = $marketplaceProduct ? $marketplaceProduct->masterProduct : null;
                 $itemSku = $item['model_sku'] ?: ($item['item_sku'] ?? null);
 
-                // Fallback to SKU matching if mapping not resolved yet
                 if (!$masterProduct && $itemSku) {
                     $masterProduct = \App\Models\MasterProduct::where('tenant_id', $this->store->tenant_id)
                         ->where('sku', trim($itemSku))
@@ -378,27 +339,16 @@ class PullOrdersFromShopee implements ShouldQueue
             }
         }
 
-
-        // Process stock deduction or return
         if (!$this->skipStockDeduction) {
             $order->processStockDeduction();
         }
     }
 
-    /**
-     * Resolve ship_before_date dari Shopee API response.
-     */
     protected function resolveShipBeforeDate(array $shopeeOrder): ?string
     {
         $timestamp = $shopeeOrder['ship_by_date']
             ?? $shopeeOrder['ship_before_date']
             ?? null;
-
-        Log::info('[Shopee Debug] resolving ship_before_date', [
-            'order_sn' => $shopeeOrder['order_sn'] ?? null,
-            'ship_by_date_raw' => $shopeeOrder['ship_by_date'] ?? null,
-            'resolved_timestamp' => $timestamp,
-        ]);
 
         if (!$timestamp || !is_numeric($timestamp)) {
             return null;
@@ -430,5 +380,10 @@ class PullOrdersFromShopee implements ShouldQueue
             }
             throw $e;
         }
+    }
+
+    private function seedDemoReturns(): void
+    {
+        // Demo mode fallback
     }
 }
