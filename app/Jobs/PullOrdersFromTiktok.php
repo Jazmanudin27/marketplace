@@ -78,7 +78,7 @@ class PullOrdersFromTiktok implements ShouldQueue
                     $cursor
                 );
 
-                $orders = $response['orders'] ?? [];
+                $orders = $response['orders'] ?? $response['order_list'] ?? [];
 
                 foreach ($orders as $o) {
                     $id = $o['id'] ?? $o['order_id'] ?? null;
@@ -102,7 +102,6 @@ class PullOrdersFromTiktok implements ShouldQueue
                 return;
             }
 
-            // OPTIMISASI PINTAR TIKTOK: Hanya skip jika order sudah COMPLETED/CANCELLED DAN SUDAH MEMILIKI ITEM & ESCROW BREAKDOWN
             $skipOrderIds = Order::whereIn('order_marketplace_id', $orderIds)
                 ->whereIn('order_status', ['COMPLETED', 'CANCELLED', 'SELESAI', 'FINISHED', 'BATAL'])
                 ->has('items')
@@ -126,7 +125,7 @@ class PullOrdersFromTiktok implements ShouldQueue
                     $chunk
                 );
 
-                $orderList = $detailResponse['order_list'] ?? [];
+                $orderList = $detailResponse['orders'] ?? $detailResponse['order_list'] ?? [];
 
                 foreach ($orderList as $tiktokOrder) {
                     $this->processOrder($tiktokOrder);
@@ -190,7 +189,7 @@ class PullOrdersFromTiktok implements ShouldQueue
         }
 
         $paymentInfo = $tiktokOrder['payment_info'] ?? $tiktokOrder['payment'] ?? [];
-        $totalAmount = (float) ($paymentInfo['original_shipping_fee'] ?? 0) 
+        $totalAmount = (float) ($paymentInfo['original_total_product_price'] ?? $paymentInfo['original_shipping_fee'] ?? 0) 
             + (float) ($paymentInfo['subtotal'] ?? $paymentInfo['product_total'] ?? 0)
             + (float) ($paymentInfo['total_amount'] ?? $tiktokOrder['total_amount'] ?? 0);
         
@@ -199,7 +198,7 @@ class PullOrdersFromTiktok implements ShouldQueue
         }
 
         $buyerPaidTotal = (float) ($paymentInfo['total_amount'] ?? $tiktokOrder['total_amount'] ?? 0);
-        $subtotalAfterSeller = (float) ($paymentInfo['subtotal_after_seller_discounts'] ?? $paymentInfo['subtotal'] ?? $totalAmount);
+        $subtotalAfterSeller = (float) ($paymentInfo['subtotal_after_seller_discounts'] ?? $paymentInfo['sub_total'] ?? $paymentInfo['subtotal'] ?? $totalAmount);
         $shippingFee = (float) ($paymentInfo['shipping_fee'] ?? $paymentInfo['actual_shipping_fee'] ?? 0);
         $discountAmount = (float) ($paymentInfo['seller_discount'] ?? $paymentInfo['discount_amount'] ?? 0);
 
@@ -296,8 +295,8 @@ class PullOrdersFromTiktok implements ShouldQueue
             ]
         );
 
-        $itemList = $tiktokOrder['item_list']
-            ?? $tiktokOrder['line_items']
+        $itemList = $tiktokOrder['line_items']
+            ?? $tiktokOrder['item_list']
             ?? $tiktokOrder['sku_list']
             ?? $tiktokOrder['items']
             ?? [];
@@ -306,6 +305,8 @@ class PullOrdersFromTiktok implements ShouldQueue
             foreach ($tiktokOrder['packages'] as $pkg) {
                 if (!empty($pkg['items'])) {
                     $itemList = array_merge($itemList, $pkg['items']);
+                } elseif (!empty($pkg['line_items'])) {
+                    $itemList = array_merge($itemList, $pkg['line_items']);
                 } elseif (!empty($pkg['item_list'])) {
                     $itemList = array_merge($itemList, $pkg['item_list']);
                 }
@@ -350,7 +351,7 @@ class PullOrdersFromTiktok implements ShouldQueue
 
                 $costPrice = $masterProduct ? (float) $masterProduct->cost_price : 0;
                 $qty = (int) ($item['quantity'] ?? 1);
-                $price = (float) ($item['sku_display_price'] ?? $item['sku_original_price'] ?? $item['price'] ?? 0);
+                $price = (float) ($item['original_price'] ?? $item['sale_price'] ?? $item['sku_display_price'] ?? $item['price'] ?? 0);
 
                 $pName = $item['product_name'] ?? $item['item_name'] ?? 'Produk TikTok';
                 $vName = $item['sku_name'] ?? $item['variant_name'] ?? '';
