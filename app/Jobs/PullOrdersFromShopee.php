@@ -21,6 +21,7 @@ class PullOrdersFromShopee implements ShouldQueue
     protected int $timeFrom;
     protected int $timeTo;
     protected ?Store $store = null;
+    public bool $skipStockDeduction = false;
 
     public function __construct(Store $store, int $timeFrom, int $timeTo)
     {
@@ -371,7 +372,9 @@ class PullOrdersFromShopee implements ShouldQueue
 
 
         // Process stock deduction or return
-        $order->processStockDeduction();
+        if (!$this->skipStockDeduction) {
+            $order->processStockDeduction();
+        }
     }
 
     /**

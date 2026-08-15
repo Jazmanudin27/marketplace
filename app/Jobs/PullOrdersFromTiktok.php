@@ -23,6 +23,7 @@ class PullOrdersFromTiktok implements ShouldQueue
     protected int $timeFrom;
     protected int $timeTo;
     protected ?Store $store = null;
+    public bool $skipStockDeduction = false;
     private static array $customerCache = [];
 
     public function __construct(Store $store, int $timeFrom, int $timeTo)
@@ -482,7 +483,9 @@ class PullOrdersFromTiktok implements ShouldQueue
 
         // Unset relation memory cache agar processStockDeduction membaca item terbaru dari DB
         $order->unsetRelation('items');
-        $order->processStockDeduction();
+        if (!$this->skipStockDeduction) {
+            $order->processStockDeduction();
+        }
     }
 
     /**

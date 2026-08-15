@@ -96,6 +96,7 @@ class SyncMissingShopeeOrders extends Command
 
                 // Reflection access to saveOrder in PullOrdersFromShopee job
                 $jobInstance   = new PullOrdersFromShopee($store, $startTs, $endTs);
+                $jobInstance->skipStockDeduction = true;
                 $reflection    = new \ReflectionClass($jobInstance);
 
                 if ($reflection->hasProperty('store')) {

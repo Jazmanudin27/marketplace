@@ -2,7 +2,12 @@
 
 /**
  * ============================================================
- * PULL SEMUA ORDER TIKTOK (Realtime Direct Commit + Deadlock Auto-Retry)
+ * PULL SEMUA ORDER TIKTOK YANG BELUM ADA DI ERP (Direct Fast)
+ * ============================================================
+ *
+ * Cara pakai:
+ *   php pull_missing_tiktok_orders.php --days=30
+ *   php pull_missing_tiktok_orders.php --store=24 --days=30
  * ============================================================
  */
 
@@ -38,29 +43,35 @@ if ($fromDate && $toDate) {
     $endTs   = strtotime('today 23:59:59');
 }
 
-if (!$startTs || !$endTs || $startTs > $endTs) {
-    echo "ERROR: Rentang tanggal tidak valid.\n"; exit(1);
-}
+$statusMapping = [
+    '100' => 'UNPAID', '111' => 'READY_TO_SHIP', '112' => 'SHIPPED',
+    '121' => 'SHIPPED', '122' => 'DELIVERED', '130' => 'COMPLETED', '140' => 'CANCELLED',
+    'UNPAID' => 'UNPAID', 'AWAITING_SHIPMENT' => 'READY_TO_SHIP',
+    'AWAITING_COLLECTION' => 'SHIPPED', 'PARTIALLY_SHIPPING' => 'SHIPPED',
+    'IN_TRANSIT' => 'SHIPPED', 'DELIVERED' => 'DELIVERED',
+    'COMPLETED' => 'COMPLETED', 'CANCELLED' => 'CANCELLED', 'IN_CANCEL' => 'CANCELLED',
+];
 
-$totalDays = (int)(($endTs - $startTs) / 86400) + 1;
 echo "\n";
 echo "======================================================================\n";
-echo "  PULL ORDER TIKTOK (Realtime Direct Commit + Auto Retry Deadlock)\n";
+echo "  PULL ORDER TIKTOK YANG BELUM ADA (Fast Direct Commit)\n";
 echo "======================================================================\n";
 echo "  Mode  : " . ($isDryRun ? "DRY-RUN (preview saja)" : "LIVE (insert ke DB)") . "\n";
-echo "  Dari  : " . date('d-m-Y', $startTs) . " s/d " . date('d-m-Y', $endTs) . " ({$totalDays} hari)\n";
-echo "  Toko  : " . ($storeId ? "Store ID #{$storeId}" : "Semua toko TikTok") . "\n";
+echo "  Dari  : " . date('d-m-Y', $startTs) . " s/d " . date('d-m-Y', $endTs) . "\n";
+echo "  Toko  : " . ($storeId ? "Store ID #{$storeId}" : "Semua toko TikTok aktif") . "\n";
 echo "======================================================================\n\n";
 
-$storeQuery = Store::whereHas('channel', fn($q) => $q->where('code', 'tiktok'))
+$query = Store::whereHas('channel', fn($q) => $q->where('code', 'tiktok'))
     ->where('status', '!=', 'disconnected')
     ->whereNotNull('access_token');
-if ($storeId) $storeQuery->where('id', $storeId);
-$stores = $storeQuery->get();
 
-if ($stores->isEmpty()) { echo "ERROR: Tidak ada toko TikTok aktif.\n"; exit(1); }
+if ($storeId) $query->where('id', $storeId);
+$stores = $query->get();
 
-$tiktokService  = app(TiktokService::class);
+if ($stores->isEmpty()) { echo "Tidak ada toko TikTok aktif.\n"; exit(0); }
+
+$tiktokService = app(TiktokService::class);
+try { DB::statement("SET SESSION innodb_lock_wait_timeout = 3;"); } catch (\Exception $e) {}
 
 $grandNew    = 0;
 $grandExists = 0;
@@ -76,12 +87,19 @@ foreach ($stores as $store) {
     try {
         $accessToken = $store->getValidAccessToken();
         $shopCipher  = $store->shop_cipher;
-        if (empty($shopCipher)) { echo "  SKIP: shop_cipher kosong.\n\n"; continue; }
 
-        $jobInstance   = new PullOrdersFromTiktok($store, $startTs, $endTs);
-        $reflection    = new \ReflectionClass($jobInstance);
-        $processMethod = $reflection->getMethod('processOrder');
-        $processMethod->setAccessible(true);
+        $jobInstance = new PullOrdersFromTiktok($store, $startTs, $endTs);
+        $jobInstance->skipStockDeduction = true;
+        $reflection  = new \ReflectionClass($jobInstance);
+
+        if ($reflection->hasProperty('store')) {
+            $sp = $reflection->getProperty('store');
+            $sp->setAccessible(true);
+            $sp->setValue($jobInstance, $store);
+        }
+
+        $saveMethod = $reflection->getMethod('saveOrder');
+        $saveMethod->setAccessible(true);
 
         $storeNew    = 0;
         $storeExists = 0;
@@ -95,6 +113,7 @@ foreach ($stores as $store) {
             $labelTo   = date('Y-m-d', $chunkEnd);
 
             echo "  [{$labelFrom} s/d {$labelTo}] Fetch API... ";
+            if (ob_get_level() > 0) ob_flush(); flush();
 
             $tiktokOrderMap = [];
             $cursor     = '';
@@ -105,7 +124,6 @@ foreach ($stores as $store) {
                     $resp = $tiktokService->getOrderList($accessToken, $shopCipher, $chunkStart, $chunkEnd, $cursor);
                 } catch (\Exception $e) {
                     echo "API Error: " . $e->getMessage() . "\n";
-                    $storeError++;
                     break;
                 }
 
@@ -115,102 +133,110 @@ foreach ($stores as $store) {
                     if ($oid) $tiktokOrderMap[$oid] = $o;
                 }
 
-                $cursor  = $resp['next_cursor'] ?? '';
-                $hasMore = $resp['more'] ?? false;
+                $cursor = $resp['next_cursor'] ?? '';
                 if (++$pageCount > 50) break;
+            } while (!empty($cursor));
 
-            } while ($hasMore && $cursor);
+            $allOrderIds = array_keys($tiktokOrderMap);
+            $totalCount  = count($allOrderIds);
 
-            if (empty($tiktokOrderMap)) {
-                echo "0 order.\n";
+            if ($totalCount === 0) {
+                echo "0 order\n";
+                if (ob_get_level() > 0) ob_flush(); flush();
                 $chunkStart = $chunkEnd + 1;
                 continue;
             }
 
-            $tiktokIds = array_keys($tiktokOrderMap);
-
+            // Cek mana yang sudah ada di DB ERP
             $existingIds = Order::where('store_id', $store->id)
-                ->whereIn('order_marketplace_id', $tiktokIds)
+                ->whereIn('order_marketplace_id', $allOrderIds)
+                ->whereIn('order_status', ['COMPLETED', 'CANCELLED', 'SELESAI', 'FINISHED', 'BATAL'])
                 ->pluck('order_marketplace_id')
                 ->toArray();
 
-            $missingIds = array_diff($tiktokIds, $existingIds);
-            $totalChunk = count($tiktokIds);
+            $missingIds = array_diff($allOrderIds, $existingIds);
             $missingCnt = count($missingIds);
-
-            echo "TikTok={$totalChunk}, ERP=" . count($existingIds) . ", BELUM ADA={$missingCnt}\n";
             $storeExists += count($existingIds);
 
             if ($missingCnt === 0) {
+                echo "TikTok={$totalCount}, ERP=" . count($existingIds) . " (Semua sudah ada)\n";
+                if (ob_get_level() > 0) ob_flush(); flush();
                 $chunkStart = $chunkEnd + 1;
                 continue;
             }
 
+            echo "TikTok={$totalCount}, ERP=" . count($existingIds) . ", BELUM ADA={$missingCnt}\n";
+            if (ob_get_level() > 0) ob_flush(); flush();
+
             if ($isDryRun) {
-                echo "    [DRY-RUN] Skip simpan.\n";
+                foreach ($missingIds as $mid) {
+                    echo "    [DRY-RUN BELUM ADA] ID: {$mid}\n";
+                }
                 $storeNew += $missingCnt;
                 $chunkStart = $chunkEnd + 1;
                 continue;
             }
 
-            $missingArr = array_values($missingIds);
-            $detailMap  = [];
+            // Fetch detail & save
+            $chunks = array_chunk(array_values($missingIds), 50);
 
-            if ($chunkEnd >= strtotime('-30 days')) {
-                $chunks = array_chunk($missingArr, 50);
-                foreach ($chunks as $chunk) {
-                    try {
-                        $detailResp = $tiktokService->getOrderDetail($accessToken, $shopCipher, $chunk);
-                        $detailList = $detailResp['order_list'] ?? [];
-                        foreach ($detailList as $d) {
-                            $did = (string)($d['order_id'] ?? $d['id'] ?? null);
-                            if ($did) $detailMap[$did] = $d;
-                        }
-                    } catch (\Exception $e) {}
-                }
-            }
-
-            // Direct Commit per Order + Auto-Retry jika Deadlock
-            foreach ($missingArr as $mid) {
-                $orderData = $detailMap[$mid] ?? $tiktokOrderMap[$mid] ?? null;
-                if (!$orderData) continue;
-
+            foreach ($chunks as $chunk) {
                 try {
-                    retry(4, function() use ($processMethod, $jobInstance, $orderData) {
-                        DB::transaction(function() use ($processMethod, $jobInstance, $orderData) {
-                            $processMethod->invoke($jobInstance, $orderData);
-                        });
-                    }, 150);
+                    $detailResp = $tiktokService->getOrderDetail($accessToken, $shopCipher, $chunk);
+                    $detailList = $detailResp['orders'] ?? $detailResp['order_list'] ?? [];
 
-                    $storeNew++;
-                    echo "    [+] Saved & Committed: {$mid}\n";
+                    $detailMap = [];
+                    foreach ($detailList as $do) {
+                        $dId = (string)($do['id'] ?? $do['order_id'] ?? null);
+                        if ($dId) $detailMap[$dId] = $do;
+                    }
+
+                    foreach ($chunk as $mId) {
+                        $orderData = $detailMap[$mId] ?? $tiktokOrderMap[$mId] ?? null;
+                        if (!$orderData) continue;
+
+                        try {
+                            retry(6, function() use ($saveMethod, $jobInstance, $orderData) {
+                                DB::transaction(function() use ($saveMethod, $jobInstance, $orderData) {
+                                    $saveMethod->invoke($jobInstance, $orderData);
+                                });
+                            }, 400);
+
+                            $storeNew++;
+                            echo "    [+] Saved & Committed ID: {$mId}\n";
+                            if (ob_get_level() > 0) ob_flush(); flush();
+                        } catch (\Exception $e) {
+                            echo "    [ERROR] ID {$mId}: " . $e->getMessage() . "\n";
+                            if (ob_get_level() > 0) ob_flush(); flush();
+                            $storeError++;
+                        }
+                    }
                 } catch (\Exception $e) {
-                    echo "    [ERROR] {$mid}: " . $e->getMessage() . "\n";
-                    $storeError++;
+                    echo "    [DETAIL API ERROR]: " . $e->getMessage() . "\n";
+                    if (ob_get_level() > 0) ob_flush(); flush();
+                    $storeError += count($chunk);
                 }
             }
 
             $chunkStart = $chunkEnd + 1;
         }
 
-        echo "\n  Ringkasan [{$store->store_name}]: Ada={$storeExists} | Baru={$storeNew} | Error={$storeError}\n\n";
+        echo "\n  Hasil [{$store->store_name}]: Sudah Ada=" . ($storeExists) . " | Baru/Update={$storeNew} | Error={$storeError}\n\n";
 
         $grandNew    += $storeNew;
         $grandExists += $storeExists;
         $grandError  += $storeError;
 
     } catch (\Exception $e) {
-        echo "  ERROR toko: " . $e->getMessage() . "\n\n";
+        echo "  ERROR Toko: " . $e->getMessage() . "\n\n";
         $grandError++;
     }
 }
 
 echo "======================================================================\n";
-echo "  RINGKASAN AKHIR " . ($isDryRun ? "(DRY-RUN)" : "") . "\n";
+echo "  RINGKASAN AKHIR PULL TIKTOK\n";
 echo "======================================================================\n";
 echo "  Sudah ada di ERP          : {$grandExists} order\n";
 echo "  Berhasil ditambahkan      : {$grandNew} order\n";
 echo "  Gagal / Error             : {$grandError} order\n";
-echo "======================================================================\n";
-
-echo "\nSelesai!\n\n";
+echo "======================================================================\n\n";

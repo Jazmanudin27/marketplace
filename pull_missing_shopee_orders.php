@@ -93,6 +93,7 @@ foreach ($stores as $store) {
         }
 
         $jobInstance   = new PullOrdersFromShopee($store, $startTs, $endTs);
+        $jobInstance->skipStockDeduction = true;
         $reflection    = new \ReflectionClass($jobInstance);
 
         if ($reflection->hasProperty('store')) {
@@ -199,8 +200,12 @@ foreach ($stores as $store) {
 
                             $storeNew++;
                             echo "    [+] Saved & Committed: {$orderSn}\n";
+                            if (ob_get_level() > 0) ob_flush();
+                            flush();
                         } catch (\Exception $e) {
                             echo "    [ERROR] {$orderSn}: " . $e->getMessage() . "\n";
+                            if (ob_get_level() > 0) ob_flush();
+                            flush();
                             $storeError++;
                         }
                     }
