@@ -2485,8 +2485,38 @@ class ReportController extends Controller
         $detailData = $this->getSalesReportDetailData($tenantId, $dateFrom, $dateTo, null, null, $channelCode, $customerCat, $statusFilter, null, null, null, $storeId);
 
         $grossSales = (float) $detailData['grandTotalOmset'];
-        $refunds = 0.0;
-        $subtotalPesanan = $grossSales - $refunds;
+        
+        // Hitung Otomatis Total Refund / Pengembalian Dana (Retur & Pengembalian Pesanan)
+        $refundQuery = \App\Models\ReturnOrder::where('tenant_id', $tenantId)
+            ->whereBetween('created_at', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59']);
+
+        if (!empty($storeId)) {
+            $refundQuery->where('store_id', $storeId);
+        }
+
+        $refunds = (float) $refundQuery->sum('refund_amount');
+
+        // Fallback: Jika belum tercatat di ReturnOrder, hitung dari Order berstatus RETURNED / REFUNDED
+        if ($refunds == 0) {
+            $retQuery = \App\Models\Order::where('tenant_id', $tenantId)
+                ->whereIn('order_status', ['RETURNED', 'REFUNDED', 'RETURN']);
+
+            if (!empty($storeId)) {
+                $retQuery->where('store_id', $storeId);
+            }
+
+            $retQuery->where(function($q) use ($dateFrom, $dateTo) {
+                $q->whereBetween('completed_at', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59'])
+                  ->orWhere(function($subQ) use ($dateFrom, $dateTo) {
+                      $subQ->whereNull('completed_at')
+                           ->whereBetween('order_date', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59']);
+                  });
+            });
+
+            $refunds = (float) $retQuery->sum('total_amount');
+        }
+
+        $subtotalPesanan = max(0.0, $grossSales - $refunds);
         $vouchers = 0.0;
 
         $platformFee = (float) ($detailData['grandTotalPlatformFee'] ?? 0);
@@ -2498,7 +2528,7 @@ class ReportController extends Controller
 
         $totalPengeluaran = $platformFee + $freeShippingFee + $serviceFee + $promoFee + $otherFee + $tax;
         $totalPendapatan = $subtotalPesanan + $vouchers;
-        $totalDilepas = $totalPendapatan + $totalPengeluaran;
+        $totalDilepas = max(0.0, $totalPendapatan - abs($totalPengeluaran));
 
         return compact(
             'grossSales', 'refunds', 'subtotalPesanan', 'vouchers', 'totalPendapatan',
