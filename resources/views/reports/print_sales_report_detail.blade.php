@@ -26,13 +26,19 @@
     </div>
 
     <div class="row mb-3">
-        <div class="col-6">
+        <div class="col-4">
             <div class="p-2 border rounded text-center">
                 <small class="text-muted d-block">TOTAL OMSET TRANSAKSI</small>
                 <strong class="fs-6 text-primary">Rp {{ number_format($grandTotalOmset, 0, ',', '.') }}</strong>
             </div>
         </div>
-        <div class="col-6">
+        <div class="col-4">
+            <div class="p-2 border rounded text-center">
+                <small class="text-muted d-block">TOTAL REFUND / RETUR</small>
+                <strong class="fs-6 text-danger">-Rp {{ number_format($grandTotalRefund ?? 0, 0, ',', '.') }}</strong>
+            </div>
+        </div>
+        <div class="col-4">
             <div class="p-2 border rounded text-center">
                 <small class="text-muted d-block">TOTAL ITEM TERJUAL</small>
                 <strong class="fs-6 text-success">{{ number_format($grandTotalQty) }} Pcs</strong>
@@ -52,6 +58,7 @@
                 <th>Ringkasan Produk</th>
                 <th class="text-center">Qty</th>
                 <th class="text-end">Omset Kotor</th>
+                <th class="text-end text-danger">Refund</th>
                 <th class="text-end text-danger">Biaya Platform</th>
                 <th class="text-end text-danger">Biaya Gratis Ongkir</th>
                 <th class="text-end text-danger">Biaya Layanan</th>
@@ -74,6 +81,7 @@
                     <td class="small">{{ $row['items_summary'] }}</td>
                     <td class="text-center font-monospace">{{ number_format($row['total_qty']) }}</td>
                     <td class="text-end font-monospace">Rp {{ number_format($row['omset'], 0, ',', '.') }}</td>
+                    <td class="text-end font-monospace {{ ($row['refund'] ?? 0) > 0 ? 'text-danger fw-bold' : 'text-muted' }}">{{ ($row['refund'] ?? 0) > 0 ? '-Rp ' . number_format($row['refund'], 0, ',', '.') : '0' }}</td>
                     <td class="text-end font-monospace {{ $row['platform_fee'] < 0 ? 'text-danger' : 'text-muted' }}">{{ $row['platform_fee'] != 0 ? number_format($row['platform_fee'], 0, ',', '.') : '0' }}</td>
                     <td class="text-end font-monospace {{ $row['free_shipping_fee'] < 0 ? 'text-danger' : 'text-muted' }}">{{ $row['free_shipping_fee'] != 0 ? number_format($row['free_shipping_fee'], 0, ',', '.') : '0' }}</td>
                     <td class="text-end font-monospace {{ $row['service_fee'] < 0 ? 'text-danger' : 'text-muted' }}">{{ $row['service_fee'] != 0 ? number_format($row['service_fee'], 0, ',', '.') : '0' }}</td>
@@ -85,8 +93,9 @@
                 </tr>
             @empty
                 <tr>
-                    <td colspan="17" class="text-center py-3 text-muted">Tidak ada data detail transaksi ditemukan.</td>
+                    <td colspan="18" class="text-center py-3 text-muted">Tidak ada data detail transaksi ditemukan.</td>
                 </tr>
+            @empty
             @endforelse
         </tbody>
         <tfoot>
@@ -94,6 +103,7 @@
                 <td colspan="7" class="text-end">TOTAL REKAPITULASI:</td>
                 <td class="text-center font-monospace">{{ number_format($grandTotalQty) }}</td>
                 <td class="text-end font-monospace text-primary">Rp {{ number_format($grandTotalOmset, 0, ',', '.') }}</td>
+                <td class="text-end font-monospace text-danger">{{ ($grandTotalRefund ?? 0) > 0 ? '-Rp ' . number_format($grandTotalRefund, 0, ',', '.') : '0' }}</td>
                 <td class="text-end font-monospace text-danger">{{ number_format($grandTotalPlatformFee ?? 0, 0, ',', '.') }}</td>
                 <td class="text-end font-monospace text-danger">{{ number_format($grandTotalFreeShipping ?? 0, 0, ',', '.') }}</td>
                 <td class="text-end font-monospace text-danger">{{ number_format($grandTotalServiceFee ?? 0, 0, ',', '.') }}</td>

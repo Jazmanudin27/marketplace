@@ -15,7 +15,7 @@
                                 <small class="text-uppercase fw-bold text-success" style="font-size: 0.75rem;">Total Dana Dilepas (Net)</small>
                                 <h4 class="fw-bold mb-0 text-success mt-1">Rp {{ number_format($summary['net_released'], 0, ',', '.') }}</h4>
                             </div>
-                            <div class="bg-success text-white rounded-circle p-3 d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+                            <div class="bg-success text-white rounded-circle p-3 d-flex align-items-center justify-content-center" style="width: 44px; height: 44px;">
                                 <i class="bi bi-cash-stack fs-4"></i>
                             </div>
                         </div>
@@ -31,7 +31,7 @@
                                 <small class="text-uppercase fw-bold text-primary" style="font-size: 0.75rem;">Total Omset Kotor (Gross)</small>
                                 <h4 class="fw-bold mb-0 text-primary mt-1">Rp {{ number_format($summary['gross_revenue'], 0, ',', '.') }}</h4>
                             </div>
-                            <div class="bg-primary text-white rounded-circle p-3 d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+                            <div class="bg-primary text-white rounded-circle p-3 d-flex align-items-center justify-content-center" style="width: 44px; height: 44px;">
                                 <i class="bi bi-graph-up-arrow fs-4"></i>
                             </div>
                         </div>
@@ -39,32 +39,48 @@
                 </div>
             </div>
 
-            <div class="col-md-3">
-                <div class="card border-0 shadow-sm bg-warning bg-opacity-10 border-start border-4 border-warning h-100">
+            <div class="col-md-2">
+                <div class="card border-0 shadow-sm bg-danger bg-opacity-10 border-start border-4 border-danger h-100">
                     <div class="card-body p-3">
                         <div class="d-flex align-items-center justify-content-between">
                             <div>
-                                <small class="text-uppercase fw-bold text-dark" style="font-size: 0.75rem;">Potongan Marketplace</small>
-                                <h4 class="fw-bold mb-0 text-dark mt-1">Rp {{ number_format($summary['marketplace_fee'], 0, ',', '.') }}</h4>
+                                <small class="text-uppercase fw-bold text-danger" style="font-size: 0.75rem;">Refund / Retur</small>
+                                <h4 class="fw-bold mb-0 text-danger mt-1">Rp {{ number_format($summary['total_refunds'] ?? 0, 0, ',', '.') }}</h4>
                             </div>
-                            <div class="bg-warning text-dark rounded-circle p-3 d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
-                                <i class="bi bi-percent fs-4"></i>
+                            <div class="bg-danger text-white rounded-circle p-3 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                <i class="bi bi-arrow-counterclockwise fs-5"></i>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div class="col-md-3">
+            <div class="col-md-2">
+                <div class="card border-0 shadow-sm bg-warning bg-opacity-10 border-start border-4 border-warning h-100">
+                    <div class="card-body p-3">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div>
+                                <small class="text-uppercase fw-bold text-dark" style="font-size: 0.75rem;">Potongan MP</small>
+                                <h4 class="fw-bold mb-0 text-dark mt-1">Rp {{ number_format($summary['marketplace_fee'], 0, ',', '.') }}</h4>
+                            </div>
+                            <div class="bg-warning text-dark rounded-circle p-3 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                <i class="bi bi-percent fs-5"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-2">
                 <div class="card border-0 shadow-sm bg-info bg-opacity-10 border-start border-4 border-info h-100">
                     <div class="card-body p-3">
                         <div class="d-flex align-items-center justify-content-between">
                             <div>
-                                <small class="text-uppercase fw-bold text-info" style="font-size: 0.75rem;">Total Transaksi Selesai</small>
+                                <small class="text-uppercase fw-bold text-info" style="font-size: 0.75rem;">Transaksi</small>
                                 <h4 class="fw-bold mb-0 text-info mt-1">{{ number_format($summary['total_orders'], 0, ',', '.') }} Order</h4>
                             </div>
-                            <div class="bg-info text-white rounded-circle p-3 d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
-                                <i class="bi bi-check-circle-fill fs-4"></i>
+                            <div class="bg-info text-white rounded-circle p-3 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                <i class="bi bi-check-circle-fill fs-5"></i>
                             </div>
                         </div>
                     </div>

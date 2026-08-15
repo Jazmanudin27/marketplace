@@ -26,19 +26,25 @@
     </div>
 
     <div class="row mb-3">
-        <div class="col-4">
+        <div class="col-3">
             <div class="p-2 border rounded text-center">
                 <small class="text-muted d-block" style="font-size: 9px;">TOTAL OMSET KOTOR</small>
                 <strong class="fs-6 text-primary">Rp {{ number_format($grandTotalOmset, 0, ',', '.') }}</strong>
             </div>
         </div>
-        <div class="col-4">
+        <div class="col-3">
+            <div class="p-2 border rounded text-center">
+                <small class="text-muted d-block" style="font-size: 9px;">TOTAL REFUND / RETUR</small>
+                <strong class="fs-6 text-danger">-Rp {{ number_format($grandTotalRefund ?? 0, 0, ',', '.') }}</strong>
+            </div>
+        </div>
+        <div class="col-3">
             <div class="p-2 border rounded text-center">
                 <small class="text-muted d-block" style="font-size: 9px;">TOTAL POTONGAN MARKETPLACE</small>
                 <strong class="fs-6 text-danger">Rp {{ number_format($grandMarketplaceFee ?? 0, 0, ',', '.') }}</strong>
             </div>
         </div>
-        <div class="col-4">
+        <div class="col-3">
             <div class="p-2 border rounded text-center bg-success bg-opacity-10">
                 <small class="text-muted d-block" style="font-size: 9px;">TOTAL DANA DILEPAS (NET)</small>
                 <strong class="fs-6 text-success">Rp {{ number_format($grandNetReleased ?? $grandTotalOmset, 0, ',', '.') }}</strong>
@@ -53,6 +59,7 @@
                 <th>Tanggal Harian</th>
                 <th class="text-center">Qty</th>
                 <th class="text-end">Omset Kotor (Gross)</th>
+                <th class="text-end text-danger">Refund</th>
                 <th class="text-end text-danger">Biaya Platform</th>
                 <th class="text-end text-danger">Gratis Ongkir</th>
                 <th class="text-end text-danger">Biaya Layanan</th>
@@ -69,6 +76,7 @@
                     <td class="fw-bold font-monospace">{{ date('d F Y (l)', strtotime($row['date'])) }}</td>
                     <td class="text-center font-monospace fw-bold">{{ number_format($row['total_qty']) }}</td>
                     <td class="text-end font-monospace fw-bold text-primary">Rp {{ number_format($row['total_omset'], 0, ',', '.') }}</td>
+                    <td class="text-end font-monospace {{ ($row['refund'] ?? 0) > 0 ? 'text-danger fw-bold' : 'text-muted' }}">{{ ($row['refund'] ?? 0) > 0 ? '-Rp ' . number_format($row['refund'], 0, ',', '.') : '0' }}</td>
                     <td class="text-end font-monospace text-danger">Rp {{ number_format($row['fee_platform'] ?? 0, 0, ',', '.') }}</td>
                     <td class="text-end font-monospace text-danger">Rp {{ number_format($row['fee_free_shipping'] ?? 0, 0, ',', '.') }}</td>
                     <td class="text-end font-monospace text-danger">Rp {{ number_format($row['fee_service'] ?? 0, 0, ',', '.') }}</td>
@@ -79,7 +87,7 @@
                 </tr>
             @empty
                 <tr>
-                    <td colspan="11" class="text-center py-3 text-muted">Tidak ada data harian penjualan ditemukan.</td>
+                    <td colspan="12" class="text-center py-3 text-muted">Tidak ada data harian penjualan ditemukan.</td>
                 </tr>
             @endforelse
         </tbody>
@@ -88,6 +96,7 @@
                 <td colspan="2" class="text-end">TOTAL REKAPITULASI HARIAN:</td>
                 <td class="text-center font-monospace">{{ number_format($grandTotalQty) }}</td>
                 <td class="text-end text-primary">Rp {{ number_format($grandTotalOmset, 0, ',', '.') }}</td>
+                <td class="text-end text-danger">{{ ($grandTotalRefund ?? 0) > 0 ? '-Rp ' . number_format($grandTotalRefund, 0, ',', '.') : '0' }}</td>
                 <td class="text-end text-danger">Rp {{ number_format($grandPlatformFee ?? 0, 0, ',', '.') }}</td>
                 <td class="text-end text-danger">Rp {{ number_format($grandFreeShippingFee ?? 0, 0, ',', '.') }}</td>
                 <td class="text-end text-danger">Rp {{ number_format($grandServiceFee ?? 0, 0, ',', '.') }}</td>

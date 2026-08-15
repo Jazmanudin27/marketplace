@@ -33,6 +33,7 @@
                 <th>Tipe</th>
                 <th class="text-center">Jumlah Order</th>
                 <th class="text-end">Omset Kotor (Gross)</th>
+                <th class="text-end text-danger">Refund</th>
                 <th class="text-end text-danger">Biaya Platform</th>
                 <th class="text-end text-danger">Gratis Ongkir</th>
                 <th class="text-end text-danger">Biaya Layanan</th>
@@ -50,6 +51,7 @@
                     <td><span class="badge bg-secondary">{{ $row['type'] }}</span></td>
                     <td class="text-center fw-bold">{{ number_format($row['orders']) }}</td>
                     <td class="text-end font-monospace fw-bold text-primary">Rp {{ number_format($row['omset'], 0, ',', '.') }}</td>
+                    <td class="text-end font-monospace {{ ($row['refund'] ?? 0) > 0 ? 'text-danger fw-bold' : 'text-muted' }}">{{ ($row['refund'] ?? 0) > 0 ? '-Rp ' . number_format($row['refund'], 0, ',', '.') : '0' }}</td>
                     <td class="text-end font-monospace text-danger">Rp {{ number_format($row['fee_platform'] ?? 0, 0, ',', '.') }}</td>
                     <td class="text-end font-monospace text-danger">Rp {{ number_format($row['fee_free_shipping'] ?? 0, 0, ',', '.') }}</td>
                     <td class="text-end font-monospace text-danger">Rp {{ number_format($row['fee_service'] ?? 0, 0, ',', '.') }}</td>
@@ -65,6 +67,7 @@
                 <td colspan="3" class="text-end">TOTAL REKAPITULASI:</td>
                 <td class="text-center">{{ number_format($grandTotalOrders) }}</td>
                 <td class="text-end text-primary">Rp {{ number_format($grandTotalOmset, 0, ',', '.') }}</td>
+                <td class="text-end text-danger">{{ ($grandTotalRefund ?? 0) > 0 ? '-Rp ' . number_format($grandTotalRefund, 0, ',', '.') : '0' }}</td>
                 <td class="text-end text-danger">Rp {{ number_format($grandPlatformFee ?? 0, 0, ',', '.') }}</td>
                 <td class="text-end text-danger">Rp {{ number_format($grandFreeShippingFee ?? 0, 0, ',', '.') }}</td>
                 <td class="text-end text-danger">Rp {{ number_format($grandServiceFee ?? 0, 0, ',', '.') }}</td>

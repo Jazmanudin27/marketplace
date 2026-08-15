@@ -1582,40 +1582,34 @@ class ReportController extends Controller
 
             $orders = $query->get();
             $totalOrders += $orders->count();
-            $gRev = (float) $orders->sum('total_amount');
-            $mpFee = (float) $orders->sum('marketplace_fee');
-            $grossRevenue += $gRev;
-            $marketplaceFee += $mpFee;
-            $netReleased += max(0.0, $gRev - $mpFee);
+        // 3. Hitung Otomatis Total Refund / Retur
+        $totalRefunds = (float) \App\Models\ReturnOrder::where('tenant_id', $tenantId)
+            ->whereBetween('created_at', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59'])
+            ->when(!empty($storeId), fn($q) => $q->where('store_id', $storeId))
+            ->sum('refund_amount');
+
+        if ($totalRefunds == 0) {
+            $totalRefunds = (float) \App\Models\Order::where('tenant_id', $tenantId)
+                ->whereIn('order_status', ['RETURNED', 'REFUNDED', 'RETURN'])
+                ->when(!empty($storeId), fn($q) => $q->where('store_id', $storeId))
+                ->where(function($q) use ($dateFrom, $dateTo) {
+                    $q->whereBetween('completed_at', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59'])
+                      ->orWhere(function($subQ) use ($dateFrom, $dateTo) {
+                          $subQ->whereNull('completed_at')
+                               ->whereBetween('order_date', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59']);
+                      });
+                })
+                ->sum('total_amount');
         }
 
-        // 2. Offline POS Sales (COMPLETED)
-        if ($channelCode === 'all' || $channelCode === 'offline') {
-            $offQuery = \App\Models\OfflineSale::where('tenant_id', $tenantId)
-                ->where('status', \App\Models\OfflineSale::STATUS_COMPLETED)
-                ->whereBetween('sold_at', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59']);
-
-            if ($customerCat === 'dropship') {
-                $offQuery->where(function($q) {
-                    $q->where('is_dropship', true)
-                      ->orWhereHas('customer', fn($cq) => $cq->where('category', 'dropship'));
-                });
-            } elseif ($customerCat === 'umum') {
-                $offQuery->where('is_dropship', false);
-            }
-
-            $offSales = $offQuery->get();
-            $totalOrders += $offSales->count();
-            $offTotal = (float) $offSales->sum('grand_total');
-            $grossRevenue += $offTotal;
-            $netReleased += $offTotal;
-        }
+        $netReleased = max(0.0, $grossRevenue - $totalRefunds - $marketplaceFee);
 
         return [
-            'total_orders' => $totalOrders,
-            'gross_revenue' => $grossRevenue,
+            'total_orders'    => $totalOrders,
+            'gross_revenue'   => $grossRevenue,
+            'total_refunds'   => $totalRefunds,
             'marketplace_fee' => $marketplaceFee,
-            'net_released' => $netReleased,
+            'net_released'    => $netReleased,
         ];
     }
 
@@ -2054,9 +2048,22 @@ class ReportController extends Controller
                 $totalFee = 0;
                 $netReleased = 0;
 
+                $feePlatform = 0;
+                $feeFreeShipping = 0;
+                $feeService = 0;
+                $feePromo = 0;
+                $feeOther = 0;
+                $totalFee = 0;
+                $refundTotal = 0;
+                $netReleased = 0;
+
                 foreach ($ordersGet as $o) {
                     $iQty = $o->items->sum('quantity');
                     $qty += ($iQty > 0 ? $iQty : 1);
+
+                    $retOrder = $o->returnOrder;
+                    $refAmt = $retOrder ? (float)$retOrder->refund_amount : (in_array(strtoupper($o->order_status), ['RETURNED', 'REFUNDED', 'RETURN']) ? (float)$o->total_amount : 0.0);
+                    $refundTotal += $refAmt;
 
                     $details = $o->fee_breakdown_details;
                     $feePlatform += abs($details['platform_fee'] ?? $o->fee_platform_amount ?? 0);
@@ -2069,7 +2076,7 @@ class ReportController extends Controller
                     $totalFee += $oFee;
                 }
 
-                $netReleased = max(0.0, $omset - $totalFee);
+                $netReleased = max(0.0, $omset - $refundTotal - $totalFee);
 
                 $channels[] = [
                     'name' => $storeName,
@@ -2077,6 +2084,7 @@ class ReportController extends Controller
                     'orders' => $ordCount,
                     'qty' => $qty,
                     'omset' => $omset,
+                    'refund' => $refundTotal,
                     'fee_platform' => $feePlatform,
                     'fee_free_shipping' => $feeFreeShipping,
                     'fee_service' => $feeService,
@@ -2090,6 +2098,7 @@ class ReportController extends Controller
                 $grandTotalOmset += $omset;
                 $grandTotalQty += $qty;
                 $grandTotalOrders += $ordCount;
+                $grandTotalRefund += $refundTotal;
                 $grandPlatformFee += $feePlatform;
                 $grandFreeShippingFee += $feeFreeShipping;
                 $grandServiceFee += $feeService;
@@ -2101,7 +2110,7 @@ class ReportController extends Controller
         }
 
         return compact(
-            'channels', 'grandTotalOmset', 'grandTotalQty', 'grandTotalOrders',
+            'channels', 'grandTotalOmset', 'grandTotalQty', 'grandTotalOrders', 'grandTotalRefund',
             'grandPlatformFee', 'grandFreeShippingFee', 'grandServiceFee',
             'grandPromoFee', 'grandOtherFee', 'grandMarketplaceFee', 'grandNetReleased'
         );
@@ -2194,7 +2203,15 @@ class ReportController extends Controller
                 $releasedDate = $o->completed_at ? $o->completed_at->format('Y-m-d H:i') : ($o->order_date ? date('Y-m-d H:i', strtotime($o->order_date)) : '—');
 
                 $fees = $o->fee_breakdown_details;
-                $netAmt = max(0.0, (float)$o->total_amount - abs($fees['total_fee']));
+                $retOrder = $o->returnOrder;
+                $refundAmt = $retOrder ? (float)$retOrder->refund_amount : (in_array(strtoupper($o->order_status), ['RETURNED', 'REFUNDED', 'RETURN']) ? (float)$o->total_amount : 0.0);
+
+                $absFee = abs($fees['total_fee'] ?? 0);
+                if ($refundAmt >= (float)$o->total_amount && (float)$o->total_amount > 0) {
+                    $netAmt = $absFee;
+                } else {
+                    $netAmt = max(0.0, (float)$o->total_amount - $refundAmt - $absFee);
+                }
 
                 $transactions[] = [
                     'order_date' => $orderDate,
@@ -2207,6 +2224,7 @@ class ReportController extends Controller
                     'items_summary' => implode(', ', $itemSummary) ?: '—',
                     'total_qty' => max(1, $o->items->sum('quantity')),
                     'omset' => (float)$o->total_amount,
+                    'refund' => $refundAmt,
                     'platform_fee' => $fees['platform_fee'],
                     'free_shipping_fee' => $fees['free_shipping'],
                     'service_fee' => $fees['service_fee'],
@@ -2223,6 +2241,7 @@ class ReportController extends Controller
 
         $grandTotalOmset = array_sum(array_column($transactions, 'omset'));
         $grandTotalQty = array_sum(array_column($transactions, 'total_qty'));
+        $grandTotalRefund = array_sum(array_column($transactions, 'refund'));
         $grandTotalPlatformFee = array_sum(array_column($transactions, 'platform_fee'));
         $grandTotalFreeShipping = array_sum(array_column($transactions, 'free_shipping_fee'));
         $grandTotalServiceFee = array_sum(array_column($transactions, 'service_fee'));
@@ -2231,7 +2250,7 @@ class ReportController extends Controller
         $grandTotalTotalFee = array_sum(array_column($transactions, 'total_fee'));
         $grandTotalNetReleased = array_sum(array_column($transactions, 'net_released'));
 
-        return compact('transactions', 'grandTotalOmset', 'grandTotalQty', 'grandTotalPlatformFee', 'grandTotalFreeShipping', 'grandTotalServiceFee', 'grandTotalPromoFee', 'grandTotalOtherFee', 'grandTotalTotalFee', 'grandTotalNetReleased');
+        return compact('transactions', 'grandTotalOmset', 'grandTotalQty', 'grandTotalRefund', 'grandTotalPlatformFee', 'grandTotalFreeShipping', 'grandTotalServiceFee', 'grandTotalPromoFee', 'grandTotalOtherFee', 'grandTotalTotalFee', 'grandTotalNetReleased');
     }
 
     private function getSalesReportPerDateData($tenantId, $dateFrom, $dateTo, $channelCode = 'all', $customerCat = 'all', $statusFilter = 'all', $storeId = null)
