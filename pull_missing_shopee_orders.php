@@ -192,11 +192,9 @@ foreach ($stores as $store) {
                         if (!$orderSn) continue;
 
                         try {
-                            retry(6, function() use ($saveMethod, $jobInstance, $shopeeOrder) {
-                                DB::transaction(function() use ($saveMethod, $jobInstance, $shopeeOrder) {
-                                    $saveMethod->invoke($jobInstance, $shopeeOrder);
-                                });
-                            }, 400);
+                            retry(4, function() use ($saveMethod, $jobInstance, $shopeeOrder) {
+                                $saveMethod->invoke($jobInstance, $shopeeOrder);
+                            }, 200);
 
                             $storeNew++;
                             echo "    [+] Saved & Committed: {$orderSn}\n";
