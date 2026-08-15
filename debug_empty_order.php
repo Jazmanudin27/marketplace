@@ -6,10 +6,11 @@ $kernel = $app->make(Illuminate\Contracts\Console\Kernel::class);
 $kernel->bootstrap();
 
 use App\Models\Order;
+use App\Models\Store;
 use Illuminate\Support\Facades\DB;
 
 echo "======================================================================\n";
-echo "  DEBUGGING ORDERS WITH 0 ITEMS (ERP MARKETPLACE)\n";
+echo "  PENCARIAN CROSS-STORE ORDER KOSONG (SHOPEE & TIKTOK API)\n";
 echo "======================================================================\n\n";
 
 $emptyOrders = Order::doesntHave('items')
@@ -18,61 +19,39 @@ $emptyOrders = Order::doesntHave('items')
     ->limit(10)
     ->get();
 
-echo "Ditemukan " . $emptyOrders->count() . " sampel orderan yang benar-benar 0 ITEM:\n\n";
+$allTikTokStores = Store::whereHas('channel', function($q) {
+        $q->whereIn('code', ['tiktok', 'tokopedia']);
+    })
+    ->where('status', '!=', 'disconnected')
+    ->get();
+
+$allShopeeStores = Store::whereHas('channel', function($q) {
+        $q->where('code', 'shopee');
+    })
+    ->where('status', '!=', 'disconnected')
+    ->get();
 
 foreach ($emptyOrders as $order) {
     echo "----------------------------------------------------------------------\n";
     echo "ID ERP          : #{$order->id}\n";
     echo "Order SN / MP ID: '{$order->order_marketplace_id}'\n";
-    echo "Store ID / Nama : #{$order->store_id} - " . ($order->store->name ?? 'N/A') . "\n";
+    echo "Current Store ID: #{$order->store_id} (" . ($order->store->name ?? 'N/A') . ")\n";
     echo "Channel         : " . ($order->store->channel->code ?? 'N/A') . "\n";
-    echo "Status Order    : {$order->order_status}\n";
-    echo "Order Date      : {$order->order_date}\n";
 
-    $store = $order->store;
-    if (!$store) {
-        echo "❌ SKIP: Store ID {$order->store_id} tidak ada di database!\n";
-        continue;
-    }
+    $channelCode = strtolower($order->store->channel->code ?? '');
+    $foundInStore = null;
+    $foundItems = [];
 
-    $channelCode = strtolower($store->channel->code ?? '');
+    if ($channelCode === 'tiktok' || $channelCode === 'tokopedia') {
+        $tiktokService = app(\App\Services\TiktokService::class);
+        
+        foreach ($allTikTokStores as $tStore) {
+            try {
+                $accessToken = $tStore->getValidAccessToken();
+                $shopCipher = $tStore->shop_cipher;
 
-    if ($channelCode === 'shopee') {
-        try {
-            $shopeeService = app(\App\Services\ShopeeService::class);
-            $accessToken = $store->getValidAccessToken();
-            $shopId = (int) ($store->marketplace_store_id ?: $store->shopee_shop_id);
+                if (empty($accessToken) || empty($shopCipher)) continue;
 
-            echo "Shopee Shop ID  : {$shopId}\n";
-            echo "Access Token    : " . (empty($accessToken) ? 'KOSONG!' : 'TERSEDIA (' . substr($accessToken, 0, 10) . '...)') . "\n";
-
-            if (!empty($accessToken) && !empty($shopId)) {
-                $res = $shopeeService->getOrderDetail($accessToken, $shopId, [trim($order->order_marketplace_id)]);
-                $shopeeOrder = $res['order_list'][0] ?? null;
-
-                if ($shopeeOrder) {
-                    $itemList = $shopeeOrder['item_list'] ?? [];
-                    echo "API Shopee Response: OK (Ditemukan " . count($itemList) . " item di API Shopee!)\n";
-                    foreach ($itemList as $idx => $it) {
-                        echo "   [" . ($idx + 1) . "] " . $it['item_name'] . " | Model: " . ($it['model_name'] ?? '-') . " | Qty: " . ($it['model_quantity_purchased'] ?? 1) . "\n";
-                    }
-                } else {
-                    echo "⚠️ API Shopee Response: Kosong/Order SN '{$order->order_marketplace_id}' tidak ditemukan di Toko ini.\n";
-                }
-            }
-        } catch (\Throwable $e) {
-            echo "❌ Error API Shopee: " . $e->getMessage() . "\n";
-        }
-    } elseif ($channelCode === 'tiktok' || $channelCode === 'tokopedia') {
-        try {
-            $tiktokService = app(\App\Services\TiktokService::class);
-            $accessToken = $store->getValidAccessToken();
-            $shopCipher = $store->shop_cipher;
-
-            echo "TikTok shop_cipher: " . ($shopCipher ?: 'KOSONG!') . "\n";
-            echo "Access Token       : " . (empty($accessToken) ? 'KOSONG!' : 'TERSEDIA') . "\n";
-
-            if (!empty($accessToken) && !empty($shopCipher)) {
                 $res = $tiktokService->getOrderDetail($accessToken, $shopCipher, [trim($order->order_marketplace_id)]);
                 $orderList = $res['order_list'] ?? [];
                 $tiktokOrder = $orderList[0] ?? null;
@@ -84,19 +63,60 @@ foreach ($emptyOrders as $order) {
                         ?? $tiktokOrder['items']
                         ?? [];
 
-                    echo "API TikTok Response: OK (Ditemukan " . count($itemList) . " item di API TikTok!)\n";
-                    foreach ($itemList as $idx => $it) {
-                        echo "   [" . ($idx + 1) . "] " . ($it['product_name'] ?? $it['item_name'] ?? 'Produk') . " | Qty: " . ($it['quantity'] ?? 1) . "\n";
+                    if (!empty($itemList)) {
+                        $foundInStore = $tStore;
+                        $foundItems = $itemList;
+                        break;
                     }
-                } else {
-                    echo "⚠️ API TikTok Response: Kosong/Order ID '{$order->order_marketplace_id}' tidak ditemukan di Toko ini.\n";
                 }
+            } catch (\Throwable $e) {
+                // Continue checking next store
             }
-        } catch (\Throwable $e) {
-            echo "❌ Error API TikTok: " . $e->getMessage() . "\n";
         }
-    } else {
-        echo "ℹ️ Channel ini ({$channelCode}) bukan Shopee/TikTok.\n";
+
+        if ($foundInStore) {
+            echo "🎯 WOOOW! DITEMUKAN DI TOKO TERHUBUNG LAIN:\n";
+            echo "   Toko Asli Resmikan : ID #{$foundInStore->id} - {$foundInStore->name}\n";
+            echo "   Jumlah Item API    : " . count($foundItems) . " item!\n";
+            foreach ($foundItems as $idx => $it) {
+                echo "      [" . ($idx + 1) . "] " . ($it['product_name'] ?? $it['item_name'] ?? 'Produk') . " | Qty: " . ($it['quantity'] ?? 1) . "\n";
+            }
+        } else {
+            echo "⚠️ Tetap tidak ditemukan di seluruh " . $allTikTokStores->count() . " Toko TikTok terhubung.\n";
+        }
+    } elseif ($channelCode === 'shopee') {
+        $shopeeService = app(\App\Services\ShopeeService::class);
+
+        foreach ($allShopeeStores as $sStore) {
+            try {
+                $accessToken = $sStore->getValidAccessToken();
+                $shopId = (int) ($sStore->marketplace_store_id ?: $sStore->shopee_shop_id);
+
+                if (empty($accessToken) || empty($shopId)) continue;
+
+                $res = $shopeeService->getOrderDetail($accessToken, $shopId, [trim($order->order_marketplace_id)]);
+                $shopeeOrder = $res['order_list'][0] ?? null;
+
+                if ($shopeeOrder && !empty($shopeeOrder['item_list'])) {
+                    $foundInStore = $sStore;
+                    $foundItems = $shopeeOrder['item_list'];
+                    break;
+                }
+            } catch (\Throwable $e) {
+                // Continue checking next store
+            }
+        }
+
+        if ($foundInStore) {
+            echo "🎯 WOOOW! DITEMUKAN DI TOKO SHOPEE TERHUBUNG LAIN:\n";
+            echo "   Toko Asli Resmikan : ID #{$foundInStore->id} - {$foundInStore->name}\n";
+            echo "   Jumlah Item API    : " . count($foundItems) . " item!\n";
+            foreach ($foundItems as $idx => $it) {
+                echo "      [" . ($idx + 1) . "] " . $it['item_name'] . " | Qty: " . ($it['model_quantity_purchased'] ?? 1) . "\n";
+            }
+        } else {
+            echo "⚠️ Tetap tidak ditemukan di seluruh " . $allShopeeStores->count() . " Toko Shopee terhubung.\n";
+        }
     }
 }
 
