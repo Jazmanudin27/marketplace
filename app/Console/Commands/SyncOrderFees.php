@@ -73,13 +73,8 @@ class SyncOrderFees extends Command
                         $order->marketplace_fee = $totalFee;
                     }
 
-                    // 3. Omset Bersih (Net Amount): Jika escrow_amount ada dari API, pakai escrow_amount. Jika belum cair, pakai (total_amount - totalFee)
-                    $escrowAmount = (float)($fb['escrow_amount'] ?? 0);
-                    if ($escrowAmount > 0) {
-                        $order->net_amount = $escrowAmount;
-                    } else {
-                        $order->net_amount = max(0.0, (float)$order->total_amount - $totalFee);
-                    }
+                    // 3. Omset Bersih (Net Amount) SELALU Presisi 100% = Omset Kotor - Total Potongan Marketplace
+                    $order->net_amount = max(0.0, (float)$order->total_amount - $totalFee);
 
                     $order->saveQuietly();
                     $count++;

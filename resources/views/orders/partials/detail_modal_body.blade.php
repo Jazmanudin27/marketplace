@@ -256,7 +256,7 @@
                     <div class="d-flex justify-content-between align-items-center">
                         <span class="fw-bold text-dark">Jumlah Dana Dilepas / Cair (Net)</span>
                         <span class="font-monospace text-success fw-bold fs-6">
-                            Rp {{ number_format($order->net_amount, 0, ',', '.') }}
+                            Rp {{ number_format(max(0.0, (float)$order->total_amount - abs($fees['total_fee'])), 0, ',', '.') }}
                         </span>
                     </div>
                 </div>
