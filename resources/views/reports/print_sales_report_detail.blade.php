@@ -95,7 +95,6 @@
                 <tr>
                     <td colspan="18" class="text-center py-3 text-muted">Tidak ada data detail transaksi ditemukan.</td>
                 </tr>
-            @empty
             @endforelse
         </tbody>
         <tfoot>
