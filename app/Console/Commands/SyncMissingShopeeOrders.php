@@ -194,11 +194,11 @@ class SyncMissingShopeeOrders extends Command
                                 if (!$orderSn) continue;
 
                                 try {
-                                    retry(4, function() use ($saveMethod, $jobInstance, $shopeeOrder) {
+                                    retry(6, function() use ($saveMethod, $jobInstance, $shopeeOrder) {
                                         DB::transaction(function() use ($saveMethod, $jobInstance, $shopeeOrder) {
                                             $saveMethod->invoke($jobInstance, $shopeeOrder);
                                         });
-                                    }, 150);
+                                    }, 400);
 
                                     $storeNew++;
                                     $this->line("    <info>[+] Saved & Committed: {$orderSn}</info>");

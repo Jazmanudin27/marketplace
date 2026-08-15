@@ -69,7 +69,7 @@ if ($stores->isEmpty()) { echo "ERROR: Tidak ada toko Shopee aktif.\n"; exit(1);
 
 $shopeeService = app(ShopeeService::class);
 try {
-    DB::statement("SET SESSION innodb_lock_wait_timeout = 5;");
+    DB::statement("SET SESSION innodb_lock_wait_timeout = 3;");
 } catch (\Exception $e) {}
 
 $grandNew    = 0;
@@ -191,11 +191,11 @@ foreach ($stores as $store) {
                         if (!$orderSn) continue;
 
                         try {
-                            retry(4, function() use ($saveMethod, $jobInstance, $shopeeOrder) {
+                            retry(6, function() use ($saveMethod, $jobInstance, $shopeeOrder) {
                                 DB::transaction(function() use ($saveMethod, $jobInstance, $shopeeOrder) {
                                     $saveMethod->invoke($jobInstance, $shopeeOrder);
                                 });
-                            }, 150);
+                            }, 400);
 
                             $storeNew++;
                             echo "    [+] Saved & Committed: {$orderSn}\n";
