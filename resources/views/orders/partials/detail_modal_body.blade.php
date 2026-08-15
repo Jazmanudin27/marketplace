@@ -218,16 +218,22 @@
                         $fees = $order->fee_breakdown_details;
                         $retOrder = $order->returnOrder;
                         $refundAmount = $retOrder ? (float)$retOrder->refund_amount : (in_array(strtoupper($order->order_status), ['RETURNED', 'REFUNDED', 'RETURN']) ? (float)$order->total_amount : 0.0);
-                        $finalNet = max(0.0, (float)$order->total_amount - $refundAmount - abs($fees['total_fee']));
+                        
+                        $calcNet = (float)$order->total_amount - $refundAmount - abs($fees['total_fee']);
+                        if ($calcNet <= 0 && (float)$order->net_amount > 0) {
+                            $finalNet = (float)$order->net_amount;
+                        } else {
+                            $finalNet = max(0.0, $calcNet);
+                        }
                     @endphp
 
                     @if ($refundAmount > 0)
                         <div class="alert alert-warning border border-warning d-flex align-items-center py-2 px-3 mb-2 rounded-3" style="font-size: 0.75rem;">
                             <i class="fas fa-undo-alt text-warning fs-5 me-2"></i>
                             <div>
-                                <strong class="text-dark">Retur &amp; Pengembalian Dana:</strong>
+                                <strong class="text-dark">Pengembalian Dana / Refund:</strong>
                                 <span class="text-danger fw-bold ms-1">-Rp {{ number_format($refundAmount, 0, ',', '.') }}</span>
-                                <div class="text-muted small">Penghasilan bersih pesanan ini dikurangi potongan retur / pengembalian dana.</div>
+                                <div class="text-muted small">Penghasilan bersih pesanan ini dikurangi potongan refund.</div>
                             </div>
                         </div>
                     @endif
@@ -261,7 +267,7 @@
                     @if ($refundAmount > 0)
                         <div class="d-flex justify-content-between mb-1 align-items-center">
                             <span class="text-danger fw-semibold">
-                                <i class="fas fa-minus-circle me-1"></i>Retur Potong Faktur / Refund
+                                <i class="fas fa-minus-circle me-1"></i>Refund
                             </span>
                             <span class="font-monospace text-danger fw-bold">
                                 -Rp {{ number_format($refundAmount, 0, ',', '.') }}
