@@ -86,10 +86,17 @@ foreach ($orderChunks as $chunk) {
             if (empty($accessToken) || empty($shopId)) continue;
 
             $res = $shopeeService->getOrderDetail($accessToken, $shopId, $snList);
-            $shopeeOrders = collect($res['order_list'] ?? [])->keyBy('order_sn');
+            $shopeeOrdersList = $res['order_list'] ?? [];
 
             foreach ($chunk as $order) {
-                $shopeeOrder = $shopeeOrders->get($order->order_marketplace_id);
+                $shopeeOrder = null;
+                foreach ($shopeeOrdersList as $sItem) {
+                    if (trim((string)($sItem['order_sn'] ?? '')) === trim((string)$order->order_marketplace_id)) {
+                        $shopeeOrder = $sItem;
+                        break;
+                    }
+                }
+
                 if ($shopeeOrder && !empty($shopeeOrder['item_list'])) {
                     $apiItemCount = count($shopeeOrder['item_list']);
                     echo "  [LENGKAPI ITEM - SHOPEE] Order #{$order->id} ({$order->order_marketplace_id}) | Toko: {$sStore->name} | Items: {$apiItemCount}\n";
@@ -124,7 +131,7 @@ foreach ($orderChunks as $chunk) {
                                 'order_id' => $order->id,
                                 'marketplace_product_id' => $mp ? $mp->id : null,
                                 'master_product_id' => $masterProduct ? $masterProduct->id : null,
-                                'product_name' => $item['item_name'] . ($item['model_name'] ? " ({$item['model_name']})" : ''),
+                                'product_name' => mb_substr($item['item_name'] . ($item['model_name'] ? " ({$item['model_name']})" : ''), 0, 250),
                                 'sku' => $itemSku,
                                 'price' => $price,
                                 'total_price' => $price * $qty,
@@ -145,7 +152,7 @@ foreach ($orderChunks as $chunk) {
         }
     }
 
-    // B. TEST TERHADAP SELURUH TOKO TIKTOK TERHUBUNG (SUPPORTS API v202309)
+    // B. TEST TERHADAP SELURUH TOKO TIKTOK TERHUBUNG (EXACT STRING MATCHING)
     foreach ($tiktokStores as $tStore) {
         try {
             $accessToken = $tStore->getValidAccessToken();
@@ -153,10 +160,18 @@ foreach ($orderChunks as $chunk) {
             if (empty($accessToken) || empty($shopCipher)) continue;
 
             $res = $tiktokService->getOrderDetail($accessToken, $shopCipher, $snList);
-            $tiktokOrders = collect($res['orders'] ?? $res['order_list'] ?? [])->keyBy('id');
+            $tiktokOrdersList = $res['orders'] ?? $res['order_list'] ?? [];
 
             foreach ($chunk as $order) {
-                $tiktokOrder = $tiktokOrders->get($order->order_marketplace_id);
+                $tiktokOrder = null;
+                foreach ($tiktokOrdersList as $tItem) {
+                    $tId = trim((string)($tItem['id'] ?? $tItem['order_id'] ?? ''));
+                    if ($tId === trim((string)$order->order_marketplace_id)) {
+                        $tiktokOrder = $tItem;
+                        break;
+                    }
+                }
+
                 if ($tiktokOrder) {
                     $itemList = $tiktokOrder['line_items']
                         ?? $tiktokOrder['item_list']
@@ -186,8 +201,8 @@ foreach ($orderChunks as $chunk) {
                                     ->when($skuId, fn($q) => $q->where('marketplace_variant_id', $skuId))
                                     ->first();
 
-                                $price = $item['original_price'] ?? $item['sale_price'] ?? $item['sku_display_price'] ?? $item['price'] ?? 0;
-                                $qty = $item['quantity'] ?? 1;
+                                $price = (float) ($item['original_price'] ?? $item['sale_price'] ?? $item['sku_display_price'] ?? $item['price'] ?? 0);
+                                $qty = (int) ($item['quantity'] ?? 1);
 
                                 $masterProduct = $mp ? $mp->masterProduct : null;
                                 if (!$masterProduct && $itemSku) {
@@ -203,7 +218,7 @@ foreach ($orderChunks as $chunk) {
                                     'order_id' => $order->id,
                                     'marketplace_product_id' => $mp ? $mp->id : null,
                                     'master_product_id' => $masterProduct ? $masterProduct->id : null,
-                                    'product_name' => $pName . ($vName ? " ({$vName})" : ''),
+                                    'product_name' => mb_substr($pName . ($vName ? " ({$vName})" : ''), 0, 250),
                                     'sku' => $itemSku,
                                     'price' => $price,
                                     'total_price' => $price * $qty,

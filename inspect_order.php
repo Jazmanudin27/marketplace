@@ -10,9 +10,10 @@ use App\Models\Store;
 use Illuminate\Support\Facades\DB;
 
 $sn = $argv[1] ?? '585554122547168568';
+$isFix = in_array('--fix', $argv);
 
 echo "======================================================================\n";
-echo "  ANALISA MENGAPA ORDER ID {$sn} TIDAK DITEMUKAN DI API\n";
+echo "  PENGISIAN PRESISI ITEM ORDER: {$sn}\n";
 echo "======================================================================\n\n";
 
 $order = Order::where('order_marketplace_id', $sn)->first();
@@ -22,36 +23,116 @@ if (!$order) {
     exit(1);
 }
 
-echo "1. DETAIL STATUS TOKO ID #{$order->store_id} DI DATABASE ERP:\n";
-$store = DB::table('stores')->where('id', $order->store_id)->first();
+$allStores = Store::where('status', '!=', 'disconnected')->get();
+$tiktokService = app(\App\Services\TiktokService::class);
 
-if ($store) {
-    echo "   Nama Toko          : " . ($store->store_name ?? $store->name ?? 'N/A') . "\n";
-    echo "   Channel            : " . ($store->channel_code ?? 'N/A') . "\n";
-    echo "   Status Toko di DB  : " . strtoupper($store->status ?? 'N/A') . "\n";
-    echo "   Access Token       : " . (empty($store->access_token) ? 'KOSONG / DISCONNECTED' : 'ADA') . "\n";
-    echo "   Refresh Token      : " . (empty($store->refresh_token) ? 'KOSONG' : 'ADA') . "\n";
-    echo "   shop_cipher        : " . ($store->shop_cipher ?? 'KOSONG') . "\n";
+$foundStore = null;
+$foundTiktokOrder = null;
 
-    if ($store->status === 'disconnected' || empty($store->access_token)) {
-        echo "\n💡 KESIMPULAN MENGAPA API TIKTOK RESPON KOSONG:\n";
-        echo "   Toko #{$store->id} ({$store->store_name}) berstatus DISCONNECTED / TERPUTUS dari TikTok Shop!\n";
-        echo "   Karena koneksi toko ini sudah terputus/di-logout di ERP, sistem tidak memiliki akses izin (Access Token) resmi dari TikTok untuk mengambil detail item pesanan ini.\n";
-    } else {
-        echo "\n🔍 MENMENCOBA TIKTOK API UNTUK TOKO #{$store->id} KEMBALI...\n";
-        try {
-            $tStore = Store::find($store->id);
-            $tiktokService = app(\App\Services\TiktokService::class);
-            $token = $tStore->getValidAccessToken();
-            $res = $tiktokService->getOrderDetail($token, $tStore->shop_cipher, [$sn]);
-            echo "   API Response: " . json_encode($res) . "\n";
-        } catch (\Throwable $e) {
-            echo "   ❌ Error TikTok API Toko #{$store->id}: " . $e->getMessage() . "\n";
+foreach ($allStores as $sStore) {
+    if (!in_array(strtolower($sStore->channel->code ?? ''), ['tiktok', 'tokopedia'])) continue;
+
+    try {
+        $token = $sStore->getValidAccessToken();
+        $cipher = $sStore->shop_cipher;
+
+        if (empty($token) || empty($cipher)) continue;
+
+        $res = $tiktokService->getOrderDetail($token, $cipher, [$sn]);
+        $ordersList = $res['orders'] ?? $res['order_list'] ?? [];
+
+        foreach ($ordersList as $oItem) {
+            $oId = (string) ($oItem['id'] ?? $oItem['order_id'] ?? '');
+            if ($oId === (string) $sn) {
+                $foundStore = $sStore;
+                $foundTiktokOrder = $oItem;
+                break 2;
+            }
         }
+    } catch (\Throwable $e) {
+        echo "  [ERROR] Toko #{$sStore->id}: " . $e->getMessage() . "\n";
+    }
+}
+
+if ($foundStore && $foundTiktokOrder) {
+    echo "🎯 ORDER DITEMUKAN DI TIKTOK API:\n";
+    echo "   Toko Asli Resmikan : ID #{$foundStore->id} - {$foundStore->name}\n";
+    echo "   Status Order API   : " . ($foundTiktokOrder['status'] ?? 'N/A') . "\n";
+
+    $itemList = $foundTiktokOrder['line_items'] 
+        ?? $foundTiktokOrder['item_list'] 
+        ?? $foundTiktokOrder['sku_list'] 
+        ?? $foundTiktokOrder['items'] 
+        ?? [];
+
+    echo "   Jumlah Item API    : " . count($itemList) . " item\n";
+
+    foreach ($itemList as $idx => $it) {
+        $pName = $it['product_name'] ?? $it['item_name'] ?? 'Produk TikTok';
+        $vName = $it['sku_name'] ?? $it['variant_name'] ?? '';
+        $itemSku = $it['seller_sku'] ?? $it['sku'] ?? null;
+        $price = (float) ($it['original_price'] ?? $it['sale_price'] ?? $it['sku_display_price'] ?? $it['price'] ?? 0);
+        $qty = (int) ($it['quantity'] ?? 1);
+
+        echo "      [" . ($idx + 1) . "] {$pName}" . ($vName ? " ({$vName})" : "") . " | SKU: {$itemSku} | Qty: {$qty} | Price: Rp " . number_format($price, 0, ',', '.') . "\n";
+    }
+
+    if ($isFix && !empty($itemList)) {
+        echo "\n🚀 MELAKUKAN UPDATE BESAR KE DATABASE ERP...\n";
+
+        // Update Store ID jika berbeda
+        if ($order->store_id !== $foundStore->id) {
+            DB::table('orders')->where('id', $order->id)->update(['store_id' => $foundStore->id]);
+            echo "   ✅ Store ID diperbarui dari #{$order->store_id} -> #{$foundStore->id}\n";
+        }
+
+        // Clean & Insert Items
+        DB::table('order_items')->where('order_id', $order->id)->delete();
+
+        $insertRows = [];
+        foreach ($itemList as $item) {
+            $productId = (string)($item['product_id'] ?? '');
+            $skuId     = (string)($item['sku_id'] ?? '');
+            $itemSku   = $item['seller_sku'] ?? $item['sku'] ?? null;
+
+            $mp = \App\Models\MarketplaceProduct::where('store_id', $foundStore->id)
+                ->where('marketplace_product_id', $productId)
+                ->when($skuId, fn($q) => $q->where('marketplace_variant_id', $skuId))
+                ->first();
+
+            $price = (float) ($item['original_price'] ?? $item['sale_price'] ?? $item['sku_display_price'] ?? $item['price'] ?? 0);
+            $qty = (int) ($item['quantity'] ?? 1);
+
+            $masterProduct = $mp ? $mp->masterProduct : null;
+            if (!$masterProduct && $itemSku) {
+                $masterProduct = \App\Models\MasterProduct::where('tenant_id', $foundStore->tenant_id)
+                    ->where('sku', trim($itemSku))
+                    ->first();
+            }
+
+            $pName = $item['product_name'] ?? $item['item_name'] ?? 'Produk TikTok';
+            $vName = $item['sku_name'] ?? $item['variant_name'] ?? '';
+
+            $insertRows[] = [
+                'order_id' => $order->id,
+                'marketplace_product_id' => $mp ? $mp->id : null,
+                'master_product_id' => $masterProduct ? $masterProduct->id : null,
+                'product_name' => mb_substr($pName . ($vName ? " ({$vName})" : ''), 0, 250),
+                'sku' => $itemSku,
+                'price' => $price,
+                'total_price' => $price * $qty,
+                'cost_price' => $masterProduct ? (float) $masterProduct->cost_price : 0,
+                'quantity' => $qty,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ];
+        }
+
+        DB::table('order_items')->insert($insertRows);
+        echo "   ✅ BERHASIL 100%! Memasukkan " . count($insertRows) . " item barang ke database ERP!\n";
     }
 } else {
-    echo "❌ Toko ID #{$order->store_id} SUDAH DIHAPUS PERMANEN dari tabel `stores` ERP.\n";
-    echo "   Orderan ini adalah pesanan sisa (sampah) dari toko yang pernah Anda hapus.\n";
+    echo "⚠️ Order ID '{$sn}' tidak ditemukan di API TikTok toko manapun.\n";
 }
 
 echo "\n======================================================================\n";
