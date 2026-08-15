@@ -115,7 +115,6 @@ if ($isFix && count($emptyOrderIds) > 0) {
                             'price' => $price,
                             'cost_price' => $masterProduct ? (float) $masterProduct->cost_price : 0,
                             'quantity' => $qty,
-                            'subtotal' => $price * $qty,
                             'created_at' => now(),
                             'updated_at' => now(),
                         ];
@@ -159,7 +158,6 @@ if ($isFix && count($emptyOrderIds) > 0) {
                             'price' => $price,
                             'cost_price' => $masterProduct ? (float) $masterProduct->cost_price : 0,
                             'quantity' => $qty,
-                            'subtotal' => $price * $qty,
                             'created_at' => now(),
                             'updated_at' => now(),
                         ];
