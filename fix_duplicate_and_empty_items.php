@@ -51,7 +51,7 @@ $emptyOrderIds = DB::select("
     FROM orders o 
     LEFT JOIN order_items i ON o.id = i.order_id 
     WHERE i.id IS NULL 
-    LIMIT 100
+    LIMIT 200
 ");
 
 echo "Ditemukan " . count($emptyOrderIds) . " pesanan tanpa item.\n";
@@ -69,8 +69,11 @@ if ($isFix && count($emptyOrderIds) > 0) {
             $channelCode = strtolower($store->channel->code ?? '');
             if ($channelCode === 'shopee') {
                 $shopeeService = app(\App\Services\ShopeeService::class);
-                $res = $shopeeService->getOrderDetail($store, $order->order_marketplace_id);
-                $shopeeOrder = $res['response']['order_list'][0] ?? null;
+                $accessToken = $store->shopee_access_token;
+                $shopId = (int) $store->shopee_shop_id;
+
+                $res = $shopeeService->getOrderDetail($accessToken, $shopId, [$order->order_marketplace_id]);
+                $shopeeOrder = $res['order_list'][0] ?? null;
 
                 if ($shopeeOrder && !empty($shopeeOrder['item_list'])) {
                     $insertRows = [];
@@ -109,6 +112,8 @@ if ($isFix && count($emptyOrderIds) > 0) {
                     DB::table('order_items')->insert($insertRows);
                     $fixedCount++;
                     echo "    -> Berhasil melengkapi " . count($insertRows) . " item dari API Shopee!\n";
+                } else {
+                    echo "    -> [WARN] API Shopee tidak mengembalikan item_list untuk order ini.\n";
                 }
             } elseif ($channelCode === 'tiktok' || $channelCode === 'tokopedia') {
                 $tiktokService = app(\App\Services\TiktokService::class);
