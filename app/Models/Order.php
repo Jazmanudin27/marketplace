@@ -179,6 +179,11 @@ class Order extends Model
         return $this->hasMany(OrderItem::class);
     }
 
+    public function returnOrder(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(ReturnOrder::class);
+    }
+
     public function getStatusBadgeAttribute(): string
     {
         return match ($this->order_status) {

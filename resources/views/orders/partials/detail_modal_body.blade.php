@@ -216,7 +216,21 @@
                 <div class="card-body p-3" style="font-size: 0.8rem;">
                     @php 
                         $fees = $order->fee_breakdown_details;
+                        $retOrder = $order->returnOrder;
+                        $refundAmount = $retOrder ? (float)$retOrder->refund_amount : (in_array(strtoupper($order->order_status), ['RETURNED', 'REFUNDED', 'RETURN']) ? (float)$order->total_amount : 0.0);
+                        $finalNet = max(0.0, (float)$order->total_amount - $refundAmount - abs($fees['total_fee']));
                     @endphp
+
+                    @if ($refundAmount > 0)
+                        <div class="alert alert-warning border border-warning d-flex align-items-center py-2 px-3 mb-2 rounded-3" style="font-size: 0.75rem;">
+                            <i class="fas fa-undo-alt text-warning fs-5 me-2"></i>
+                            <div>
+                                <strong class="text-dark">Retur &amp; Pengembalian Dana:</strong>
+                                <span class="text-danger fw-bold ms-1">-Rp {{ number_format($refundAmount, 0, ',', '.') }}</span>
+                                <div class="text-muted small">Penghasilan bersih pesanan ini dikurangi potongan retur / pengembalian dana.</div>
+                            </div>
+                        </div>
+                    @endif
 
                     <table class="table table-sm table-bordered align-middle mb-2 font-monospace" style="font-size: 0.75rem;">
                         <thead class="table-light text-center fw-bold">
@@ -244,6 +258,17 @@
                         <span class="font-monospace text-dark">Rp {{ number_format($order->total_amount, 0, ',', '.') }}</span>
                     </div>
 
+                    @if ($refundAmount > 0)
+                        <div class="d-flex justify-content-between mb-1 align-items-center">
+                            <span class="text-danger fw-semibold">
+                                <i class="fas fa-minus-circle me-1"></i>Retur Potong Faktur / Refund
+                            </span>
+                            <span class="font-monospace text-danger fw-bold">
+                                -Rp {{ number_format($refundAmount, 0, ',', '.') }}
+                            </span>
+                        </div>
+                    @endif
+
                     <div class="d-flex justify-content-between mb-1 align-items-center">
                         <span class="text-muted">Total Potongan Marketplace</span>
                         <span class="font-monospace text-danger font-bold">
@@ -256,7 +281,7 @@
                     <div class="d-flex justify-content-between align-items-center">
                         <span class="fw-bold text-dark">Jumlah Dana Dilepas / Cair (Net)</span>
                         <span class="font-monospace text-success fw-bold fs-6">
-                            Rp {{ number_format(max(0.0, (float)$order->total_amount - abs($fees['total_fee'])), 0, ',', '.') }}
+                            Rp {{ number_format($finalNet, 0, ',', '.') }}
                         </span>
                     </div>
                 </div>
