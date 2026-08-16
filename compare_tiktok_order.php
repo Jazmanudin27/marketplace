@@ -8,7 +8,7 @@ $kernel->bootstrap();
 use App\Models\Order;
 use App\Services\TiktokService;
 
-$orderSn = '585492149817410871';
+$orderSn = $argv[1] ?? '585161404354365394';
 
 $order = Order::where('order_marketplace_id', $orderSn)
     ->orWhere('order_marketplace_id', 'LIKE', '%' . $orderSn . '%')
