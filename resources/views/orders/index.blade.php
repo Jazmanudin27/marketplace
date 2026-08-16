@@ -304,7 +304,7 @@
                                         <th>TOKO &amp; CHANNEL</th>
                                         <th class="text-end">TOTAL</th>
                                         <th>KURIR</th>
-                                        <th>TANGGAL &amp; BATAS KIRIM</th>
+                                        <th>TANGGAL, BATAS &amp; DANA DILEPAS</th>
                                         <th class="text-center">STATUS</th>
                                     </tr>
                                 </thead>
@@ -451,7 +451,7 @@
                                             <td class="small">
                                                 <div class="lh-sm">
                                                     <div class="small text-dark fw-semibold" title="Tanggal Pesanan">
-                                                        <i class="far fa-calendar-alt text-secondary me-1"></i>{{ $order->order_date->format('d/m/Y H:i') }}
+                                                        <i class="far fa-calendar-alt text-secondary me-1"></i>{{ $order->order_date ? $order->order_date->format('d/m/Y H:i') : '-' }}
                                                     </div>
                                                     @if ($order->ship_before_date)
                                                         <div class="mt-1" style="font-size:0.7rem;" title="Batas Kirim">
@@ -475,6 +475,12 @@
                                                                 @endif
                                                             </div>
                                                         @endif
+                                                    @endif
+                                                    @if ($order->completed_at)
+                                                        <div class="mt-1 text-success fw-bold" style="font-size:0.68rem;" title="Tanggal Diterima / Dana Dilepas">
+                                                            <i class="fas fa-check-double text-success me-1"></i><span class="text-muted">Cair:</span> 
+                                                            <span class="font-monospace text-success fw-bold">{{ $order->completed_at->format('d/m/Y H:i') }}</span>
+                                                        </div>
                                                     @endif
                                                 </div>
                                             </td>
