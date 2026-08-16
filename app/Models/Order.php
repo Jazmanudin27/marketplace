@@ -341,24 +341,31 @@ class Order extends Model
         $platformFee = (float) ($fb['commission_fee'] ?? $fb['net_platform_commission'] ?? $fb['platform_commission'] ?? $fb['platform_fee'] ?? 0);
 
         // 2. Biaya Gratis Ongkir & Program XTRA (Shopee: service_fee | TikTok: growth_xtra_fee)
-        $freeShipping = (float) ($fb['service_fee'] ?? $fb['growth_xtra_fee'] ?? $fb['free_shipping_fee'] ?? $fb['shopee_shipping_rebate_fee'] ?? $fb['shopee_shipping_rebate'] ?? $fb['shipping_fee_subsidy'] ?? 0);
+        $freeShipping = (float) ($fb['service_fee'] ?? $fb['growth_xtra_fee'] ?? $fb['free_shipping_fee'] ?? $fb['shopee_shipping_rebate_fee'] ?? 0);
 
         // 3. Biaya Layanan & Penanganan (Shopee: seller_order_processing_fee | TikTok: preorder_service_fee + order_processing_fee)
         $serviceFee  = (float) ($fb['seller_order_processing_fee'] ?? 0)
                     + (float) ($fb['preorder_service_fee'] ?? $fb['preorder_fee'] ?? 0)
                     + (float) ($fb['order_processing_fee'] ?? 0);
 
-        // 4. Diskon & Promosi Seller/Platform (seller_discount, voucher_from_seller, voucher_from_shopee / platform_discount)
-        $promoFee    = (float) ($fb['seller_discount'] ?? $fb['discount_amount'] ?? 0)
-                    + (float) ($fb['voucher_from_seller'] ?? 0)
-                    + (float) ($fb['voucher_from_shopee'] ?? $fb['platform_discount'] ?? 0)
+        // 4. Biaya Promosi Seller (Hanya potongan voucher/koin yang ditanggung Seller)
+        $promoFee    = (float) ($fb['voucher_from_seller'] ?? 0)
                     + (float) ($fb['seller_coin_cash_back'] ?? 0)
                     + (float) ($fb['order_ams_commission_fee'] ?? $fb['ams_commission_fee'] ?? 0)
                     + (float) ($fb['dynamic_commission'] ?? $fb['affiliate_commission'] ?? 0);
 
         // 5. Biaya Lainnya (Pajak, Selisih Ongkir, Asuransi, Refund & Penyesuaian/Adjustment)
+        $actualShipping = (float) ($fb['actual_shipping_fee'] ?? 0);
+        $buyerPaidShipping = (float) ($fb['buyer_paid_shipping_fee'] ?? $fb['shipping_fee_paid_by_buyer'] ?? 0);
+        $shopeeRebate = (float) ($fb['shopee_shipping_rebate'] ?? $fb['shipping_fee_subsidy'] ?? 0);
+        
+        $shippingAdjustment = (float) ($fb['shipping_fee_adjustment'] ?? 0);
+        if ($shippingAdjustment <= 0 && $actualShipping > ($buyerPaidShipping + $shopeeRebate) && ($buyerPaidShipping + $shopeeRebate) > 0) {
+            $shippingAdjustment = max(0.0, $actualShipping - ($buyerPaidShipping + $shopeeRebate));
+        }
+
         $otherFee    = (float) ($fb['seller_transaction_fee'] ?? $fb['transaction_fee'] ?? 0)
-                    + (float) ($fb['actual_shipping_fee'] ?? $fb['shipping_fee_adjustment'] ?? 0)
+                    + $shippingAdjustment
                     + (float) ($fb['shipping_seller_protection_fee_amount'] ?? $fb['delivery_seller_protection_fee_premium_amount'] ?? 0)
                     + (float) ($fb['withholding_tax'] ?? $fb['escrow_tax'] ?? $fb['vat'] ?? $fb['buyer_tax_amount'] ?? 0)
                     + (float) ($fb['seller_return_refund'] ?? $fb['refund_amount'] ?? 0)
