@@ -162,24 +162,34 @@ class SyncTiktokEscrow extends Command
                         $growthXtraFee = (float) ($paymentInfo['growth_xtra_fee'] ?? 0);
                         $orderProcessingFee = (float) ($paymentInfo['order_processing_fee'] ?? $paymentInfo['transaction_fee'] ?? 0);
 
-                        // Tembak API Finance TikTok jika settlement belum ada di data order
+                        // Tembak API Finance TikTok untuk mengambil data settlement transaksi resmi yang sudah cair
                         $totalFeeFromStmt = 0.0;
                         try {
                             $stmtData = $tiktokService->getOrderStatementTransactions($accessToken, $shopCipher, $mId);
                             $stmtList = $stmtData['statement_transactions'] ?? $stmtData['statement_transaction_list'] ?? $stmtData['transactions'] ?? [];
                             foreach ($stmtList as $st) {
+                                if (isset($st['fee_amount']) && (float)$st['fee_amount'] != 0) {
+                                    $totalFeeFromStmt = abs((float)$st['fee_amount']);
+                                }
+
+                                if (isset($st['platform_commission_amount']) && (float)$st['platform_commission_amount'] != 0) {
+                                    $platformCommission = abs((float)$st['platform_commission_amount']);
+                                }
+
+                                if (isset($st['seller_discount_amount']) && (float)$st['seller_discount_amount'] != 0) {
+                                    $sellerDiscount = abs((float)$st['seller_discount_amount']);
+                                }
+
                                 $amount = (float) ($st['amount'] ?? $st['settlement_amount'] ?? $st['transaction_amount'] ?? 0);
                                 $type = strtoupper((string)($st['type'] ?? $st['fee_type'] ?? $st['transaction_type'] ?? ''));
 
                                 if (str_contains($type, 'SETTLEMENT') || str_contains($type, 'ESCROW') || str_contains($type, 'REVENUE') || str_contains($type, 'PAYOUT')) {
                                     if ($amount > 0) $escrowAmount = $amount;
-                                } else {
-                                    $totalFeeFromStmt += abs($amount);
                                 }
                             }
                         } catch (\Exception $exStmt) {}
 
-                        $sellerDiscount = (float) ($paymentInfo['seller_discount'] ?? $paymentInfo['discount_amount'] ?? 0);
+                        $sellerDiscount = (float) ($paymentInfo['seller_discount'] ?? $paymentInfo['discount_amount'] ?? $sellerDiscount ?? 0);
                         $actualShipping = (float) ($paymentInfo['shipping_fee'] ?? $paymentInfo['actual_shipping_fee'] ?? 0);
                         $shippingSubsidy = (float) ($paymentInfo['shipping_fee_subsidy'] ?? $paymentInfo['platform_shipping_discount'] ?? 0);
                         $platformDiscount = (float) ($paymentInfo['platform_discount'] ?? 0);
@@ -188,11 +198,12 @@ class SyncTiktokEscrow extends Command
                         $totalAdjustment = (float) ($paymentInfo['total_adjustment_amount'] ?? $paymentInfo['adjustment_amount'] ?? 0);
                         $protectionFee = (float) ($paymentInfo['shipping_seller_protection_fee_amount'] ?? $paymentInfo['protection_fee'] ?? 0);
 
-                        // 🎯 PRESISI 100%: Total Fee = Subtotal Produk - Dana Cair Escrow Resmi
-                        if ($escrowAmount > 0 && $totalAmount > $escrowAmount) {
-                            $totalTiktokFees = max(0.0, $totalAmount - $escrowAmount);
-                        } elseif ($totalFeeFromStmt > 0) {
+                        // 🎯 PRESISI 100%: Gunakan fee_amount resmi dari TikTok Statement jika ada (misal 14.588)
+                        if ($totalFeeFromStmt > 0) {
                             $totalTiktokFees = $totalFeeFromStmt;
+                            $escrowAmount = max(0.0, $totalAmount - $totalTiktokFees);
+                        } elseif ($escrowAmount > 0 && $totalAmount > $escrowAmount) {
+                            $totalTiktokFees = max(0.0, $totalAmount - $escrowAmount);
                         } else {
                             $totalTiktokFees = $netPlatformCommission + $preorderServiceFee + $dynamicCommission + $growthXtraFee + $orderProcessingFee + $sellerDiscount + $withholdingTax + $sellerReturnRefund + $totalAdjustment + $protectionFee;
                         }

@@ -69,34 +69,44 @@ if ($store && (in_array(strtolower($store->channel->code ?? ''), ['tiktok', 'tik
             $orderProcessingFee = (float) ($paymentInfo['order_processing_fee'] ?? $paymentInfo['transaction_fee'] ?? 0);
 
             // Tembak API Finance TikTok untuk mengambil data settlement transaksi resmi yang sudah cair
+            $feeFromStmt = 0.0;
             try {
                 $stmtData = $tiktokService->getOrderStatementTransactions($accessToken, $shopCipher, $order->order_marketplace_id);
                 $stmtList = $stmtData['statement_transactions'] ?? $stmtData['statement_transaction_list'] ?? $stmtData['transactions'] ?? [];
                 foreach ($stmtList as $st) {
+                    if (isset($st['fee_amount']) && (float)$st['fee_amount'] != 0) {
+                        $feeFromStmt = abs((float)$st['fee_amount']);
+                    }
+
+                    if (isset($st['platform_commission_amount']) && (float)$st['platform_commission_amount'] != 0) {
+                        $platformCommission = abs((float)$st['platform_commission_amount']);
+                    }
+
+                    if (isset($st['seller_discount_amount']) && (float)$st['seller_discount_amount'] != 0) {
+                        $sellerDiscount = abs((float)$st['seller_discount_amount']);
+                    }
+
                     $amt = (float) ($st['amount'] ?? $st['settlement_amount'] ?? 0);
                     $type = strtoupper((string)($st['type'] ?? $st['fee_type'] ?? ''));
                     if (str_contains($type, 'SETTLEMENT') || str_contains($type, 'ESCROW') || str_contains($type, 'REVENUE') || str_contains($type, 'PAYOUT')) {
                         if ($amt > 0) $escrowAmount = $amt;
-                    } elseif (str_contains($type, 'COMMISSION') || str_contains($type, 'PLATFORM')) {
-                        $platformCommission = abs($amt);
-                    } elseif (str_contains($type, 'PROCESSING') || str_contains($type, 'TRANSACTION')) {
-                        $orderProcessingFee = abs($amt);
-                    } elseif (str_contains($type, 'GROWTH') || str_contains($type, 'XTRA')) {
-                        $growthXtraFee = abs($amt);
                     }
                 }
             } catch (\Exception $exStmt) {}
 
-            $sellerDiscount = (float) ($paymentInfo['seller_discount'] ?? $paymentInfo['discount_amount'] ?? 0);
+            $sellerDiscount = (float) ($paymentInfo['seller_discount'] ?? $paymentInfo['discount_amount'] ?? $sellerDiscount ?? 0);
             $actualShipping = (float) ($paymentInfo['shipping_fee'] ?? $paymentInfo['actual_shipping_fee'] ?? 0);
             $shippingSubsidy = (float) ($paymentInfo['shipping_fee_subsidy'] ?? $paymentInfo['platform_shipping_discount'] ?? 0);
             $platformDiscount = (float) ($paymentInfo['platform_discount'] ?? 0);
             $withholdingTax = (float) ($paymentInfo['withholding_tax'] ?? $paymentInfo['tax_amount'] ?? 0);
             $sellerReturnRefund = (float) ($paymentInfo['refund_amount'] ?? $paymentInfo['return_amount'] ?? 0);
             $totalAdjustment = (float) ($paymentInfo['total_adjustment_amount'] ?? $paymentInfo['adjustment_amount'] ?? 0);
-            $protectionFee = (float) ($paymentInfo['shipping_seller_protection_fee_amount'] ?? $paymentInfo['protection_fee'] ?? 0);
+            $protectionFee = (float) ($paymentInfo['shipping_seller_protection_fee_amount'] ?? $protectionFee ?? 0);
 
-            if ($escrowAmount > 0 && $totalAmount > $escrowAmount) {
+            if ($feeFromStmt > 0) {
+                $totalTiktokFees = $feeFromStmt;
+                $escrowAmount = max(0.0, $totalAmount - $totalTiktokFees);
+            } elseif ($escrowAmount > 0 && $totalAmount > $escrowAmount) {
                 $totalTiktokFees = max(0.0, $totalAmount - $escrowAmount);
             } else {
                 $totalTiktokFees = $platformCommission + $growthXtraFee + $orderProcessingFee + $sellerDiscount + $withholdingTax + $sellerReturnRefund + $totalAdjustment + $protectionFee;
