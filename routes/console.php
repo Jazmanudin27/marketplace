@@ -32,6 +32,6 @@ Schedule::command('marketing:auto-attribute')->hourly()->withoutOverlapping();
 // Evaluasi budget rules setiap jam
 Schedule::command('ads:evaluate-rules')->hourly()->withoutOverlapping();
 
-// Sinkronisasi TikTok Custom Audience setiap hari jam 02:00 pagi
-Schedule::command('ads:sync-tiktok-audiences')->dailyAt('02:00')->withoutOverlapping();
+// Sinkronisasi beda stok marketplace otomatis setiap 15 menit (KILAT & TANPA PENUMPUKAN RAM)
+Schedule::command('stock:sync --filter=diff')->everyFifteenMinutes()->withoutOverlapping(30);
 

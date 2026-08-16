@@ -257,10 +257,21 @@ class SyncTiktokEscrow extends Command
                         $dbOrder->marketplace_fee = $totalTiktokFees;
                         $dbOrder->net_amount = $escrowAmount;
 
-                        $compTs = $tOrder['delivery_time'] ?? $tOrder['update_time'] ?? $tOrder['paid_time'] ?? null;
+                        $stmtTs = null;
+                        if (!empty($stmtList[0]['statement_time'])) {
+                            $stmtTs = $stmtList[0]['statement_time'];
+                        }
+
+                        $compTs = $stmtTs ?? $tOrder['delivery_time'] ?? $tOrder['update_time'] ?? $tOrder['paid_time'] ?? null;
                         if ($compTs) {
                             $compTsSec = (is_numeric($compTs) && strlen((string)$compTs) >= 13) ? (int)($compTs / 1000) : (int)$compTs;
-                            $dbOrder->completed_at = date('Y-m-d H:i:s', $compTsSec);
+                            $dbOrder->completed_at = \Carbon\Carbon::createFromTimestamp($compTsSec, 'Asia/Jakarta')->format('Y-m-d H:i:s');
+                        }
+
+                        $createTs = $tOrder['create_time'] ?? null;
+                        if ($createTs) {
+                            $cTsSec = (is_numeric($createTs) && strlen((string)$createTs) >= 13) ? (int)($createTs / 1000) : (int)$createTs;
+                            $dbOrder->order_date = \Carbon\Carbon::createFromTimestamp($cTsSec, 'Asia/Jakarta')->format('Y-m-d H:i:s');
                         }
 
                         $dbOrder->save();

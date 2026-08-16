@@ -183,10 +183,11 @@ class PullOrdersFromTiktok implements ShouldQueue
             ]
         );
 
-        $orderDateTime = date('Y-m-d H:i:s', (function() use ($tiktokOrder) {
+        $createTsSec = (function() use ($tiktokOrder) {
             $ts = $tiktokOrder['create_time'] ?? $tiktokOrder['create_time_ge'] ?? time();
             return (is_numeric($ts) && strlen((string)$ts) >= 13) ? (int)($ts / 1000) : (int)$ts;
-        })());
+        })();
+        $orderDateTime = \Carbon\Carbon::createFromTimestamp($createTsSec, 'Asia/Jakarta')->format('Y-m-d H:i:s');
 
         $liveSessionId = null;
         if (!empty($tiktokOrder['live_session_id'])) {
@@ -329,10 +330,10 @@ class PullOrdersFromTiktok implements ShouldQueue
                 'marketplace_fee' => $marketplaceFee,
                 'courier' => $courier,
                 'tracking_number' => $trackingNumber,
-                'completed_at' => in_array($erpStatus, ['COMPLETED', 'DELIVERED', 'SELESAI', 'FINISHED']) ? date('Y-m-d H:i:s', (function() use ($tiktokOrder, $createTime) {
+                'completed_at' => in_array($erpStatus, ['COMPLETED', 'DELIVERED', 'SELESAI', 'FINISHED']) ? \Carbon\Carbon::createFromTimestamp((function() use ($tiktokOrder, $createTime) {
                     $ts = $tiktokOrder['delivery_time'] ?? $tiktokOrder['update_time'] ?? $tiktokOrder['paid_time'] ?? $createTime;
                     return (is_numeric($ts) && strlen((string)$ts) >= 13) ? (int)($ts / 1000) : (int)$ts;
-                })()) : null,
+                })(), 'Asia/Jakarta')->format('Y-m-d H:i:s') : null,
                 'ship_before_date' => $this->resolveShipBeforeDate($tiktokOrder),
                 'financial_breakdown' => $financialBreakdown,
                 'tiktok_creator_name' => $tiktokCreatorName,
