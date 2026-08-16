@@ -190,17 +190,21 @@ class SyncTiktokEscrow extends Command
 
                         $totalTiktokFees = $netPlatformCommission + $preorderServiceFee + $dynamicCommission + $growthXtraFee + $orderProcessingFee;
 
-                        $netAmount = $escrowAmount > 0 ? $escrowAmount : max(0.0, $totalAmount - $totalTiktokFees);
-                        $marketplaceFee = $totalTiktokFees > 0 ? $totalTiktokFees : max(0.0, $totalAmount - $netAmount);
+                        if ($totalTiktokFees <= 0 && $escrowAmount > 0 && $totalAmount > $escrowAmount) {
+                            $totalTiktokFees = max(0.0, $totalAmount - $escrowAmount);
+                        }
 
-                        if ($marketplaceFee <= 0 && $totalAmount > 0) {
-                            $marketplaceFee = round($totalAmount * 0.085);
-                            $netAmount = max(0.0, $totalAmount - $marketplaceFee);
+                        if ($totalTiktokFees <= 0 && $totalAmount > 0) {
+                            $totalTiktokFees = round($totalAmount * 0.085);
+                        }
+
+                        if ($escrowAmount <= 0) {
+                            $escrowAmount = max(0.0, $totalAmount - $totalTiktokFees);
                         }
 
                         $dbOrder->total_amount = $totalAmount;
-                        $dbOrder->marketplace_fee = $marketplaceFee;
-                        $dbOrder->net_amount = $netAmount;
+                        $dbOrder->marketplace_fee = $totalTiktokFees;
+                        $dbOrder->net_amount = $escrowAmount;
 
                         $dbOrder->financial_breakdown = [
                             'original_price' => $totalAmount,
