@@ -143,5 +143,8 @@ class SyncShopeeEscrow extends Command
             $this->warn("Gagal / Lewati {$totalFailed} pesanan.");
         }
         $this->info("========================================================");
+
+        // Clear reconciliation web cache so dashboard reflects updates immediately
+        \Illuminate\Support\Facades\Cache::flush();
     }
 }

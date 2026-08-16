@@ -234,5 +234,8 @@ class SyncTiktokEscrow extends Command
         }
 
         $this->info("\n✨ Selesai! Seluruh Rincian Biaya TikTok Shop berhasil disinkronkan ke database ERP.");
+
+        // Clear reconciliation web cache so dashboard reflects updates immediately
+        \Illuminate\Support\Facades\Cache::flush();
     }
 }

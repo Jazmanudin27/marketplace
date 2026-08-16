@@ -81,6 +81,7 @@ class SyncOrderFees extends Command
                 }
             });
 
+            \Illuminate\Support\Facades\Cache::flush();
             $this->info("✨ SELESAI KILAT! Berhasil memperbarui {$count} pesanan dalam hitungan detik.");
             return;
         }
