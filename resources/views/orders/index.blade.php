@@ -476,7 +476,7 @@
                                                             </div>
                                                         @endif
                                                     @endif
-                                                    @if ($order->completed_at)
+                                                    @if ($order->completed_at && in_array(strtoupper($order->order_status), ['COMPLETED', 'FINISHED', 'SELESAI', 'DELIVERED']))
                                                         <div class="mt-1 text-success fw-bold" style="font-size:0.68rem;" title="Tanggal Diterima / Dana Dilepas">
                                                             <i class="fas fa-check-double text-success me-1"></i><span class="text-muted">Cair:</span> 
                                                             <span class="font-monospace text-success fw-bold">{{ $order->completed_at->format('d/m/Y H:i') }}</span>
