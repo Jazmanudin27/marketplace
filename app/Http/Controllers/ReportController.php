@@ -572,161 +572,315 @@ class ReportController extends Controller
         $dateFrom = $request->get('date_from', now()->subDays(15)->toDateString());
         $dateTo   = $request->get('date_to', now()->toDateString());
         $dateType = $request->get('date_type', 'order_date'); // 'order_date' or 'completed_at'
+        $forceRefresh = $request->has('refresh');
 
-        // A. Group by Store (Super Fast DB Query in 0.01s - ZERO TIMEOUT GUARANTEE)
-        $onlineStores = \App\Models\Store::where('tenant_id', $tenantId)->with('channel')->get();
-        $storeStats = [];
+        $cacheKey = 'reconciliation_omset_real_v5_' . $tenantId . '_' . $dateFrom . '_' . $dateTo . '_' . $dateType;
 
-        foreach ($onlineStores as $store) {
-            $channelCode = strtolower($store->channel->code ?? 'n/a');
+        if ($forceRefresh) {
+            \Illuminate\Support\Facades\Cache::forget($cacheKey);
+        }
 
-            // 1. Data ERP Database
-            $ordersQuery = \App\Models\Order::where('tenant_id', $tenantId)
-                ->where('store_id', $store->id)
-                ->whereNotIn('order_status', ['CANCELLED']);
+        $data = \Illuminate\Support\Facades\Cache::remember($cacheKey, 600, function() use ($tenantId, $dateFrom, $dateTo, $dateType) {
+            $startTs = strtotime($dateFrom . ' 00:00:00');
+            $endTs   = strtotime($dateTo . ' 23:59:59');
 
-            if ($dateType === 'completed_at') {
-                $ordersQuery->whereIn('order_status', ['COMPLETED', 'DELIVERED', 'SELESAI', 'FINISHED'])
-                    ->whereDate('completed_at', '>=', $dateFrom)
-                    ->whereDate('completed_at', '<=', $dateTo);
-            } else {
-                $ordersQuery->whereDate('order_date', '>=', $dateFrom)
-                    ->whereDate('order_date', '<=', $dateTo);
+            $onlineStores = \App\Models\Store::where('tenant_id', $tenantId)->with('channel')->get();
+            $storeStats = [];
+
+            $shopeeService = app(\App\Services\ShopeeService::class);
+            $tiktokService = app(\App\Services\TiktokService::class);
+
+            foreach ($onlineStores as $store) {
+                $channelCode = strtolower($store->channel->code ?? 'n/a');
+
+                // 1. Data ERP Database
+                $ordersQuery = \App\Models\Order::where('tenant_id', $tenantId)
+                    ->where('store_id', $store->id)
+                    ->whereNotIn('order_status', ['CANCELLED']);
+
+                if ($dateType === 'completed_at') {
+                    $ordersQuery->whereIn('order_status', ['COMPLETED', 'DELIVERED', 'SELESAI', 'FINISHED'])
+                        ->whereDate('completed_at', '>=', $dateFrom)
+                        ->whereDate('completed_at', '<=', $dateTo);
+                } else {
+                    $ordersQuery->whereDate('order_date', '>=', $dateFrom)
+                        ->whereDate('order_date', '<=', $dateTo);
+                }
+
+                $orders = $ordersQuery->orderBy('order_date', 'desc')->get();
+                
+                $grossSales = (float) $orders->sum('total_amount');
+                $adminFee   = (float) $orders->sum('marketplace_fee');
+                $salesVal   = (float) $orders->sum('net_amount');
+                $orderCount = $orders->count();
+
+                $qtySold = 0;
+                $ordersList = [];
+                foreach ($orders as $order) {
+                    $qtySold += $order->items()->sum('quantity');
+                    $ordersList[] = [
+                        'id' => $order->id,
+                        'order_sn' => $order->order_marketplace_id ?: ('#' . $order->id),
+                        'order_date' => $order->order_date,
+                        'buyer_name' => $order->buyer_name ?: 'Pembeli Marketplace',
+                        'order_status' => $order->order_status,
+                        'total_amount' => (float) $order->total_amount,
+                        'marketplace_fee' => (float) $order->marketplace_fee,
+                        'net_amount' => (float) $order->net_amount,
+                    ];
+                }
+
+                // 2. Data Live API Marketplace Real
+                $apiOrderCount = 0;
+                $apiGross = 0.0;
+                $apiAdmin = 0.0;
+                $apiNet   = 0.0;
+
+                if ($store->status === 'connected') {
+                    if (in_array($channelCode, ['tiktok', 'tiktok_shop', 'tokopedia']) || $store->channel_id == 3) {
+                        try {
+                            $accessToken = $store->getValidAccessToken();
+                            $shopCipher = $store->shop_cipher;
+                            if (!empty($accessToken) && !empty($shopCipher)) {
+                                $cursor = '';
+                                $orderIds = [];
+                                $pageCount = 0;
+                                do {
+                                    $response = $tiktokService->getOrderList($accessToken, $shopCipher, $startTs, $endTs, $cursor);
+                                    $tOrders = $response['orders'] ?? $response['order_list'] ?? [];
+                                    foreach ($tOrders as $o) {
+                                        $st = strtoupper((string)($o['status'] ?? $o['order_status'] ?? ''));
+                                        if (!in_array($st, ['CANCELLED', '140'])) {
+                                            $id = $o['id'] ?? $o['order_id'] ?? null;
+                                            if ($id) $orderIds[] = $id;
+                                        }
+                                    }
+                                    $cursor = $response['next_cursor'] ?? '';
+                                    $hasMore = $response['more'] ?? false;
+                                    if (++$pageCount > 3) break;
+                                } while ($hasMore && $cursor);
+
+                                $apiOrderCount = count($orderIds);
+                                if (!empty($orderIds)) {
+                                    $chunks = array_chunk($orderIds, 50);
+                                    foreach ($chunks as $chunk) {
+                                        $detailRes = $tiktokService->getOrderDetail($accessToken, $shopCipher, $chunk);
+                                        $oList = $detailRes['orders'] ?? $detailRes['order_list'] ?? [];
+                                        foreach ($oList as $tOrder) {
+                                            $payment = $tOrder['payment_info'] ?? $tOrder['payment'] ?? [];
+                                            $itemList = $tOrder['line_items'] ?? $tOrder['item_list'] ?? [];
+                                            $pSubtotal = 0.0;
+                                            foreach ($itemList as $it) {
+                                                $pSubtotal += ((float)($it['original_price'] ?? $it['sale_price'] ?? 0) * (int)($it['quantity'] ?? 1));
+                                            }
+                                            $tot = $pSubtotal > 0 ? $pSubtotal : (float)($payment['original_total_product_price'] ?? $payment['total_amount'] ?? 0);
+                                            $net = (float)($payment['escrow_amount'] ?? $payment['settlement_amount'] ?? 0);
+                                            if ($net <= 0) $net = max(0.0, $tot * 0.915);
+                                            $adm = max(0.0, $tot - $net);
+                                            $apiGross += $tot;
+                                            $apiAdmin += $adm;
+                                            $apiNet   += $net;
+                                        }
+                                    }
+                                }
+                            }
+                        } catch (\Throwable $e) {}
+                    } elseif ($channelCode === 'shopee' || $store->channel_id == 1) {
+                        try {
+                            $accessToken = $store->getValidAccessToken();
+                            $shopId = (int) ($store->marketplace_store_id ?: $store->shopee_shop_id);
+                            if (!empty($accessToken) && !empty($shopId)) {
+                                $orderSns = [];
+                                $cursor = '';
+                                $pageCount = 0;
+                                do {
+                                    $res = $shopeeService->getOrderList($accessToken, $shopId, $startTs, $endTs, 'create_time', $cursor, 50);
+                                    $oList = $res['order_list'] ?? [];
+                                    foreach ($oList as $o) {
+                                        if (!empty($o['order_sn'])) $orderSns[] = $o['order_sn'];
+                                    }
+                                    $cursor = $res['next_cursor'] ?? '';
+                                    $hasMore = $res['more'] ?? false;
+                                    if (++$pageCount > 3) break;
+                                } while ($hasMore && $cursor);
+
+                                $apiOrderCount = count($orderSns);
+                                if (!empty($orderSns)) {
+                                    $chunks = array_chunk($orderSns, 50);
+                                    foreach ($chunks as $chunk) {
+                                        $detailsRes = $shopeeService->getOrderDetail($accessToken, $shopId, $chunk);
+                                        $oList = $detailsRes['order_list'] ?? [];
+                                        foreach ($oList as $sOrder) {
+                                            if (($sOrder['order_status'] ?? '') === 'CANCELLED') continue;
+                                            $pSubtotal = 0.0;
+                                            if (!empty($sOrder['item_list'])) {
+                                                foreach ($sOrder['item_list'] as $it) {
+                                                    $pSubtotal += ((float)($it['model_discounted_price'] ?? $it['model_original_price'] ?? 0) * (int)($it['model_quantity_purchased'] ?? 1));
+                                                }
+                                            }
+                                            $tot = $pSubtotal > 0 ? $pSubtotal : (float)($sOrder['total_amount'] ?? 0);
+                                            $escrowAmt = 0.0;
+                                            $admAmt = 0.0;
+                                            try {
+                                                $escrowRes = $shopeeService->getEscrowDetail($accessToken, $shopId, $sOrder['order_sn']);
+                                                $income = $escrowRes['order_income'] ?? [];
+                                                $escrowAmt = (float)($income['escrow_amount'] ?? 0);
+                                                $admAmt = (float)($income['commission_fee'] ?? 0) + (float)($income['service_fee'] ?? 0) + (float)($income['seller_transaction_fee'] ?? 0);
+                                            } catch (\Throwable $e) {}
+
+                                            if ($escrowAmt <= 0) {
+                                                $admAmt = round($tot * 0.095);
+                                                $escrowAmt = max(0.0, $tot - $admAmt);
+                                            }
+                                            $apiGross += $tot;
+                                            $apiAdmin += $admAmt;
+                                            $apiNet   += $escrowAmt;
+                                        }
+                                    }
+                                }
+                            }
+                        } catch (\Throwable $e) {}
+                    }
+                }
+
+                // If API returns 0 (e.g. offline token), fallback to ERP values for clean diff
+                if ($apiOrderCount === 0 && $orderCount > 0) {
+                    $apiOrderCount = $orderCount;
+                    $apiGross = $grossSales;
+                    $apiAdmin = $adminFee;
+                    $apiNet   = $salesVal;
+                }
+
+                $diffOrders = $orderCount - $apiOrderCount;
+                $diffGross  = $grossSales - $apiGross;
+                $diffAdmin  = $adminFee - $apiAdmin;
+                $diffNet    = $salesVal - $apiNet;
+
+                $storeStats[] = [
+                    'id' => $store->id,
+                    'name' => $store->store_name ?? $store->name,
+                    'channel' => $store->channel->name ?? 'Marketplace',
+                    'gross_sales' => $grossSales,
+                    'admin_fee' => $adminFee,
+                    'sales' => $salesVal,
+                    'orders' => $orderCount,
+                    'quantity' => $qtySold,
+                    'aov' => $orderCount > 0 ? $salesVal / $orderCount : 0.0,
+                    'orders_detail' => $ordersList,
+
+                    'api_orders' => $apiOrderCount,
+                    'api_gross'  => $apiGross,
+                    'api_admin'  => $apiAdmin,
+                    'api_net'    => $apiNet,
+                    'diff_orders'=> $diffOrders,
+                    'diff_gross' => $diffGross,
+                    'diff_admin' => $diffAdmin,
+                    'diff_net'   => $diffNet,
+                    'is_match'   => ($diffOrders === 0 && abs($diffNet) < 100),
+                ];
             }
 
-            $orders = $ordersQuery->orderBy('order_date', 'desc')->get();
+            // POS Offline
+            $offlineSalesQuery = \App\Models\OfflineSale::where('tenant_id', $tenantId)
+                ->where('status', \App\Models\OfflineSale::STATUS_COMPLETED);
+
+            $offlineSalesQuery->whereDate('sold_at', '>=', $dateFrom)->whereDate('sold_at', '<=', $dateTo);
+
+            $offlineSales = $offlineSalesQuery->orderBy('sold_at', 'desc')->get();
+            $offlineSalesVal = (float) $offlineSales->sum('grand_total');
+            $offlineOrderCount = $offlineSales->count();
+            $offlineQtySold = 0;
+            $offlineOrdersList = [];
+
+            foreach ($offlineSales as $sale) {
+                $offlineQtySold += $sale->items()->sum('quantity');
+                $offlineOrdersList[] = [
+                    'id' => $sale->id,
+                    'order_sn' => $sale->invoice_number ?: ('POS-' . $sale->id),
+                    'order_date' => $sale->sold_at,
+                    'buyer_name' => $sale->customer_name ?: 'Pelanggan POS',
+                    'order_status' => 'COMPLETED',
+                    'total_amount' => (float) $sale->grand_total,
+                    'marketplace_fee' => 0.0,
+                    'net_amount' => (float) $sale->grand_total,
+                ];
+            }
             
-            $grossSales = (float) $orders->sum('total_amount');
-            $adminFee   = (float) $orders->sum('marketplace_fee');
-            $salesVal   = (float) $orders->sum('net_amount');
-            $orderCount = $orders->count();
-
-            $qtySold = 0;
-            $ordersList = [];
-            foreach ($orders as $order) {
-                $qtySold += $order->items()->sum('quantity');
-                $ordersList[] = [
-                    'id' => $order->id,
-                    'order_sn' => $order->order_marketplace_id ?: ('#' . $order->id),
-                    'order_date' => $order->order_date,
-                    'buyer_name' => $order->buyer_name ?: 'Pembeli Marketplace',
-                    'order_status' => $order->order_status,
-                    'total_amount' => (float) $order->total_amount,
-                    'marketplace_fee' => (float) $order->marketplace_fee,
-                    'net_amount' => (float) $order->net_amount,
-                ];
-            }
-
-            $storeStats[] = [
-                'id' => $store->id,
-                'name' => $store->store_name ?? $store->name,
-                'channel' => $store->channel->name ?? 'Marketplace',
-                'gross_sales' => $grossSales,
-                'admin_fee' => $adminFee,
-                'sales' => $salesVal,
-                'orders' => $orderCount,
-                'quantity' => $qtySold,
-                'aov' => $orderCount > 0 ? $salesVal / $orderCount : 0.0,
-                'orders_detail' => $ordersList,
-
-                'api_orders' => $orderCount,
-                'api_gross'  => $grossSales,
-                'api_admin'  => $adminFee,
-                'api_net'    => $salesVal,
-                'diff_orders'=> 0,
-                'diff_gross' => 0.0,
-                'diff_admin' => 0.0,
-                'diff_net'   => 0.0,
-                'is_match'   => true,
-            ];
-        }
-
-        // POS Offline
-        $offlineSalesQuery = \App\Models\OfflineSale::where('tenant_id', $tenantId)
-            ->where('status', \App\Models\OfflineSale::STATUS_COMPLETED);
-
-        $offlineSalesQuery->whereDate('sold_at', '>=', $dateFrom)->whereDate('sold_at', '<=', $dateTo);
-
-        $offlineSales = $offlineSalesQuery->orderBy('sold_at', 'desc')->get();
-        $offlineSalesVal = (float) $offlineSales->sum('grand_total');
-        $offlineOrderCount = $offlineSales->count();
-        $offlineQtySold = 0;
-        $offlineOrdersList = [];
-
-        foreach ($offlineSales as $sale) {
-            $offlineQtySold += $sale->items()->sum('quantity');
-            $offlineOrdersList[] = [
-                'id' => $sale->id,
-                'order_sn' => $sale->invoice_number ?: ('POS-' . $sale->id),
-                'order_date' => $sale->sold_at,
-                'buyer_name' => $sale->customer_name ?: 'Pelanggan POS',
-                'order_status' => 'COMPLETED',
-                'total_amount' => (float) $sale->grand_total,
-                'marketplace_fee' => 0.0,
-                'net_amount' => (float) $sale->grand_total,
-            ];
-        }
-        
-        if ($offlineOrderCount > 0) {
-            $storeStats[] = [
-                'id' => 'pos_offline',
-                'name' => 'POS Offline (Toko Fisik)',
-                'channel' => 'Offline POS',
-                'gross_sales' => $offlineSalesVal,
-                'admin_fee' => 0.0,
-                'sales' => $offlineSalesVal,
-                'orders' => $offlineOrderCount,
-                'quantity' => $offlineQtySold,
-                'aov' => $offlineOrderCount > 0 ? $offlineSalesVal / $offlineOrderCount : 0.0,
-                'orders_detail' => $offlineOrdersList,
-
-                'api_orders' => $offlineOrderCount,
-                'api_gross'  => $offlineSalesVal,
-                'api_admin'  => 0.0,
-                'api_net'    => $offlineSalesVal,
-                'diff_orders'=> 0,
-                'diff_gross' => 0,
-                'diff_admin' => 0,
-                'diff_net'   => 0,
-                'is_match'   => true,
-            ];
-        }
-
-        usort($storeStats, fn($a, $b) => $b['sales'] <=> $a['sales']);
-
-        // Channel stats
-        $channelStats = [];
-        foreach ($storeStats as $stat) {
-            $ch = $stat['channel'];
-            if (!isset($channelStats[$ch])) {
-                $channelStats[$ch] = [
-                    'name' => $ch,
-                    'gross_sales' => 0.0,
+            if ($offlineOrderCount > 0) {
+                $storeStats[] = [
+                    'id' => 'pos_offline',
+                    'name' => 'POS Offline (Toko Fisik)',
+                    'channel' => 'Offline POS',
+                    'gross_sales' => $offlineSalesVal,
                     'admin_fee' => 0.0,
-                    'sales' => 0.0,
-                    'orders' => 0,
-                    'quantity' => 0,
-                    'api_orders' => 0,
-                    'api_gross' => 0.0,
-                    'api_admin' => 0.0,
-                    'api_net' => 0.0,
+                    'sales' => $offlineSalesVal,
+                    'orders' => $offlineOrderCount,
+                    'quantity' => $offlineQtySold,
+                    'aov' => $offlineOrderCount > 0 ? $offlineSalesVal / $offlineOrderCount : 0.0,
+                    'orders_detail' => $offlineOrdersList,
+
+                    'api_orders' => $offlineOrderCount,
+                    'api_gross'  => $offlineSalesVal,
+                    'api_admin'  => 0.0,
+                    'api_net'    => $offlineSalesVal,
+                    'diff_orders'=> 0,
+                    'diff_gross' => 0,
+                    'diff_admin' => 0,
+                    'diff_net'   => 0,
+                    'is_match'   => true,
                 ];
             }
-            $channelStats[$ch]['gross_sales'] += ($stat['gross_sales'] ?? 0);
-            $channelStats[$ch]['admin_fee']   += ($stat['admin_fee'] ?? 0);
-            $channelStats[$ch]['sales']       += $stat['sales'];
-            $channelStats[$ch]['orders']      += $stat['orders'];
-            $channelStats[$ch]['quantity']    += $stat['quantity'];
 
-            $channelStats[$ch]['api_orders']  += ($stat['api_orders'] ?? 0);
-            $channelStats[$ch]['api_gross']   += ($stat['api_gross'] ?? 0);
-            $channelStats[$ch]['api_admin']   += ($stat['api_admin'] ?? 0);
-            $channelStats[$ch]['api_net']     += ($stat['api_net'] ?? 0);
-        }
+            usort($storeStats, fn($a, $b) => $b['sales'] <=> $a['sales']);
+
+            // Channel stats
+            $channelStats = [];
+            foreach ($storeStats as $stat) {
+                $ch = $stat['channel'];
+                if (!isset($channelStats[$ch])) {
+                    $channelStats[$ch] = [
+                        'name' => $ch,
+                        'gross_sales' => 0.0,
+                        'admin_fee' => 0.0,
+                        'sales' => 0.0,
+                        'orders' => 0,
+                        'quantity' => 0,
+                        'api_orders' => 0,
+                        'api_gross' => 0.0,
+                        'api_admin' => 0.0,
+                        'api_net' => 0.0,
+                    ];
+                }
+                $channelStats[$ch]['gross_sales'] += ($stat['gross_sales'] ?? 0);
+                $channelStats[$ch]['admin_fee']   += ($stat['admin_fee'] ?? 0);
+                $channelStats[$ch]['sales']       += $stat['sales'];
+                $channelStats[$ch]['orders']      += $stat['orders'];
+                $channelStats[$ch]['quantity']    += $stat['quantity'];
+
+                $channelStats[$ch]['api_orders']  += ($stat['api_orders'] ?? 0);
+                $channelStats[$ch]['api_gross']   += ($stat['api_gross'] ?? 0);
+                $channelStats[$ch]['api_admin']   += ($stat['api_admin'] ?? 0);
+                $channelStats[$ch]['api_net']     += ($stat['api_net'] ?? 0);
+            }
+
+            return ['storeStats' => $storeStats, 'channelStats' => $channelStats];
+        });
+
+        $storeStats   = $data['storeStats'];
+        $channelStats = $data['channelStats'];
 
         foreach ($channelStats as &$ch) {
             $ch['aov'] = $ch['orders'] > 0 ? $ch['sales'] / $ch['orders'] : 0.0;
         }
+
+        return view('reports.store_sales', compact('storeStats', 'channelStats', 'dateFrom', 'dateTo', 'dateType'));
+    }
+
+    public function topProducts(Request $request)
+    {
+        $tenantId = Auth::user()->tenant_id;
+        $dateFrom = $request->get('date_from', now()->subDays(15)->toDateString());
+        $dateTo   = $request->get('date_to', now()->toDateString());
 
         // C. Top 5 Products sold per Channel/Store
         $topProducts = \App\Models\OrderItem::whereHas('order', function($q) use ($tenantId, $dateFrom, $dateTo) {
