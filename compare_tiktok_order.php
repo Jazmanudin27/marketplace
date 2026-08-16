@@ -71,12 +71,25 @@ if ($store && (in_array(strtolower($store->channel->code ?? ''), ['tiktok', 'tik
 
             // Tembak API Finance TikTok untuk mengambil data settlement transaksi resmi yang sudah cair
             $feeFromStmt = 0.0;
+            $revenueFromStmt = 0.0;
+            $settlementFromStmt = 0.0;
+
             try {
                 $stmtData = $tiktokService->getOrderStatementTransactions($accessToken, $shopCipher, $order->order_marketplace_id);
                 $stmtList = $stmtData['statement_transactions'] ?? $stmtData['statement_transaction_list'] ?? $stmtData['transactions'] ?? [];
                 foreach ($stmtList as $st) {
+                    if (isset($st['revenue_amount']) && (float)$st['revenue_amount'] > 0) {
+                        $revenueFromStmt = (float)$st['revenue_amount'];
+                    } elseif (isset($st['net_sales_amount']) && (float)$st['net_sales_amount'] > 0) {
+                        $revenueFromStmt = (float)$st['net_sales_amount'];
+                    }
+
                     if (isset($st['fee_amount']) && (float)$st['fee_amount'] != 0) {
                         $feeFromStmt = abs((float)$st['fee_amount']);
+                    }
+
+                    if (isset($st['settlement_amount']) && (float)$st['settlement_amount'] > 0) {
+                        $settlementFromStmt = (float)$st['settlement_amount'];
                     }
 
                     if (isset($st['platform_commission_amount']) && (float)$st['platform_commission_amount'] != 0) {
@@ -86,14 +99,16 @@ if ($store && (in_array(strtolower($store->channel->code ?? ''), ['tiktok', 'tik
                     if (isset($st['seller_discount_amount']) && (float)$st['seller_discount_amount'] != 0) {
                         $sellerDiscount = abs((float)$st['seller_discount_amount']);
                     }
-
-                    $amt = (float) ($st['amount'] ?? $st['settlement_amount'] ?? 0);
-                    $type = strtoupper((string)($st['type'] ?? $st['fee_type'] ?? ''));
-                    if (str_contains($type, 'SETTLEMENT') || str_contains($type, 'ESCROW') || str_contains($type, 'REVENUE') || str_contains($type, 'PAYOUT')) {
-                        if ($amt > 0) $escrowAmount = $amt;
-                    }
                 }
             } catch (\Exception $exStmt) {}
+
+            if ($revenueFromStmt > 0) {
+                $totalAmount = $revenueFromStmt;
+            }
+
+            if ($settlementFromStmt > 0) {
+                $escrowAmount = $settlementFromStmt;
+            }
 
             $sellerDiscount = (float) ($paymentInfo['seller_discount'] ?? $paymentInfo['discount_amount'] ?? $sellerDiscount ?? 0);
             $actualShipping = (float) ($paymentInfo['shipping_fee'] ?? $paymentInfo['actual_shipping_fee'] ?? 0);
@@ -106,7 +121,6 @@ if ($store && (in_array(strtolower($store->channel->code ?? ''), ['tiktok', 'tik
 
             if ($feeFromStmt > 0) {
                 $totalTiktokFees = $feeFromStmt;
-                $escrowAmount = max(0.0, $totalAmount - $totalTiktokFees);
             } elseif ($escrowAmount > 0 && $totalAmount > $escrowAmount) {
                 $totalTiktokFees = max(0.0, $totalAmount - $escrowAmount);
             } else {
