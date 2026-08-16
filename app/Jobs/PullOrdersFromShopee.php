@@ -122,22 +122,8 @@ class PullOrdersFromShopee implements ShouldQueue
                 return;
             }
 
-            // OPTIMISASI PINTAR: Hanya skip jika order berstatus final DAN SUDAH MEMILIKI ITEM & FINANCIAL BREAKDOWN
-            $skipOrderSns = Order::whereIn('order_marketplace_id', $allOrderSn)
-                ->whereIn('order_status', ['COMPLETED', 'CANCELLED', 'SELESAI', 'FINISHED', 'BATAL'])
-                ->has('items')
-                ->whereNotNull('financial_breakdown')
-                ->pluck('order_marketplace_id')
-                ->toArray();
-
-            $neededOrderSns = array_diff($allOrderSn, $skipOrderSns);
-
-            if (empty($neededOrderSns)) {
-                Log::info('[Shopee] All orders in range are up-to-date for store ' . $this->store->store_name);
-                return;
-            }
-
-            $chunks = array_chunk(array_values($neededOrderSns), 50);
+            // 🚀 SINKRONISASI STATUS 100% AKURAT: Ambil detail seluruh order tanpa melewatinya agar status di ERP & API 100% SAMA
+            $chunks = array_chunk(array_values($allOrderSn), 50);
 
             foreach ($chunks as $chunk) {
                 $detailsResponse = $this->getValidAccessTokenWithRetry(function($token) use ($shopeeService, $chunk) {
@@ -189,9 +175,26 @@ class PullOrdersFromShopee implements ShouldQueue
             self::$customerCache[$cacheKey] = $customer;
         }
 
+        // STANDARISASI STATUS RESMI SHOPEE
+        $statusRaw = strtoupper((string)($shopeeOrder['order_status'] ?? 'UNPAID'));
+        $shopeeStatusMap = [
+            'UNPAID' => 'UNPAID',
+            'READY_TO_SHIP' => 'READY_TO_SHIP',
+            'PROCESSED' => 'READY_TO_SHIP',
+            'RETRY_SHIP' => 'READY_TO_SHIP',
+            'TO_RETRY_LOGISTICS' => 'READY_TO_SHIP',
+            'SHIPPED' => 'SHIPPED',
+            'TO_CONFIRM_RECEIVE' => 'SHIPPED',
+            'DELIVERED' => 'DELIVERED',
+            'COMPLETED' => 'COMPLETED',
+            'CANCELLED' => 'CANCELLED',
+            'IN_CANCEL' => 'CANCELLED',
+        ];
+        $erpStatus = $shopeeStatusMap[$statusRaw] ?? $statusRaw;
+
         // 🚀 BIAYA ADMIN PRESISI: Ambil data Escrow / Income resmi Shopee untuk SEMUA pesanan yang bukan CANCELLED!
         $financialBreakdown = null;
-        if ($shopeeOrder['order_status'] !== 'CANCELLED') {
+        if ($erpStatus !== 'CANCELLED') {
             try {
                 $shopeeService = app(\App\Services\ShopeeService::class);
                 $escrowResponse = $this->getValidAccessTokenWithRetry(function($token) use ($shopeeService, $shopeeOrder) {
@@ -276,7 +279,6 @@ class PullOrdersFromShopee implements ShouldQueue
                 $marketplaceFee = max(0.0, $totalAmount - $netAmount);
             }
         } else {
-            // Jika pesanan sangat baru (UNPAID) dan escrow detail belum terbit di API Shopee
             $shopeeEstimatedRatio = 0.095;
             $marketplaceFee = round($totalAmount * $shopeeEstimatedRatio);
             $netAmount = max(0.0, $totalAmount - $sellerDiscount - $marketplaceFee);
@@ -290,7 +292,7 @@ class PullOrdersFromShopee implements ShouldQueue
             [
                 'store_id' => $this->store->id,
                 'customer_id' => $customer->id,
-                'order_status' => $shopeeOrder['order_status'],
+                'order_status' => $erpStatus,
                 'buyer_name' => $shopeeOrder['buyer_username'] ?? 'Buyer',
                 'buyer_phone' => $shopeeOrder['recipient_address']['phone'] ?? null,
                 'shipping_address' => $shopeeOrder['recipient_address']['full_address'] ?? null,
@@ -302,7 +304,7 @@ class PullOrdersFromShopee implements ShouldQueue
                 'courier' => $shopeeOrder['shipping_carrier'] ?? null,
                 'tracking_number' => current($shopeeOrder['package_list'] ?? [])['tracking_number'] ?? current($shopeeOrder['package_list'] ?? [])['package_number'] ?? null,
                 'order_date' => date('Y-m-d H:i:s', $shopeeOrder['create_time'] ?? time()),
-                'completed_at' => in_array($shopeeOrder['order_status'], ['COMPLETED', 'DELIVERED', 'SELESAI', 'FINISHED']) ? date('Y-m-d H:i:s', $shopeeOrder['update_time'] ?? ($shopeeOrder['create_time'] ?? time())) : null,
+                'completed_at' => in_array($erpStatus, ['COMPLETED', 'DELIVERED', 'SELESAI', 'FINISHED']) ? date('Y-m-d H:i:s', $shopeeOrder['update_time'] ?? ($shopeeOrder['create_time'] ?? time())) : null,
                 'ship_before_date' => $this->resolveShipBeforeDate($shopeeOrder),
                 'financial_breakdown' => $financialBreakdown,
                 'voucher_code' => $voucherCode,

@@ -102,21 +102,8 @@ class PullOrdersFromTiktok implements ShouldQueue
                 return;
             }
 
-            $skipOrderIds = Order::whereIn('order_marketplace_id', $orderIds)
-                ->whereIn('order_status', ['COMPLETED', 'CANCELLED', 'SELESAI', 'FINISHED', 'BATAL'])
-                ->has('items')
-                ->whereNotNull('financial_breakdown')
-                ->pluck('order_marketplace_id')
-                ->toArray();
-
-            $neededOrderIds = array_diff($orderIds, $skipOrderIds);
-
-            if (empty($neededOrderIds)) {
-                Log::info("[TikTok] Tidak ada pesanan TikTok yang perlu diproses untuk toko {$this->store->store_name}.");
-                return;
-            }
-
-            $chunks = array_chunk(array_values($neededOrderIds), 50);
+            // 🚀 SINKRONISASI STATUS 100% AKURAT: Ambil detail seluruh order tanpa melewatinya agar status di ERP & API 100% SAMA
+            $chunks = array_chunk(array_values($orderIds), 50);
 
             foreach ($chunks as $chunk) {
                 $detailResponse = $tiktokService->getOrderDetail(
