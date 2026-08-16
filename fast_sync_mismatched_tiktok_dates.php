@@ -75,8 +75,17 @@ foreach ($stores as $store) {
 
                 $changed = false;
 
-                // 1. TANGGAL SELESAI / DITERIMA (finish_time | delivered_time | complete_time)
-                $compTs = $tOrder['finish_time'] ?? $tOrder['delivered_time'] ?? $tOrder['complete_time'] ?? $tOrder['delivery_time'] ?? $tOrder['update_time'] ?? null;
+                // 1. TANGGAL SELESAI / DITERIMA (statement_time dari Finance API | finish_time | delivered_time)
+                $stmtTime = null;
+                try {
+                    $stmtData = $tiktokService->getOrderStatementTransactions($accessToken, $shopCipher, $mId);
+                    $stmtList = $stmtData['statement_transactions'] ?? $stmtData['statement_transaction_list'] ?? $stmtData['transactions'] ?? [];
+                    if (!empty($stmtList[0]['statement_time'])) {
+                        $stmtTime = $stmtList[0]['statement_time'];
+                    }
+                } catch (\Exception $exStmt) {}
+
+                $compTs = $stmtTime ?? $tOrder['finish_time'] ?? $tOrder['delivered_time'] ?? $tOrder['complete_time'] ?? $tOrder['delivery_time'] ?? $tOrder['update_time'] ?? null;
                 
                 if ($compTs) {
                     $cSec = (is_numeric($compTs) && strlen((string)$compTs) >= 13) ? (int)($compTs / 1000) : (int)$compTs;
