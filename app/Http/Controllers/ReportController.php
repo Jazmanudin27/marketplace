@@ -597,14 +597,9 @@ class ReportController extends Controller
             $orders = $ordersQuery->orderBy('order_date', 'desc')->get();
             
             $grossSales = (float) $orders->sum('total_amount');
-            $adminFee   = 0.0;
-            $salesVal   = 0.0;
+            $adminFee   = (float) $orders->sum('marketplace_fee');
+            $salesVal   = (float) $orders->sum('net_amount');
             $orderCount = $orders->count();
-
-            foreach ($orders as $order) {
-                $adminFee += (float) $order->marketplace_fee;
-                $salesVal += (float) $order->net_amount;
-            }
 
             // 2. Compute Official Marketplace API Data from Stored Financial Escrow Details
             $apiOrderCount = 0;
