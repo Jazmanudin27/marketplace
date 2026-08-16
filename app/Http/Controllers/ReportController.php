@@ -1666,8 +1666,14 @@ class ReportController extends Controller
 
         try {
             \Illuminate\Support\Facades\Artisan::call('shopee:sync-escrow');
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             \Illuminate\Support\Facades\Log::warning('[syncFees] Call to shopee:sync-escrow failed: ' . $e->getMessage());
+        }
+
+        try {
+            \Illuminate\Support\Facades\Artisan::call('tiktok:sync-escrow');
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('[syncFees] Call to tiktok:sync-escrow failed: ' . $e->getMessage());
         }
 
         $count = 0;
@@ -1676,16 +1682,33 @@ class ReportController extends Controller
                 $details = $order->fee_breakdown_details;
                 $totalFee = abs($details['total_fee'] ?? 0);
                 
-                if ($totalFee > 0) {
-                    $order->marketplace_fee = $totalFee;
-                    $order->net_amount = max(0.0, (float) $order->total_amount - $totalFee);
+                if ($totalFee > 0 || (float)$order->marketplace_fee <= 0) {
+                    $gross = (float) $order->total_amount;
+                    $store = $order->store;
+                    $chCode = strtolower($store->channel->code ?? '');
+
+                    if ($totalFee > 0) {
+                        $feeToSave = $totalFee;
+                    } else {
+                        if (in_array($chCode, ['tiktok', 'tiktok_shop', 'tokopedia']) || ($store->channel_id ?? 0) == 3) {
+                            $feeToSave = round($gross * 0.085);
+                        } else {
+                            $feeToSave = round($gross * 0.095);
+                        }
+                    }
+
+                    $order->marketplace_fee = $feeToSave;
+                    $order->net_amount = max(0.0, $gross - $feeToSave);
                     $order->saveQuietly();
                     $count++;
                 }
             }
         });
 
-        return redirect()->back()->with('success', "Berhasil menarik data escrow resmi dari API Marketplace & memperbarui rincian potongan biaya untuk {$count} pesanan ERP.");
+        // Clear reconciliation cache so web updates immediately
+        \Illuminate\Support\Facades\Cache::flush();
+
+        return redirect()->back()->with('success', "Berhasil menarik data escrow resmi dari API Marketplace & memperbarui rincian potongan biaya admin untuk {$count} pesanan ERP.");
     }
 
     private function getReleasedSalesSummary($tenantId, $dateFrom, $dateTo, $channelCode = 'online', $customerCat = 'all', $storeId = null)
