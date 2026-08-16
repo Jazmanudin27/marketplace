@@ -235,7 +235,8 @@ class Order extends Model
                         // Cek apakah pergerakan stok untuk item ini di order ini sudah pernah dicatat
                         $reference = 'Pesanan Masuk: ' . $this->order_marketplace_id;
                         $alreadyDeducted = StockMovement::where('master_product_id', $masterProductId)
-                            ->where('reference', $reference)
+                            ->where('reference', 'LIKE', '%' . $this->order_marketplace_id . '%')
+                            ->where('type', 'out')
                             ->exists();
 
                         if (!$alreadyDeducted) {
@@ -245,12 +246,21 @@ class Order extends Model
                                 continue;
                             }
 
+                            $customOrderDate = null;
+                            if ($this->order_date) {
+                                try {
+                                    $customOrderDate = \Carbon\Carbon::parse($this->order_date)->format('Y-m-d H:i:s');
+                                } catch (\Exception $exDate) {
+                                    $customOrderDate = (string) $this->order_date;
+                                }
+                            }
+
                             $masterProduct->recordStockMovement(
                                 $item->quantity,
                                 'out',
                                 $reference,
                                 null,
-                                $this->order_date ? $this->order_date->format('Y-m-d H:i:s') : null
+                                $customOrderDate
                             );
                         }
                     }
