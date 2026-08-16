@@ -23,32 +23,41 @@ class PullOrdersFromTiktok implements ShouldQueue
     public ?int $timeTo;
     public bool $skipStockDeduction;
 
+    public ?Store $store = null;
+
     /**
      * Create a new job instance.
      */
     public function __construct(Store|int $store, ?int $timeFrom = null, ?int $timeTo = null, bool $skipStockDeduction = false)
     {
-        $this->storeId = $store instanceof Store ? $store->id : $store;
+        if ($store instanceof Store) {
+            $this->store = $store;
+            $this->storeId = $store->id;
+        } else {
+            $this->storeId = (int) $store;
+            $loadedStore = Store::find($store);
+            if ($loadedStore) {
+                $this->store = $loadedStore;
+            }
+        }
         $this->timeFrom = $timeFrom ?? now()->subDays(15)->timestamp;
         $this->timeTo = $timeTo ?? now()->timestamp;
         $this->skipStockDeduction = $skipStockDeduction;
     }
-
-    public Store $store;
 
     /**
      * Execute the job.
      */
     public function handle(TiktokService $tiktokService): void
     {
-        $store = Store::find($this->storeId);
+        if (!$this->store) {
+            $this->store = Store::find($this->storeId);
+        }
 
-        if (! $store) {
+        if (! $this->store) {
             Log::warning('[TikTok] PullOrdersFromTiktok: Store #' . $this->storeId . ' no longer exists. Discarding job.');
             return;
         }
-
-        $this->store = $store;
 
         if ($this->store->status === 'disconnected' || (empty($this->store->access_token) && empty($this->store->refresh_token))) {
             Log::warning("[TikTok] Toko {$this->store->store_name} tidak terhubung.");
@@ -125,6 +134,10 @@ class PullOrdersFromTiktok implements ShouldQueue
 
     protected function processOrder(array $tiktokOrder)
     {
+        if (!$this->store) {
+            $this->store = Store::find($this->storeId);
+        }
+
         // Standarisasi Status TikTok
         $statusRaw = $tiktokOrder['status'] ?? $tiktokOrder['order_status'] ?? 'UNPAID';
         $statusMap = [
