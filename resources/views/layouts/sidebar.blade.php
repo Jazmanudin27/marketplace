@@ -587,10 +587,11 @@
                         @if(auth()->user()->isSuperAdmin() || auth()->user()->can('reports.sales') || auth()->user()->can('view-warehouse-reports') || auth()->user()->can('view-financial-reports'))
                             <a href="{{ route('reports.sales') }}"
                                 class="nav-link py-1 {{ request()->routeIs('reports.sales') ? 'active text-white' : 'text-secondary' }}">Laporan Penjualan</a>
+                            <a href="{{ route('reports.store_sales') }}"
+                                class="nav-link py-1 {{ request()->routeIs('reports.store_sales*') ? 'active text-white' : 'text-secondary' }}">Laporan Penjualan Per Toko</a>
                             <a href="{{ route('reports.released_sales') }}"
                                 class="nav-link py-1 {{ request()->routeIs('reports.released_sales*') ? 'active text-white' : 'text-secondary' }}">Laporan Penjualan Dilepas</a>
                         @endif
-{{-- Laporan Toko & Salur disembunyikan sementara --}}
                         @if(auth()->user()->isSuperAdmin() || auth()->user()->can('reports.reseller_receivables') || auth()->user()->can('view-financial-reports'))
                             <a href="{{ route('reports.reseller_receivables') }}"
                                 class="nav-link py-1 {{ request()->routeIs('reports.reseller_receivables') ? 'active text-white' : 'text-secondary' }}">Saldo & Piutang</a>

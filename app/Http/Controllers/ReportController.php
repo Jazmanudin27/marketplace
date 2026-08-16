@@ -584,16 +584,21 @@ class ReportController extends Controller
                 ->whereDate('order_date', '<=', $dateTo)
                 ->get();
                 
-            $salesVal = (float) $orders->sum('net_amount');
+            $grossSales = (float) $orders->sum('total_amount');
+            $adminFee   = (float) $orders->sum('marketplace_fee');
+            $salesVal   = (float) $orders->sum('net_amount');
             $orderCount = $orders->count();
+
             $qtySold = 0;
             foreach ($orders as $order) {
                 $qtySold += $order->items()->sum('quantity');
             }
             
             $storeStats[] = [
-                'name' => $store->store_name,
-                'channel' => $store->channel->name,
+                'name' => $store->store_name ?? $store->name,
+                'channel' => $store->channel->name ?? 'Marketplace',
+                'gross_sales' => $grossSales,
+                'admin_fee' => $adminFee,
                 'sales' => $salesVal,
                 'orders' => $orderCount,
                 'quantity' => $qtySold,
@@ -618,6 +623,8 @@ class ReportController extends Controller
         $storeStats[] = [
             'name' => 'POS Offline (Toko Fisik)',
             'channel' => 'Offline POS',
+            'gross_sales' => $offlineSalesVal,
+            'admin_fee' => 0.0,
             'sales' => $offlineSalesVal,
             'orders' => $offlineOrderCount,
             'quantity' => $offlineQtySold,
@@ -633,14 +640,18 @@ class ReportController extends Controller
             if (!isset($channelStats[$ch])) {
                 $channelStats[$ch] = [
                     'name' => $ch,
+                    'gross_sales' => 0.0,
+                    'admin_fee' => 0.0,
                     'sales' => 0.0,
                     'orders' => 0,
                     'quantity' => 0,
                 ];
             }
-            $channelStats[$ch]['sales'] += $stat['sales'];
-            $channelStats[$ch]['orders'] += $stat['orders'];
-            $channelStats[$ch]['quantity'] += $stat['quantity'];
+            $channelStats[$ch]['gross_sales'] += ($stat['gross_sales'] ?? 0);
+            $channelStats[$ch]['admin_fee']   += ($stat['admin_fee'] ?? 0);
+            $channelStats[$ch]['sales']       += $stat['sales'];
+            $channelStats[$ch]['orders']      += $stat['orders'];
+            $channelStats[$ch]['quantity']    += $stat['quantity'];
         }
         foreach ($channelStats as &$ch) {
             $ch['aov'] = $ch['orders'] > 0 ? $ch['sales'] / $ch['orders'] : 0.0;
