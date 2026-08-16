@@ -9,12 +9,18 @@
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
     @endif
+    @if(session('error'))
+        <div class="alert alert-danger alert-dismissible fade show shadow-sm mb-4" role="alert">
+            <i class="fas fa-exclamation-circle me-2"></i> {{ session('error') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    @endif
 
-    {{-- Filter & Action Bar --}}
+    {{-- Filter Bar --}}
     <div class="card border shadow-sm mb-4 bg-white">
         <div class="card-body py-2 px-3">
-            <div class="d-flex flex-wrap align-items-end justify-content-between gap-3">
-                <form method="GET" action="{{ route('reports.store_sales') }}" class="row g-2 align-items-end flex-fill">
+            <form method="GET" action="{{ route('reports.store_sales') }}">
+                <div class="row g-2 align-items-end">
                     <div class="col-6 col-md-3">
                         <label class="form-label form-label-sm fw-semibold mb-1 text-muted">Filter Berdasarkan Tanggal</label>
                         <select name="date_type" class="form-select form-select-sm fw-semibold text-primary">
@@ -34,23 +40,13 @@
                         <label class="form-label form-label-sm fw-semibold mb-1 text-muted">Sampai Tanggal</label>
                         <input type="date" name="date_to" value="{{ $dateTo }}" class="form-control form-control-sm">
                     </div>
-                    <div class="col-6 col-md-3 d-flex gap-2">
+                    <div class="col-12 col-md-3 d-flex gap-2">
                         <button type="submit" class="btn btn-primary btn-sm flex-fill fw-semibold">
                             <i class="fas fa-filter me-1"></i> Filter Data
                         </button>
                     </div>
-                </form>
-
-                {{-- Tombol Sync Biaya Admin --}}
-                <div class="d-flex align-items-end">
-                    <form action="{{ route('reports.released_sales.sync_fees') }}" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin menyinkronkan ulang seluruh Biaya Admin dari API Marketplace untuk pesanan ERP?');">
-                        @csrf
-                        <button type="submit" class="btn btn-warning btn-sm fw-bold text-dark px-3">
-                            <i class="fas fa-sync-alt me-1"></i> ⚡ Sync Biaya Admin
-                        </button>
-                    </form>
                 </div>
-            </div>
+            </form>
         </div>
     </div>
 
@@ -219,13 +215,13 @@
                                 </td>
                             </tr>
 
-                            {{-- Collapsible Rincian Order + Deteksi Per Transaksi --}}
+                            {{-- Collapsible Rincian Order + Deteksi & Tombol Sync Per Transaksi --}}
                             <tr>
                                 <td colspan="16" class="p-0 border-0">
                                     <div class="collapse bg-light p-3 border-top border-bottom" id="collapseOrder_{{ $storeKey }}">
                                         <div class="d-flex justify-content-between align-items-center mb-2 px-2">
                                             <h6 class="fw-bold text-dark mb-0">
-                                                <i class="fas fa-search-dollar text-primary me-2"></i>Rincian Deteksi Per Transaksi: <span class="text-primary">{{ $stat['name'] }}</span>
+                                                <i class="fas fa-search-dollar text-primary me-2"></i>Rincian Deteksi & Sync Per Transaksi: <span class="text-primary">{{ $stat['name'] }}</span>
                                             </h6>
                                             <span class="badge bg-dark px-2 py-1">{{ count($details) }} Transaksi Ditemukan</span>
                                         </div>
@@ -243,7 +239,8 @@
                                                             <th class="text-end">Omset Kotor (ERP / API)</th>
                                                             <th class="text-end text-danger">Biaya Admin (ERP / API)</th>
                                                             <th class="text-end text-success">Omset Bersih (ERP / API)</th>
-                                                            <th class="text-center pe-3">Deteksi Selisih</th>
+                                                            <th class="text-center">Deteksi Selisih</th>
+                                                            <th class="text-center pe-3">Aksi Sync</th>
                                                         </tr>
                                                     </thead>
                                                     <tbody>
@@ -289,7 +286,7 @@
                                                                 </td>
 
                                                                 {{-- Match status per order --}}
-                                                                <td class="text-center pe-3">
+                                                                <td class="text-center">
                                                                     @if($hasDiff)
                                                                         <span class="badge bg-danger text-white px-2 py-1 fw-bold" title="Biaya admin atau net amount berbeda">
                                                                             ⚠️ SELISIH Rp {{ number_format(abs($dNetOrd ?: $dAdmOrd), 0, ',', '.') }}
@@ -298,6 +295,18 @@
                                                                         <span class="badge bg-success-subtle text-success border border-success border-opacity-25 px-2 py-1">
                                                                             <i class="fas fa-check me-1"></i>MATCH
                                                                         </span>
+                                                                    @endif
+                                                                </td>
+
+                                                                {{-- Tombol Sync Per Transaksi --}}
+                                                                <td class="text-center pe-3">
+                                                                    @if(isset($od['id']))
+                                                                        <form action="{{ route('orders.sync_single_fee', $od['id']) }}" method="POST" class="d-inline">
+                                                                            @csrf
+                                                                            <button type="submit" class="btn btn-xs btn-warning text-dark py-1 px-2 fw-bold shadow-sm" title="Sinkronkan Biaya Admin Khusus Order Ini">
+                                                                                <i class="fas fa-sync-alt me-1"></i> Sync Fee
+                                                                            </button>
+                                                                        </form>
                                                                     @endif
                                                                 </td>
                                                             </tr>

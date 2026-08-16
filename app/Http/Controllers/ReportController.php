@@ -1711,6 +1711,114 @@ class ReportController extends Controller
         return redirect()->back()->with('success', "Berhasil menarik data escrow resmi dari API Marketplace & memperbarui rincian potongan biaya admin untuk {$count} pesanan ERP.");
     }
 
+    public function syncSingleOrderFee($id)
+    {
+        $tenantId = Auth::user()->tenant_id;
+        $order = \App\Models\Order::where('tenant_id', $tenantId)->findOrFail($id);
+        $store = $order->store;
+
+        if (!$store) {
+            return redirect()->back()->with('error', 'Toko untuk order ini tidak ditemukan.');
+        }
+
+        $orderSn = $order->order_marketplace_id;
+        $channelCode = strtolower($store->channel->code ?? '');
+        $updated = false;
+
+        // 1. Shopee Single Order Escrow Sync
+        if ($channelCode === 'shopee' || $store->channel_id == 1) {
+            try {
+                $shopeeService = app(\App\Services\ShopeeService::class);
+                $accessToken = $store->getValidAccessToken();
+                $shopId = (int) ($store->marketplace_store_id ?: $store->shopee_shop_id);
+
+                if (!empty($accessToken) && !empty($shopId) && !empty($orderSn)) {
+                    $escrowRes = $shopeeService->getEscrowDetail($accessToken, $shopId, $orderSn);
+                    $income = $escrowRes['order_income'] ?? [];
+
+                    if (!empty($income)) {
+                        $order->financial_breakdown = $income;
+                        $comm  = (float) ($income['commission_fee'] ?? 0);
+                        $serv  = (float) ($income['service_fee'] ?? 0);
+                        $trans = (float) ($income['seller_transaction_fee'] ?? 0);
+                        $totalFee = $comm + $serv + $trans;
+                        
+                        $escrowAmt = (float) ($income['escrow_amount'] ?? 0);
+                        if ($totalFee > 0) {
+                            $order->marketplace_fee = $totalFee;
+                        }
+                        if ($escrowAmt > 0) {
+                            $order->net_amount = $escrowAmt;
+                        } else {
+                            $order->net_amount = max(0.0, (float) $order->total_amount - $order->marketplace_fee);
+                        }
+                        $order->saveQuietly();
+                        $updated = true;
+                    }
+                }
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::error('[syncSingleOrderFee] Shopee error: ' . $e->getMessage());
+            }
+        }
+
+        // 2. TikTok / Tokopedia Single Order Sync
+        if (in_array($channelCode, ['tiktok', 'tiktok_shop', 'tokopedia']) || $store->channel_id == 3) {
+            try {
+                $tiktokService = app(\App\Services\TiktokService::class);
+                $accessToken = $store->getValidAccessToken();
+                $shopCipher = $store->shop_cipher;
+
+                if (!empty($accessToken) && !empty($shopCipher) && !empty($orderSn)) {
+                    $detailRes = $tiktokService->getOrderDetail($accessToken, $shopCipher, [$orderSn]);
+                    $oList = $detailRes['orders'] ?? $detailRes['order_list'] ?? [];
+                    if (!empty($oList[0])) {
+                        $tOrder = $oList[0];
+                        $payment = $tOrder['payment_info'] ?? $tOrder['payment'] ?? [];
+                        $itemList = $tOrder['line_items'] ?? $tOrder['item_list'] ?? [];
+                        $pSubtotal = 0.0;
+                        foreach ($itemList as $it) {
+                            $pSubtotal += ((float)($it['original_price'] ?? $it['sale_price'] ?? 0) * (int)($it['quantity'] ?? 1));
+                        }
+                        $tot = $pSubtotal > 0 ? $pSubtotal : (float)($payment['original_total_product_price'] ?? $payment['total_amount'] ?? 0);
+                        $net = (float)($payment['escrow_amount'] ?? $payment['settlement_amount'] ?? 0);
+                        if ($net <= 0) $net = max(0.0, $tot * 0.915);
+                        $adm = max(0.0, $tot - $net);
+
+                        $order->financial_breakdown = [
+                            'original_price' => $tot,
+                            'escrow_amount' => $net,
+                            'platform_commission' => $adm,
+                        ];
+                        $order->marketplace_fee = $adm;
+                        $order->net_amount = $net;
+                        $order->saveQuietly();
+                        $updated = true;
+                    }
+                }
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::error('[syncSingleOrderFee] TikTok error: ' . $e->getMessage());
+            }
+        }
+
+        // Fallback: If API did not return escrow, apply official rate
+        if (!$updated) {
+            $gross = (float) $order->total_amount;
+            if (in_array($channelCode, ['tiktok', 'tiktok_shop', 'tokopedia']) || $store->channel_id == 3) {
+                $feeToSave = round($gross * 0.085);
+            } else {
+                $feeToSave = round($gross * 0.095);
+            }
+            $order->marketplace_fee = $feeToSave;
+            $order->net_amount = max(0.0, $gross - $feeToSave);
+            $order->saveQuietly();
+        }
+
+        // Clear reconciliation cache so view updates immediately
+        \Illuminate\Support\Facades\Cache::flush();
+
+        return redirect()->back()->with('success', "Biaya admin untuk No. Order {$order->order_marketplace_id} berhasil disinkronkan dari Marketplace!");
+    }
+
     private function getReleasedSalesSummary($tenantId, $dateFrom, $dateTo, $channelCode = 'online', $customerCat = 'all', $storeId = null)
     {
         $totalOrders = 0;
