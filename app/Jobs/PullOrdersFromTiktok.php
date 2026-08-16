@@ -145,9 +145,15 @@ class PullOrdersFromTiktok implements ShouldQueue
         ];
         $erpStatus = $statusMap[strtoupper((string)$statusRaw)] ?? strtoupper((string)$statusRaw);
 
-        // Buyer Information
-        $buyerInfo = $tiktokOrder['buyer_email'] ?? $tiktokOrder['recipient_address']['name'] ?? 'TikTok Buyer';
-        $buyerName = is_array($buyerInfo) ? ($buyerInfo['name'] ?? 'TikTok Buyer') : $buyerInfo;
+        // 🚀 BUYER NAME ACCURACY: Prioritaskan nama penerima resmi TikTok API v202309
+        $recName = $tiktokOrder['recipient_address']['name'] 
+            ?? (trim(($tiktokOrder['recipient_address']['first_name'] ?? '') . ' ' . ($tiktokOrder['recipient_address']['last_name'] ?? '')));
+
+        if (empty($recName) || $recName === ' ') {
+            $recName = $tiktokOrder['buyer_email'] ?? 'TikTok Buyer';
+        }
+
+        $buyerName = is_array($recName) ? ($recName['name'] ?? 'TikTok Buyer') : $recName;
         $buyerPhone = $tiktokOrder['recipient_address']['phone'] ?? $tiktokOrder['recipient_address']['phone_number'] ?? '0000000000';
         $buyerAddress = $tiktokOrder['recipient_address']['full_address'] 
             ?? $tiktokOrder['recipient_address']['address_detail'] 
@@ -192,7 +198,7 @@ class PullOrdersFromTiktok implements ShouldQueue
             }
         }
 
-        // 🚀 METODE HITUNG AKURAT TOTAL NILAI BARANG (MENCEGAH DUPLIKASI TOTAL)
+        // 🚀 METODE HITUNG AKURAT TOTAL NILAI BARANG
         $productSubtotal = 0.0;
         if (!empty($itemList)) {
             foreach ($itemList as $it) {
@@ -213,7 +219,6 @@ class PullOrdersFromTiktok implements ShouldQueue
         $shippingFee = (float) ($paymentInfo['shipping_fee'] ?? $paymentInfo['actual_shipping_fee'] ?? 0);
         $discountAmount = (float) ($paymentInfo['seller_discount'] ?? $paymentInfo['discount_amount'] ?? 0);
 
-        // 🚀 TARIK RINCIAN PENCIRAN DARI TIKTOK FINANCE API JIKA TERSEDIA
         $financialBreakdown = null;
         $orderIdStr = (string)($tiktokOrder['id'] ?? $tiktokOrder['order_id']);
         
@@ -226,7 +231,7 @@ class PullOrdersFromTiktok implements ShouldQueue
                     $financialBreakdown = $stmtRes;
                 }
             } catch (\Throwable $e) {
-                // Statements API may not be ready yet for very recent orders
+                // Ignore if statement not available yet
             }
         }
 
@@ -249,7 +254,6 @@ class PullOrdersFromTiktok implements ShouldQueue
             $marketplaceFee = $totalTiktokFees;
             $netAmount = max(0.0, $subtotalAfterSeller - $totalTiktokFees);
         } else {
-            // Estimasi Biaya Admin TikTok Shop Presisi (~8.5%)
             $marketplaceFee = round($totalAmount * 0.085);
             $netAmount = max(0.0, $totalAmount - $discountAmount - $marketplaceFee);
         }
@@ -395,7 +399,12 @@ class PullOrdersFromTiktok implements ShouldQueue
 
     protected function resolveShipBeforeDate(array $tiktokOrder): ?string
     {
-        $timestamp = $tiktokOrder['ship_by_date']
+        // 🚀 BATAS KIRIM TIKTOK API v202309 SLA TIMESTAMPS
+        $timestamp = $tiktokOrder['shipping_due_time']
+            ?? $tiktokOrder['rts_sla_time']
+            ?? $tiktokOrder['tts_sla_time']
+            ?? $tiktokOrder['cancel_order_sla_time']
+            ?? $tiktokOrder['ship_by_date']
             ?? $tiktokOrder['ship_before_date']
             ?? null;
 
