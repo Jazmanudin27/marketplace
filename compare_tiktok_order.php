@@ -87,7 +87,17 @@ if ($store && (in_array(strtolower($store->channel->code ?? ''), ['tiktok', 'tik
                 } catch (\Exception $exStmt) {}
             }
 
-            $totalTiktokFees = $platformCommission + $growthXtraFee + $orderProcessingFee;
+            $sellerDiscount = (float) ($paymentInfo['seller_discount'] ?? $paymentInfo['discount_amount'] ?? 0);
+            $actualShipping = (float) ($paymentInfo['shipping_fee'] ?? $paymentInfo['actual_shipping_fee'] ?? 0);
+            $shippingSubsidy = (float) ($paymentInfo['shipping_fee_subsidy'] ?? $paymentInfo['platform_shipping_discount'] ?? 0);
+            $platformDiscount = (float) ($paymentInfo['platform_discount'] ?? 0);
+            $withholdingTax = (float) ($paymentInfo['withholding_tax'] ?? $paymentInfo['tax_amount'] ?? 0);
+            $sellerReturnRefund = (float) ($paymentInfo['refund_amount'] ?? $paymentInfo['return_amount'] ?? 0);
+            $totalAdjustment = (float) ($paymentInfo['total_adjustment_amount'] ?? $paymentInfo['adjustment_amount'] ?? 0);
+            $protectionFee = (float) ($paymentInfo['shipping_seller_protection_fee_amount'] ?? $paymentInfo['protection_fee'] ?? 0);
+
+            $totalTiktokFees = $platformCommission + $growthXtraFee + $orderProcessingFee + $sellerDiscount + $withholdingTax + $sellerReturnRefund + $totalAdjustment + $protectionFee;
+            
             if ($totalTiktokFees <= 0 && $escrowAmount > 0) {
                 $totalTiktokFees = max(0.0, $totalAmount - $escrowAmount);
             }
@@ -104,6 +114,9 @@ if ($store && (in_array(strtolower($store->channel->code ?? ''), ['tiktok', 'tik
             echo "  • Komisi Platform TikTok       : Rp " . number_format($platformCommission, 0, ',', '.') . "\n";
             echo "  • Biaya Program Growth/XTRA    : Rp " . number_format($growthXtraFee, 0, ',', '.') . "\n";
             echo "  • Biaya Transaksi / Processing  : Rp " . number_format($orderProcessingFee, 0, ',', '.') . "\n";
+            echo "  • Diskon Seller (Voucher)      : Rp " . number_format($sellerDiscount, 0, ',', '.') . "\n";
+            echo "  • Pajak / Withholding Tax      : Rp " . number_format($withholdingTax, 0, ',', '.') . "\n";
+            echo "  • Return / Refund Seller       : Rp " . number_format($sellerReturnRefund, 0, ',', '.') . "\n";
             echo "  • TOTAL BIAYA ADMIN TIKTOK     : Rp " . number_format($totalTiktokFees, 0, ',', '.') . "\n";
             echo "  • DANA CAIR BERSIH ESCROW      : Rp " . number_format($escrowAmount, 0, ',', '.') . "\n\n";
 
