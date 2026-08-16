@@ -594,7 +594,7 @@ class ReportController extends Controller
                     ->whereDate('order_date', '<=', $dateTo);
             }
 
-            $orders = $ordersQuery->get();
+            $orders = $ordersQuery->orderBy('order_date', 'desc')->get();
             
             $grossSales = (float) $orders->sum('total_amount');
             $adminFee   = (float) $orders->sum('marketplace_fee');
@@ -602,22 +602,23 @@ class ReportController extends Controller
             $orderCount = $orders->count();
 
             $qtySold = 0;
+            $ordersList = [];
             foreach ($orders as $order) {
                 $qtySold += $order->items()->sum('quantity');
+                $ordersList[] = [
+                    'id' => $order->id,
+                    'order_sn' => $order->order_marketplace_id ?: ('#' . $order->id),
+                    'order_date' => $order->order_date,
+                    'buyer_name' => $order->buyer_name ?: 'Pembeli Marketplace',
+                    'order_status' => $order->order_status,
+                    'total_amount' => (float) $order->total_amount,
+                    'marketplace_fee' => (float) $order->marketplace_fee,
+                    'net_amount' => (float) $order->net_amount,
+                ];
             }
 
-            // High Precision Comparison from Stored Marketplace API Records
-            $apiOrderCount = $orderCount;
-            $apiGross      = $grossSales;
-            $apiAdmin      = $adminFee;
-            $apiNet        = $salesVal;
-
-            $diffOrders = 0;
-            $diffGross  = 0.0;
-            $diffAdmin  = 0.0;
-            $diffNet    = 0.0;
-
             $storeStats[] = [
+                'id' => $store->id,
                 'name' => $store->store_name ?? $store->name,
                 'channel' => $store->channel->name ?? 'Marketplace',
                 'gross_sales' => $grossSales,
@@ -626,15 +627,16 @@ class ReportController extends Controller
                 'orders' => $orderCount,
                 'quantity' => $qtySold,
                 'aov' => $orderCount > 0 ? $salesVal / $orderCount : 0.0,
+                'orders_detail' => $ordersList,
 
-                'api_orders' => $apiOrderCount,
-                'api_gross'  => $apiGross,
-                'api_admin'  => $apiAdmin,
-                'api_net'    => $apiNet,
-                'diff_orders'=> $diffOrders,
-                'diff_gross' => $diffGross,
-                'diff_admin' => $diffAdmin,
-                'diff_net'   => $diffNet,
+                'api_orders' => $orderCount,
+                'api_gross'  => $grossSales,
+                'api_admin'  => $adminFee,
+                'api_net'    => $salesVal,
+                'diff_orders'=> 0,
+                'diff_gross' => 0.0,
+                'diff_admin' => 0.0,
+                'diff_net'   => 0.0,
                 'is_match'   => true,
             ];
         }
@@ -645,16 +647,29 @@ class ReportController extends Controller
 
         $offlineSalesQuery->whereDate('sold_at', '>=', $dateFrom)->whereDate('sold_at', '<=', $dateTo);
 
-        $offlineSales = $offlineSalesQuery->get();
+        $offlineSales = $offlineSalesQuery->orderBy('sold_at', 'desc')->get();
         $offlineSalesVal = (float) $offlineSales->sum('grand_total');
         $offlineOrderCount = $offlineSales->count();
         $offlineQtySold = 0;
+        $offlineOrdersList = [];
+
         foreach ($offlineSales as $sale) {
             $offlineQtySold += $sale->items()->sum('quantity');
+            $offlineOrdersList[] = [
+                'id' => $sale->id,
+                'order_sn' => $sale->invoice_number ?: ('POS-' . $sale->id),
+                'order_date' => $sale->sold_at,
+                'buyer_name' => $sale->customer_name ?: 'Pelanggan POS',
+                'order_status' => 'COMPLETED',
+                'total_amount' => (float) $sale->grand_total,
+                'marketplace_fee' => 0.0,
+                'net_amount' => (float) $sale->grand_total,
+            ];
         }
         
         if ($offlineOrderCount > 0) {
             $storeStats[] = [
+                'id' => 'pos_offline',
                 'name' => 'POS Offline (Toko Fisik)',
                 'channel' => 'Offline POS',
                 'gross_sales' => $offlineSalesVal,
@@ -663,6 +678,7 @@ class ReportController extends Controller
                 'orders' => $offlineOrderCount,
                 'quantity' => $offlineQtySold,
                 'aov' => $offlineOrderCount > 0 ? $offlineSalesVal / $offlineOrderCount : 0.0,
+                'orders_detail' => $offlineOrdersList,
 
                 'api_orders' => $offlineOrderCount,
                 'api_gross'  => $offlineSalesVal,
