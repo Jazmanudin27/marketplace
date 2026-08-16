@@ -612,20 +612,23 @@ class ReportController extends Controller
             foreach ($orders as $order) {
                 $qtySold += $order->items()->sum('quantity');
 
-                // Check stored official API financial breakdown per order
-                $fb = $order->financial_breakdown;
-                if (!empty($fb) && is_array($fb)) {
-                    $apiOrderCount++;
-                    $aG = (float) ($fb['original_price'] ?? $fb['buyer_paid_total'] ?? $order->total_amount);
-                    $aN = (float) ($fb['escrow_amount'] ?? $fb['settlement_amount'] ?? $order->net_amount);
-                    $aA = max(0.0, $aG - $aN);
-                } else {
-                    $apiOrderCount++;
-                    $aG = (float) $order->total_amount;
-                    $aA = (float) $order->marketplace_fee;
-                    $aN = (float) $order->net_amount;
+                $aG = (float) $order->total_amount;
+                
+                // Biaya Admin Resmi Marketplace (Commission + Service Fee + Transaction Fee)
+                $aA = (float) $order->marketplace_fee;
+
+                // Fallback jika biaya admin di database belum terisi (>0)
+                if ($aA <= 0 && $aG > 0) {
+                    if (in_array($channelCode, ['tiktok', 'tiktok_shop', 'tokopedia']) || $store->channel_id == 3) {
+                        $aA = round($aG * 0.085); // Biaya Admin TikTok Shop (~8.5%)
+                    } elseif ($channelCode === 'shopee' || $store->channel_id == 1) {
+                        $aA = round($aG * 0.095); // Biaya Admin Shopee (~9.5%)
+                    }
                 }
 
+                $aN = (float) ($order->net_amount > 0 ? $order->net_amount : max(0.0, $aG - $aA));
+
+                $apiOrderCount++;
                 $apiGross += $aG;
                 $apiAdmin += $aA;
                 $apiNet   += $aN;
