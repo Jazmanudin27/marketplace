@@ -1642,7 +1642,11 @@ class ReportController extends Controller
 
                 foreach ($detailData['transactions'] as $idx => $row) {
                     $rawRef = (string) ($row['ref'] ?? '');
-                    $formattedRef = (is_numeric($rawRef) && strlen($rawRef) > 10) ? '="' . $rawRef . '"' : $rawRef;
+                    if (str_contains(strtolower($row['channel'] ?? ''), 'tiktok')) {
+                        $formattedRef = str_starts_with($rawRef, "'") ? $rawRef : "'" . $rawRef;
+                    } else {
+                        $formattedRef = (is_numeric($rawRef) && strlen($rawRef) > 10) ? '="' . $rawRef . '"' : $rawRef;
+                    }
 
                     fputcsv($file, [
                         $idx + 1,
@@ -2461,11 +2465,19 @@ class ReportController extends Controller
                     $netAmt = max(0.0, (float)$o->total_amount - $refundAmt - $absFee);
                 }
 
+                $refVal = $o->order_marketplace_id ?: ($o->order_number ?: $o->invoice_number);
+                $chCode = strtolower($o->store->channel->code ?? '');
+                if (str_contains($chCode, 'tiktok') || ($o->store->channel_id ?? 0) == 3) {
+                    if (!str_starts_with((string)$refVal, "'")) {
+                        $refVal = "'" . $refVal;
+                    }
+                }
+
                 $transactions[] = [
                     'order_date' => $orderDate,
                     'released_date' => $releasedDate,
                     'date' => $releasedDate,
-                    'ref' => $o->order_marketplace_id ?: ($o->order_number ?: $o->invoice_number),
+                    'ref' => $refVal,
                     'channel' => $o->store->channel->name ?? 'Marketplace',
                     'customer' => $o->buyer_name ?: ($o->customer->name ?? 'Pelanggan MP'),
                     'customer_cat' => 'Marketplace',
