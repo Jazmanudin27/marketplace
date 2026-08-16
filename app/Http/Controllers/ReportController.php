@@ -1641,11 +1641,14 @@ class ReportController extends Controller
                 ]);
 
                 foreach ($detailData['transactions'] as $idx => $row) {
+                    $rawRef = (string) ($row['ref'] ?? '');
+                    $formattedRef = (is_numeric($rawRef) && strlen($rawRef) > 10) ? '="' . $rawRef . '"' : $rawRef;
+
                     fputcsv($file, [
                         $idx + 1,
                         $row['order_date'],
                         $row['released_date'],
-                        $row['ref'],
+                        $formattedRef,
                         $row['channel'],
                         $row['customer'],
                         $row['items_summary'],

@@ -975,14 +975,18 @@ class OrderController extends Controller
 
         $callback = function() use ($orders, $columns) {
             $file = fopen('php://output', 'w');
+            fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF)); // BOM UTF-8 for Excel
             fputcsv($file, $columns);
 
             foreach ($orders as $order) {
+                $rawId = (string) ($order->order_marketplace_id ?? $order->invoice_number ?? '');
+                $formattedId = (is_numeric($rawId) && strlen($rawId) > 10) ? '="' . $rawId . '"' : $rawId;
+
                 fputcsv($file, [
                     $order->order_date ? $order->order_date->format('Y-m-d H:i:s') : '-',
-                    $order->invoice_number ?? $order->order_marketplace_id,
-                    $order->store->store_name,
-                    $order->store->channel->name,
+                    $formattedId,
+                    $order->store->store_name ?? '-',
+                    $order->store->channel->name ?? '-',
                     $order->buyer_name ?? '-',
                     $order->total_amount,
                     $order->order_status,
