@@ -206,12 +206,22 @@ class PullOrdersFromShopee implements ShouldQueue
                 });
                 
                 if (!empty($escrowResponse['order_income'])) {
-                    $financialBreakdown = $escrowResponse['order_income'];
-                    $shopeeOrder['escrow_amount'] = $financialBreakdown['escrow_amount'] ?? $shopeeOrder['escrow_amount'] ?? 0;
-                    $shopeeOrder['seller_discount_amount'] = $financialBreakdown['seller_discount'] ?? $shopeeOrder['seller_discount_amount'] ?? 0;
-                    $actualShipping = $financialBreakdown['actual_shipping_fee'] ?? 0;
-                    if ($actualShipping > 0) {
-                        $shopeeOrder['actual_shipping_fee'] = $actualShipping;
+                    $income = $escrowResponse['order_income'];
+                    $financialBreakdown = array_merge([
+                        'seller_discount' => (float) ($income['seller_discount'] ?? $shopeeOrder['seller_discount_amount'] ?? 0),
+                        'actual_shipping_fee' => (float) ($income['actual_shipping_fee'] ?? 0),
+                        'shopee_shipping_rebate' => (float) ($income['shopee_shipping_rebate'] ?? 0),
+                        'voucher_from_seller' => (float) ($income['voucher_from_seller'] ?? 0),
+                        'voucher_from_shopee' => (float) ($income['voucher_from_shopee'] ?? 0),
+                        'withholding_tax' => (float) ($income['withholding_tax'] ?? $income['escrow_tax'] ?? 0),
+                        'seller_return_refund' => (float) ($income['seller_return_refund'] ?? 0),
+                        'total_adjustment_amount' => (float) ($income['total_adjustment_amount'] ?? 0),
+                    ], $income);
+
+                    $shopeeOrder['escrow_amount'] = $income['escrow_amount'] ?? $shopeeOrder['escrow_amount'] ?? 0;
+                    $shopeeOrder['seller_discount_amount'] = $income['seller_discount'] ?? $shopeeOrder['seller_discount_amount'] ?? 0;
+                    if (($income['actual_shipping_fee'] ?? 0) > 0) {
+                        $shopeeOrder['actual_shipping_fee'] = $income['actual_shipping_fee'];
                     }
                 }
             } catch (\Throwable $e) {

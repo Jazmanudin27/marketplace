@@ -337,28 +337,32 @@ class Order extends Model
     {
         $fb = $this->financial_breakdown ?? [];
 
-        // 1. Biaya Platform (Shopee: commission_fee | TikTok: net_platform_commission)
-        $platformFee = (float) ($fb['commission_fee'] ?? $fb['net_platform_commission'] ?? $fb['platform_fee'] ?? 0);
+        // 1. Biaya Platform Komisi (Shopee: commission_fee | TikTok: net_platform_commission / platform_commission)
+        $platformFee = (float) ($fb['commission_fee'] ?? $fb['net_platform_commission'] ?? $fb['platform_commission'] ?? $fb['platform_fee'] ?? 0);
 
-        // 2. Biaya Gratis Ongkir XTRA (Shopee: service_fee | TikTok: growth_xtra_fee)
-        $freeShipping = (float) ($fb['service_fee'] ?? $fb['growth_xtra_fee'] ?? $fb['free_shipping_fee'] ?? $fb['shopee_shipping_rebate_fee'] ?? 0);
+        // 2. Biaya Gratis Ongkir & Program XTRA (Shopee: service_fee | TikTok: growth_xtra_fee)
+        $freeShipping = (float) ($fb['service_fee'] ?? $fb['growth_xtra_fee'] ?? $fb['free_shipping_fee'] ?? $fb['shopee_shipping_rebate_fee'] ?? $fb['shopee_shipping_rebate'] ?? $fb['shipping_fee_subsidy'] ?? 0);
 
-        // 3. Biaya Layanan (Shopee: seller_order_processing_fee | TikTok: preorder_service_fee + order_processing_fee)
+        // 3. Biaya Layanan & Penanganan (Shopee: seller_order_processing_fee | TikTok: preorder_service_fee + order_processing_fee)
         $serviceFee  = (float) ($fb['seller_order_processing_fee'] ?? 0)
-                    + (float) ($fb['preorder_service_fee'] ?? $fb['preorder_fee'] ?? 0);
+                    + (float) ($fb['preorder_service_fee'] ?? $fb['preorder_fee'] ?? 0)
+                    + (float) ($fb['order_processing_fee'] ?? 0);
 
-        // 4. Biaya Promosi & AMS Resmi Marketplace (Shopee: voucher_from_seller / seller_coin_cash_back / ams_commission_fee | TikTok: dynamic_commission / affiliate_commission)
-        $promoFee    = (float) ($fb['voucher_from_seller'] ?? 0)
+        // 4. Diskon & Promosi Seller/Platform (seller_discount, voucher_from_seller, voucher_from_shopee / platform_discount)
+        $promoFee    = (float) ($fb['seller_discount'] ?? $fb['discount_amount'] ?? 0)
+                    + (float) ($fb['voucher_from_seller'] ?? 0)
+                    + (float) ($fb['voucher_from_shopee'] ?? $fb['platform_discount'] ?? 0)
                     + (float) ($fb['seller_coin_cash_back'] ?? 0)
                     + (float) ($fb['order_ams_commission_fee'] ?? $fb['ams_commission_fee'] ?? 0)
                     + (float) ($fb['dynamic_commission'] ?? $fb['affiliate_commission'] ?? 0);
 
-        // 5. Biaya Lainnya (Shopee: seller_transaction_fee + shipping_fee_adjustment + protection_fee | TikTok: other_fees)
-        $otherFee    = (float) ($fb['seller_transaction_fee'] ?? 0)
-                    + (float) ($fb['shipping_fee_adjustment'] ?? 0)
-                    + (float) ($fb['shipping_seller_protection_fee_amount'] ?? 0)
-                    + (float) ($fb['delivery_seller_protection_fee_premium_amount'] ?? 0)
-                    + (float) ($fb['escrow_tax'] ?? $fb['vat'] ?? $fb['withholding_tax'] ?? $fb['buyer_tax_amount'] ?? $fb['other_fees'] ?? 0);
+        // 5. Biaya Lainnya (Pajak, Selisih Ongkir, Asuransi, Refund & Penyesuaian/Adjustment)
+        $otherFee    = (float) ($fb['seller_transaction_fee'] ?? $fb['transaction_fee'] ?? 0)
+                    + (float) ($fb['actual_shipping_fee'] ?? $fb['shipping_fee_adjustment'] ?? 0)
+                    + (float) ($fb['shipping_seller_protection_fee_amount'] ?? $fb['delivery_seller_protection_fee_premium_amount'] ?? 0)
+                    + (float) ($fb['withholding_tax'] ?? $fb['escrow_tax'] ?? $fb['vat'] ?? $fb['buyer_tax_amount'] ?? 0)
+                    + (float) ($fb['seller_return_refund'] ?? $fb['refund_amount'] ?? 0)
+                    + (float) ($fb['total_adjustment_amount'] ?? $fb['adjustment_amount'] ?? $fb['other_fees'] ?? 0);
 
         // Total Potongan Marketplace SELALU murni penjumlahan dari 5 komponen biaya admin
         $totalFee = $platformFee + $freeShipping + $serviceFee + $promoFee + $otherFee;

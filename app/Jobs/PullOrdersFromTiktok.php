@@ -258,11 +258,20 @@ class PullOrdersFromTiktok implements ShouldQueue
             $netAmount = max(0.0, $totalAmount - $discountAmount - $marketplaceFee);
         }
 
-        $financialBreakdown = $financialBreakdown ?? [
+        $financialBreakdown = array_merge([
             'original_price' => $totalAmount,
             'buyer_paid_total' => $buyerPaidTotal,
             'subtotal_after_seller_discounts' => $subtotalAfterSeller,
+            'seller_discount' => $discountAmount,
             'actual_shipping_fee' => $shippingFee,
+            'shopee_shipping_rebate' => (float) ($paymentInfo['shipping_fee_subsidy'] ?? $paymentInfo['platform_shipping_discount'] ?? 0),
+            'voucher_from_seller' => $discountAmount,
+            'voucher_from_shopee' => (float) ($paymentInfo['platform_discount'] ?? 0),
+            'platform_discount' => (float) ($paymentInfo['platform_discount'] ?? 0),
+            'withholding_tax' => (float) ($paymentInfo['withholding_tax'] ?? $paymentInfo['tax_amount'] ?? 0),
+            'seller_return_refund' => (float) ($paymentInfo['refund_amount'] ?? $paymentInfo['return_amount'] ?? 0),
+            'total_adjustment_amount' => (float) ($paymentInfo['total_adjustment_amount'] ?? $paymentInfo['adjustment_amount'] ?? 0),
+            'shipping_seller_protection_fee_amount' => (float) ($paymentInfo['shipping_seller_protection_fee_amount'] ?? $paymentInfo['protection_fee'] ?? 0),
             'platform_commission' => $platformCommission,
             'platform_commission_discount' => $platformCommissionDiscount,
             'net_platform_commission' => $netPlatformCommission,
@@ -271,13 +280,8 @@ class PullOrdersFromTiktok implements ShouldQueue
             'growth_xtra_fee' => $growthXtraFee,
             'order_processing_fee' => $orderProcessingFee,
             'service_fee' => $totalTiktokFees > 0 ? $totalTiktokFees : $marketplaceFee,
-            'commission_fee' => $dynamicCommission,
-            'seller_transaction_fee' => $orderProcessingFee,
-            'voucher_from_seller' => $discountAmount,
-            'voucher_from_shopee' => $paymentInfo['platform_discount'] ?? 0,
-            'adjustment_amount' => $paymentInfo['adjustment_amount'] ?? 0,
             'escrow_amount' => $escrowAmount > 0 ? $escrowAmount : $netAmount,
-        ];
+        ], $financialBreakdown ?? []);
 
         $courier = $tiktokOrder['shipping_provider'] ?? $tiktokOrder['shipping_provider_name'] ?? null;
         $trackingNumber = $tiktokOrder['tracking_number'] ?? $tiktokOrder['tracking_no'] ?? null;
