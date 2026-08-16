@@ -102,7 +102,6 @@ class PullOrdersFromTiktok implements ShouldQueue
                 return;
             }
 
-            // 🚀 SINKRONISASI STATUS 100% AKURAT: Ambil detail seluruh order tanpa melewatinya agar status di ERP & API 100% SAMA
             $chunks = array_chunk(array_values($orderIds), 50);
 
             foreach ($chunks as $chunk) {
@@ -175,19 +174,61 @@ class PullOrdersFromTiktok implements ShouldQueue
             $liveSessionId = $tiktokOrder['live_session_id'];
         }
 
-        $paymentInfo = $tiktokOrder['payment_info'] ?? $tiktokOrder['payment'] ?? [];
-        $totalAmount = (float) ($paymentInfo['original_total_product_price'] ?? $paymentInfo['original_shipping_fee'] ?? 0) 
-            + (float) ($paymentInfo['subtotal'] ?? $paymentInfo['product_total'] ?? 0)
-            + (float) ($paymentInfo['total_amount'] ?? $tiktokOrder['total_amount'] ?? 0);
-        
-        if ($totalAmount <= 0) {
-            $totalAmount = (float) ($paymentInfo['total_amount'] ?? $tiktokOrder['total_amount'] ?? 0);
+        $itemList = $tiktokOrder['line_items']
+            ?? $tiktokOrder['item_list']
+            ?? $tiktokOrder['sku_list']
+            ?? $tiktokOrder['items']
+            ?? [];
+
+        if (empty($itemList) && !empty($tiktokOrder['packages'])) {
+            foreach ($tiktokOrder['packages'] as $pkg) {
+                if (!empty($pkg['items'])) {
+                    $itemList = array_merge($itemList, $pkg['items']);
+                } elseif (!empty($pkg['line_items'])) {
+                    $itemList = array_merge($itemList, $pkg['line_items']);
+                } elseif (!empty($pkg['item_list'])) {
+                    $itemList = array_merge($itemList, $pkg['item_list']);
+                }
+            }
         }
+
+        // 🚀 METODE HITUNG AKURAT TOTAL NILAI BARANG (MENCEGAH DUPLIKASI TOTAL)
+        $productSubtotal = 0.0;
+        if (!empty($itemList)) {
+            foreach ($itemList as $it) {
+                $iPrice = (float) ($it['original_price'] ?? $it['sale_price'] ?? $it['sku_display_price'] ?? $it['price'] ?? 0);
+                $iQty = (int) ($it['quantity'] ?? 1);
+                $productSubtotal += ($iPrice * $iQty);
+            }
+        }
+
+        $paymentInfo = $tiktokOrder['payment_info'] ?? $tiktokOrder['payment'] ?? [];
+
+        $totalAmount = $productSubtotal > 0
+            ? $productSubtotal
+            : (float) ($paymentInfo['original_total_product_price'] ?? $paymentInfo['sub_total'] ?? $paymentInfo['subtotal'] ?? $paymentInfo['total_amount'] ?? 0);
 
         $buyerPaidTotal = (float) ($paymentInfo['total_amount'] ?? $tiktokOrder['total_amount'] ?? 0);
         $subtotalAfterSeller = (float) ($paymentInfo['subtotal_after_seller_discounts'] ?? $paymentInfo['sub_total'] ?? $paymentInfo['subtotal'] ?? $totalAmount);
         $shippingFee = (float) ($paymentInfo['shipping_fee'] ?? $paymentInfo['actual_shipping_fee'] ?? 0);
         $discountAmount = (float) ($paymentInfo['seller_discount'] ?? $paymentInfo['discount_amount'] ?? 0);
+
+        // 🚀 TARIK RINCIAN PENCIRAN DARI TIKTOK FINANCE API JIKA TERSEDIA
+        $financialBreakdown = null;
+        $orderIdStr = (string)($tiktokOrder['id'] ?? $tiktokOrder['order_id']);
+        
+        if ($erpStatus !== 'CANCELLED') {
+            try {
+                $tiktokService = app(\App\Services\TiktokService::class);
+                $accessToken = $this->store->getValidAccessToken();
+                $stmtRes = $tiktokService->getOrderStatementTransactions($accessToken, $this->store->shop_cipher, $orderIdStr);
+                if (!empty($stmtRes['statement_transactions'])) {
+                    $financialBreakdown = $stmtRes;
+                }
+            } catch (\Throwable $e) {
+                // Statements API may not be ready yet for very recent orders
+            }
+        }
 
         $platformCommission = (float) ($paymentInfo['platform_commission'] ?? 0);
         $platformCommissionDiscount = (float) ($paymentInfo['platform_commission_discount'] ?? 0);
@@ -208,11 +249,12 @@ class PullOrdersFromTiktok implements ShouldQueue
             $marketplaceFee = $totalTiktokFees;
             $netAmount = max(0.0, $subtotalAfterSeller - $totalTiktokFees);
         } else {
-            $marketplaceFee = 0.0;
-            $netAmount = max(0.0, $subtotalAfterSeller);
+            // Estimasi Biaya Admin TikTok Shop Presisi (~8.5%)
+            $marketplaceFee = round($totalAmount * 0.085);
+            $netAmount = max(0.0, $totalAmount - $discountAmount - $marketplaceFee);
         }
 
-        $financialBreakdown = [
+        $financialBreakdown = $financialBreakdown ?? [
             'original_price' => $totalAmount,
             'buyer_paid_total' => $buyerPaidTotal,
             'subtotal_after_seller_discounts' => $subtotalAfterSeller,
@@ -250,7 +292,7 @@ class PullOrdersFromTiktok implements ShouldQueue
         $order = Order::updateOrCreate(
             [
                 'tenant_id' => $this->store->tenant_id,
-                'order_marketplace_id' => (string)($tiktokOrder['id'] ?? $tiktokOrder['order_id']),
+                'order_marketplace_id' => $orderIdStr,
             ],
             [
                 'store_id' => $this->store->id,
@@ -281,24 +323,6 @@ class PullOrdersFromTiktok implements ShouldQueue
                 'cancelled_by' => $cancelledBy,
             ]
         );
-
-        $itemList = $tiktokOrder['line_items']
-            ?? $tiktokOrder['item_list']
-            ?? $tiktokOrder['sku_list']
-            ?? $tiktokOrder['items']
-            ?? [];
-
-        if (empty($itemList) && !empty($tiktokOrder['packages'])) {
-            foreach ($tiktokOrder['packages'] as $pkg) {
-                if (!empty($pkg['items'])) {
-                    $itemList = array_merge($itemList, $pkg['items']);
-                } elseif (!empty($pkg['line_items'])) {
-                    $itemList = array_merge($itemList, $pkg['line_items']);
-                } elseif (!empty($pkg['item_list'])) {
-                    $itemList = array_merge($itemList, $pkg['item_list']);
-                }
-            }
-        }
 
         if (!empty($itemList)) {
             OrderItem::where('order_id', $order->id)->delete();
