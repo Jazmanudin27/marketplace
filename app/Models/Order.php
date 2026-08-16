@@ -354,6 +354,16 @@ class Order extends Model
                     + (float) ($fb['order_ams_commission_fee'] ?? $fb['ams_commission_fee'] ?? 0)
                     + (float) ($fb['dynamic_commission'] ?? $fb['affiliate_commission'] ?? 0);
 
+        // 5. Biaya Lainnya (Pajak, Selisih Ongkir, Asuransi, Refund & Penyesuaian/Adjustment)
+        $actualShipping = (float) ($fb['actual_shipping_fee'] ?? 0);
+        $buyerPaidShipping = (float) ($fb['buyer_paid_shipping_fee'] ?? $fb['shipping_fee_paid_by_buyer'] ?? 0);
+        $shopeeRebate = (float) ($fb['shopee_shipping_rebate'] ?? $fb['shipping_fee_subsidy'] ?? 0);
+        
+        $shippingAdjustment = (float) ($fb['shipping_fee_adjustment'] ?? 0);
+        if ($shippingAdjustment <= 0 && $actualShipping > ($buyerPaidShipping + $shopeeRebate) && ($buyerPaidShipping + $shopeeRebate) > 0) {
+            $shippingAdjustment = max(0.0, $actualShipping - ($buyerPaidShipping + $shopeeRebate));
+        }
+
         $otherFee    = (float) ($fb['seller_transaction_fee'] ?? $fb['transaction_fee'] ?? 0)
                     + $shippingAdjustment
                     + (float) ($fb['shipping_seller_protection_fee_amount'] ?? $fb['delivery_seller_protection_fee_premium_amount'] ?? 0)
