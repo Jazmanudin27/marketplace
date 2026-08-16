@@ -1,6 +1,6 @@
 @extends('layouts.app')
-@section('title', 'Laporan Perbandingan ERP vs Marketplace Per Toko')
-@section('page-title', 'Laporan Perbandingan ERP vs Marketplace Per Toko')
+@section('title', 'Rekonsiliasi Omset & Marketplace')
+@section('page-title', 'Rekonsiliasi Omset & Marketplace Per Toko')
 
 @section('content')
     {{-- Filter Bar --}}
@@ -16,9 +16,12 @@
                         <label class="form-label form-label-sm fw-semibold mb-1 text-muted">Sampai Tanggal</label>
                         <input type="date" name="date_to" value="{{ $dateTo }}" class="form-control form-control-sm">
                     </div>
-                    <div class="col-12 col-md-3 d-flex gap-2">
+                    <div class="col-12 col-md-4 d-flex gap-2">
                         <button type="submit" class="btn btn-primary btn-sm flex-fill fw-semibold">
-                            <i class="fas fa-filter me-1"></i> Filter & Bandingkan Data
+                            <i class="fas fa-filter me-1"></i> Filter Data
+                        </button>
+                        <button type="submit" name="refresh" value="1" class="btn btn-outline-secondary btn-sm fw-semibold" title="Tarik Ulang Perbandingan Live API">
+                            <i class="fas fa-sync-alt me-1"></i> Refresh API Live
                         </button>
                     </div>
                 </div>

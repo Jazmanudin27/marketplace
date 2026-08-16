@@ -588,7 +588,7 @@
                             <a href="{{ route('reports.sales') }}"
                                 class="nav-link py-1 {{ request()->routeIs('reports.sales') ? 'active text-white' : 'text-secondary' }}">Laporan Penjualan</a>
                             <a href="{{ route('reports.store_sales') }}"
-                                class="nav-link py-1 {{ request()->routeIs('reports.store_sales*') ? 'active text-white' : 'text-secondary' }}">Laporan Penjualan Per Toko</a>
+                                class="nav-link py-1 {{ request()->routeIs('reports.store_sales*') ? 'active text-white' : 'text-secondary' }}">Rekonsiliasi Omset</a>
                             <a href="{{ route('reports.released_sales') }}"
                                 class="nav-link py-1 {{ request()->routeIs('reports.released_sales*') ? 'active text-white' : 'text-secondary' }}">Laporan Penjualan Dilepas</a>
                         @endif
