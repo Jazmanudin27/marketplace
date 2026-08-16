@@ -315,7 +315,7 @@
                                                 <input type="checkbox" name="order_ids[]" value="{{ $order->id }}"
                                                     class="order-checkbox form-check-input">
                                             </td>
-                                            <td>
+                                            <td style="mso-number-format:'\@';">
                                                 <a href="{{ route('orders.show', $order) }}"
                                                     class="text-decoration-none fw-bold text-primary small">
                                                     {{ $order->invoice_number ?? $order->order_marketplace_id }}

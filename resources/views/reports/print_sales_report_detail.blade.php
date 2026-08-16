@@ -75,7 +75,7 @@
                     <td class="text-center">{{ $idx + 1 }}</td>
                     <td class="font-monospace small">{{ $row['order_date'] }}</td>
                     <td class="font-monospace small text-success fw-bold">{{ $row['released_date'] }}</td>
-                    <td class="font-monospace fw-bold">{{ $row['ref'] }}</td>
+                    <td class="font-monospace fw-bold" style="mso-number-format:'\@';">{{ $row['ref'] }}</td>
                     <td>{{ $row['channel'] }}</td>
                     <td>{{ $row['customer'] }}</td>
                     <td class="small">{{ $row['items_summary'] }}</td>
