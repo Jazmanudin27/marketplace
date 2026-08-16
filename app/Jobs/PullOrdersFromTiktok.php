@@ -223,6 +223,7 @@ class PullOrdersFromTiktok implements ShouldQueue
 
         $paymentInfo = $tiktokOrder['payment_info'] ?? $tiktokOrder['payment'] ?? [];
 
+        $buyerPaidTotal = (float) ($paymentInfo['total_amount'] ?? $paymentInfo['total'] ?? $tiktokOrder['total_amount'] ?? 0);
         $subtotalAfterSeller = (float) ($paymentInfo['subtotal_after_seller_discounts'] ?? $paymentInfo['after_seller_discounts_subtotal_amount'] ?? $paymentInfo['sub_total'] ?? $paymentInfo['subtotal'] ?? 0);
         $totalAmount = $subtotalAfterSeller > 0
             ? $subtotalAfterSeller
