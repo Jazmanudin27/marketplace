@@ -262,7 +262,7 @@ class SyncTiktokEscrow extends Command
                             $stmtTs = $stmtList[0]['statement_time'];
                         }
 
-                        $compTs = $stmtTs ?? $tOrder['delivery_time'] ?? $tOrder['update_time'] ?? $tOrder['paid_time'] ?? null;
+                        $compTs = $stmtTs ?? $tOrder['finish_time'] ?? $tOrder['delivered_time'] ?? $tOrder['complete_time'] ?? $tOrder['delivery_time'] ?? $tOrder['update_time'] ?? $tOrder['paid_time'] ?? null;
                         if ($compTs) {
                             $compTsSec = (is_numeric($compTs) && strlen((string)$compTs) >= 13) ? (int)($compTs / 1000) : (int)$compTs;
                             $dbOrder->completed_at = \Carbon\Carbon::createFromTimestamp($compTsSec, 'Asia/Jakarta')->format('Y-m-d H:i:s');
