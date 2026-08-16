@@ -136,10 +136,8 @@ class SyncTiktokEscrow extends Command
 
                         $paymentInfo = $tOrder['payment'] ?? $tOrder['payment_info'] ?? [];
                         
-                        $productSubtotal = (float) ($paymentInfo['original_total_product_price'] 
-                            ?? $paymentInfo['sub_total'] 
-                            ?? $paymentInfo['subtotal_after_seller_discounts'] 
-                            ?? 0);
+                        $subtotalAfterSeller = (float) ($paymentInfo['subtotal_after_seller_discounts'] ?? $paymentInfo['after_seller_discounts_subtotal_amount'] ?? $paymentInfo['sub_total'] ?? $paymentInfo['subtotal'] ?? 0);
+                        $productSubtotal = (float) ($paymentInfo['original_total_product_price'] ?? 0);
 
                         if ($productSubtotal <= 0 && !empty($tOrder['line_items'])) {
                             foreach ($tOrder['line_items'] as $lItem) {
@@ -149,7 +147,7 @@ class SyncTiktokEscrow extends Command
                             }
                         }
 
-                        $totalAmount = $productSubtotal > 0 ? $productSubtotal : (float) ($paymentInfo['total_amount'] ?? $tOrder['total_amount'] ?? $dbOrder->total_amount);
+                        $totalAmount = $subtotalAfterSeller > 0 ? $subtotalAfterSeller : ($productSubtotal > 0 ? $productSubtotal : (float) ($paymentInfo['total_amount'] ?? $tOrder['total_amount'] ?? $dbOrder->total_amount));
                         $buyerPaidTotal = (float) ($paymentInfo['total_amount'] ?? $paymentInfo['total'] ?? $totalAmount);
                         $escrowAmount = (float) ($paymentInfo['settlement_amount'] ?? $paymentInfo['escrow_amount'] ?? 0);
                         
