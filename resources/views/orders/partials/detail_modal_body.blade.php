@@ -216,8 +216,10 @@
                 <div class="card-body p-3" style="font-size: 0.8rem;">
                     @php 
                         $fees = $order->fee_breakdown_details;
+                        $fb = $order->financial_breakdown ?? [];
                         $retOrder = $order->returnOrder;
-                        $refundAmount = $retOrder ? (float)$retOrder->refund_amount : (in_array(strtoupper($order->order_status), ['RETURNED', 'REFUNDED', 'RETURN']) ? (float)$order->total_amount : 0.0);
+                        $sellerReturnRefund = (float) ($fb['seller_return_refund'] ?? $fb['refund_amount'] ?? ($retOrder ? (float)$retOrder->refund_amount : (in_array(strtoupper($order->order_status), ['RETURNED', 'REFUNDED', 'RETURN']) ? (float)$order->total_amount : 0.0)));
+                        $refundAmount = abs($sellerReturnRefund);
                         
                         $absFee = abs($fees['total_fee'] ?? 0);
                         if ($refundAmount >= (float)$order->total_amount && (float)$order->total_amount > 0) {
@@ -228,12 +230,12 @@
                     @endphp
 
                     @if ($refundAmount > 0)
-                        <div class="alert alert-warning border border-warning d-flex align-items-center py-2 px-3 mb-2 rounded-3" style="font-size: 0.75rem;">
-                            <i class="fas fa-undo-alt text-warning fs-5 me-2"></i>
+                        <div class="alert alert-danger border border-danger d-flex align-items-center py-2 px-3 mb-2 rounded-3" style="font-size: 0.75rem;">
+                            <i class="fas fa-undo-alt text-danger fs-5 me-2"></i>
                             <div>
-                                <strong class="text-dark">Pengembalian Dana / Refund:</strong>
+                                <strong class="text-dark">seller_return_refund (Pengembalian Dana):</strong>
                                 <span class="text-danger fw-bold ms-1">-Rp {{ number_format($refundAmount, 0, ',', '.') }}</span>
-                                <div class="text-muted small">Penghasilan bersih pesanan ini dikurangi potongan refund.</div>
+                                <div class="text-muted small">Penghasilan bersih pesanan ini dikurangi potongan pengembalian dana seller.</div>
                             </div>
                         </div>
                     @endif

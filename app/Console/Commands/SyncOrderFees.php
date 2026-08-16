@@ -45,22 +45,14 @@ class SyncOrderFees extends Command
         if (!$orderSn && !$useApi) {
             $this->info("⚡ Menjalankan Engine Sinkronisasi Kilat DB (Mode Performa Tinggi)...");
             $count = 0;
-            $allQuery = Order::with('items');
+            $allQuery = Order::query();
             if ($storeId) {
                 $allQuery->where('store_id', $storeId);
             }
 
-            $allQuery->chunk(500, function ($orders) use (&$count) {
+            $allQuery->chunkById(500, function ($orders) use (&$count) {
                 foreach ($orders as $order) {
-                    $fb = $order->financial_breakdown ?? [];
-
-                    // 1. Omset Kotor (Product Subtotal): Gunakan items sum jika total_amount menyimpan total bayar pembeli yang salah
-                    $itemsSubtotal = (float) $order->items->sum('total_price');
-                    if ($itemsSubtotal > 0 && abs((float)$order->total_amount - $itemsSubtotal) > 1.0) {
-                        $order->total_amount = $itemsSubtotal;
-                    }
-
-                    // 2. Rincian 5 Komponen Biaya ERP
+                    // Rincian 5 Komponen Biaya ERP
                     $details = $order->fee_breakdown_details;
                     $order->fee_platform_amount = abs($details['platform_fee'] ?? 0);
                     $order->fee_free_shipping_amount = abs($details['free_shipping'] ?? 0);
@@ -73,16 +65,17 @@ class SyncOrderFees extends Command
                         $order->marketplace_fee = $totalFee;
                     }
 
-                    // 3. Omset Bersih (Net Amount) SELALU Presisi 100% = Omset Kotor - Total Potongan Marketplace
+                    // Omset Bersih (Net Amount) SELALU Presisi 100% = Omset Kotor - Total Potongan Marketplace
                     $order->net_amount = max(0.0, (float)$order->total_amount - $totalFee);
 
                     $order->saveQuietly();
                     $count++;
                 }
+                $this->output->write(".");
             });
 
             \Illuminate\Support\Facades\Cache::flush();
-            $this->info("✨ SELESAI KILAT! Berhasil memperbarui {$count} pesanan dalam hitungan detik.");
+            $this->info("\n✨ SELESAI KILAT! Berhasil memperbarui {$count} pesanan dalam hitungan detik.");
             return;
         }
 

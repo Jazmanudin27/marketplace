@@ -397,6 +397,16 @@
                                 </span>
                             </div>
                             @endif
+
+                            @php
+                                $sellerReturnRefund = (float) ($fb['seller_return_refund'] ?? $fb['refund_amount'] ?? 0);
+                            @endphp
+                            @if ($sellerReturnRefund != 0)
+                            <div class="d-flex justify-content-between mb-2 align-items-center">
+                                <span class="text-danger small fw-semibold"><i class="fas fa-undo-alt me-1"></i>seller_return_refund (Pengembalian Dana)</span>
+                                <span class="font-monospace text-danger small fw-bold">- Rp {{ number_format(abs($sellerReturnRefund), 0, ',', '.') }}</span>
+                            </div>
+                            @endif
                         @else
                             <div class="d-flex justify-content-between mb-2 align-items-center">
                                 <span class="text-muted small">Total Produk</span>
