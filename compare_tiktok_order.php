@@ -68,24 +68,24 @@ if ($store && (in_array(strtolower($store->channel->code ?? ''), ['tiktok', 'tik
             $growthXtraFee = (float) ($paymentInfo['growth_xtra_fee'] ?? 0);
             $orderProcessingFee = (float) ($paymentInfo['order_processing_fee'] ?? $paymentInfo['transaction_fee'] ?? 0);
 
-            // Tembak Statement API jika settlement_amount belum ada
-            if ($escrowAmount <= 0) {
-                try {
-                    $stmtData = $tiktokService->getOrderStatementTransactions($accessToken, $shopCipher, $order->order_marketplace_id);
-                    $stmtList = $stmtData['statement_transactions'] ?? $stmtData['statement_transaction_list'] ?? [];
-                    foreach ($stmtList as $st) {
-                        $amt = (float) ($st['amount'] ?? $st['settlement_amount'] ?? 0);
-                        $type = strtoupper((string)($st['type'] ?? $st['fee_type'] ?? ''));
-                        if (str_contains($type, 'SETTLEMENT') || str_contains($type, 'ESCROW') || str_contains($type, 'REVENUE')) {
-                            if ($amt > 0) $escrowAmount = $amt;
-                        } elseif (str_contains($type, 'COMMISSION') || str_contains($type, 'PLATFORM')) {
-                            $platformCommission = abs($amt);
-                        } elseif (str_contains($type, 'PROCESSING') || str_contains($type, 'TRANSACTION')) {
-                            $orderProcessingFee = abs($amt);
-                        }
+            // Tembak API Finance TikTok untuk mengambil data settlement transaksi resmi yang sudah cair
+            try {
+                $stmtData = $tiktokService->getOrderStatementTransactions($accessToken, $shopCipher, $order->order_marketplace_id);
+                $stmtList = $stmtData['statement_transactions'] ?? $stmtData['statement_transaction_list'] ?? $stmtData['transactions'] ?? [];
+                foreach ($stmtList as $st) {
+                    $amt = (float) ($st['amount'] ?? $st['settlement_amount'] ?? 0);
+                    $type = strtoupper((string)($st['type'] ?? $st['fee_type'] ?? ''));
+                    if (str_contains($type, 'SETTLEMENT') || str_contains($type, 'ESCROW') || str_contains($type, 'REVENUE') || str_contains($type, 'PAYOUT')) {
+                        if ($amt > 0) $escrowAmount = $amt;
+                    } elseif (str_contains($type, 'COMMISSION') || str_contains($type, 'PLATFORM')) {
+                        $platformCommission = abs($amt);
+                    } elseif (str_contains($type, 'PROCESSING') || str_contains($type, 'TRANSACTION')) {
+                        $orderProcessingFee = abs($amt);
+                    } elseif (str_contains($type, 'GROWTH') || str_contains($type, 'XTRA')) {
+                        $growthXtraFee = abs($amt);
                     }
-                } catch (\Exception $exStmt) {}
-            }
+                }
+            } catch (\Exception $exStmt) {}
 
             $sellerDiscount = (float) ($paymentInfo['seller_discount'] ?? $paymentInfo['discount_amount'] ?? 0);
             $actualShipping = (float) ($paymentInfo['shipping_fee'] ?? $paymentInfo['actual_shipping_fee'] ?? 0);
