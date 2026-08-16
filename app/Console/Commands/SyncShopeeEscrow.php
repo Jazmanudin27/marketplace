@@ -106,18 +106,28 @@ class SyncShopeeEscrow extends Command
                         // Update rincian 5 potongan biaya Shopee
                         $details = $order->fee_breakdown_details;
                         $totalFee = abs($details['total_fee'] ?? 0);
-                        $order->marketplace_fee = $totalFee;
 
-                        // Net Amount SELALU menggunakan escrow_amount resmi dari Shopee
                         $escrowAmount = (float) ($income['escrow_amount'] ?? 0);
-                        if ($escrowAmount > 0) {
-                            $order->net_amount = $escrowAmount;
-                            $order->order_status = 'COMPLETED';
-                            if (!$order->completed_at) {
-                                $order->completed_at = now();
-                            }
-                        } else {
-                            $order->net_amount = max(0.0, (float) $order->total_amount - $totalFee);
+
+                        // If fee breakdown keys were 0 in API, compute fee from total_amount - escrow_amount
+                        if ($totalFee <= 0 && $escrowAmount > 0 && (float) $order->total_amount > $escrowAmount) {
+                            $totalFee = max(0.0, (float) $order->total_amount - $escrowAmount);
+                        }
+
+                        // If fee is still 0, apply official Shopee Admin Fee rate (~9.5%)
+                        if ($totalFee <= 0 && (float) $order->total_amount > 0) {
+                            $totalFee = round((float) $order->total_amount * 0.095);
+                        }
+
+                        if ($escrowAmount <= 0) {
+                            $escrowAmount = max(0.0, (float) $order->total_amount - $totalFee);
+                        }
+
+                        $order->marketplace_fee = $totalFee;
+                        $order->net_amount = $escrowAmount;
+                        $order->order_status = 'COMPLETED';
+                        if (!$order->completed_at) {
+                            $order->completed_at = now();
                         }
 
                         $order->saveQuietly();

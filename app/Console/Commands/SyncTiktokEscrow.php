@@ -193,6 +193,11 @@ class SyncTiktokEscrow extends Command
                         $netAmount = $escrowAmount > 0 ? $escrowAmount : max(0.0, $totalAmount - $totalTiktokFees);
                         $marketplaceFee = $totalTiktokFees > 0 ? $totalTiktokFees : max(0.0, $totalAmount - $netAmount);
 
+                        if ($marketplaceFee <= 0 && $totalAmount > 0) {
+                            $marketplaceFee = round($totalAmount * 0.085);
+                            $netAmount = max(0.0, $totalAmount - $marketplaceFee);
+                        }
+
                         $dbOrder->total_amount = $totalAmount;
                         $dbOrder->marketplace_fee = $marketplaceFee;
                         $dbOrder->net_amount = $netAmount;
