@@ -382,65 +382,65 @@ class Order extends Model
 
     /**
      * Potongan Biaya Marketplace Presisi.
-     * Mengambil total rincian potongan jika tersedia di financial_breakdown.
+     * Mengambil total rincian potongan jika tersedia di financial_breakdown, atau selisih murni total_amount - net_amount.
      */
     public function getMarketplaceFeeAttribute($value): float
     {
+        $val = (float) $value;
+
         if (!empty($this->financial_breakdown)) {
             $details = $this->fee_breakdown_details;
-            return (float) abs($details['total_fee'] ?? 0);
+            $feeFromDetails = (float) abs($details['total_fee'] ?? 0);
+            if ($feeFromDetails > 0) {
+                return $feeFromDetails;
+            }
         }
 
-        $val = (float) $value;
         if ($val > 0) {
             return $val;
         }
 
-        return round((float) $this->total_amount * 0.05);
+        $tot = (float) ($this->attributes['total_amount'] ?? 0);
+        $net = (float) ($this->attributes['net_amount'] ?? 0);
+
+        if ($tot > 0 && $net > 0 && $tot > $net) {
+            return round($tot - $net);
+        }
+
+        // Standard Marketplace Admin Rate Fallback (Shopee ~10.5%, TikTok Shop ~9.5%)
+        if ($tot > 0) {
+            $chId = $this->store->channel_id ?? null;
+            if ($chId == 1) { // Shopee
+                return round($tot * 0.105);
+            } elseif ($chId == 3) { // TikTok
+                return round($tot * 0.095);
+            }
+            return round($tot * 0.095);
+        }
+
+        return 0.0;
     }
 
     /**
      * Pendapatan Bersih (Escrow).
-     * Jika ada financial_breakdown['escrow_amount'] > 0, gunakan escrow_amount resmi marketplace.
-     * Jika ada rincian 5 komponen biaya, hitung (total_amount - total_fee).
-     * Fallback: hitung estimasi (total_amount - discount_amount - marketplace_fee).
+     * Memprioritaskan net_amount tersimpan, escrow_amount resmi marketplace, atau total_amount - marketplace_fee.
      */
     public function getNetAmountAttribute($value): float
     {
-        $fb = $this->financial_breakdown;
-
-        if (!empty($fb['escrow_amount']) && (float) $fb['escrow_amount'] > 0) {
-            return (float) $fb['escrow_amount'];
-        }
-
-        $details = $this->fee_breakdown_details;
-        $totalFee = abs($details['total_fee'] ?? 0);
-        if ($totalFee > 0) {
-            return max(0.0, (float) $this->total_amount - $totalFee);
-        }
-
-        if (!empty($fb['net_platform_commission']) || !empty($fb['growth_xtra_fee']) || !empty($fb['preorder_service_fee'])) {
-            $subtotal = (float) ($fb['subtotal_after_seller_discounts'] ?? ($this->total_amount - $this->discount_amount));
-            $fees = (float) ($fb['net_platform_commission'] ?? 0)
-                  + (float) ($fb['preorder_service_fee'] ?? 0)
-                  + (float) ($fb['dynamic_commission'] ?? 0)
-                  + (float) ($fb['growth_xtra_fee'] ?? 0)
-                  + (float) ($fb['order_processing_fee'] ?? 0);
-            if ($fees > 0) {
-                return max(0.0, $subtotal - $fees);
-            }
-        }
-
         $val = (float) $value;
         if ($val > 0) {
             return $val;
         }
 
-        $total = (float) $this->total_amount;
+        $fb = $this->financial_breakdown;
+        if (!empty($fb['escrow_amount']) && (float) $fb['escrow_amount'] > 0) {
+            return (float) $fb['escrow_amount'];
+        }
+
+        $tot = (float) ($this->attributes['total_amount'] ?? 0);
         $fee = (float) $this->marketplace_fee;
 
-        $estimated = $total - $fee;
-        return max(0.0, $estimated);
+        return max(0.0, $tot - $fee);
     }
 
     /**
