@@ -37,6 +37,33 @@ class PullOrdersFromShopee implements ShouldQueue
     public Store $store;
 
     /**
+     * Get a valid access token, refreshing if necessary and updating $this->store.
+     */
+    private function getValidAccessTokenWithRetry(callable $apiCallback)
+    {
+        try {
+            $token = $this->store->getValidAccessToken();
+            return $apiCallback($token);
+        } catch (\RuntimeException $e) {
+            if (str_contains($e->getMessage(), 'invalid_access_token') || str_contains($e->getMessage(), 'error_auth')) {
+                Log::warning('[Shopee] Access token expired during API call. Refreshing...');
+                $shopeeService = app(ShopeeService::class);
+                $tokens = $shopeeService->refreshAccessToken(
+                    $this->store->refresh_token,
+                    (int) $this->store->marketplace_store_id
+                );
+                $this->store->update([
+                    'access_token' => $tokens['access_token'],
+                    'refresh_token' => $tokens['refresh_token'],
+                    'token_expires_at' => now()->addSeconds($tokens['expire_in'] ?? 14400),
+                ]);
+                return $apiCallback($tokens['access_token']);
+            }
+            throw $e;
+        }
+    }
+
+    /**
      * Execute the job.
      */
     public function handle(ShopeeService $shopeeService): void
@@ -51,56 +78,51 @@ class PullOrdersFromShopee implements ShouldQueue
         $this->store = $store;
 
         if ($this->store->status === 'disconnected' || (empty($this->store->access_token) && empty($this->store->refresh_token))) {
-            if (app()->environment('local') || str_contains($this->store->marketplace_store_id, 'DEMO')) {
-                $this->seedDemoReturns();
-            }
+            Log::warning("[Shopee] Toko {$this->store->store_name} tidak terhubung.");
             return;
         }
 
         try {
-            $cursor     = '';
-            $hasMore    = true;
+            $cursor = '';
             $allOrderSn = [];
+            $pageCount = 0;
 
-            // 1. Fetch Order List (Search by create_time & update_time to capture status changes)
-            $timeFields = ['create_time', 'update_time'];
-            foreach ($timeFields as $field) {
-                $cursor  = '';
-                $hasMore = true;
-                while ($hasMore) {
-                    $response = $this->getValidAccessTokenWithRetry(function($token) use ($shopeeService, $cursor, $field) {
-                        return $shopeeService->getOrderList(
-                            $token,
-                            (int) $this->store->marketplace_store_id,
-                            $this->timeFrom,
-                            $this->timeTo,
-                            $field,
-                            $cursor
-                        );
-                    });
+            do {
+                $response = $this->getValidAccessTokenWithRetry(function($token) use ($shopeeService, $cursor) {
+                    return $shopeeService->getOrderList(
+                        $token,
+                        (int) $this->store->marketplace_store_id,
+                        $this->timeFrom,
+                        $this->timeTo,
+                        'create_time',
+                        $cursor,
+                        50
+                    );
+                });
 
-                    if (empty($response['order_list'])) {
-                        break;
+                $orderList = $response['order_list'] ?? [];
+                foreach ($orderList as $o) {
+                    if (!empty($o['order_sn'])) {
+                        $allOrderSn[] = $o['order_sn'];
                     }
-
-                    foreach ($response['order_list'] as $order) {
-                        $allOrderSn[] = $order['order_sn'];
-                    }
-
-                    $hasMore = $response['more'] ?? false;
-                    $cursor  = $response['next_cursor'] ?? '';
                 }
-            }
 
-            $allOrderSn = array_unique($allOrderSn);
+                $cursor = $response['next_cursor'] ?? '';
+                $hasMore = $response['more'] ?? false;
+                $pageCount++;
+
+                if ($pageCount > 10) {
+                    break;
+                }
+
+            } while ($hasMore && !empty($cursor));
 
             if (empty($allOrderSn)) {
-                Log::info('[Shopee] No orders found in this period.');
+                Log::info('[Shopee] No orders found in range for store ' . $this->store->store_name);
                 return;
             }
 
-            // OPTIMISASI PINTAR: Hanya skip order jika sudah COMPLETED/CANCELLED DAN SUDAH PUNYA ITEM & ESCROW BREAKDOWN!
-            // Jika pesanan belum punya item (0 item) atau belum punya rincian admin escrow, TETAP DI-FETCH!
+            // OPTIMISASI PINTAR: Hanya skip jika order berstatus final DAN SUDAH MEMILIKI ITEM & FINANCIAL BREAKDOWN
             $skipOrderSns = Order::whereIn('order_marketplace_id', $allOrderSn)
                 ->whereIn('order_status', ['COMPLETED', 'CANCELLED', 'SELESAI', 'FINISHED', 'BATAL'])
                 ->has('items')
@@ -111,12 +133,12 @@ class PullOrdersFromShopee implements ShouldQueue
             $neededOrderSns = array_diff($allOrderSn, $skipOrderSns);
 
             if (empty($neededOrderSns)) {
-                Log::info('[Shopee] All orders in this period are already up-to-date with complete items and escrow breakdown.');
+                Log::info('[Shopee] All orders in range are up-to-date for store ' . $this->store->store_name);
                 return;
             }
 
-            // 2. Fetch Order Details (Max 50 per request)
             $chunks = array_chunk(array_values($neededOrderSns), 50);
+
             foreach ($chunks as $chunk) {
                 $detailsResponse = $this->getValidAccessTokenWithRetry(function($token) use ($shopeeService, $chunk) {
                     return $shopeeService->getOrderDetail(
@@ -144,8 +166,6 @@ class PullOrdersFromShopee implements ShouldQueue
     }
 
     private static array $customerCache = [];
-    private static array $mpCache = [];
-    private static array $masterCache = [];
 
     private function saveOrder(array $shopeeOrder)
     {
@@ -169,9 +189,9 @@ class PullOrdersFromShopee implements ShouldQueue
             self::$customerCache[$cacheKey] = $customer;
         }
 
-        // Ambil data Escrow / Income resmi Shopee jika order sudah COMPLETED
+        // 🚀 BIAYA ADMIN PRESISI: Ambil data Escrow / Income resmi Shopee untuk SEMUA pesanan yang bukan CANCELLED!
         $financialBreakdown = null;
-        if ($shopeeOrder['order_status'] === 'COMPLETED') {
+        if ($shopeeOrder['order_status'] !== 'CANCELLED') {
             try {
                 $shopeeService = app(\App\Services\ShopeeService::class);
                 $escrowResponse = $this->getValidAccessTokenWithRetry(function($token) use ($shopeeService, $shopeeOrder) {
@@ -187,15 +207,20 @@ class PullOrdersFromShopee implements ShouldQueue
                     $shopeeOrder['escrow_amount'] = $financialBreakdown['escrow_amount'] ?? $shopeeOrder['escrow_amount'] ?? 0;
                     $shopeeOrder['seller_discount_amount'] = $financialBreakdown['seller_discount'] ?? $shopeeOrder['seller_discount_amount'] ?? 0;
                     $actualShipping = $financialBreakdown['actual_shipping_fee'] ?? 0;
-                    $shopeeOrder['actual_shipping_fee'] = $actualShipping;
+                    if ($actualShipping > 0) {
+                        $shopeeOrder['actual_shipping_fee'] = $actualShipping;
+                    }
                 }
-            } catch (\Exception $e) {
-                Log::warning('[Shopee] Failed to fetch escrow detail for ' . $shopeeOrder['order_sn'] . ': ' . $e->getMessage());
+            } catch (\Throwable $e) {
+                // Ignore if escrow detail is not generated yet by Shopee API for very new UNPAID orders
             }
         }
 
-        $voucherCode = $shopeeOrder['voucher_info']['voucher_code'] ?? $shopeeOrder['voucher_code'] ?? null;
-        $shopeeUtmKeyword = $shopeeOrder['utm_keyword'] ?? $shopeeOrder['utm_source'] ?? null;
+        $voucherCode = null;
+        $shopeeUtmKeyword = null;
+        if (!empty($shopeeOrder['voucher_code'])) {
+            $voucherCode = $shopeeOrder['voucher_code'];
+        }
 
         $createTime = $shopeeOrder['create_time'] ?? time();
         $orderDateTime = date('Y-m-d H:i:s', $createTime);
@@ -234,16 +259,24 @@ class PullOrdersFromShopee implements ShouldQueue
         $sellerDiscount = (float) ($shopeeOrder['seller_discount_amount'] ?? $financialBreakdown['seller_discount'] ?? 0);
         $escrowAmount = (float) ($shopeeOrder['escrow_amount'] ?? $financialBreakdown['escrow_amount'] ?? 0);
 
-        if ($escrowAmount > 0) {
-            $netAmount = $escrowAmount;
+        // HITUNG BIAYA ADMIN RESMI SHOPEE SECARA PRESISI
+        if ($escrowAmount > 0 || !empty($financialBreakdown)) {
             $sellerFee = (float) ($financialBreakdown['seller_coin_cash_back'] ?? 0)
                        + (float) ($financialBreakdown['commission_fee'] ?? 0)
                        + (float) ($financialBreakdown['service_fee'] ?? 0)
                        + (float) ($financialBreakdown['seller_transaction_fee'] ?? 0)
                        + (float) ($financialBreakdown['seller_order_processing_fee'] ?? 0)
                        + (float) ($financialBreakdown['ams_commission_fee'] ?? 0);
-            $marketplaceFee = $sellerFee > 0 ? $sellerFee : max(0.0, $totalAmount - $escrowAmount);
+
+            if ($sellerFee > 0) {
+                $marketplaceFee = $sellerFee;
+                $netAmount = max(0.0, $totalAmount - $sellerDiscount - $sellerFee);
+            } else {
+                $netAmount = $escrowAmount > 0 ? $escrowAmount : max(0.0, $totalAmount - $sellerDiscount);
+                $marketplaceFee = max(0.0, $totalAmount - $netAmount);
+            }
         } else {
+            // Jika pesanan sangat baru (UNPAID) dan escrow detail belum terbit di API Shopee
             $shopeeEstimatedRatio = 0.095;
             $marketplaceFee = round($totalAmount * $shopeeEstimatedRatio);
             $netAmount = max(0.0, $totalAmount - $sellerDiscount - $marketplaceFee);
@@ -283,54 +316,42 @@ class PullOrdersFromShopee implements ShouldQueue
             ]
         );
 
-        // Hapus item ganda/kosong lama hanya jika item dari API tersedia
         if (!empty($shopeeOrder['item_list'])) {
             OrderItem::where('order_id', $order->id)->delete();
 
             $insertRows = [];
             foreach ($shopeeOrder['item_list'] as $item) {
                 $modelId = $item['model_id'] ?? null;
-                $query = \App\Models\MarketplaceProduct::where('store_id', $this->store->id)
-                    ->where('marketplace_product_id', (string) $item['item_id']);
-                if ($modelId) {
-                    $query->where('marketplace_variant_id', (string) $modelId);
-                }
-                $marketplaceProduct = $query->first();
 
-                if (!$marketplaceProduct && $modelId) {
-                    $marketplaceProduct = \App\Models\MarketplaceProduct::where('store_id', $this->store->id)
-                        ->where('marketplace_product_id', (string) $item['item_id'])
-                        ->first();
-                }
+                $mp = \App\Models\MarketplaceProduct::where('store_id', $this->store->id)
+                    ->where('marketplace_product_id', (string) $item['item_id'])
+                    ->when($modelId, fn($q) => $q->where('marketplace_variant_id', (string) $modelId))
+                    ->first();
 
-                $price = $item['model_discounted_price'] ?? $item['model_original_price'] ?? 0;
-                $qty = $item['model_quantity_purchased'] ?? 1;
-
-                $masterProduct = $marketplaceProduct ? $marketplaceProduct->masterProduct : null;
+                $price = (float) ($item['model_discounted_price'] ?? $item['model_original_price'] ?? 0);
+                $qty = (int) ($item['model_quantity_purchased'] ?? 1);
                 $itemSku = $item['model_sku'] ?: ($item['item_sku'] ?? null);
 
+                $masterProduct = $mp ? $mp->masterProduct : null;
                 if (!$masterProduct && $itemSku) {
                     $masterProduct = \App\Models\MasterProduct::where('tenant_id', $this->store->tenant_id)
                         ->where('sku', trim($itemSku))
                         ->first();
                 }
 
-                $masterProductId = $masterProduct ? $masterProduct->id : null;
-                $costPrice = $masterProduct ? (float) $masterProduct->cost_price : 0;
-
                 $insertRows[] = [
-                    'order_id'               => $order->id,
-                    'sku'                    => $itemSku,
-                    'marketplace_product_id' => $marketplaceProduct ? $marketplaceProduct->id : null,
-                    'master_product_id'      => $masterProductId,
-                    'product_name'           => mb_substr($item['item_name'] . (!empty($item['model_name']) ? ' - ' . $item['model_name'] : ''), 0, 250),
-                    'price'                  => $price,
-                    'quantity'               => $qty,
-                    'total_price'            => $price * $qty,
-                    'cost_price'             => $costPrice,
-                    'hpp_subtotal'           => $costPrice * $qty,
-                    'created_at'             => now(),
-                    'updated_at'             => now(),
+                    'order_id' => $order->id,
+                    'marketplace_product_id' => $mp ? $mp->id : null,
+                    'master_product_id' => $masterProduct ? $masterProduct->id : null,
+                    'product_name' => mb_substr($item['item_name'] . ($item['model_name'] ? " ({$item['model_name']})" : ''), 0, 250),
+                    'sku' => $itemSku,
+                    'price' => $price,
+                    'total_price' => $price * $qty,
+                    'cost_price' => $masterProduct ? (float) $masterProduct->cost_price : 0,
+                    'hpp_subtotal' => ($masterProduct ? (float) $masterProduct->cost_price : 0) * $qty,
+                    'quantity' => $qty,
+                    'created_at' => now(),
+                    'updated_at' => now(),
                 ];
             }
 
@@ -344,46 +365,13 @@ class PullOrdersFromShopee implements ShouldQueue
         }
     }
 
-    protected function resolveShipBeforeDate(array $shopeeOrder): ?string
+    private function resolveShipBeforeDate(array $shopeeOrder): ?string
     {
-        $timestamp = $shopeeOrder['ship_by_date']
-            ?? $shopeeOrder['ship_before_date']
-            ?? null;
-
-        if (!$timestamp || !is_numeric($timestamp)) {
+        $timestamp = $shopeeOrder['ship_by_date'] ?? null;
+        if (! $timestamp) {
             return null;
         }
 
-        $timestamp = (int) $timestamp;
-        if (strlen((string)$timestamp) >= 13) {
-            $timestamp = (int)($timestamp / 1000);
-        }
-
         return date('Y-m-d H:i:s', $timestamp);
-    }
-
-    private function getValidAccessTokenWithRetry(callable $apiCall)
-    {
-        try {
-            return $apiCall($this->store->getValidAccessToken());
-        } catch (\RuntimeException $e) {
-            if (str_contains($e->getMessage(), 'invalid_access_token') || str_contains($e->getMessage(), 'invalid_acceess_token')) {
-                Log::info("[Shopee] Access token invalid in PullOrdersFromShopee for store #{$this->storeId}. Attempting force refresh...");
-                
-                if (empty($this->store->refresh_token)) {
-                    Log::warning("[Shopee] Refresh token is empty for store '{$this->store->store_name}' (ID #{$this->storeId}). Cannot auto-refresh. Please re-authenticate this store in Settings.");
-                    throw $e;
-                }
-
-                $accessToken = $this->store->getValidAccessToken(true);
-                return $apiCall($accessToken);
-            }
-            throw $e;
-        }
-    }
-
-    private function seedDemoReturns(): void
-    {
-        // Demo mode fallback
     }
 }
