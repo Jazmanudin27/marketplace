@@ -571,15 +571,16 @@ class ReportController extends Controller
         
         $dateFrom = $request->get('date_from', now()->subDays(15)->toDateString());
         $dateTo   = $request->get('date_to', now()->toDateString());
+        $dateType = $request->get('date_type', 'order_date'); // 'order_date' or 'completed_at'
         $forceRefresh = $request->has('refresh');
 
-        $cacheKey = 'reconciliation_omset_real_v3_' . $tenantId . '_' . $dateFrom . '_' . $dateTo;
+        $cacheKey = 'reconciliation_omset_v4_' . $tenantId . '_' . $dateFrom . '_' . $dateTo . '_' . $dateType;
 
         if ($forceRefresh) {
             \Illuminate\Support\Facades\Cache::forget($cacheKey);
         }
 
-        $data = \Illuminate\Support\Facades\Cache::remember($cacheKey, 180, function() use ($tenantId, $dateFrom, $dateTo) {
+        $data = \Illuminate\Support\Facades\Cache::remember($cacheKey, 180, function() use ($tenantId, $dateFrom, $dateTo, $dateType) {
             $startTs = strtotime($dateFrom . ' 00:00:00');
             $endTs   = strtotime($dateTo . ' 23:59:59');
 
@@ -592,13 +593,21 @@ class ReportController extends Controller
             foreach ($onlineStores as $store) {
                 $channelCode = strtolower($store->channel->code ?? 'n/a');
 
-                // 1. Data ERP Database
-                $orders = \App\Models\Order::where('tenant_id', $tenantId)
+                // 1. Data ERP Database (Berdasarkan Tipe Tanggal Pilihan)
+                $ordersQuery = \App\Models\Order::where('tenant_id', $tenantId)
                     ->where('store_id', $store->id)
-                    ->whereNotIn('order_status', ['CANCELLED'])
-                    ->whereDate('order_date', '>=', $dateFrom)
-                    ->whereDate('order_date', '<=', $dateTo)
-                    ->get();
+                    ->whereNotIn('order_status', ['CANCELLED']);
+
+                if ($dateType === 'completed_at') {
+                    $ordersQuery->whereIn('order_status', ['COMPLETED', 'DELIVERED', 'SELESAI', 'FINISHED'])
+                        ->whereDate('completed_at', '>=', $dateFrom)
+                        ->whereDate('completed_at', '<=', $dateTo);
+                } else {
+                    $ordersQuery->whereDate('order_date', '>=', $dateFrom)
+                        ->whereDate('order_date', '<=', $dateTo);
+                }
+
+                $orders = $ordersQuery->get();
                     
                 $grossSales = (float) $orders->sum('total_amount');
                 $adminFee   = (float) $orders->sum('marketplace_fee');
@@ -751,12 +760,16 @@ class ReportController extends Controller
             }
 
             // POS Offline
-            $offlineSales = \App\Models\OfflineSale::where('tenant_id', $tenantId)
-                ->where('status', \App\Models\OfflineSale::STATUS_COMPLETED)
-                ->whereDate('sold_at', '>=', $dateFrom)
-                ->whereDate('sold_at', '<=', $dateTo)
-                ->get();
-                
+            $offlineSalesQuery = \App\Models\OfflineSale::where('tenant_id', $tenantId)
+                ->where('status', \App\Models\OfflineSale::STATUS_COMPLETED);
+
+            if ($dateType === 'completed_at') {
+                $offlineSalesQuery->whereDate('sold_at', '>=', $dateFrom)->whereDate('sold_at', '<=', $dateTo);
+            } else {
+                $offlineSalesQuery->whereDate('sold_at', '>=', $dateFrom)->whereDate('sold_at', '<=', $dateTo);
+            }
+
+            $offlineSales = $offlineSalesQuery->get();
             $offlineSalesVal = (float) $offlineSales->sum('grand_total');
             $offlineOrderCount = $offlineSales->count();
             $offlineQtySold = 0;

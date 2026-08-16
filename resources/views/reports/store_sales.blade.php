@@ -9,6 +9,17 @@
             <form method="GET" action="{{ route('reports.store_sales') }}">
                 <div class="row g-2 align-items-end">
                     <div class="col-6 col-md-3">
+                        <label class="form-label form-label-sm fw-semibold mb-1 text-muted">Filter Berdasarkan Tanggal</label>
+                        <select name="date_type" class="form-select form-select-sm fw-semibold text-primary">
+                            <option value="order_date" {{ ($dateType ?? 'order_date') === 'order_date' ? 'selected' : '' }}>
+                                📅 Tanggal Transaksi (Order Masuk)
+                            </option>
+                            <option value="completed_at" {{ ($dateType ?? '') === 'completed_at' ? 'selected' : '' }}>
+                                💵 Tanggal Dana Dilepas / Cair (Escrow Selesai)
+                            </option>
+                        </select>
+                    </div>
+                    <div class="col-6 col-md-3">
                         <label class="form-label form-label-sm fw-semibold mb-1 text-muted">Dari Tanggal</label>
                         <input type="date" name="date_from" value="{{ $dateFrom }}" class="form-control form-control-sm">
                     </div>
@@ -16,12 +27,12 @@
                         <label class="form-label form-label-sm fw-semibold mb-1 text-muted">Sampai Tanggal</label>
                         <input type="date" name="date_to" value="{{ $dateTo }}" class="form-control form-control-sm">
                     </div>
-                    <div class="col-12 col-md-4 d-flex gap-2">
+                    <div class="col-12 col-md-3 d-flex gap-2">
                         <button type="submit" class="btn btn-primary btn-sm flex-fill fw-semibold">
                             <i class="fas fa-filter me-1"></i> Filter Data
                         </button>
                         <button type="submit" name="refresh" value="1" class="btn btn-outline-secondary btn-sm fw-semibold" title="Tarik Ulang Perbandingan Live API">
-                            <i class="fas fa-sync-alt me-1"></i> Refresh API Live
+                            <i class="fas fa-sync-alt me-1"></i> Refresh API
                         </button>
                     </div>
                 </div>
