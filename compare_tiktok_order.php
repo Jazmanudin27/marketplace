@@ -96,10 +96,10 @@ if ($store && (in_array(strtolower($store->channel->code ?? ''), ['tiktok', 'tik
             $totalAdjustment = (float) ($paymentInfo['total_adjustment_amount'] ?? $paymentInfo['adjustment_amount'] ?? 0);
             $protectionFee = (float) ($paymentInfo['shipping_seller_protection_fee_amount'] ?? $paymentInfo['protection_fee'] ?? 0);
 
-            $totalTiktokFees = $platformCommission + $growthXtraFee + $orderProcessingFee + $sellerDiscount + $withholdingTax + $sellerReturnRefund + $totalAdjustment + $protectionFee;
-            
-            if ($totalTiktokFees <= 0 && $escrowAmount > 0) {
+            if ($escrowAmount > 0 && $totalAmount > $escrowAmount) {
                 $totalTiktokFees = max(0.0, $totalAmount - $escrowAmount);
+            } else {
+                $totalTiktokFees = $platformCommission + $growthXtraFee + $orderProcessingFee + $sellerDiscount + $withholdingTax + $sellerReturnRefund + $totalAdjustment + $protectionFee;
             }
             if ($totalTiktokFees <= 0) {
                 $totalTiktokFees = round($totalAmount * 0.085);
