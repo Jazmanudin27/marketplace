@@ -442,15 +442,18 @@ class Order extends Model
     public function getNetAmountAttribute($value): float
     {
         $fb = $this->financial_breakdown;
+        $sellerReturnRefund = (float) ($fb['seller_return_refund'] ?? $fb['refund_amount'] ?? 0);
+        $refundDeduction = abs($sellerReturnRefund);
 
         if (!empty($fb['escrow_amount']) && (float) $fb['escrow_amount'] > 0) {
-            return (float) $fb['escrow_amount'];
+            $escrow = (float) $fb['escrow_amount'];
+            return max(0.0, $escrow - $refundDeduction);
         }
 
         $details = $this->fee_breakdown_details;
         $totalFee = abs($details['total_fee'] ?? 0);
         if ($totalFee > 0) {
-            return max(0.0, (float) $this->total_amount - $totalFee);
+            return max(0.0, (float) $this->total_amount - $refundDeduction - $totalFee);
         }
 
         if (!empty($fb['net_platform_commission']) || !empty($fb['growth_xtra_fee']) || !empty($fb['preorder_service_fee'])) {
@@ -461,19 +464,19 @@ class Order extends Model
                   + (float) ($fb['growth_xtra_fee'] ?? 0)
                   + (float) ($fb['order_processing_fee'] ?? 0);
             if ($fees > 0) {
-                return max(0.0, $subtotal - $fees);
+                return max(0.0, $subtotal - $refundDeduction - $fees);
             }
         }
 
         $val = (float) $value;
         if ($val > 0) {
-            return $val;
+            return max(0.0, $val - $refundDeduction);
         }
 
         $total = (float) $this->total_amount;
         $fee = (float) $this->marketplace_fee;
 
-        $estimated = $total - $fee;
+        $estimated = $total - $refundDeduction - $fee;
         return max(0.0, $estimated);
     }
 

@@ -221,12 +221,7 @@
                         $sellerReturnRefund = (float) ($fb['seller_return_refund'] ?? $fb['refund_amount'] ?? ($retOrder ? (float)$retOrder->refund_amount : (in_array(strtoupper($order->order_status), ['RETURNED', 'REFUNDED', 'RETURN']) ? (float)$order->total_amount : 0.0)));
                         $refundAmount = abs($sellerReturnRefund);
                         
-                        $absFee = abs($fees['total_fee'] ?? 0);
-                        if ($refundAmount >= (float)$order->total_amount && (float)$order->total_amount > 0) {
-                            $finalNet = $absFee;
-                        } else {
-                            $finalNet = max(0.0, (float)$order->total_amount - $refundAmount - $absFee);
-                        }
+                        $finalNet = (float) $order->net_amount;
                     @endphp
 
                     @if ($refundAmount > 0)
