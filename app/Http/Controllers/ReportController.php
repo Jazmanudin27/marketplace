@@ -611,6 +611,29 @@ class ReportController extends Controller
             $ordersList = [];
             foreach ($orders as $order) {
                 $qtySold += $order->items()->sum('quantity');
+
+                // Check stored official API financial breakdown per order
+                $fb = $order->financial_breakdown;
+                if (!empty($fb) && is_array($fb)) {
+                    $apiOrderCount++;
+                    $aG = (float) ($fb['original_price'] ?? $fb['buyer_paid_total'] ?? $order->total_amount);
+                    $aN = (float) ($fb['escrow_amount'] ?? $fb['settlement_amount'] ?? $order->net_amount);
+                    $aA = max(0.0, $aG - $aN);
+                } else {
+                    $apiOrderCount++;
+                    $aG = (float) $order->total_amount;
+                    $aA = (float) $order->marketplace_fee;
+                    $aN = (float) $order->net_amount;
+                }
+
+                $apiGross += $aG;
+                $apiAdmin += $aA;
+                $apiNet   += $aN;
+
+                $dNet = (float) $order->net_amount - $aN;
+                $dAdm = (float) $order->marketplace_fee - $aA;
+                $hasDiff = (abs($dNet) > 100 || abs($dAdm) > 100);
+
                 $ordersList[] = [
                     'id' => $order->id,
                     'order_sn' => $order->order_marketplace_id ?: ('#' . $order->id),
@@ -620,25 +643,13 @@ class ReportController extends Controller
                     'total_amount' => (float) $order->total_amount,
                     'marketplace_fee' => (float) $order->marketplace_fee,
                     'net_amount' => (float) $order->net_amount,
+                    'api_gross' => $aG,
+                    'api_admin' => $aA,
+                    'api_net' => $aN,
+                    'diff_net' => $dNet,
+                    'diff_admin' => $dAdm,
+                    'has_diff' => $hasDiff,
                 ];
-
-                // Check stored official API financial breakdown
-                $fb = $order->financial_breakdown;
-                if (!empty($fb) && is_array($fb)) {
-                    $apiOrderCount++;
-                    $aG = (float) ($fb['original_price'] ?? $fb['buyer_paid_total'] ?? $order->total_amount);
-                    $aN = (float) ($fb['escrow_amount'] ?? $fb['settlement_amount'] ?? $order->net_amount);
-                    $aA = max(0.0, $aG - $aN);
-                    $apiGross += $aG;
-                    $apiAdmin += $aA;
-                    $apiNet   += $aN;
-                } else {
-                    // Fallback to order values if escrow not pulled yet
-                    $apiOrderCount++;
-                    $apiGross += (float) $order->total_amount;
-                    $apiAdmin += (float) $order->marketplace_fee;
-                    $apiNet   += (float) $order->net_amount;
-                }
             }
 
             $diffOrders = $orderCount - $apiOrderCount;

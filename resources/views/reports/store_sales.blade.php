@@ -31,9 +31,6 @@
                         <button type="submit" class="btn btn-primary btn-sm flex-fill fw-semibold">
                             <i class="fas fa-filter me-1"></i> Filter Data
                         </button>
-                        <button type="submit" name="refresh" value="1" class="btn btn-outline-secondary btn-sm fw-semibold" title="Tarik Ulang Perbandingan Live API">
-                            <i class="fas fa-sync-alt me-1"></i> Refresh API
-                        </button>
                     </div>
                 </div>
             </form>
@@ -166,7 +163,7 @@
                                     @if($isMatch)
                                         <span class="badge bg-success-subtle text-success border border-success border-opacity-25 px-2 py-1"><i class="fas fa-check-circle me-1"></i>100% MATCH</span>
                                     @else
-                                        <span class="badge bg-warning-subtle text-warning border border-warning border-opacity-25 px-2 py-1"><i class="fas fa-exclamation-triangle me-1"></i>ADA SELISIH</span>
+                                        <span class="badge bg-danger-subtle text-danger border border-danger border-opacity-25 px-2 py-1"><i class="fas fa-exclamation-triangle me-1"></i>ADA SELISIH</span>
                                     @endif
                                 </td>
 
@@ -205,35 +202,41 @@
                                 </td>
                             </tr>
 
-                            {{-- Collapsible Rincian Order --}}
+                            {{-- Collapsible Rincian Order + Deteksi Per Transaksi --}}
                             <tr>
                                 <td colspan="16" class="p-0 border-0">
                                     <div class="collapse bg-light p-3 border-top border-bottom" id="collapseOrder_{{ $storeKey }}">
                                         <div class="d-flex justify-content-between align-items-center mb-2 px-2">
                                             <h6 class="fw-bold text-dark mb-0">
-                                                <i class="fas fa-file-invoice-dollar text-primary me-2"></i>Rincian Transaksi: <span class="text-primary">{{ $stat['name'] }}</span>
+                                                <i class="fas fa-search-dollar text-primary me-2"></i>Rincian Deteksi Per Transaksi: <span class="text-primary">{{ $stat['name'] }}</span>
                                             </h6>
                                             <span class="badge bg-dark px-2 py-1">{{ count($details) }} Transaksi Ditemukan</span>
                                         </div>
 
                                         @if(!empty($details))
                                             <div class="table-responsive bg-white rounded border shadow-sm">
-                                                <table class="table table-sm table-striped table-hover mb-0" style="font-size: 0.8rem;">
-                                                    <thead class="table-secondary text-uppercase small">
+                                                <table class="table table-sm table-hover align-middle mb-0" style="font-size: 0.8rem;">
+                                                    <thead class="table-secondary text-uppercase small align-middle">
                                                         <tr>
                                                             <th class="ps-3">#</th>
                                                             <th>No. Order Marketplace</th>
                                                             <th>Tanggal</th>
                                                             <th>Nama Pembeli</th>
                                                             <th class="text-center">Status</th>
-                                                            <th class="text-end">Omset Kotor</th>
-                                                            <th class="text-end text-danger">Biaya Admin</th>
-                                                            <th class="text-end text-success pe-3">Omset Bersih</th>
+                                                            <th class="text-end">Omset Kotor (ERP / API)</th>
+                                                            <th class="text-end text-danger">Biaya Admin (ERP / API)</th>
+                                                            <th class="text-end text-success">Omset Bersih (ERP / API)</th>
+                                                            <th class="text-center pe-3">Deteksi Selisih</th>
                                                         </tr>
                                                     </thead>
                                                     <tbody>
                                                         @foreach($details as $i => $od)
-                                                            <tr>
+                                                            @php
+                                                                $hasDiff = $od['has_diff'] ?? false;
+                                                                $dNetOrd = $od['diff_net'] ?? 0;
+                                                                $dAdmOrd = $od['diff_admin'] ?? 0;
+                                                            @endphp
+                                                            <tr class="{{ $hasDiff ? 'table-danger' : '' }}">
                                                                 <td class="ps-3 text-muted">{{ $i + 1 }}</td>
                                                                 <td class="fw-bold text-primary font-monospace">{{ $od['order_sn'] }}</td>
                                                                 <td class="text-muted">{{ date('d/m/Y H:i', strtotime($od['order_date'])) }}</td>
@@ -243,9 +246,43 @@
                                                                         {{ $od['order_status'] }}
                                                                     </span>
                                                                 </td>
-                                                                <td class="text-end font-monospace text-dark">Rp {{ number_format($od['total_amount'], 0, ',', '.') }}</td>
-                                                                <td class="text-end font-monospace text-danger">Rp {{ number_format($od['marketplace_fee'], 0, ',', '.') }}</td>
-                                                                <td class="text-end font-monospace fw-bold text-success pe-3">Rp {{ number_format($od['net_amount'], 0, ',', '.') }}</td>
+
+                                                                {{-- Gross --}}
+                                                                <td class="text-end font-monospace text-dark">
+                                                                    Rp {{ number_format($od['total_amount'], 0, ',', '.') }}
+                                                                    @if(isset($od['api_gross']) && abs($od['total_amount'] - $od['api_gross']) > 100)
+                                                                        <br><small class="text-muted">API: Rp {{ number_format($od['api_gross'], 0, ',', '.') }}</small>
+                                                                    @endif
+                                                                </td>
+
+                                                                {{-- Admin Fee --}}
+                                                                <td class="text-end font-monospace text-danger">
+                                                                    Rp {{ number_format($od['marketplace_fee'], 0, ',', '.') }}
+                                                                    @if(isset($od['api_admin']) && abs($od['marketplace_fee'] - $od['api_admin']) > 100)
+                                                                        <br><small class="text-danger fw-bold">API: Rp {{ number_format($od['api_admin'], 0, ',', '.') }}</small>
+                                                                    @endif
+                                                                </td>
+
+                                                                {{-- Net --}}
+                                                                <td class="text-end font-monospace fw-bold text-success">
+                                                                    Rp {{ number_format($od['net_amount'], 0, ',', '.') }}
+                                                                    @if(isset($od['api_net']) && abs($od['net_amount'] - $od['api_net']) > 100)
+                                                                        <br><small class="text-muted">API: Rp {{ number_format($od['api_net'], 0, ',', '.') }}</small>
+                                                                    @endif
+                                                                </td>
+
+                                                                {{-- Match status per order --}}
+                                                                <td class="text-center pe-3">
+                                                                    @if($hasDiff)
+                                                                        <span class="badge bg-danger text-white px-2 py-1 fw-bold" title="Biaya admin atau net amount berbeda">
+                                                                            ⚠️ SELISIH Rp {{ number_format(abs($dNetOrd ?: $dAdmOrd), 0, ',', '.') }}
+                                                                        </span>
+                                                                    @else
+                                                                        <span class="badge bg-success-subtle text-success border border-success border-opacity-25 px-2 py-1">
+                                                                            <i class="fas fa-check me-1"></i>MATCH
+                                                                        </span>
+                                                                    @endif
+                                                                </td>
                                                             </tr>
                                                         @endforeach
                                                     </tbody>
