@@ -97,34 +97,28 @@ class SyncShopeeEscrow extends Command
                             }
                         }
 
-                        // Ambil Subtotal Produk Penjual (merchant_subtotal / cost_of_goods_sold) untuk menghilangkan Biaya Penanganan Pembeli (buyer_service_fee)
-                        $merchantSubtotal = (float) ($income['cost_of_goods_sold'] ?? $income['order_selling_price'] ?? $income['order_original_price'] ?? 0);
+                        // Ambil Subtotal Produk Penjual (merchant_subtotal / cost_of_goods_sold)
+                        $merchantSubtotal = (float) ($income['cost_of_goods_sold'] ?? $income['order_selling_price'] ?? $income['order_original_price'] ?? $order->total_amount);
                         if ($merchantSubtotal > 0) {
                             $order->total_amount = $merchantSubtotal;
                         }
 
-                        // Update rincian 5 potongan biaya Shopee
+                        $escrowAmount = (float) ($income['escrow_amount'] ?? 0);
+
+                        // Hitung total fee dari breakdown rincian atau selisih Subtotal - Escrow Amount
                         $details = $order->fee_breakdown_details;
                         $totalFee = abs($details['total_fee'] ?? 0);
 
-                        $escrowAmount = (float) ($income['escrow_amount'] ?? 0);
-
-                        // If fee breakdown keys were 0 in API, compute fee from total_amount - escrow_amount
-                        if ($totalFee <= 0 && $escrowAmount > 0 && (float) $order->total_amount > $escrowAmount) {
-                            $totalFee = max(0.0, (float) $order->total_amount - $escrowAmount);
+                        if ($totalFee <= 0 && $escrowAmount > 0 && $merchantSubtotal > $escrowAmount) {
+                            $totalFee = max(0.0, $merchantSubtotal - $escrowAmount);
                         }
 
-                        // If fee is still 0, apply official Shopee Admin Fee rate (~9.5%)
-                        if ($totalFee <= 0 && (float) $order->total_amount > 0) {
-                            $totalFee = round((float) $order->total_amount * 0.095);
-                        }
-
-                        if ($escrowAmount <= 0) {
-                            $escrowAmount = max(0.0, (float) $order->total_amount - $totalFee);
+                        if ($totalFee <= 0 && $merchantSubtotal > 0) {
+                            $totalFee = round($merchantSubtotal * 0.095);
                         }
 
                         $order->marketplace_fee = $totalFee;
-                        $order->net_amount = $escrowAmount;
+                        $order->net_amount = $escrowAmount > 0 ? $escrowAmount : max(0.0, $merchantSubtotal - $totalFee);
                         $order->order_status = 'COMPLETED';
                         if (!$order->completed_at) {
                             $order->completed_at = now();
