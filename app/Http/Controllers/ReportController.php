@@ -609,24 +609,32 @@ class ReportController extends Controller
 
             $qtySold = 0;
             $ordersList = [];
+            $isTiktok = (in_array($channelCode, ['tiktok', 'tiktok_shop', 'tokopedia']) || $store->channel_id == 3);
+
             foreach ($orders as $order) {
                 $qtySold += $order->items()->sum('quantity');
 
-                $aG = (float) $order->total_amount;
-                
-                // Biaya Admin Resmi Marketplace (Commission + Service Fee + Transaction Fee)
-                $aA = (float) $order->marketplace_fee;
+                $fb = $order->financial_breakdown;
+                if (!empty($fb) && is_array($fb)) {
+                    $aG = (float) ($fb['original_price'] ?? $fb['buyer_paid_total'] ?? $order->total_amount);
+                    
+                    $aA = (float) ($fb['commission_fee'] ?? 0) 
+                        + (float) ($fb['service_fee'] ?? 0) 
+                        + (float) ($fb['seller_transaction_fee'] ?? 0)
+                        + (float) ($fb['net_platform_commission'] ?? 0)
+                        + (float) ($fb['growth_xtra_fee'] ?? 0)
+                        + (float) ($fb['order_processing_fee'] ?? 0);
 
-                // Fallback jika biaya admin di database belum terisi (>0)
-                if ($aA <= 0 && $aG > 0) {
-                    if (in_array($channelCode, ['tiktok', 'tiktok_shop', 'tokopedia']) || $store->channel_id == 3) {
-                        $aA = round($aG * 0.085); // Biaya Admin TikTok Shop (~8.5%)
-                    } elseif ($channelCode === 'shopee' || $store->channel_id == 1) {
-                        $aA = round($aG * 0.095); // Biaya Admin Shopee (~9.5%)
+                    if ($aA <= 0) {
+                        $aA = (float) ($order->marketplace_fee > 0 ? $order->marketplace_fee : round($aG * ($isTiktok ? 0.085 : 0.095)));
                     }
-                }
 
-                $aN = (float) ($order->net_amount > 0 ? $order->net_amount : max(0.0, $aG - $aA));
+                    $aN = (float) ($fb['escrow_amount'] ?? $fb['settlement_amount'] ?? max(0.0, $aG - $aA));
+                } else {
+                    $aG = (float) $order->total_amount;
+                    $aA = (float) ($order->marketplace_fee > 0 ? $order->marketplace_fee : round($aG * ($isTiktok ? 0.085 : 0.095)));
+                    $aN = (float) ($order->net_amount > 0 ? $order->net_amount : max(0.0, $aG - $aA));
+                }
 
                 $apiOrderCount++;
                 $apiGross += $aG;
