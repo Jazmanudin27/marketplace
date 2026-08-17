@@ -174,22 +174,34 @@
                                     </div>
                                 </div>
                             @endif
-                            <div class="col-md-4">
+                            <div class="col-md-3">
                                 <div class="p-3 border rounded h-100 bg-light">
                                     <small class="text-muted d-block text-uppercase fw-semibold mb-1" style="font-size: 0.65rem;">Kurir</small>
                                     <span class="fw-bold text-success small">{{ $order->courier ?? '-' }}</span>
                                 </div>
                             </div>
-                            <div class="col-md-4">
+                            <div class="col-md-3">
                                 <div class="p-3 border rounded h-100 bg-light">
                                     <small class="text-muted d-block text-uppercase fw-semibold mb-1" style="font-size: 0.65rem;">No. Resi</small>
-                                    <span class="font-monospace fw-bold text-warning small">{{ $order->tracking_number ?? '-' }}</span>
+                                    <span class="font-monospace fw-bold text-warning small text-truncate d-block">{{ $order->tracking_number ?? '-' }}</span>
+                                    @if ($order->package_id)
+                                        <div class="text-muted font-monospace small text-truncate" style="font-size: 0.65rem;">Pkg: {{ $order->package_id }}</div>
+                                    @endif
                                 </div>
                             </div>
-                            <div class="col-md-4">
+                            <div class="col-md-3">
                                 <div class="p-3 border rounded h-100 bg-light">
                                     <small class="text-muted d-block text-uppercase fw-semibold mb-1" style="font-size: 0.65rem;">Tanggal Pesanan</small>
-                                    <span class="fw-semibold text-dark small">{{ $order->order_date->format('d M Y, H:i') }}</span>
+                                    <span class="fw-semibold text-dark small">{{ $order->order_date ? $order->order_date->format('d M Y, H:i') : '-' }}</span>
+                                    @if ($order->paid_at)
+                                        <div class="text-success small" style="font-size:0.65rem;">Bayar: {{ \Carbon\Carbon::parse($order->paid_at)->format('d M Y, H:i') }}</div>
+                                    @endif
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="p-3 border rounded h-100 bg-light">
+                                    <small class="text-muted d-block text-uppercase fw-semibold mb-1" style="font-size: 0.65rem;">Tanggal Cair</small>
+                                    <span class="fw-bold text-primary small">{{ $order->completed_at ? \Carbon\Carbon::parse($order->completed_at)->format('d M Y, H:i') : 'Belum Cair' }}</span>
                                 </div>
                             </div>
                         </div>
@@ -199,30 +211,46 @@
                 <!-- Order Items Card -->
                 <div class="card border shadow-sm overflow-hidden mb-3">
                     <div class="card-header bg-primary bg-opacity-10 d-flex align-items-center p-3 border-bottom">
-                        <h6 class="mb-0 fw-bold text-dark"><i class="fas fa-box me-2 text-primary"></i>Item Pesanan</h6>
+                        <h6 class="mb-0 fw-bold text-dark"><i class="fas fa-box me-2 text-primary"></i>Item Pesanan (Rincian Produk API)</h6>
                     </div>
                     <div class="card-body p-3">
                         <div class="table-responsive rounded border">
                             <table class="table table-sm table-striped table-bordered align-middle mb-0">
                                 <thead>
-                                    <tr class="small">
-                                        <th>PRODUK</th>
-                                        <th>SKU</th>
-                                        <th class="text-end">HARGA</th>
-                                        <th class="text-center">QTY</th>
-                                        <th class="text-end">SUBTOTAL</th>
+                                    <tr class="small text-center fw-bold">
+                                        <th>PRODUK & VARIAN</th>
+                                        <th>SKU / SKU ID</th>
+                                        <th>HARGA ASLI</th>
+                                        <th>DISKON TOKO</th>
+                                        <th>HARGA JUAL</th>
+                                        <th>QTY</th>
+                                        <th>SUBTOTAL</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     @foreach ($order->items as $item)
                                         <tr>
                                             <td>
-                                                <strong class="text-dark small">{{ $item->product_name }}</strong>
+                                                <strong class="text-dark small d-block">{{ $item->product_name }}</strong>
+                                                @if ($item->sku_name)
+                                                    <span class="badge bg-secondary-subtle text-secondary border small">{{ $item->sku_name }}</span>
+                                                @endif
                                             </td>
-                                            <td><code class="text-info font-monospace small">{{ $item->sku ?? '-' }}</code></td>
-                                            <td class="text-end font-monospace text-dark small">Rp {{ number_format($item->price, 0, ',', '.') }}</td>
-                                            <td class="text-center text-dark small">{{ $item->quantity }}</td>
-                                            <td class="text-end font-monospace text-primary small">Rp {{ number_format($item->total_price, 0, ',', '.') }}</td>
+                                            <td>
+                                                <code class="text-info font-monospace small d-block">{{ $item->seller_sku ?? $item->sku ?? '-' }}</code>
+                                                @if ($item->sku_id)
+                                                    <span class="text-muted font-monospace small" style="font-size:0.65rem;">ID: {{ $item->sku_id }}</span>
+                                                @endif
+                                            </td>
+                                            <td class="text-end font-monospace text-muted small">
+                                                {{ $item->original_price > 0 ? 'Rp ' . number_format($item->original_price, 0, ',', '.') : '-' }}
+                                            </td>
+                                            <td class="text-end font-monospace text-danger small">
+                                                {{ $item->seller_discount > 0 ? '-Rp ' . number_format($item->seller_discount, 0, ',', '.') : '-' }}
+                                            </td>
+                                            <td class="text-end font-monospace text-dark small fw-semibold">Rp {{ number_format($item->price, 0, ',', '.') }}</td>
+                                            <td class="text-center text-dark small fw-bold">{{ $item->quantity }}</td>
+                                            <td class="text-end font-monospace text-primary small fw-bold">Rp {{ number_format($item->total_price, 0, ',', '.') }}</td>
                                         </tr>
                                     @endforeach
                                 </tbody>

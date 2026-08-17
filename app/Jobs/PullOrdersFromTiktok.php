@@ -271,7 +271,10 @@ class PullOrdersFromTiktok implements ShouldQueue
             $netAmount = max(0.0, $totalAmount - $discountAmount - $marketplaceFee);
         }
 
-        $financialBreakdown = array_merge([
+        $stmtList = $stmtRes['statement_transactions'] ?? [];
+        $st0 = (!empty($stmtList[0]) && is_array($stmtList[0])) ? $stmtList[0] : [];
+
+        $financialBreakdown = array_merge($paymentInfo, $st0, [
             'original_price' => $totalAmount,
             'buyer_paid_total' => $buyerPaidTotal,
             'subtotal_after_seller_discounts' => $subtotalAfterSeller,
@@ -282,7 +285,8 @@ class PullOrdersFromTiktok implements ShouldQueue
             'voucher_from_shopee' => (float) ($paymentInfo['platform_discount'] ?? 0),
             'platform_discount' => (float) ($paymentInfo['platform_discount'] ?? 0),
             'withholding_tax' => (float) ($paymentInfo['withholding_tax'] ?? $paymentInfo['tax_amount'] ?? 0),
-            'seller_return_refund' => (float) ($paymentInfo['refund_amount'] ?? $paymentInfo['return_amount'] ?? 0),
+            'seller_return_refund' => (float) ($paymentInfo['refund_amount'] ?? $paymentInfo['return_amount'] ?? $st0['customer_refund_amount'] ?? 0),
+            'refund_amount' => (float) ($paymentInfo['refund_amount'] ?? $paymentInfo['return_amount'] ?? $st0['customer_refund_amount'] ?? 0),
             'total_adjustment_amount' => (float) ($paymentInfo['total_adjustment_amount'] ?? $paymentInfo['adjustment_amount'] ?? 0),
             'shipping_seller_protection_fee_amount' => (float) ($paymentInfo['shipping_seller_protection_fee_amount'] ?? $paymentInfo['protection_fee'] ?? 0),
             'platform_commission' => $platformCommission,
@@ -294,7 +298,8 @@ class PullOrdersFromTiktok implements ShouldQueue
             'order_processing_fee' => $orderProcessingFee,
             'service_fee' => $totalTiktokFees > 0 ? $totalTiktokFees : $marketplaceFee,
             'escrow_amount' => $escrowAmount > 0 ? $escrowAmount : $netAmount,
-        ], $financialBreakdown ?? []);
+            'settlement_amount' => $escrowAmount > 0 ? $escrowAmount : $netAmount,
+        ], $stmtRes ?? []);
 
         $courier = $tiktokOrder['shipping_provider'] ?? $tiktokOrder['shipping_provider_name'] ?? null;
         $trackingNumber = $tiktokOrder['tracking_number'] ?? $tiktokOrder['tracking_no'] ?? null;
@@ -335,6 +340,12 @@ class PullOrdersFromTiktok implements ShouldQueue
                     return (is_numeric($ts) && strlen((string)$ts) >= 13) ? (int)($ts / 1000) : (int)$ts;
                 })(), 'Asia/Jakarta')->format('Y-m-d H:i:s') : null,
                 'ship_before_date' => $this->resolveShipBeforeDate($tiktokOrder),
+                'paid_at' => !empty($tiktokOrder['paid_time']) ? \Carbon\Carbon::createFromTimestamp((is_numeric($tiktokOrder['paid_time']) && strlen((string)$tiktokOrder['paid_time']) >= 13) ? (int)($tiktokOrder['paid_time'] / 1000) : (int)$tiktokOrder['paid_time'], 'Asia/Jakarta')->format('Y-m-d H:i:s') : null,
+                'payment_method' => $tiktokOrder['payment_method_name'] ?? $tiktokOrder['payment_method_code'] ?? (!empty($tiktokOrder['is_cod']) ? 'Cash on Delivery' : null),
+                'buyer_email' => $tiktokOrder['buyer_email'] ?? null,
+                'buyer_message' => $tiktokOrder['buyer_message'] ?? null,
+                'seller_note' => $tiktokOrder['seller_note'] ?? null,
+                'package_id' => $tiktokOrder['packages'][0]['id'] ?? $tiktokOrder['package_id'] ?? null,
                 'financial_breakdown' => $financialBreakdown,
                 'tiktok_creator_name' => $tiktokCreatorName,
                 'tiktok_creator_id' => $tiktokCreatorId,
@@ -353,13 +364,18 @@ class PullOrdersFromTiktok implements ShouldQueue
                 $productId = (string)($item['product_id'] ?? '');
                 $skuId     = (string)($item['sku_id'] ?? '');
                 $sellerSku = $item['seller_sku'] ?? $item['sku'] ?? null;
+                $skuName   = $item['sku_name'] ?? $item['variation_name'] ?? null;
+                $origPrice = (float)($item['original_price'] ?? $item['price'] ?? 0);
+                $sDisc     = (float)($item['seller_discount'] ?? 0);
+                $pDisc     = (float)($item['platform_discount'] ?? 0);
 
+                // Mapping ke Marketplace Product / Master Product jika ada
                 $marketplaceProduct = null;
                 if ($productId) {
                     $query = \App\Models\MarketplaceProduct::where('store_id', $this->store->id)
                         ->where('marketplace_product_id', $productId);
                     if ($skuId) {
-                        $query->where('marketplace_variant_id', $skuId);
+                        $query->where('variant_id', $skuId);
                     }
                     $marketplaceProduct = $query->first();
 
@@ -383,20 +399,26 @@ class PullOrdersFromTiktok implements ShouldQueue
 
                 $costPrice = $masterProduct ? (float) $masterProduct->cost_price : 0;
                 $qty = (int) ($item['quantity'] ?? 1);
-                $price = (float) ($item['original_price'] ?? $item['sale_price'] ?? $item['sku_display_price'] ?? $item['price'] ?? 0);
+                $unitPrice = (float) ($item['sale_price'] ?? $item['sku_display_price'] ?? $item['price'] ?? $origPrice);
 
                 $pName = $item['product_name'] ?? $item['item_name'] ?? 'Produk TikTok';
                 $vName = $item['sku_name'] ?? $item['variant_name'] ?? '';
 
                 $insertRows[] = [
                     'order_id'               => $order->id,
-                    'sku'                    => $sellerSku,
+                    'sku'                    => $sellerSku ?: $skuId,
+                    'seller_sku'             => $sellerSku,
+                    'sku_id'                 => $skuId,
+                    'sku_name'               => $skuName ?: $vName,
                     'marketplace_product_id' => $marketplaceProductId,
                     'master_product_id'      => $masterProductId,
                     'product_name'           => mb_substr($pName . ($vName ? ' - ' . $vName : ''), 0, 250),
-                    'price'                  => $price,
+                    'price'                  => $unitPrice,
+                    'original_price'         => $origPrice,
+                    'seller_discount'        => $sDisc,
+                    'platform_discount'      => $pDisc,
                     'quantity'               => $qty,
-                    'total_price'            => $price * $qty,
+                    'total_price'            => $unitPrice * $qty,
                     'cost_price'             => $costPrice,
                     'hpp_subtotal'           => $costPrice * $qty,
                     'created_at'             => now(),
