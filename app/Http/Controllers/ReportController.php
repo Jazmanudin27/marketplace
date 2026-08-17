@@ -1791,13 +1791,8 @@ class ReportController extends Controller
         if ($channelCode !== 'offline') {
             $query = \App\Models\Order::where('tenant_id', $tenantId)
                 ->whereIn('order_status', ['COMPLETED', 'DELIVERED', 'SELESAI', 'FINISHED'])
-                ->where(function($q) use ($dateFrom, $dateTo) {
-                    $q->whereBetween('completed_at', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59'])
-                      ->orWhere(function($subQ) use ($dateFrom, $dateTo) {
-                          $subQ->whereNull('completed_at')
-                               ->whereBetween('order_date', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59']);
-                      });
-                });
+                ->whereNotNull('completed_at')
+                ->whereBetween('completed_at', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59']);
 
             if (!empty($storeId)) {
                 $query->where('store_id', $storeId);
@@ -1844,13 +1839,8 @@ class ReportController extends Controller
             $totalRefunds = (float) \App\Models\Order::where('tenant_id', $tenantId)
                 ->whereIn('order_status', ['RETURNED', 'REFUNDED', 'RETURN'])
                 ->when(!empty($storeId), fn($q) => $q->where('store_id', $storeId))
-                ->where(function($q) use ($dateFrom, $dateTo) {
-                    $q->whereBetween('completed_at', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59'])
-                      ->orWhere(function($subQ) use ($dateFrom, $dateTo) {
-                          $subQ->whereNull('completed_at')
-                               ->whereBetween('order_date', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59']);
-                      });
-                })
+                ->whereNotNull('completed_at')
+                ->whereBetween('completed_at', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59'])
                 ->sum('total_amount');
         }
 
@@ -1958,13 +1948,8 @@ class ReportController extends Controller
                 ->with('items');
 
             if ($statusFilter === 'completed') {
-                $ordersQuery->where(function($q) use ($dateFrom, $dateTo) {
-                    $q->whereBetween('completed_at', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59'])
-                      ->orWhere(function($subQ) use ($dateFrom, $dateTo) {
-                          $subQ->whereNull('completed_at')
-                               ->whereBetween('order_date', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59']);
-                      });
-                });
+                $ordersQuery->whereNotNull('completed_at')
+                            ->whereBetween('completed_at', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59']);
             } else {
                 $ordersQuery->whereBetween('order_date', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59']);
             }
@@ -2260,13 +2245,8 @@ class ReportController extends Controller
                 ->with(['store.channel', 'items']);
 
             if ($statusFilter === 'completed') {
-                $ordersQuery->where(function($q) use ($dateFrom, $dateTo) {
-                    $q->whereBetween('completed_at', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59'])
-                      ->orWhere(function($subQ) use ($dateFrom, $dateTo) {
-                          $subQ->whereNull('completed_at')
-                               ->whereBetween('order_date', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59']);
-                      });
-                });
+                $ordersQuery->whereNotNull('completed_at')
+                            ->whereBetween('completed_at', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59']);
             } else {
                 $ordersQuery->whereBetween('order_date', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59']);
             }
@@ -2426,13 +2406,8 @@ class ReportController extends Controller
                 ->with(['store.channel', 'customer', 'items']);
 
             if ($statusFilter === 'completed') {
-                $onQuery->where(function($q) use ($dateFrom, $dateTo) {
-                    $q->whereBetween('completed_at', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59'])
-                      ->orWhere(function($subQ) use ($dateFrom, $dateTo) {
-                          $subQ->whereNull('completed_at')
-                               ->whereBetween('order_date', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59']);
-                      });
-                });
+                $onQuery->whereNotNull('completed_at')
+                        ->whereBetween('completed_at', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59']);
             } else {
                 $onQuery->whereBetween('order_date', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59']);
             }
@@ -2566,13 +2541,8 @@ class ReportController extends Controller
                     ->with('items');
 
                 if ($statusFilter === 'completed') {
-                    $onQuery->where(function($q) use ($dt) {
-                        $q->whereDate('completed_at', $dt)
-                          ->orWhere(function($subQ) use ($dt) {
-                              $subQ->whereNull('completed_at')
-                                   ->whereDate('order_date', $dt);
-                          });
-                    });
+                    $onQuery->whereNotNull('completed_at')
+                            ->whereDate('completed_at', $dt);
                 } else {
                     $onQuery->whereDate('order_date', $dt);
                 }
@@ -2660,13 +2630,8 @@ class ReportController extends Controller
                 $ordersQuery = \App\Models\Order::where('tenant_id', $tenantId);
 
                 if ($statusFilter === 'completed') {
-                    $ordersQuery->where(function($q) use ($dateFrom, $dateTo) {
-                        $q->whereBetween('completed_at', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59'])
-                          ->orWhere(function($subQ) use ($dateFrom, $dateTo) {
-                              $subQ->whereNull('completed_at')
-                                   ->whereBetween('updated_at', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59']);
-                          });
-                    });
+                    $ordersQuery->whereNotNull('completed_at')
+                                ->whereBetween('completed_at', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59']);
                 } else {
                     $ordersQuery->whereBetween('order_date', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59']);
                 }
@@ -2784,13 +2749,8 @@ class ReportController extends Controller
                 $retQuery->where('store_id', $storeId);
             }
 
-            $retQuery->where(function($q) use ($dateFrom, $dateTo) {
-                $q->whereBetween('completed_at', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59'])
-                  ->orWhere(function($subQ) use ($dateFrom, $dateTo) {
-                      $subQ->whereNull('completed_at')
-                           ->whereBetween('order_date', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59']);
-                  });
-            });
+            $retQuery->whereNotNull('completed_at')
+                    ->whereBetween('completed_at', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59']);
 
             $refunds = (float) $retQuery->sum('total_amount');
         }
