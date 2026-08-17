@@ -221,7 +221,27 @@
                                 </tr>
                             </thead>
                             <tbody>
+                                @php
+                                    $totalOrderItemsPrice = $order->items->sum(fn($it) => $it->price * $it->quantity);
+                                @endphp
                                 @foreach ($order->items as $item)
+                                    @php
+                                        $itemPrice = (float) $item->price;
+                                        $itemQty = (int) $item->quantity;
+                                        $itemOrigPrice = (float) ($item->original_price > 0 ? $item->original_price : 0);
+                                        $itemDiscount = (float) ($item->seller_discount > 0 ? $item->seller_discount : 0);
+
+                                        // Intelligent fallback for item original price & discount if null in DB
+                                        if ($itemOrigPrice <= 0 && $itemDiscount <= 0 && $order->discount_amount > 0 && $totalOrderItemsPrice > 0) {
+                                            $itemPortion = ($itemPrice * $itemQty) / $totalOrderItemsPrice;
+                                            $itemDiscount = ($order->discount_amount * $itemPortion) / $itemQty;
+                                            $itemOrigPrice = $itemPrice + $itemDiscount;
+                                        }
+
+                                        if ($itemOrigPrice <= 0) {
+                                            $itemOrigPrice = $itemPrice;
+                                        }
+                                    @endphp
                                     <tr>
                                         <td>
                                             <strong class="text-dark d-block">{{ $item->product_name }}</strong>
@@ -236,16 +256,16 @@
                                             @endif
                                         </td>
                                         <td class="text-end font-monospace text-muted">
-                                            {{ $item->original_price > 0 ? 'Rp ' . number_format($item->original_price, 0, ',', '.') : '-' }}
+                                            Rp {{ number_format($itemOrigPrice, 0, ',', '.') }}
                                         </td>
                                         <td class="text-end font-monospace text-danger">
-                                            {{ $item->seller_discount > 0 ? '-Rp ' . number_format($item->seller_discount, 0, ',', '.') : '-' }}
+                                            {{ $itemDiscount > 0 ? '-Rp ' . number_format($itemDiscount, 0, ',', '.') : '-' }}
                                         </td>
                                         <td class="text-end font-monospace fw-semibold text-dark">
-                                            Rp {{ number_format($item->price, 0, ',', '.') }}
+                                            Rp {{ number_format($itemPrice, 0, ',', '.') }}
                                         </td>
-                                        <td class="text-center text-dark fw-bold">{{ $item->quantity }}</td>
-                                        <td class="text-end font-monospace text-primary fw-bold">Rp {{ number_format($item->total_price, 0, ',', '.') }}</td>
+                                        <td class="text-center text-dark fw-bold">{{ $itemQty }}</td>
+                                        <td class="text-end font-monospace text-primary fw-bold">Rp {{ number_format($itemPrice * $itemQty, 0, ',', '.') }}</td>
                                     </tr>
                                 @endforeach
                             </tbody>
