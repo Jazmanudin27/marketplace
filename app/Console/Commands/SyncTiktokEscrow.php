@@ -259,7 +259,7 @@ class SyncTiktokEscrow extends Command
 
                         $stmtTs = null;
                         foreach ($stmtList as $st) {
-                            $stTime = $st['statement_time'] ?? $st['paid_time'] ?? $st['create_time'] ?? null;
+                            $stTime = $st['statement_time'] ?? $st['settlement_time'] ?? null;
                             if ($stTime) {
                                 $stSec = (is_numeric($stTime) && strlen((string)$stTime) >= 13) ? (int)($stTime / 1000) : (int)$stTime;
                                 if ($stmtTs === null || $stSec > $stmtTs) {

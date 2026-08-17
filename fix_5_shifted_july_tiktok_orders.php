@@ -43,7 +43,8 @@ foreach ($targetIds as $orderId) {
 
         $maxStmtTs = null;
         foreach ($stmtList as $st) {
-            $stTime = $st['statement_time'] ?? $st['paid_time'] ?? $st['create_time'] ?? null;
+            // MURNI STATEMENT TIME (TANGGAL PENCAIRAN UANG BANK HASIL TIKTOK)
+            $stTime = $st['statement_time'] ?? $st['settlement_time'] ?? null;
             if ($stTime) {
                 $stSec = (is_numeric($stTime) && strlen((string)$stTime) >= 13) ? (int)($stTime / 1000) : (int)$stTime;
                 if ($maxStmtTs === null || $stSec > $maxStmtTs) {
@@ -63,7 +64,7 @@ foreach ($targetIds as $orderId) {
             echo "   - Tanggal Lama (ERP Juli)   : {$oldCompletedAt}\n";
             echo "   - Tanggal Baru (TikTok Aug): {$newCompletedAt}\n\n";
         } else {
-            echo "⚠️ Order {$orderId}: tidak ada timestamp statement di API TikTok.\n";
+            echo "⚠️ Order {$orderId}: tidak ada timestamp statement_time di API TikTok.\n";
         }
     } catch (\Exception $e) {
         echo "❌ Error Order {$orderId}: " . $e->getMessage() . "\n";
