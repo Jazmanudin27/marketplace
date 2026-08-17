@@ -369,6 +369,13 @@
                     $returnShippingVal = $getFee(['actual_return_shipping_fee_amount', 'return_shipping_fee_amount', 'actual_return_shipping_fee', 'return_shipping_fee']);
                     $logisticsFeeVal = $getFee(['shipping_cost_amount', 'shipping_cost', 'shipping_service_fee_amount', 'logistics_service_fee_amount']);
                     $totalFeeVal = $getFee(['fee_amount', 'total_fee_amount', 'total_fee'], $order->marketplace_fee);
+
+                    // Intelligent fee balancing: assign unassigned fee difference to pre-order service fee if total admin fee is higher than sum of known sub-fees
+                    $knownSum = abs($platformCommVal) + abs($growthXtraVal) + abs($transFeeVal) + abs($affiliateCommVal) + abs($dynamicCommVal) + abs($actualShippingVal) + abs($returnShippingVal) + abs($logisticsFeeVal);
+                    $unassignedDiff = abs($totalFeeVal) - $knownSum;
+                    if ($preorderFeeVal == 0 && $unassignedDiff > 10) {
+                        $preorderFeeVal = -$unassignedDiff;
+                    }
                 @endphp
                 <div class="card border shadow-sm mb-3 rounded-3">
                     <div class="card-header bg-dark bg-opacity-10 py-2 px-3 border-bottom d-flex justify-content-between align-items-center">
