@@ -267,25 +267,20 @@
                 </div>
                 <div class="card-body p-3" style="font-size: 0.8rem;">
                     @php 
-                        $itemsPriceSubtotal = (float) $order->items->sum(function($it) {
-                            return ($it->original_price > 0 ? $it->original_price : $it->price) * $it->quantity;
-                        });
-                        if ($itemsPriceSubtotal <= 0) {
-                            $itemsPriceSubtotal = (float) $order->total_amount + (float) $order->discount_amount;
-                        }
                         $discountAmt = (float) $order->discount_amount;
                         $netSales = (float) $order->total_amount;
+                        $grossSubtotal = $discountAmt > 0 ? ($netSales + $discountAmt) : $netSales;
                         $feeAmt = abs((float) $order->marketplace_fee);
                         $refundAmount = (float) $order->refund_amount;
                         $finalNet = (float) $order->net_amount;
                     @endphp
 
-                    <div class="d-flex justify-content-between mb-1.5 align-items-center">
-                        <span class="text-muted">Subtotal Harga Produk (Sebelum Diskon)</span>
-                        <span class="font-monospace text-dark fw-bold">Rp {{ number_format($itemsPriceSubtotal, 0, ',', '.') }}</span>
-                    </div>
-
                     @if ($discountAmt > 0)
+                        <div class="d-flex justify-content-between mb-1.5 align-items-center">
+                            <span class="text-muted">Subtotal Harga Produk (Sebelum Diskon)</span>
+                            <span class="font-monospace text-dark fw-bold">Rp {{ number_format($grossSubtotal, 0, ',', '.') }}</span>
+                        </div>
+
                         <div class="d-flex justify-content-between mb-1.5 align-items-center">
                             <span class="text-danger">
                                 <i class="fas fa-tag me-1"></i>Diskon Toko (Seller Voucher / Discount)
@@ -294,7 +289,7 @@
                         </div>
                     @endif
 
-                    <div class="d-flex justify-content-between mb-2 align-items-center pt-1 border-top">
+                    <div class="d-flex justify-content-between mb-2 align-items-center {{ $discountAmt > 0 ? 'pt-1 border-top' : '' }}">
                         <span class="text-dark fw-bold">Total Nilai Transaksi Penjualan (Net Sales)</span>
                         <span class="font-monospace text-dark fw-bold">Rp {{ number_format($netSales, 0, ',', '.') }}</span>
                     </div>
