@@ -287,31 +287,63 @@
                 </div>
                 <div class="card-body p-3" style="font-size: 0.8rem;">
                     @php 
-                        $discountAmt = (float) $order->discount_amount;
-                        $netSales = (float) $order->total_amount;
-                        $grossSubtotal = $discountAmt > 0 ? ($netSales + $discountAmt) : $netSales;
+                        $sumGrossSubtotal = 0;
+                        $sumSellerDiscount = 0;
+                        $sumNetSubtotal = 0;
+
+                        $totalOrderItemsPrice = $order->items->sum(fn($it) => $it->price * $it->quantity);
+                        foreach ($order->items as $item) {
+                            $iPrice = (float) $item->price;
+                            $iQty = (int) $item->quantity;
+                            $iOrigPrice = (float) ($item->original_price > 0 ? $item->original_price : 0);
+                            $iDiscount = (float) ($item->seller_discount > 0 ? $item->seller_discount : 0);
+
+                            if ($iOrigPrice <= 0 && $iDiscount <= 0 && $order->discount_amount > 0 && $totalOrderItemsPrice > 0) {
+                                $iPortion = ($iPrice * $iQty) / $totalOrderItemsPrice;
+                                $iDiscount = ($order->discount_amount * $iPortion) / $iQty;
+                                $iOrigPrice = $iPrice + $iDiscount;
+                            }
+                            if ($iOrigPrice <= 0) {
+                                $iOrigPrice = $iPrice;
+                            }
+
+                            $sumGrossSubtotal += ($iOrigPrice * $iQty);
+                            $sumSellerDiscount += ($iDiscount * $iQty);
+                            $sumNetSubtotal += ($iPrice * $iQty);
+                        }
+
+                        if ($sumNetSubtotal <= 0) {
+                            $sumNetSubtotal = (float) $order->total_amount;
+                        }
+                        if ($sumSellerDiscount <= 0 && $order->discount_amount > 0) {
+                            $sumSellerDiscount = (float) $order->discount_amount;
+                        }
+                        if ($sumGrossSubtotal <= $sumNetSubtotal && $sumSellerDiscount > 0) {
+                            $sumGrossSubtotal = $sumNetSubtotal + $sumSellerDiscount;
+                        }
+
                         $feeAmt = abs((float) $order->marketplace_fee);
                         $refundAmount = (float) $order->refund_amount;
                         $finalNet = (float) $order->net_amount;
                     @endphp
 
-                    @if ($discountAmt > 0)
+                    @if ($sumSellerDiscount > 0)
                         <div class="d-flex justify-content-between mb-1.5 align-items-center">
                             <span class="text-muted">Subtotal Harga Produk (Sebelum Diskon)</span>
-                            <span class="font-monospace text-dark fw-bold">Rp {{ number_format($grossSubtotal, 0, ',', '.') }}</span>
+                            <span class="font-monospace text-dark fw-bold">Rp {{ number_format($sumGrossSubtotal, 0, ',', '.') }}</span>
                         </div>
 
                         <div class="d-flex justify-content-between mb-1.5 align-items-center">
                             <span class="text-danger">
                                 <i class="fas fa-tag me-1"></i>Diskon Toko (Seller Voucher / Discount)
                             </span>
-                            <span class="font-monospace text-danger fw-bold">-Rp {{ number_format($discountAmt, 0, ',', '.') }}</span>
+                            <span class="font-monospace text-danger fw-bold">-Rp {{ number_format($sumSellerDiscount, 0, ',', '.') }}</span>
                         </div>
                     @endif
 
-                    <div class="d-flex justify-content-between mb-2 align-items-center {{ $discountAmt > 0 ? 'pt-1 border-top' : '' }}">
+                    <div class="d-flex justify-content-between mb-2 align-items-center {{ $sumSellerDiscount > 0 ? 'pt-1 border-top' : '' }}">
                         <span class="text-dark fw-bold">Total Nilai Transaksi Penjualan (Net Sales)</span>
-                        <span class="font-monospace text-dark fw-bold">Rp {{ number_format($netSales, 0, ',', '.') }}</span>
+                        <span class="font-monospace text-dark fw-bold">Rp {{ number_format($sumNetSubtotal, 0, ',', '.') }}</span>
                     </div>
 
                     <div class="d-flex justify-content-between mb-1.5 align-items-center">
