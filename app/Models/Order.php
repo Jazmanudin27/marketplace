@@ -346,17 +346,38 @@ class Order extends Model
     public function getFeeBreakdownDetailsAttribute(): array
     {
         $fb = $this->financial_breakdown ?? [];
+        $totalGross = (float) $this->total_amount;
+        $sellerReturnRefund = abs((float) ($fb['seller_return_refund'] ?? $fb['refund_amount'] ?? $fb['customer_refund_amount'] ?? $fb['gross_sales_refund_amount'] ?? 0));
+
+        // Jika pesanan direfund penuh, biaya admin reguler = 0 (hanya sisa ongkir retur jika ada)
+        if ($sellerReturnRefund >= $totalGross && $totalGross > 0) {
+            $returnShipping = abs((float) ($fb['return_shipping_fee'] ?? $fb['actual_return_shipping_fee_amount'] ?? 0));
+            return [
+                'platform_fee'   => 0.0,
+                'free_shipping'  => 0.0,
+                'service_fee'    => 0.0,
+                'promo_fee'      => 0.0,
+                'other_fee'      => $returnShipping > 0 ? -$returnShipping : 0.0,
+                'total_fee'      => $returnShipping > 0 ? -$returnShipping : 0.0,
+            ];
+        }
 
         // 1. Biaya Platform Komisi (Shopee: commission_fee | TikTok: net_platform_commission / platform_commission)
         $platformFee = (float) ($fb['commission_fee'] ?? $fb['net_platform_commission'] ?? $fb['platform_commission'] ?? $fb['platform_fee'] ?? 0);
 
         // 2. Biaya Gratis Ongkir & Program XTRA (Shopee: service_fee | TikTok: growth_xtra_fee)
-        $freeShipping = (float) ($fb['service_fee'] ?? $fb['growth_xtra_fee'] ?? $fb['free_shipping_fee'] ?? $fb['shopee_shipping_rebate_fee'] ?? 0);
+        $freeShipping = (float) ($fb['growth_xtra_fee'] ?? $fb['free_shipping_fee'] ?? $fb['shopee_shipping_rebate_fee'] ?? 0);
+        if ($freeShipping == 0 && isset($fb['service_fee']) && !isset($fb['net_platform_commission']) && !isset($fb['platform_commission'])) {
+            $freeShipping = (float) $fb['service_fee'];
+        }
 
         // 3. Biaya Layanan & Penanganan (Shopee: seller_order_processing_fee | TikTok: preorder_service_fee + order_processing_fee)
         $serviceFee  = (float) ($fb['seller_order_processing_fee'] ?? 0)
                     + (float) ($fb['preorder_service_fee'] ?? $fb['preorder_fee'] ?? 0)
                     + (float) ($fb['order_processing_fee'] ?? 0);
+        if (isset($fb['net_platform_commission']) && isset($fb['service_fee']) && $freeShipping == 0 && (float)$fb['service_fee'] != (float)($this->attributes['marketplace_fee'] ?? 0)) {
+            $serviceFee += (float)$fb['service_fee'];
+        }
 
         // 4. Biaya Promosi Seller (Hanya potongan voucher/koin yang ditanggung Seller)
         $promoFee    = (float) ($fb['voucher_from_seller'] ?? 0)
@@ -364,7 +385,7 @@ class Order extends Model
                     + (float) ($fb['order_ams_commission_fee'] ?? $fb['ams_commission_fee'] ?? 0)
                     + (float) ($fb['dynamic_commission'] ?? $fb['affiliate_commission'] ?? 0);
 
-        // 5. Biaya Lainnya (Pajak, Selisih Ongkir, Asuransi, Refund & Penyesuaian/Adjustment)
+        // 5. Biaya Lainnya (Pajak, Selisih Ongkir, Asuransi, Penyesuaian/Adjustment)
         $actualShipping = (float) ($fb['actual_shipping_fee'] ?? 0);
         $buyerPaidShipping = (float) ($fb['buyer_paid_shipping_fee'] ?? $fb['shipping_fee_paid_by_buyer'] ?? 0);
         $shopeeRebate = (float) ($fb['shopee_shipping_rebate'] ?? $fb['shipping_fee_subsidy'] ?? 0);
@@ -379,16 +400,15 @@ class Order extends Model
                     + (float) ($fb['shipping_seller_protection_fee_amount'] ?? $fb['delivery_seller_protection_fee_premium_amount'] ?? 0)
                     + (float) ($fb['withholding_tax'] ?? $fb['escrow_tax'] ?? $fb['vat'] ?? $fb['buyer_tax_amount'] ?? 0);
 
-        // Jika ada adjustment atau refund eksplisit yang bukan pembatalan penuh
+        // Jika ada adjustment eksplisit yang bukan pembatalan penuh
         $refundOrAdj = (float) ($fb['total_adjustment_amount'] ?? $fb['adjustment_amount'] ?? 0);
-        if ($refundOrAdj > 0 && $refundOrAdj < (float)$this->total_amount) {
+        if ($refundOrAdj > 0 && $refundOrAdj < $totalGross) {
             $otherFee += $refundOrAdj;
         }
 
         $totalFee = $platformFee + $freeShipping + $serviceFee + $promoFee + $otherFee;
 
         // 🔒 PROTEKSI KETAT: Fee tidak boleh melebihi (Total Omset - Dana Cair Escrow API)
-        $totalGross = (float) $this->total_amount;
         $escrowAmt = (float) ($fb['escrow_amount'] ?? $fb['settlement_amount'] ?? 0);
 
         if ($escrowAmt > 0 && $totalGross > $escrowAmt) {
@@ -399,7 +419,6 @@ class Order extends Model
                 $totalFee = $actualMaxFee;
             }
         } elseif ($totalFee >= $totalGross && $totalGross > 0) {
-            // Jika totalFee bernilai sama dengan totalGross (Omset Kotor) padahal pesanan tidak batal
             $store = $this->store;
             $chCode = strtolower($store->channel->code ?? '');
             $isTiktok = (in_array($chCode, ['tiktok', 'tiktok_shop', 'tokopedia']) || ($store->channel_id ?? 0) == 3);

@@ -2295,6 +2295,19 @@ class ReportController extends Controller
 
                     $retOrder = $o->returnOrder;
                     $refAmt = $retOrder ? (float)$retOrder->refund_amount : (in_array(strtoupper($o->order_status), ['RETURNED', 'REFUNDED', 'RETURN']) ? (float)$o->total_amount : 0.0);
+
+                    if ($refAmt == 0) {
+                        $fb = $o->financial_breakdown ?? [];
+                        if (isset($fb['customer_refund_amount']) && (float)$fb['customer_refund_amount'] != 0) {
+                            $refAmt = abs((float)$fb['customer_refund_amount']);
+                        } elseif (isset($fb['gross_sales_refund_amount']) && (float)$fb['gross_sales_refund_amount'] != 0) {
+                            $refAmt = abs((float)$fb['gross_sales_refund_amount']);
+                        } elseif (isset($fb['seller_return_refund']) && (float)$fb['seller_return_refund'] != 0) {
+                            $refAmt = abs((float)$fb['seller_return_refund']);
+                        } elseif (isset($fb['refund_amount']) && (float)$fb['refund_amount'] != 0) {
+                            $refAmt = abs((float)$fb['refund_amount']);
+                        }
+                    }
                     $refundTotal += $refAmt;
 
                     $details = $o->fee_breakdown_details;
