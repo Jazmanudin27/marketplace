@@ -1696,24 +1696,31 @@ class ReportController extends Controller
             foreach ($orders as $order) {
                 $details = $order->fee_breakdown_details;
                 $totalFee = abs($details['total_fee'] ?? 0);
+                $refundAmt = $order->refund_amount;
                 
-                if ($totalFee > 0 || (float)$order->marketplace_fee <= 0) {
+                if ($totalFee > 0 || (float)$order->marketplace_fee <= 0 || $refundAmt > 0) {
                     $gross = (float) $order->total_amount;
                     $store = $order->store;
                     $chCode = strtolower($store->channel->code ?? '');
 
-                    if ($totalFee > 0) {
-                        $feeToSave = $totalFee;
+                    if ($refundAmt >= $gross && $gross > 0) {
+                        $feeToSave = 0.0;
+                        $netAmtToSave = 0.0;
                     } else {
-                        if (in_array($chCode, ['tiktok', 'tiktok_shop', 'tokopedia']) || ($store->channel_id ?? 0) == 3) {
-                            $feeToSave = round($gross * 0.085);
+                        if ($totalFee > 0) {
+                            $feeToSave = $totalFee;
                         } else {
-                            $feeToSave = round($gross * 0.095);
+                            if (in_array($chCode, ['tiktok', 'tiktok_shop', 'tokopedia']) || ($store->channel_id ?? 0) == 3) {
+                                $feeToSave = round($gross * 0.085);
+                            } else {
+                                $feeToSave = round($gross * 0.095);
+                            }
                         }
+                        $netAmtToSave = max(0.0, $gross - $refundAmt - $feeToSave);
                     }
 
                     $order->marketplace_fee = $feeToSave;
-                    $order->net_amount = max(0.0, $gross - $feeToSave);
+                    $order->net_amount = $netAmtToSave;
                     $order->saveQuietly();
                     $count++;
                 }
@@ -1760,17 +1767,24 @@ class ReportController extends Controller
 
         // Re-fetch order from DB after Artisan sync
         $order->refresh();
+        $refundAmt = $order->refund_amount;
 
-        // If marketplace_fee is still <= 0, apply official fee fallback
-        if ((float) $order->marketplace_fee <= 0 && (float) $order->total_amount > 0) {
+        // If marketplace_fee is still <= 0 or refunded, apply official fee & net calculation
+        if (((float) $order->marketplace_fee <= 0 || $refundAmt > 0) && (float) $order->total_amount > 0) {
             $gross = (float) $order->total_amount;
-            if (in_array($channelCode, ['tiktok', 'tiktok_shop', 'tokopedia']) || ($store->channel_id ?? 0) == 3) {
-                $feeToSave = round($gross * 0.085);
+            if ($refundAmt >= $gross && $gross > 0) {
+                $feeToSave = 0.0;
+                $netAmtToSave = 0.0;
             } else {
-                $feeToSave = round($gross * 0.095);
+                if (in_array($channelCode, ['tiktok', 'tiktok_shop', 'tokopedia']) || ($store->channel_id ?? 0) == 3) {
+                    $feeToSave = round($gross * 0.085);
+                } else {
+                    $feeToSave = round($gross * 0.095);
+                }
+                $netAmtToSave = max(0.0, $gross - $refundAmt - $feeToSave);
             }
             $order->marketplace_fee = $feeToSave;
-            $order->net_amount = max(0.0, $gross - $feeToSave);
+            $order->net_amount = $netAmtToSave;
             $order->save();
         }
 
