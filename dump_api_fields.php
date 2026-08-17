@@ -6,6 +6,7 @@ $kernel = $app->make(Illuminate\Contracts\Console\Kernel::class);
 $kernel->bootstrap();
 
 use App\Models\Order;
+use App\Models\Store;
 use App\Services\ShopeeService;
 use App\Services\TiktokService;
 
@@ -17,58 +18,98 @@ if (!$orderSn) {
     echo "=======================================================\n";
     echo "Jalankan dengan memasukkan Nomor Order:\n";
     echo "  • Order Shopee  : php dump_api_fields.php 260714MDB0NE33\n";
-    echo "  • Order TikTok  : php dump_api_fields.php 585161404354365394\n\n";
+    echo "  • Order TikTok  : php dump_api_fields.php 585165338047579282\n\n";
     exit;
 }
+
+echo "=======================================================\n";
+echo "🔍 PEMBONGKAR FIELD API UNTUK ORDER: {$orderSn}\n";
+echo "=======================================================\n\n";
 
 $order = Order::where('order_marketplace_id', $orderSn)
     ->orWhere('order_marketplace_id', 'LIKE', '%' . $orderSn . '%')
     ->first();
 
-if (!$order) {
-    echo "❌ Order ID '{$orderSn}' tidak ditemukan di Database ERP!\n";
-    exit;
+$store = $order ? $order->store : null;
+$tiktokService = app(TiktokService::class);
+
+if ($store) {
+    $channelCode = strtolower($store->channel->code ?? '');
+    echo "Toko ERP : " . ($store->store_name ?? '-') . " (ID #{$store->id} - " . strtoupper($channelCode) . ")\n\n";
+
+    if (in_array($channelCode, ['tiktok', 'tiktok_shop', 'tokopedia']) || $store->channel_id == 3) {
+        dumpTiktokOrder($tiktokService, $store, $orderSn);
+    } elseif ($channelCode === 'shopee' || $store->channel_id == 1) {
+        dumpShopeeOrder($store, $orderSn);
+    }
+} else {
+    echo "⚠️ Order ID '{$orderSn}' belum tersimpan di DB lokal. Mencari langsung ke TikTok API di seluruh toko terhubung...\n\n";
+    $stores = Store::whereHas('channel', fn($q) => $q->whereIn('code', ['tiktok', 'tiktok_shop', 'tokopedia']))->get();
+
+    $found = false;
+    foreach ($stores as $st) {
+        try {
+            $accessToken = $st->getValidAccessToken();
+            $shopCipher = $st->shop_cipher;
+
+            if (empty($shopCipher)) continue;
+
+            $detailRes = $tiktokService->getOrderDetail($accessToken, $shopCipher, [$orderSn]);
+            $tiktokOrders = $detailRes['orders'] ?? $detailRes['order_list'] ?? [];
+
+            if (!empty($tiktokOrders)) {
+                echo "✅ Order DITEMUKAN di Toko TikTok: {$st->store_name} (ID #{$st->id})!\n\n";
+                dumpTiktokOrder($tiktokService, $st, $orderSn);
+                $found = true;
+                break;
+            }
+        } catch (\Exception $e) {
+            // Lanjut cari ke toko berikutnya
+        }
+    }
+
+    if (!$found) {
+        echo "❌ Order ID '{$orderSn}' tidak ditemukan di API TikTok toko manapun.\n";
+    }
 }
 
-$store = $order->store;
-$channelCode = strtolower($store->channel->code ?? '');
+function dumpTiktokOrder($tiktokService, $store, $orderSn) {
+    try {
+        $accessToken = $store->getValidAccessToken();
+        $shopCipher = $store->shop_cipher;
 
-echo "=======================================================\n";
-echo "🔍 PEMBONGKAR FIELD API UNTUK ORDER: {$order->order_marketplace_id}\n";
-echo "=======================================================\n";
-echo "Toko    : " . ($store->name ?? '-') . " (" . strtoupper($channelCode) . ")\n\n";
+        $detailRes = $tiktokService->getOrderDetail($accessToken, $shopCipher, [$orderSn]);
+        $tOrder = $detailRes['orders'][0] ?? $detailRes['order_list'][0] ?? [];
 
-if ($channelCode === 'shopee' || $store->channel_id == 1) {
-    echo "--- 🛍️ [SHOPEE API] RESPONSE RAW 'order_income' --- \n";
+        echo "--- 🎵 [TIKTOK API] RESPONSE RAW 'payment_info' --- \n";
+        echo json_encode($tOrder['payment_info'] ?? $tOrder['payment'] ?? [], JSON_PRETTY_PRINT) . "\n\n";
+
+        echo "--- 🎵 [TIKTOK API] STATEMENT TRANSACTIONS --- \n";
+        try {
+            $stmtData = $tiktokService->getOrderStatementTransactions($accessToken, $shopCipher, $orderSn);
+            echo json_encode($stmtData, JSON_PRETTY_PRINT) . "\n\n";
+        } catch (\Exception $exStmt) {
+            echo "Statement Info: " . $exStmt->getMessage() . "\n\n";
+        }
+
+        echo "--- 🎵 [TIKTOK API] DETAIL PESANAN LENGKAP (ORDER OBJECT) --- \n";
+        echo json_encode($tOrder, JSON_PRETTY_PRINT) . "\n\n";
+
+    } catch (\Exception $e) {
+        echo "❌ Error TikTok API: " . $e->getMessage() . "\n";
+    }
+}
+
+function dumpShopeeOrder($store, $orderSn) {
     try {
         $shopeeService = app(ShopeeService::class);
         $accessToken = $store->getValidAccessToken();
         $shopId = (int) ($store->marketplace_store_id ?: $store->shopee_shop_id);
 
-        $escrowRes = $shopeeService->getEscrowDetail($accessToken, $shopId, $order->order_marketplace_id);
+        echo "--- 🛍️ [SHOPEE API] RESPONSE RAW 'order_income' --- \n";
+        $escrowRes = $shopeeService->getEscrowDetail($accessToken, $shopId, $orderSn);
         echo json_encode($escrowRes['order_income'] ?? $escrowRes, JSON_PRETTY_PRINT) . "\n\n";
     } catch (\Exception $e) {
         echo "❌ Error Shopee API: " . $e->getMessage() . "\n";
-    }
-} elseif (in_array($channelCode, ['tiktok', 'tiktok_shop', 'tokopedia']) || $store->channel_id == 3) {
-    echo "--- 🎵 [TIKTOK API] RESPONSE RAW 'payment_info' --- \n";
-    try {
-        $tiktokService = app(TiktokService::class);
-        $accessToken = $store->getValidAccessToken();
-        $shopCipher = $store->shop_cipher;
-
-        $detailRes = $tiktokService->getOrderDetail($accessToken, $shopCipher, [$order->order_marketplace_id]);
-        $tOrder = $detailRes['orders'][0] ?? $detailRes['order_list'][0] ?? [];
-        echo json_encode($tOrder['payment_info'] ?? $tOrder['payment'] ?? $tOrder, JSON_PRETTY_PRINT) . "\n\n";
-
-        echo "--- 🎵 [TIKTOK API] STATEMENT TRANSACTIONS --- \n";
-        try {
-            $stmtData = $tiktokService->getOrderStatementTransactions($accessToken, $shopCipher, $order->order_marketplace_id);
-            echo json_encode($stmtData, JSON_PRETTY_PRINT) . "\n\n";
-        } catch (\Exception $exStmt) {
-            echo "Statement Info: " . $exStmt->getMessage() . "\n";
-        }
-    } catch (\Exception $e) {
-        echo "❌ Error TikTok API: " . $e->getMessage() . "\n";
     }
 }
