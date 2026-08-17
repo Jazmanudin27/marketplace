@@ -10,7 +10,7 @@ use App\Models\Store;
 use App\Services\TiktokService;
 use Carbon\Carbon;
 
-$orderMarketplaceId = '584758442283664717';
+$orderMarketplaceId = $argv[1] ?? '584593202672862475';
 
 echo "=======================================================\n";
 echo "🔍 PENGECEKAN DATA API TIME STAMP TIKTOK ORDER: {$orderMarketplaceId}\n";

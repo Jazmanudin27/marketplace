@@ -258,8 +258,14 @@ class SyncTiktokEscrow extends Command
                         $dbOrder->net_amount = $escrowAmount;
 
                         $stmtTs = null;
-                        if (!empty($stmtList[0]['statement_time'])) {
-                            $stmtTs = $stmtList[0]['statement_time'];
+                        foreach ($stmtList as $st) {
+                            $stTime = $st['statement_time'] ?? $st['paid_time'] ?? $st['create_time'] ?? null;
+                            if ($stTime) {
+                                $stSec = (is_numeric($stTime) && strlen((string)$stTime) >= 13) ? (int)($stTime / 1000) : (int)$stTime;
+                                if ($stmtTs === null || $stSec > $stmtTs) {
+                                    $stmtTs = $stSec;
+                                }
+                            }
                         }
 
                         $compTs = $stmtTs ?? $tOrder['finish_time'] ?? $tOrder['delivered_time'] ?? $tOrder['complete_time'] ?? $tOrder['delivery_time'] ?? $tOrder['update_time'] ?? $tOrder['paid_time'] ?? null;
