@@ -113,14 +113,19 @@ class Order extends Model
             }
 
             $totalFee = abs($details['total_fee'] ?? 0);
+            $refundAmt = $order->refund_amount;
 
             // 2. Biaya Admin Marketplace
             if ($totalFee > 0) {
                 $order->marketplace_fee = $totalFee;
             }
 
-            // 3. Omset Bersih / Net Amount = Omset Kotor - Total Potongan Marketplace (Presisi 100%)
-            $order->net_amount = max(0.0, (float)$order->total_amount - (float)$order->marketplace_fee);
+            // 3. Omset Bersih / Net Amount = Omset Kotor - Total Refund - Total Potongan Marketplace (Presisi 100%)
+            if ($refundAmt >= (float)$order->total_amount && (float)$order->total_amount > 0) {
+                $order->net_amount = 0.0;
+            } else {
+                $order->net_amount = max(0.0, (float)$order->total_amount - $refundAmt - (float)$order->marketplace_fee);
+            }
         });
     }
 
