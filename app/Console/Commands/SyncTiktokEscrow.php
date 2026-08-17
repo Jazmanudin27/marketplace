@@ -278,6 +278,13 @@ class SyncTiktokEscrow extends Command
                         $dbOrder->marketplace_fee = $totalTiktokFees;
                         $dbOrder->net_amount = $escrowAmount;
 
+                        $dtSave = $dbOrder->fee_breakdown_details;
+                        $dbOrder->fee_platform_amount = abs($dtSave['platform_fee'] ?? 0);
+                        $dbOrder->fee_free_shipping_amount = abs($dtSave['free_shipping'] ?? 0);
+                        $dbOrder->fee_service_amount = abs($dtSave['service_fee'] ?? 0);
+                        $dbOrder->fee_promo_amount = abs($dtSave['promo_fee'] ?? 0);
+                        $dbOrder->fee_other_amount = abs($dtSave['other_fee'] ?? 0);
+
                         $stmtTs = null;
                         foreach ($stmtList as $st) {
                             $stTime = $st['statement_time'] ?? $st['settlement_time'] ?? null;
