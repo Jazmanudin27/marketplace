@@ -1,7 +1,7 @@
 <?php
 /**
- * SCRIPT REKAPITULASI DANA CAIR TIKTOK SHOP PERIODE JULI 2026
- * Dijalankan langsung via Terminal Server: php rekap_juli_2026.php
+ * SCRIPT DIAGNOSTIK PRESIISI TOKO #30 (Nusantara seragam)
+ * Dijalankan via Terminal Server: php rekap_juli_2026.php
  */
 
 require __DIR__ . '/vendor/autoload.php';
@@ -11,49 +11,57 @@ $kernel->bootstrap();
 
 use App\Models\Order;
 use App\Models\Store;
+use App\Services\TiktokService;
 
 echo "======================================================================\n";
-echo " 📊 REKAPITULASI REAL DATABASE ERP - TIKTOK SHOP (01-31 JULI 2026)\n";
+echo " 🎵 DIAGNOSTIK & PERBANDINGAN TOKO #30: Nusantara seragam (JULI 2026)\n";
 echo "======================================================================\n\n";
 
+$storeId  = 30;
 $dateFrom = '2026-07-01 00:00:00';
 $dateTo   = '2026-07-31 23:59:59';
 
-$stores = Store::whereHas('channel', function ($q) {
-    $q->whereIn('code', ['tiktok', 'tiktok_shop', 'tokopedia']);
-})->get();
+$store = Store::with('channel')->find($storeId);
 
-if ($stores->isEmpty()) {
-    echo "[!] Tidak ada toko TikTok / Tokopedia ditemukan.\n";
+if (!$store) {
+    echo "[!] Toko ID #{$storeId} tidak ditemukan di database.\n";
     exit;
 }
 
-echo "Toko Terhubung (" . $stores->count() . " toko):\n";
-foreach ($stores as $s) {
-    echo "  - ID #{$s->id}: {$s->store_name}\n";
-}
-echo "----------------------------------------------------------------------\n";
+echo "Nama Toko  : {$store->store_name} (ID #{$store->id})\n";
+echo "Channel    : " . ($store->channel->name ?? 'TikTok') . "\n";
+echo "Periode    : 01 s/d 31 Juli 2026\n";
+echo "----------------------------------------------------------------------\n\n";
 
-$orders = Order::whereIn('store_id', $stores->pluck('id'))
+// 1. QUERY REAL DATABASE ERP UNTUK TOKO #30
+$dbOrders = Order::where('store_id', $storeId)
     ->where(function($q) use ($dateFrom, $dateTo) {
         $q->whereBetween('completed_at', [$dateFrom, $dateTo])
           ->orWhereBetween('order_date', [$dateFrom, $dateTo]);
     })
-    ->with(['items', 'returnOrder', 'store.channel'])
+    ->with(['items', 'returnOrder'])
     ->get();
 
-$totalCount     = $orders->count();
-$sumOmset       = 0.0;
-$sumRefund      = 0.0;
-$sumPlatform    = 0.0;
-$sumFreeShip    = 0.0;
-$sumService     = 0.0;
-$sumPromo       = 0.0;
-$sumOther       = 0.0;
-$sumTotalFee    = 0.0;
-$sumNetReleased = 0.0;
+$dbCount        = $dbOrders->count();
+$dbOmset        = 0.0;
+$dbRefund       = 0.0;
+$dbPlatformFee  = 0.0;
+$dbFreeShipFee  = 0.0;
+$dbServiceFee   = 0.0;
+$dbPromoFee     = 0.0;
+$dbOtherFee     = 0.0;
+$dbTotalFee     = 0.0;
+$dbNetReleased  = 0.0;
 
-foreach ($orders as $o) {
+$countWithApiData = 0;
+$countWithoutApi  = 0;
+
+$apiGrossTotal      = 0.0;
+$apiRefundTotal     = 0.0;
+$apiFeeTotal        = 0.0;
+$apiSettlementTotal = 0.0;
+
+foreach ($dbOrders as $o) {
     $omset = (float) $o->total_amount;
     $ref   = (float) $o->refund_amount;
     $dt    = $o->fee_breakdown_details;
@@ -71,32 +79,68 @@ foreach ($orders as $o) {
         $net = max(0.0, $omset - $ref - $totFee);
     }
 
-    $sumOmset       += $omset;
-    $sumRefund      += $ref;
-    $sumPlatform    += $pFee;
-    $sumFreeShip    += $fShip;
-    $sumService     += $sFee;
-    $sumPromo       += $prFee;
-    $sumOther       += $oFee;
-    $sumTotalFee    += $totFee;
-    $sumNetReleased += $net;
+    $dbOmset       += $omset;
+    $dbRefund      += $ref;
+    $dbPlatformFee += $pFee;
+    $dbFreeShipFee += $fShip;
+    $dbServiceFee  += $sFee;
+    $dbPromoFee    += $prFee;
+    $dbOtherFee    += $oFee;
+    $dbTotalFee    += $totFee;
+    $dbNetReleased += $net;
+
+    // Cek Data Mentah API TikTok yang tersimpan di financial_breakdown
+    $fb = $o->financial_breakdown ?? [];
+    $stmtList = $fb['statement_transactions'] ?? $fb['statement_transaction_list'] ?? $fb['transactions'] ?? [];
+
+    if (!empty($stmtList) && is_array($stmtList)) {
+        $countWithApiData++;
+        foreach ($stmtList as $st) {
+            $apiGrossTotal += (float) ($st['gross_sales_amount'] ?? $st['after_seller_discounts_subtotal_amount'] ?? $st['revenue_amount'] ?? 0);
+            
+            $rAmt = abs((float) ($st['customer_refund_amount'] ?? $st['gross_sales_refund_amount'] ?? $st['customer_order_refund_amount'] ?? 0));
+            $apiRefundTotal += $rAmt;
+            
+            if ($rAmt == 0 && isset($st['fee_amount'])) {
+                $apiFeeTotal += abs((float) $st['fee_amount']);
+            }
+            
+            if (isset($st['settlement_amount'])) {
+                $apiSettlementTotal += (float) $st['settlement_amount'];
+            }
+        }
+    } else {
+        $countWithoutApi++;
+    }
 }
 
-echo "HASIL PERHITUNGAN REAL DI DATABASE SERVER SAAT INI:\n\n";
-echo "1. Jumlah Pesanan         : " . number_format($totalCount, 0, ',', '.') . " order\n";
-echo "2. Total Pendapatan Kotor : Rp " . number_format($sumOmset, 0, ',', '.') . "\n";
-echo "3. Total Retur / Refund   : -Rp " . number_format($sumRefund, 0, ',', '.') . "\n";
-echo "----------------------------------------------------------------------\n";
-echo "4. RINCIAN BIAYA POTONGAN MARKETPLACE:\n";
-echo "   - Biaya Platform       : -Rp " . number_format($sumPlatform, 0, ',', '.') . "\n";
-echo "   - Biaya Gratis Ongkir  : -Rp " . number_format($sumFreeShip, 0, ',', '.') . "\n";
-echo "   - Biaya Layanan        : -Rp " . number_format($sumService, 0, ',', '.') . "\n";
-echo "   - Biaya Promosi        : -Rp " . number_format($sumPromo, 0, ',', '.') . "\n";
-echo "   - Biaya Lainnya        : -Rp " . number_format($sumOther, 0, ',', '.') . "\n";
-echo "   -> TOTAL POTONGAN FEE  : -Rp " . number_format($sumTotalFee, 0, ',', '.') . "\n";
-echo "----------------------------------------------------------------------\n";
-echo "5. OMSET BERSIH DITERIMA  : Rp " . number_format($sumNetReleased, 0, ',', '.') . " (Dana Cair Net)\n";
+echo "======================================================================\n";
+echo " 📊 TABEL PERBANDINGAN REAL: DATABASE ERP VS API MENTAH TIKTOK\n";
 echo "======================================================================\n\n";
 
-echo "📌 RUMUS VERIFIKASI DANA CAIR:\n";
-echo "   Omset Bersih (" . number_format($sumNetReleased, 0, ',', '.') . ") = Omset Kotor (" . number_format($sumOmset, 0, ',', '.') . ") - Refund (" . number_format($sumRefund, 0, ',', '.') . ") - Total Fee (" . number_format($sumTotalFee, 0, ',', '.') . ")\n\n";
+printf(" %-32s | %-20s | %-20s\n", "KOMPONEN KEUANGAN", "DI DATABASE ERP", "DARI API TIKTOK");
+echo "----------------------------------------------------------------------\n";
+printf(" %-32s | %-20s | %-20s\n", "Jumlah Pesanan", number_format($dbCount, 0, ',', '.') . " order", number_format($countWithApiData, 0, ',', '.') . " order synced");
+printf(" %-32s | Rp %-17s | Rp %-17s\n", "1. Omset Kotor", number_format($dbOmset, 0, ',', '.'), number_format($apiGrossTotal > 0 ? $apiGrossTotal : $dbOmset, 0, ',', '.'));
+printf(" %-32s | -Rp %-16s | -Rp %-16s\n", "2. Total Refund / Retur", number_format($dbRefund, 0, ',', '.'), number_format($apiRefundTotal, 0, ',', '.'));
+echo "----------------------------------------------------------------------\n";
+printf(" %-32s | -Rp %-16s | -\n", "   - Biaya Platform", number_format($dbPlatformFee, 0, ',', '.'));
+printf(" %-32s | -Rp %-16s | -\n", "   - Biaya Gratis Ongkir", number_format($dbFreeShipFee, 0, ',', '.'));
+printf(" %-32s | -Rp %-16s | -\n", "   - Biaya Layanan", number_format($dbServiceFee, 0, ',', '.'));
+printf(" %-32s | -Rp %-16s | -\n", "   - Biaya Promosi", number_format($dbPromoFee, 0, ',', '.'));
+printf(" %-32s | -Rp %-16s | -\n", "   - Biaya Lainnya", number_format($dbOtherFee, 0, ',', '.'));
+printf(" %-32s | -Rp %-16s | -Rp %-16s\n", "3. Total Potongan Fee Admin", number_format($dbTotalFee, 0, ',', '.'), number_format($apiFeeTotal, 0, ',', '.'));
+echo "----------------------------------------------------------------------\n";
+printf(" %-32s | Rp %-17s | Rp %-17s\n", "4. DANA CAIR NET (Settlement)", number_format($dbNetReleased, 0, ',', '.'), number_format($apiSettlementTotal > 0 ? $apiSettlementTotal : $dbNetReleased, 0, ',', '.'));
+echo "======================================================================\n\n";
+
+echo "🔍 STATUS SINKRONISASI API UNTUK TOKO #30:\n";
+echo "   - Pesanan Sudah Memiliki Statement API TikTok : {$countWithApiData} order\n";
+echo "   - Pesanan Belum Memiliki Statement API TikTok : {$countWithoutApi} order\n\n";
+
+if ($countWithoutApi > 0) {
+    echo "💡 CATATAN:\n";
+    echo "   Masih ada {$countWithoutApi} order dari Toko #30 yang belum disinkronkan data Statement API TikTok-nya.\n";
+    echo "   Jalankan perintah ini untuk menyinkronkan seluruh order Toko #30 secara langsung:\n";
+    echo "   -> php artisan tiktok:sync-escrow --store_id=30\n\n";
+}
