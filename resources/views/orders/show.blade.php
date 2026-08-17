@@ -85,6 +85,46 @@
                                     </div>
                                 </div>
                             @endif
+
+                            @php
+                                $fbData = $order->financial_breakdown ?? [];
+                                $isRefundedOrder = in_array(strtoupper($order->order_status), ['RETURNED', 'REFUNDED', 'RETURN'])
+                                    || $order->returnOrder
+                                    || !empty($fbData['customer_refund_amount'])
+                                    || !empty($fbData['gross_sales_refund_amount'])
+                                    || !empty($fbData['seller_return_refund']);
+                                $refundValAmt = $order->returnOrder ? (float)$order->returnOrder->refund_amount : 0.0;
+                                if ($refundValAmt == 0 && $isRefundedOrder) {
+                                    $refundValAmt = abs((float)($fbData['customer_refund_amount'] ?? $fbData['gross_sales_refund_amount'] ?? $fbData['seller_return_refund'] ?? $fbData['refund_amount'] ?? $order->total_amount));
+                                }
+                            @endphp
+
+                            @if ($isRefundedOrder)
+                                <div class="col-md-12 mb-2">
+                                    <div class="p-3 border border-danger rounded bg-danger bg-opacity-10">
+                                        <small class="text-danger d-block text-uppercase fw-bold mb-1" style="font-size: 0.7rem;">
+                                            <i class="fas fa-undo-alt me-1"></i> InformasI Pengembalian Dana (Refund / Retur)
+                                        </small>
+                                        <div class="row g-2">
+                                            <div class="col-md-6 text-dark small">
+                                                <span class="text-muted">Status Transaksi:</span> <strong class="text-danger text-uppercase">{{ str_replace('_', ' ', $order->order_status) }}</strong>
+                                            </div>
+                                            <div class="col-md-6 text-dark small">
+                                                <span class="text-muted">Nominal Refund Pembeli:</span> <strong class="font-monospace text-danger">- Rp {{ number_format($refundValAmt, 0, ',', '.') }}</strong>
+                                            </div>
+                                            @if ($order->returnOrder && $order->returnOrder->reason)
+                                                <div class="col-md-12 text-dark small mt-1">
+                                                    <span class="text-muted">Alasan Pengembalian:</span> <strong>{{ $order->returnOrder->reason }}</strong>
+                                                </div>
+                                            @elseif ($order->cancel_reason)
+                                                <div class="col-md-12 text-dark small mt-1">
+                                                    <span class="text-muted">Catatan/Alasan:</span> <strong>{{ $order->cancel_reason }}</strong>
+                                                </div>
+                                            @endif
+                                        </div>
+                                    </div>
+                                </div>
+                            @endif
                             <div class="col-md-6">
                                 <div class="p-3 border rounded h-100 bg-light">
                                     @if(str_starts_with($order->order_marketplace_id, 'MANUAL-'))
@@ -433,12 +473,19 @@
                             @endif
                         @endif
 
+                        @if ($isRefundedOrder && $refundValAmt > 0)
+                            <div class="d-flex justify-content-between mb-2 align-items-center bg-danger bg-opacity-10 p-2 rounded">
+                                <span class="text-danger small fw-semibold"><i class="fas fa-undo-alt me-1"></i>Pengembalian Dana (Refund Pembeli)</span>
+                                <span class="font-monospace text-danger small fw-bold">- Rp {{ number_format($refundValAmt, 0, ',', '.') }}</span>
+                            </div>
+                        @endif
+
                         <hr class="my-3 border-dashed opacity-50">
 
                         <div class="d-flex justify-content-between align-items-center">
                             <span class="fw-bold small text-dark">Jumlah Penyelesaian Pembayaran</span>
-                            <span class="font-monospace text-success fw-bold fs-5">
-                                Rp {{ number_format($order->net_amount, 0, ',', '.') }}
+                            <span class="font-monospace {{ $isRefundedOrder ? 'text-danger' : 'text-success' }} fw-bold fs-5">
+                                Rp {{ number_format($isRefundedOrder && $refundValAmt >= $order->total_amount ? 0 : $order->net_amount, 0, ',', '.') }}
                             </span>
                         </div>
                     </div>
@@ -541,8 +588,9 @@
                 @php
                     $order->load('items.masterProduct');
                     $hppTotal = $order->hpp_total;
-                    $netProfit = $order->net_profit;
-                    $margin = $order->profit_margin;
+                    $actualEscrow = ($isRefundedOrder && $refundValAmt >= $order->total_amount) ? 0.0 : (float)$order->net_amount;
+                    $netProfit = $actualEscrow - $hppTotal;
+                    $margin = $order->total_amount > 0 ? round(($netProfit / $order->total_amount) * 100, 2) : 0;
                     $profitBadge = $netProfit >= 0 ? 'success' : 'danger';
                 @endphp
                 <div class="card border shadow-sm mb-3">
@@ -552,7 +600,7 @@
                     <div class="card-body p-3">
                         <div class="d-flex justify-content-between mb-2 align-items-center">
                             <span class="text-muted small">Pendapatan Bersih (Escrow)</span>
-                            <span class="font-monospace fw-semibold small text-dark">Rp {{ number_format($order->net_amount, 0, ',', '.') }}</span>
+                            <span class="font-monospace fw-semibold small {{ $isRefundedOrder ? 'text-danger' : 'text-dark' }}">Rp {{ number_format($actualEscrow, 0, ',', '.') }}</span>
                         </div>
                         <div class="d-flex justify-content-between mb-2 align-items-center">
                             <span class="text-muted small">HPP Total Item</span>

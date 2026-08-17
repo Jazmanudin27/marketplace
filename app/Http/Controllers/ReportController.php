@@ -2433,9 +2433,22 @@ class ReportController extends Controller
                 $retOrder = $o->returnOrder;
                 $refundAmt = $retOrder ? (float)$retOrder->refund_amount : (in_array(strtoupper($o->order_status), ['RETURNED', 'REFUNDED', 'RETURN']) ? (float)$o->total_amount : 0.0);
 
+                if ($refundAmt == 0) {
+                    $fb = $o->financial_breakdown ?? [];
+                    if (isset($fb['customer_refund_amount']) && (float)$fb['customer_refund_amount'] != 0) {
+                        $refundAmt = abs((float)$fb['customer_refund_amount']);
+                    } elseif (isset($fb['gross_sales_refund_amount']) && (float)$fb['gross_sales_refund_amount'] != 0) {
+                        $refundAmt = abs((float)$fb['gross_sales_refund_amount']);
+                    } elseif (isset($fb['seller_return_refund']) && (float)$fb['seller_return_refund'] != 0) {
+                        $refundAmt = abs((float)$fb['seller_return_refund']);
+                    } elseif (isset($fb['refund_amount']) && (float)$fb['refund_amount'] != 0) {
+                        $refundAmt = abs((float)$fb['refund_amount']);
+                    }
+                }
+
                 $absFee = abs($fees['total_fee'] ?? 0);
                 if ($refundAmt >= (float)$o->total_amount && (float)$o->total_amount > 0) {
-                    $netAmt = $absFee;
+                    $netAmt = 0.0;
                 } else {
                     $netAmt = max(0.0, (float)$o->total_amount - $refundAmt - $absFee);
                 }
