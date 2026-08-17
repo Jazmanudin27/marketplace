@@ -217,10 +217,7 @@
                     @php 
                         $fees = $order->fee_breakdown_details;
                         $fb = $order->financial_breakdown ?? [];
-                        $retOrder = $order->returnOrder;
-                        $sellerReturnRefund = (float) ($fb['seller_return_refund'] ?? $fb['refund_amount'] ?? ($retOrder ? (float)$retOrder->refund_amount : (in_array(strtoupper($order->order_status), ['RETURNED', 'REFUNDED', 'RETURN']) ? (float)$order->total_amount : 0.0)));
-                        $refundAmount = abs($sellerReturnRefund);
-                        
+                        $refundAmount = $order->refund_amount;
                         $finalNet = (float) $order->net_amount;
                     @endphp
 
