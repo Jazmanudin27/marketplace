@@ -454,8 +454,17 @@ class Order extends Model
 
         $totalFee = $platformFee + $freeShipping + $serviceFee + $promoFee + $otherFee;
 
+        // Jika 5 rincian spesifik bernilai 0 tapi ada fee_amount mentah dari statement API TikTok
+        if ($totalFee == 0 && !empty($st0['fee_amount'])) {
+            $stmtFee = abs((float)$st0['fee_amount']);
+            if ($stmtFee > 0) {
+                $totalFee = $stmtFee;
+                $otherFee = $stmtFee;
+            }
+        }
+
         // 🔒 PROTEKSI KETAT: Fee tidak boleh melebihi (Total Omset - Dana Cair Escrow API)
-        $escrowAmt = (float) ($fb['escrow_amount'] ?? $fb['settlement_amount'] ?? 0);
+        $escrowAmt = (float) ($fb['escrow_amount'] ?? $fb['settlement_amount'] ?? $st0['settlement_amount'] ?? 0);
 
         if ($escrowAmt > 0 && $totalGross > $escrowAmt) {
             $actualMaxFee = $totalGross - $escrowAmt;
@@ -464,7 +473,7 @@ class Order extends Model
                 $otherFee = max(0.0, $otherFee - $diffOver);
                 $totalFee = $actualMaxFee;
             }
-        } elseif ($totalFee >= $totalGross && $totalGross > 0) {
+        } elseif ($totalFee >= $totalGross && $totalGross > 0 && $escrowAmt == 0 && $sellerReturnRefund == 0) {
             $store = $this->store;
             $chCode = strtolower($store->channel->code ?? '');
             $isTiktok = (in_array($chCode, ['tiktok', 'tiktok_shop', 'tokopedia']) || ($store->channel_id ?? 0) == 3);
