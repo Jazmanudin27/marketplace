@@ -1,26 +1,26 @@
-<div class="modal-header bg-info bg-opacity-10 py-3 px-4 border-bottom d-flex flex-wrap align-items-center justify-content-between gap-3">
+<div class="modal-header bg-info bg-opacity-10 py-2 px-3 border-bottom d-flex flex-wrap align-items-center justify-content-between gap-2">
     <div class="d-flex align-items-center gap-2">
-        <h5 class="modal-title fw-bold text-dark fs-6 mb-0">
-            <i class="fas fa-receipt text-info me-1.5"></i>
+        <h6 class="modal-title fw-bold text-dark mb-0" style="font-size: 0.85rem;">
+            <i class="fas fa-receipt text-info me-1"></i>
             {{ $order->invoice_number ?? $order->order_marketplace_id }}
-        </h5>
-        <span class="badge bg-{{ $order->status_badge ?? 'secondary' }}-subtle text-{{ $order->status_badge ?? 'secondary' }} border border-{{ $order->status_badge ?? 'secondary' }}-subtle small text-uppercase px-2 py-1" style="font-size: 0.65rem;">
+        </h6>
+        <span class="badge bg-{{ $order->status_badge ?? 'secondary' }}-subtle text-{{ $order->status_badge ?? 'secondary' }} border border-{{ $order->status_badge ?? 'secondary' }}-subtle text-uppercase px-2 py-0.5" style="font-size: 0.6rem;">
             {{ str_replace('_', ' ', $order->order_status) }}
         </span>
     </div>
 
     {{-- Action Buttons Toolbar --}}
-    <div class="d-flex gap-2 align-items-center flex-wrap me-1">
+    <div class="d-flex gap-1.5 align-items-center flex-wrap me-1">
         @if (!in_array($order->order_status, ['SHIPPED', 'CANCELLED', 'DELIVERED']))
             <form action="{{ route('orders.ship', $order->id) }}" method="POST" class="d-inline m-0">
                 @csrf
-                <button type="submit" class="btn btn-success btn-sm px-3 rounded-3 fw-semibold"
+                <button type="submit" class="btn btn-success btn-xs py-1 px-2.5 rounded-2 fw-semibold" style="font-size: 0.7rem;"
                     onclick="this.disabled=true; this.innerHTML='<i class=&quot;fas fa-spinner fa-spin&quot;></i> Memproses...'; this.form.submit();">
                     <i class="fas fa-truck-loading me-1"></i> Kirim Pesanan
                 </button>
             </form>
 
-            <button type="button" class="btn btn-danger btn-sm px-3 rounded-3 fw-semibold"
+            <button type="button" class="btn btn-danger btn-xs py-1 px-2.5 rounded-2 fw-semibold" style="font-size: 0.7rem;"
                 onclick="document.getElementById('modalCancelSection-{{ $order->id }}').classList.toggle('d-none');">
                 <i class="fas fa-times-circle me-1"></i> Batalkan Pesanan
             </button>
@@ -30,7 +30,7 @@
             @if (empty($order->tracking_number))
                 <form action="{{ route('orders.tracking', $order->id) }}" method="POST" class="d-inline m-0">
                     @csrf
-                    <button type="submit" class="btn btn-warning btn-sm px-3 rounded-3 text-dark fw-semibold"
+                    <button type="submit" class="btn btn-warning btn-xs py-1 px-2.5 rounded-2 text-dark fw-semibold" style="font-size: 0.7rem;"
                         onclick="this.disabled=true; this.innerHTML='<i class=&quot;fas fa-spinner fa-spin&quot;></i> Menarik...'; this.form.submit();">
                         <i class="fas fa-sync me-1"></i> Tarik Resi
                     </button>
@@ -38,58 +38,58 @@
             @endif
 
             <a href="{{ route('orders.print', $order->id) }}" target="_blank"
-                class="btn btn-primary btn-sm px-3 text-white rounded-3 fw-semibold" data-no-modal="true">
+                class="btn btn-primary btn-xs py-1 px-2.5 text-white rounded-2 fw-semibold" style="font-size: 0.7rem;" data-no-modal="true">
                 <i class="fas fa-print me-1"></i> Cetak Invoice
             </a>
         @endif
 
-        <button type="button" class="btn-close ms-3 me-1" data-bs-dismiss="modal" aria-label="Close"></button>
+        <button type="button" class="btn-close ms-2 me-1" data-bs-dismiss="modal" aria-label="Close"></button>
     </div>
 </div>
 
-<div class="modal-body p-3" style="max-height: 80vh; overflow-y: auto;">
+<div class="modal-body p-2.5" style="max-height: 85vh; overflow-y: auto; font-size: 0.72rem;">
     {{-- Inline Cancel Order Form --}}
-    <div id="modalCancelSection-{{ $order->id }}" class="d-none mb-3 p-3 border border-danger rounded-3 bg-danger bg-opacity-10">
-        <h6 class="fw-bold text-danger mb-2 small"><i class="fas fa-exclamation-triangle me-1"></i> Konfirmasi Pembatalan Pesanan</h6>
+    <div id="modalCancelSection-{{ $order->id }}" class="d-none mb-2.5 p-2 border border-danger rounded-2 bg-danger bg-opacity-10" style="font-size: 0.7rem;">
+        <h6 class="fw-bold text-danger mb-1" style="font-size: 0.75rem;"><i class="fas fa-exclamation-triangle me-1"></i> Konfirmasi Pembatalan Pesanan</h6>
         <form action="{{ route('orders.cancel', $order->id) }}" method="POST">
             @csrf
-            <div class="mb-2">
-                <label class="form-label small fw-semibold mb-1 text-dark">Alasan Pembatalan <span class="text-danger">*</span></label>
-                <textarea name="cancel_reason" class="form-control form-control-sm" rows="2" required placeholder="Contoh: Stok barang di gudang kosong / Buyer meminta cancel..."></textarea>
+            <div class="mb-1.5">
+                <label class="form-label fw-semibold mb-0.5 text-dark" style="font-size: 0.68rem;">Alasan Pembatalan <span class="text-danger">*</span></label>
+                <textarea name="cancel_reason" class="form-control form-control-sm" style="font-size: 0.7rem;" rows="2" required placeholder="Contoh: Stok barang di gudang kosong / Buyer meminta cancel..."></textarea>
             </div>
-            <div class="d-flex gap-2 justify-content-end">
-                <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('modalCancelSection-{{ $order->id }}').classList.add('d-none')">Batal</button>
-                <button type="submit" class="btn btn-danger btn-sm fw-semibold">Ya, Batalkan Pesanan Ini</button>
+            <div class="d-flex gap-1.5 justify-content-end">
+                <button type="button" class="btn btn-secondary btn-xs py-0.5 px-2" style="font-size: 0.68rem;" onclick="document.getElementById('modalCancelSection-{{ $order->id }}').classList.add('d-none')">Batal</button>
+                <button type="submit" class="btn btn-danger btn-xs py-0.5 px-2 fw-semibold" style="font-size: 0.68rem;">Ya, Batalkan Pesanan Ini</button>
             </div>
         </form>
     </div>
 
-    <div class="row g-3">
+    <div class="row g-2.5">
 
         <!-- Left Side: Order & Item Details -->
         <div class="col-lg-7">
 
             <!-- Order Info Card -->
-            <div class="card border shadow-sm mb-3 rounded-3">
-                <div class="card-header bg-light py-2 px-3 fw-bold small text-dark d-flex justify-content-between align-items-center">
+            <div class="card border shadow-sm mb-2.5 rounded-2">
+                <div class="card-header bg-light py-1.5 px-2.5 fw-bold text-dark d-flex justify-content-between align-items-center" style="font-size: 0.75rem;">
                     <span><i class="fas fa-info-circle me-1 text-primary"></i> Informasi Rincian Pesanan</span>
-                    <span class="text-muted font-monospace small" style="font-size:0.75rem;">ID Toko: {{ $order->order_marketplace_id }}</span>
+                    <span class="text-muted font-monospace" style="font-size:0.68rem;">ID Toko: {{ $order->order_marketplace_id }}</span>
                 </div>
-                <div class="card-body p-3">
-                    <div class="row g-2">
+                <div class="card-body p-2">
+                    <div class="row g-1.5">
                         @if ($order->order_status === 'CANCELLED')
-                            <div class="col-md-12 mb-2">
-                                <div class="p-3 border border-danger rounded bg-danger bg-opacity-10">
-                                    <small class="text-danger d-block text-uppercase fw-bold mb-2" style="font-size: 0.7rem;">
+                            <div class="col-md-12 mb-1.5">
+                                <div class="p-2 border border-danger rounded bg-danger bg-opacity-10">
+                                    <small class="text-danger d-block text-uppercase fw-bold mb-1" style="font-size: 0.65rem;">
                                         <i class="fas fa-times-circle me-1"></i> Informasi Pembatalan Pesanan
                                     </small>
-                                    <div class="row g-2">
+                                    <div class="row g-1" style="font-size: 0.7rem;">
                                         @if ($order->cancelled_by)
-                                            <div class="col-md-6 text-dark small">
+                                            <div class="col-md-6 text-dark">
                                                 <span class="text-muted">Dibatalkan Oleh:</span> <strong>{{ $order->cancelled_by }}</strong>
                                             </div>
                                         @endif
-                                        <div class="col-md-12 text-dark small">
+                                        <div class="col-md-12 text-dark">
                                             <span class="text-muted">Alasan Pembatalan:</span>
                                             <strong class="text-danger-emphasis">{{ $order->cancel_reason ?? 'Tidak ada detail alasan dari marketplace' }}</strong>
                                         </div>
@@ -99,47 +99,47 @@
                         @endif
 
                         <div class="col-md-6">
-                            <div class="p-2.5 border rounded h-100 bg-light">
-                                <small class="text-muted d-block text-uppercase fw-semibold mb-1" style="font-size: 0.65rem;">
+                            <div class="p-2 border rounded h-100 bg-light">
+                                <small class="text-muted d-block text-uppercase fw-semibold mb-0.5" style="font-size: 0.6rem;">
                                     {{ str_starts_with($order->order_marketplace_id, 'MANUAL-') ? 'Departemen Pengaju' : 'Pembeli' }}
                                 </small>
-                                <span class="fw-bold text-dark small">
+                                <span class="fw-bold text-dark" style="font-size: 0.72rem;">
                                     @if ($order->customer_id)
                                         <a href="{{ route('customers.show', $order->customer_id) }}" class="text-decoration-none text-primary" target="_blank">
-                                            {{ $order->buyer_name ?? '-' }} <i class="fas fa-external-link-alt ms-1 small"></i>
+                                            {{ $order->buyer_name ?? '-' }} <i class="fas fa-external-link-alt ms-1" style="font-size: 0.6rem;"></i>
                                         </a>
                                     @else
                                         {{ $order->buyer_name ?? '-' }}
                                     @endif
                                 </span>
                                 @if ($order->buyer_email)
-                                    <div class="text-muted font-monospace small text-truncate" style="font-size: 0.7rem;">{{ $order->buyer_email }}</div>
+                                    <div class="text-muted font-monospace text-truncate" style="font-size: 0.65rem;">{{ $order->buyer_email }}</div>
                                 @endif
                             </div>
                         </div>
 
                         <div class="col-md-6">
-                            <div class="p-2.5 border rounded h-100 bg-light">
-                                <small class="text-muted d-block text-uppercase fw-semibold mb-1" style="font-size: 0.65rem;">
+                            <div class="p-2 border rounded h-100 bg-light">
+                                <small class="text-muted d-block text-uppercase fw-semibold mb-0.5" style="font-size: 0.6rem;">
                                     {{ str_starts_with($order->order_marketplace_id, 'MANUAL-') ? 'Tipe Permintaan' : 'No. Telp & Metode Pembayaran' }}
                                 </small>
-                                <span class="font-monospace fw-semibold text-dark small">{{ $order->buyer_phone ?? '-' }}</span>
+                                <span class="font-monospace fw-semibold text-dark d-block" style="font-size: 0.72rem;">{{ $order->buyer_phone ?? '-' }}</span>
                                 @if ($order->payment_method)
-                                    <div class="badge bg-info bg-opacity-25 text-info-emphasis border border-info border-opacity-25 mt-1 small d-inline-block">{{ $order->payment_method }}</div>
+                                    <span class="badge bg-info bg-opacity-25 text-info-emphasis border border-info border-opacity-25 mt-0.5 px-1.5 py-0.5" style="font-size: 0.6rem;">{{ $order->payment_method }}</span>
                                 @endif
                             </div>
                         </div>
 
                         <div class="col-md-12">
-                            <div class="p-2.5 border rounded h-100 bg-light">
-                                <small class="text-muted d-block text-uppercase fw-semibold mb-1" style="font-size: 0.65rem;">Alamat Pengiriman</small>
-                                <span class="fw-semibold text-dark text-wrap small" style="white-space: pre-line;">{{ $order->shipping_address ?? '-' }}</span>
+                            <div class="p-2 border rounded h-100 bg-light">
+                                <small class="text-muted d-block text-uppercase fw-semibold mb-0.5" style="font-size: 0.6rem;">Alamat Pengiriman</small>
+                                <span class="fw-semibold text-dark text-wrap d-block" style="font-size: 0.7rem; white-space: pre-line; line-height: 1.25;">{{ $order->shipping_address ?? '-' }}</span>
                             </div>
                         </div>
 
                         @if ($order->buyer_message || $order->seller_note)
                             <div class="col-md-12">
-                                <div class="p-2 border rounded bg-warning bg-opacity-10 text-dark small">
+                                <div class="p-1.5 border rounded bg-warning bg-opacity-10 text-dark" style="font-size: 0.68rem;">
                                     @if ($order->buyer_message)
                                         <div><strong class="text-warning-emphasis">Pesan Pembeli:</strong> {{ $order->buyer_message }}</div>
                                     @endif
@@ -152,11 +152,11 @@
 
                         @if ($order->is_dropship)
                             <div class="col-md-12">
-                                <div class="p-2.5 border border-warning rounded h-100 bg-warning bg-opacity-10">
-                                    <small class="text-warning-emphasis d-block text-uppercase fw-bold mb-1" style="font-size: 0.65rem;">
+                                <div class="p-2 border border-warning rounded h-100 bg-warning bg-opacity-10">
+                                    <small class="text-warning-emphasis d-block text-uppercase fw-bold mb-0.5" style="font-size: 0.6rem;">
                                         <i class="fas fa-shipping-fast me-1"></i> Informasi Dropshipper
                                     </small>
-                                    <div class="row g-1 text-dark small">
+                                    <div class="row g-1 text-dark" style="font-size: 0.68rem;">
                                         <div class="col-md-6"><span class="text-muted">Pengirim:</span> <strong>{{ $order->dropshipper_name ?? '-' }}</strong></div>
                                         <div class="col-md-6"><span class="text-muted">Telp:</span> <strong class="font-monospace">{{ $order->dropshipper_phone ?? '-' }}</strong></div>
                                     </div>
@@ -165,36 +165,36 @@
                         @endif
 
                         <div class="col-md-3">
-                            <div class="p-2 border rounded h-100 bg-light">
-                                <small class="text-muted d-block text-uppercase fw-semibold mb-1" style="font-size: 0.65rem;">Kurir</small>
-                                <span class="fw-bold text-success small">{{ $order->courier ?? '-' }}</span>
+                            <div class="p-1.5 border rounded h-100 bg-light">
+                                <small class="text-muted d-block text-uppercase fw-semibold mb-0.5" style="font-size: 0.6rem;">Kurir</small>
+                                <span class="fw-bold text-success" style="font-size: 0.7rem;">{{ $order->courier ?? '-' }}</span>
                             </div>
                         </div>
 
                         <div class="col-md-3">
-                            <div class="p-2 border rounded h-100 bg-light">
-                                <small class="text-muted d-block text-uppercase fw-semibold mb-1" style="font-size: 0.65rem;">No. Resi</small>
-                                <span class="font-monospace fw-bold text-warning small text-truncate d-block">{{ $order->tracking_number ?? '-' }}</span>
+                            <div class="p-1.5 border rounded h-100 bg-light">
+                                <small class="text-muted d-block text-uppercase fw-semibold mb-0.5" style="font-size: 0.6rem;">No. Resi</small>
+                                <span class="font-monospace fw-bold text-warning text-truncate d-block" style="font-size: 0.68rem;">{{ $order->tracking_number ?? '-' }}</span>
                                 @if ($order->package_id)
-                                    <div class="text-muted font-monospace small text-truncate" style="font-size: 0.65rem;">Pkg: {{ $order->package_id }}</div>
+                                    <div class="text-muted font-monospace text-truncate" style="font-size: 0.6rem;">Pkg: {{ $order->package_id }}</div>
                                 @endif
                             </div>
                         </div>
 
                         <div class="col-md-3">
-                            <div class="p-2 border rounded h-100 bg-light">
-                                <small class="text-muted d-block text-uppercase fw-semibold mb-1" style="font-size: 0.65rem;">Tanggal Pesanan</small>
-                                <span class="fw-semibold text-dark small">{{ $order->order_date ? $order->order_date->format('d M Y, H:i') : '-' }}</span>
+                            <div class="p-1.5 border rounded h-100 bg-light">
+                                <small class="text-muted d-block text-uppercase fw-semibold mb-0.5" style="font-size: 0.6rem;">Tanggal Pesanan</small>
+                                <span class="fw-semibold text-dark d-block" style="font-size: 0.68rem;">{{ $order->order_date ? $order->order_date->format('d M Y, H:i') : '-' }}</span>
                                 @if ($order->paid_at)
-                                    <div class="text-success small" style="font-size:0.65rem;">Bayar: {{ \Carbon\Carbon::parse($order->paid_at)->format('d M Y, H:i') }}</div>
+                                    <div class="text-success" style="font-size:0.6rem;">Bayar: {{ \Carbon\Carbon::parse($order->paid_at)->format('d M Y, H:i') }}</div>
                                 @endif
                             </div>
                         </div>
 
                         <div class="col-md-3">
-                            <div class="p-2 border rounded h-100 bg-light">
-                                <small class="text-muted d-block text-uppercase fw-semibold mb-1" style="font-size: 0.65rem;">Tanggal Cair</small>
-                                <span class="fw-bold text-primary small">{{ $order->completed_at ? \Carbon\Carbon::parse($order->completed_at)->format('d M Y, H:i') : 'Belum Cair' }}</span>
+                            <div class="p-1.5 border rounded h-100 bg-light">
+                                <small class="text-muted d-block text-uppercase fw-semibold mb-0.5" style="font-size: 0.6rem;">Tanggal Cair</small>
+                                <span class="fw-bold text-primary d-block" style="font-size: 0.68rem;">{{ $order->completed_at ? \Carbon\Carbon::parse($order->completed_at)->format('d M Y, H:i') : 'Belum Cair' }}</span>
                             </div>
                         </div>
                     </div>
@@ -202,22 +202,22 @@
             </div>
 
             <!-- Order Items Card -->
-            <div class="card border shadow-sm overflow-hidden mb-3 rounded-3">
-                <div class="card-header bg-primary bg-opacity-10 py-2 px-3 border-bottom">
-                    <h6 class="mb-0 fw-bold text-dark small"><i class="fas fa-box me-1.5 text-primary"></i>Item Pesanan (Rincian Produk API)</h6>
+            <div class="card border shadow-sm overflow-hidden mb-2.5 rounded-2">
+                <div class="card-header bg-primary bg-opacity-10 py-1.5 px-2.5 border-bottom">
+                    <h6 class="mb-0 fw-bold text-dark" style="font-size: 0.75rem;"><i class="fas fa-box me-1.5 text-primary"></i>Item Pesanan (Rincian Produk API)</h6>
                 </div>
-                <div class="card-body p-2">
+                <div class="card-body p-1.5">
                     <div class="table-responsive rounded border">
-                        <table class="table table-sm table-striped table-bordered align-middle mb-0" style="font-size:0.75rem;">
+                        <table class="table table-sm table-striped table-bordered align-middle mb-0" style="font-size:0.68rem;">
                             <thead class="table-light text-center fw-bold">
                                 <tr>
-                                    <th>PRODUK & VARIAN</th>
-                                    <th>SKU / SKU ID</th>
-                                    <th>HARGA ASLI</th>
-                                    <th>DISKON TOKO</th>
-                                    <th>HARGA JUAL</th>
-                                    <th>QTY</th>
-                                    <th>SUBTOTAL</th>
+                                    <th class="py-1">PRODUK & VARIAN</th>
+                                    <th class="py-1">SKU / SKU ID</th>
+                                    <th class="py-1">HARGA ASLI</th>
+                                    <th class="py-1">DISKON TOKO</th>
+                                    <th class="py-1">HARGA JUAL</th>
+                                    <th class="py-1">QTY</th>
+                                    <th class="py-1">SUBTOTAL</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -280,12 +280,12 @@
         <div class="col-lg-5">
 
             <!-- Payment Breakdown Card -->
-            <div class="card border shadow-sm mb-3 rounded-3">
-                <div class="card-header bg-success bg-opacity-10 py-2 px-3 border-bottom d-flex justify-content-between align-items-center">
-                    <h6 class="mb-0 fw-bold text-dark small"><i class="fas fa-wallet me-1.5 text-success"></i>Rincian Potongan Biaya Marketplace (Shopee / MP Format)</h6>
-                    <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-25">Dana Cair / Escrow</span>
+            <div class="card border shadow-sm mb-2.5 rounded-2">
+                <div class="card-header bg-success bg-opacity-10 py-1.5 px-2.5 border-bottom d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0 fw-bold text-dark" style="font-size: 0.75rem;"><i class="fas fa-wallet me-1.5 text-success"></i>Rincian Potongan Biaya Marketplace (Shopee / MP Format)</h6>
+                    <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-25 px-1.5 py-0.5" style="font-size: 0.6rem;">Dana Cair / Escrow</span>
                 </div>
-                <div class="card-body p-3" style="font-size: 0.8rem;">
+                <div class="card-body p-2" style="font-size: 0.72rem;">
                     @php 
                         $sumGrossSubtotal = 0;
                         $sumSellerDiscount = 0;
@@ -328,12 +328,12 @@
                     @endphp
 
                     @if ($sumSellerDiscount > 0)
-                        <div class="d-flex justify-content-between mb-1.5 align-items-center">
+                        <div class="d-flex justify-content-between mb-1 align-items-center">
                             <span class="text-muted">Subtotal Harga Produk (Sebelum Diskon)</span>
                             <span class="font-monospace text-dark fw-bold">Rp {{ number_format($sumGrossSubtotal, 0, ',', '.') }}</span>
                         </div>
 
-                        <div class="d-flex justify-content-between mb-1.5 align-items-center">
+                        <div class="d-flex justify-content-between mb-1 align-items-center">
                             <span class="text-danger">
                                 <i class="fas fa-tag me-1"></i>Diskon Toko (Seller Voucher / Discount)
                             </span>
@@ -341,12 +341,12 @@
                         </div>
                     @endif
 
-                    <div class="d-flex justify-content-between mb-2 align-items-center {{ $sumSellerDiscount > 0 ? 'pt-1 border-top' : '' }}">
+                    <div class="d-flex justify-content-between mb-1.5 align-items-center {{ $sumSellerDiscount > 0 ? 'pt-1 border-top' : '' }}">
                         <span class="text-dark fw-bold">Total Nilai Transaksi Penjualan (Net Sales)</span>
                         <span class="font-monospace text-dark fw-bold">Rp {{ number_format($sumNetSubtotal, 0, ',', '.') }}</span>
                     </div>
 
-                    <div class="d-flex justify-content-between mb-1.5 align-items-center">
+                    <div class="d-flex justify-content-between mb-1 align-items-center">
                         <span class="text-danger">
                             <i class="fas fa-cut me-1"></i>Total Potongan Marketplace / Fee Admin
                         </span>
@@ -354,7 +354,7 @@
                     </div>
 
                     @if ($refundAmount > 0)
-                        <div class="d-flex justify-content-between mb-1.5 align-items-center">
+                        <div class="d-flex justify-content-between mb-1 align-items-center">
                             <span class="text-danger fw-semibold">
                                 <i class="fas fa-undo-alt me-1"></i>Total Refund / Pengembalian Dana
                             </span>
@@ -362,11 +362,11 @@
                         </div>
                     @endif
 
-                    <hr class="my-2 border-dashed opacity-50">
+                    <hr class="my-1.5 border-dashed opacity-50">
 
                     <div class="d-flex justify-content-between align-items-center">
-                        <span class="fw-bold text-dark fs-6">Jumlah Dana Dilepas / Cair (Net)</span>
-                        <span class="font-monospace text-success fw-bold fs-5">
+                        <span class="fw-bold text-dark" style="font-size: 0.75rem;">Jumlah Dana Dilepas / Cair (Net)</span>
+                        <span class="font-monospace text-success fw-bold" style="font-size: 0.85rem;">
                             Rp {{ number_format($finalNet, 0, ',', '.') }}
                         </span>
                     </div>
