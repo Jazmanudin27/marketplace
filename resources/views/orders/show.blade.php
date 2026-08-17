@@ -271,241 +271,60 @@
                     </div>
                     <div class="card-body p-3">
                         @php 
-                            $fb = $order->financial_breakdown ?? []; 
-                            $channelCode = strtolower($order->store->channel->code ?? '');
-                            $isTiktok = str_contains($channelCode, 'tiktok') || isset($fb['net_platform_commission']) || isset($fb['growth_xtra_fee']) || isset($fb['preorder_service_fee']);
-
-                            $buyerTotal = $fb['buyer_total_amount'] ?? $fb['buyer_paid_amount'] ?? $order->total_amount ?? 0;
-                            $originalPrice = $fb['original_price'] ?? $fb['total_product_price'] ?? $order->total_amount ?? 0;
-                            $subtotalAfterSeller = $fb['subtotal_after_seller_discounts'] ?? ($order->total_amount - $order->discount_amount);
-                            $buyerShipping = $fb['buyer_paid_shipping_fee'] ?? $order->shipping_fee ?? 0;
-                            $actualShipping = $fb['actual_shipping_fee'] ?? $order->shipping_fee ?? 0;
-                            $sellerVoucher = $fb['voucher_from_seller'] ?? $fb['seller_discount'] ?? $order->discount_amount ?? 0;
-                            $shopeeVoucher = $fb['voucher_from_shopee'] ?? $fb['shopee_discount'] ?? $fb['platform_discount'] ?? $fb['voucher_from_lazada'] ?? 0;
-                            $serviceFee = $fb['service_fee'] ?? 0;
-                            $commissionFee = $fb['commission_fee'] ?? $fb['affiliate_commission'] ?? $order->affiliate_commission ?? 0;
-                            $transactionFee = $fb['seller_transaction_fee'] ?? $fb['order_processing_fee'] ?? 0;
-                            $adjustmentAmount = $fb['adjustment_amount'] ?? 0;
-
-                            // TikTok Specific breakdown fields
-                            $platformCommission = $fb['platform_commission'] ?? $fb['commission_before_discount'] ?? 0;
-                            $platformCommissionDiscount = $fb['platform_commission_discount'] ?? $fb['commission_discount'] ?? 0;
-                            $netPlatformCommission = $fb['net_platform_commission'] ?? ($platformCommission > 0 ? max(0, $platformCommission - $platformCommissionDiscount) : ($serviceFee > 0 ? $serviceFee : $order->marketplace_fee));
-                            $preorderFee = $fb['preorder_service_fee'] ?? $fb['preorder_fee'] ?? 0;
-                            $dynamicCommission = $fb['dynamic_commission'] ?? $commissionFee;
-                            $growthXtraFee = $fb['growth_xtra_fee'] ?? $fb['growth_program_fee'] ?? 0;
-                            $orderProcessingFee = $fb['order_processing_fee'] ?? $transactionFee;
-
-                            $hasTiktokFees = $isTiktok && ($netPlatformCommission > 0 || $preorderFee > 0 || $dynamicCommission > 0 || $growthXtraFee > 0 || $orderProcessingFee > 0);
+                            $itemsPriceSubtotal = (float) $order->items->sum(function($it) {
+                                return ($it->original_price > 0 ? $it->original_price : $it->price) * $it->quantity;
+                            });
+                            if ($itemsPriceSubtotal <= 0) {
+                                $itemsPriceSubtotal = (float) $order->total_amount + (float) $order->discount_amount;
+                            }
+                            $discountAmt = (float) $order->discount_amount;
+                            $netSales = (float) $order->total_amount;
+                            $feeAmt = abs((float) $order->marketplace_fee);
+                            $refundAmount = (float) $order->refund_amount;
+                            $finalNet = (float) $order->net_amount;
                         @endphp
 
-                        @if ($hasTiktokFees)
-                            <!-- ── TIKTOK SHOP SETTLEMENT BREAKDOWN ── -->
-                            <div class="mb-3">
-                                <div class="fw-bold text-dark small mb-1 d-flex align-items-center justify-content-between">
-                                    <span><i class="fas fa-chevron-down me-1.5 text-muted" style="font-size: 10px;"></i>Perkiraan Penghasilan</span>
-                                    <span class="font-monospace fw-bold text-dark">Rp {{ number_format($subtotalAfterSeller, 0, ',', '.') }}</span>
-                                </div>
-                                <div class="d-flex justify-content-between align-items-center ps-3 text-muted" style="font-size: 12px;">
-                                    <span>Subtotal setelah diskon penjual</span>
-                                    <span class="font-monospace">Rp {{ number_format($subtotalAfterSeller, 0, ',', '.') }}</span>
-                                </div>
-                            </div>
+                        <div class="d-flex justify-content-between mb-2 align-items-center">
+                            <span class="text-muted small">Subtotal Harga Produk (Sebelum Diskon)</span>
+                            <span class="font-monospace text-dark fw-bold small">Rp {{ number_format($itemsPriceSubtotal, 0, ',', '.') }}</span>
+                        </div>
 
-                            <hr class="my-2 border-dashed opacity-50">
-
-                            <div class="mb-3">
-                                @php
-                                    $totalFeesCalc = $netPlatformCommission + $preorderFee + $dynamicCommission + $growthXtraFee + $orderProcessingFee;
-                                @endphp
-                                <div class="fw-bold text-dark small mb-2 d-flex align-items-center justify-content-between">
-                                    <span><i class="fas fa-chevron-down me-1.5 text-muted" style="font-size: 10px;"></i>Perkiraan Biaya</span>
-                                    <span class="font-monospace text-danger fw-bold">- Rp {{ number_format($totalFeesCalc, 0, ',', '.') }}</span>
-                                </div>
-
-                                <div class="ps-3">
-                                    <!-- Estimasi komisi platform -->
-                                    <div class="mb-2">
-                                        <div class="d-flex justify-content-between align-items-center text-dark small">
-                                            <span>
-                                                • Estimasi komisi platform
-                                                @if ($platformCommissionDiscount > 0)
-                                                    <span class="badge bg-success bg-opacity-15 text-success ms-1 px-1.5 py-0.5" style="font-size: 9.5px; border: 1px solid #86efac; background: #dcfce7; color: #15803d !important;">Diskon komisi</span>
-                                                @endif
-                                            </span>
-                                            <span class="font-monospace text-danger">- Rp {{ number_format($netPlatformCommission, 0, ',', '.') }}</span>
-                                        </div>
-                                        @if ($platformCommission > 0)
-                                        <div class="d-flex justify-content-between align-items-center ps-3 text-muted" style="font-size: 11px;">
-                                            <span>- Biaya komisi sebelum diskon</span>
-                                            <span class="font-monospace">- Rp {{ number_format($platformCommission, 0, ',', '.') }}</span>
-                                        </div>
-                                        @endif
-                                        @if ($platformCommissionDiscount > 0)
-                                        <div class="d-flex justify-content-between align-items-center ps-3 text-success" style="font-size: 11px;">
-                                            <span>- Diskon Komisi Platform</span>
-                                            <span class="font-monospace">+ Rp {{ number_format($platformCommissionDiscount, 0, ',', '.') }}</span>
-                                        </div>
-                                        @endif
-                                    </div>
-
-                                    <!-- Biaya layanan pre-order -->
-                                    @if ($preorderFee > 0)
-                                    <div class="d-flex justify-content-between align-items-center text-dark small mb-1.5">
-                                        <span>• Biaya layanan pre-order</span>
-                                        <span class="font-monospace text-danger">- Rp {{ number_format($preorderFee, 0, ',', '.') }}</span>
-                                    </div>
-                                    @endif
-
-                                    <!-- Perkiraan ongkir -->
-                                    <div class="d-flex justify-content-between align-items-center text-dark small mb-1.5">
-                                        <span>• Perkiraan ongkir</span>
-                                        <span class="font-monospace {{ $actualShipping > 0 ? 'text-danger' : 'text-muted' }}">
-                                            {{ $actualShipping > 0 ? '- Rp ' . number_format($actualShipping, 0, ',', '.') : 'Rp 0' }}
-                                        </span>
-                                    </div>
-
-                                    <!-- Komisi dinamis -->
-                                    @if ($dynamicCommission > 0)
-                                    <div class="d-flex justify-content-between align-items-center text-dark small mb-1.5">
-                                        <span>• Komisi dinamis</span>
-                                        <span class="font-monospace text-danger">- Rp {{ number_format($dynamicCommission, 0, ',', '.') }}</span>
-                                    </div>
-                                    @endif
-
-                                    <!-- Biaya layanan Program Growth Xtra -->
-                                    @if ($growthXtraFee > 0)
-                                    <div class="d-flex justify-content-between align-items-center text-dark small mb-1.5">
-                                        <span>
-                                            • Biaya layanan Program Growth Xtra
-                                            <span class="badge bg-success bg-opacity-15 text-success ms-1 px-1.5 py-0.5" style="font-size: 9.5px; border: 1px solid #86efac; background: #dcfce7; color: #15803d !important;">Growth Xtra Program</span>
-                                        </span>
-                                        <span class="font-monospace text-danger">- Rp {{ number_format($growthXtraFee, 0, ',', '.') }}</span>
-                                    </div>
-                                    @endif
-
-                                    <!-- Biaya pemrosesan pesanan -->
-                                    @if ($orderProcessingFee > 0)
-                                    <div class="d-flex justify-content-between align-items-center text-dark small mb-1.5">
-                                        <span>• Biaya pemrosesan pesanan</span>
-                                        <span class="font-monospace text-danger">- Rp {{ number_format($orderProcessingFee, 0, ',', '.') }}</span>
-                                    </div>
-                                    @endif
-                                </div>
-                            </div>
-                        @elseif ($order->financial_breakdown)
-                            <!-- ── GENERIC MARKETPLACE BREAKDOWN ── -->
+                        @if ($discountAmt > 0)
                             <div class="d-flex justify-content-between mb-2 align-items-center">
-                                <span class="text-muted small">Total Pembayaran Pembeli</span>
-                                <span class="font-monospace fw-bold small text-dark">Rp
-                                    {{ number_format($buyerTotal, 0, ',', '.') }}</span>
-                            </div>
-                            <div class="d-flex justify-content-between mb-3 align-items-center">
-                                <span class="text-muted small">(Harga Asli Produk)</span>
-                                <span class="font-monospace small text-muted">Rp
-                                    {{ number_format($originalPrice, 0, ',', '.') }}</span>
-                            </div>
-
-                            <hr class="my-2 border-dashed opacity-50">
-
-                            <div class="d-flex justify-content-between mb-2 align-items-center">
-                                <span class="text-muted small">Ongkir Dibayar Pembeli</span>
-                                <span class="font-monospace small text-dark">Rp
-                                    {{ number_format($buyerShipping, 0, ',', '.') }}</span>
-                            </div>
-                            <div class="d-flex justify-content-between mb-3 align-items-center">
-                                <span class="text-muted small">Ongkir Aktual (Ekspedisi)</span>
-                                <span class="font-monospace text-danger small">- Rp
-                                    {{ number_format($actualShipping, 0, ',', '.') }}</span>
-                            </div>
-
-                            <hr class="my-2 border-dashed opacity-50">
-
-                            <div class="d-flex justify-content-between mb-2 align-items-center">
-                                <span class="text-muted small">Voucher Toko (Seller)</span>
-                                <span class="font-monospace text-danger small">- Rp
-                                    {{ number_format($sellerVoucher, 0, ',', '.') }}</span>
-                            </div>
-                            <div class="d-flex justify-content-between mb-3 align-items-center">
-                                <span class="text-muted small">Voucher Platform (Marketplace)</span>
-                                <span class="font-monospace small text-muted">Rp
-                                    {{ number_format($shopeeVoucher, 0, ',', '.') }}</span>
-                            </div>
-
-                            <hr class="my-2 border-dashed opacity-50">
-
-                            <div class="d-flex justify-content-between mb-2 align-items-center">
-                                <span class="text-muted small">Biaya Layanan (Service Fee)</span>
-                                <span class="font-monospace text-danger small">- Rp
-                                    {{ number_format($serviceFee, 0, ',', '.') }}</span>
-                            </div>
-                            <div class="d-flex justify-content-between mb-2 align-items-center">
-                                <span class="text-muted small">Biaya Komisi / Affiliate</span>
-                                <span class="font-monospace text-danger small">- Rp
-                                    {{ number_format($commissionFee, 0, ',', '.') }}</span>
-                            </div>
-                            <div class="d-flex justify-content-between mb-2 align-items-center">
-                                <span class="text-muted small">Biaya Transaksi</span>
-                                <span class="font-monospace text-danger small">- Rp
-                                    {{ number_format($transactionFee, 0, ',', '.') }}</span>
-                            </div>
-                            @if ($adjustmentAmount != 0)
-                            <div class="d-flex justify-content-between mb-2 align-items-center">
-                                <span class="text-muted small">Biaya Penyesuaian (Adjustment)</span>
-                                <span class="font-monospace small {{ $adjustmentAmount < 0 ? 'text-danger' : 'text-success' }}">
-                                    {{ $adjustmentAmount < 0 ? '-' : '+' }} Rp {{ number_format(abs($adjustmentAmount), 0, ',', '.') }}
+                                <span class="text-danger small">
+                                    <i class="fas fa-tag me-1"></i>Diskon Toko (Seller Voucher / Discount)
                                 </span>
-                            </div>
-                            @endif
-
-                            @php
-                                $sellerReturnRefund = $refundValAmt;
-                            @endphp
-                            @if ($sellerReturnRefund > 0)
-                            <div class="d-flex justify-content-between mb-2 align-items-center">
-                                <span class="text-danger small fw-semibold"><i class="fas fa-undo-alt me-1"></i>Pengembalian Dana (Refund)</span>
-                                <span class="font-monospace text-danger small fw-bold">- Rp {{ number_format(abs($sellerReturnRefund), 0, ',', '.') }}</span>
-                            </div>
-                            @endif
-                        @else
-                            <div class="d-flex justify-content-between mb-2 align-items-center">
-                                <span class="text-muted small">Total Produk</span>
-                                <span class="font-monospace small text-dark">Rp {{ number_format($order->total_amount, 0, ',', '.') }}</span>
-                            </div>
-                            <div class="d-flex justify-content-between mb-2 align-items-center">
-                                <span class="text-muted small">Ongkos Kirim</span>
-                                <span class="font-monospace small text-dark">Rp {{ number_format($order->shipping_fee, 0, ',', '.') }}</span>
-                            </div>
-                            <div class="d-flex justify-content-between mb-2 align-items-center">
-                                <span class="text-muted small">Diskon Toko</span>
-                                <span class="font-monospace text-danger small">- Rp
-                                    {{ number_format($order->discount_amount, 0, ',', '.') }}</span>
-                            </div>
-                            <div class="d-flex justify-content-between mb-2 align-items-center">
-                                <span class="text-muted small">Estimasi Komisi Marketplace</span>
-                                <span class="font-monospace text-danger small">- Rp
-                                    {{ number_format($order->marketplace_fee, 0, ',', '.') }}</span>
-                            </div>
-                            @if ($order->order_status !== 'COMPLETED')
-                                <div class="text-muted small mt-2 text-end fst-italic">
-                                    *Rincian pasti akan muncul saat pesanan Selesai.
-                                </div>
-                            @endif
-                        @endif
-
-                        @if ($isRefundedOrder && $refundValAmt > 0)
-                            <div class="d-flex justify-content-between mb-2 align-items-center bg-danger bg-opacity-10 p-2 rounded">
-                                <span class="text-danger small fw-semibold"><i class="fas fa-undo-alt me-1"></i>Pengembalian Dana (Refund Pembeli)</span>
-                                <span class="font-monospace text-danger small fw-bold">- Rp {{ number_format($refundValAmt, 0, ',', '.') }}</span>
+                                <span class="font-monospace text-danger fw-bold small">-Rp {{ number_format($discountAmt, 0, ',', '.') }}</span>
                             </div>
                         @endif
 
-                        <hr class="my-3 border-dashed opacity-50">
+                        <div class="d-flex justify-content-between mb-2 align-items-center pt-2 border-top">
+                            <span class="text-dark fw-bold small">Total Nilai Transaksi Penjualan (Net Sales)</span>
+                            <span class="font-monospace text-dark fw-bold small">Rp {{ number_format($netSales, 0, ',', '.') }}</span>
+                        </div>
+
+                        <div class="d-flex justify-content-between mb-2 align-items-center">
+                            <span class="text-danger small">
+                                <i class="fas fa-cut me-1"></i>Total Potongan Marketplace / Fee Admin
+                            </span>
+                            <span class="font-monospace text-danger fw-bold small">-Rp {{ number_format($feeAmt, 0, ',', '.') }}</span>
+                        </div>
+
+                        @if ($refundAmount > 0)
+                            <div class="d-flex justify-content-between mb-2 align-items-center">
+                                <span class="text-danger small fw-semibold">
+                                    <i class="fas fa-undo-alt me-1"></i>Total Refund / Pengembalian Dana
+                                </span>
+                                <span class="font-monospace text-danger fw-bold small">-Rp {{ number_format($refundAmount, 0, ',', '.') }}</span>
+                            </div>
+                        @endif
+
+                        <hr class="my-2 border-dashed opacity-50">
 
                         <div class="d-flex justify-content-between align-items-center">
-                            <span class="fw-bold small text-dark">Jumlah Penyelesaian Pembayaran</span>
-                            <span class="font-monospace {{ $isRefundedOrder ? 'text-danger' : 'text-success' }} fw-bold fs-5">
-                                Rp {{ number_format($isRefundedOrder && $refundValAmt >= $order->total_amount ? 0 : $order->net_amount, 0, ',', '.') }}
+                            <span class="fw-bold text-dark">Jumlah Dana Dilepas / Cair (Net)</span>
+                            <span class="font-monospace text-success fw-bold fs-5">
+                                Rp {{ number_format($finalNet, 0, ',', '.') }}
                             </span>
                         </div>
                     </div>

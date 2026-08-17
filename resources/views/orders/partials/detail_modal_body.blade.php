@@ -267,72 +267,59 @@
                 </div>
                 <div class="card-body p-3" style="font-size: 0.8rem;">
                     @php 
-                        $fees = $order->fee_breakdown_details;
-                        $fb = $order->financial_breakdown ?? [];
-                        $refundAmount = $order->refund_amount;
+                        $itemsPriceSubtotal = (float) $order->items->sum(function($it) {
+                            return ($it->original_price > 0 ? $it->original_price : $it->price) * $it->quantity;
+                        });
+                        if ($itemsPriceSubtotal <= 0) {
+                            $itemsPriceSubtotal = (float) $order->total_amount + (float) $order->discount_amount;
+                        }
+                        $discountAmt = (float) $order->discount_amount;
+                        $netSales = (float) $order->total_amount;
+                        $feeAmt = abs((float) $order->marketplace_fee);
+                        $refundAmount = (float) $order->refund_amount;
                         $finalNet = (float) $order->net_amount;
                     @endphp
 
-                    @if ($refundAmount > 0)
-                        <div class="alert alert-danger border border-danger d-flex align-items-center py-2 px-3 mb-2 rounded-3" style="font-size: 0.75rem;">
-                            <i class="fas fa-undo-alt text-danger fs-5 me-2"></i>
-                            <div>
-                                <strong class="text-dark">seller_return_refund (Pengembalian Dana):</strong>
-                                <span class="text-danger fw-bold ms-1">-Rp {{ number_format($refundAmount, 0, ',', '.') }}</span>
-                                <div class="text-muted small">Penghasilan bersih pesanan ini dikurangi potongan pengembalian dana seller.</div>
-                            </div>
-                        </div>
-                    @endif
-
-                    <table class="table table-sm table-bordered align-middle mb-2 font-monospace" style="font-size: 0.75rem;">
-                        <thead class="table-light text-center fw-bold">
-                            <tr>
-                                <th>Biaya Platform</th>
-                                <th>Biaya Gratis Ongkir</th>
-                                <th>Biaya Layanan</th>
-                                <th>Biaya Promosi</th>
-                                <th>Biaya Lainnya</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr class="text-center">
-                                <td class="{{ $fees['platform_fee'] < 0 ? 'text-danger fw-bold' : 'text-muted' }}">{{ $fees['platform_fee'] != 0 ? number_format($fees['platform_fee'], 0, ',', '.') : '0' }}</td>
-                                <td class="{{ $fees['free_shipping'] < 0 ? 'text-danger fw-bold' : 'text-muted' }}">{{ $fees['free_shipping'] != 0 ? number_format($fees['free_shipping'], 0, ',', '.') : '0' }}</td>
-                                <td class="{{ $fees['service_fee'] < 0 ? 'text-danger fw-bold' : 'text-muted' }}">{{ $fees['service_fee'] != 0 ? number_format($fees['service_fee'], 0, ',', '.') : '0' }}</td>
-                                <td class="{{ $fees['promo_fee'] < 0 ? 'text-danger fw-bold' : 'text-muted' }}">{{ $fees['promo_fee'] != 0 ? number_format($fees['promo_fee'], 0, ',', '.') : '0' }}</td>
-                                <td class="{{ $fees['other_fee'] < 0 ? 'text-danger fw-bold' : 'text-muted' }}">{{ $fees['other_fee'] != 0 ? number_format($fees['other_fee'], 0, ',', '.') : '0' }}</td>
-                            </tr>
-                        </tbody>
-                    </table>
-
-                    <div class="d-flex justify-content-between mb-1 align-items-center">
-                        <span class="text-muted">Total Omset Kotor (Nilai Transaksi)</span>
-                        <span class="font-monospace text-dark">Rp {{ number_format($order->total_amount, 0, ',', '.') }}</span>
+                    <div class="d-flex justify-content-between mb-1.5 align-items-center">
+                        <span class="text-muted">Subtotal Harga Produk (Sebelum Diskon)</span>
+                        <span class="font-monospace text-dark fw-bold">Rp {{ number_format($itemsPriceSubtotal, 0, ',', '.') }}</span>
                     </div>
 
-                    @if ($refundAmount > 0)
-                        <div class="d-flex justify-content-between mb-1 align-items-center">
-                            <span class="text-danger fw-semibold">
-                                <i class="fas fa-minus-circle me-1"></i>Refund
+                    @if ($discountAmt > 0)
+                        <div class="d-flex justify-content-between mb-1.5 align-items-center">
+                            <span class="text-danger">
+                                <i class="fas fa-tag me-1"></i>Diskon Toko (Seller Voucher / Discount)
                             </span>
-                            <span class="font-monospace text-danger fw-bold">
-                                -Rp {{ number_format($refundAmount, 0, ',', '.') }}
-                            </span>
+                            <span class="font-monospace text-danger fw-bold">-Rp {{ number_format($discountAmt, 0, ',', '.') }}</span>
                         </div>
                     @endif
 
-                    <div class="d-flex justify-content-between mb-1 align-items-center">
-                        <span class="text-muted">Total Potongan Marketplace</span>
-                        <span class="font-monospace text-danger font-bold">
-                            {{ $fees['total_fee'] != 0 ? number_format($fees['total_fee'], 0, ',', '.') : 'Rp 0' }}
+                    <div class="d-flex justify-content-between mb-2 align-items-center pt-1 border-top">
+                        <span class="text-dark fw-bold">Total Nilai Transaksi Penjualan (Net Sales)</span>
+                        <span class="font-monospace text-dark fw-bold">Rp {{ number_format($netSales, 0, ',', '.') }}</span>
+                    </div>
+
+                    <div class="d-flex justify-content-between mb-1.5 align-items-center">
+                        <span class="text-danger">
+                            <i class="fas fa-cut me-1"></i>Total Potongan Marketplace / Fee Admin
                         </span>
+                        <span class="font-monospace text-danger fw-bold">-Rp {{ number_format($feeAmt, 0, ',', '.') }}</span>
                     </div>
+
+                    @if ($refundAmount > 0)
+                        <div class="d-flex justify-content-between mb-1.5 align-items-center">
+                            <span class="text-danger fw-semibold">
+                                <i class="fas fa-undo-alt me-1"></i>Total Refund / Pengembalian Dana
+                            </span>
+                            <span class="font-monospace text-danger fw-bold">-Rp {{ number_format($refundAmount, 0, ',', '.') }}</span>
+                        </div>
+                    @endif
 
                     <hr class="my-2 border-dashed opacity-50">
 
                     <div class="d-flex justify-content-between align-items-center">
-                        <span class="fw-bold text-dark">Jumlah Dana Dilepas / Cair (Net)</span>
-                        <span class="font-monospace text-success fw-bold fs-6">
+                        <span class="fw-bold text-dark fs-6">Jumlah Dana Dilepas / Cair (Net)</span>
+                        <span class="font-monospace text-success fw-bold fs-5">
                             Rp {{ number_format($finalNet, 0, ',', '.') }}
                         </span>
                     </div>
