@@ -336,6 +336,49 @@ class Order extends Model
     }
 
     /**
+     * Accesor untuk mendeteksi nominal refund/retur secara akurat
+     * Mendukung relasi returnOrder, top-level financial_breakdown, serta sub-array statement_transactions TikTok API.
+     */
+    public function getRefundAmountAttribute(): float
+    {
+        // 1. Cek relasi returnOrder jika terhubung
+        if ($this->relationLoaded('returnOrder') && $this->returnOrder) {
+            $rAmt = (float) $this->returnOrder->refund_amount;
+            if ($rAmt > 0) return $rAmt;
+        }
+
+        $fb = $this->financial_breakdown ?? [];
+
+        // 2. Cek field top-level financial_breakdown
+        $keys = ['customer_refund_amount', 'gross_sales_refund_amount', 'seller_return_refund', 'refund_amount', 'return_amount', 'customer_order_refund_amount'];
+        foreach ($keys as $k) {
+            if (!empty($fb[$k]) && (float)$fb[$k] != 0) {
+                return abs((float)$fb[$k]);
+            }
+        }
+
+        // 3. Cek sub-array statement_transactions TikTok API
+        $stmtList = $fb['statement_transactions'] ?? $fb['statement_transaction_list'] ?? $fb['transactions'] ?? [];
+        if (is_array($stmtList)) {
+            foreach ($stmtList as $st) {
+                if (!is_array($st)) continue;
+                foreach ($keys as $k) {
+                    if (!empty($st[$k]) && (float)$st[$k] != 0) {
+                        return abs((float)$st[$k]);
+                    }
+                }
+            }
+        }
+
+        // 4. Fallback: jika status pesanan bernilai RETURNED/REFUNDED/RETURN
+        if (in_array(strtoupper($this->order_status), ['RETURNED', 'REFUNDED', 'RETURN', 'CANCELLED'])) {
+            return (float) $this->total_amount;
+        }
+
+        return 0.0;
+    }
+
+    /**
      * Get 5 Shopee/TikTok Fee Breakdown Components:
      * - platform_fee (Biaya Platform)
      * - free_shipping (Biaya Gratis Ongkir)
@@ -347,7 +390,7 @@ class Order extends Model
     {
         $fb = $this->financial_breakdown ?? [];
         $totalGross = (float) $this->total_amount;
-        $sellerReturnRefund = abs((float) ($fb['seller_return_refund'] ?? $fb['refund_amount'] ?? $fb['customer_refund_amount'] ?? $fb['gross_sales_refund_amount'] ?? 0));
+        $sellerReturnRefund = $this->refund_amount;
 
         // Jika pesanan direfund penuh, biaya admin reguler = 0 (hanya sisa ongkir retur jika ada)
         if ($sellerReturnRefund >= $totalGross && $totalGross > 0) {
@@ -471,8 +514,11 @@ class Order extends Model
     public function getNetAmountAttribute($value): float
     {
         $fb = $this->financial_breakdown;
-        $sellerReturnRefund = (float) ($fb['seller_return_refund'] ?? $fb['refund_amount'] ?? 0);
-        $refundDeduction = abs($sellerReturnRefund);
+        $refundDeduction = $this->refund_amount;
+
+        if ($refundDeduction >= (float)$this->total_amount && (float)$this->total_amount > 0) {
+            return 0.0;
+        }
 
         if (!empty($fb['escrow_amount']) && (float) $fb['escrow_amount'] > 0) {
             $escrow = (float) $fb['escrow_amount'];

@@ -87,16 +87,8 @@
                             @endif
 
                             @php
-                                $fbData = $order->financial_breakdown ?? [];
-                                $isRefundedOrder = in_array(strtoupper($order->order_status), ['RETURNED', 'REFUNDED', 'RETURN'])
-                                    || $order->returnOrder
-                                    || !empty($fbData['customer_refund_amount'])
-                                    || !empty($fbData['gross_sales_refund_amount'])
-                                    || !empty($fbData['seller_return_refund']);
-                                $refundValAmt = $order->returnOrder ? (float)$order->returnOrder->refund_amount : 0.0;
-                                if ($refundValAmt == 0 && $isRefundedOrder) {
-                                    $refundValAmt = abs((float)($fbData['customer_refund_amount'] ?? $fbData['gross_sales_refund_amount'] ?? $fbData['seller_return_refund'] ?? $fbData['refund_amount'] ?? $order->total_amount));
-                                }
+                                $refundValAmt = $order->refund_amount;
+                                $isRefundedOrder = $refundValAmt > 0 || in_array(strtoupper($order->order_status), ['RETURNED', 'REFUNDED', 'RETURN']);
                             @endphp
 
                             @if ($isRefundedOrder)

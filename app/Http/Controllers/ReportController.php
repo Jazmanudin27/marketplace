@@ -1829,19 +1829,18 @@ class ReportController extends Controller
             $grossRevenue += $offTotal;
         }
 
-        // 3. Hitung Otomatis Total Refund / Retur
-        $totalRefunds = (float) \App\Models\ReturnOrder::where('tenant_id', $tenantId)
-            ->whereBetween('created_at', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59'])
+        // 3. Hitung Otomatis Total Refund / Retur dari seluruh pesanan di periode ini
+        $ordersInPeriod = \App\Models\Order::where('tenant_id', $tenantId)
             ->when(!empty($storeId), fn($q) => $q->where('store_id', $storeId))
-            ->sum('refund_amount');
+            ->where(function($q) use ($dateFrom, $dateTo) {
+                $q->whereBetween('completed_at', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59'])
+                  ->orWhereBetween('order_date', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59']);
+            })
+            ->get();
 
-        if ($totalRefunds == 0) {
-            $totalRefunds = (float) \App\Models\Order::where('tenant_id', $tenantId)
-                ->whereIn('order_status', ['RETURNED', 'REFUNDED', 'RETURN'])
-                ->when(!empty($storeId), fn($q) => $q->where('store_id', $storeId))
-                ->whereNotNull('completed_at')
-                ->whereBetween('completed_at', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59'])
-                ->sum('total_amount');
+        $totalRefunds = 0.0;
+        foreach ($ordersInPeriod as $ord) {
+            $totalRefunds += $ord->refund_amount;
         }
 
         $netReleased = max(0.0, $grossRevenue - $totalRefunds - $marketplaceFee);
@@ -2293,21 +2292,7 @@ class ReportController extends Controller
                     $iQty = $o->items->sum('quantity');
                     $qty += ($iQty > 0 ? $iQty : 1);
 
-                    $retOrder = $o->returnOrder;
-                    $refAmt = $retOrder ? (float)$retOrder->refund_amount : (in_array(strtoupper($o->order_status), ['RETURNED', 'REFUNDED', 'RETURN']) ? (float)$o->total_amount : 0.0);
-
-                    if ($refAmt == 0) {
-                        $fb = $o->financial_breakdown ?? [];
-                        if (isset($fb['customer_refund_amount']) && (float)$fb['customer_refund_amount'] != 0) {
-                            $refAmt = abs((float)$fb['customer_refund_amount']);
-                        } elseif (isset($fb['gross_sales_refund_amount']) && (float)$fb['gross_sales_refund_amount'] != 0) {
-                            $refAmt = abs((float)$fb['gross_sales_refund_amount']);
-                        } elseif (isset($fb['seller_return_refund']) && (float)$fb['seller_return_refund'] != 0) {
-                            $refAmt = abs((float)$fb['seller_return_refund']);
-                        } elseif (isset($fb['refund_amount']) && (float)$fb['refund_amount'] != 0) {
-                            $refAmt = abs((float)$fb['refund_amount']);
-                        }
-                    }
+                    $refAmt = $o->refund_amount;
                     $refundTotal += $refAmt;
 
                     $details = $o->fee_breakdown_details;
@@ -2443,21 +2428,7 @@ class ReportController extends Controller
                 $releasedDate = $o->completed_at ? $o->completed_at->format('Y-m-d H:i') : ($o->order_date ? date('Y-m-d H:i', strtotime($o->order_date)) : '—');
 
                 $fees = $o->fee_breakdown_details;
-                $retOrder = $o->returnOrder;
-                $refundAmt = $retOrder ? (float)$retOrder->refund_amount : (in_array(strtoupper($o->order_status), ['RETURNED', 'REFUNDED', 'RETURN']) ? (float)$o->total_amount : 0.0);
-
-                if ($refundAmt == 0) {
-                    $fb = $o->financial_breakdown ?? [];
-                    if (isset($fb['customer_refund_amount']) && (float)$fb['customer_refund_amount'] != 0) {
-                        $refundAmt = abs((float)$fb['customer_refund_amount']);
-                    } elseif (isset($fb['gross_sales_refund_amount']) && (float)$fb['gross_sales_refund_amount'] != 0) {
-                        $refundAmt = abs((float)$fb['gross_sales_refund_amount']);
-                    } elseif (isset($fb['seller_return_refund']) && (float)$fb['seller_return_refund'] != 0) {
-                        $refundAmt = abs((float)$fb['seller_return_refund']);
-                    } elseif (isset($fb['refund_amount']) && (float)$fb['refund_amount'] != 0) {
-                        $refundAmt = abs((float)$fb['refund_amount']);
-                    }
-                }
+                $refundAmt = $o->refund_amount;
 
                 $absFee = abs($fees['total_fee'] ?? 0);
                 if ($refundAmt >= (float)$o->total_amount && (float)$o->total_amount > 0) {
