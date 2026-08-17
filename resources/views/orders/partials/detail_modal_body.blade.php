@@ -343,6 +343,26 @@
                 $fb = $order->financial_breakdown ?? [];
                 $stmtList = $fb['statement_transactions'] ?? $fb['statement_transaction_list'] ?? [];
                 $st0 = (is_array($stmtList) && !empty($stmtList[0]) && is_array($stmtList[0])) ? $stmtList[0] : $fb;
+
+                $getFee = function(array $keys, $fallback = 0) use ($st0) {
+                    foreach ($keys as $k) {
+                        if (isset($st0[$k]) && $st0[$k] !== '' && $st0[$k] !== null) {
+                            return (float) $st0[$k];
+                        }
+                    }
+                    return (float) $fallback;
+                };
+
+                $preorderFeeVal = $getFee(['preorder_service_fee_amount', 'preorder_fee_amount', 'preorder_service_fee', 'preorder_fee', 'pre_order_service_fee_amount', 'pre_order_service_fee']);
+                $platformCommVal = $getFee(['platform_commission_amount', 'platform_commission', 'commission_amount', 'commission_fee']);
+                $growthXtraVal = $getFee(['growth_xtra_fee_amount', 'growth_program_fee_amount', 'free_shipping_fee_amount', 'growth_xtra_fee', 'free_shipping_service_fee_amount']);
+                $transFeeVal = $getFee(['transaction_fee_amount', 'order_processing_fee_amount', 'transaction_fee', 'order_processing_fee']);
+                $affiliateCommVal = $getFee(['affiliate_commission_amount', 'affiliate_ads_commission_amount', 'affiliate_commission']);
+                $dynamicCommVal = $getFee(['dynamic_commission_amount', 'dynamic_commission']);
+                $actualShippingVal = $getFee(['actual_shipping_fee_amount', 'actual_shipping_fee']);
+                $returnShippingVal = $getFee(['actual_return_shipping_fee_amount', 'return_shipping_fee_amount', 'actual_return_shipping_fee', 'return_shipping_fee']);
+                $logisticsFeeVal = $getFee(['shipping_cost_amount', 'shipping_cost', 'shipping_service_fee_amount', 'logistics_service_fee_amount']);
+                $totalFeeVal = $getFee(['fee_amount', 'total_fee_amount', 'total_fee'], $order->marketplace_fee);
             @endphp
             <div class="card border shadow-sm mb-3 rounded-3">
                 <div class="card-header bg-dark bg-opacity-10 py-2 px-3 border-bottom d-flex justify-content-between align-items-center">
@@ -379,16 +399,16 @@
                                         <tr class="table-danger text-danger fw-bold"><td>Subtotal pengembalian dana setelah diskon penjual</td><td>-Rp {{ number_format(abs((float)($st0['customer_refund_amount'] ?? $order->refund_amount)), 0, ',', '.') }}</td></tr>
                                     @endif
 
-                                    <tr class="text-danger"><td>Biaya komisi platform</td><td>{{ (float)($st0['platform_commission_amount'] ?? 0) != 0 ? '-Rp ' . number_format(abs((float)$st0['platform_commission_amount']), 0, ',', '.') : '0' }}</td></tr>
-                                    <tr class="text-danger"><td>Biaya layanan pre-order</td><td>{{ (float)($st0['preorder_service_fee_amount'] ?? 0) != 0 ? '-Rp ' . number_format(abs((float)$st0['preorder_service_fee_amount']), 0, ',', '.') : '0' }}</td></tr>
-                                    <tr class="text-danger"><td>Biaya layanan Program Bebas Ongkir</td><td>{{ (float)($st0['growth_xtra_fee_amount'] ?? 0) != 0 ? '-Rp ' . number_format(abs((float)$st0['growth_xtra_fee_amount']), 0, ',', '.') : '0' }}</td></tr>
-                                    <tr class="text-danger"><td>Biaya pemrosesan pesanan</td><td>{{ (float)($st0['transaction_fee_amount'] ?? 0) != 0 ? '-Rp ' . number_format(abs((float)$st0['transaction_fee_amount']), 0, ',', '.') : '0' }}</td></tr>
-                                    <tr class="text-danger"><td>Komisi Afiliasi</td><td>{{ (float)($st0['affiliate_commission_amount'] ?? 0) != 0 ? '-Rp ' . number_format(abs((float)$st0['affiliate_commission_amount']), 0, ',', '.') : '0' }}</td></tr>
-                                    <tr class="text-danger"><td>Komisi dinamis</td><td>{{ (float)($st0['dynamic_commission_amount'] ?? 0) != 0 ? '-Rp ' . number_format(abs((float)$st0['dynamic_commission_amount']), 0, ',', '.') : '0' }}</td></tr>
-                                    <tr class="text-danger"><td>Ongkir yang ditalangi penyedia jasa logistik</td><td>{{ (float)($st0['actual_shipping_fee_amount'] ?? 0) != 0 ? '-Rp ' . number_format(abs((float)$st0['actual_shipping_fee_amount']), 0, ',', '.') : '0' }}</td></tr>
-                                    <tr class="text-danger"><td>Ongkir pengembalian barang (ditanggung pembeli)</td><td>{{ (float)($st0['actual_return_shipping_fee_amount'] ?? $st0['return_shipping_fee_amount'] ?? 0) != 0 ? '-Rp ' . number_format(abs((float)($st0['actual_return_shipping_fee_amount'] ?? $st0['return_shipping_fee_amount'])), 0, ',', '.') : '0' }}</td></tr>
-                                    <tr class="text-danger"><td>Biaya layanan logistik</td><td>{{ (float)($st0['shipping_cost_amount'] ?? 0) != 0 ? '-Rp ' . number_format(abs((float)$st0['shipping_cost_amount']), 0, ',', '.') : '0' }}</td></tr>
-                                    <tr class="table-danger text-danger fw-bold"><td>Total Biaya / Potongan Admin</td><td>-Rp {{ number_format(abs((float)($st0['fee_amount'] ?? $order->marketplace_fee)), 0, ',', '.') }}</td></tr>
+                                    <tr class="text-danger"><td>Biaya komisi platform</td><td>{{ $platformCommVal != 0 ? '-Rp ' . number_format(abs($platformCommVal), 0, ',', '.') : '0' }}</td></tr>
+                                    <tr class="text-danger"><td>Biaya layanan pre-order</td><td>{{ $preorderFeeVal != 0 ? '-Rp ' . number_format(abs($preorderFeeVal), 0, ',', '.') : '0' }}</td></tr>
+                                    <tr class="text-danger"><td>Biaya layanan Program Bebas Ongkir</td><td>{{ $growthXtraVal != 0 ? '-Rp ' . number_format(abs($growthXtraVal), 0, ',', '.') : '0' }}</td></tr>
+                                    <tr class="text-danger"><td>Biaya pemrosesan pesanan</td><td>{{ $transFeeVal != 0 ? '-Rp ' . number_format(abs($transFeeVal), 0, ',', '.') : '0' }}</td></tr>
+                                    <tr class="text-danger"><td>Komisi Afiliasi</td><td>{{ $affiliateCommVal != 0 ? '-Rp ' . number_format(abs($affiliateCommVal), 0, ',', '.') : '0' }}</td></tr>
+                                    <tr class="text-danger"><td>Komisi dinamis</td><td>{{ $dynamicCommVal != 0 ? '-Rp ' . number_format(abs($dynamicCommVal), 0, ',', '.') : '0' }}</td></tr>
+                                    <tr class="text-danger"><td>Ongkir yang ditalangi penyedia jasa logistik</td><td>{{ $actualShippingVal != 0 ? '-Rp ' . number_format(abs($actualShippingVal), 0, ',', '.') : '0' }}</td></tr>
+                                    <tr class="text-danger"><td>Ongkir pengembalian barang (ditanggung pembeli)</td><td>{{ $returnShippingVal != 0 ? '-Rp ' . number_format(abs($returnShippingVal), 0, ',', '.') : '0' }}</td></tr>
+                                    <tr class="text-danger"><td>Biaya layanan logistik</td><td>{{ $logisticsFeeVal != 0 ? '-Rp ' . number_format(abs($logisticsFeeVal), 0, ',', '.') : '0' }}</td></tr>
+                                    <tr class="table-danger text-danger fw-bold"><td>Total Biaya / Potongan Admin</td><td>-Rp {{ number_format(abs($totalFeeVal), 0, ',', '.') }}</td></tr>
                                     
                                     <tr><td>Pembayaran oleh pembeli</td><td>Rp {{ number_format((float)($st0['customer_payment_amount'] ?? $st0['total_amount'] ?? $order->total_amount), 0, ',', '.') }}</td></tr>
                                     @if ((float)($st0['customer_order_refund_amount'] ?? 0) > 0)
