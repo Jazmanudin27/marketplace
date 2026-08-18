@@ -296,7 +296,7 @@
                             <th class="py-2 text-center border-start" colspan="2" style="background:#eff6ff; color:#1d4ed8;">OMSET</th>
                             <th class="py-2 text-center border-start" colspan="2" style="background:#fff7ed; color:#c2410c;">BIAYA ADMIN</th>
                             <th class="py-2 text-center border-start" colspan="2" style="background:#f0fdf4; color:#15803d;">DANA CAIR</th>
-                            <th class="py-2 text-center border-start" colspan="2" style="background:#fdf4ff; color:#7e22ce;">SELISIH ERP-API</th>
+                            <th class="py-2 text-center border-start" colspan="3" style="background:#fdf4ff; color:#7e22ce;">SELISIH ERP-API</th>
                         </tr>
                         <tr class="text-uppercase fw-bold" style="background:#f8fafc; font-size:0.66rem;">
                             <th class="py-2 text-end border-start" style="color:#1d4ed8;">ERP</th>
@@ -306,12 +306,13 @@
                             <th class="py-2 text-end border-start" style="color:#15803d;">ERP</th>
                             <th class="py-2 text-end" style="color:#15803d;">API</th>
                             <th class="py-2 text-end border-start" style="color:#7e22ce;">OMSET</th>
+                            <th class="py-2 text-end" style="color:#7e22ce;">BIAYA ADMIN</th>
                             <th class="py-2 text-end pe-4" style="color:#7e22ce;">DANA CAIR</th>
                         </tr>
                     </thead>
                     <tbody id="compareTableBody">
                         <tr>
-                            <td colspan="10" class="text-center py-5 text-secondary">
+                            <td colspan="11" class="text-center py-5 text-secondary">
                                 <i class="fas fa-spinner fa-spin me-2"></i> Memuat data...
                             </td>
                         </tr>
@@ -341,11 +342,12 @@
                                 <th class="py-2 text-end" style="color:#c2410c;">ADMIN API</th>
                                 <th class="py-2 text-end" style="color:#15803d;">CAIR ERP</th>
                                 <th class="py-2 text-end" style="color:#15803d;">CAIR API</th>
+                                <th class="py-2 text-end" style="color:#7e22ce;">SELISIH ADMIN</th>
                                 <th class="py-2 text-end pe-4" style="color:#7e22ce;">SELISIH CAIR</th>
                             </tr>
                         </thead>
                         <tbody id="storeDetailBody">
-                            <tr><td colspan="11" class="text-center py-3 text-secondary"><i class="fas fa-spinner fa-spin me-1"></i> Memuat...</td></tr>
+                            <tr><td colspan="12" class="text-center py-3 text-secondary"><i class="fas fa-spinner fa-spin me-1"></i> Memuat...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -797,6 +799,7 @@
                     <td class="text-end font-monospace border-start" style="color:#15803d;">${formatRp(d.erp_net)}</td>
                     <td class="text-end font-monospace" style="color:#15803d; background:#f0fdf4;">${formatRp(d.api_net)}</td>
                     <td class="text-end border-start">${diffBadge(d.diff_omset)}</td>
+                    <td class="text-end">${diffBadge(d.diff_fee)}</td>
                     <td class="text-end pe-4">${diffBadge(d.diff_net)}</td>
                 </tr>`;
         }
@@ -809,9 +812,9 @@
             btn.disabled = true;
             btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Memuat...';
 
-            document.getElementById('compareTableBody').innerHTML = '<tr><td colspan="10" class="text-center py-4 text-secondary"><i class="fas fa-spinner fa-spin me-2"></i> Mengambil data ERP + API...</td></tr>';
+            document.getElementById('compareTableBody').innerHTML = '<tr><td colspan="11" class="text-center py-4 text-secondary"><i class="fas fa-spinner fa-spin me-2"></i> Mengambil data ERP + API...</td></tr>';
             document.getElementById('compareTableFoot').innerHTML = '';
-            document.getElementById('storeDetailBody').innerHTML = '<tr><td colspan="11" class="text-center py-3 text-secondary"><i class="fas fa-spinner fa-spin me-1"></i> Memuat...</td></tr>';
+            document.getElementById('storeDetailBody').innerHTML = '<tr><td colspan="12" class="text-center py-3 text-secondary"><i class="fas fa-spinner fa-spin me-1"></i> Memuat...</td></tr>';
 
             const params = new URLSearchParams({ date_from: dateFrom, date_to: dateTo });
 
@@ -844,6 +847,7 @@
                         <td class="text-end font-monospace fw-bold border-start" style="color:#86efac;">${formatRp(t.erp_net)}</td>
                         <td class="text-end font-monospace fw-bold" style="color:#86efac;">${formatRp(t.api_net)}</td>
                         <td class="text-end border-start">${diffBadge(t.diff_omset)}</td>
+                        <td class="text-end">${diffBadge(t.diff_fee)}</td>
                         <td class="text-end pe-4">${diffBadge(t.diff_net)}</td>
                     </tr>`;
 
@@ -863,11 +867,12 @@
                                 <td class="text-end font-monospace" style="color:#c2410c; background:#fff7ed;">${formatRp(s.api_fee)}</td>
                                 <td class="text-end font-monospace" style="color:#15803d;">${formatRp(s.erp_net)}</td>
                                 <td class="text-end font-monospace" style="color:#15803d; background:#f0fdf4;">${formatRp(s.api_net)}</td>
+                                <td class="text-end">${diffBadge(s.diff_fee)}</td>
                                 <td class="text-end pe-4">${diffBadge(s.diff_net)}</td>
                             </tr>`;
                     });
                 } else {
-                    storeHtml = '<tr><td colspan="11" class="text-center py-3 text-secondary">Tidak ada data toko.</td></tr>';
+                    storeHtml = '<tr><td colspan="12" class="text-center py-3 text-secondary">Tidak ada data toko.</td></tr>';
                 }
 
                 document.getElementById('storeDetailBody').innerHTML = storeHtml;
@@ -875,7 +880,7 @@
             .catch(err => {
                 btn.disabled = false;
                 btn.innerHTML = '<i class="fas fa-search me-1"></i> Tampilkan';
-                document.getElementById('compareTableBody').innerHTML = `<tr><td colspan="5" class="text-center py-4 text-danger"><i class="fas fa-exclamation-triangle me-2"></i>Gagal memuat: ${err.message}</td></tr>`;
+                document.getElementById('compareTableBody').innerHTML = `<tr><td colspan="11" class="text-center py-4 text-danger"><i class="fas fa-exclamation-triangle me-2"></i>Gagal memuat: ${err.message}</td></tr>`;
             });
         }
 
