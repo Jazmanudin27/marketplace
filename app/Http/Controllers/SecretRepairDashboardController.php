@@ -173,8 +173,49 @@ class SecretRepairDashboardController extends Controller
                     break;
 
                 case 'git_pull':
-                    $gitOutput = shell_exec('cd ' . escapeshellarg(base_path()) . ' && git pull 2>&1');
-                    $output = "🔄 Git Pull Output:\n" . ($gitOutput ?: '(tidak ada output)');
+                    $basePath = base_path();
+                    $gitDir   = $basePath . '/.git';
+
+                    // Coba fix permission .git agar www-data bisa write
+                    $webUser = trim(shell_exec('whoami 2>&1') ?: 'www-data');
+                    shell_exec('chmod -R ug+rw ' . escapeshellarg($gitDir) . ' 2>&1');
+                    @chmod($gitDir . '/FETCH_HEAD', 0664);
+                    @touch($gitDir . '/FETCH_HEAD');
+
+                    // Jalankan git pull
+                    $homeDir  = '/var/www';
+                    $gitOutput = shell_exec(
+                        'HOME=' . escapeshellarg($homeDir) .
+                        ' GIT_DIR=' . escapeshellarg($gitDir) .
+                        ' GIT_WORK_TREE=' . escapeshellarg($basePath) .
+                        ' git -C ' . escapeshellarg($basePath) . ' pull 2>&1'
+                    );
+
+                    // Fallback: coba dengan env HOME=/root
+                    if (empty($gitOutput) || str_contains($gitOutput, 'Permission denied')) {
+                        $gitOutput = shell_exec(
+                            'HOME=/root git -C ' . escapeshellarg($basePath) . ' pull 2>&1'
+                        );
+                    }
+
+                    $output = "🔄 Git Pull (user: {$webUser}):\n" . ($gitOutput ?: '(tidak ada output)');
+                    break;
+
+                case 'fix_git_permissions':
+                    $basePath  = base_path();
+                    $gitDir    = $basePath . '/.git';
+                    $webUser   = trim(shell_exec('whoami 2>&1') ?: 'www-data');
+                    $chownOut  = shell_exec('chown -R ' . escapeshellarg($webUser . ':' . $webUser) . ' ' . escapeshellarg($gitDir) . ' 2>&1');
+                    $chmodOut  = shell_exec('chmod -R ug+rw ' . escapeshellarg($gitDir) . ' 2>&1');
+                    $chmodOut2 = shell_exec('chmod -R ug+rw ' . escapeshellarg($basePath . '/storage') . ' 2>&1');
+                    $chmodOut3 = shell_exec('chmod -R ug+rw ' . escapeshellarg($basePath . '/bootstrap/cache') . ' 2>&1');
+
+                    $output  = "🔧 Fix Git & Storage Permissions (user: {$webUser}):\n";
+                    $output .= "chown .git : " . ($chownOut  ?: '✅ OK') . "\n";
+                    $output .= "chmod .git : " . ($chmodOut  ?: '✅ OK') . "\n";
+                    $output .= "chmod storage : " . ($chmodOut2 ?: '✅ OK') . "\n";
+                    $output .= "chmod bootstrap/cache : " . ($chmodOut3 ?: '✅ OK') . "\n";
+                    $output .= "\n✅ Selesai! Coba Git Pull lagi.";
                     break;
 
                 case 'artisan_optimize':
@@ -334,7 +375,7 @@ class SecretRepairDashboardController extends Controller
     }
 
     /**
-     * AJAX: Ambil data perbandingan ERP vs Marketplace per channel dengan filter tanggal
+     * AJAX: Ambil data perbandingan ERP vs API (financial_breakdown) per channel dengan filter tanggal
      */
     public function compareStats(Request $request)
     {
@@ -345,39 +386,82 @@ class SecretRepairDashboardController extends Controller
         $dateFrom = $request->input('date_from');
         $dateTo   = $request->input('date_to');
 
-        // Build base query dengan filter tanggal
         $applyDateFilter = function ($query) use ($dateFrom, $dateTo) {
-            if ($dateFrom) {
-                $query->whereDate('order_date', '>=', $dateFrom);
-            }
-            if ($dateTo) {
-                $query->whereDate('order_date', '<=', $dateTo);
-            }
+            if ($dateFrom) $query->whereDate('order_date', '>=', $dateFrom);
+            if ($dateTo)   $query->whereDate('order_date', '<=', $dateTo);
             return $query;
         };
 
         $tiktokStores = Store::whereHas('channel', fn($q) => $q->where('code', 'LIKE', '%tiktok%'))->pluck('id');
         $shopeeStores = Store::whereHas('channel', fn($q) => $q->where('code', 'LIKE', '%shopee%'))->pluck('id');
-
         $notCancelled = ['CANCELLED', 'BATAL', 'CANCELED'];
 
-        // ── TikTok ERP Stats ─────────────────────────────────────────────────
-        $tiktokQ = Order::whereIn('store_id', $tiktokStores);
-        $applyDateFilter($tiktokQ);
+        // Helper: hitung stats ERP + API dari sekumpulan order (sudah di-filter date & store)
+        $calcStats = function ($storeIds) use ($applyDateFilter, $notCancelled) {
+            $q = Order::whereIn('store_id', $storeIds);
+            $applyDateFilter($q);
 
-        $tiktokErpCount   = (clone $tiktokQ)->count();
-        $tiktokErpOmset   = (clone $tiktokQ)->whereNotIn('order_status', $notCancelled)->sum('total_amount');
-        $tiktokErpFee     = (clone $tiktokQ)->whereNotIn('order_status', $notCancelled)->sum('marketplace_fee');
-        $tiktokErpNet     = (clone $tiktokQ)->whereNotIn('order_status', $notCancelled)->sum('net_amount');
+            $erpCount = (clone $q)->count();
+            $active   = (clone $q)->whereNotIn('order_status', $notCancelled);
 
-        // ── Shopee ERP Stats ─────────────────────────────────────────────────
-        $shopeeQ = Order::whereIn('store_id', $shopeeStores);
-        $applyDateFilter($shopeeQ);
+            $erpOmset = (clone $active)->sum('total_amount');
+            $erpFee   = (clone $active)->sum('marketplace_fee');
+            $erpNet   = (clone $active)->sum('net_amount');
 
-        $shopeeErpCount   = (clone $shopeeQ)->count();
-        $shopeeErpOmset   = (clone $shopeeQ)->whereNotIn('order_status', $notCancelled)->sum('total_amount');
-        $shopeeErpFee     = (clone $shopeeQ)->whereNotIn('order_status', $notCancelled)->sum('marketplace_fee');
-        $shopeeErpNet     = (clone $shopeeQ)->whereNotIn('order_status', $notCancelled)->sum('net_amount');
+            // ── Data API dari financial_breakdown (JSON field di DB) ──
+            // Gunakan PHP aggregation agar kompatibel MySQL 5.7 & 8.0
+            $apiOmset = $apiFee = $apiNet = $apiCount = 0;
+
+            (clone $active)->whereNotNull('financial_breakdown')
+                ->select(['financial_breakdown', 'total_amount', 'marketplace_fee', 'net_amount'])
+                ->chunk(500, function ($orders) use (&$apiOmset, &$apiFee, &$apiNet, &$apiCount) {
+                    foreach ($orders as $ord) {
+                        $fb = $ord->financial_breakdown;
+                        if (is_string($fb)) $fb = json_decode($fb, true);
+                        if (!is_array($fb)) continue;
+
+                        // Omset API: subtotal_after_seller_discounts → original_price → total_amount kolom ERP
+                        $o = (float)($fb['subtotal_after_seller_discounts']
+                            ?? $fb['original_price']
+                            ?? $fb['buyer_paid_total']
+                            ?? $ord->total_amount
+                            ?? 0);
+
+                        // Biaya Admin API: service_fee → net_platform_commission → marketplace_fee kolom ERP
+                        $f = (float)($fb['service_fee']
+                            ?? $fb['net_platform_commission']
+                            ?? $fb['platform_commission']
+                            ?? $ord->marketplace_fee
+                            ?? 0);
+
+                        // Dana Cair API: escrow_amount → settlement_amount → net_amount kolom ERP
+                        $n = (float)($fb['escrow_amount']
+                            ?? $fb['settlement_amount']
+                            ?? $fb['seller_settlement_amount']
+                            ?? $ord->net_amount
+                            ?? 0);
+
+                        $apiOmset += $o;
+                        $apiFee   += $f;
+                        $apiNet   += $n;
+                        $apiCount++;
+                    }
+                });
+
+            return [
+                'erp_count'  => $erpCount,
+                'erp_omset'  => (float) $erpOmset,
+                'erp_fee'    => (float) $erpFee,
+                'erp_net'    => (float) $erpNet,
+                'api_count'  => $apiCount,   // jumlah order yg punya financial_breakdown
+                'api_omset'  => $apiOmset,
+                'api_fee'    => $apiFee,
+                'api_net'    => $apiNet,
+                'diff_omset' => (float)$erpOmset - $apiOmset,
+                'diff_fee'   => (float)$erpFee   - $apiFee,
+                'diff_net'   => (float)$erpNet    - $apiNet,
+            ];
+        };
 
         // ── Per Store Breakdown ───────────────────────────────────────────────
         $allStores = Store::with('channel')
@@ -390,53 +474,57 @@ class SecretRepairDashboardController extends Controller
             $applyDateFilter($sq);
 
             $count  = (clone $sq)->count();
-            $omset  = (clone $sq)->whereNotIn('order_status', $notCancelled)->sum('total_amount');
-            $fee    = (clone $sq)->whereNotIn('order_status', $notCancelled)->sum('marketplace_fee');
-            $net    = (clone $sq)->whereNotIn('order_status', $notCancelled)->sum('net_amount');
             $cancel = (clone $sq)->whereIn('order_status', $notCancelled)->count();
+            $active = (clone $sq)->whereNotIn('order_status', $notCancelled);
+            $omset  = (clone $active)->sum('total_amount');
+            $fee    = (clone $active)->sum('marketplace_fee');
+            $net    = (clone $active)->sum('net_amount');
+
+            $apiO = $apiF = $apiN = 0;
+            (clone $active)->whereNotNull('financial_breakdown')
+                ->select(['financial_breakdown', 'total_amount', 'marketplace_fee', 'net_amount'])
+                ->chunk(300, function ($orders) use (&$apiO, &$apiF, &$apiN) {
+                    foreach ($orders as $ord) {
+                        $fb = $ord->financial_breakdown;
+                        if (is_string($fb)) $fb = json_decode($fb, true);
+                        if (!is_array($fb)) continue;
+                        $apiO += (float)($fb['subtotal_after_seller_discounts'] ?? $fb['original_price'] ?? $fb['buyer_paid_total'] ?? $ord->total_amount ?? 0);
+                        $apiF += (float)($fb['service_fee'] ?? $fb['net_platform_commission'] ?? $fb['platform_commission'] ?? $ord->marketplace_fee ?? 0);
+                        $apiN += (float)($fb['escrow_amount'] ?? $fb['settlement_amount'] ?? $fb['seller_settlement_amount'] ?? $ord->net_amount ?? 0);
+                    }
+                });
 
             $storeRows[] = [
-                'store_name'   => $st->store_name,
-                'channel'      => strtolower($st->channel->code ?? ''),
-                'erp_count'    => $count,
-                'erp_omset'    => (float) $omset,
-                'erp_fee'      => (float) $fee,
-                'erp_net'      => (float) $net,
-                'erp_cancelled'=> $cancel,
+                'store_name'    => $st->store_name,
+                'channel'       => strtolower($st->channel->code ?? ''),
+                'erp_count'     => $count,
+                'erp_cancelled' => $cancel,
+                'erp_omset'     => (float) $omset,
+                'erp_fee'       => (float) $fee,
+                'erp_net'       => (float) $net,
+                'api_omset'     => $apiO,
+                'api_fee'       => $apiF,
+                'api_net'       => $apiN,
+                'diff_omset'    => (float)$omset - $apiO,
+                'diff_fee'      => (float)$fee - $apiF,
+                'diff_net'      => (float)$net - $apiN,
             ];
         }
 
-        // ── Grand Total ───────────────────────────────────────────────────────
-        $allQ = Order::whereIn('store_id', $tiktokStores->merge($shopeeStores));
-        $applyDateFilter($allQ);
+        $tiktok = $calcStats($tiktokStores);
+        $shopee = $calcStats($shopeeStores);
 
-        $totalCount = (clone $allQ)->count();
-        $totalOmset = (clone $allQ)->whereNotIn('order_status', $notCancelled)->sum('total_amount');
-        $totalFee   = (clone $allQ)->whereNotIn('order_status', $notCancelled)->sum('marketplace_fee');
-        $totalNet   = (clone $allQ)->whereNotIn('order_status', $notCancelled)->sum('net_amount');
+        $allStoreIds = $tiktokStores->merge($shopeeStores);
+        $total = $calcStats($allStoreIds);
 
         return response()->json([
-            'date_from'  => $dateFrom ?: 'Semua waktu',
-            'date_to'    => $dateTo   ?: 'Semua waktu',
-            'tiktok' => [
-                'erp_count' => $tiktokErpCount,
-                'erp_omset' => (float) $tiktokErpOmset,
-                'erp_fee'   => (float) $tiktokErpFee,
-                'erp_net'   => (float) $tiktokErpNet,
-            ],
-            'shopee' => [
-                'erp_count' => $shopeeErpCount,
-                'erp_omset' => (float) $shopeeErpOmset,
-                'erp_fee'   => (float) $shopeeErpFee,
-                'erp_net'   => (float) $shopeeErpNet,
-            ],
-            'total' => [
-                'erp_count' => $totalCount,
-                'erp_omset' => (float) $totalOmset,
-                'erp_fee'   => (float) $totalFee,
-                'erp_net'   => (float) $totalNet,
-            ],
-            'stores' => $storeRows,
+            'date_from' => $dateFrom ?: 'Semua waktu',
+            'date_to'   => $dateTo   ?: 'Semua waktu',
+            'tiktok'    => $tiktok,
+            'shopee'    => $shopee,
+            'total'     => $total,
+            'stores'    => $storeRows,
         ]);
     }
 }
+

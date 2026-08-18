@@ -287,19 +287,31 @@
 
             <!-- Tabel Ringkasan Channel -->
             <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0" style="font-size: 0.84rem;" id="compareTable">
-                    <thead class="table-light text-uppercase fw-bold text-dark" style="font-size: 0.7rem;">
-                        <tr>
-                            <th class="ps-4 py-3" style="min-width:160px;">CHANNEL / TOKO</th>
-                            <th class="py-3 text-end" style="min-width:110px;">JML ORDER ERP</th>
-                            <th class="py-3 text-end" style="min-width:140px;">OMSET ERP</th>
-                            <th class="py-3 text-end" style="min-width:145px;">BIAYA ADMIN ERP</th>
-                            <th class="py-3 text-end pe-4" style="min-width:140px;">DANA CAIR ERP</th>
+                <table class="table table-hover align-middle mb-0" style="font-size: 0.82rem;" id="compareTable">
+                    <thead style="font-size: 0.68rem;">
+                        <!-- Group Header -->
+                        <tr class="text-uppercase fw-bold" style="background:#f1f5f9; border-bottom:1px solid #e2e8f0;">
+                            <th class="ps-4 py-2" rowspan="2" style="vertical-align:middle; min-width:170px;">CHANNEL</th>
+                            <th class="py-2 text-end" rowspan="2" style="vertical-align:middle; min-width:100px;">JML ORDER ERP</th>
+                            <th class="py-2 text-center border-start" colspan="2" style="background:#eff6ff; color:#1d4ed8;">OMSET</th>
+                            <th class="py-2 text-center border-start" colspan="2" style="background:#fff7ed; color:#c2410c;">BIAYA ADMIN</th>
+                            <th class="py-2 text-center border-start" colspan="2" style="background:#f0fdf4; color:#15803d;">DANA CAIR</th>
+                            <th class="py-2 text-center border-start" colspan="2" style="background:#fdf4ff; color:#7e22ce;">SELISIH ERP-API</th>
+                        </tr>
+                        <tr class="text-uppercase fw-bold" style="background:#f8fafc; font-size:0.66rem;">
+                            <th class="py-2 text-end border-start" style="color:#1d4ed8;">ERP</th>
+                            <th class="py-2 text-end" style="color:#1d4ed8;">API</th>
+                            <th class="py-2 text-end border-start" style="color:#c2410c;">ERP</th>
+                            <th class="py-2 text-end" style="color:#c2410c;">API</th>
+                            <th class="py-2 text-end border-start" style="color:#15803d;">ERP</th>
+                            <th class="py-2 text-end" style="color:#15803d;">API</th>
+                            <th class="py-2 text-end border-start" style="color:#7e22ce;">OMSET</th>
+                            <th class="py-2 text-end pe-4" style="color:#7e22ce;">DANA CAIR</th>
                         </tr>
                     </thead>
                     <tbody id="compareTableBody">
                         <tr>
-                            <td colspan="5" class="text-center py-5 text-secondary">
+                            <td colspan="10" class="text-center py-5 text-secondary">
                                 <i class="fas fa-spinner fa-spin me-2"></i> Memuat data...
                             </td>
                         </tr>
@@ -317,19 +329,23 @@
             <div class="collapse" id="storeDetailCollapse">
                 <div class="table-responsive border-top">
                     <table class="table table-sm table-hover align-middle mb-0" style="font-size:0.81rem;">
-                        <thead class="table-light text-uppercase fw-bold text-dark" style="font-size:0.68rem;">
+                        <thead class="text-uppercase fw-bold" style="font-size:0.66rem; background:#f8fafc;">
                             <tr>
                                 <th class="ps-4 py-2">NAMA TOKO</th>
-                                <th class="py-2">CHANNEL</th>
+                                <th class="py-2">CH</th>
                                 <th class="py-2 text-end">JML ORDER</th>
-                                <th class="py-2 text-end">ORDER BATAL</th>
-                                <th class="py-2 text-end">OMSET</th>
-                                <th class="py-2 text-end">BIAYA ADMIN</th>
-                                <th class="py-2 text-end pe-4">DANA CAIR</th>
+                                <th class="py-2 text-end text-danger">BATAL</th>
+                                <th class="py-2 text-end" style="color:#1d4ed8;">OMSET ERP</th>
+                                <th class="py-2 text-end" style="color:#1d4ed8;">OMSET API</th>
+                                <th class="py-2 text-end" style="color:#c2410c;">ADMIN ERP</th>
+                                <th class="py-2 text-end" style="color:#c2410c;">ADMIN API</th>
+                                <th class="py-2 text-end" style="color:#15803d;">CAIR ERP</th>
+                                <th class="py-2 text-end" style="color:#15803d;">CAIR API</th>
+                                <th class="py-2 text-end pe-4" style="color:#7e22ce;">SELISIH CAIR</th>
                             </tr>
                         </thead>
                         <tbody id="storeDetailBody">
-                            <tr><td colspan="7" class="text-center py-3 text-secondary"><i class="fas fa-spinner fa-spin me-1"></i> Memuat...</td></tr>
+                            <tr><td colspan="11" class="text-center py-3 text-secondary"><i class="fas fa-spinner fa-spin me-1"></i> Memuat...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -737,7 +753,7 @@
             triggerRepair('artisan_migrate', btnElement);
         }
 
-        // ── COMPARE STATS (Tabel Perbandingan ERP) ─────────────────────────────
+        // ── COMPARE STATS (Tabel Perbandingan ERP vs API) ──────────────────────
         const compareUrl = '{{ route("secret_repair.compare_stats") }}';
 
         function formatRp(num) {
@@ -745,10 +761,34 @@
             return 'Rp ' + Math.round(num).toLocaleString('id-ID');
         }
 
+        function diffBadge(diff) {
+            if (Math.abs(diff) < 100) return `<span class="badge bg-success-subtle text-success-emphasis border border-success-subtle px-2" style="font-size:0.65rem;">✓ Match</span>`;
+            const cls = diff > 0 ? 'bg-warning-subtle text-warning-emphasis border-warning-subtle' : 'bg-danger-subtle text-danger-emphasis border-danger-subtle';
+            const sign = diff > 0 ? '+' : '';
+            return `<span class="badge ${cls} border px-2 font-monospace" style="font-size:0.65rem;">${sign}${formatRp(diff)}</span>`;
+        }
+
         function getChannelBadge(channel) {
-            if (channel.includes('tiktok')) return '<span class="badge bg-dark text-white" style="font-size:0.68rem;"><i class="fab fa-tiktok me-1"></i>TikTok</span>';
-            if (channel.includes('shopee')) return '<span class="badge bg-danger text-white" style="font-size:0.68rem;"><i class="fas fa-shopping-bag me-1"></i>Shopee</span>';
-            return '<span class="badge bg-secondary text-white" style="font-size:0.68rem;">' + channel + '</span>';
+            if (channel.includes('tiktok')) return '<span class="badge bg-dark text-white" style="font-size:0.65rem;"><i class="fab fa-tiktok me-1"></i>TikTok</span>';
+            if (channel.includes('shopee')) return '<span class="badge bg-danger text-white" style="font-size:0.65rem;"><i class="fas fa-shopping-bag me-1"></i>Shopee</span>';
+            return '<span class="badge bg-secondary text-white" style="font-size:0.65rem;">' + channel + '</span>';
+        }
+
+        function renderChannelRow(icon, label, d) {
+            return `
+                <tr>
+                    <td class="ps-4 fw-bold">${icon} ${label}</td>
+                    <td class="text-end font-monospace fw-semibold">${d.erp_count.toLocaleString('id-ID')}
+                        <br><small class="text-secondary" style="font-size:0.65rem;">API: ${d.api_count.toLocaleString('id-ID')}</small></td>
+                    <td class="text-end font-monospace border-start" style="color:#1d4ed8;">${formatRp(d.erp_omset)}</td>
+                    <td class="text-end font-monospace" style="color:#1d4ed8; background:#eff6ff;">${formatRp(d.api_omset)}</td>
+                    <td class="text-end font-monospace border-start" style="color:#c2410c;">${formatRp(d.erp_fee)}</td>
+                    <td class="text-end font-monospace" style="color:#c2410c; background:#fff7ed;">${formatRp(d.api_fee)}</td>
+                    <td class="text-end font-monospace border-start" style="color:#15803d;">${formatRp(d.erp_net)}</td>
+                    <td class="text-end font-monospace" style="color:#15803d; background:#f0fdf4;">${formatRp(d.api_net)}</td>
+                    <td class="text-end border-start">${diffBadge(d.diff_omset)}</td>
+                    <td class="text-end pe-4">${diffBadge(d.diff_net)}</td>
+                </tr>`;
         }
 
         function loadCompareStats() {
@@ -759,9 +799,9 @@
             btn.disabled = true;
             btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Memuat...';
 
-            document.getElementById('compareTableBody').innerHTML = '<tr><td colspan="5" class="text-center py-4 text-secondary"><i class="fas fa-spinner fa-spin me-2"></i> Mengambil data ERP...</td></tr>';
+            document.getElementById('compareTableBody').innerHTML = '<tr><td colspan="10" class="text-center py-4 text-secondary"><i class="fas fa-spinner fa-spin me-2"></i> Mengambil data ERP + API...</td></tr>';
             document.getElementById('compareTableFoot').innerHTML = '';
-            document.getElementById('storeDetailBody').innerHTML = '<tr><td colspan="7" class="text-center py-3 text-secondary"><i class="fas fa-spinner fa-spin me-1"></i> Memuat...</td></tr>';
+            document.getElementById('storeDetailBody').innerHTML = '<tr><td colspan="11" class="text-center py-3 text-secondary"><i class="fas fa-spinner fa-spin me-1"></i> Memuat...</td></tr>';
 
             const params = new URLSearchParams({ date_from: dateFrom, date_to: dateTo });
 
@@ -773,60 +813,53 @@
                 btn.disabled = false;
                 btn.innerHTML = '<i class="fas fa-search me-1"></i> Tampilkan';
 
-                // Update label filter
                 const label = (data.date_from === 'Semua waktu') ? 'Semua waktu' : (data.date_from + ' s/d ' + data.date_to);
                 document.getElementById('compareDateRangeText').textContent = label;
 
                 // Render channel rows
-                const tbody = document.getElementById('compareTableBody');
-                tbody.innerHTML = `
-                    <tr>
-                        <td class="ps-4 fw-bold"><i class="fab fa-tiktok me-2 text-dark"></i>TikTok Shop & Tokopedia</td>
-                        <td class="text-end font-monospace fw-bold">${data.tiktok.erp_count.toLocaleString('id-ID')}</td>
-                        <td class="text-end font-monospace text-dark">${formatRp(data.tiktok.erp_omset)}</td>
-                        <td class="text-end font-monospace text-danger">${formatRp(data.tiktok.erp_fee)}</td>
-                        <td class="text-end font-monospace text-success pe-4">${formatRp(data.tiktok.erp_net)}</td>
-                    </tr>
-                    <tr>
-                        <td class="ps-4 fw-bold"><i class="fas fa-shopping-bag me-2 text-danger"></i>Shopee Seller Center</td>
-                        <td class="text-end font-monospace fw-bold">${data.shopee.erp_count.toLocaleString('id-ID')}</td>
-                        <td class="text-end font-monospace text-dark">${formatRp(data.shopee.erp_omset)}</td>
-                        <td class="text-end font-monospace text-danger">${formatRp(data.shopee.erp_fee)}</td>
-                        <td class="text-end font-monospace text-success pe-4">${formatRp(data.shopee.erp_net)}</td>
-                    </tr>
-                `;
+                document.getElementById('compareTableBody').innerHTML =
+                    renderChannelRow('<i class="fab fa-tiktok text-dark"></i>', 'TikTok Shop & Tokopedia', data.tiktok) +
+                    renderChannelRow('<i class="fas fa-shopping-bag text-danger"></i>', 'Shopee Seller Center', data.shopee);
 
-                // Render footer total
+                // Footer Total
+                const t = data.total;
                 document.getElementById('compareTableFoot').innerHTML = `
-                    <tr style="border-top:2px solid #e2e8f0;">
-                        <td class="ps-4 text-uppercase text-dark fw-bold" style="font-size:0.72rem; letter-spacing:0.05em;">TOTAL SEMUA CHANNEL</td>
-                        <td class="text-end font-monospace fw-bold text-dark">${data.total.erp_count.toLocaleString('id-ID')} order</td>
-                        <td class="text-end font-monospace fw-bold text-dark">${formatRp(data.total.erp_omset)}</td>
-                        <td class="text-end font-monospace fw-bold text-danger">${formatRp(data.total.erp_fee)}</td>
-                        <td class="text-end font-monospace fw-bold text-success pe-4">${formatRp(data.total.erp_net)}</td>
-                    </tr>
-                `;
+                    <tr style="border-top:2px solid #334155; background:#0f172a; color:#fff;">
+                        <td class="ps-4 fw-bold text-white" style="font-size:0.72rem; letter-spacing:0.04em;">TOTAL SEMUA CHANNEL</td>
+                        <td class="text-end font-monospace fw-bold text-white">${t.erp_count.toLocaleString('id-ID')} order</td>
+                        <td class="text-end font-monospace fw-bold border-start" style="color:#93c5fd;">${formatRp(t.erp_omset)}</td>
+                        <td class="text-end font-monospace fw-bold" style="color:#93c5fd;">${formatRp(t.api_omset)}</td>
+                        <td class="text-end font-monospace fw-bold border-start" style="color:#fca5a5;">${formatRp(t.erp_fee)}</td>
+                        <td class="text-end font-monospace fw-bold" style="color:#fca5a5;">${formatRp(t.api_fee)}</td>
+                        <td class="text-end font-monospace fw-bold border-start" style="color:#86efac;">${formatRp(t.erp_net)}</td>
+                        <td class="text-end font-monospace fw-bold" style="color:#86efac;">${formatRp(t.api_net)}</td>
+                        <td class="text-end border-start">${diffBadge(t.diff_omset)}</td>
+                        <td class="text-end pe-4">${diffBadge(t.diff_net)}</td>
+                    </tr>`;
 
-                // Render per-store detail
+                // Per-store detail
                 let storeHtml = '';
                 if (data.stores && data.stores.length > 0) {
                     data.stores.forEach(s => {
-                        const pctFee  = s.erp_omset > 0 ? ((s.erp_fee / s.erp_omset) * 100).toFixed(1) : 0;
                         storeHtml += `
                             <tr>
-                                <td class="ps-4 fw-semibold text-dark">${escapeHtml(s.store_name)}</td>
+                                <td class="ps-4 fw-semibold">${escapeHtml(s.store_name)}</td>
                                 <td>${getChannelBadge(s.channel)}</td>
                                 <td class="text-end font-monospace">${s.erp_count.toLocaleString('id-ID')}</td>
                                 <td class="text-end font-monospace text-danger">${s.erp_cancelled.toLocaleString('id-ID')}</td>
-                                <td class="text-end font-monospace">${formatRp(s.erp_omset)}</td>
-                                <td class="text-end font-monospace text-danger">${formatRp(s.erp_fee)} <small class="text-secondary">(${pctFee}%)</small></td>
-                                <td class="text-end font-monospace text-success pe-4">${formatRp(s.erp_net)}</td>
-                            </tr>
-                        `;
+                                <td class="text-end font-monospace" style="color:#1d4ed8;">${formatRp(s.erp_omset)}</td>
+                                <td class="text-end font-monospace" style="color:#1d4ed8; background:#eff6ff;">${formatRp(s.api_omset)}</td>
+                                <td class="text-end font-monospace" style="color:#c2410c;">${formatRp(s.erp_fee)}</td>
+                                <td class="text-end font-monospace" style="color:#c2410c; background:#fff7ed;">${formatRp(s.api_fee)}</td>
+                                <td class="text-end font-monospace" style="color:#15803d;">${formatRp(s.erp_net)}</td>
+                                <td class="text-end font-monospace" style="color:#15803d; background:#f0fdf4;">${formatRp(s.api_net)}</td>
+                                <td class="text-end pe-4">${diffBadge(s.diff_net)}</td>
+                            </tr>`;
                     });
                 } else {
-                    storeHtml = '<tr><td colspan="7" class="text-center py-3 text-secondary">Tidak ada data toko.</td></tr>';
+                    storeHtml = '<tr><td colspan="11" class="text-center py-3 text-secondary">Tidak ada data toko.</td></tr>';
                 }
+
                 document.getElementById('storeDetailBody').innerHTML = storeHtml;
             })
             .catch(err => {
