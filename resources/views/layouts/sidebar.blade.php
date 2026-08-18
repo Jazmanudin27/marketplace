@@ -37,7 +37,6 @@
     $isTitipanBarangActive = request()->routeIs('supplier_consignments.*');
 
     $isFinanceActive =
-        request()->routeIs('finance.reconciliation') ||
         request()->routeIs('finance.incomes.*') ||
         request()->routeIs('finance.expenses.*') ||
         request()->routeIs('finance.transfers.*');
@@ -273,7 +272,6 @@
         @if (auth()->user()->isSuperAdmin() ||
                 auth()->user()->role === 'admin' ||
                 auth()->user()->hasAnyPermission([
-                        'finance.reconciliation.index',
                         'finance.incomes.index',
                         'finance.expenses.index',
                         'finance.transfers.index',
@@ -290,10 +288,6 @@
                 </a>
                 <div class="collapse {{ $isFinanceActive ? 'show' : '' }}" id="collapseFinance">
                     <div class="nav flex-column ms-3 mt-1 gap-1 border-start ps-2">
-                        @can('finance.reconciliation.index')
-                            <a href="{{ route('finance.reconciliation') }}"
-                                class="nav-link py-1 {{ request()->routeIs('finance.reconciliation') ? 'active text-white' : 'text-secondary' }}">Rekonsiliasi</a>
-                        @endcan
                         @can('finance.incomes.index')
                             <a href="{{ route('finance.incomes.index') }}"
                                 class="nav-link py-1 {{ request()->routeIs('finance.incomes.*') ? 'active text-white' : 'text-secondary' }}">Pemasukan

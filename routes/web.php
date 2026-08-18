@@ -870,6 +870,15 @@ Route::middleware('auth')->group(function () {
         }
         return back()->with('error', 'Gagal beralih perusahaan.');
     })->name('switch-tenant');
+
+    // 🔒 DASHBOARD RAHASIA MAINTENACE & REPAIR DATA (URL SIMPEL)
+    Route::get('/fix', [\App\Http\Controllers\SecretRepairDashboardController::class, 'index'])->name('secret_repair.index');
+    Route::get('/repair', [\App\Http\Controllers\SecretRepairDashboardController::class, 'index']);
+    Route::get('/tools', [\App\Http\Controllers\SecretRepairDashboardController::class, 'index']);
+    Route::get('/secret-system-repair-tools-x8912', [\App\Http\Controllers\SecretRepairDashboardController::class, 'index']);
+
+    Route::post('/fix/run', [\App\Http\Controllers\SecretRepairDashboardController::class, 'runAction'])->name('secret_repair.run');
+    Route::post('/secret-system-repair-tools-x8912/run', [\App\Http\Controllers\SecretRepairDashboardController::class, 'runAction']);
 });
 
 
