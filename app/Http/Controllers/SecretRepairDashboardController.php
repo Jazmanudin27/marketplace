@@ -172,6 +172,30 @@ class SecretRepairDashboardController extends Controller
                     $output = "🧹 Berhasil membersihkan seluruh Web Cache, View Cache, dan Memory Rekonsiliasi.";
                     break;
 
+                case 'git_pull':
+                    $gitOutput = shell_exec('cd ' . escapeshellarg(base_path()) . ' && git pull 2>&1');
+                    $output = "🔄 Git Pull Output:\n" . ($gitOutput ?: '(tidak ada output)');
+                    break;
+
+                case 'artisan_optimize':
+                    Artisan::call('optimize');
+                    $optimizeOut = Artisan::output();
+                    Artisan::call('view:clear');
+                    Artisan::call('config:clear');
+                    Artisan::call('route:clear');
+                    Artisan::call('config:cache');
+                    Artisan::call('route:cache');
+                    Artisan::call('view:cache');
+                    $output = "⚡ Artisan Optimize selesai:\n" . ($optimizeOut ?: 'Application optimized!');
+                    $output .= "\n✅ Config cache, route cache, dan view cache berhasil di-rebuild.";
+                    break;
+
+                case 'artisan_migrate':
+                    Artisan::call('migrate', ['--force' => true]);
+                    $migrateOut = Artisan::output();
+                    $output = "🗃️ Artisan Migrate Output:\n" . ($migrateOut ?: 'Nothing to migrate.');
+                    break;
+
                 default:
                     return response()->json(['success' => false, 'message' => 'Action tidak dikenali.'], 400);
             }

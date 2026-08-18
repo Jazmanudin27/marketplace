@@ -484,7 +484,68 @@
 
         </div>
 
-        <!-- 🖥️ SECTION 4: Terminal Log Output Window -->
+        <!-- 🚀 SECTION 4: Server Deployment Tools -->
+        <h5 class="fw-bold text-dark mb-3"><i class="fas fa-server text-info me-2"></i>Server Deployment Tools</h5>
+
+        <div class="row g-3 mb-4">
+
+            <!-- Git Pull -->
+            <div class="col-lg-4 col-md-6">
+                <div class="card-action border-top border-4" style="border-color: #0ea5e9 !important;">
+                    <div>
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <span class="badge text-white px-2 py-1" style="font-size: 0.72rem; background:#0ea5e9;"><i class="fab fa-git-alt me-1"></i>GIT PULL</span>
+                            <h6 class="fw-bold text-dark mb-0">Pull Update dari Git Repository</h6>
+                        </div>
+                        <p class="text-secondary small mb-3" style="font-size: 0.8rem; line-height: 1.45;">
+                            Eksekusi <code class="text-primary fw-bold">git pull</code> untuk mengambil kode terbaru dari repository ke server production.
+                        </p>
+                    </div>
+                    <button type="button" class="btn-custom text-white fw-bold border-0" style="background:#0ea5e9;" onmouseover="this.style.background='#0284c7'" onmouseout="this.style.background='#0ea5e9'" onclick="triggerRepair('git_pull', this)">
+                        <i class="fab fa-git-alt me-1"></i> Git Pull Latest Code
+                    </button>
+                </div>
+            </div>
+
+            <!-- Artisan Optimize -->
+            <div class="col-lg-4 col-md-6">
+                <div class="card-action border-top border-4" style="border-color: #8b5cf6 !important;">
+                    <div>
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <span class="badge text-white px-2 py-1" style="font-size: 0.72rem; background:#8b5cf6;"><i class="fas fa-bolt me-1"></i>OPTIMIZE</span>
+                            <h6 class="fw-bold text-dark mb-0">Artisan Optimize (Rebuild Cache)</h6>
+                        </div>
+                        <p class="text-secondary small mb-3" style="font-size: 0.8rem; line-height: 1.45;">
+                            Eksekusi <code class="text-primary fw-bold">php artisan optimize</code> — rebuild config, route, dan view cache agar performa server optimal.
+                        </p>
+                    </div>
+                    <button type="button" class="btn-custom text-white fw-bold border-0" style="background:#8b5cf6;" onmouseover="this.style.background='#7c3aed'" onmouseout="this.style.background='#8b5cf6'" onclick="triggerRepair('artisan_optimize', this)">
+                        <i class="fas fa-bolt me-1"></i> Jalankan Artisan Optimize
+                    </button>
+                </div>
+            </div>
+
+            <!-- Artisan Migrate -->
+            <div class="col-lg-4 col-md-6">
+                <div class="card-action border-top border-4" style="border-color: #10b981 !important;">
+                    <div>
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <span class="badge text-white px-2 py-1" style="font-size: 0.72rem; background:#10b981;"><i class="fas fa-database me-1"></i>MIGRATE</span>
+                            <h6 class="fw-bold text-dark mb-0">Artisan Migrate (Update DB Schema)</h6>
+                        </div>
+                        <p class="text-secondary small mb-3" style="font-size: 0.8rem; line-height: 1.45;">
+                            Eksekusi <code class="text-primary fw-bold">php artisan migrate --force</code> untuk menerapkan migration database terbaru ke production.
+                        </p>
+                    </div>
+                    <button type="button" class="btn-custom text-white fw-bold border-0" style="background:#10b981;" onmouseover="this.style.background='#059669'" onmouseout="this.style.background='#10b981'" onclick="confirmMigrate(this)">
+                        <i class="fas fa-database me-1"></i> Jalankan Artisan Migrate
+                    </button>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- 🖥️ SECTION 5: Terminal Log Output Window -->
         <div class="terminal-container mb-4">
             <div class="terminal-header">
                 <div class="d-flex align-items-center gap-3">
@@ -584,6 +645,12 @@
                 btnElement.innerHTML = originalText;
                 appendLog(`❌ Network Error: ${err.message}`, 'error');
             });
+        }
+        function confirmMigrate(btnElement) {
+            if (!confirm('⚠️ Yakin ingin menjalankan php artisan migrate --force?\n\nIni akan menerapkan migration database terbaru ke production. Pastikan tidak ada perubahan schema yang berbahaya.')) {
+                return;
+            }
+            triggerRepair('artisan_migrate', btnElement);
         }
     </script>
 </body>
