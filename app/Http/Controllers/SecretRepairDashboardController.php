@@ -38,15 +38,57 @@ class SecretRepairDashboardController extends Controller
             ->count();
 
         $unreconciledCount = Order::where('recon_status', 'UNRECONCILED')->count();
-        $tiktokStoresCount = Store::whereHas('channel', fn($q) => $q->where('code', 'LIKE', '%tiktok%'))->count();
-        $shopeeStoresCount = Store::whereHas('channel', fn($q) => $q->where('code', 'LIKE', '%shopee%'))->count();
+
+        // 🟢 Status Breakdown Metrics
+        $completedCount = Order::whereIn('order_status', ['COMPLETED', 'SELESAI', 'DELIVERED', 'FINISHED'])->count();
+        $readyToShipCount = Order::whereIn('order_status', ['READY_TO_SHIP', 'UNPAID', 'PROCESSING', 'PENDING', 'PROSES'])->count();
+        $shippedCount = Order::whereIn('order_status', ['SHIPPED', 'IN_TRANSIT', 'DIKIRIM'])->count();
+        $cancelledCount = Order::whereIn('order_status', ['CANCELLED', 'BATAL', 'CANCELED'])->count();
+        $returnedCount = Order::whereIn('order_status', ['RETURNED', 'REFUNDED', 'RETUR'])->count();
+
+        // 🌐 Channel Comparison Metrics (ERP vs API)
+        $tiktokStores = Store::whereHas('channel', fn($q) => $q->where('code', 'LIKE', '%tiktok%'))->pluck('id');
+        $shopeeStores = Store::whereHas('channel', fn($q) => $q->where('code', 'LIKE', '%shopee%'))->pluck('id');
+
+        // TikTok Stats
+        $tiktokTotalOrders = Order::whereIn('store_id', $tiktokStores)->count();
+        $tiktokCompleted = Order::whereIn('store_id', $tiktokStores)->whereIn('order_status', ['COMPLETED', 'SELESAI', 'DELIVERED', 'FINISHED'])->count();
+        $tiktokCancelled = Order::whereIn('store_id', $tiktokStores)->whereIn('order_status', ['CANCELLED', 'BATAL'])->count();
+        $tiktokMissingFees = Order::whereIn('store_id', $tiktokStores)->where(fn($q) => $q->where('marketplace_fee', 0)->orWhereNull('financial_breakdown'))->count();
+        $tiktokMissingItems = Order::whereIn('store_id', $tiktokStores)->whereDoesntHave('items')->count();
+
+        // Shopee Stats
+        $shopeeTotalOrders = Order::whereIn('store_id', $shopeeStores)->count();
+        $shopeeCompleted = Order::whereIn('store_id', $shopeeStores)->whereIn('order_status', ['COMPLETED', 'SELESAI', 'DELIVERED', 'FINISHED'])->count();
+        $shopeeCancelled = Order::whereIn('store_id', $shopeeStores)->whereIn('order_status', ['CANCELLED', 'BATAL'])->count();
+        $shopeeMissingFees = Order::whereIn('store_id', $shopeeStores)->where(fn($q) => $q->where('marketplace_fee', 0)->orWhereNull('financial_breakdown'))->count();
+        $shopeeMissingItems = Order::whereIn('store_id', $shopeeStores)->whereDoesntHave('items')->count();
+
+        // Manual Stats
+        $manualTotalOrders = Order::whereNotIn('store_id', $tiktokStores->merge($shopeeStores))->count();
 
         return view('secret_repair_dashboard', compact(
             'ordersCount',
             'missingItemsCount',
             'unreconciledCount',
-            'tiktokStoresCount',
-            'shopeeStoresCount'
+            'completedCount',
+            'readyToShipCount',
+            'shippedCount',
+            'cancelledCount',
+            'returnedCount',
+            'tiktokStores',
+            'shopeeStores',
+            'tiktokTotalOrders',
+            'tiktokCompleted',
+            'tiktokCancelled',
+            'tiktokMissingFees',
+            'tiktokMissingItems',
+            'shopeeTotalOrders',
+            'shopeeCompleted',
+            'shopeeCancelled',
+            'shopeeMissingFees',
+            'shopeeMissingItems',
+            'manualTotalOrders'
         ));
     }
 

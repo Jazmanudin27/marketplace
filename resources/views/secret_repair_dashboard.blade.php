@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>🛠️ Secret Admin Maintenance & Data Repair Panel</title>
+    <title>🛠️ Admin Maintenance & Data Repair Dashboard</title>
 
-    <!-- Bootstrap 5 CSS -->
+    <!-- Bootstrap 5.3 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- FontAwesome 6 Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -14,170 +14,69 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 
     <style>
-        :root {
-            --bg-dark: #0f172a;
-            --card-bg: #1e293b;
-            --card-border: #334155;
-            --text-main: #f8fafc;
-            --text-muted: #94a3b8;
-            --accent-cyan: #06b6d4;
-            --accent-green: #10b981;
-            --accent-purple: #8b5cf6;
-            --accent-danger: #ef4444;
-            --accent-warning: #f59e0b;
-        }
-
         body {
-            background-color: var(--bg-dark);
-            color: var(--text-main);
+            background-color: #f8fafc;
+            color: #1e293b;
             font-family: 'Inter', sans-serif;
             min-height: 100vh;
-            padding-bottom: 3rem;
+            padding-bottom: 4rem;
         }
 
-        .navbar-secret {
-            background: rgba(30, 41, 59, 0.8);
-            backdrop-filter: blur(12px);
-            border-bottom: 1px solid var(--card-border);
+        .navbar-white {
+            background-color: #ffffff;
+            border-bottom: 1px solid #e2e8f0;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
         }
 
-        .stat-card {
-            background: var(--card-bg);
-            border: 1px solid var(--card-border);
-            border-radius: 0.75rem;
+        .card-stat {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.85rem;
             padding: 1.25rem;
-            transition: all 0.25s ease;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+            transition: all 0.2s ease-in-out;
         }
 
-        .stat-card:hover {
+        .card-stat:hover {
             transform: translateY(-2px);
-            border-color: var(--accent-cyan);
-            box-shadow: 0 10px 25px -5px rgba(6, 182, 212, 0.15);
+            box-shadow: 0 10px 20px -5px rgba(0,0,0,0.08);
+            border-color: #cbd5e1;
         }
 
-        .action-card {
-            background: var(--card-bg);
-            border: 1px solid var(--card-border);
-            border-radius: 0.75rem;
+        .card-action {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.85rem;
             padding: 1.25rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
             height: 100%;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-            transition: all 0.25s ease;
+            transition: all 0.2s ease-in-out;
         }
 
-        .action-card:hover {
-            border-color: rgba(255, 255, 255, 0.2);
-            box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.3);
+        .card-action:hover {
+            box-shadow: 0 8px 20px -4px rgba(0,0,0,0.08);
+            border-color: #cbd5e1;
         }
 
-        .btn-repair {
-            border: none;
-            font-weight: 600;
-            padding: 0.65rem 1.2rem;
-            border-radius: 0.5rem;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.5rem;
-            transition: all 0.2s ease;
-            font-size: 0.85rem;
-            width: 100%;
-        }
-
-        .btn-cyan {
-            background: linear-gradient(135deg, #06b6d4, #0891b2);
-            color: #fff;
-            box-shadow: 0 4px 12px rgba(6, 182, 212, 0.3);
-        }
-
-        .btn-cyan:hover {
-            background: linear-gradient(135deg, #0891b2, #0e7490);
-            color: #fff;
-            box-shadow: 0 6px 16px rgba(6, 182, 212, 0.45);
-        }
-
-        .btn-green {
-            background: linear-gradient(135deg, #10b981, #059669);
-            color: #fff;
-            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
-        }
-
-        .btn-green:hover {
-            background: linear-gradient(135deg, #059669, #047857);
-            color: #fff;
-            box-shadow: 0 6px 16px rgba(16, 185, 129, 0.45);
-        }
-
-        .btn-purple {
-            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
-            color: #fff;
-            box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
-        }
-
-        .btn-purple:hover {
-            background: linear-gradient(135deg, #7c3aed, #6d28d9);
-            color: #fff;
-            box-shadow: 0 6px 16px rgba(139, 92, 246, 0.45);
-        }
-
-        .btn-orange {
-            background: linear-gradient(135deg, #f97316, #ea580c);
-            color: #fff;
-            box-shadow: 0 4px 12px rgba(249, 115, 22, 0.3);
-        }
-
-        .btn-orange:hover {
-            background: linear-gradient(135deg, #ea580c, #c2410c);
-            color: #fff;
-            box-shadow: 0 6px 16px rgba(249, 115, 22, 0.45);
-        }
-
-        .btn-amber {
-            background: linear-gradient(135deg, #f59e0b, #d97706);
-            color: #fff;
-            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
-        }
-
-        .btn-amber:hover {
-            background: linear-gradient(135deg, #d97706, #b45309);
-            color: #fff;
-            box-shadow: 0 6px 16px rgba(245, 158, 11, 0.45);
-        }
-
-        /* Terminal Console Window */
-        .terminal-window {
-            background: #090d16;
-            border: 1px solid #1e293b;
-            border-radius: 0.75rem;
+        .terminal-container {
+            background: #0f172a;
+            border-radius: 0.85rem;
             overflow: hidden;
-            box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.5);
+            box-shadow: 0 10px 30px rgba(15, 23, 42, 0.15);
+            border: 1px solid #334155;
         }
 
         .terminal-header {
-            background: #0f172a;
+            background: #1e293b;
             padding: 0.75rem 1.25rem;
-            border-bottom: 1px solid #1e293b;
+            border-bottom: 1px solid #334155;
             display: flex;
             align-items: center;
             justify-content: space-between;
         }
-
-        .terminal-dots {
-            display: flex;
-            gap: 0.5rem;
-        }
-
-        .dot {
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-        }
-
-        .dot-red { background: #ff5f56; }
-        .dot-yellow { background: #ffbd2e; }
-        .dot-green { background: #27c93f; }
 
         .terminal-body {
             font-family: 'JetBrains Mono', monospace;
@@ -191,46 +90,41 @@
             line-height: 1.6;
         }
 
-        .terminal-body::-webkit-scrollbar {
-            width: 6px;
-        }
-        .terminal-body::-webkit-scrollbar-thumb {
-            background: #334155;
-            border-radius: 3px;
-        }
+        .log-timestamp { color: #64748b; }
+        .log-success { color: #4ade80; }
+        .log-warning { color: #fbbf24; }
+        .log-error { color: #f87171; }
+        .log-info { color: #38bdf8; }
 
-        .log-timestamp {
-            color: #64748b;
-        }
-        .log-success {
-            color: #4ade80;
-        }
-        .log-warning {
-            color: #fbbf24;
-        }
-        .log-error {
-            color: #f87171;
-        }
-        .log-info {
-            color: #38bdf8;
+        .btn-custom {
+            font-weight: 600;
+            padding: 0.6rem 1.2rem;
+            border-radius: 0.6rem;
+            font-size: 0.85rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            transition: all 0.2s ease;
+            width: 100%;
         }
     </style>
 </head>
 <body>
 
     <!-- Header Navbar -->
-    <nav class="navbar navbar-dark navbar-secret py-2 mb-4">
+    <nav class="navbar navbar-expand-lg navbar-white sticky-top py-2 mb-4">
         <div class="container-fluid px-4">
-            <a class="navbar-brand d-flex align-items-center gap-2 fw-bold text-white fs-5" href="#">
-                <span class="badge bg-danger rounded-pill fs-6 px-2.5 py-1">SECRET</span>
-                <i class="fas fa-tools text-cyan ms-1"></i> Data Maintenance & Repair Dashboard
+            <a class="navbar-brand d-flex align-items-center gap-2 fw-bold text-dark fs-5" href="#">
+                <span class="badge bg-primary text-white rounded-pill px-2.5 py-1" style="font-size: 0.75rem;">ADMIN TOOLS</span>
+                <i class="fas fa-wrench text-primary me-1"></i> Data Maintenance & Repair Panel
             </a>
             <div class="d-flex align-items-center gap-3">
                 <span class="text-muted small">
-                    <i class="fas fa-user-shield me-1 text-success"></i> Logged in as: <strong>{{ auth()->user()->name ?? 'Admin' }}</strong>
+                    <i class="fas fa-user-circle text-primary me-1"></i> User: <strong>{{ auth()->user()->name ?? 'Admin' }}</strong>
                 </span>
-                <a href="{{ route('orders.index') }}" class="btn btn-outline-light btn-sm rounded-2">
-                    <i class="fas fa-arrow-left me-1"></i> Kembali ke ERP
+                <a href="{{ route('orders.index') }}" class="btn btn-outline-secondary btn-sm px-3 rounded-2 fw-semibold">
+                    <i class="fas fa-arrow-left me-1"></i> Kembali ke Order ERP
                 </a>
             </div>
         </div>
@@ -238,179 +132,328 @@
 
     <div class="container-fluid px-4">
 
-        <!-- System Stats Row -->
+        <!-- 📊 SECTION 1: Status Pesanan Breakdown Cards -->
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="fw-bold text-dark mb-0"><i class="fas fa-chart-pie me-2 text-primary"></i>Ringkasan Perbandingan Status Pesanan ERP</h5>
+            <span class="badge bg-white text-secondary border px-3 py-2 rounded-2">Total {{ number_format($ordersCount, 0, ',', '.') }} Orders</span>
+        </div>
+
         <div class="row g-3 mb-4">
-            <div class="col-md-3">
-                <div class="stat-card">
+            <!-- Completed -->
+            <div class="col-xl-2 col-md-4 col-sm-6">
+                <div class="card-stat border-start border-4 border-success">
                     <div class="d-flex justify-content-between align-items-center mb-1">
-                        <span class="text-muted small fw-semibold">TOTAL PESANAN ERP</span>
-                        <i class="fas fa-shopping-bag text-cyan fs-5"></i>
+                        <span class="text-uppercase text-muted fw-bold" style="font-size: 0.68rem;">Selesai (Completed)</span>
+                        <i class="fas fa-check-circle text-success"></i>
                     </div>
-                    <h3 class="fw-bold text-white mb-0">{{ number_format($ordersCount, 0, ',', '.') }}</h3>
-                    <small class="text-muted" style="font-size: 0.72rem;">Database Marketplace Orders</small>
+                    <h4 class="fw-bold text-success mb-1">{{ number_format($completedCount, 0, ',', '.') }}</h4>
+                    <div class="progress mt-1" style="height: 4px;">
+                        <div class="progress-bar bg-success" style="width: {{ $ordersCount > 0 ? round(($completedCount/$ordersCount)*100) : 0 }}%"></div>
+                    </div>
+                    <small class="text-muted mt-1 d-block" style="font-size: 0.7rem;">{{ $ordersCount > 0 ? round(($completedCount/$ordersCount)*100, 1) : 0 }}% dari total pesanan</small>
                 </div>
             </div>
 
-            <div class="col-md-3">
-                <div class="stat-card">
+            <!-- Ready To Ship -->
+            <div class="col-xl-2 col-md-4 col-sm-6">
+                <div class="card-stat border-start border-4 border-info">
                     <div class="d-flex justify-content-between align-items-center mb-1">
-                        <span class="text-muted small fw-semibold">ORDER TANPA ITEM</span>
-                        <i class="fas fa-exclamation-triangle text-warning fs-5"></i>
+                        <span class="text-uppercase text-muted fw-bold" style="font-size: 0.68rem;">Proses (Ready Ship)</span>
+                        <i class="fas fa-box-open text-info"></i>
                     </div>
-                    <h3 class="fw-bold text-warning mb-0" id="statMissingItems">{{ number_format($missingItemsCount, 0, ',', '.') }}</h3>
-                    <small class="text-muted" style="font-size: 0.72rem;">Memerlukan Perbaikan Item</small>
+                    <h4 class="fw-bold text-info mb-1">{{ number_format($readyToShipCount, 0, ',', '.') }}</h4>
+                    <div class="progress mt-1" style="height: 4px;">
+                        <div class="progress-bar bg-info" style="width: {{ $ordersCount > 0 ? round(($readyToShipCount/$ordersCount)*100) : 0 }}%"></div>
+                    </div>
+                    <small class="text-muted mt-1 d-block" style="font-size: 0.7rem;">{{ $ordersCount > 0 ? round(($readyToShipCount/$ordersCount)*100, 1) : 0 }}% perlu dikirim</small>
                 </div>
             </div>
 
-            <div class="col-md-3">
-                <div class="stat-card">
+            <!-- Shipped -->
+            <div class="col-xl-2 col-md-4 col-sm-6">
+                <div class="card-stat border-start border-4 border-primary">
                     <div class="d-flex justify-content-between align-items-center mb-1">
-                        <span class="text-muted small fw-semibold">ORDER UNRECONCILED</span>
-                        <i class="fas fa-calculator text-danger fs-5"></i>
+                        <span class="text-uppercase text-muted fw-bold" style="font-size: 0.68rem;">Dikirim (Shipped)</span>
+                        <i class="fas fa-truck text-primary"></i>
                     </div>
-                    <h3 class="fw-bold text-danger mb-0" id="statUnreconciled">{{ number_format($unreconciledCount, 0, ',', '.') }}</h3>
-                    <small class="text-muted" style="font-size: 0.72rem;">Memerlukan Sync Escrow API</small>
+                    <h4 class="fw-bold text-primary mb-1">{{ number_format($shippedCount, 0, ',', '.') }}</h4>
+                    <div class="progress mt-1" style="height: 4px;">
+                        <div class="progress-bar bg-primary" style="width: {{ $ordersCount > 0 ? round(($shippedCount/$ordersCount)*100) : 0 }}%"></div>
+                    </div>
+                    <small class="text-muted mt-1 d-block" style="font-size: 0.7rem;">{{ $ordersCount > 0 ? round(($shippedCount/$ordersCount)*100, 1) : 0 }}% sedang jalan</small>
                 </div>
             </div>
 
-            <div class="col-md-3">
-                <div class="stat-card">
+            <!-- Cancelled -->
+            <div class="col-xl-2 col-md-4 col-sm-6">
+                <div class="card-stat border-start border-4 border-danger">
                     <div class="d-flex justify-content-between align-items-center mb-1">
-                        <span class="text-muted small fw-semibold">TOKO TERHUBUNG</span>
-                        <i class="fas fa-store text-success fs-5"></i>
+                        <span class="text-uppercase text-muted fw-bold" style="font-size: 0.68rem;">Dibatalkan (Cancel)</span>
+                        <i class="fas fa-times-circle text-danger"></i>
                     </div>
-                    <h3 class="fw-bold text-success mb-0">{{ $tiktokStoresCount }} TikTok / {{ $shopeeStoresCount }} Shopee</h3>
-                    <small class="text-muted" style="font-size: 0.72rem;">API Channel Connected</small>
+                    <h4 class="fw-bold text-danger mb-1">{{ number_format($cancelledCount, 0, ',', '.') }}</h4>
+                    <div class="progress mt-1" style="height: 4px;">
+                        <div class="progress-bar bg-danger" style="width: {{ $ordersCount > 0 ? round(($cancelledCount/$ordersCount)*100) : 0 }}%"></div>
+                    </div>
+                    <small class="text-muted mt-1 d-block" style="font-size: 0.7rem;">{{ $ordersCount > 0 ? round(($cancelledCount/$ordersCount)*100, 1) : 0 }}% batal/cancel</small>
+                </div>
+            </div>
+
+            <!-- Returned -->
+            <div class="col-xl-2 col-md-4 col-sm-6">
+                <div class="card-stat border-start border-4 border-warning">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="text-uppercase text-muted fw-bold" style="font-size: 0.68rem;">Retur (Refunded)</span>
+                        <i class="fas fa-undo-alt text-warning"></i>
+                    </div>
+                    <h4 class="fw-bold text-warning mb-1">{{ number_format($returnedCount, 0, ',', '.') }}</h4>
+                    <div class="progress mt-1" style="height: 4px;">
+                        <div class="progress-bar bg-warning" style="width: {{ $ordersCount > 0 ? round(($returnedCount/$ordersCount)*100) : 0 }}%"></div>
+                    </div>
+                    <small class="text-muted mt-1 d-block" style="font-size: 0.7rem;">{{ $ordersCount > 0 ? round(($returnedCount/$ordersCount)*100, 1) : 0 }}% pengembalian</small>
+                </div>
+            </div>
+
+            <!-- Missing Items Alert -->
+            <div class="col-xl-2 col-md-4 col-sm-6">
+                <div class="card-stat border-start border-4 border-dark bg-warning bg-opacity-10">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="text-uppercase text-dark fw-bold" style="font-size: 0.68rem;">Item Kosong</span>
+                        <i class="fas fa-exclamation-triangle text-dark"></i>
+                    </div>
+                    <h4 class="fw-bold text-dark mb-1" id="statMissingItems">{{ number_format($missingItemsCount, 0, ',', '.') }}</h4>
+                    <small class="text-dark-emphasis mt-1 d-block fw-semibold" style="font-size: 0.7rem;">
+                        {{ $missingItemsCount > 0 ? '⚠️ Butuh Perbaikan' : '✅ 100% Lengkap' }}
+                    </small>
                 </div>
             </div>
         </div>
 
-        <!-- Action Cards Grid -->
-        <h5 class="fw-bold mb-3 text-white"><i class="fas fa-bolt text-warning me-2"></i>Tombol Eksekusi Perbaikan Data & Sync API</h5>
+        <!-- 🌐 SECTION 2: Perbandingan Data ERP vs Marketplace API per Channel -->
+        <div class="card border-0 shadow-sm rounded-3 mb-4">
+            <div class="card-header bg-white py-3 px-3 border-bottom d-flex justify-content-between align-items-center">
+                <h6 class="fw-bold text-dark mb-0"><i class="fas fa-exchange-alt me-2 text-primary"></i>Tabel Perbandingan Integrasi ERP vs Marketplace API</h6>
+                <span class="badge bg-light text-dark border">TikTok Shop & Shopee Channels</span>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0" style="font-size: 0.82rem;">
+                    <thead class="table-light text-uppercase fw-bold text-muted" style="font-size: 0.72rem;">
+                        <tr>
+                            <th class="ps-3 py-2.5">MARKETPLACE CHANNEL</th>
+                            <th class="py-2.5 text-center">TOTAL ERP ORDERS</th>
+                            <th class="py-2.5 text-center">SELESAI (COMPLETED)</th>
+                            <th class="py-2.5 text-center">BATAL (CANCELLED)</th>
+                            <th class="py-2.5 text-center">PERLU SYNC ESCROW</th>
+                            <th class="py-2.5 text-center">ITEM KOSONG</th>
+                            <th class="pe-3 py-2.5 text-end">AKSI PERBAIKAN</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- TikTok -->
+                        <tr>
+                            <td class="ps-3 fw-bold text-dark">
+                                <i class="fab fa-tiktok me-2 text-dark fs-6"></i>TikTok Shop & Tokopedia
+                            </td>
+                            <td class="text-center font-monospace fw-bold">{{ number_format($tiktokTotalOrders, 0, ',', '.') }}</td>
+                            <td class="text-center font-monospace text-success fw-bold">{{ number_format($tiktokCompleted, 0, ',', '.') }}</td>
+                            <td class="text-center font-monospace text-danger">{{ number_format($tiktokCancelled, 0, ',', '.') }}</td>
+                            <td class="text-center">
+                                @if ($tiktokMissingFees > 0)
+                                    <span class="badge bg-warning text-dark font-monospace px-2.5 py-1">{{ number_format($tiktokMissingFees, 0, ',', '.') }} orders</span>
+                                @else
+                                    <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-2 py-1"><i class="fas fa-check me-1"></i>Matched</span>
+                                @endif
+                            </td>
+                            <td class="text-center">
+                                @if ($tiktokMissingItems > 0)
+                                    <span class="badge bg-danger font-monospace px-2.5 py-1">{{ number_format($tiktokMissingItems, 0, ',', '.') }} orders</span>
+                                @else
+                                    <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-2 py-1"><i class="fas fa-check me-1"></i>Lengkap</span>
+                                @endif
+                            </td>
+                            <td class="pe-3 text-end">
+                                <button type="button" class="btn btn-primary btn-sm px-2.5 py-1 rounded-2" onclick="triggerRepair('sync_tiktok_escrow', this)" style="font-size: 0.75rem;">
+                                    <i class="fas fa-sync me-1"></i> Sync Escrow TikTok
+                                </button>
+                            </td>
+                        </tr>
+
+                        <!-- Shopee -->
+                        <tr>
+                            <td class="ps-3 fw-bold text-dark">
+                                <i class="fas fa-shopping-bag me-2 text-danger fs-6"></i>Shopee Seller Center
+                            </td>
+                            <td class="text-center font-monospace fw-bold">{{ number_format($shopeeTotalOrders, 0, ',', '.') }}</td>
+                            <td class="text-center font-monospace text-success fw-bold">{{ number_format($shopeeCompleted, 0, ',', '.') }}</td>
+                            <td class="text-center font-monospace text-danger">{{ number_format($shopeeCancelled, 0, ',', '.') }}</td>
+                            <td class="text-center">
+                                @if ($shopeeMissingFees > 0)
+                                    <span class="badge bg-warning text-dark font-monospace px-2.5 py-1">{{ number_format($shopeeMissingFees, 0, ',', '.') }} orders</span>
+                                @else
+                                    <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-2 py-1"><i class="fas fa-check me-1"></i>Matched</span>
+                                @endif
+                            </td>
+                            <td class="text-center">
+                                @if ($shopeeMissingItems > 0)
+                                    <span class="badge bg-danger font-monospace px-2.5 py-1">{{ number_format($shopeeMissingItems, 0, ',', '.') }} orders</span>
+                                @else
+                                    <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-2 py-1"><i class="fas fa-check me-1"></i>Lengkap</span>
+                                @endif
+                            </td>
+                            <td class="pe-3 text-end">
+                                <button type="button" class="btn btn-danger btn-sm px-2.5 py-1 rounded-2" onclick="triggerRepair('sync_shopee_escrow', this)" style="font-size: 0.75rem;">
+                                    <i class="fas fa-sync me-1"></i> Sync Escrow Shopee
+                                </button>
+                            </td>
+                        </tr>
+
+                        <!-- Manual & Offline -->
+                        <tr>
+                            <td class="ps-3 fw-bold text-dark">
+                                <i class="fas fa-store me-2 text-secondary fs-6"></i>Manual & Penjualan Kasir
+                            </td>
+                            <td class="text-center font-monospace fw-bold">{{ number_format($manualTotalOrders, 0, ',', '.') }}</td>
+                            <td class="text-center font-monospace text-success fw-bold">-</td>
+                            <td class="text-center font-monospace text-muted">-</td>
+                            <td class="text-center"><span class="badge bg-light text-muted border px-2 py-1">Manual ERP</span></td>
+                            <td class="text-center"><span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-2 py-1"><i class="fas fa-check me-1"></i>Lengkap</span></td>
+                            <td class="pe-3 text-end">
+                                <button type="button" class="btn btn-outline-secondary btn-sm px-2.5 py-1 rounded-2" onclick="triggerRepair('recalculate_reconciliation', this)" style="font-size: 0.75rem;">
+                                    <i class="fas fa-calculator me-1"></i> Recalculate
+                                </button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 🛠️ SECTION 3: Tombol Eksekusi Perbaikan Data -->
+        <h5 class="fw-bold text-dark mb-3"><i class="fas fa-bolt text-warning me-2"></i>Tombol Perbaikan Data & Command Repair Panel</h5>
 
         <div class="row g-3 mb-4">
-            
+
             <!-- Action 1: Fix Missing Items -->
             <div class="col-lg-4 col-md-6">
-                <div class="action-card">
+                <div class="card-action border-top border-4 border-warning">
                     <div>
                         <div class="d-flex align-items-center gap-2 mb-2">
-                            <span class="badge bg-warning bg-opacity-25 text-warning px-2 py-1"><i class="fas fa-boxes me-1"></i>REPAIR ITEM</span>
-                            <h6 class="fw-bold text-white mb-0">Perbaiki Item Order Kosong</h6>
+                            <span class="badge bg-warning bg-opacity-15 text-dark fw-bold px-2 py-1" style="font-size: 0.7rem;"><i class="fas fa-wrench me-1"></i>REPAIR ITEM</span>
+                            <h6 class="fw-bold text-dark mb-0">Perbaiki Item Order Kosong</h6>
                         </div>
-                        <p class="text-muted small mb-3" style="font-size: 0.8rem; line-height: 1.4;">
-                            Menjalankan perintah <code class="text-warning">php fix_all_missing_items.php</code> untuk memindai pesanan tanpa item dan mengisinya otomatis dari API TikTok/Shopee.
+                        <p class="text-muted small mb-3" style="font-size: 0.78rem; line-height: 1.45;">
+                            Eksekusi <code class="text-primary fw-bold">php fix_all_missing_items.php</code> untuk mengisi produk yang belum masuk dari API TikTok/Shopee.
                         </p>
                     </div>
-                    <button type="button" class="btn-repair btn-amber" onclick="triggerRepair('fix_missing_items', this)">
-                        <i class="fas fa-wrench me-1"></i> Jalankan Perbaikan Item Kosong
+                    <button type="button" class="btn-custom btn-warning text-dark" onclick="triggerRepair('fix_missing_items', this)">
+                        <i class="fas fa-tools me-1"></i> Jalankan Perbaikan Item Kosong
                     </button>
                 </div>
             </div>
 
             <!-- Action 2: Sync TikTok Escrow -->
             <div class="col-lg-4 col-md-6">
-                <div class="action-card">
+                <div class="card-action border-top border-4 border-dark">
                     <div>
                         <div class="d-flex align-items-center gap-2 mb-2">
-                            <span class="badge bg-cyan bg-opacity-25 text-cyan px-2 py-1"><i class="fab fa-tiktok me-1"></i>TIKTOK ESCROW</span>
-                            <h6 class="fw-bold text-white mb-0">Sync Escrow & Biaya TikTok</h6>
+                            <span class="badge bg-dark text-white px-2 py-1" style="font-size: 0.7rem;"><i class="fab fa-tiktok me-1"></i>TIKTOK ESCROW</span>
+                            <h6 class="fw-bold text-dark mb-0">Sync Escrow & Potongan TikTok</h6>
                         </div>
-                        <p class="text-muted small mb-3" style="font-size: 0.8rem; line-height: 1.4;">
-                            Menjalankan perintah <code class="text-cyan">php artisan tiktok:sync-escrow</code> untuk menarik rincian 5 komisi potongan biaya & dana cair resmi TikTok Shop.
+                        <p class="text-muted small mb-3" style="font-size: 0.78rem; line-height: 1.45;">
+                            Eksekusi <code class="text-primary fw-bold">php artisan tiktok:sync-escrow</code> untuk menarik rincian 5 potongan biaya & dana cair resmi.
                         </p>
                     </div>
-                    <button type="button" class="btn-repair btn-cyan" onclick="triggerRepair('sync_tiktok_escrow', this)">
-                        <i class="fas fa-sync-alt me-1"></i> Jalankan Sync Escrow TikTok
+                    <button type="button" class="btn-custom btn-dark" onclick="triggerRepair('sync_tiktok_escrow', this)">
+                        <i class="fas fa-sync me-1"></i> Sync Escrow TikTok
                     </button>
                 </div>
             </div>
 
             <!-- Action 3: Sync Shopee Escrow -->
             <div class="col-lg-4 col-md-6">
-                <div class="action-card">
+                <div class="card-action border-top border-4 border-danger">
                     <div>
                         <div class="d-flex align-items-center gap-2 mb-2">
-                            <span class="badge bg-orange bg-opacity-25 text-orange px-2 py-1"><i class="fas fa-shopping-bag me-1"></i>SHOPEE ESCROW</span>
-                            <h6 class="fw-bold text-white mb-0">Sync Escrow & Income Shopee</h6>
+                            <span class="badge bg-danger text-white px-2 py-1" style="font-size: 0.7rem;"><i class="fas fa-shopping-bag me-1"></i>SHOPEE ESCROW</span>
+                            <h6 class="fw-bold text-dark mb-0">Sync Escrow & Income Shopee</h6>
                         </div>
-                        <p class="text-muted small mb-3" style="font-size: 0.8rem; line-height: 1.4;">
-                            Menjalankan perintah <code class="text-orange">php artisan shopee:sync-escrow</code> untuk melengkapi potongan rincian saldo cair Shopee Seller Center.
+                        <p class="text-muted small mb-3" style="font-size: 0.78rem; line-height: 1.45;">
+                            Eksekusi <code class="text-primary fw-bold">php artisan shopee:sync-escrow</code> untuk melengkapi saldo cair Shopee Seller Center.
                         </p>
                     </div>
-                    <button type="button" class="btn-repair btn-orange" onclick="triggerRepair('sync_shopee_escrow', this)">
-                        <i class="fas fa-sync-alt me-1"></i> Jalankan Sync Escrow Shopee
+                    <button type="button" class="btn-custom btn-danger" onclick="triggerRepair('sync_shopee_escrow', this)">
+                        <i class="fas fa-sync me-1"></i> Sync Escrow Shopee
                     </button>
                 </div>
             </div>
 
             <!-- Action 4: Pull TikTok Orders -->
             <div class="col-lg-3 col-md-6">
-                <div class="action-card">
+                <div class="card-action border-top border-4 border-primary">
                     <div>
                         <div class="d-flex align-items-center gap-2 mb-2">
-                            <span class="badge bg-purple bg-opacity-25 text-purple px-2 py-1"><i class="fas fa-download me-1"></i>PULL ORDER</span>
-                            <h6 class="fw-bold text-white mb-0">Tarik Pesanan TikTok (7 Hari)</h6>
+                            <span class="badge bg-primary text-white px-2 py-1" style="font-size: 0.7rem;"><i class="fas fa-cloud-download-alt me-1"></i>PULL TIKTOK</span>
+                            <h6 class="fw-bold text-dark mb-0">Tarik Pesanan TikTok (7 Hari)</h6>
                         </div>
-                        <p class="text-muted small mb-3" style="font-size: 0.8rem;">
+                        <p class="text-muted small mb-3" style="font-size: 0.78rem;">
                             Menarik dan memperbarui status pesanan terbaru dari TikTok Shop 7 hari terakhir.
                         </p>
                     </div>
-                    <button type="button" class="btn-repair btn-purple" onclick="triggerRepair('pull_tiktok_orders', this)">
-                        <i class="fas fa-cloud-download-alt me-1"></i> Tarik Pesanan TikTok
+                    <button type="button" class="btn-custom btn-primary" onclick="triggerRepair('pull_tiktok_orders', this)">
+                        <i class="fas fa-download me-1"></i> Tarik Pesanan TikTok
                     </button>
                 </div>
             </div>
 
             <!-- Action 5: Pull Shopee Orders -->
             <div class="col-lg-3 col-md-6">
-                <div class="action-card">
+                <div class="card-action border-top border-4 border-danger">
                     <div>
                         <div class="d-flex align-items-center gap-2 mb-2">
-                            <span class="badge bg-orange bg-opacity-25 text-orange px-2 py-1"><i class="fas fa-download me-1"></i>PULL ORDER</span>
-                            <h6 class="fw-bold text-white mb-0">Tarik Pesanan Shopee (7 Hari)</h6>
+                            <span class="badge bg-danger bg-opacity-20 text-danger px-2 py-1" style="font-size: 0.7rem;"><i class="fas fa-cloud-download-alt me-1"></i>PULL SHOPEE</span>
+                            <h6 class="fw-bold text-dark mb-0">Tarik Pesanan Shopee (7 Hari)</h6>
                         </div>
-                        <p class="text-muted small mb-3" style="font-size: 0.8rem;">
+                        <p class="text-muted small mb-3" style="font-size: 0.78rem;">
                             Menarik dan memperbarui status pesanan terbaru dari Shopee Seller Center 7 hari terakhir.
                         </p>
                     </div>
-                    <button type="button" class="btn-repair btn-orange" onclick="triggerRepair('pull_shopee_orders', this)">
-                        <i class="fas fa-cloud-download-alt me-1"></i> Tarik Pesanan Shopee
+                    <button type="button" class="btn-custom btn-outline-danger" onclick="triggerRepair('pull_shopee_orders', this)">
+                        <i class="fas fa-download me-1"></i> Tarik Pesanan Shopee
                     </button>
                 </div>
             </div>
 
             <!-- Action 6: Recalculate Reconciliation -->
             <div class="col-lg-3 col-md-6">
-                <div class="action-card">
+                <div class="card-action border-top border-4 border-success">
                     <div>
                         <div class="d-flex align-items-center gap-2 mb-2">
-                            <span class="badge bg-green bg-opacity-25 text-green px-2 py-1"><i class="fas fa-calculator me-1"></i>RECONCILIATION</span>
-                            <h6 class="fw-bold text-white mb-0">Hitung Ulang Status Rekonsiliasi</h6>
+                            <span class="badge bg-success bg-opacity-20 text-success px-2 py-1" style="font-size: 0.7rem;"><i class="fas fa-calculator me-1"></i>RECONCILIATION</span>
+                            <h6 class="fw-bold text-dark mb-0">Hitung Ulang Status Rekonsiliasi</h6>
                         </div>
-                        <p class="text-muted small mb-3" style="font-size: 0.8rem;">
-                            Mengkalkulasi ulang selisih nilai transaksi dan menandai status MATCHED vs UNRECONCILED.
+                        <p class="text-muted small mb-3" style="font-size: 0.78rem;">
+                            Mengkalkulasi ulang status rekonsiliasi MATCHED vs UNRECONCILED.
                         </p>
                     </div>
-                    <button type="button" class="btn-repair btn-green" onclick="triggerRepair('recalculate_reconciliation', this)">
-                        <i class="fas fa-calculator me-1"></i> Kalkulasi Rekonsiliasi
+                    <button type="button" class="btn-custom btn-success" onclick="triggerRepair('recalculate_reconciliation', this)">
+                        <i class="fas fa-calculator me-1"></i> Recalculate Status
                     </button>
                 </div>
             </div>
 
             <!-- Action 7: Clear Cache -->
             <div class="col-lg-3 col-md-6">
-                <div class="action-card">
+                <div class="card-action border-top border-4 border-secondary">
                     <div>
                         <div class="d-flex align-items-center gap-2 mb-2">
-                            <span class="badge bg-secondary bg-opacity-25 text-light px-2 py-1"><i class="fas fa-broom me-1"></i>CLEAR CACHE</span>
-                            <h6 class="fw-bold text-white mb-0">Bersihkan Cache & Memory</h6>
+                            <span class="badge bg-secondary bg-opacity-20 text-secondary px-2 py-1" style="font-size: 0.7rem;"><i class="fas fa-broom me-1"></i>CLEAR CACHE</span>
+                            <h6 class="fw-bold text-dark mb-0">Bersihkan Cache & Memory</h6>
                         </div>
-                        <p class="text-muted small mb-3" style="font-size: 0.8rem;">
+                        <p class="text-muted small mb-3" style="font-size: 0.78rem;">
                             Membersihkan Web Cache, View Cache, dan Memory Rekonsiliasi agar perubahan langsung tercermin.
                         </p>
                     </div>
-                    <button type="button" class="btn-repair btn-cyan" onclick="triggerRepair('clear_system_cache', this)">
+                    <button type="button" class="btn-custom btn-outline-secondary" onclick="triggerRepair('clear_system_cache', this)">
                         <i class="fas fa-trash-alt me-1"></i> Clear Web Cache
                     </button>
                 </div>
@@ -418,22 +461,22 @@
 
         </div>
 
-        <!-- Terminal Output Section -->
-        <div class="terminal-window mb-4">
+        <!-- 🖥️ SECTION 4: Terminal Log Output Window -->
+        <div class="terminal-container mb-4">
             <div class="terminal-header">
                 <div class="d-flex align-items-center gap-3">
-                    <div class="terminal-dots">
-                        <div class="dot dot-red"></div>
-                        <div class="dot dot-yellow"></div>
-                        <div class="dot dot-green"></div>
+                    <div class="d-flex gap-1.5">
+                        <div style="width:11px; height:11px; border-radius:50%; background:#ef4444;"></div>
+                        <div style="width:11px; height:11px; border-radius:50%; background:#f59e0b;"></div>
+                        <div style="width:11px; height:11px; border-radius:50%; background:#10b981;"></div>
                     </div>
-                    <span class="text-muted font-monospace small"><i class="fas fa-terminal me-1.5 text-cyan"></i>Console Output Output Logs</span>
+                    <span class="text-light font-monospace small"><i class="fas fa-terminal me-1.5 text-info"></i>Console Output Output Logs</span>
                 </div>
                 <div class="d-flex gap-2">
-                    <button type="button" class="btn btn-dark btn-xs border-secondary text-white py-1 px-2.5 rounded-2" style="font-size: 0.75rem;" onclick="copyConsoleLogs()">
-                        <i class="fas fa-copy me-1"></i> Salin Output
+                    <button type="button" class="btn btn-sm btn-dark text-white border-secondary py-1 px-2.5" style="font-size: 0.75rem;" onclick="copyConsoleLogs()">
+                        <i class="fas fa-copy me-1"></i> Salin Log
                     </button>
-                    <button type="button" class="btn btn-dark btn-xs border-secondary text-danger py-1 px-2.5 rounded-2" style="font-size: 0.75rem;" onclick="clearConsoleLogs()">
+                    <button type="button" class="btn btn-sm btn-dark text-danger border-secondary py-1 px-2.5" style="font-size: 0.75rem;" onclick="clearConsoleLogs()">
                         <i class="fas fa-trash me-1"></i> Bersihkan Log
                     </button>
                 </div>
@@ -481,7 +524,7 @@
         function triggerRepair(actionName, btnElement) {
             const originalText = btnElement.innerHTML;
             btnElement.disabled = true;
-            btnElement.innerHTML = `<i class="fas fa-circle-notch fa-spin me-1"></i> Memproses...`;
+            btnElement.innerHTML = `<i class="fas fa-spinner fa-spin me-1"></i> Memproses...`;
 
             appendLog(`▶ Menjalankan eksekusi: [${actionName}]...`, 'info');
 
@@ -506,9 +549,6 @@
                     if (data.stats) {
                         if (data.stats.missing_items !== undefined) {
                             document.getElementById('statMissingItems').innerText = data.stats.missing_items.toLocaleString('id-ID');
-                        }
-                        if (data.stats.unreconciled !== undefined) {
-                            document.getElementById('statUnreconciled').innerText = data.stats.unreconciled.toLocaleString('id-ID');
                         }
                     }
                 } else {
