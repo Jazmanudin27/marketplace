@@ -194,6 +194,9 @@ class PullOrdersFromTiktok implements ShouldQueue
             $liveSessionId = $tiktokOrder['live_session_id'];
         }
 
+        // ✅ Definisikan $orderIdStr di sini agar bisa dipakai di fallback & statement block di bawah
+        $orderIdStr = (string)($tiktokOrder['id'] ?? $tiktokOrder['order_id'] ?? '');
+
         $itemList = $tiktokOrder['line_items']
             ?? $tiktokOrder['item_list']
             ?? $tiktokOrder['order_line_list']
@@ -222,11 +225,12 @@ class PullOrdersFromTiktok implements ShouldQueue
         }
 
         // 🚀 FALLBACK OTOMATIS: Jika itemList masih kosong, panggil Detail Order API spesifik untuk order ini
+        // BUG FIX: $orderIdStr sekarang sudah didefinisikan di atas sehingga kondisi ini bisa berjalan
         if (empty($itemList) && !empty($orderIdStr)) {
             try {
-                $tiktokService = app(\App\Services\TiktokService::class);
-                $accessToken = $this->store->getValidAccessToken();
-                $detailRes = $tiktokService->getOrderDetail($accessToken, $this->store->shop_cipher, [$orderIdStr]);
+                $tiktokServiceFallback = app(\App\Services\TiktokService::class);
+                $accessTokenFallback = $this->store->getValidAccessToken();
+                $detailRes = $tiktokServiceFallback->getOrderDetail($accessTokenFallback, $this->store->shop_cipher, [$orderIdStr]);
                 $detailOrders = $detailRes['order_list'] ?? $detailRes['orders'] ?? [];
                 if (!empty($detailOrders[0])) {
                     $singleDetail = $detailOrders[0];
@@ -236,9 +240,21 @@ class PullOrdersFromTiktok implements ShouldQueue
                         ?? $singleDetail['sku_list']
                         ?? $singleDetail['items']
                         ?? [];
+                    // Cek packages dari fallback juga
+                    if (empty($itemList) && !empty($singleDetail['packages'])) {
+                        foreach ($singleDetail['packages'] as $pkg) {
+                            if (!empty($pkg['items'])) {
+                                $itemList = array_merge($itemList, $pkg['items']);
+                            } elseif (!empty($pkg['line_items'])) {
+                                $itemList = array_merge($itemList, $pkg['line_items']);
+                            } elseif (!empty($pkg['item_list'])) {
+                                $itemList = array_merge($itemList, $pkg['item_list']);
+                            }
+                        }
+                    }
                 }
             } catch (\Throwable $e) {
-                // Ignore fallback error
+                Log::warning("[TikTok] Fallback getOrderDetail gagal untuk order {$orderIdStr}: " . $e->getMessage());
             }
         }
 
@@ -263,7 +279,7 @@ class PullOrdersFromTiktok implements ShouldQueue
         $discountAmount = (float) ($paymentInfo['seller_discount'] ?? $paymentInfo['discount_amount'] ?? 0);
 
         $financialBreakdown = null;
-        $orderIdStr = (string)($tiktokOrder['id'] ?? $tiktokOrder['order_id']);
+        // $orderIdStr sudah didefinisikan di atas (sebelum fallback block)
         
         if ($erpStatus !== 'CANCELLED') {
             try {
