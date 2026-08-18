@@ -714,12 +714,17 @@ class SecretRepairDashboardController extends Controller
     }
 
     /**
-     * AJAX: Sinkronkan 1 pesanan tertentu ke nilai API resmi
+     * AJAX: Menjalankan command artisan sync-escrow khusus untuk 1 ID Order tertentu
      */
     public function syncSingleOrder(Order $order, Request $request)
     {
         if (!auth()->check()) {
             return response()->json(['error' => 'Unauthorized'], 401);
+        }
+
+        $orderSn = $order->order_marketplace_id;
+        if (!$orderSn) {
+            return response()->json(['error' => 'Pesanan ini tidak memiliki ID Marketplace.'], 422);
         }
 
         $store = $order->store;
@@ -732,68 +737,48 @@ class SecretRepairDashboardController extends Controller
         $isTiktok = str_contains($chCode, 'tiktok') || str_contains($chCode, 'tokopedia');
 
         try {
-            // Jika belum ada financial_breakdown lengkap, coba tarik live dari API
-            if ($isShopee) {
-                try {
-                    $shopeeService = app(\App\Services\ShopeeService::class);
-                    $accessToken = $store->getValidAccessToken();
-                    $escrowRes = $shopeeService->getEscrowDetail($accessToken, (int) $store->marketplace_store_id, $order->order_marketplace_id);
-                    if (!empty($escrowRes['order_income'])) {
-                        $order->financial_breakdown = $escrowRes['order_income'];
-                    }
-                } catch (\Throwable $e) {
-                    Log::warning("Gagal fetch live Shopee escrow untuk order {$order->order_marketplace_id}: " . $e->getMessage());
-                }
-            } elseif ($isTiktok) {
-                try {
-                    $tiktokService = app(\App\Services\TiktokService::class);
-                    $accessToken = $store->getValidAccessToken();
-                    $shopCipher = $store->shop_cipher;
-                    if ($shopCipher) {
-                        $stmtRes = $tiktokService->getOrderStatementTransactions($accessToken, $shopCipher, $order->order_marketplace_id);
-                        if (!empty($stmtRes)) {
-                            $fb = is_array($order->financial_breakdown) ? $order->financial_breakdown : (json_decode($order->financial_breakdown, true) ?? []);
-                            $order->financial_breakdown = array_merge($fb, $stmtRes);
-                        }
-                    }
-                } catch (\Throwable $e) {
-                    Log::warning("Gagal fetch live TikTok statement untuk order {$order->order_marketplace_id}: " . $e->getMessage());
-                }
+            $output = '';
+            if ($isTiktok) {
+                // Jalankan: php artisan tiktok:sync-escrow --order_id=... --store_id=...
+                Artisan::call('tiktok:sync-escrow', [
+                    '--order_id' => $orderSn,
+                    '--store_id' => $order->store_id,
+                ]);
+                $output = Artisan::output();
+            } elseif ($isShopee) {
+                // Jalankan: php artisan shopee:sync-escrow --order_sn=... --store_id=...
+                Artisan::call('shopee:sync-escrow', [
+                    '--order_sn' => $orderSn,
+                    '--store_id' => $order->store_id,
+                ]);
+                $output = Artisan::output();
+            } else {
+                return response()->json(['error' => 'Channel marketplace tidak didukung.'], 422);
             }
 
-            // Ekstrak nilai API resmi
+            // Reload data order dari DB setelah diproses oleh artisan sync-escrow
+            $order->refresh();
             $fin = $this->parseOrderFinancials($order, $isShopee);
 
-            if ($fin['has_fb']) {
-                if ($fin['api_omset'] > 0) {
-                    $order->total_amount = $fin['api_omset'];
-                }
-                $order->marketplace_fee = $fin['api_fee'];
-                $order->net_amount = $fin['api_net'];
-                $order->saveQuietly();
-
-                return response()->json([
-                    'success'   => true,
-                    'message'   => "Order {$order->order_marketplace_id} berhasil disinkronkan!",
-                    'erp_omset' => $order->total_amount,
-                    'erp_fee'   => $order->marketplace_fee,
-                    'erp_net'   => $order->net_amount,
-                    'api_omset' => $fin['api_omset'],
-                    'api_fee'   => $fin['api_fee'],
-                    'api_net'   => $fin['api_net'],
-                ]);
-            } else {
-                return response()->json([
-                    'error' => "Belum ada data API/Escrow untuk order {$order->order_marketplace_id} dari marketplace.",
-                ], 422);
-            }
+            return response()->json([
+                'success'   => true,
+                'message'   => "✅ Berhasil sinkronisasi escrow untuk order {$orderSn}!\n" . trim(strip_tags($output)),
+                'output'    => $output,
+                'erp_omset' => $order->total_amount,
+                'erp_fee'   => $order->marketplace_fee,
+                'erp_net'   => $order->net_amount,
+                'api_omset' => $fin['api_omset'],
+                'api_fee'   => $fin['api_fee'],
+                'api_net'   => $fin['api_net'],
+            ]);
         } catch (\Throwable $e) {
+            Log::error("Gagal menjalankan sync-escrow untuk order {$orderSn}: " . $e->getMessage());
             return response()->json(['error' => 'Gagal sinkron: ' . $e->getMessage()], 500);
         }
     }
 
     /**
-     * AJAX: Sinkronkan seluruh pesanan yang Mismatch ke nilai API resmi
+     * AJAX: Menjalankan command artisan sync-escrow untuk seluruh pesanan yang Mismatch
      */
     public function syncMismatches(Request $request)
     {
@@ -818,7 +803,8 @@ class SecretRepairDashboardController extends Controller
         $notCancelled = ['CANCELLED', 'BATAL', 'CANCELED'];
 
         $query = Order::whereIn('store_id', $storeIds)
-            ->whereNotIn('order_status', $notCancelled);
+            ->whereNotIn('order_status', $notCancelled)
+            ->whereNotNull('order_marketplace_id');
 
         if ($dateFrom) $query->whereDate('order_date', '>=', $dateFrom);
         if ($dateTo)   $query->whereDate('order_date', '<=', $dateTo);
@@ -830,19 +816,26 @@ class SecretRepairDashboardController extends Controller
             $isShopee = $shopeeStores->contains($ord->store_id);
             $fin = $this->parseOrderFinancials($ord, $isShopee);
 
-            if ($fin['has_fb']) {
-                $diffOmset = abs((float)$fin['erp_omset'] - (float)$fin['api_omset']);
-                $diffFee   = abs((float)$fin['erp_fee'] - (float)$fin['api_fee']);
-                $diffNet   = abs((float)$fin['erp_net'] - (float)$fin['api_net']);
+            $diffOmset = $fin['has_fb'] ? abs((float)$fin['erp_omset'] - (float)$fin['api_omset']) : 999999;
+            $diffFee   = $fin['has_fb'] ? abs((float)$fin['erp_fee'] - (float)$fin['api_fee']) : 999999;
+            $diffNet   = $fin['has_fb'] ? abs((float)$fin['erp_net'] - (float)$fin['api_net']) : 999999;
 
-                if ($diffOmset > 100 || $diffFee > 100 || $diffNet > 100) {
-                    if ($fin['api_omset'] > 0) {
-                        $ord->total_amount = $fin['api_omset'];
+            if (!$fin['has_fb'] || $diffOmset > 100 || $diffFee > 100 || $diffNet > 100) {
+                try {
+                    if ($isShopee) {
+                        Artisan::call('shopee:sync-escrow', [
+                            '--order_sn' => $ord->order_marketplace_id,
+                            '--store_id' => $ord->store_id,
+                        ]);
+                    } else {
+                        Artisan::call('tiktok:sync-escrow', [
+                            '--order_id' => $ord->order_marketplace_id,
+                            '--store_id' => $ord->store_id,
+                        ]);
                     }
-                    $ord->marketplace_fee = $fin['api_fee'];
-                    $ord->net_amount = $fin['api_net'];
-                    $ord->saveQuietly();
                     $syncedCount++;
+                } catch (\Throwable $e) {
+                    Log::warning("Gagal sync mismatch order {$ord->order_marketplace_id}: " . $e->getMessage());
                 }
             }
         }
@@ -852,7 +845,7 @@ class SecretRepairDashboardController extends Controller
         return response()->json([
             'success'      => true,
             'synced_count' => $syncedCount,
-            'message'      => "Berhasil menyinkronkan {$syncedCount} pesanan mismatch ke nilai API resmi!",
+            'message'      => "Berhasil menjalankan sync escrow untuk {$syncedCount} pesanan mismatch!",
         ]);
     }
 }
