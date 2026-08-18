@@ -379,7 +379,7 @@ class SecretRepairDashboardController extends Controller
      */
     /**
      * Helper: Ekstrak metrik ERP dan API (Omset/Harga Jual, Biaya Admin, Dana Cair) secara presisi
-     * Selaras 100% dengan rumus yang tampil di halaman Detail Pesanan ERP (orders.show)
+     * Selaras 100% dengan logika perintah `shopee:sync-escrow` dan `tiktok:sync-escrow`
      */
     private function parseOrderFinancials(Order $ord, bool $isShopee): array
     {
@@ -389,20 +389,10 @@ class SecretRepairDashboardController extends Controller
         }
         $hasFb = is_array($fb) && !empty($fb);
 
-        // ── 1. RUMUS ERP (PERSIS SAMA DENGAN orders.show / Detail Pesanan ERP) ──
-        // Omset ERP = Total Nilai Transaksi Penjualan (Net Sales) dari sum item atau total_amount
-        if ($ord->relationLoaded('items') && $ord->items->isNotEmpty()) {
-            $sumItems = (float) $ord->items->sum(fn($it) => (float)$it->price * (int)$it->quantity);
-            $erpOmset = $sumItems > 0 ? $sumItems : (float) $ord->total_amount;
-        } else {
-            $erpOmset = (float) $ord->total_amount;
-        }
-
-        // Biaya Admin ERP = Total Potongan Marketplace (marketplace_fee)
-        $erpFee = (float) abs($ord->marketplace_fee);
-
-        // Dana Cair ERP = Jumlah Dana Cair Bersih (net_amount)
-        $erpNet = (float) $ord->net_amount;
+        // ── 1. DATA ERP (Nilai yang tersimpan di ERP) ──
+        $erpOmset = (float) $ord->total_amount;
+        $erpFee   = (float) $ord->marketplace_fee;
+        $erpNet   = (float) $ord->net_amount;
 
         if (!$hasFb) {
             return [
@@ -416,64 +406,77 @@ class SecretRepairDashboardController extends Controller
             ];
         }
 
-        // Normalisasi jika Shopee membungkus rincian di 'order_income'
-        if (isset($fb['order_income']) && is_array($fb['order_income'])) {
-            $fb = array_merge($fb, $fb['order_income']);
-        }
+        // Normalisasi order_income Shopee jika dibungkus
+        $inc = (isset($fb['order_income']) && is_array($fb['order_income']))
+            ? array_merge($fb, $fb['order_income'])
+            : $fb;
 
-        $stmtList = $fb['statement_transactions'] ?? $fb['statement_transaction_list'] ?? $fb['transactions'] ?? [];
+        // Statement TikTok jika ada
+        $stmtList = $inc['statement_transactions'] ?? $inc['statement_transaction_list'] ?? $inc['transactions'] ?? [];
         $st0 = (is_array($stmtList) && !empty($stmtList[0]) && is_array($stmtList[0])) ? $stmtList[0] : [];
 
-        // ── 2. OMSET API (HARGA JUAL PRODUK RESMI MARKETPLACE) ──
+        // ── 2. OMSET API (PERSIS SAMA DENGAN SYNC-ESCROW COMMAND) ──
         $apiOmset = 0.0;
-        if (isset($fb['subtotal_after_seller_discounts']) && (float)$fb['subtotal_after_seller_discounts'] > 0) {
-            // TikTok: subtotal harga jual setelah diskon penjual
-            $apiOmset = (float)$fb['subtotal_after_seller_discounts'];
-        } elseif (isset($fb['order_selling_price']) && (float)$fb['order_selling_price'] > 0) {
-            // Shopee: harga jual pesanan
-            $apiOmset = (float)$fb['order_selling_price'];
-        } elseif (isset($fb['cost_of_goods_sold']) && (float)$fb['cost_of_goods_sold'] > 0) {
-            // Shopee: cost_of_goods_sold (jika ada seller_discount, sesuaikan jika gross)
-            $cogs = (float)$fb['cost_of_goods_sold'];
-            $sDisc = (float)($fb['seller_discount'] ?? $fb['voucher_from_seller'] ?? 0);
-            if ($sDisc > 0 && abs($cogs - $sDisc - $erpOmset) < abs($cogs - $erpOmset)) {
-                $apiOmset = max(0.0, $cogs - $sDisc);
-            } else {
-                $apiOmset = $cogs;
-            }
-        } elseif (isset($fb['original_total_product_price']) && (float)$fb['original_total_product_price'] > 0) {
-            $apiOmset = (float)$fb['original_total_product_price'];
-        } elseif (isset($fb['original_price']) && (float)$fb['original_price'] > 0) {
-            $apiOmset = (float)$fb['original_price'];
+        if ($isShopee) {
+            // Shopee: cost_of_goods_sold / order_selling_price / order_original_price (seperti di SyncShopeeEscrow)
+            $apiOmset = (float) ($inc['cost_of_goods_sold']
+                ?? $inc['order_selling_price']
+                ?? $inc['order_original_price']
+                ?? $inc['original_price']
+                ?? $ord->total_amount);
         } else {
+            // TikTok: revenue_amount / net_sales_amount / subtotal_after_seller_discounts / original_total_product_price (seperti di SyncTiktokEscrow)
+            $apiOmset = (float) ($st0['revenue_amount']
+                ?? $st0['net_sales_amount']
+                ?? $inc['subtotal_after_seller_discounts']
+                ?? $inc['after_seller_discounts_subtotal_amount']
+                ?? $inc['original_total_product_price']
+                ?? $inc['original_price']
+                ?? $ord->total_amount);
+        }
+
+        if ($apiOmset <= 0) {
             $apiOmset = $erpOmset;
         }
 
-        // ── 3. DANA CAIR API (ESCROW / SETTLEMENT RESMI MARKETPLACE) ──
+        // ── 3. DANA CAIR API (ESCROW / SETTLEMENT RESMI SEPERTI DI SYNC-ESCROW) ──
         $apiNet = 0.0;
-        if (isset($fb['escrow_amount']) && (float)$fb['escrow_amount'] > 0) {
-            $apiNet = (float)$fb['escrow_amount'];
-        } elseif (isset($fb['settlement_amount']) && (float)$fb['settlement_amount'] > 0) {
-            $apiNet = (float)$fb['settlement_amount'];
+        if (isset($inc['escrow_amount']) && (float)$inc['escrow_amount'] > 0) {
+            $apiNet = (float) $inc['escrow_amount'];
         } elseif (isset($st0['settlement_amount']) && (float)$st0['settlement_amount'] > 0) {
-            $apiNet = (float)$st0['settlement_amount'];
-        } elseif (isset($fb['seller_settlement_amount']) && (float)$fb['seller_settlement_amount'] > 0) {
-            $apiNet = (float)$fb['seller_settlement_amount'];
+            $apiNet = (float) $st0['settlement_amount'];
+        } elseif (isset($inc['settlement_amount']) && (float)$inc['settlement_amount'] > 0) {
+            $apiNet = (float) $inc['settlement_amount'];
+        } elseif (isset($inc['seller_settlement_amount']) && (float)$inc['seller_settlement_amount'] > 0) {
+            $apiNet = (float) $inc['seller_settlement_amount'];
         } else {
             $apiNet = $erpNet;
         }
 
-        // ── 4. BIAYA ADMIN API (TOTAL POTONGAN RESMI MARKETPLACE) ──
-        // Menggunakan rincian lengkap 5 komponen biaya dari fee_breakdown_details
-        $feeDetails = $ord->fee_breakdown_details;
-        $totalFeeCalc = abs((float)($feeDetails['total_fee'] ?? 0));
+        // ── 4. BIAYA ADMIN API (PERSIS SAMA DENGAN SYNC-ESCROW) ──
+        $apiFee = 0.0;
+        if ($isShopee) {
+            $feeDetails = $ord->fee_breakdown_details;
+            $totalFeeCalc = abs((float)($feeDetails['total_fee'] ?? 0));
 
-        if ($totalFeeCalc > 0) {
-            $apiFee = $totalFeeCalc;
-        } elseif ($apiOmset > 0 && $apiNet > 0 && $apiOmset > $apiNet) {
-            $apiFee = max(0.0, $apiOmset - $apiNet);
+            if ($totalFeeCalc > 0) {
+                $apiFee = $totalFeeCalc;
+            } elseif ($apiOmset > 0 && $apiNet > 0 && $apiOmset > $apiNet) {
+                $apiFee = max(0.0, $apiOmset - $apiNet);
+            } else {
+                $apiFee = $erpFee;
+            }
         } else {
-            $apiFee = $erpFee;
+            // TikTok
+            if (!empty($st0['fee_amount']) && (float)$st0['fee_amount'] != 0) {
+                $apiFee = abs((float)$st0['fee_amount']);
+            } elseif ($apiOmset > 0 && $apiNet > 0 && $apiOmset > $apiNet) {
+                $apiFee = max(0.0, $apiOmset - $apiNet);
+            } else {
+                $feeDetails = $ord->fee_breakdown_details;
+                $totalFeeCalc = abs((float)($feeDetails['total_fee'] ?? 0));
+                $apiFee = $totalFeeCalc > 0 ? $totalFeeCalc : $erpFee;
+            }
         }
 
         return [
