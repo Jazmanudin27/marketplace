@@ -774,10 +774,20 @@
             return '<span class="badge bg-secondary text-white" style="font-size:0.65rem;">' + channel + '</span>';
         }
 
-        function renderChannelRow(icon, label, d) {
+        const detailBaseUrl = '{{ route("secret_repair.compare_detail") }}';
+
+        function renderChannelRow(icon, label, d, channelKey) {
+            const dateFrom = document.getElementById('filterDateFrom').value;
+            const dateTo   = document.getElementById('filterDateTo').value;
+            const url = `${detailBaseUrl}?channel=${channelKey}&date_from=${dateFrom}&date_to=${dateTo}`;
             return `
-                <tr>
-                    <td class="ps-4 fw-bold">${icon} ${label}</td>
+                <tr style="cursor:pointer" onclick="window.open('${url}', '_blank')" title="Klik untuk lihat detail order ${label}">
+                    <td class="ps-4 fw-bold">
+                        ${icon} ${label}
+                        <span class="badge bg-secondary-subtle text-secondary-emphasis border ms-2" style="font-size:0.62rem;">
+                            <i class="fas fa-external-link-alt me-1"></i>Lihat Detail
+                        </span>
+                    </td>
                     <td class="text-end font-monospace fw-semibold">${d.erp_count.toLocaleString('id-ID')}
                         <br><small class="text-secondary" style="font-size:0.65rem;">API: ${d.api_count.toLocaleString('id-ID')}</small></td>
                     <td class="text-end font-monospace border-start" style="color:#1d4ed8;">${formatRp(d.erp_omset)}</td>
@@ -818,8 +828,8 @@
 
                 // Render channel rows
                 document.getElementById('compareTableBody').innerHTML =
-                    renderChannelRow('<i class="fab fa-tiktok text-dark"></i>', 'TikTok Shop & Tokopedia', data.tiktok) +
-                    renderChannelRow('<i class="fas fa-shopping-bag text-danger"></i>', 'Shopee Seller Center', data.shopee);
+                    renderChannelRow('<i class="fab fa-tiktok text-dark"></i>', 'TikTok Shop & Tokopedia', data.tiktok, 'tiktok') +
+                    renderChannelRow('<i class="fas fa-shopping-bag text-danger"></i>', 'Shopee Seller Center', data.shopee, 'shopee');
 
                 // Footer Total
                 const t = data.total;

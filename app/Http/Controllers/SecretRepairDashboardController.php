@@ -526,5 +526,99 @@ class SecretRepairDashboardController extends Controller
             'stores'    => $storeRows,
         ]);
     }
+
+    /**
+     * Halaman detail: daftar order per channel dengan perbandingan ERP vs API
+     */
+    public function compareDetail(Request $request)
+    {
+        if (!auth()->check()) {
+            return redirect()->route('login');
+        }
+
+        $channel  = $request->input('channel', 'tiktok'); // tiktok | shopee
+        $dateFrom = $request->input('date_from');
+        $dateTo   = $request->input('date_to');
+        $storeId  = $request->input('store_id');          // optional: filter per toko
+        $filter   = $request->input('filter', 'all');     // all | mismatch
+
+        // Resolve store IDs
+        if ($storeId) {
+            $storeIds = collect([$storeId]);
+        } elseif ($channel === 'shopee') {
+            $storeIds = Store::whereHas('channel', fn($q) => $q->where('code', 'LIKE', '%shopee%'))->pluck('id');
+        } else {
+            $storeIds = Store::whereHas('channel', fn($q) => $q->where('code', 'LIKE', '%tiktok%'))->pluck('id');
+        }
+
+        $notCancelled = ['CANCELLED', 'BATAL', 'CANCELED'];
+
+        $query = Order::with(['store', 'items'])
+            ->whereIn('store_id', $storeIds)
+            ->whereNotIn('order_status', $notCancelled);
+
+        if ($dateFrom) $query->whereDate('order_date', '>=', $dateFrom);
+        if ($dateTo)   $query->whereDate('order_date', '<=', $dateTo);
+
+        $query->orderBy('order_date', 'desc');
+
+        $allOrders = $query->get(['id', 'order_marketplace_id', 'order_date', 'order_status',
+            'total_amount', 'marketplace_fee', 'net_amount', 'financial_breakdown',
+            'store_id', 'customer_name', 'shipping_fee']);
+
+        $rows = [];
+        foreach ($allOrders as $ord) {
+            $fb = $ord->financial_breakdown;
+            if (is_string($fb)) $fb = json_decode($fb, true);
+            $hasFb = is_array($fb) && !empty($fb);
+
+            $apiOmset = $hasFb ? (float)($fb['subtotal_after_seller_discounts']
+                ?? $fb['original_price'] ?? $fb['buyer_paid_total'] ?? $ord->total_amount ?? 0) : null;
+            $apiFee   = $hasFb ? (float)($fb['service_fee']
+                ?? $fb['net_platform_commission'] ?? $fb['platform_commission'] ?? $ord->marketplace_fee ?? 0) : null;
+            $apiNet   = $hasFb ? (float)($fb['escrow_amount']
+                ?? $fb['settlement_amount'] ?? $fb['seller_settlement_amount'] ?? $ord->net_amount ?? 0) : null;
+
+            $diffOmset = $hasFb ? (float)$ord->total_amount  - $apiOmset : null;
+            $diffFee   = $hasFb ? (float)$ord->marketplace_fee - $apiFee : null;
+            $diffNet   = $hasFb ? (float)$ord->net_amount    - $apiNet  : null;
+
+            $isMismatch = $hasFb && (abs($diffNet) > 100 || abs($diffOmset) > 100);
+
+            if ($filter === 'mismatch' && !$isMismatch) continue;
+
+            $rows[] = [
+                'id'               => $ord->id,
+                'marketplace_id'   => $ord->order_marketplace_id,
+                'order_date'       => $ord->order_date,
+                'order_status'     => $ord->order_status,
+                'store_name'       => $ord->store->store_name ?? '-',
+                'customer_name'    => $ord->customer_name,
+                'erp_omset'        => (float) $ord->total_amount,
+                'erp_fee'          => (float) $ord->marketplace_fee,
+                'erp_net'          => (float) $ord->net_amount,
+                'api_omset'        => $apiOmset,
+                'api_fee'          => $apiFee,
+                'api_net'          => $apiNet,
+                'diff_omset'       => $diffOmset,
+                'diff_fee'         => $diffFee,
+                'diff_net'         => $diffNet,
+                'has_fb'           => $hasFb,
+                'is_mismatch'      => $isMismatch,
+            ];
+        }
+
+        $stores = Store::whereIn('id', $storeIds)->get(['id', 'store_name']);
+        $totalRows    = count($rows);
+        $mismatchRows = count(array_filter($rows, fn($r) => $r['is_mismatch']));
+        $noFbRows     = count(array_filter($rows, fn($r) => !$r['has_fb']));
+
+        return view('secret_repair_compare_detail', compact(
+            'rows', 'channel', 'dateFrom', 'dateTo',
+            'filter', 'storeId', 'stores',
+            'totalRows', 'mismatchRows', 'noFbRows'
+        ));
+    }
 }
+
 

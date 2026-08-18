@@ -1,0 +1,188 @@
+﻿<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detail ERP vs API — {{ strtoupper($channel) }}</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        *{font-family:'Inter',sans-serif}body{background:#f1f5f9}
+        .topbar{background:#0f172a;color:#fff;padding:14px 24px;position:sticky;top:0;z-index:100;display:flex;align-items:center;gap:16px;flex-wrap:wrap;box-shadow:0 2px 12px rgba(0,0,0,.35)}
+        .ch-badge{font-size:.72rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:4px 12px;border-radius:20px}
+        .ch-tiktok{background:#333;color:#fff}.ch-shopee{background:#e53e1e;color:#fff}
+        .stat-card{background:#fff;border-radius:12px;padding:16px 20px;box-shadow:0 1px 6px rgba(0,0,0,.07)}
+        .stat-card .val{font-size:1.5rem;font-weight:700;line-height:1.2}.stat-card .lbl{font-size:.72rem;color:#64748b;text-transform:uppercase;letter-spacing:.06em;margin-top:4px}
+        .filter-bar{background:#fff;border-radius:12px;padding:12px 20px;box-shadow:0 1px 6px rgba(0,0,0,.07);display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+        .tbl-wrap{background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 1px 6px rgba(0,0,0,.07)}
+        table{font-size:.79rem}thead th{font-size:.66rem;text-transform:uppercase;letter-spacing:.06em;font-weight:700;white-space:nowrap}
+        .row-mm{background:#fff7ed!important}.row-ok{background:#fff}.row-no-fb{background:#fafafa;opacity:.75}
+        .dp{color:#b45309;font-weight:600}.dn{color:#dc2626;font-weight:600}.dok{color:#16a34a}.dnull{color:#94a3b8;font-style:italic}
+        .bm{background:#dcfce7;color:#166534;font-size:.65rem;border:1px solid #bbf7d0;border-radius:20px;padding:2px 8px}
+        .bmm{background:#fef3c7;color:#92400e;font-size:.65rem;border:1px solid #fde68a;border-radius:20px;padding:2px 8px}
+        .bnf{background:#f1f5f9;color:#64748b;font-size:.65rem;border:1px solid #e2e8f0;border-radius:20px;padding:2px 8px}
+        .oid{color:#1d4ed8;text-decoration:none;font-weight:600}.oid:hover{color:#1e40af;text-decoration:underline}
+        .bl{border-left:2px solid #e2e8f0!important}
+    </style>
+</head>
+<body>
+
+<div class="topbar">
+    <a href="{{ route('secret_repair.index') }}" class="text-white text-decoration-none"><i class="fas fa-arrow-left me-1"></i></a>
+    <span class="ch-badge {{ $channel === 'shopee' ? 'ch-shopee' : 'ch-tiktok' }}">
+        @if($channel==='shopee')<i class="fas fa-shopping-bag me-1"></i>Shopee@else<i class="fab fa-tiktok me-1"></i>TikTok &amp; Tokopedia@endif
+    </span>
+    <div class="ms-2">
+        <div class="fw-semibold" style="font-size:.9rem">Detail Perbandingan ERP vs API per Order</div>
+        <div style="font-size:.72rem;color:#94a3b8">Periode: <strong class="text-white">{{ $dateFrom ?: 'semua' }} s/d {{ $dateTo ?: 'semua' }}</strong></div>
+    </div>
+    <div class="ms-auto d-flex gap-2">
+        <button onclick="window.print()" class="btn btn-sm btn-outline-light rounded-2" style="font-size:.75rem"><i class="fas fa-print me-1"></i>Print</button>
+        <button onclick="exportCsv()" class="btn btn-sm btn-outline-light rounded-2" style="font-size:.75rem"><i class="fas fa-download me-1"></i>CSV</button>
+    </div>
+</div>
+
+<div class="container-fluid py-4 px-4">
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-3"><div class="stat-card"><div class="val text-dark">{{ number_format($totalRows) }}</div><div class="lbl">Total Order</div></div></div>
+        <div class="col-6 col-md-3"><div class="stat-card" style="border-left:4px solid #f59e0b"><div class="val" style="color:#b45309">{{ number_format($mismatchRows) }}</div><div class="lbl">Mismatch ERP≠API</div></div></div>
+        <div class="col-6 col-md-3"><div class="stat-card" style="border-left:4px solid #94a3b8"><div class="val text-secondary">{{ number_format($noFbRows) }}</div><div class="lbl">Tanpa Data API</div></div></div>
+        <div class="col-6 col-md-3"><div class="stat-card" style="border-left:4px solid #22c55e"><div class="val" style="color:#16a34a">{{ number_format($totalRows - $mismatchRows - $noFbRows) }}</div><div class="lbl">Match ✓</div></div></div>
+    </div>
+
+    <form method="GET" action="{{ route('secret_repair.compare_detail') }}" class="filter-bar mb-4">
+        <input type="hidden" name="channel" value="{{ $channel }}">
+        <input type="hidden" name="date_from" value="{{ $dateFrom }}">
+        <input type="hidden" name="date_to" value="{{ $dateTo }}">
+        <div>
+            <label class="text-secondary fw-semibold me-1" style="font-size:.75rem">Toko:</label>
+            <select name="store_id" class="form-select form-select-sm d-inline-block rounded-2" style="width:180px;font-size:.8rem" onchange="this.form.submit()">
+                <option value="">Semua Toko</option>
+                @foreach($stores as $st)<option value="{{ $st->id }}" {{ $storeId==$st->id?'selected':'' }}>{{ $st->store_name }}</option>@endforeach
+            </select>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{{ route('secret_repair.compare_detail', array_merge(request()->all(),['filter'=>'all'])) }}" class="btn btn-sm rounded-2 {{ $filter==='all'?'btn-dark':'btn-outline-secondary' }}" style="font-size:.77rem">Semua</a>
+            <a href="{{ route('secret_repair.compare_detail', array_merge(request()->all(),['filter'=>'mismatch'])) }}" class="btn btn-sm rounded-2 {{ $filter==='mismatch'?'btn-warning text-dark':'btn-outline-warning' }}" style="font-size:.77rem"><i class="fas fa-exclamation-triangle me-1"></i>Mismatch ({{ $mismatchRows }})</a>
+        </div>
+        <div class="ms-auto">
+            <input type="text" id="searchBox" class="form-control form-control-sm rounded-2" style="width:220px;font-size:.8rem" placeholder="🔍 Cari ID / Nama Toko...">
+        </div>
+    </form>
+
+    <div class="tbl-wrap">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead>
+                    <tr style="background:#0f172a">
+                        <th class="ps-3 py-3 text-white" style="min-width:45px">#</th>
+                        <th class="py-3 text-white" style="min-width:200px">ID ORDER MARKETPLACE</th>
+                        <th class="py-3 text-white" style="min-width:95px">TANGGAL</th>
+                        <th class="py-3 text-white" style="min-width:115px">STATUS</th>
+                        <th class="py-3 text-white" style="min-width:120px">TOKO</th>
+                        <th class="py-3 text-end text-center bl" colspan="2" style="background:#1e3a5f;color:#93c5fd;min-width:260px">OMSET</th>
+                        <th class="py-3 text-end text-center bl" colspan="2" style="background:#3b1f0a;color:#fdba74;min-width:260px">BIAYA ADMIN</th>
+                        <th class="py-3 text-end text-center bl" colspan="2" style="background:#052e16;color:#86efac;min-width:260px">DANA CAIR</th>
+                        <th class="py-3 text-center pe-3 bl" style="background:#2e1065;color:#d8b4fe;min-width:80px">STATUS</th>
+                    </tr>
+                    <tr style="background:#1e293b;font-size:.65rem">
+                        <th colspan="5" class="py-2"></th>
+                        <th class="py-2 text-end bl" style="color:#93c5fd">ERP</th><th class="py-2 text-end" style="color:#93c5fd">API</th>
+                        <th class="py-2 text-end bl" style="color:#fdba74">ERP</th><th class="py-2 text-end" style="color:#fdba74">API</th>
+                        <th class="py-2 text-end bl" style="color:#86efac">ERP</th><th class="py-2 text-end" style="color:#86efac">API</th>
+                        <th class="py-2 bl"></th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                @forelse($rows as $i => $row)
+                @php
+                    $rc = !$row['has_fb']?'row-no-fb':($row['is_mismatch']?'row-mm':'row-ok');
+                    $f = function($n){ return $n!==null?'Rp '.number_format($n,0,',','.'):'—'; };
+                @endphp
+                <tr class="{{ $rc }} sr">
+                    <td class="ps-3 text-secondary" style="font-size:.72rem">{{ $i+1 }}</td>
+                    <td>
+                        <a href="{{ route('orders.show',$row['id']) }}" target="_blank" class="oid st">{{ $row['marketplace_id'] ?? 'ID-'.$row['id'] }}</a>
+                    </td>
+                    <td class="text-secondary" style="font-size:.78rem;white-space:nowrap">{{ \Carbon\Carbon::parse($row['order_date'])->format('d M Y') }}</td>
+                    <td>
+                        @php $sc=['COMPLETED'=>'success','SELESAI'=>'success','FINISHED'=>'success','DELIVERED'=>'success','SHIPPED'=>'primary','IN_TRANSIT'=>'primary','READY_TO_SHIP'=>'info','PROCESSING'=>'warning','UNPAID'=>'secondary'][$row['order_status']]??'secondary' @endphp
+                        <span class="badge bg-{{ $sc }}-subtle text-{{ $sc }}-emphasis border border-{{ $sc }}-subtle" style="font-size:.65rem">{{ $row['order_status'] }}</span>
+                    </td>
+                    <td class="text-secondary st" style="font-size:.78rem">{{ $row['store_name'] }}</td>
+
+                    {{-- OMSET --}}
+                    <td class="text-end font-monospace bl" style="background:#eff6ff;color:#1d4ed8">{{ 'Rp '.number_format($row['erp_omset'],0,',','.') }}</td>
+                    <td class="text-end font-monospace" style="background:#eff6ff;color:#1d4ed8">
+                        @if($row['api_omset']!==null)
+                            {{ 'Rp '.number_format($row['api_omset'],0,',','.') }}
+                            @if(abs($row['diff_omset'])>100)<br><small class="{{ $row['diff_omset']>0?'dp':'dn' }}" style="font-size:.65rem">{{ ($row['diff_omset']>0?'+':'').number_format($row['diff_omset'],0,',','.') }}</small>@endif
+                        @else<span class="dnull">—</span>@endif
+                    </td>
+
+                    {{-- BIAYA ADMIN --}}
+                    <td class="text-end font-monospace bl" style="background:#fff7ed;color:#c2410c">{{ 'Rp '.number_format($row['erp_fee'],0,',','.') }}</td>
+                    <td class="text-end font-monospace" style="background:#fff7ed;color:#c2410c">
+                        @if($row['api_fee']!==null)
+                            {{ 'Rp '.number_format($row['api_fee'],0,',','.') }}
+                            @if(abs($row['diff_fee'])>100)<br><small class="{{ $row['diff_fee']>0?'dp':'dn' }}" style="font-size:.65rem">{{ ($row['diff_fee']>0?'+':'').number_format($row['diff_fee'],0,',','.') }}</small>@endif
+                        @else<span class="dnull">—</span>@endif
+                    </td>
+
+                    {{-- DANA CAIR --}}
+                    <td class="text-end font-monospace bl" style="background:#f0fdf4;color:#15803d">{{ 'Rp '.number_format($row['erp_net'],0,',','.') }}</td>
+                    <td class="text-end font-monospace" style="background:#f0fdf4;color:#15803d">
+                        @if($row['api_net']!==null)
+                            {{ 'Rp '.number_format($row['api_net'],0,',','.') }}
+                            @if(abs($row['diff_net'])>100)<br><small class="{{ $row['diff_net']>0?'dp':'dn' }}" style="font-size:.65rem">{{ ($row['diff_net']>0?'+':'').number_format($row['diff_net'],0,',','.') }}</small>@endif
+                        @else<span class="dnull">—</span>@endif
+                    </td>
+
+                    <td class="text-center pe-3 bl">
+                        @if(!$row['has_fb'])<span class="bnf">No API</span>
+                        @elseif($row['is_mismatch'])<span class="bmm"><i class="fas fa-exclamation-triangle me-1"></i>Beda</span>
+                        @else<span class="bm"><i class="fas fa-check me-1"></i>Match</span>@endif
+                    </td>
+                </tr>
+                @empty
+                <tr><td colspan="12" class="text-center py-5 text-secondary"><i class="fas fa-inbox fa-2x mb-3 d-block opacity-25"></i>Tidak ada order ditemukan.</td></tr>
+                @endforelse
+                </tbody>
+            </table>
+        </div>
+        @if(count($rows)>0)
+        <div class="px-4 py-3 border-top d-flex justify-content-between align-items-center flex-wrap gap-2" style="background:#f8fafc">
+            <div style="font-size:.78rem;color:#64748b">Menampilkan <strong>{{ count($rows) }}</strong> order @if($filter==='mismatch')<span class="bmm ms-1">Filter: Mismatch saja</span>@endif</div>
+            <div class="d-flex gap-3" style="font-size:.73rem;color:#64748b">
+                <span><span class="bm me-1">Match</span>selisih &lt; Rp 100</span>
+                <span><span class="bmm me-1">Beda</span>selisih &gt; Rp 100</span>
+                <span><span class="bnf me-1">No API</span>belum ada data API</span>
+            </div>
+        </div>
+        @endif
+    </div>
+</div>
+
+<script>
+document.getElementById('searchBox').addEventListener('input',function(){
+    const q=this.value.toLowerCase().trim();
+    document.querySelectorAll('.sr').forEach(r=>{
+        r.style.display=(!q||r.textContent.toLowerCase().includes(q))?'':'none';
+    });
+});
+
+function exportCsv(){
+    const rows=[['#','ID Order','Tanggal','Status','Toko','Omset ERP','Omset API','Selisih Omset','Admin ERP','Admin API','Selisih Admin','Dana Cair ERP','Dana Cair API','Selisih Net','Status']];
+    @foreach($rows as $i => $row)
+    rows.push([{{$i+1}},'{{ addslashes($row["marketplace_id"]??"ID-".$row["id"]) }}','{{ \Carbon\Carbon::parse($row["order_date"])->format("d/m/Y") }}','{{ $row["order_status"] }}','{{ addslashes($row["store_name"]) }}',{{$row["erp_omset"]}},{{$row["api_omset"]??"null"}},{{$row["diff_omset"]??"null"}},{{$row["erp_fee"]}},{{$row["api_fee"]??"null"}},{{$row["diff_fee"]??"null"}},{{$row["erp_net"]}},{{$row["api_net"]??"null"}},{{$row["diff_net"]??"null"}},'{{ !$row["has_fb"]?"No API":($row["is_mismatch"]?"Mismatch":"Match") }}']);
+    @endforeach
+    const csv=rows.map(r=>r.map(v=>`"${String(v??'').replace(/"/g,'""')}"`).join(',')).join('\n');
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(new Blob(["\uFEFF"+csv],{type:'text/csv;charset=utf-8;'}));
+    a.download=`erp_api_{{ $channel }}_{{ $dateFrom }}_{{ $dateTo }}.csv`;
+    a.click();
+}
+</script>
+</body>
+</html>
