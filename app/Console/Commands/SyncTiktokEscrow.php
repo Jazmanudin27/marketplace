@@ -309,6 +309,49 @@ class SyncTiktokEscrow extends Command
                         }
 
                         $dbOrder->save();
+
+                        // 📦 PERBAIKAN OTOMATIS: Jika order belum punya item di DB, buatkan itemnya dari API
+                        if ($dbOrder->items()->count() === 0) {
+                            $itemListSync = $tOrder['line_items']
+                                ?? $tOrder['item_list']
+                                ?? $tOrder['order_line_list']
+                                ?? $tOrder['sku_list']
+                                ?? $tOrder['items']
+                                ?? [];
+
+                            if (!empty($itemListSync)) {
+                                foreach ($itemListSync as $itSync) {
+                                    $productId = (string)($itSync['product_id'] ?? '');
+                                    $skuId     = (string)($itSync['sku_id'] ?? '');
+                                    $sellerSku = $itSync['seller_sku'] ?? $itSync['sku'] ?? null;
+                                    $skuName   = $itSync['sku_name'] ?? $itSync['variation_name'] ?? null;
+                                    $origPrice = (float)($itSync['original_price'] ?? $itSync['price'] ?? 0);
+                                    $sDisc     = (float)($itSync['seller_discount'] ?? 0);
+                                    $pDisc     = (float)($itSync['platform_discount'] ?? 0);
+                                    $qty       = (int)($itSync['quantity'] ?? 1);
+                                    $unitPrice = (float)($itSync['sale_price'] ?? $itSync['sku_display_price'] ?? $itSync['price'] ?? $origPrice);
+                                    $pName     = $itSync['product_name'] ?? $itSync['item_name'] ?? 'Produk TikTok';
+                                    $vName     = $itSync['sku_name'] ?? $itSync['variant_name'] ?? '';
+
+                                    \App\Models\OrderItem::create([
+                                        'order_id'               => $dbOrder->id,
+                                        'sku'                    => $sellerSku ?: $skuId,
+                                        'seller_sku'             => $sellerSku,
+                                        'sku_id'                 => $skuId,
+                                        'sku_name'               => $skuName ?: $vName,
+                                        'product_name'           => mb_substr($pName . ($vName ? ' - ' . $vName : ''), 0, 250),
+                                        'price'                  => $unitPrice,
+                                        'original_price'         => $origPrice,
+                                        'seller_discount'        => $sDisc,
+                                        'platform_discount'      => $pDisc,
+                                        'quantity'               => $qty,
+                                        'total_price'            => $unitPrice * $qty,
+                                    ]);
+                                }
+                                $this->info("   └─ 📦 Berhasil menambahkan " . count($itemListSync) . " item produk untuk order {$mId}");
+                            }
+                        }
+
                         $this->info("✅ Berhasil Sync Order TikTok: {$mId} | Fees: Rp " . number_format($totalTiktokFees, 0, ',', '.'));
                     }
                 } catch (\Exception $e) {

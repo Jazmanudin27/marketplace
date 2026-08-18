@@ -196,8 +196,13 @@ class PullOrdersFromTiktok implements ShouldQueue
 
         $itemList = $tiktokOrder['line_items']
             ?? $tiktokOrder['item_list']
+            ?? $tiktokOrder['order_line_list']
             ?? $tiktokOrder['sku_list']
             ?? $tiktokOrder['items']
+            ?? $tiktokOrder['product_list']
+            ?? $tiktokOrder['sku_info_list']
+            ?? $tiktokOrder['item_info_list']
+            ?? $tiktokOrder['order_items']
             ?? [];
 
         if (empty($itemList) && !empty($tiktokOrder['packages'])) {
@@ -208,7 +213,32 @@ class PullOrdersFromTiktok implements ShouldQueue
                     $itemList = array_merge($itemList, $pkg['line_items']);
                 } elseif (!empty($pkg['item_list'])) {
                     $itemList = array_merge($itemList, $pkg['item_list']);
+                } elseif (!empty($pkg['order_line_list'])) {
+                    $itemList = array_merge($itemList, $pkg['order_line_list']);
+                } elseif (!empty($pkg['sku_list'])) {
+                    $itemList = array_merge($itemList, $pkg['sku_list']);
                 }
+            }
+        }
+
+        // 🚀 FALLBACK OTOMATIS: Jika itemList masih kosong, panggil Detail Order API spesifik untuk order ini
+        if (empty($itemList) && !empty($orderIdStr)) {
+            try {
+                $tiktokService = app(\App\Services\TiktokService::class);
+                $accessToken = $this->store->getValidAccessToken();
+                $detailRes = $tiktokService->getOrderDetail($accessToken, $this->store->shop_cipher, [$orderIdStr]);
+                $detailOrders = $detailRes['order_list'] ?? $detailRes['orders'] ?? [];
+                if (!empty($detailOrders[0])) {
+                    $singleDetail = $detailOrders[0];
+                    $itemList = $singleDetail['line_items']
+                        ?? $singleDetail['item_list']
+                        ?? $singleDetail['order_line_list']
+                        ?? $singleDetail['sku_list']
+                        ?? $singleDetail['items']
+                        ?? [];
+                }
+            } catch (\Throwable $e) {
+                // Ignore fallback error
             }
         }
 
