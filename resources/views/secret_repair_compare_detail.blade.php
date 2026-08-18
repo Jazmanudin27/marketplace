@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Detail ERP vs API — {{ strtoupper($channel) }}</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
@@ -50,6 +51,11 @@
         <div style="font-size:.72rem;color:#94a3b8">Periode: <strong class="text-white">{{ $dateFrom ?: 'semua' }} s/d {{ $dateTo ?: 'semua' }}</strong></div>
     </div>
     <div class="ms-auto d-flex gap-2">
+        @if($mismatchRows > 0)
+            <button onclick="syncAllMismatches()" id="btnTopSyncAll" class="btn btn-sm btn-warning text-dark rounded-2 fw-bold" style="font-size:.75rem">
+                <i class="fas fa-bolt me-1"></i>Sinkronkan Semua ({{ $mismatchRows }})
+            </button>
+        @endif
         <button onclick="window.print()" class="btn btn-sm btn-outline-light rounded-2" style="font-size:.75rem"><i class="fas fa-print me-1"></i>Print</button>
         <button onclick="exportCsv()" class="btn btn-sm btn-outline-light rounded-2" style="font-size:.75rem"><i class="fas fa-download me-1"></i>CSV</button>
     </div>
@@ -80,6 +86,15 @@
             <a href="{{ route('secret_repair.compare_detail', array_merge(request()->all(), ['filter' => 'all'])) }}" class="btn btn-sm rounded-2 {{ $filter === 'all' ? 'btn-dark' : 'btn-outline-secondary' }}" style="font-size:.77rem">Semua</a>
             <a href="{{ route('secret_repair.compare_detail', array_merge(request()->all(), ['filter' => 'mismatch'])) }}" class="btn btn-sm rounded-2 {{ $filter === 'mismatch' ? 'btn-warning text-dark' : 'btn-outline-warning' }}" style="font-size:.77rem"><i class="fas fa-exclamation-triangle me-1"></i>Mismatch ({{ $mismatchRows }})</a>
         </div>
+
+        @if($mismatchRows > 0)
+            <div>
+                <button type="button" onclick="syncAllMismatches()" id="btnSyncAllBar" class="btn btn-sm btn-success rounded-2 fw-semibold" style="font-size:.77rem">
+                    <i class="fas fa-magic me-1"></i>Sinkronkan Semua Mismatch
+                </button>
+            </div>
+        @endif
+
         <div class="ms-auto">
             <input type="text" id="searchBox" class="form-control form-control-sm rounded-2" style="width:220px;font-size:.8rem" placeholder="🔍 Cari ID / Nama Toko...">
         </div>
@@ -98,7 +113,8 @@
                         <th class="py-3 text-end text-center bl" colspan="2" style="background:#1e3a5f;color:#93c5fd;min-width:260px">OMSET</th>
                         <th class="py-3 text-end text-center bl" colspan="2" style="background:#3b1f0a;color:#fdba74;min-width:260px">BIAYA ADMIN</th>
                         <th class="py-3 text-end text-center bl" colspan="2" style="background:#052e16;color:#86efac;min-width:260px">DANA CAIR</th>
-                        <th class="py-3 text-center pe-3 bl" style="background:#2e1065;color:#d8b4fe;min-width:80px">STATUS</th>
+                        <th class="py-3 text-center bl" style="background:#2e1065;color:#d8b4fe;min-width:80px">STATUS</th>
+                        <th class="py-3 text-center pe-3 bl" style="background:#1e1b4b;color:#c7d2fe;min-width:110px">AKSI</th>
                     </tr>
                     <tr style="background:#1e293b;font-size:.65rem">
                         <th colspan="5" class="py-2"></th>
@@ -109,6 +125,7 @@
                         <th class="py-2 text-end bl" style="color:#86efac">ERP</th>
                         <th class="py-2 text-end" style="color:#86efac">API</th>
                         <th class="py-2 bl"></th>
+                        <th class="py-2 pe-3 bl"></th>
                     </tr>
                 </thead>
                 <tbody id="tableBody">
@@ -116,7 +133,7 @@
                 @php
                     $rc = !$row['has_fb'] ? 'row-no-fb' : ($row['is_mismatch'] ? 'row-mm' : 'row-ok');
                 @endphp
-                <tr class="{{ $rc }} sr">
+                <tr class="{{ $rc }} sr" id="order-row-{{ $row['id'] }}">
                     <td class="ps-3 text-secondary" style="font-size:.72rem">{{ $i+1 }}</td>
                     <td>
                         <a href="{{ route('orders.show', $row['id']) }}" target="_blank" class="oid st">{{ $row['marketplace_id'] ?? 'ID-'.$row['id'] }}</a>
@@ -131,8 +148,8 @@
                     <td class="text-secondary st" style="font-size:.78rem">{{ $row['store_name'] }}</td>
 
                     {{-- OMSET --}}
-                    <td class="text-end font-monospace bl" style="background:#eff6ff;color:#1d4ed8">{{ 'Rp '.number_format($row['erp_omset'],0,',','.') }}</td>
-                    <td class="text-end font-monospace" style="background:#eff6ff;color:#1d4ed8">
+                    <td class="text-end font-monospace bl cell-erp-omset" style="background:#eff6ff;color:#1d4ed8">{{ 'Rp '.number_format($row['erp_omset'],0,',','.') }}</td>
+                    <td class="text-end font-monospace cell-api-omset" style="background:#eff6ff;color:#1d4ed8">
                         @if($row['api_omset'] !== null)
                             {{ 'Rp '.number_format($row['api_omset'],0,',','.') }}
                             @if(abs($row['diff_omset']) > 100)
@@ -144,8 +161,8 @@
                     </td>
 
                     {{-- BIAYA ADMIN --}}
-                    <td class="text-end font-monospace bl" style="background:#fff7ed;color:#c2410c">{{ 'Rp '.number_format($row['erp_fee'],0,',','.') }}</td>
-                    <td class="text-end font-monospace" style="background:#fff7ed;color:#c2410c">
+                    <td class="text-end font-monospace bl cell-erp-fee" style="background:#fff7ed;color:#c2410c">{{ 'Rp '.number_format($row['erp_fee'],0,',','.') }}</td>
+                    <td class="text-end font-monospace cell-api-fee" style="background:#fff7ed;color:#c2410c">
                         @if($row['api_fee'] !== null)
                             {{ 'Rp '.number_format($row['api_fee'],0,',','.') }}
                             @if(abs($row['diff_fee']) > 100)
@@ -157,8 +174,8 @@
                     </td>
 
                     {{-- DANA CAIR --}}
-                    <td class="text-end font-monospace bl" style="background:#f0fdf4;color:#15803d">{{ 'Rp '.number_format($row['erp_net'],0,',','.') }}</td>
-                    <td class="text-end font-monospace" style="background:#f0fdf4;color:#15803d">
+                    <td class="text-end font-monospace bl cell-erp-net" style="background:#f0fdf4;color:#15803d">{{ 'Rp '.number_format($row['erp_net'],0,',','.') }}</td>
+                    <td class="text-end font-monospace cell-api-net" style="background:#f0fdf4;color:#15803d">
                         @if($row['api_net'] !== null)
                             {{ 'Rp '.number_format($row['api_net'],0,',','.') }}
                             @if(abs($row['diff_net']) > 100)
@@ -169,7 +186,7 @@
                         @endif
                     </td>
 
-                    <td class="text-center pe-3 bl">
+                    <td class="text-center bl cell-status">
                         @if(!$row['has_fb'])
                             <span class="bnf">No API</span>
                         @elseif($row['is_mismatch'])
@@ -178,10 +195,24 @@
                             <span class="bm"><i class="fas fa-check me-1"></i>Match</span>
                         @endif
                     </td>
+
+                    <td class="text-center pe-3 bl cell-action">
+                        @if($row['is_mismatch'])
+                            <button type="button" class="btn btn-sm btn-warning text-dark py-1 px-2 fw-semibold rounded-2 sync-btn" style="font-size:.68rem" onclick="syncOrder({{ $row['id'] }}, this)" title="Sinkronkan order ini ke nilai API resmi">
+                                <i class="fas fa-sync-alt me-1"></i>Sinkronkan
+                            </button>
+                        @elseif(!$row['has_fb'])
+                            <button type="button" class="btn btn-sm btn-outline-secondary py-1 px-2 rounded-2 sync-btn" style="font-size:.68rem" onclick="syncOrder({{ $row['id'] }}, this)" title="Tarik data live dari API Marketplace">
+                                <i class="fas fa-cloud-download-alt me-1"></i>Tarik API
+                            </button>
+                        @else
+                            <span class="text-success fw-semibold" style="font-size:.7rem;"><i class="fas fa-check-circle me-1"></i>Sinkron</span>
+                        @endif
+                    </td>
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="12" class="text-center py-5 text-secondary"><i class="fas fa-inbox fa-2x mb-3 d-block opacity-25"></i>Tidak ada order ditemukan.</td>
+                    <td colspan="13" class="text-center py-5 text-secondary"><i class="fas fa-inbox fa-2x mb-3 d-block opacity-25"></i>Tidak ada order ditemukan.</td>
                 </tr>
                 @endforelse
                 </tbody>
@@ -242,13 +273,14 @@
                             @endif
                         </td>
 
-                        <td class="text-center pe-3 bl" style="background:#2e1065;">
+                        <td class="text-center bl" style="background:#2e1065;">
                             @if(abs($sumDiffNet) < 100 && abs($sumDiffOmset) < 100 && abs($sumDiffFee) < 100)
                                 <span class="bm">✓ Match</span>
                             @else
                                 <span class="bmm">Selisih</span>
                             @endif
                         </td>
+                        <td class="text-center pe-3 bl" style="background:#1e1b4b;"></td>
                     </tr>
                 </tfoot>
                 @endif
@@ -273,12 +305,88 @@
 </div>
 
 <script>
+const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+
 document.getElementById('searchBox').addEventListener('input', function(){
     const q = this.value.toLowerCase().trim();
     document.querySelectorAll('.sr').forEach(r => {
         r.style.display = (!q || r.textContent.toLowerCase().includes(q)) ? '' : 'none';
     });
 });
+
+function syncOrder(orderId, btn) {
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>...';
+
+    fetch(`/fix/sync-order/${orderId}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'X-CSRF-TOKEN': csrfToken
+        }
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            btn.className = 'btn btn-sm btn-success py-1 px-2 rounded-2 fw-semibold';
+            btn.innerHTML = '<i class="fas fa-check me-1"></i>Selesai';
+            setTimeout(() => location.reload(), 600);
+        } else {
+            alert(data.error || 'Gagal menyinkronkan pesanan.');
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        }
+    })
+    .catch(err => {
+        alert('Terjadi kesalahan koneksi: ' + err.message);
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    });
+}
+
+function syncAllMismatches() {
+    if (!confirm('Apakah Anda yakin ingin menyinkronkan SEMUA pesanan yang mismatch dalam filter tanggal ini ke data resmi API?')) {
+        return;
+    }
+
+    const btn1 = document.getElementById('btnTopSyncAll');
+    const btn2 = document.getElementById('btnSyncAllBar');
+    if (btn1) { btn1.disabled = true; btn1.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Menyinkronkan...'; }
+    if (btn2) { btn2.disabled = true; btn2.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Menyinkronkan...'; }
+
+    fetch('{{ route("secret_repair.sync_mismatches") }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'X-CSRF-TOKEN': csrfToken
+        },
+        body: JSON.stringify({
+            channel: '{{ $channel }}',
+            date_from: '{{ $dateFrom }}',
+            date_to: '{{ $dateTo }}',
+            store_id: '{{ $storeId }}'
+        })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            location.reload();
+        } else {
+            alert(data.error || 'Gagal menyinkronkan data.');
+            if (btn1) { btn1.disabled = false; btn1.innerHTML = '<i class="fas fa-bolt me-1"></i>Sinkronkan Semua'; }
+            if (btn2) { btn2.disabled = false; btn2.innerHTML = '<i class="fas fa-magic me-1"></i>Sinkronkan Semua Mismatch'; }
+        }
+    })
+    .catch(err => {
+        alert('Terjadi kesalahan koneksi: ' + err.message);
+        if (btn1) { btn1.disabled = false; }
+        if (btn2) { btn2.disabled = false; }
+    });
+}
 
 function exportCsv(){
     const rows = [['#','ID Order','Tanggal','Status','Toko','Omset ERP','Omset API','Selisih Omset','Admin ERP','Admin API','Selisih Admin','Dana Cair ERP','Dana Cair API','Selisih Net','Status']];

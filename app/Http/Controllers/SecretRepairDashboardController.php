@@ -712,6 +712,149 @@ class SecretRepairDashboardController extends Controller
             'totalRows', 'mismatchRows', 'noFbRows'
         ));
     }
+
+    /**
+     * AJAX: Sinkronkan 1 pesanan tertentu ke nilai API resmi
+     */
+    public function syncSingleOrder(Order $order, Request $request)
+    {
+        if (!auth()->check()) {
+            return response()->json(['error' => 'Unauthorized'], 401);
+        }
+
+        $store = $order->store;
+        if (!$store) {
+            return response()->json(['error' => 'Toko tidak ditemukan.'], 404);
+        }
+
+        $chCode = strtolower($store->channel->code ?? '');
+        $isShopee = str_contains($chCode, 'shopee');
+        $isTiktok = str_contains($chCode, 'tiktok') || str_contains($chCode, 'tokopedia');
+
+        try {
+            // Jika belum ada financial_breakdown lengkap, coba tarik live dari API
+            if ($isShopee) {
+                try {
+                    $shopeeService = app(\App\Services\ShopeeService::class);
+                    $accessToken = $store->getValidAccessToken();
+                    $escrowRes = $shopeeService->getEscrowDetail($accessToken, (int) $store->marketplace_store_id, $order->order_marketplace_id);
+                    if (!empty($escrowRes['order_income'])) {
+                        $order->financial_breakdown = $escrowRes['order_income'];
+                    }
+                } catch (\Throwable $e) {
+                    Log::warning("Gagal fetch live Shopee escrow untuk order {$order->order_marketplace_id}: " . $e->getMessage());
+                }
+            } elseif ($isTiktok) {
+                try {
+                    $tiktokService = app(\App\Services\TiktokService::class);
+                    $accessToken = $store->getValidAccessToken();
+                    $shopCipher = $store->shop_cipher;
+                    if ($shopCipher) {
+                        $stmtRes = $tiktokService->getOrderStatementTransactions($accessToken, $shopCipher, $order->order_marketplace_id);
+                        if (!empty($stmtRes)) {
+                            $fb = is_array($order->financial_breakdown) ? $order->financial_breakdown : (json_decode($order->financial_breakdown, true) ?? []);
+                            $order->financial_breakdown = array_merge($fb, $stmtRes);
+                        }
+                    }
+                } catch (\Throwable $e) {
+                    Log::warning("Gagal fetch live TikTok statement untuk order {$order->order_marketplace_id}: " . $e->getMessage());
+                }
+            }
+
+            // Ekstrak nilai API resmi
+            $fin = $this->parseOrderFinancials($order, $isShopee);
+
+            if ($fin['has_fb']) {
+                if ($fin['api_omset'] > 0) {
+                    $order->total_amount = $fin['api_omset'];
+                }
+                $order->marketplace_fee = $fin['api_fee'];
+                $order->net_amount = $fin['api_net'];
+                $order->saveQuietly();
+
+                return response()->json([
+                    'success'   => true,
+                    'message'   => "Order {$order->order_marketplace_id} berhasil disinkronkan!",
+                    'erp_omset' => $order->total_amount,
+                    'erp_fee'   => $order->marketplace_fee,
+                    'erp_net'   => $order->net_amount,
+                    'api_omset' => $fin['api_omset'],
+                    'api_fee'   => $fin['api_fee'],
+                    'api_net'   => $fin['api_net'],
+                ]);
+            } else {
+                return response()->json([
+                    'error' => "Belum ada data API/Escrow untuk order {$order->order_marketplace_id} dari marketplace.",
+                ], 422);
+            }
+        } catch (\Throwable $e) {
+            return response()->json(['error' => 'Gagal sinkron: ' . $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * AJAX: Sinkronkan seluruh pesanan yang Mismatch ke nilai API resmi
+     */
+    public function syncMismatches(Request $request)
+    {
+        if (!auth()->check()) {
+            return response()->json(['error' => 'Unauthorized'], 401);
+        }
+
+        $channel  = $request->input('channel', 'tiktok');
+        $dateFrom = $request->input('date_from');
+        $dateTo   = $request->input('date_to');
+        $storeId  = $request->input('store_id');
+
+        $shopeeStores = Store::whereHas('channel', fn($q) => $q->where('code', 'LIKE', '%shopee%'))->pluck('id');
+        if ($storeId) {
+            $storeIds = collect([$storeId]);
+        } elseif ($channel === 'shopee') {
+            $storeIds = $shopeeStores;
+        } else {
+            $storeIds = Store::whereHas('channel', fn($q) => $q->where('code', 'LIKE', '%tiktok%'))->pluck('id');
+        }
+
+        $notCancelled = ['CANCELLED', 'BATAL', 'CANCELED'];
+
+        $query = Order::whereIn('store_id', $storeIds)
+            ->whereNotIn('order_status', $notCancelled);
+
+        if ($dateFrom) $query->whereDate('order_date', '>=', $dateFrom);
+        if ($dateTo)   $query->whereDate('order_date', '<=', $dateTo);
+
+        $orders = $query->get();
+        $syncedCount = 0;
+
+        foreach ($orders as $ord) {
+            $isShopee = $shopeeStores->contains($ord->store_id);
+            $fin = $this->parseOrderFinancials($ord, $isShopee);
+
+            if ($fin['has_fb']) {
+                $diffOmset = abs((float)$fin['erp_omset'] - (float)$fin['api_omset']);
+                $diffFee   = abs((float)$fin['erp_fee'] - (float)$fin['api_fee']);
+                $diffNet   = abs((float)$fin['erp_net'] - (float)$fin['api_net']);
+
+                if ($diffOmset > 100 || $diffFee > 100 || $diffNet > 100) {
+                    if ($fin['api_omset'] > 0) {
+                        $ord->total_amount = $fin['api_omset'];
+                    }
+                    $ord->marketplace_fee = $fin['api_fee'];
+                    $ord->net_amount = $fin['api_net'];
+                    $ord->saveQuietly();
+                    $syncedCount++;
+                }
+            }
+        }
+
+        Cache::flush();
+
+        return response()->json([
+            'success'      => true,
+            'synced_count' => $syncedCount,
+            'message'      => "Berhasil menyinkronkan {$syncedCount} pesanan mismatch ke nilai API resmi!",
+        ]);
+    }
 }
 
 
