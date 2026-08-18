@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
@@ -185,6 +185,73 @@
                 </tr>
                 @endforelse
                 </tbody>
+                @if(count($rows) > 0)
+                @php
+                    $sumErpOmset = array_sum(array_column($rows, 'erp_omset'));
+                    $sumErpFee   = array_sum(array_column($rows, 'erp_fee'));
+                    $sumErpNet   = array_sum(array_column($rows, 'erp_net'));
+                    $sumApiOmset = array_sum(array_filter(array_column($rows, 'api_omset'), fn($v) => $v !== null));
+                    $sumApiFee   = array_sum(array_filter(array_column($rows, 'api_fee'), fn($v) => $v !== null));
+                    $sumApiNet   = array_sum(array_filter(array_column($rows, 'api_net'), fn($v) => $v !== null));
+                    $sumDiffOmset = $sumErpOmset - $sumApiOmset;
+                    $sumDiffFee   = $sumErpFee - $sumApiFee;
+                    $sumDiffNet   = $sumErpNet - $sumApiNet;
+                @endphp
+                <tfoot class="fw-bold" style="background:#0f172a; color:#fff; font-size:0.78rem;">
+                    <tr style="border-top:2px solid #334155;">
+                        <td colspan="5" class="ps-3 py-3 text-uppercase text-white" style="letter-spacing:0.04em; font-size:0.74rem;">
+                            TOTAL ({{ number_format(count($rows)) }} ORDER)
+                        </td>
+
+                        {{-- TOTAL OMSET --}}
+                        <td class="text-end font-monospace bl" style="color:#93c5fd; background:#1e3a5f;">
+                            {{ 'Rp ' . number_format($sumErpOmset, 0, ',', '.') }}
+                        </td>
+                        <td class="text-end font-monospace" style="color:#93c5fd; background:#1e3a5f;">
+                            {{ 'Rp ' . number_format($sumApiOmset, 0, ',', '.') }}
+                            @if(abs($sumDiffOmset) > 100)
+                                <br><small style="color:{{ $sumDiffOmset > 0 ? '#fde047' : '#f87171' }}; font-size:0.67rem;">
+                                    {{ ($sumDiffOmset > 0 ? '+' : '') . number_format($sumDiffOmset, 0, ',', '.') }}
+                                </small>
+                            @endif
+                        </td>
+
+                        {{-- TOTAL BIAYA ADMIN --}}
+                        <td class="text-end font-monospace bl" style="color:#fdba74; background:#3b1f0a;">
+                            {{ 'Rp ' . number_format($sumErpFee, 0, ',', '.') }}
+                        </td>
+                        <td class="text-end font-monospace" style="color:#fdba74; background:#3b1f0a;">
+                            {{ 'Rp ' . number_format($sumApiFee, 0, ',', '.') }}
+                            @if(abs($sumDiffFee) > 100)
+                                <br><small style="color:{{ $sumDiffFee > 0 ? '#fde047' : '#f87171' }}; font-size:0.67rem;">
+                                    {{ ($sumDiffFee > 0 ? '+' : '') . number_format($sumDiffFee, 0, ',', '.') }}
+                                </small>
+                            @endif
+                        </td>
+
+                        {{-- TOTAL DANA CAIR --}}
+                        <td class="text-end font-monospace bl" style="color:#86efac; background:#052e16;">
+                            {{ 'Rp ' . number_format($sumErpNet, 0, ',', '.') }}
+                        </td>
+                        <td class="text-end font-monospace" style="color:#86efac; background:#052e16;">
+                            {{ 'Rp ' . number_format($sumApiNet, 0, ',', '.') }}
+                            @if(abs($sumDiffNet) > 100)
+                                <br><small style="color:{{ $sumDiffNet > 0 ? '#fde047' : '#f87171' }}; font-size:0.67rem;">
+                                    {{ ($sumDiffNet > 0 ? '+' : '') . number_format($sumDiffNet, 0, ',', '.') }}
+                                </small>
+                            @endif
+                        </td>
+
+                        <td class="text-center pe-3 bl" style="background:#2e1065;">
+                            @if(abs($sumDiffNet) < 100 && abs($sumDiffOmset) < 100 && abs($sumDiffFee) < 100)
+                                <span class="bm">✓ Match</span>
+                            @else
+                                <span class="bmm">Selisih</span>
+                            @endif
+                        </td>
+                    </tr>
+                </tfoot>
+                @endif
             </table>
         </div>
         @if(count($rows) > 0)
