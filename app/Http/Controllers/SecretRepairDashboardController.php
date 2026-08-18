@@ -564,7 +564,7 @@ class SecretRepairDashboardController extends Controller
 
         $allOrders = $query->get(['id', 'order_marketplace_id', 'order_date', 'order_status',
             'total_amount', 'marketplace_fee', 'net_amount', 'financial_breakdown',
-            'store_id', 'customer_name', 'shipping_fee']);
+            'store_id', 'buyer_name', 'shipping_fee']);
 
         $rows = [];
         foreach ($allOrders as $ord) {
@@ -593,7 +593,7 @@ class SecretRepairDashboardController extends Controller
                 'order_date'       => $ord->order_date,
                 'order_status'     => $ord->order_status,
                 'store_name'       => $ord->store->store_name ?? '-',
-                'customer_name'    => $ord->customer_name,
+                'buyer_name'       => $ord->buyer_name,
                 'erp_omset'        => (float) $ord->total_amount,
                 'erp_fee'          => (float) $ord->marketplace_fee,
                 'erp_net'          => (float) $ord->net_amount,
