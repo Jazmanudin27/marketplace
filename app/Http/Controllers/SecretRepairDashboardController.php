@@ -332,4 +332,111 @@ class SecretRepairDashboardController extends Controller
         $log[] = "🎉 SELESAI! Berhasil memperbaiki {$fixedCount} pesanan.";
         return implode("\n", $log);
     }
+
+    /**
+     * AJAX: Ambil data perbandingan ERP vs Marketplace per channel dengan filter tanggal
+     */
+    public function compareStats(Request $request)
+    {
+        if (!auth()->check()) {
+            return response()->json(['error' => 'Unauthorized'], 401);
+        }
+
+        $dateFrom = $request->input('date_from');
+        $dateTo   = $request->input('date_to');
+
+        // Build base query dengan filter tanggal
+        $applyDateFilter = function ($query) use ($dateFrom, $dateTo) {
+            if ($dateFrom) {
+                $query->whereDate('order_date', '>=', $dateFrom);
+            }
+            if ($dateTo) {
+                $query->whereDate('order_date', '<=', $dateTo);
+            }
+            return $query;
+        };
+
+        $tiktokStores = Store::whereHas('channel', fn($q) => $q->where('code', 'LIKE', '%tiktok%'))->pluck('id');
+        $shopeeStores = Store::whereHas('channel', fn($q) => $q->where('code', 'LIKE', '%shopee%'))->pluck('id');
+
+        $notCancelled = ['CANCELLED', 'BATAL', 'CANCELED'];
+
+        // ── TikTok ERP Stats ─────────────────────────────────────────────────
+        $tiktokQ = Order::whereIn('store_id', $tiktokStores);
+        $applyDateFilter($tiktokQ);
+
+        $tiktokErpCount   = (clone $tiktokQ)->count();
+        $tiktokErpOmset   = (clone $tiktokQ)->whereNotIn('order_status', $notCancelled)->sum('total_amount');
+        $tiktokErpFee     = (clone $tiktokQ)->whereNotIn('order_status', $notCancelled)->sum('marketplace_fee');
+        $tiktokErpNet     = (clone $tiktokQ)->whereNotIn('order_status', $notCancelled)->sum('net_amount');
+
+        // ── Shopee ERP Stats ─────────────────────────────────────────────────
+        $shopeeQ = Order::whereIn('store_id', $shopeeStores);
+        $applyDateFilter($shopeeQ);
+
+        $shopeeErpCount   = (clone $shopeeQ)->count();
+        $shopeeErpOmset   = (clone $shopeeQ)->whereNotIn('order_status', $notCancelled)->sum('total_amount');
+        $shopeeErpFee     = (clone $shopeeQ)->whereNotIn('order_status', $notCancelled)->sum('marketplace_fee');
+        $shopeeErpNet     = (clone $shopeeQ)->whereNotIn('order_status', $notCancelled)->sum('net_amount');
+
+        // ── Per Store Breakdown ───────────────────────────────────────────────
+        $allStores = Store::with('channel')
+            ->whereIn('id', $tiktokStores->merge($shopeeStores))
+            ->get();
+
+        $storeRows = [];
+        foreach ($allStores as $st) {
+            $sq = Order::where('store_id', $st->id);
+            $applyDateFilter($sq);
+
+            $count  = (clone $sq)->count();
+            $omset  = (clone $sq)->whereNotIn('order_status', $notCancelled)->sum('total_amount');
+            $fee    = (clone $sq)->whereNotIn('order_status', $notCancelled)->sum('marketplace_fee');
+            $net    = (clone $sq)->whereNotIn('order_status', $notCancelled)->sum('net_amount');
+            $cancel = (clone $sq)->whereIn('order_status', $notCancelled)->count();
+
+            $storeRows[] = [
+                'store_name'   => $st->store_name,
+                'channel'      => strtolower($st->channel->code ?? ''),
+                'erp_count'    => $count,
+                'erp_omset'    => (float) $omset,
+                'erp_fee'      => (float) $fee,
+                'erp_net'      => (float) $net,
+                'erp_cancelled'=> $cancel,
+            ];
+        }
+
+        // ── Grand Total ───────────────────────────────────────────────────────
+        $allQ = Order::whereIn('store_id', $tiktokStores->merge($shopeeStores));
+        $applyDateFilter($allQ);
+
+        $totalCount = (clone $allQ)->count();
+        $totalOmset = (clone $allQ)->whereNotIn('order_status', $notCancelled)->sum('total_amount');
+        $totalFee   = (clone $allQ)->whereNotIn('order_status', $notCancelled)->sum('marketplace_fee');
+        $totalNet   = (clone $allQ)->whereNotIn('order_status', $notCancelled)->sum('net_amount');
+
+        return response()->json([
+            'date_from'  => $dateFrom ?: 'Semua waktu',
+            'date_to'    => $dateTo   ?: 'Semua waktu',
+            'tiktok' => [
+                'erp_count' => $tiktokErpCount,
+                'erp_omset' => (float) $tiktokErpOmset,
+                'erp_fee'   => (float) $tiktokErpFee,
+                'erp_net'   => (float) $tiktokErpNet,
+            ],
+            'shopee' => [
+                'erp_count' => $shopeeErpCount,
+                'erp_omset' => (float) $shopeeErpOmset,
+                'erp_fee'   => (float) $shopeeErpFee,
+                'erp_net'   => (float) $shopeeErpNet,
+            ],
+            'total' => [
+                'erp_count' => $totalCount,
+                'erp_omset' => (float) $totalOmset,
+                'erp_fee'   => (float) $totalFee,
+                'erp_net'   => (float) $totalNet,
+            ],
+            'stores' => $storeRows,
+        ]);
+    }
 }

@@ -879,6 +879,7 @@ Route::middleware('auth')->group(function () {
 
     Route::post('/fix/run', [\App\Http\Controllers\SecretRepairDashboardController::class, 'runAction'])->name('secret_repair.run');
     Route::post('/secret-system-repair-tools-x8912/run', [\App\Http\Controllers\SecretRepairDashboardController::class, 'runAction']);
+    Route::get('/fix/compare-stats', [\App\Http\Controllers\SecretRepairDashboardController::class, 'compareStats'])->name('secret_repair.compare_stats');
 });
 
 

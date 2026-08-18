@@ -252,7 +252,91 @@
             </div>
         </div>
 
-        <!-- 🌐 SECTION 2: Perbandingan Data ERP vs Marketplace API per Channel -->
+        <!-- 🌐 SECTION 2: Tabel Perbandingan Data ERP per Channel + Filter Tanggal -->
+        <div class="card border-0 shadow-sm rounded-3 mb-4">
+            <div class="card-header bg-white py-3 px-4 border-bottom">
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+                    <div>
+                        <h6 class="fw-bold text-dark mb-0"><i class="fas fa-exchange-alt me-2 text-primary"></i>Perbandingan Data ERP per Channel Marketplace</h6>
+                        <small class="text-secondary">Jml Order, Omset, Biaya Admin, Dana Cair — eksklusif order batal</small>
+                    </div>
+                    <!-- Filter Tanggal -->
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                        <div class="d-flex align-items-center gap-1">
+                            <label class="text-secondary fw-semibold" style="font-size:0.78rem; white-space:nowrap;">Dari:</label>
+                            <input type="date" id="filterDateFrom" class="form-control form-control-sm rounded-2" style="font-size:0.82rem; width:145px;" value="{{ date('Y-m-01') }}">
+                        </div>
+                        <div class="d-flex align-items-center gap-1">
+                            <label class="text-secondary fw-semibold" style="font-size:0.78rem; white-space:nowrap;">Sampai:</label>
+                            <input type="date" id="filterDateTo" class="form-control form-control-sm rounded-2" style="font-size:0.82rem; width:145px;" value="{{ date('Y-m-d') }}">
+                        </div>
+                        <button id="btnLoadCompare" class="btn btn-primary btn-sm px-3 fw-semibold rounded-2" style="font-size:0.82rem;" onclick="loadCompareStats()">
+                            <i class="fas fa-search me-1"></i> Tampilkan
+                        </button>
+                        <button class="btn btn-outline-secondary btn-sm px-2 rounded-2" style="font-size:0.82rem;" onclick="resetCompareFilter()" title="Reset ke semua waktu">
+                            <i class="fas fa-undo"></i>
+                        </button>
+                    </div>
+                </div>
+                <div id="compareFilterLabel" class="mt-2">
+                    <span class="badge bg-primary-subtle text-primary-emphasis border border-primary-subtle px-3 py-1" style="font-size:0.75rem;">
+                        <i class="fas fa-calendar me-1"></i> <span id="compareDateRangeText">Bulan ini</span>
+                    </span>
+                </div>
+            </div>
+
+            <!-- Tabel Ringkasan Channel -->
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0" style="font-size: 0.84rem;" id="compareTable">
+                    <thead class="table-light text-uppercase fw-bold text-dark" style="font-size: 0.7rem;">
+                        <tr>
+                            <th class="ps-4 py-3" style="min-width:160px;">CHANNEL / TOKO</th>
+                            <th class="py-3 text-end" style="min-width:110px;">JML ORDER ERP</th>
+                            <th class="py-3 text-end" style="min-width:140px;">OMSET ERP</th>
+                            <th class="py-3 text-end" style="min-width:145px;">BIAYA ADMIN ERP</th>
+                            <th class="py-3 text-end pe-4" style="min-width:140px;">DANA CAIR ERP</th>
+                        </tr>
+                    </thead>
+                    <tbody id="compareTableBody">
+                        <tr>
+                            <td colspan="5" class="text-center py-5 text-secondary">
+                                <i class="fas fa-spinner fa-spin me-2"></i> Memuat data...
+                            </td>
+                        </tr>
+                    </tbody>
+                    <tfoot id="compareTableFoot" class="fw-bold" style="background:#f8fafc;"></tfoot>
+                </table>
+            </div>
+
+            <!-- Per-Store Detail (collapsible) -->
+            <div class="px-4 py-2 border-top bg-white">
+                <button class="btn btn-sm btn-outline-secondary rounded-2 fw-semibold" style="font-size:0.78rem;" type="button" data-bs-toggle="collapse" data-bs-target="#storeDetailCollapse">
+                    <i class="fas fa-store me-1"></i> Lihat Detail per Toko
+                </button>
+            </div>
+            <div class="collapse" id="storeDetailCollapse">
+                <div class="table-responsive border-top">
+                    <table class="table table-sm table-hover align-middle mb-0" style="font-size:0.81rem;">
+                        <thead class="table-light text-uppercase fw-bold text-dark" style="font-size:0.68rem;">
+                            <tr>
+                                <th class="ps-4 py-2">NAMA TOKO</th>
+                                <th class="py-2">CHANNEL</th>
+                                <th class="py-2 text-end">JML ORDER</th>
+                                <th class="py-2 text-end">ORDER BATAL</th>
+                                <th class="py-2 text-end">OMSET</th>
+                                <th class="py-2 text-end">BIAYA ADMIN</th>
+                                <th class="py-2 text-end pe-4">DANA CAIR</th>
+                            </tr>
+                        </thead>
+                        <tbody id="storeDetailBody">
+                            <tr><td colspan="7" class="text-center py-3 text-secondary"><i class="fas fa-spinner fa-spin me-1"></i> Memuat...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+
         <div class="card border-0 shadow-sm rounded-3 mb-4">
             <div class="card-header bg-white py-3 px-3 border-bottom d-flex justify-content-between align-items-center">
                 <h6 class="fw-bold text-dark mb-0"><i class="fas fa-exchange-alt me-2 text-primary"></i>Tabel Perbandingan Integrasi ERP vs Marketplace API</h6>
@@ -652,6 +736,115 @@
             }
             triggerRepair('artisan_migrate', btnElement);
         }
+
+        // ── COMPARE STATS (Tabel Perbandingan ERP) ─────────────────────────────
+        const compareUrl = '{{ route("secret_repair.compare_stats") }}';
+
+        function formatRp(num) {
+            if (!num && num !== 0) return 'Rp 0';
+            return 'Rp ' + Math.round(num).toLocaleString('id-ID');
+        }
+
+        function getChannelBadge(channel) {
+            if (channel.includes('tiktok')) return '<span class="badge bg-dark text-white" style="font-size:0.68rem;"><i class="fab fa-tiktok me-1"></i>TikTok</span>';
+            if (channel.includes('shopee')) return '<span class="badge bg-danger text-white" style="font-size:0.68rem;"><i class="fas fa-shopping-bag me-1"></i>Shopee</span>';
+            return '<span class="badge bg-secondary text-white" style="font-size:0.68rem;">' + channel + '</span>';
+        }
+
+        function loadCompareStats() {
+            const dateFrom = document.getElementById('filterDateFrom').value;
+            const dateTo   = document.getElementById('filterDateTo').value;
+            const btn      = document.getElementById('btnLoadCompare');
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Memuat...';
+
+            document.getElementById('compareTableBody').innerHTML = '<tr><td colspan="5" class="text-center py-4 text-secondary"><i class="fas fa-spinner fa-spin me-2"></i> Mengambil data ERP...</td></tr>';
+            document.getElementById('compareTableFoot').innerHTML = '';
+            document.getElementById('storeDetailBody').innerHTML = '<tr><td colspan="7" class="text-center py-3 text-secondary"><i class="fas fa-spinner fa-spin me-1"></i> Memuat...</td></tr>';
+
+            const params = new URLSearchParams({ date_from: dateFrom, date_to: dateTo });
+
+            fetch(compareUrl + '?' + params.toString(), {
+                headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': csrfToken }
+            })
+            .then(r => r.json())
+            .then(data => {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-search me-1"></i> Tampilkan';
+
+                // Update label filter
+                const label = (data.date_from === 'Semua waktu') ? 'Semua waktu' : (data.date_from + ' s/d ' + data.date_to);
+                document.getElementById('compareDateRangeText').textContent = label;
+
+                // Render channel rows
+                const tbody = document.getElementById('compareTableBody');
+                tbody.innerHTML = `
+                    <tr>
+                        <td class="ps-4 fw-bold"><i class="fab fa-tiktok me-2 text-dark"></i>TikTok Shop & Tokopedia</td>
+                        <td class="text-end font-monospace fw-bold">${data.tiktok.erp_count.toLocaleString('id-ID')}</td>
+                        <td class="text-end font-monospace text-dark">${formatRp(data.tiktok.erp_omset)}</td>
+                        <td class="text-end font-monospace text-danger">${formatRp(data.tiktok.erp_fee)}</td>
+                        <td class="text-end font-monospace text-success pe-4">${formatRp(data.tiktok.erp_net)}</td>
+                    </tr>
+                    <tr>
+                        <td class="ps-4 fw-bold"><i class="fas fa-shopping-bag me-2 text-danger"></i>Shopee Seller Center</td>
+                        <td class="text-end font-monospace fw-bold">${data.shopee.erp_count.toLocaleString('id-ID')}</td>
+                        <td class="text-end font-monospace text-dark">${formatRp(data.shopee.erp_omset)}</td>
+                        <td class="text-end font-monospace text-danger">${formatRp(data.shopee.erp_fee)}</td>
+                        <td class="text-end font-monospace text-success pe-4">${formatRp(data.shopee.erp_net)}</td>
+                    </tr>
+                `;
+
+                // Render footer total
+                document.getElementById('compareTableFoot').innerHTML = `
+                    <tr style="border-top:2px solid #e2e8f0;">
+                        <td class="ps-4 text-uppercase text-dark fw-bold" style="font-size:0.72rem; letter-spacing:0.05em;">TOTAL SEMUA CHANNEL</td>
+                        <td class="text-end font-monospace fw-bold text-dark">${data.total.erp_count.toLocaleString('id-ID')} order</td>
+                        <td class="text-end font-monospace fw-bold text-dark">${formatRp(data.total.erp_omset)}</td>
+                        <td class="text-end font-monospace fw-bold text-danger">${formatRp(data.total.erp_fee)}</td>
+                        <td class="text-end font-monospace fw-bold text-success pe-4">${formatRp(data.total.erp_net)}</td>
+                    </tr>
+                `;
+
+                // Render per-store detail
+                let storeHtml = '';
+                if (data.stores && data.stores.length > 0) {
+                    data.stores.forEach(s => {
+                        const pctFee  = s.erp_omset > 0 ? ((s.erp_fee / s.erp_omset) * 100).toFixed(1) : 0;
+                        storeHtml += `
+                            <tr>
+                                <td class="ps-4 fw-semibold text-dark">${escapeHtml(s.store_name)}</td>
+                                <td>${getChannelBadge(s.channel)}</td>
+                                <td class="text-end font-monospace">${s.erp_count.toLocaleString('id-ID')}</td>
+                                <td class="text-end font-monospace text-danger">${s.erp_cancelled.toLocaleString('id-ID')}</td>
+                                <td class="text-end font-monospace">${formatRp(s.erp_omset)}</td>
+                                <td class="text-end font-monospace text-danger">${formatRp(s.erp_fee)} <small class="text-secondary">(${pctFee}%)</small></td>
+                                <td class="text-end font-monospace text-success pe-4">${formatRp(s.erp_net)}</td>
+                            </tr>
+                        `;
+                    });
+                } else {
+                    storeHtml = '<tr><td colspan="7" class="text-center py-3 text-secondary">Tidak ada data toko.</td></tr>';
+                }
+                document.getElementById('storeDetailBody').innerHTML = storeHtml;
+            })
+            .catch(err => {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-search me-1"></i> Tampilkan';
+                document.getElementById('compareTableBody').innerHTML = `<tr><td colspan="5" class="text-center py-4 text-danger"><i class="fas fa-exclamation-triangle me-2"></i>Gagal memuat: ${err.message}</td></tr>`;
+            });
+        }
+
+        function resetCompareFilter() {
+            document.getElementById('filterDateFrom').value = '';
+            document.getElementById('filterDateTo').value = '';
+            document.getElementById('compareDateRangeText').textContent = 'Semua waktu';
+            loadCompareStats();
+        }
+
+        // Auto-load saat halaman dibuka
+        document.addEventListener('DOMContentLoaded', () => loadCompareStats());
     </script>
 </body>
 </html>
