@@ -377,6 +377,131 @@ class SecretRepairDashboardController extends Controller
     /**
      * AJAX: Ambil data perbandingan ERP vs API (financial_breakdown) per channel dengan filter tanggal
      */
+    /**
+     * Helper: Ekstrak metrik ERP dan API (Omset/Harga Jual, Biaya Admin, Dana Cair) secara presisi
+     */
+    private function parseOrderFinancials(Order $ord, bool $isShopee): array
+    {
+        $fb = $ord->financial_breakdown;
+        if (is_string($fb)) {
+            $fb = json_decode($fb, true);
+        }
+        $hasFb = is_array($fb) && !empty($fb);
+
+        // ── 1. OMSET ERP (Harga Jual Setelah Diskon Penjual/Voucher Toko) ──
+        $erpOmset = $isShopee
+            ? max(0.0, (float)$ord->total_amount - (float)($ord->discount_amount ?? 0))
+            : (float)$ord->total_amount;
+        $erpFee = (float)$ord->marketplace_fee;
+        $erpNet = (float)$ord->net_amount;
+
+        if (!$hasFb) {
+            return [
+                'has_fb'    => false,
+                'erp_omset' => $erpOmset,
+                'erp_fee'   => $erpFee,
+                'erp_net'   => $erpNet,
+                'api_omset' => null,
+                'api_fee'   => null,
+                'api_net'   => null,
+            ];
+        }
+
+        // Normalisasi jika Shopee membungkus rincian di 'order_income'
+        if (isset($fb['order_income']) && is_array($fb['order_income'])) {
+            $fb = array_merge($fb, $fb['order_income']);
+        }
+
+        $stmtList = $fb['statement_transactions'] ?? $fb['statement_transaction_list'] ?? $fb['transactions'] ?? [];
+        $st0 = (is_array($stmtList) && !empty($stmtList[0]) && is_array($stmtList[0])) ? $stmtList[0] : [];
+
+        // ── 2. OMSET API (HARGA JUAL PRODUK - BUKAN DANA CAIR) ──
+        $apiOmset = 0.0;
+        if (isset($fb['subtotal_after_seller_discounts']) && (float)$fb['subtotal_after_seller_discounts'] > 0) {
+            // TikTok: harga jual setelah diskon penjual
+            $apiOmset = (float)$fb['subtotal_after_seller_discounts'];
+        } elseif (isset($fb['cost_of_goods_sold']) || isset($fb['order_selling_price']) || isset($fb['order_original_price']) || isset($fb['original_price'])) {
+            // Shopee / TikTok: harga jual produk kotor dikurangi voucher toko
+            $gross = (float)($fb['cost_of_goods_sold'] ?? $fb['order_selling_price'] ?? $fb['order_original_price'] ?? $fb['original_price'] ?? 0);
+            $sDisc = (float)($fb['seller_discount'] ?? $fb['seller_discount_amount'] ?? $fb['voucher_from_seller'] ?? 0);
+            $apiOmset = max(0.0, $gross - $sDisc);
+        } elseif (isset($fb['original_total_product_price']) && (float)$fb['original_total_product_price'] > 0) {
+            $sDisc = (float)($fb['seller_discount'] ?? $fb['voucher_from_seller'] ?? 0);
+            $apiOmset = max(0.0, (float)$fb['original_total_product_price'] - $sDisc);
+        } else {
+            // Fallback: Harga jual ERP
+            $apiOmset = $erpOmset;
+        }
+
+        // ── 3. DANA CAIR API (ESCROW / SETTLEMENT AMOUNT) ──
+        $apiNet = 0.0;
+        if (isset($fb['escrow_amount']) && (float)$fb['escrow_amount'] > 0) {
+            $apiNet = (float)$fb['escrow_amount'];
+        } elseif (isset($fb['settlement_amount']) && (float)$fb['settlement_amount'] > 0) {
+            $apiNet = (float)$fb['settlement_amount'];
+        } elseif (isset($st0['settlement_amount']) && (float)$st0['settlement_amount'] > 0) {
+            $apiNet = (float)$st0['settlement_amount'];
+        } elseif (isset($fb['seller_settlement_amount']) && (float)$fb['seller_settlement_amount'] > 0) {
+            $apiNet = (float)$fb['seller_settlement_amount'];
+        } else {
+            $apiNet = $erpNet;
+        }
+
+        // ── 4. BIAYA ADMIN API (TOTAL POTONGAN RESMI MARKETPLACE) ──
+        $apiFee = 0.0;
+        if ($isShopee) {
+            $sellerFee = (float)($fb['commission_fee'] ?? 0)
+                       + (float)($fb['service_fee'] ?? 0)
+                       + (float)($fb['seller_transaction_fee'] ?? $fb['transaction_fee'] ?? 0)
+                       + (float)($fb['seller_order_processing_fee'] ?? 0)
+                       + (float)($fb['ams_commission_fee'] ?? $fb['order_ams_commission_fee'] ?? 0)
+                       + (float)($fb['seller_coin_cash_back'] ?? 0)
+                       + (float)($fb['shipping_fee_adjustment'] ?? 0);
+            if ($sellerFee > 0) {
+                $apiFee = $sellerFee;
+            } elseif ($apiOmset > 0 && $apiNet > 0 && $apiOmset > $apiNet) {
+                $apiFee = max(0.0, $apiOmset - $apiNet);
+            } else {
+                $apiFee = $erpFee;
+            }
+        } else {
+            // TikTok
+            $comm = (float)($fb['net_platform_commission'] ?? (max(0.0, (float)($fb['platform_commission'] ?? 0) - (float)($fb['platform_commission_discount'] ?? 0))));
+            if ($comm == 0 && !empty($st0['platform_commission_amount'])) {
+                $comm = abs((float)$st0['platform_commission_amount']);
+            }
+            $growth = (float)($fb['growth_xtra_fee'] ?? $st0['growth_xtra_fee_amount'] ?? 0);
+            $preorder = (float)($fb['preorder_service_fee'] ?? $st0['preorder_service_fee_amount'] ?? 0);
+            $orderProc = (float)($fb['order_processing_fee'] ?? $st0['transaction_fee_amount'] ?? 0);
+            $dynamic = (float)($fb['dynamic_commission'] ?? $st0['dynamic_commission_amount'] ?? $fb['affiliate_commission'] ?? 0);
+            $serviceFee = (float)($fb['service_fee'] ?? 0);
+
+            $totalTiktokFees = $comm + $growth + $preorder + $orderProc + $dynamic;
+            if ($totalTiktokFees > 0) {
+                $apiFee = $totalTiktokFees;
+            } elseif ($serviceFee > 0 && $serviceFee != (float)$ord->marketplace_fee) {
+                $apiFee = $serviceFee;
+            } elseif ($apiOmset > 0 && $apiNet > 0 && $apiOmset > $apiNet) {
+                $apiFee = max(0.0, $apiOmset - $apiNet);
+            } else {
+                $apiFee = $erpFee;
+            }
+        }
+
+        return [
+            'has_fb'    => true,
+            'erp_omset' => $erpOmset,
+            'erp_fee'   => $erpFee,
+            'erp_net'   => $erpNet,
+            'api_omset' => $apiOmset,
+            'api_fee'   => $apiFee,
+            'api_net'   => $apiNet,
+        ];
+    }
+
+    /**
+     * AJAX: Ambil data perbandingan ERP vs API (financial_breakdown) per channel dengan filter tanggal
+     */
     public function compareStats(Request $request)
     {
         if (!auth()->check()) {
@@ -396,7 +521,7 @@ class SecretRepairDashboardController extends Controller
         $shopeeStores = Store::whereHas('channel', fn($q) => $q->where('code', 'LIKE', '%shopee%'))->pluck('id');
         $notCancelled = ['CANCELLED', 'BATAL', 'CANCELED'];
 
-        // Helper: hitung stats ERP + API dari sekumpulan order (sudah di-filter date & store)
+        // Helper: hitung stats ERP + API dari sekumpulan order
         $calcStats = function ($storeIds) use ($applyDateFilter, $notCancelled, $shopeeStores) {
             $q = Order::whereIn('store_id', $storeIds);
             $applyDateFilter($q);
@@ -404,88 +529,26 @@ class SecretRepairDashboardController extends Controller
             $erpCount = (clone $q)->count();
             $active   = (clone $q)->whereNotIn('order_status', $notCancelled);
 
-            // ── Hitung Omset, Fee, dan Dana Cair ERP ──
-            $erpOmset = $erpFee = $erpNet = 0;
-            (clone $active)->select(['id', 'store_id', 'total_amount', 'discount_amount', 'marketplace_fee', 'net_amount'])
-                ->chunk(500, function ($orders) use (&$erpOmset, &$erpFee, &$erpNet, $shopeeStores) {
+            $erpOmset = $erpFee = $erpNet = 0.0;
+            $apiOmset = $apiFee = $apiNet = 0.0;
+            $apiCount = 0;
+
+            (clone $active)->select(['id', 'store_id', 'total_amount', 'discount_amount', 'marketplace_fee', 'net_amount', 'financial_breakdown'])
+                ->chunk(500, function ($orders) use (&$erpOmset, &$erpFee, &$erpNet, &$apiOmset, &$apiFee, &$apiNet, &$apiCount, $shopeeStores) {
                     foreach ($orders as $ord) {
                         $isShopee = $shopeeStores->contains($ord->store_id);
-                        $o = $isShopee
-                            ? max(0.0, (float)$ord->total_amount - (float)($ord->discount_amount ?? 0))
-                            : (float)$ord->total_amount;
-                        $f = (float)($ord->marketplace_fee ?? 0);
-                        $n = ($ord->net_amount > 0 && $ord->net_amount < $o)
-                            ? (float)$ord->net_amount
-                            : max(0.0, $o - $f);
+                        $fin = $this->parseOrderFinancials($ord, $isShopee);
 
-                        $erpOmset += $o;
-                        $erpFee   += $f;
-                        $erpNet   += $n;
-                    }
-                });
+                        $erpOmset += $fin['erp_omset'];
+                        $erpFee   += $fin['erp_fee'];
+                        $erpNet   += $fin['erp_net'];
 
-            // ── Data API dari financial_breakdown (JSON field di DB) ──
-            $apiOmset = $apiFee = $apiNet = $apiCount = 0;
-
-            (clone $active)->whereNotNull('financial_breakdown')
-                ->select(['financial_breakdown', 'total_amount', 'discount_amount', 'marketplace_fee', 'net_amount', 'store_id'])
-                ->chunk(500, function ($orders) use (&$apiOmset, &$apiFee, &$apiNet, &$apiCount, $shopeeStores) {
-                    foreach ($orders as $ord) {
-                        $fb = $ord->financial_breakdown;
-                        if (is_string($fb)) $fb = json_decode($fb, true);
-                        if (!is_array($fb)) continue;
-
-                        $isShopee = $shopeeStores->contains($ord->store_id);
-
-                        // 1. Omset API (setelah diskon penjual/voucher toko)
-                        if (isset($fb['subtotal_after_seller_discounts']) && (float)$fb['subtotal_after_seller_discounts'] > 0) {
-                            $o = (float)$fb['subtotal_after_seller_discounts'];
-                        } elseif (isset($fb['cost_of_goods_sold']) || isset($fb['original_price']) || isset($fb['order_selling_price'])) {
-                            $gross = (float)($fb['cost_of_goods_sold'] ?? $fb['original_price'] ?? $fb['order_selling_price'] ?? 0);
-                            $sDisc = (float)($fb['seller_discount'] ?? $fb['voucher_from_seller'] ?? 0);
-                            $o = max(0.0, $gross - $sDisc);
-                        } else {
-                            $o = $isShopee
-                                ? max(0.0, (float)$ord->total_amount - (float)($ord->discount_amount ?? 0))
-                                : (float)$ord->total_amount;
+                        if ($fin['has_fb']) {
+                            $apiOmset += $fin['api_omset'];
+                            $apiFee   += $fin['api_fee'];
+                            $apiNet   += $fin['api_net'];
+                            $apiCount++;
                         }
-
-                        // 2. Biaya Admin API (hitung komprehensif dari semua komponen fee)
-                        $shopeeF = (float)($fb['seller_coin_cash_back'] ?? 0)
-                                 + (float)($fb['commission_fee'] ?? 0)
-                                 + (float)($fb['service_fee'] ?? 0)
-                                 + (float)($fb['seller_transaction_fee'] ?? 0)
-                                 + (float)($fb['seller_order_processing_fee'] ?? 0)
-                                 + (float)($fb['ams_commission_fee'] ?? 0);
-
-                        $tiktokF = (float)($fb['net_platform_commission'] ?? $fb['platform_commission'] ?? 0)
-                                 + (float)($fb['preorder_service_fee'] ?? 0)
-                                 + (float)($fb['dynamic_commission'] ?? 0)
-                                 + (float)($fb['growth_xtra_fee'] ?? 0)
-                                 + (float)($fb['order_processing_fee'] ?? 0);
-
-                        $f = $isShopee ? $shopeeF : $tiktokF;
-                        if ($f <= 0 && isset($fb['service_fee']) && (float)$fb['service_fee'] > 0) {
-                            $f = (float)$fb['service_fee'];
-                        }
-                        if ($f <= 0 && (float)$ord->marketplace_fee > 0) {
-                            $f = (float)$ord->marketplace_fee;
-                        }
-
-                        // 3. Dana Cair API (escrow_amount resmi, atau omset - total fee)
-                        $rawEscrow = (float)($fb['escrow_amount'] ?? $fb['settlement_amount'] ?? $fb['seller_settlement_amount'] ?? 0);
-                        if ($rawEscrow > 0 && abs($rawEscrow - $o) > 1) {
-                            $n = $rawEscrow;
-                        } elseif ($f > 0 && $o > 0) {
-                            $n = max(0.0, $o - $f);
-                        } else {
-                            $n = $rawEscrow > 0 ? $rawEscrow : max(0.0, $o - $f);
-                        }
-
-                        $apiOmset += $o;
-                        $apiFee   += $f;
-                        $apiNet   += $n;
-                        $apiCount++;
                     }
                 });
 
@@ -495,12 +558,12 @@ class SecretRepairDashboardController extends Controller
                 'erp_fee'    => (float) $erpFee,
                 'erp_net'    => (float) $erpNet,
                 'api_count'  => $apiCount,
-                'api_omset'  => $apiOmset,
-                'api_fee'    => $apiFee,
-                'api_net'    => $apiNet,
-                'diff_omset' => (float)$erpOmset - $apiOmset,
-                'diff_fee'   => (float)$erpFee   - $apiFee,
-                'diff_net'   => (float)$erpNet    - $apiNet,
+                'api_omset'  => (float) $apiOmset,
+                'api_fee'    => (float) $apiFee,
+                'api_net'    => (float) $apiNet,
+                'diff_omset' => (float) $erpOmset - $apiOmset,
+                'diff_fee'   => (float) $erpFee   - $apiFee,
+                'diff_net'   => (float) $erpNet    - $apiNet,
             ];
         };
 
@@ -520,79 +583,22 @@ class SecretRepairDashboardController extends Controller
 
             $isShopee = $shopeeStores->contains($st->id);
 
-            // Hitung Omset, Fee, dan Net ERP per toko
-            $omset = $fee = $net = 0;
-            (clone $active)->select(['id', 'total_amount', 'discount_amount', 'marketplace_fee', 'net_amount'])
-                ->chunk(300, function ($orders) use (&$omset, &$fee, &$net, $isShopee) {
+            $sErpOmset = $sErpFee = $sErpNet = 0.0;
+            $sApiOmset = $sApiFee = $sApiNet = 0.0;
+
+            (clone $active)->select(['id', 'store_id', 'total_amount', 'discount_amount', 'marketplace_fee', 'net_amount', 'financial_breakdown'])
+                ->chunk(300, function ($orders) use (&$sErpOmset, &$sErpFee, &$sErpNet, &$sApiOmset, &$sApiFee, &$sApiNet, $isShopee) {
                     foreach ($orders as $ord) {
-                        $o = $isShopee
-                            ? max(0.0, (float)$ord->total_amount - (float)($ord->discount_amount ?? 0))
-                            : (float)$ord->total_amount;
-                        $f = (float)($ord->marketplace_fee ?? 0);
-                        $n = ($ord->net_amount > 0 && $ord->net_amount < $o)
-                            ? (float)$ord->net_amount
-                            : max(0.0, $o - $f);
+                        $fin = $this->parseOrderFinancials($ord, $isShopee);
+                        $sErpOmset += $fin['erp_omset'];
+                        $sErpFee   += $fin['erp_fee'];
+                        $sErpNet   += $fin['erp_net'];
 
-                        $omset += $o;
-                        $fee   += $f;
-                        $net   += $n;
-                    }
-                });
-
-            $apiO = $apiF = $apiN = 0;
-            (clone $active)->whereNotNull('financial_breakdown')
-                ->select(['financial_breakdown', 'total_amount', 'discount_amount', 'marketplace_fee', 'net_amount'])
-                ->chunk(300, function ($orders) use (&$apiO, &$apiF, &$apiN, $isShopee) {
-                    foreach ($orders as $ord) {
-                        $fb = $ord->financial_breakdown;
-                        if (is_string($fb)) $fb = json_decode($fb, true);
-                        if (!is_array($fb)) continue;
-
-                        if (isset($fb['subtotal_after_seller_discounts']) && (float)$fb['subtotal_after_seller_discounts'] > 0) {
-                            $o = (float)$fb['subtotal_after_seller_discounts'];
-                        } elseif (isset($fb['cost_of_goods_sold']) || isset($fb['original_price']) || isset($fb['order_selling_price'])) {
-                            $gross = (float)($fb['cost_of_goods_sold'] ?? $fb['original_price'] ?? $fb['order_selling_price'] ?? 0);
-                            $sDisc = (float)($fb['seller_discount'] ?? $fb['voucher_from_seller'] ?? 0);
-                            $o = max(0.0, $gross - $sDisc);
-                        } else {
-                            $o = $isShopee
-                                ? max(0.0, (float)$ord->total_amount - (float)($ord->discount_amount ?? 0))
-                                : (float)$ord->total_amount;
+                        if ($fin['has_fb']) {
+                            $sApiOmset += $fin['api_omset'];
+                            $sApiFee   += $fin['api_fee'];
+                            $sApiNet   += $fin['api_net'];
                         }
-
-                        $shopeeF = (float)($fb['seller_coin_cash_back'] ?? 0)
-                                 + (float)($fb['commission_fee'] ?? 0)
-                                 + (float)($fb['service_fee'] ?? 0)
-                                 + (float)($fb['seller_transaction_fee'] ?? 0)
-                                 + (float)($fb['seller_order_processing_fee'] ?? 0)
-                                 + (float)($fb['ams_commission_fee'] ?? 0);
-
-                        $tiktokF = (float)($fb['net_platform_commission'] ?? $fb['platform_commission'] ?? 0)
-                                 + (float)($fb['preorder_service_fee'] ?? 0)
-                                 + (float)($fb['dynamic_commission'] ?? 0)
-                                 + (float)($fb['growth_xtra_fee'] ?? 0)
-                                 + (float)($fb['order_processing_fee'] ?? 0);
-
-                        $f = $isShopee ? $shopeeF : $tiktokF;
-                        if ($f <= 0 && isset($fb['service_fee']) && (float)$fb['service_fee'] > 0) {
-                            $f = (float)$fb['service_fee'];
-                        }
-                        if ($f <= 0 && (float)$ord->marketplace_fee > 0) {
-                            $f = (float)$ord->marketplace_fee;
-                        }
-
-                        $rawEscrow = (float)($fb['escrow_amount'] ?? $fb['settlement_amount'] ?? $fb['seller_settlement_amount'] ?? 0);
-                        if ($rawEscrow > 0 && abs($rawEscrow - $o) > 1) {
-                            $n = $rawEscrow;
-                        } elseif ($f > 0 && $o > 0) {
-                            $n = max(0.0, $o - $f);
-                        } else {
-                            $n = $rawEscrow > 0 ? $rawEscrow : max(0.0, $o - $f);
-                        }
-
-                        $apiO += $o;
-                        $apiF += $f;
-                        $apiN += $n;
                     }
                 });
 
@@ -601,15 +607,15 @@ class SecretRepairDashboardController extends Controller
                 'channel'       => strtolower($st->channel->code ?? ''),
                 'erp_count'     => $count,
                 'erp_cancelled' => $cancel,
-                'erp_omset'     => (float) $omset,
-                'erp_fee'       => (float) $fee,
-                'erp_net'       => (float) $net,
-                'api_omset'     => $apiO,
-                'api_fee'       => $apiF,
-                'api_net'       => $apiN,
-                'diff_omset'    => (float)$omset - $apiO,
-                'diff_fee'      => (float)$fee - $apiF,
-                'diff_net'      => (float)$net - $apiN,
+                'erp_omset'     => (float) $sErpOmset,
+                'erp_fee'       => (float) $sErpFee,
+                'erp_net'       => (float) $sErpNet,
+                'api_omset'     => (float) $sApiOmset,
+                'api_fee'       => (float) $sApiFee,
+                'api_net'       => (float) $sApiNet,
+                'diff_omset'    => (float) $sErpOmset - $sApiOmset,
+                'diff_fee'      => (float) $sErpFee - $sApiFee,
+                'diff_net'      => (float) $sErpNet - $sApiNet,
             ];
         }
 
@@ -657,7 +663,7 @@ class SecretRepairDashboardController extends Controller
 
         $notCancelled = ['CANCELLED', 'BATAL', 'CANCELED'];
 
-        $query = Order::with(['store', 'items'])
+        $query = Order::with(['store'])
             ->whereIn('store_id', $storeIds)
             ->whereNotIn('order_status', $notCancelled);
 
@@ -672,79 +678,14 @@ class SecretRepairDashboardController extends Controller
 
         $rows = [];
         foreach ($allOrders as $ord) {
-            $fb = $ord->financial_breakdown;
-            if (is_string($fb)) $fb = json_decode($fb, true);
-            $hasFb = is_array($fb) && !empty($fb);
-
             $isShopee = $shopeeStores->contains($ord->store_id);
+            $fin = $this->parseOrderFinancials($ord, $isShopee);
 
-            // 1. Omset ERP (setelah diskon penjual)
-            $erpOmset = $isShopee
-                ? max(0.0, (float)$ord->total_amount - (float)($ord->discount_amount ?? 0))
-                : (float)$ord->total_amount;
+            $diffOmset = $fin['has_fb'] ? (float) $fin['erp_omset'] - $fin['api_omset'] : null;
+            $diffFee   = $fin['has_fb'] ? (float) $fin['erp_fee'] - $fin['api_fee'] : null;
+            $diffNet   = $fin['has_fb'] ? (float) $fin['erp_net'] - $fin['api_net'] : null;
 
-            $erpFee = (float)($ord->marketplace_fee ?? 0);
-
-            // 2. Dana Cair ERP: jika net_amount belum terpotong fee di DB, potong omset - fee
-            $erpNet = ($ord->net_amount > 0 && $ord->net_amount < $erpOmset)
-                ? (float)$ord->net_amount
-                : max(0.0, $erpOmset - $erpFee);
-
-            // 3. Omset, Fee, dan Dana Cair API
-            if ($hasFb) {
-                // Omset API
-                if (isset($fb['subtotal_after_seller_discounts']) && (float)$fb['subtotal_after_seller_discounts'] > 0) {
-                    $apiOmset = (float)$fb['subtotal_after_seller_discounts'];
-                } elseif (isset($fb['cost_of_goods_sold']) || isset($fb['original_price']) || isset($fb['order_selling_price'])) {
-                    $gross = (float)($fb['cost_of_goods_sold'] ?? $fb['original_price'] ?? $fb['order_selling_price'] ?? 0);
-                    $sDisc = (float)($fb['seller_discount'] ?? $fb['voucher_from_seller'] ?? 0);
-                    $apiOmset = max(0.0, $gross - $sDisc);
-                } else {
-                    $apiOmset = (float)($fb['buyer_paid_total'] ?? $erpOmset);
-                }
-
-                // Fee API (komprehensif)
-                $shopeeF = (float)($fb['seller_coin_cash_back'] ?? 0)
-                         + (float)($fb['commission_fee'] ?? 0)
-                         + (float)($fb['service_fee'] ?? 0)
-                         + (float)($fb['seller_transaction_fee'] ?? 0)
-                         + (float)($fb['seller_order_processing_fee'] ?? 0)
-                         + (float)($fb['ams_commission_fee'] ?? 0);
-
-                $tiktokF = (float)($fb['net_platform_commission'] ?? $fb['platform_commission'] ?? 0)
-                         + (float)($fb['preorder_service_fee'] ?? 0)
-                         + (float)($fb['dynamic_commission'] ?? 0)
-                         + (float)($fb['growth_xtra_fee'] ?? 0)
-                         + (float)($fb['order_processing_fee'] ?? 0);
-
-                $apiFee = $isShopee ? $shopeeF : $tiktokF;
-                if ($apiFee <= 0 && isset($fb['service_fee']) && (float)$fb['service_fee'] > 0) {
-                    $apiFee = (float)$fb['service_fee'];
-                }
-                if ($apiFee <= 0 && $erpFee > 0) {
-                    $apiFee = $erpFee;
-                }
-
-                // Dana Cair API
-                $rawEscrow = (float)($fb['escrow_amount'] ?? $fb['settlement_amount'] ?? $fb['seller_settlement_amount'] ?? 0);
-                if ($rawEscrow > 0 && abs($rawEscrow - $apiOmset) > 1) {
-                    $apiNet = $rawEscrow;
-                } elseif ($apiFee > 0 && $apiOmset > 0) {
-                    $apiNet = max(0.0, $apiOmset - $apiFee);
-                } else {
-                    $apiNet = $rawEscrow > 0 ? $rawEscrow : max(0.0, $apiOmset - $apiFee);
-                }
-            } else {
-                $apiOmset = null;
-                $apiFee   = null;
-                $apiNet   = null;
-            }
-
-            $diffOmset = $hasFb ? (float)$erpOmset - $apiOmset : null;
-            $diffFee   = $hasFb ? (float)$erpFee - $apiFee : null;
-            $diffNet   = $hasFb ? (float)$erpNet - $apiNet : null;
-
-            $isMismatch = $hasFb && (abs($diffNet) > 100 || abs($diffOmset) > 100 || abs($diffFee) > 100);
+            $isMismatch = $fin['has_fb'] && (abs($diffNet) > 100 || abs($diffOmset) > 100 || abs($diffFee) > 100);
 
             if ($filter === 'mismatch' && !$isMismatch) continue;
 
@@ -755,16 +696,16 @@ class SecretRepairDashboardController extends Controller
                 'order_status'     => $ord->order_status,
                 'store_name'       => $ord->store->store_name ?? '-',
                 'buyer_name'       => $ord->buyer_name,
-                'erp_omset'        => (float) $erpOmset,
-                'erp_fee'          => (float) $erpFee,
-                'erp_net'          => (float) $erpNet,
-                'api_omset'        => $apiOmset,
-                'api_fee'          => $apiFee,
-                'api_net'          => $apiNet,
+                'erp_omset'        => (float) $fin['erp_omset'],
+                'erp_fee'          => (float) $fin['erp_fee'],
+                'erp_net'          => (float) $fin['erp_net'],
+                'api_omset'        => $fin['api_omset'],
+                'api_fee'          => $fin['api_fee'],
+                'api_net'          => $fin['api_net'],
                 'diff_omset'       => $diffOmset,
                 'diff_fee'         => $diffFee,
                 'diff_net'         => $diffNet,
-                'has_fb'           => $hasFb,
+                'has_fb'           => $fin['has_fb'],
                 'is_mismatch'      => $isMismatch,
             ];
         }
