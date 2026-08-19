@@ -436,9 +436,8 @@ class Order extends Model
             $serviceFee += abs((float)$fb['service_fee']);
         }
 
-        // 4. Biaya Promosi Seller (Hanya potongan voucher/koin/affiliate yang ditanggung Seller)
-        $promoFee    = abs((float) ($fb['voucher_from_seller'] ?? 0))
-                    + abs((float) ($fb['seller_coin_cash_back'] ?? 0))
+        // 4. Biaya Promosi Seller (Hanya potongan koin/cashback/ams/affiliate yang merupakan biaya promosi)
+        $promoFee    = abs((float) ($fb['seller_coin_cash_back'] ?? 0))
                     + abs((float) ($fb['order_ams_commission_fee'] ?? $fb['ams_commission_fee'] ?? 0))
                     + abs((float) ($fb['dynamic_commission'] ?? $fb['affiliate_commission'] ?? $st0['affiliate_commission_amount'] ?? $st0['dynamic_commission_amount'] ?? 0));
 
@@ -475,7 +474,7 @@ class Order extends Model
         }
 
         // 🔒 PROTEKSI KETAT: Fee tidak boleh melebihi (Total Omset - Dana Cair Escrow API)
-        $escrowAmt = (float) ($fb['escrow_amount'] ?? $fb['settlement_amount'] ?? $st0['settlement_amount'] ?? 0);
+        $escrowAmt = (float) ($fb['escrow_amount'] ?? $fb['settlement_amount'] ?? $st0['settlement_amount'] ?? $fb['seller_settlement_amount'] ?? 0);
 
         if ($escrowAmt > 0 && $totalGross > $escrowAmt) {
             $actualMaxFee = $totalGross - $escrowAmt;
@@ -543,8 +542,11 @@ class Order extends Model
             return 0.0;
         }
 
-        if (!empty($fb['escrow_amount']) && (float) $fb['escrow_amount'] > 0) {
-            $escrow = (float) $fb['escrow_amount'];
+        $stmtList = $fb['statement_transactions'] ?? $fb['statement_transaction_list'] ?? $fb['transactions'] ?? [];
+        $st0 = (is_array($stmtList) && !empty($stmtList[0]) && is_array($stmtList[0])) ? $stmtList[0] : [];
+        $escrow = (float) ($fb['escrow_amount'] ?? $fb['settlement_amount'] ?? $st0['settlement_amount'] ?? $fb['seller_settlement_amount'] ?? 0);
+
+        if ($escrow > 0) {
             return max(0.0, $escrow - $refundDeduction);
         }
 
