@@ -297,7 +297,7 @@ class SyncTiktokEscrow extends Command
                         } elseif ($escrowAmount > 0 && $totalAmount > $escrowAmount) {
                             $totalTiktokFees = max(0.0, $totalAmount - $escrowAmount);
                         } else {
-                            $totalTiktokFees = $netPlatformCommission + $preorderServiceFee + $dynamicCommission + $growthXtraFee + $orderProcessingFee + $sellerDiscount + $withholdingTax + $totalAdjustment + $protectionFee;
+                            $totalTiktokFees = $netPlatformCommission + $preorderServiceFee + $dynamicCommission + $growthXtraFee + $orderProcessingFee + $protectionFee;
                         }
 
                         if ($totalTiktokFees <= 0 && $totalAmount > 0 && $sellerReturnRefund == 0) {
@@ -338,7 +338,8 @@ class SyncTiktokEscrow extends Command
                             'escrow_amount' => $escrowAmount,
                         ];
 
-                        $dbOrder->financial_breakdown = array_merge($financialData, $stmtData ?? []);
+                        $finalFb = array_merge($financialData, $stmtData ?? []);
+                        $dbOrder->financial_breakdown = $finalFb;
                         $dbOrder->total_amount = $totalAmount;
                         $dbOrder->marketplace_fee = $totalTiktokFees;
                         $dbOrder->net_amount = $escrowAmount;
@@ -375,6 +376,16 @@ class SyncTiktokEscrow extends Command
 
                         $dbOrder->recon_status = 'RECONCILED';
                         $dbOrder->saveQuietly();
+
+                        // Simpan pasti ke tabel orders langsung
+                        \DB::table('orders')->where('id', $dbOrder->id)->update([
+                            'total_amount'        => $totalAmount,
+                            'marketplace_fee'     => $totalTiktokFees,
+                            'net_amount'          => $escrowAmount,
+                            'recon_status'        => 'RECONCILED',
+                            'financial_breakdown' => json_encode($finalFb),
+                            'updated_at'          => now(),
+                        ]);
 
                         // 📦 PERBAIKAN OTOMATIS: Jika order belum punya item di DB, buatkan itemnya dari API
                         if ($dbOrder->items()->count() === 0) {
