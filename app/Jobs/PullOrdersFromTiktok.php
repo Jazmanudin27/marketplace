@@ -421,7 +421,7 @@ class PullOrdersFromTiktok implements ShouldQueue
                     $query = \App\Models\MarketplaceProduct::where('store_id', $this->store->id)
                         ->where('marketplace_product_id', $productId);
                     if ($skuId) {
-                        $query->where('variant_id', $skuId);
+                        $query->where('marketplace_variant_id', $skuId);
                     }
                     $marketplaceProduct = $query->first();
 
