@@ -415,24 +415,36 @@ class SecretRepairDashboardController extends Controller
         $stmtList = $inc['statement_transactions'] ?? $inc['statement_transaction_list'] ?? $inc['transactions'] ?? [];
         $st0 = (is_array($stmtList) && !empty($stmtList[0]) && is_array($stmtList[0])) ? $stmtList[0] : [];
 
-        // ── 2. OMSET API (PERSIS SAMA DENGAN SYNC-ESCROW COMMAND) ──
+        // ── 2. OMSET API (HARGA JUAL SETELAH DISKON PENJUAL / NET SALES) ──
         $apiOmset = 0.0;
         if ($isShopee) {
-            // Shopee: cost_of_goods_sold / order_selling_price / order_original_price (seperti di SyncShopeeEscrow)
-            $apiOmset = (float) ($inc['cost_of_goods_sold']
-                ?? $inc['order_selling_price']
-                ?? $inc['order_original_price']
-                ?? $inc['original_price']
-                ?? $ord->total_amount);
+            $sellerDisc = (float)($inc['voucher_from_seller'] ?? $inc['seller_discount'] ?? $inc['seller_discount_amount'] ?? 0);
+            if (isset($inc['order_selling_price']) && (float)$inc['order_selling_price'] > 0) {
+                $apiOmset = (float)$inc['order_selling_price'];
+            } elseif (isset($inc['cost_of_goods_sold']) && (float)$inc['cost_of_goods_sold'] > 0) {
+                $cogs = (float)$inc['cost_of_goods_sold'];
+                $apiOmset = ($sellerDisc > 0 && $cogs > $sellerDisc) ? max(0.0, $cogs - $sellerDisc) : $cogs;
+            } elseif (isset($inc['order_original_price']) && (float)$inc['order_original_price'] > 0) {
+                $orig = (float)$inc['order_original_price'];
+                $apiOmset = ($sellerDisc > 0 && $orig > $sellerDisc) ? max(0.0, $orig - $sellerDisc) : $orig;
+            } else {
+                $apiOmset = $erpOmset;
+            }
         } else {
-            // TikTok: revenue_amount / net_sales_amount / subtotal_after_seller_discounts / original_total_product_price (seperti di SyncTiktokEscrow)
-            $apiOmset = (float) ($st0['revenue_amount']
-                ?? $st0['net_sales_amount']
-                ?? $inc['subtotal_after_seller_discounts']
-                ?? $inc['after_seller_discounts_subtotal_amount']
-                ?? $inc['original_total_product_price']
-                ?? $inc['original_price']
-                ?? $ord->total_amount);
+            // TikTok
+            $sellerDisc = (float)($inc['seller_discount'] ?? $inc['voucher_from_seller'] ?? $inc['discount_amount'] ?? 0);
+            if (isset($inc['subtotal_after_seller_discounts']) && (float)$inc['subtotal_after_seller_discounts'] > 0) {
+                $apiOmset = (float)$inc['subtotal_after_seller_discounts'];
+            } elseif (isset($st0['net_sales_amount']) && (float)$st0['net_sales_amount'] > 0) {
+                $apiOmset = (float)$st0['net_sales_amount'];
+            } elseif (isset($st0['revenue_amount']) && (float)$st0['revenue_amount'] > 0) {
+                $apiOmset = (float)$st0['revenue_amount'];
+            } elseif (isset($inc['original_total_product_price']) && (float)$inc['original_total_product_price'] > 0) {
+                $orig = (float)$inc['original_total_product_price'];
+                $apiOmset = ($sellerDisc > 0 && $orig > $sellerDisc) ? max(0.0, $orig - $sellerDisc) : $orig;
+            } else {
+                $apiOmset = $erpOmset;
+            }
         }
 
         if ($apiOmset <= 0) {
@@ -792,19 +804,51 @@ class SecretRepairDashboardController extends Controller
                 } catch (\Throwable $e) {}
             }
 
-            Cache::flush();
+            // 3. Ekstrak data resmi API
             $order->refresh();
             $fin = $this->parseOrderFinancials($order, $isShopee);
 
+            if ($fin['has_fb']) {
+                $targetOmset = ($fin['api_omset'] > 0) ? (float)$fin['api_omset'] : (float)$order->total_amount;
+                $targetFee   = ($fin['api_fee'] !== null) ? (float)$fin['api_fee'] : (float)$order->marketplace_fee;
+                $targetNet   = ($fin['api_net'] !== null) ? (float)$fin['api_net'] : (float)$order->net_amount;
+
+                // Update langsung ke database agar kolom ERP sama persis dengan kolom API
+                \DB::table('orders')->where('id', $order->id)->update([
+                    'total_amount'        => $targetOmset,
+                    'marketplace_fee'     => $targetFee,
+                    'net_amount'          => $targetNet,
+                    'recon_status'        => 'RECONCILED',
+                    'financial_breakdown' => is_array($order->financial_breakdown) ? json_encode($order->financial_breakdown) : $order->financial_breakdown,
+                    'updated_at'          => now(),
+                ]);
+
+                // Update items jika single item
+                $items = $order->items;
+                if ($items->count() === 1 && $targetOmset > 0) {
+                    $it = $items->first();
+                    $qty = $it->quantity ?: 1;
+                    \DB::table('order_items')->where('id', $it->id)->update([
+                        'price'       => round($targetOmset / $qty, 2),
+                        'total_price' => $targetOmset,
+                        'updated_at'  => now(),
+                    ]);
+                }
+            }
+
+            Cache::flush();
+            $order->refresh();
+            $finAfter = $this->parseOrderFinancials($order, $isShopee);
+
             return response()->json([
                 'success'   => true,
-                'message'   => "Order {$orderSn} berhasil ditarik dan disimpan ke database ERP!",
+                'message'   => "Order {$orderSn} berhasil disinkronkan & disimpan ke database ERP!\nOmset: Rp " . number_format($order->total_amount, 0, ',', '.') . " | Fee: Rp " . number_format($order->marketplace_fee, 0, ',', '.') . " | Dana Cair: Rp " . number_format($order->net_amount, 0, ',', '.'),
                 'erp_omset' => (float) $order->total_amount,
                 'erp_fee'   => (float) $order->marketplace_fee,
                 'erp_net'   => (float) $order->net_amount,
-                'api_omset' => $fin['api_omset'],
-                'api_fee'   => $fin['api_fee'],
-                'api_net'   => $fin['api_net'],
+                'api_omset' => $finAfter['api_omset'],
+                'api_fee'   => $finAfter['api_fee'],
+                'api_net'   => $finAfter['api_net'],
             ]);
         } catch (\Throwable $e) {
             Log::error("Error syncSingleOrder for {$orderSn}: " . $e->getMessage());
@@ -897,6 +941,36 @@ class SecretRepairDashboardController extends Controller
                             } catch (\Throwable $e) {}
                         }
                     }
+
+                    $ord->refresh();
+                    $finUpdated = $this->parseOrderFinancials($ord, $isShopee);
+
+                    if ($finUpdated['has_fb']) {
+                        $targetOmset = ($finUpdated['api_omset'] > 0) ? (float)$finUpdated['api_omset'] : (float)$ord->total_amount;
+                        $targetFee   = ($finUpdated['api_fee'] !== null) ? (float)$finUpdated['api_fee'] : (float)$ord->marketplace_fee;
+                        $targetNet   = ($finUpdated['api_net'] !== null) ? (float)$finUpdated['api_net'] : (float)$ord->net_amount;
+
+                        \DB::table('orders')->where('id', $ord->id)->update([
+                            'total_amount'        => $targetOmset,
+                            'marketplace_fee'     => $targetFee,
+                            'net_amount'          => $targetNet,
+                            'recon_status'        => 'RECONCILED',
+                            'financial_breakdown' => is_array($ord->financial_breakdown) ? json_encode($ord->financial_breakdown) : $ord->financial_breakdown,
+                            'updated_at'          => now(),
+                        ]);
+
+                        $items = $ord->items;
+                        if ($items->count() === 1 && $targetOmset > 0) {
+                            $it = $items->first();
+                            $qty = $it->quantity ?: 1;
+                            \DB::table('order_items')->where('id', $it->id)->update([
+                                'price'       => round($targetOmset / $qty, 2),
+                                'total_price' => $targetOmset,
+                                'updated_at'  => now(),
+                            ]);
+                        }
+                    }
+
                     $syncedCount++;
                 } catch (\Throwable $e) {
                     Log::warning("Gagal sync mismatch order {$ord->order_marketplace_id}: " . $e->getMessage());
