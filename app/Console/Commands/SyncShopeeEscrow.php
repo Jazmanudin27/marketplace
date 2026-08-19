@@ -15,7 +15,7 @@ class SyncShopeeEscrow extends Command
      *
      * @var string
      */
-    protected $signature = 'shopee:sync-escrow {--store_id= : ID Toko Shopee tertentu (opsional)} {--order_sn= : Nomor pesanan Shopee tertentu untuk dites (opsional)} {--limit=100 : Jumlah orderan per batch} {--all : Paksa sinkronisasi semua order termasuk yang sudah match}';
+    protected $signature = 'shopee:sync-escrow {--store_id= : ID Toko Shopee tertentu (opsional)} {--order_sn= : Nomor pesanan Shopee tertentu untuk dites (opsional)} {--limit=100 : Jumlah orderan per batch} {--date_from= : Tanggal awal order (contoh: 2026-08-01)} {--date_to= : Tanggal akhir order (contoh: 2026-08-18)} {--all : Paksa sinkronisasi semua order termasuk yang sudah match atau tanggal lama}';
 
     /**
      * The console command description.
@@ -31,10 +31,12 @@ class SyncShopeeEscrow extends Command
     {
         $this->info('Memulai sinkronisasi Rincian Biaya Escrow Langsung dari API Shopee...');
 
-        $shopeeService = app(ShopeeService::class);
-        $storeId = $this->option('store_id');
-        $orderSnOption = $this->option('order_sn');
-        $forceAll      = $this->option('all');
+        $shopeeService  = app(ShopeeService::class);
+        $storeId        = $this->option('store_id');
+        $orderSnOption  = $this->option('order_sn');
+        $dateFromOption = $this->option('date_from');
+        $dateToOption   = $this->option('date_to');
+        $forceAll       = $this->option('all');
 
         $query = Store::whereHas('channel', function ($q) {
             $q->where('code', 'shopee');
@@ -64,26 +66,37 @@ class SyncShopeeEscrow extends Command
                 continue;
             }
 
-            // Ambil orderan Shopee di toko ini
+            // Ambil orderan Shopee di toko ini (abaikan yang dibatalkan)
             $ordersQuery = Order::where('store_id', $store->id)
-                ->whereNotNull('order_marketplace_id');
+                ->whereNotNull('order_marketplace_id')
+                ->whereNotIn('order_status', ['CANCELLED', 'BATAL', 'CANCELED']);
 
             if ($orderSnOption) {
                 $ordersQuery->where('order_marketplace_id', $orderSnOption);
+            } else {
+                if ($dateFromOption) {
+                    $ordersQuery->whereDate('order_date', '>=', $dateFromOption);
+                }
+                if ($dateToOption) {
+                    $ordersQuery->whereDate('order_date', '<=', $dateToOption);
+                }
+                if (!$dateFromOption && !$dateToOption && !$forceAll) {
+                    $ordersQuery->whereDate('order_date', '>=', now()->subDays(30)->toDateString());
+                }
             }
 
             $allOrders = $ordersQuery->get();
 
-            // 🎯 FILTER HANYA PESANAN MISMATCH / BELUM SINKRON
+            // 🎯 FILTER HANYA PESANAN MISMATCH / BEDA DENGAN API
             if (!$orderSnOption && !$forceAll) {
                 $orders = $allOrders->filter(function($ord) {
                     $fb = $ord->financial_breakdown;
-                    if (empty($fb)) return true;
+                    if (empty($fb)) return false;
 
                     if (is_string($fb)) {
                         $fb = json_decode($fb, true);
                     }
-                    if (!is_array($fb) || empty($fb)) return true;
+                    if (!is_array($fb) || empty($fb)) return false;
 
                     $sellerDisc = (float)($fb['voucher_from_seller'] ?? $fb['seller_discount'] ?? 0);
                     $cogs = (float)($fb['cost_of_goods_sold'] ?? $fb['order_selling_price'] ?? $ord->total_amount);
@@ -95,18 +108,18 @@ class SyncShopeeEscrow extends Command
                     $diffNet   = abs((float)$ord->net_amount - $apiNet);
                     $diffFee   = abs((float)$ord->marketplace_fee - $apiFee);
 
-                    return ($diffOmset > 100 || $diffNet > 100 || $diffFee > 100 || $ord->recon_status !== 'RECONCILED');
+                    return ($diffOmset > 100 || $diffNet > 100 || $diffFee > 100);
                 });
 
                 $skippedCount = $allOrders->count() - $orders->count();
-                $this->info("Total Pesanan: {$allOrders->count()} | Ditemukan Mismatch / Belum Sinkron: {$orders->count()} ({$skippedCount} pesanan sudah match dilewati)");
+                $this->info("Total Pesanan Aktif: {$allOrders->count()} | Ditemukan Mismatch: {$orders->count()} ({$skippedCount} pesanan sudah match dilewati)");
             } else {
                 $orders = $allOrders;
                 $this->info("Menemukan {$orders->count()} pesanan untuk disinkronkan dengan API Escrow Shopee...");
             }
 
             if ($orders->isEmpty()) {
-                $this->info("✨ Semua pesanan Shopee di toko ini sudah sinkron dan MATCH 100%!");
+                $this->info("✨ Semua pesanan Shopee di toko ini sudah MATCH 100%!");
                 continue;
             }
 

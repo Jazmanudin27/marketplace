@@ -16,7 +16,7 @@ class SyncTiktokEscrow extends Command
      *
      * @var string
      */
-    protected $signature = 'tiktok:sync-escrow {--store_id= : ID Toko TikTok tertentu (opsional)} {--order_id= : Nomor order TikTok tertentu untuk dites} {--all : Paksa sinkronisasi semua order termasuk yang sudah match}';
+    protected $signature = 'tiktok:sync-escrow {--store_id= : ID Toko TikTok tertentu (opsional)} {--order_id= : Nomor order TikTok tertentu untuk dites} {--date_from= : Tanggal awal order (contoh: 2026-08-01)} {--date_to= : Tanggal akhir order (contoh: 2026-08-18)} {--all : Paksa sinkronisasi semua order termasuk yang sudah match atau tanggal lama}';
 
     /**
      * The console command description.
@@ -34,10 +34,12 @@ class SyncTiktokEscrow extends Command
         $this->info("SINKRONISASI BIAYA & SETTLEMENT ESCROW TIKTOK SHOP");
         $this->info("========================================================\n");
 
-        $tiktokService = app(TiktokService::class);
-        $storeIdOption = $this->option('store_id');
-        $orderIdOption = $this->option('order_id');
-        $forceAll      = $this->option('all');
+        $tiktokService  = app(TiktokService::class);
+        $storeIdOption  = $this->option('store_id');
+        $orderIdOption  = $this->option('order_id');
+        $dateFromOption = $this->option('date_from');
+        $dateToOption   = $this->option('date_to');
+        $forceAll       = $this->option('all');
 
         $query = Store::whereHas('channel', function ($q) {
             $q->whereIn('code', ['tiktok', 'tokopedia']);
@@ -75,10 +77,22 @@ class SyncTiktokEscrow extends Command
             }
 
             $ordersQuery = Order::where('store_id', $store->id)
-                ->whereNotNull('order_marketplace_id');
+                ->whereNotNull('order_marketplace_id')
+                ->whereNotIn('order_status', ['CANCELLED', 'BATAL', 'CANCELED']);
 
             if ($orderIdOption) {
                 $ordersQuery->where('order_marketplace_id', $orderIdOption);
+            } else {
+                if ($dateFromOption) {
+                    $ordersQuery->whereDate('order_date', '>=', $dateFromOption);
+                }
+                if ($dateToOption) {
+                    $ordersQuery->whereDate('order_date', '<=', $dateToOption);
+                }
+                // Jika tidak difilter tanggal spesifik dan bukan --all, batasi ke 30 hari terakhir agar tidak memproses data lampau
+                if (!$dateFromOption && !$dateToOption && !$forceAll) {
+                    $ordersQuery->whereDate('order_date', '>=', now()->subDays(30)->toDateString());
+                }
             }
 
             $allOrders = $ordersQuery->get();
@@ -110,47 +124,64 @@ class SyncTiktokEscrow extends Command
                 if ($orderIdOption) {
                     continue;
                 }
-                $timeTo = time();
-                $timeFrom = strtotime('-7 days', $timeTo);
-                PullOrdersFromTiktok::dispatch($store, $timeFrom, $timeTo);
-                $this->info("Job penarikan pesanan TikTok telah dikirim ke antrean.");
+                $this->info("Tidak ada pesanan aktif pada periode yang dipilih.");
                 continue;
             }
 
-            // 🎯 FILTER HANYA PESANAN MISMATCH / BELUM SINKRON
+            // 🎯 FILTER HANYA PESANAN YANG BENAR-BENAR MISMATCH (SAMA PERSIS DENGAN LOGIKA DASHBOARD)
             if (!$orderIdOption && !$forceAll) {
                 $orders = $allOrders->filter(function($ord) {
                     $fb = $ord->financial_breakdown;
-                    if (empty($fb)) return true; // Belum pernah sinkron breakdown
+                    if (empty($fb)) return false; // Abaikan jika pesanan memang belum punya data breakdown
 
                     if (is_string($fb)) {
                         $fb = json_decode($fb, true);
                     }
-                    if (!is_array($fb) || empty($fb)) return true;
+                    if (!is_array($fb) || empty($fb)) return false;
 
                     $stmtList = $fb['statement_transactions'] ?? $fb['statement_transaction_list'] ?? $fb['transactions'] ?? [];
                     $st0 = (is_array($stmtList) && !empty($stmtList[0]) && is_array($stmtList[0])) ? $stmtList[0] : [];
 
-                    $apiOmset = (float)($st0['revenue_amount'] ?? $st0['net_sales_amount'] ?? $fb['subtotal_after_seller_discounts'] ?? $fb['after_seller_discounts_subtotal_amount'] ?? $fb['original_total_product_price'] ?? $ord->total_amount);
-                    $apiNet = (float)($st0['settlement_amount'] ?? $fb['settlement_amount'] ?? $fb['escrow_amount'] ?? $ord->net_amount);
-                    $apiFee = !empty($st0['fee_amount']) ? abs((float)$st0['fee_amount']) : abs((float)($ord->fee_breakdown_details['total_fee'] ?? $ord->marketplace_fee));
+                    $sellerDisc = (float)($fb['seller_discount'] ?? $fb['voucher_from_seller'] ?? $fb['discount_amount'] ?? 0);
+                    if (isset($fb['subtotal_after_seller_discounts']) && (float)$fb['subtotal_after_seller_discounts'] > 0) {
+                        $apiOmset = (float)$fb['subtotal_after_seller_discounts'];
+                    } elseif (isset($st0['net_sales_amount']) && (float)$st0['net_sales_amount'] > 0) {
+                        $apiOmset = (float)$st0['net_sales_amount'];
+                    } elseif (isset($st0['revenue_amount']) && (float)$st0['revenue_amount'] > 0) {
+                        $apiOmset = (float)$st0['revenue_amount'];
+                    } elseif (isset($fb['original_total_product_price']) && (float)$fb['original_total_product_price'] > 0) {
+                        $orig = (float)$fb['original_total_product_price'];
+                        $apiOmset = ($sellerDisc > 0 && $orig > $sellerDisc) ? max(0.0, $orig - $sellerDisc) : $orig;
+                    } else {
+                        $apiOmset = (float)$ord->total_amount;
+                    }
+
+                    $apiNet = (float)($fb['escrow_amount'] ?? $st0['settlement_amount'] ?? $fb['settlement_amount'] ?? $fb['seller_settlement_amount'] ?? $ord->net_amount);
+                    
+                    if (!empty($st0['fee_amount']) && (float)$st0['fee_amount'] != 0) {
+                        $apiFee = abs((float)$st0['fee_amount']);
+                    } elseif ($apiOmset > 0 && $apiNet > 0 && $apiOmset > $apiNet) {
+                        $apiFee = max(0.0, $apiOmset - $apiNet);
+                    } else {
+                        $apiFee = abs((float)($ord->fee_breakdown_details['total_fee'] ?? $ord->marketplace_fee));
+                    }
 
                     $diffOmset = abs((float)$ord->total_amount - $apiOmset);
                     $diffNet   = abs((float)$ord->net_amount - $apiNet);
                     $diffFee   = abs((float)$ord->marketplace_fee - $apiFee);
 
-                    return ($diffOmset > 100 || $diffNet > 100 || $diffFee > 100 || $ord->recon_status !== 'RECONCILED');
+                    return ($diffOmset > 100 || $diffNet > 100 || $diffFee > 100);
                 });
 
                 $skippedCount = $allOrders->count() - $orders->count();
-                $this->info("Total Pesanan: {$allOrders->count()} | Ditemukan Mismatch / Belum Sinkron: {$orders->count()} ({$skippedCount} pesanan sudah match dilewati)");
+                $this->info("Total Pesanan Aktif: {$allOrders->count()} | Ditemukan Mismatch: {$orders->count()} ({$skippedCount} pesanan sudah match dilewati)");
             } else {
                 $orders = $allOrders;
                 $this->info("Menemukan {$orders->count()} pesanan TikTok untuk disinkronkan...");
             }
 
             if ($orders->isEmpty()) {
-                $this->info("✨ Semua pesanan di toko ini sudah sinkron dan MATCH 100%!");
+                $this->info("✨ Semua pesanan di toko ini sudah MATCH 100%!");
                 continue;
             }
 
