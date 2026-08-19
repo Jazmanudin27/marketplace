@@ -748,21 +748,15 @@ class SecretRepairDashboardController extends Controller
         $isShopee = str_contains($chCode, 'shopee');
         $isTiktok = str_contains($chCode, 'tiktok') || str_contains($chCode, 'tokopedia');
 
+        // 1. Coba tarik data live dari API Marketplace (Graceful - tidak gagalkan proses jika token expired)
         try {
-            if ($isTiktok) {
-                $tiktokService = app(\App\Services\TiktokService::class);
+            if ($isTiktok && !empty($store->shop_cipher)) {
                 $accessToken = $store->getValidAccessToken();
-                $shopCipher = $store->shop_cipher;
-
-                if (!$shopCipher) {
-                    return response()->json(['error' => 'Toko belum memiliki shop_cipher.'], 422);
-                }
-
-                $detailRes = $tiktokService->getOrderDetail($accessToken, $shopCipher, [$orderSn]);
+                $tiktokService = app(\App\Services\TiktokService::class);
+                $detailRes = $tiktokService->getOrderDetail($accessToken, $store->shop_cipher, [$orderSn]);
                 $tiktokOrders = $detailRes['order_list'] ?? $detailRes['orders'] ?? [];
 
                 if (!empty($tiktokOrders[0])) {
-                    // Gunakan method processOrder resmi dari Job PullOrdersFromTiktok
                     $job = new \App\Jobs\PullOrdersFromTiktok($store, time() - 86400, time());
                     $reflection = new \ReflectionClass($job);
                     $method = $reflection->getMethod('processOrder');
@@ -770,24 +764,20 @@ class SecretRepairDashboardController extends Controller
                     $method->invoke($job, $tiktokOrders[0]);
                 }
 
-                // Jalankan juga artisan tiktok:sync-escrow untuk statement keuangan
                 try {
                     \Artisan::call('tiktok:sync-escrow', [
                         '--order_id' => $orderSn,
                         '--store_id' => $store->id,
                     ]);
                 } catch (\Throwable $e) {}
-
-            } elseif ($isShopee) {
-                $shopeeService = app(\App\Services\ShopeeService::class);
+            } elseif ($isShopee && !empty($store->marketplace_store_id)) {
                 $accessToken = $store->getValidAccessToken();
+                $shopeeService = app(\App\Services\ShopeeService::class);
                 $shopId = (int) $store->marketplace_store_id;
-
                 $detailRes = $shopeeService->getOrderDetail($accessToken, $shopId, [$orderSn]);
                 $shopeeOrders = $detailRes['order_list'] ?? [];
 
                 if (!empty($shopeeOrders[0])) {
-                    // Gunakan method saveOrder resmi dari Job PullOrdersFromShopee
                     $job = new \App\Jobs\PullOrdersFromShopee($store, time() - 86400, time());
                     $reflection = new \ReflectionClass($job);
                     $method = $reflection->getMethod('saveOrder');
@@ -795,7 +785,6 @@ class SecretRepairDashboardController extends Controller
                     $method->invoke($job, $shopeeOrders[0]);
                 }
 
-                // Jalankan juga artisan shopee:sync-escrow
                 try {
                     \Artisan::call('shopee:sync-escrow', [
                         '--order_sn' => $orderSn,
@@ -803,37 +792,39 @@ class SecretRepairDashboardController extends Controller
                     ]);
                 } catch (\Throwable $e) {}
             }
+        } catch (\Throwable $liveEx) {
+            Log::warning("Live API call notice for {$orderSn}: " . $liveEx->getMessage());
+        }
 
-            // 3. Ekstrak data resmi API
-            $order->refresh();
-            $fin = $this->parseOrderFinancials($order, $isShopee);
+        // 2. Ekstrak data resmi API dari breakdown (baik dari live API maupun yang tersimpan di DB)
+        $order->refresh();
+        $fin = $this->parseOrderFinancials($order, $isShopee);
 
-            if ($fin['has_fb']) {
-                $targetOmset = ($fin['api_omset'] > 0) ? (float)$fin['api_omset'] : (float)$order->total_amount;
-                $targetFee   = ($fin['api_fee'] !== null) ? (float)$fin['api_fee'] : (float)$order->marketplace_fee;
-                $targetNet   = ($fin['api_net'] !== null) ? (float)$fin['api_net'] : (float)$order->net_amount;
+        if ($fin['has_fb']) {
+            $targetOmset = ($fin['api_omset'] > 0) ? (float)$fin['api_omset'] : (float)$order->total_amount;
+            $targetFee   = ($fin['api_fee'] !== null) ? (float)$fin['api_fee'] : (float)$order->marketplace_fee;
+            $targetNet   = ($fin['api_net'] !== null) ? (float)$fin['api_net'] : (float)$order->net_amount;
 
-                // Update langsung ke database agar kolom ERP sama persis dengan kolom API
-                \DB::table('orders')->where('id', $order->id)->update([
-                    'total_amount'        => $targetOmset,
-                    'marketplace_fee'     => $targetFee,
-                    'net_amount'          => $targetNet,
-                    'recon_status'        => 'RECONCILED',
-                    'financial_breakdown' => is_array($order->financial_breakdown) ? json_encode($order->financial_breakdown) : $order->financial_breakdown,
-                    'updated_at'          => now(),
+            // Simpan langsung ke database ERP agar data ERP dan API sama persis (Match)
+            \DB::table('orders')->where('id', $order->id)->update([
+                'total_amount'        => $targetOmset,
+                'marketplace_fee'     => $targetFee,
+                'net_amount'          => $targetNet,
+                'recon_status'        => 'RECONCILED',
+                'financial_breakdown' => is_array($order->financial_breakdown) ? json_encode($order->financial_breakdown) : $order->financial_breakdown,
+                'updated_at'          => now(),
+            ]);
+
+            // Update items jika single item
+            $items = $order->items;
+            if ($items->count() === 1 && $targetOmset > 0) {
+                $it = $items->first();
+                $qty = $it->quantity ?: 1;
+                \DB::table('order_items')->where('id', $it->id)->update([
+                    'price'       => round($targetOmset / $qty, 2),
+                    'total_price' => $targetOmset,
+                    'updated_at'  => now(),
                 ]);
-
-                // Update items jika single item
-                $items = $order->items;
-                if ($items->count() === 1 && $targetOmset > 0) {
-                    $it = $items->first();
-                    $qty = $it->quantity ?: 1;
-                    \DB::table('order_items')->where('id', $it->id)->update([
-                        'price'       => round($targetOmset / $qty, 2),
-                        'total_price' => $targetOmset,
-                        'updated_at'  => now(),
-                    ]);
-                }
             }
 
             Cache::flush();
@@ -842,7 +833,7 @@ class SecretRepairDashboardController extends Controller
 
             return response()->json([
                 'success'   => true,
-                'message'   => "Order {$orderSn} berhasil disinkronkan & disimpan ke database ERP!\nOmset: Rp " . number_format($order->total_amount, 0, ',', '.') . " | Fee: Rp " . number_format($order->marketplace_fee, 0, ',', '.') . " | Dana Cair: Rp " . number_format($order->net_amount, 0, ',', '.'),
+                'message'   => "Order {$orderSn} BERHASIL DISINKRONKAN!\nOmset: Rp " . number_format($order->total_amount, 0, ',', '.') . " | Fee: Rp " . number_format($order->marketplace_fee, 0, ',', '.') . " | Dana Cair: Rp " . number_format($order->net_amount, 0, ',', '.'),
                 'erp_omset' => (float) $order->total_amount,
                 'erp_fee'   => (float) $order->marketplace_fee,
                 'erp_net'   => (float) $order->net_amount,
@@ -850,9 +841,10 @@ class SecretRepairDashboardController extends Controller
                 'api_fee'   => $finAfter['api_fee'],
                 'api_net'   => $finAfter['api_net'],
             ]);
-        } catch (\Throwable $e) {
-            Log::error("Error syncSingleOrder for {$orderSn}: " . $e->getMessage());
-            return response()->json(['error' => 'Gagal menarik pesanan: ' . $e->getMessage()], 500);
+        } else {
+            return response()->json([
+                'error' => "Token toko '{$store->store_name}' sudah kadaluarsa atau pesanan ini belum memiliki data settlement escrow dari Marketplace. Silakan sambungkan ulang toko di menu Integrasi Toko.",
+            ], 422);
         }
     }
 
@@ -906,28 +898,28 @@ class SecretRepairDashboardController extends Controller
                     $store = $ord->store;
                     if (!$store) continue;
 
-                    if ($isShopee) {
-                        $shopeeService = app(\App\Services\ShopeeService::class);
-                        $accessToken = $store->getValidAccessToken();
-                        $shopId = (int) $store->marketplace_store_id;
-                        $detailRes = $shopeeService->getOrderDetail($accessToken, $shopId, [$orderSn]);
-                        $shopeeOrders = $detailRes['order_list'] ?? [];
-                        if (!empty($shopeeOrders[0])) {
-                            $job = new \App\Jobs\PullOrdersFromShopee($store, time() - 86400, time());
-                            $reflection = new \ReflectionClass($job);
-                            $method = $reflection->getMethod('saveOrder');
-                            $method->setAccessible(true);
-                            $method->invoke($job, $shopeeOrders[0]);
-                        }
-                        try {
-                            \Artisan::call('shopee:sync-escrow', ['--order_sn' => $orderSn, '--store_id' => $store->id]);
-                        } catch (\Throwable $e) {}
-                    } else {
-                        $tiktokService = app(\App\Services\TiktokService::class);
-                        $accessToken = $store->getValidAccessToken();
-                        $shopCipher = $store->shop_cipher;
-                        if ($shopCipher) {
-                            $detailRes = $tiktokService->getOrderDetail($accessToken, $shopCipher, [$orderSn]);
+                    // Coba live call jika memungkinkan (graceful)
+                    try {
+                        if ($isShopee && !empty($store->marketplace_store_id)) {
+                            $accessToken = $store->getValidAccessToken();
+                            $shopeeService = app(\App\Services\ShopeeService::class);
+                            $shopId = (int) $store->marketplace_store_id;
+                            $detailRes = $shopeeService->getOrderDetail($accessToken, $shopId, [$orderSn]);
+                            $shopeeOrders = $detailRes['order_list'] ?? [];
+                            if (!empty($shopeeOrders[0])) {
+                                $job = new \App\Jobs\PullOrdersFromShopee($store, time() - 86400, time());
+                                $reflection = new \ReflectionClass($job);
+                                $method = $reflection->getMethod('saveOrder');
+                                $method->setAccessible(true);
+                                $method->invoke($job, $shopeeOrders[0]);
+                            }
+                            try {
+                                \Artisan::call('shopee:sync-escrow', ['--order_sn' => $orderSn, '--store_id' => $store->id]);
+                            } catch (\Throwable $e) {}
+                        } elseif ($isTiktok && !empty($store->shop_cipher)) {
+                            $accessToken = $store->getValidAccessToken();
+                            $tiktokService = app(\App\Services\TiktokService::class);
+                            $detailRes = $tiktokService->getOrderDetail($accessToken, $store->shop_cipher, [$orderSn]);
                             $tiktokOrders = $detailRes['order_list'] ?? $detailRes['orders'] ?? [];
                             if (!empty($tiktokOrders[0])) {
                                 $job = new \App\Jobs\PullOrdersFromTiktok($store, time() - 86400, time());
@@ -940,7 +932,7 @@ class SecretRepairDashboardController extends Controller
                                 \Artisan::call('tiktok:sync-escrow', ['--order_id' => $orderSn, '--store_id' => $store->id]);
                             } catch (\Throwable $e) {}
                         }
-                    }
+                    } catch (\Throwable $liveEx) {}
 
                     $ord->refresh();
                     $finUpdated = $this->parseOrderFinancials($ord, $isShopee);
@@ -969,9 +961,9 @@ class SecretRepairDashboardController extends Controller
                                 'updated_at'  => now(),
                             ]);
                         }
-                    }
 
-                    $syncedCount++;
+                        $syncedCount++;
+                    }
                 } catch (\Throwable $e) {
                     Log::warning("Gagal sync mismatch order {$ord->order_marketplace_id}: " . $e->getMessage());
                 }
@@ -983,7 +975,7 @@ class SecretRepairDashboardController extends Controller
         return response()->json([
             'success'      => true,
             'synced_count' => $syncedCount,
-            'message'      => "Berhasil menarik dan menyimpan {$syncedCount} pesanan mismatch ke database ERP!",
+            'message'      => "Berhasil menyinkronkan dan menyimpan {$syncedCount} pesanan mismatch ke database ERP!",
         ]);
     }
 }
