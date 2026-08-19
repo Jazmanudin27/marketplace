@@ -15,14 +15,14 @@ class SyncShopeeEscrow extends Command
      *
      * @var string
      */
-    protected $signature = 'shopee:sync-escrow {--store_id= : ID Toko Shopee tertentu (opsional)} {--order_sn= : Nomor pesanan Shopee tertentu untuk dites (opsional)} {--limit=100 : Jumlah orderan per batch}';
+    protected $signature = 'shopee:sync-escrow {--store_id= : ID Toko Shopee tertentu (opsional)} {--order_sn= : Nomor pesanan Shopee tertentu untuk dites (opsional)} {--limit=100 : Jumlah orderan per batch} {--all : Paksa sinkronisasi semua order termasuk yang sudah match}';
 
     /**
      * The console command description.
      *
      * @var string
      */
-    protected $description = 'Menembak API Shopee get_escrow_detail secara massal dan mengupdate rincian biaya resmi untuk semua orderan di database ERP';
+    protected $description = 'Menembak API Shopee get_escrow_detail untuk pesanan yang belum sinkron atau berbeda (mismatch) antara ERP dan API';
 
     /**
      * Execute the console command.
@@ -34,6 +34,7 @@ class SyncShopeeEscrow extends Command
         $shopeeService = app(ShopeeService::class);
         $storeId = $this->option('store_id');
         $orderSnOption = $this->option('order_sn');
+        $forceAll      = $this->option('all');
 
         $query = Store::whereHas('channel', function ($q) {
             $q->where('code', 'shopee');
@@ -71,9 +72,43 @@ class SyncShopeeEscrow extends Command
                 $ordersQuery->where('order_marketplace_id', $orderSnOption);
             }
 
-            $orders = $ordersQuery->get();
+            $allOrders = $ordersQuery->get();
 
-            $this->info("Menemukan {$orders->count()} pesanan untuk disinkronkan dengan API Escrow Shopee...");
+            // 🎯 FILTER HANYA PESANAN MISMATCH / BELUM SINKRON
+            if (!$orderSnOption && !$forceAll) {
+                $orders = $allOrders->filter(function($ord) {
+                    $fb = $ord->financial_breakdown;
+                    if (empty($fb)) return true;
+
+                    if (is_string($fb)) {
+                        $fb = json_decode($fb, true);
+                    }
+                    if (!is_array($fb) || empty($fb)) return true;
+
+                    $sellerDisc = (float)($fb['voucher_from_seller'] ?? $fb['seller_discount'] ?? 0);
+                    $cogs = (float)($fb['cost_of_goods_sold'] ?? $fb['order_selling_price'] ?? $ord->total_amount);
+                    $apiOmset = ($sellerDisc > 0 && $cogs > $sellerDisc) ? ($cogs - $sellerDisc) : $cogs;
+                    $apiNet = (float)($fb['escrow_amount'] ?? $ord->net_amount);
+                    $apiFee = abs((float)($ord->fee_breakdown_details['total_fee'] ?? $ord->marketplace_fee));
+
+                    $diffOmset = abs((float)$ord->total_amount - $apiOmset);
+                    $diffNet   = abs((float)$ord->net_amount - $apiNet);
+                    $diffFee   = abs((float)$ord->marketplace_fee - $apiFee);
+
+                    return ($diffOmset > 100 || $diffNet > 100 || $diffFee > 100 || $ord->recon_status !== 'RECONCILED');
+                });
+
+                $skippedCount = $allOrders->count() - $orders->count();
+                $this->info("Total Pesanan: {$allOrders->count()} | Ditemukan Mismatch / Belum Sinkron: {$orders->count()} ({$skippedCount} pesanan sudah match dilewati)");
+            } else {
+                $orders = $allOrders;
+                $this->info("Menemukan {$orders->count()} pesanan untuk disinkronkan dengan API Escrow Shopee...");
+            }
+
+            if ($orders->isEmpty()) {
+                $this->info("✨ Semua pesanan Shopee di toko ini sudah sinkron dan MATCH 100%!");
+                continue;
+            }
 
             foreach ($orders as $order) {
                 try {

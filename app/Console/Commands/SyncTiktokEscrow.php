@@ -16,14 +16,14 @@ class SyncTiktokEscrow extends Command
      *
      * @var string
      */
-    protected $signature = 'tiktok:sync-escrow {--store_id= : ID Toko TikTok tertentu (opsional)} {--order_id= : Nomor order TikTok tertentu untuk dites}';
+    protected $signature = 'tiktok:sync-escrow {--store_id= : ID Toko TikTok tertentu (opsional)} {--order_id= : Nomor order TikTok tertentu untuk dites} {--all : Paksa sinkronisasi semua order termasuk yang sudah match}';
 
     /**
      * The console command description.
      *
      * @var string
      */
-    protected $description = 'Menembak API TikTok Shop secara langsung dan mengupdate rincian biaya rincian 5 komponen (financial breakdown) resmi di ERP';
+    protected $description = 'Menembak API TikTok Shop dan mengupdate rincian biaya resmi untuk pesanan yang belum sinkron atau berbeda (mismatch) antara ERP dan API';
 
     /**
      * Execute the console command.
@@ -37,6 +37,7 @@ class SyncTiktokEscrow extends Command
         $tiktokService = app(TiktokService::class);
         $storeIdOption = $this->option('store_id');
         $orderIdOption = $this->option('order_id');
+        $forceAll      = $this->option('all');
 
         $query = Store::whereHas('channel', function ($q) {
             $q->whereIn('code', ['tiktok', 'tokopedia']);
@@ -80,9 +81,9 @@ class SyncTiktokEscrow extends Command
                 $ordersQuery->where('order_marketplace_id', $orderIdOption);
             }
 
-            $orders = $ordersQuery->get();
+            $allOrders = $ordersQuery->get();
 
-            if ($orderIdOption && $orders->isEmpty()) {
+            if ($orderIdOption && $allOrders->isEmpty()) {
                 // Jika order_id spesifik dicari tetapi belum ada di DB lokal toko ini, tembak langsung TikTok API
                 try {
                     $detailRes = $tiktokService->getOrderDetail($accessToken, $shopCipher, [$orderIdOption]);
@@ -90,14 +91,13 @@ class SyncTiktokEscrow extends Command
 
                     if (!empty($tiktokOrders)) {
                         $this->info("✅ Order ID '{$orderIdOption}' DITEMUKAN di Toko TikTok: {$store->store_name} (ID: {$store->id})!");
-                        // Gunakan PullOrdersFromTiktok processOrder via Job / Helper
                         $job = new PullOrdersFromTiktok($store, time() - 86400, time());
                         $reflection = new \ReflectionClass($job);
                         $method = $reflection->getMethod('processOrder');
                         $method->setAccessible(true);
                         $method->invoke($job, $tiktokOrders[0]);
 
-                        $orders = Order::where('store_id', $store->id)
+                        $allOrders = Order::where('store_id', $store->id)
                             ->where('order_marketplace_id', $orderIdOption)
                             ->get();
                     }
@@ -106,11 +106,10 @@ class SyncTiktokEscrow extends Command
                 }
             }
 
-            if ($orders->isEmpty()) {
+            if ($allOrders->isEmpty()) {
                 if ($orderIdOption) {
-                    continue; // Jika sedang mencari order_id spesifik, lanjut cari ke toko lain
+                    continue;
                 }
-                // Tarik pesanan 7 hari terakhir jika tidak ada filter order_id
                 $timeTo = time();
                 $timeFrom = strtotime('-7 days', $timeTo);
                 PullOrdersFromTiktok::dispatch($store, $timeFrom, $timeTo);
@@ -118,7 +117,42 @@ class SyncTiktokEscrow extends Command
                 continue;
             }
 
-            $this->info("Menemukan {$orders->count()} pesanan TikTok untuk disinkronkan...");
+            // 🎯 FILTER HANYA PESANAN MISMATCH / BELUM SINKRON
+            if (!$orderIdOption && !$forceAll) {
+                $orders = $allOrders->filter(function($ord) {
+                    $fb = $ord->financial_breakdown;
+                    if (empty($fb)) return true; // Belum pernah sinkron breakdown
+
+                    if (is_string($fb)) {
+                        $fb = json_decode($fb, true);
+                    }
+                    if (!is_array($fb) || empty($fb)) return true;
+
+                    $stmtList = $fb['statement_transactions'] ?? $fb['statement_transaction_list'] ?? $fb['transactions'] ?? [];
+                    $st0 = (is_array($stmtList) && !empty($stmtList[0]) && is_array($stmtList[0])) ? $stmtList[0] : [];
+
+                    $apiOmset = (float)($st0['revenue_amount'] ?? $st0['net_sales_amount'] ?? $fb['subtotal_after_seller_discounts'] ?? $fb['after_seller_discounts_subtotal_amount'] ?? $fb['original_total_product_price'] ?? $ord->total_amount);
+                    $apiNet = (float)($st0['settlement_amount'] ?? $fb['settlement_amount'] ?? $fb['escrow_amount'] ?? $ord->net_amount);
+                    $apiFee = !empty($st0['fee_amount']) ? abs((float)$st0['fee_amount']) : abs((float)($ord->fee_breakdown_details['total_fee'] ?? $ord->marketplace_fee));
+
+                    $diffOmset = abs((float)$ord->total_amount - $apiOmset);
+                    $diffNet   = abs((float)$ord->net_amount - $apiNet);
+                    $diffFee   = abs((float)$ord->marketplace_fee - $apiFee);
+
+                    return ($diffOmset > 100 || $diffNet > 100 || $diffFee > 100 || $ord->recon_status !== 'RECONCILED');
+                });
+
+                $skippedCount = $allOrders->count() - $orders->count();
+                $this->info("Total Pesanan: {$allOrders->count()} | Ditemukan Mismatch / Belum Sinkron: {$orders->count()} ({$skippedCount} pesanan sudah match dilewati)");
+            } else {
+                $orders = $allOrders;
+                $this->info("Menemukan {$orders->count()} pesanan TikTok untuk disinkronkan...");
+            }
+
+            if ($orders->isEmpty()) {
+                $this->info("✨ Semua pesanan di toko ini sudah sinkron dan MATCH 100%!");
+                continue;
+            }
 
             $chunked = $orders->chunk(50);
             foreach ($chunked as $chunk) {
