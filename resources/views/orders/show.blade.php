@@ -291,40 +291,20 @@
                     </div>
                     <div class="card-body p-3">
                         @php 
-                            $sumGrossSubtotal = 0;
-                            $sumSellerDiscount = 0;
-                            $sumNetSubtotal = 0;
+                            $sumNetSubtotal = (float) $order->total_amount;
+                            $sumSellerDiscount = (float) $order->discount_amount;
 
-                            $totalOrderItemsPrice = $order->items->sum(fn($it) => $it->price * $it->quantity);
-                            foreach ($order->items as $item) {
-                                $iPrice = (float) $item->price;
-                                $iQty = (int) $item->quantity;
-                                $iOrigPrice = (float) ($item->original_price > 0 ? $item->original_price : 0);
-                                $iDiscount = (float) ($item->seller_discount > 0 ? $item->seller_discount : 0);
-
-                                if ($iOrigPrice <= 0 && $iDiscount <= 0 && $order->discount_amount > 0 && $totalOrderItemsPrice > 0) {
-                                    $iPortion = ($iPrice * $iQty) / $totalOrderItemsPrice;
-                                    $iDiscount = ($order->discount_amount * $iPortion) / $iQty;
-                                    $iOrigPrice = $iPrice + $iDiscount;
+                            if ($sumSellerDiscount <= 0) {
+                                foreach ($order->items as $item) {
+                                    $sumSellerDiscount += ((float) $item->seller_discount * (int) $item->quantity);
                                 }
-                                if ($iOrigPrice <= 0) {
-                                    $iOrigPrice = $iPrice;
-                                }
-
-                                $sumGrossSubtotal += ($iOrigPrice * $iQty);
-                                $sumSellerDiscount += ($iDiscount * $iQty);
-                                $sumNetSubtotal += ($iPrice * $iQty);
                             }
 
                             if ($sumNetSubtotal <= 0) {
-                                $sumNetSubtotal = (float) $order->total_amount;
+                                $sumNetSubtotal = $order->items->sum(fn($it) => (float)$it->price * (int)$it->quantity);
                             }
-                            if ($sumSellerDiscount <= 0 && $order->discount_amount > 0) {
-                                $sumSellerDiscount = (float) $order->discount_amount;
-                            }
-                            if ($sumGrossSubtotal <= $sumNetSubtotal && $sumSellerDiscount > 0) {
-                                $sumGrossSubtotal = $sumNetSubtotal + $sumSellerDiscount;
-                            }
+
+                            $sumGrossSubtotal = $sumNetSubtotal + $sumSellerDiscount;
 
                             $feeAmt = abs((float) $order->marketplace_fee);
                             $refundAmount = (float) $order->refund_amount;

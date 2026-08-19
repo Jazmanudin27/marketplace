@@ -311,10 +311,10 @@ class PullOrdersFromTiktok implements ShouldQueue
             $marketplaceFee = max(0.0, $totalAmount - $netAmount);
         } elseif ($totalTiktokFees > 0) {
             $marketplaceFee = $totalTiktokFees;
-            $netAmount = max(0.0, $subtotalAfterSeller - $totalTiktokFees);
+            $netAmount = max(0.0, $totalAmount - $totalTiktokFees);
         } else {
             $marketplaceFee = round($totalAmount * 0.085);
-            $netAmount = max(0.0, $totalAmount - $discountAmount - $marketplaceFee);
+            $netAmount = max(0.0, $totalAmount - $marketplaceFee);
         }
 
         $stmtList = $stmtRes['statement_transactions'] ?? [];
@@ -445,7 +445,14 @@ class PullOrdersFromTiktok implements ShouldQueue
 
                 $costPrice = $masterProduct ? (float) $masterProduct->cost_price : 0;
                 $qty = (int) ($item['quantity'] ?? 1);
-                $unitPrice = (float) ($item['sale_price'] ?? $item['sku_display_price'] ?? $item['price'] ?? $origPrice);
+                
+                if (isset($item['sale_price']) && (float)$item['sale_price'] > 0) {
+                    $unitPrice = (float)$item['sale_price'];
+                } elseif ($sDisc > 0 && $origPrice > $sDisc) {
+                    $unitPrice = max(0.0, $origPrice - $sDisc);
+                } else {
+                    $unitPrice = (float)($item['sku_display_price'] ?? $item['price'] ?? $origPrice);
+                }
 
                 $pName = $item['product_name'] ?? $item['item_name'] ?? 'Produk TikTok';
                 $vName = $item['sku_name'] ?? $item['variant_name'] ?? '';

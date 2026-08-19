@@ -283,15 +283,15 @@ class PullOrdersFromShopee implements ShouldQueue
 
             if ($sellerFee > 0) {
                 $marketplaceFee = $sellerFee;
-                $netAmount = max(0.0, $totalAmount - $sellerDiscount - $sellerFee);
+                $netAmount = $escrowAmount > 0 ? $escrowAmount : max(0.0, $totalAmount - $sellerFee);
             } else {
-                $netAmount = $escrowAmount > 0 ? $escrowAmount : max(0.0, $totalAmount - $sellerDiscount);
+                $netAmount = $escrowAmount > 0 ? $escrowAmount : $totalAmount;
                 $marketplaceFee = max(0.0, $totalAmount - $netAmount);
             }
         } else {
             $shopeeEstimatedRatio = 0.095;
             $marketplaceFee = round($totalAmount * $shopeeEstimatedRatio);
-            $netAmount = max(0.0, $totalAmount - $sellerDiscount - $marketplaceFee);
+            $netAmount = max(0.0, $totalAmount - $marketplaceFee);
         }
 
         $order = Order::updateOrCreate(
