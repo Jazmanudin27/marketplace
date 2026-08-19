@@ -47,7 +47,10 @@ class SyncTiktokEscrow extends Command
 
         // Jika order_id spesifik diberikan, cari toko pemilik order secara presisi lebih dulu
         if ($orderIdOption) {
-            $dbMatch = Order::where('order_marketplace_id', $orderIdOption)->first();
+            $orderIdClean = trim($orderIdOption);
+            $dbMatch = Order::where('order_marketplace_id', $orderIdClean)
+                ->orWhere('id', $orderIdClean)
+                ->first();
             if ($dbMatch && $dbMatch->store_id) {
                 $query->where('id', $dbMatch->store_id);
             }
@@ -81,7 +84,11 @@ class SyncTiktokEscrow extends Command
                 ->whereNotIn('order_status', ['CANCELLED', 'BATAL', 'CANCELED']);
 
             if ($orderIdOption) {
-                $ordersQuery->where('order_marketplace_id', $orderIdOption);
+                $orderIdClean = trim($orderIdOption);
+                $ordersQuery->where(function($q) use ($orderIdClean) {
+                    $q->where('order_marketplace_id', $orderIdClean)
+                      ->orWhere('id', $orderIdClean);
+                });
             } else {
                 if ($dateFromOption) {
                     $ordersQuery->whereDate('order_date', '>=', $dateFromOption);
@@ -100,7 +107,7 @@ class SyncTiktokEscrow extends Command
             if ($orderIdOption && $allOrders->isEmpty()) {
                 // Jika order_id spesifik dicari tetapi belum ada di DB lokal toko ini, tembak langsung TikTok API
                 try {
-                    $detailRes = $tiktokService->getOrderDetail($accessToken, $shopCipher, [$orderIdOption]);
+                    $detailRes = $tiktokService->getOrderDetail($accessToken, $shopCipher, [trim($orderIdOption)]);
                     $tiktokOrders = $detailRes['order_list'] ?? $detailRes['orders'] ?? [];
 
                     if (!empty($tiktokOrders)) {
@@ -112,7 +119,10 @@ class SyncTiktokEscrow extends Command
                         $method->invoke($job, $tiktokOrders[0]);
 
                         $allOrders = Order::where('store_id', $store->id)
-                            ->where('order_marketplace_id', $orderIdOption)
+                            ->where(function($q) use ($orderIdOption) {
+                                $q->where('order_marketplace_id', trim($orderIdOption))
+                                  ->orWhere('id', trim($orderIdOption));
+                            })
                             ->get();
                     }
                 } catch (\Exception $e) {
@@ -196,12 +206,13 @@ class SyncTiktokEscrow extends Command
                         $mId = $tOrder['id'] ?? $tOrder['order_id'] ?? null;
                         if (!$mId) continue;
 
-                        $dbOrder = $orders->firstWhere('order_marketplace_id', $mId);
+                        $dbOrder = $orders->first(function($o) use ($mId) {
+                            return (string)$o->order_marketplace_id === (string)$mId || (string)$o->id === (string)$mId;
+                        });
                         if (!$dbOrder) continue;
 
                         $paymentInfo = $tOrder['payment'] ?? $tOrder['payment_info'] ?? [];
-                        
-                        $subtotalAfterSeller = (float) ($paymentInfo['subtotal_after_seller_discounts'] ?? $paymentInfo['after_seller_discounts_subtotal_amount'] ?? $paymentInfo['sub_total'] ?? $paymentInfo['subtotal'] ?? 0);
+                        $sellerDiscount = (float) ($paymentInfo['seller_discount'] ?? $paymentInfo['discount_amount'] ?? 0);
                         $productSubtotal = (float) ($paymentInfo['original_total_product_price'] ?? 0);
 
                         if ($productSubtotal <= 0 && !empty($tOrder['line_items'])) {
@@ -212,7 +223,18 @@ class SyncTiktokEscrow extends Command
                             }
                         }
 
-                        $totalAmount = $subtotalAfterSeller > 0 ? $subtotalAfterSeller : ($productSubtotal > 0 ? $productSubtotal : (float) ($paymentInfo['total_amount'] ?? $tOrder['total_amount'] ?? $dbOrder->total_amount));
+                        // Subtotal setelah diskon penjual (Net Sales / Omset Jual Murni)
+                        if (isset($paymentInfo['subtotal_after_seller_discounts']) && (float)$paymentInfo['subtotal_after_seller_discounts'] > 0) {
+                            $subtotalAfterSeller = (float)$paymentInfo['subtotal_after_seller_discounts'];
+                        } elseif ($productSubtotal > 0 && $sellerDiscount > 0 && $productSubtotal > $sellerDiscount) {
+                            $subtotalAfterSeller = $productSubtotal - $sellerDiscount;
+                        } elseif ($productSubtotal > 0) {
+                            $subtotalAfterSeller = $productSubtotal;
+                        } else {
+                            $subtotalAfterSeller = (float) ($paymentInfo['sub_total'] ?? $paymentInfo['subtotal'] ?? $paymentInfo['total_amount'] ?? 0);
+                        }
+
+                        $totalAmount = $subtotalAfterSeller > 0 ? $subtotalAfterSeller : (float) ($paymentInfo['total_amount'] ?? $tOrder['total_amount'] ?? $dbOrder->total_amount);
                         $buyerPaidTotal = (float) ($paymentInfo['total_amount'] ?? $paymentInfo['total'] ?? $totalAmount);
                         $escrowAmount = (float) ($paymentInfo['settlement_amount'] ?? $paymentInfo['escrow_amount'] ?? 0);
                         

@@ -269,14 +269,21 @@ class PullOrdersFromTiktok implements ShouldQueue
         }
 
         $paymentInfo = $tiktokOrder['payment_info'] ?? $tiktokOrder['payment'] ?? [];
-
-        $buyerPaidTotal = (float) ($paymentInfo['total_amount'] ?? $paymentInfo['total'] ?? $tiktokOrder['total_amount'] ?? 0);
-        $subtotalAfterSeller = (float) ($paymentInfo['subtotal_after_seller_discounts'] ?? $paymentInfo['after_seller_discounts_subtotal_amount'] ?? $paymentInfo['sub_total'] ?? $paymentInfo['subtotal'] ?? 0);
-        $totalAmount = $subtotalAfterSeller > 0
-            ? $subtotalAfterSeller
-            : ($productSubtotal > 0 ? $productSubtotal : (float) ($paymentInfo['original_total_product_price'] ?? $paymentInfo['total_amount'] ?? 0));
-        $shippingFee = (float) ($paymentInfo['shipping_fee'] ?? $paymentInfo['actual_shipping_fee'] ?? 0);
         $discountAmount = (float) ($paymentInfo['seller_discount'] ?? $paymentInfo['discount_amount'] ?? 0);
+        $buyerPaidTotal = (float) ($paymentInfo['total_amount'] ?? $paymentInfo['total'] ?? $tiktokOrder['total_amount'] ?? 0);
+
+        if (isset($paymentInfo['subtotal_after_seller_discounts']) && (float)$paymentInfo['subtotal_after_seller_discounts'] > 0) {
+            $subtotalAfterSeller = (float)$paymentInfo['subtotal_after_seller_discounts'];
+        } elseif ($productSubtotal > 0 && $discountAmount > 0 && $productSubtotal > $discountAmount) {
+            $subtotalAfterSeller = $productSubtotal - $discountAmount;
+        } elseif ($productSubtotal > 0) {
+            $subtotalAfterSeller = $productSubtotal;
+        } else {
+            $subtotalAfterSeller = (float) ($paymentInfo['sub_total'] ?? $paymentInfo['subtotal'] ?? $paymentInfo['total_amount'] ?? 0);
+        }
+
+        $totalAmount = $subtotalAfterSeller > 0 ? $subtotalAfterSeller : (float) ($paymentInfo['total_amount'] ?? $tiktokOrder['total_amount'] ?? 0);
+        $shippingFee = (float) ($paymentInfo['shipping_fee'] ?? $paymentInfo['actual_shipping_fee'] ?? 0);
 
         $financialBreakdown = null;
         // $orderIdStr sudah didefinisikan di atas (sebelum fallback block)
