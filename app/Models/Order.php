@@ -110,8 +110,8 @@ class Order extends Model
             $order->fee_other_amount = abs($details['other_fee'] ?? 0);
 
             // KUNCI PRESISI 100%: 
-            // 1. Omset Kotor (total_amount) SELALU = Penjumlahan Subtotal Harga Produk Murni di Item Pesanan
-            if ($order->relationLoaded('items') && $order->items->count() > 0) {
+            // 1. Omset (total_amount): Isi dari subtotal item jika total_amount di model masih kosong/0
+            if ((float)$order->total_amount <= 0 && $order->relationLoaded('items') && $order->items->count() > 0) {
                 $itemsSubtotal = (float) $order->items->sum('total_price');
                 if ($itemsSubtotal > 0) {
                     $order->total_amount = $itemsSubtotal;

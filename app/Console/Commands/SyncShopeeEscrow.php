@@ -145,8 +145,17 @@ class SyncShopeeEscrow extends Command
                             }
                         }
 
-                        // Ambil Subtotal Produk Penjual (merchant_subtotal / cost_of_goods_sold)
-                        $merchantSubtotal = (float) ($income['cost_of_goods_sold'] ?? $income['order_selling_price'] ?? $income['order_original_price'] ?? $order->total_amount);
+                        // Ambil Subtotal Produk Penjual setelah diskon penjual (Net Sales)
+                        $sellerDisc = (float) ($income['voucher_from_seller'] ?? $income['seller_discount'] ?? 0);
+                        if (isset($income['order_selling_price']) && (float)$income['order_selling_price'] > 0) {
+                            $merchantSubtotal = (float)$income['order_selling_price'];
+                        } elseif (isset($income['cost_of_goods_sold']) && (float)$income['cost_of_goods_sold'] > 0) {
+                            $cogs = (float)$income['cost_of_goods_sold'];
+                            $merchantSubtotal = ($sellerDisc > 0 && $cogs > $sellerDisc) ? max(0.0, $cogs - $sellerDisc) : $cogs;
+                        } else {
+                            $merchantSubtotal = (float) ($income['order_original_price'] ?? $order->total_amount);
+                        }
+
                         if ($merchantSubtotal > 0) {
                             $order->total_amount = $merchantSubtotal;
                         }
@@ -168,11 +177,25 @@ class SyncShopeeEscrow extends Command
                         $order->marketplace_fee = $totalFee;
                         $order->net_amount = $escrowAmount > 0 ? $escrowAmount : max(0.0, $merchantSubtotal - $totalFee);
                         $order->order_status = 'COMPLETED';
+                        $order->recon_status = 'RECONCILED';
                         if (!$order->completed_at) {
                             $order->completed_at = now();
                         }
 
                         $order->saveQuietly();
+
+                        // Update rincian item produk agar nilainya selaras
+                        $existItems = $order->items;
+                        if ($existItems->count() === 1 && $merchantSubtotal > 0) {
+                            $singleItem = $existItems->first();
+                            $iQty = $singleItem->quantity ?: 1;
+                            \DB::table('order_items')->where('id', $singleItem->id)->update([
+                                'price'       => round($merchantSubtotal / $iQty, 2),
+                                'total_price' => $merchantSubtotal,
+                                'updated_at'  => now(),
+                            ]);
+                        }
+
                         $totalSuccess++;
                         $this->line("  [OK] Order {$orderSn} -> Tgl Selesai: " . ($order->completed_at ? $order->completed_at->format('Y-m-d H:i:s') : '-') . " | Subtotal: Rp " . number_format($order->total_amount, 0) . " | Fee: Rp " . number_format($order->marketplace_fee, 0) . " | Escrow Cair: Rp " . number_format($order->net_amount, 0));
                     } else {

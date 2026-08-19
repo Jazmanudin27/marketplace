@@ -373,7 +373,8 @@ class SyncTiktokEscrow extends Command
                             $dbOrder->order_date = \Carbon\Carbon::createFromTimestamp($cTsSec, 'Asia/Jakarta')->format('Y-m-d H:i:s');
                         }
 
-                        $dbOrder->save();
+                        $dbOrder->recon_status = 'RECONCILED';
+                        $dbOrder->saveQuietly();
 
                         // 📦 PERBAIKAN OTOMATIS: Jika order belum punya item di DB, buatkan itemnya dari API
                         if ($dbOrder->items()->count() === 0) {
@@ -414,6 +415,18 @@ class SyncTiktokEscrow extends Command
                                     ]);
                                 }
                                 $this->info("   └─ 📦 Berhasil menambahkan " . count($itemListSync) . " item produk untuk order {$mId}");
+                            }
+                        } else {
+                            // Update harga single item agar konsisten dengan total_amount
+                            $existItems = $dbOrder->items;
+                            if ($existItems->count() === 1 && $totalAmount > 0) {
+                                $singleItem = $existItems->first();
+                                $iQty = $singleItem->quantity ?: 1;
+                                \DB::table('order_items')->where('id', $singleItem->id)->update([
+                                    'price'       => round($totalAmount / $iQty, 2),
+                                    'total_price' => $totalAmount,
+                                    'updated_at'  => now(),
+                                ]);
                             }
                         }
 
