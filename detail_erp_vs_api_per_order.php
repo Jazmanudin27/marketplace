@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 
 /**
  * ============================================================
@@ -66,9 +66,9 @@ $stores = $storeQuery->get();
 if ($stores->isEmpty()) { echo "Tidak ada toko CONNECTED.\n"; exit(0); }
 
 $grand = [
-    'erp_orders'=>0,'erp_gross'=>0.0,'erp_admin'=>0.0,'erp_net'=>0.0,
+    'erp_orders'=>0,'erp_gross'=>0.0,'erp_admin'=>0.0,'erp_net'=>0.0,'erp_refund'=>0.0,
     'erp_ret_orders'=>0,'erp_ret_gross'=>0.0,
-    'api_orders'=>0,'api_gross'=>0.0,'api_admin'=>0.0,'api_net'=>0.0,
+    'api_orders'=>0,'api_gross'=>0.0,'api_admin'=>0.0,'api_net'=>0.0,'api_refund'=>0.0,
     'api_ret_orders'=>0,'api_ret_amount'=>0.0,
     'fixed'=>0,
 ];
@@ -99,9 +99,11 @@ foreach ($stores as $store) {
     $erpRG   = (float)$erpRets->sum('total_amount');
     $erpWith = $erpNormal->filter(fn($o) => $o->returnOrder !== null);
     $erpRL   = $erpWith->sum(fn($o) => (float)$o->returnOrder->refund_amount);
+    // ERP Total Refund = nilai order berstatus RETURN + partial return terhubung
+    $erpRefund = $erpRG + $erpRL;
 
     // 2. API
-    $apiCnt   = 0; $apiG = 0.0; $apiA = 0.0; $apiN = 0.0;
+    $apiCnt   = 0; $apiG = 0.0; $apiA = 0.0; $apiN = 0.0; $apiRefund = 0.0;
     $apiRC    = 0; $apiRA = 0.0;
     $apiMap   = [];
 
@@ -141,11 +143,14 @@ foreach ($stores as $store) {
                         $ra  = (float)($pay['customer_refund_amount'] ?? $pay['seller_return_refund'] ?? $pay['return_amount'] ?? 0);
                         $isR = isReturnStatus($st) || $ra > 0;
                         if ($isR) {
-                            $apiRC++; $apiRA += $ra > 0 ? $ra : $tot;
-                            $apiMap[$oid] = ['gross'=>$tot,'admin'=>$adm,'net'=>max(0,$net-$ra),'status'=>$st,'return_amount'=>$ra,'is_return'=>true];
+                            $raActual = $ra > 0 ? $ra : $tot;
+                            $apiRC++; $apiRA += $raActual; $apiRefund += $raActual;
+                            $apiMap[$oid] = ['gross'=>$tot,'admin'=>$adm,'net'=>max(0,$net-$ra),'status'=>$st,'return_amount'=>$raActual,'is_return'=>true];
                         } else {
+                            // Cek juga refund parsial di order normal
+                            if ($ra > 0) $apiRefund += $ra;
                             $apiCnt++; $apiG += $tot; $apiA += $adm; $apiN += $net;
-                            $apiMap[$oid] = ['gross'=>$tot,'admin'=>$adm,'net'=>$net,'status'=>$st,'return_amount'=>0,'is_return'=>false];
+                            $apiMap[$oid] = ['gross'=>$tot,'admin'=>$adm,'net'=>$net,'status'=>$st,'return_amount'=>$ra,'is_return'=>false];
                         }
                     }
                 }
@@ -187,11 +192,13 @@ foreach ($stores as $store) {
                         if ($esc <= 0) { $adm = round($tot*0.095); $esc = max(0,$tot-$adm); }
                         $isR = isReturnStatus($st) || $ra > 0;
                         if ($isR) {
-                            $apiRC++; $apiRA += $ra > 0 ? $ra : $tot;
-                            $apiMap[$osn] = ['gross'=>$tot,'admin'=>$adm,'net'=>max(0,$esc-$ra),'status'=>$st,'return_amount'=>$ra,'is_return'=>true];
+                            $raActual = $ra > 0 ? $ra : $tot;
+                            $apiRC++; $apiRA += $raActual; $apiRefund += $raActual;
+                            $apiMap[$osn] = ['gross'=>$tot,'admin'=>$adm,'net'=>max(0,$esc-$ra),'status'=>$st,'return_amount'=>$raActual,'is_return'=>true];
                         } else {
+                            if ($ra > 0) $apiRefund += $ra;
                             $apiCnt++; $apiG += $tot; $apiA += $adm; $apiN += $esc;
-                            $apiMap[$osn] = ['gross'=>$tot,'admin'=>$adm,'net'=>$esc,'status'=>$st,'return_amount'=>0,'is_return'=>false];
+                            $apiMap[$osn] = ['gross'=>$tot,'admin'=>$adm,'net'=>$esc,'status'=>$st,'return_amount'=>$ra,'is_return'=>false];
                         }
                     }
                 }
@@ -200,31 +207,57 @@ foreach ($stores as $store) {
     }
 
     // 3. Tabel ringkasan
-    $dO = $erpCnt - $apiCnt; $dG = $erpG - $apiG; $dA = $erpA - $apiA; $dN = $erpN - $apiN;
+    $dO  = $erpCnt    - $apiCnt;
+    $dG  = $erpG      - $apiG;
+    $dA  = $erpA      - $apiA;
+    $dN  = $erpN      - $apiN;
+    $dR  = $erpRefund - $apiRefund;
     $matchSt = (abs($dO) == 0 && abs($dN) < 500) ? "[SINKRON]" : "[ADA SELISIH]";
 
-    echo "\n  --- Order Normal (Exclude Retur) --- Status: $matchSt\n";
-    echo sprintf("  %-28s : ERP=%-12s  API=%-12s  Selisih=%s\n", "Jumlah Order", $erpCnt." order", $apiCnt." order", diff_tag($dO));
-    echo sprintf("  %-28s : ERP=%-12s  API=%-12s  Selisih=%s\n", "Total Omset Kotor", rp($erpG), rp($apiG), diff_tag($dG));
-    echo sprintf("  %-28s : ERP=%-12s  API=%-12s  Selisih=%s\n", "Total Biaya Admin", rp($erpA), rp($apiA), diff_tag($dA));
-    echo sprintf("  %-28s : ERP=%-12s  API=%-12s  Selisih=%s\n", "Total Omset Bersih", rp($erpN), rp($apiN), diff_tag($dN));
-
-    echo "\n  --- Retur / Pengembalian Dana ---\n";
-    echo sprintf("  %-28s : ERP=%-12s  API=%-12s\n", "Jumlah Order Retur", $erpRC." order", $apiRC." order");
-    echo sprintf("  %-28s : ERP=%-12s  API=%-12s\n", "Total Nilai Retur", rp($erpRG), rp($apiRA));
-    echo sprintf("  %-28s : %s order  (total refund: %s)\n", "Order dgn Partial Return", $erpWith->count(), rp($erpRL));
+    $W = 100;
+    echo "\n";
+    echo "  " . str_repeat("=", $W) . "\n";
+    echo sprintf("  | %-25s | %s |\n", "STATUS REKONSILIASI", str_pad($matchSt, $W - 33));
+    echo "  " . str_repeat("=", $W) . "\n";
+    echo sprintf("  | %-28s | %-18s | %-18s | %-18s |\n",
+        "METRIK", "ERP DATABASE", "API MARKETPLACE", "SELISIH (ERP-API)");
+    echo "  " . str_repeat("-", $W) . "\n";
+    echo sprintf("  | %-28s | %-18s | %-18s | %-18s |\n",
+        "Jumlah Order (Normal)",
+        $erpCnt . " order",
+        $apiCnt . " order",
+        diff_tag($dO));
+    echo sprintf("  | %-28s | %-18s | %-18s | %-18s |\n",
+        "Total Omset Kotor",
+        rp($erpG), rp($apiG), diff_tag($dG));
+    echo sprintf("  | %-28s | %-18s | %-18s | %-18s |\n",
+        "Total Biaya Admin",
+        rp($erpA), rp($apiA), diff_tag($dA));
+    echo sprintf("  | %-28s | %-18s | %-18s | %-18s |\n",
+        "Total Omset Bersih (Net)",
+        rp($erpN), rp($apiN), diff_tag($dN));
+    echo "  " . str_repeat("-", $W) . "\n";
+    echo sprintf("  | %-28s | %-18s | %-18s | %-18s |\n",
+        "Total Refund / Retur",
+        rp($erpRefund), rp($apiRefund), diff_tag($dR));
+    echo "  | " . str_pad("  Rincian ERP : order berstatus RETURN = ".rp($erpRG).", partial return terhubung = ".rp($erpRL), $W - 4) . " |\n";
+    echo "  | " . str_pad("  Rincian API : order retur = ".number_format($apiRC)." order, total return_amount = ".rp($apiRA), $W - 4) . " |\n";
+    echo "  " . str_repeat("=", $W) . "\n";
 
     // Diagnosis
-    if (abs($dN) >= 500 || $erpRC != $apiRC) {
-        echo "\n  [DIAGNOSIS]\n";
+    if (abs($dN) >= 500 || $erpRC != $apiRC || abs($dR) > 500) {
+        echo "\n  [DIAGNOSIS SELISIH]\n";
         if ($erpRC > $apiRC)
-            echo "  -> ERP punya ".($erpRC-$apiRC)." retur lebih banyak. API mungkin belum melaporkan retur ini,\n"
-               . "     atau tanggal retur berbeda dengan tanggal order. Solusi: php pull_missing_returns.php\n";
+            echo "  -> ERP punya ".($erpRC-$apiRC)." order retur lebih banyak dari API.\n"
+               . "     Kemungkinan tanggal retur berbeda dengan tanggal order. Solusi: php pull_missing_returns.php\n";
         if ($erpRC < $apiRC)
-            echo "  -> API punya ".($apiRC-$erpRC)." retur lebih banyak dari ERP.\n"
-               . "     Jalankan: php pull_missing_returns.php -- untuk pull data retur ke ERP.\n";
+            echo "  -> API punya ".($apiRC-$erpRC)." order retur lebih banyak dari ERP.\n"
+               . "     Solusi: php pull_missing_returns.php\n";
         if ($erpWith->count() > 0)
-            echo "  -> Ada ".$erpWith->count()." order dengan partial return. Net ERP sudah dikurangi refund.\n";
+            echo "  -> Ada ".$erpWith->count()." order normal dgn partial return. Net ERP sudah dikurangi refund partial.\n";
+        if (abs($dR) > 500)
+            echo "  -> Selisih refund ERP vs API = ".rp(abs($dR))."\n"
+               . "     Jalankan: php detail_erp_vs_api_per_order.php --fix-returns --detail\n";
         if (abs($dG) > 500 && $erpRC == 0 && $apiRC == 0)
             echo "  -> Selisih omset tanpa retur. Cek tanggal order atau order yang belum di-pull.\n";
     }
@@ -232,37 +265,66 @@ foreach ($stores as $store) {
     // 4. Detail per order
     if ($showDetail) {
         $fixedCount = 0;
-        echo "\n  [DETAIL PER ORDER]\n";
-        echo "  " . str_repeat("-", 115) . "\n";
-        echo sprintf("  %-32s | %-20s | %12s | %12s | %12s | %-10s | %s\n",
-            "No. Order / ID", "Tgl Order", "Gross", "Admin", "Net", "Status", "Keterangan");
-        echo "  " . str_repeat("-", 115) . "\n";
+        echo "\n  [DETAIL PER ORDER — ERP vs API dengan kolom Refund]\n";
+        $LW = 160;
+        echo "  " . str_repeat("-", $LW) . "\n";
+        // Header kolom: No Order | Tgl | ERP Gross | ERP Admin | ERP Net | ERP Refund | API Gross | API Admin | API Net | API Refund | Status | Ket
+        echo sprintf("  %-28s | %-16s | %11s | %11s | %11s | %11s | %11s | %11s | %11s | %11s | %-9s | %s\n",
+            "No. Order", "Tgl Order",
+            "ERP Gross", "ERP Admin", "ERP Net", "ERP Refund",
+            "API Gross", "API Admin", "API Net", "API Refund",
+            "Status", "Ket.");
+        echo "  " . str_repeat("-", $LW) . "\n";
 
         foreach ($erpOrders as $order) {
-            $oid   = $order->order_marketplace_id ?? ('ERP#' . $order->id);
-            $isRet = isReturnStatus($order->order_status);
-            $row   = $apiMap[$oid] ?? null;
-            $gross = (float)$order->total_amount;
-            $admin = (float)$order->marketplace_fee;
-            $net   = (float)$order->net_amount;
-            $flag  = ''; $ket = '';
+            $oid    = $order->order_marketplace_id ?? ('ERP#' . $order->id);
+            $isRet  = isReturnStatus($order->order_status);
+            $row    = $apiMap[$oid] ?? null;
 
+            // Nilai ERP
+            $erpGross  = (float)$order->total_amount;
+            $erpAdmin  = (float)$order->marketplace_fee;
+            $erpNet    = (float)$order->net_amount;
+            // ERP Refund: cek returnOrder.refund_amount dulu, fallback ke getRefundAmountAttribute
+            $erpRef    = 0.0;
+            if ($isRet) {
+                $erpRef = $erpGross; // order full return
+            } elseif ($order->returnOrder) {
+                $erpRef = (float)$order->returnOrder->refund_amount;
+            } else {
+                // Cek financial_breakdown
+                $fb = $order->financial_breakdown ?? [];
+                $refKeys = ['customer_refund_amount','gross_sales_refund_amount','seller_return_refund','refund_amount','return_amount'];
+                foreach ($refKeys as $k) {
+                    if (!empty($fb[$k])) { $erpRef = abs((float)$fb[$k]); break; }
+                }
+            }
+
+            // Nilai API
+            $apiGross  = $row ? $row['gross']         : 0.0;
+            $apiAdmin  = $row ? $row['admin']         : 0.0;
+            $apiNet    = $row ? $row['net']           : 0.0;
+            $apiRef    = $row ? $row['return_amount'] : 0.0;
+
+            // Flag & keterangan
+            $flag = ''; $ket = '';
             if ($isRet) {
                 $flag = '[RETUR]';
-                $ket  = 'Order retur — dikecualikan dari total normal';
-            } elseif ($order->returnOrder) {
-                $ref  = (float)$order->returnOrder->refund_amount;
-                $flag = '[PARTIAL]';
-                $ket  = 'Ada retur partial terhubung: ' . rp($ref);
-            } elseif ($row) {
-                $nd = $net - $row['net'];
-                if ($row['return_amount'] > 0) {
+                $ket  = 'Full return — excl. dari total normal';
+            } elseif (!$row) {
+                $flag = '[NO API]';
+                $ket  = 'Tidak ada di API';
+            } else {
+                $nd  = $erpNet - $apiNet;
+                $ndr = $erpRef - $apiRef;
+                if ($apiRef > 0 || $erpRef > 0) {
                     $flag = '[REFUND]';
-                    $ket  = 'Refund API: '.rp($row['return_amount']).' | Net API: '.rp($row['net']);
-                    // Fix: update financial_breakdown dengan nilai refund dari API
-                    if ($fixReturns && abs($nd) > 100) {
+                    $ket  = abs($ndr) < 500
+                        ? 'Refund sinkron'
+                        : 'Selisih refund='.rp(abs($ndr));
+                    if ($fixReturns && abs($ndr) > 100) {
                         $fb = $order->financial_breakdown ?? [];
-                        $fb['customer_refund_amount'] = $row['return_amount'];
+                        $fb['customer_refund_amount'] = $apiRef;
                         $order->financial_breakdown = $fb;
                         $order->save();
                         $flag = '[FIXED]'; $ket .= ' -> ERP diperbarui';
@@ -270,24 +332,24 @@ foreach ($stores as $store) {
                     }
                 } elseif (abs($nd) > 500) {
                     $flag = abs($nd) > 5000 ? '[BEDA!]' : '[SELISIH]';
-                    $ket  = 'Net API='.rp($row['net']).' | Selisih='.rp($nd);
+                    $ket  = 'Net delta='.rp(abs($nd));
                 } else {
                     $flag = '[OK]';
-                    $ket  = 'Net API='.rp($row['net']);
                 }
-            } else {
-                $flag = '[NO API]';
-                $ket  = 'Order tidak ada di API — cek tanggal / pull ulang';
             }
 
-            echo sprintf("  %-32s | %-20s | %12s | %12s | %12s | %-10s | %s %s\n",
-                substr($oid, 0, 32),
+            echo sprintf("  %-28s | %-16s | %11s | %11s | %11s | %11s | %11s | %11s | %11s | %11s | %-9s | %s %s\n",
+                substr($oid, 0, 28),
                 date('d-m-Y H:i', strtotime($order->order_date)),
-                rp($gross), rp($admin), rp($net),
-                substr($order->order_status, 0, 10),
+                rp($erpGross), rp($erpAdmin), rp($erpNet), rp($erpRef),
+                $row ? rp($apiGross) : '-',
+                $row ? rp($apiAdmin) : '-',
+                $row ? rp($apiNet)   : '-',
+                $row ? rp($apiRef)   : '-',
+                substr($order->order_status, 0, 9),
                 $flag, $ket);
         }
-        echo "  " . str_repeat("-", 115) . "\n";
+        echo "  " . str_repeat("-", $LW) . "\n";
         if ($fixReturns && $fixedCount > 0) {
             echo "\n  [SYNC] Total order yang diperbarui: {$fixedCount} order.\n";
             $grand['fixed'] += $fixedCount;
@@ -295,36 +357,58 @@ foreach ($stores as $store) {
     }
 
     echo "\n";
-    $grand['erp_orders'] += $erpCnt;  $grand['erp_gross']  += $erpG; $grand['erp_admin'] += $erpA; $grand['erp_net'] += $erpN;
-    $grand['erp_ret_orders'] += $erpRC; $grand['erp_ret_gross'] += $erpRG;
-    $grand['api_orders'] += $apiCnt;  $grand['api_gross']  += $apiG; $grand['api_admin'] += $apiA; $grand['api_net'] += $apiN;
-    $grand['api_ret_orders'] += $apiRC; $grand['api_ret_amount'] += $apiRA;
+    $grand['erp_orders']     += $erpCnt;  $grand['erp_gross']  += $erpG; $grand['erp_admin'] += $erpA; $grand['erp_net'] += $erpN; $grand['erp_refund'] += $erpRefund;
+    $grand['erp_ret_orders'] += $erpRC;   $grand['erp_ret_gross'] += $erpRG;
+    $grand['api_orders']     += $apiCnt;  $grand['api_gross']  += $apiG; $grand['api_admin'] += $apiA; $grand['api_net'] += $apiN; $grand['api_refund'] += $apiRefund;
+    $grand['api_ret_orders'] += $apiRC;   $grand['api_ret_amount'] += $apiRA;
 }
 
 // Grand total
-echo "===================================================================================\n";
-echo "  GRAND TOTAL — SEMUA TOKO\n";
-echo "===================================================================================\n";
-$gDO = $grand['erp_orders']-$grand['api_orders'];
-$gDG = $grand['erp_gross'] -$grand['api_gross'];
-$gDA = $grand['erp_admin'] -$grand['api_admin'];
-$gDN = $grand['erp_net']   -$grand['api_net'];
-echo sprintf("  %-28s : ERP=%-12s  API=%-12s  Selisih=%s\n","Total Order Normal",$grand['erp_orders']." order",$grand['api_orders']." order",diff_tag($gDO));
-echo sprintf("  %-28s : ERP=%-12s  API=%-12s  Selisih=%s\n","Total Omset Kotor",rp($grand['erp_gross']),rp($grand['api_gross']),diff_tag($gDG));
-echo sprintf("  %-28s : ERP=%-12s  API=%-12s  Selisih=%s\n","Total Biaya Admin",rp($grand['erp_admin']),rp($grand['api_admin']),diff_tag($gDA));
-echo sprintf("  %-28s : ERP=%-12s  API=%-12s  Selisih=%s\n","Total Omset Bersih",rp($grand['erp_net']),rp($grand['api_net']),diff_tag($gDN));
+$GW = 100;
+$gDO = $grand['erp_orders'] - $grand['api_orders'];
+$gDG = $grand['erp_gross']  - $grand['api_gross'];
+$gDA = $grand['erp_admin']  - $grand['api_admin'];
+$gDN = $grand['erp_net']    - $grand['api_net'];
+$gDR = $grand['erp_refund'] - $grand['api_refund'];
+
 echo "\n";
-echo sprintf("  %-28s : ERP=%-12s  API=%-12s\n","Jumlah Order Retur",$grand['erp_ret_orders']." order",$grand['api_ret_orders']." order");
-echo sprintf("  %-28s : ERP=%-12s  API=%-12s\n","Total Nilai Retur",rp($grand['erp_ret_gross']),rp($grand['api_ret_amount']));
+echo str_repeat("=", $GW) . "\n";
+echo "  GRAND TOTAL — SELURUH TOKO TERHUBUNG\n";
+echo str_repeat("=", $GW) . "\n";
+echo sprintf("  | %-28s | %-18s | %-18s | %-18s |\n",
+    "METRIK", "ERP DATABASE", "API MARKETPLACE", "SELISIH (ERP-API)");
+echo str_repeat("-", $GW) . "\n";
+echo sprintf("  | %-28s | %-18s | %-18s | %-18s |\n",
+    "Total Order Normal",
+    $grand['erp_orders']." order", $grand['api_orders']." order", diff_tag($gDO));
+echo sprintf("  | %-28s | %-18s | %-18s | %-18s |\n",
+    "Total Omset Kotor",
+    rp($grand['erp_gross']), rp($grand['api_gross']), diff_tag($gDG));
+echo sprintf("  | %-28s | %-18s | %-18s | %-18s |\n",
+    "Total Biaya Admin",
+    rp($grand['erp_admin']), rp($grand['api_admin']), diff_tag($gDA));
+echo sprintf("  | %-28s | %-18s | %-18s | %-18s |\n",
+    "Total Omset Bersih (Net)",
+    rp($grand['erp_net']), rp($grand['api_net']), diff_tag($gDN));
+echo str_repeat("-", $GW) . "\n";
+echo sprintf("  | %-28s | %-18s | %-18s | %-18s |\n",
+    "Total Refund / Retur",
+    rp($grand['erp_refund']), rp($grand['api_refund']), diff_tag($gDR));
+echo sprintf("  | %-28s | %-18s | %-18s |\n",
+    "  Jml Order Retur (ERP/API)",
+    $grand['erp_ret_orders']." order",
+    $grand['api_ret_orders']." order");
+echo str_repeat("=", $GW) . "\n";
 echo "\n";
-echo "  CATATAN — MENGAPA RETUR MENYEBABKAN SELISIH:\n";
-echo "  1. API melaporkan order retur dengan status RETURN/REFUNDED, gross tetap, net = 0.\n";
-echo "     ERP harus memiliki status RETURN agar net = 0 juga.\n";
-echo "  2. Jika di ERP status belum diubah ke RETURN -> net ERP masih terhitung -> selisih!\n";
-echo "  3. Solusi:\n";
-echo "     a. php pull_missing_returns.php  -> pull & update status retur dari API ke ERP\n";
-echo "     b. php detail_erp_vs_api_per_order.php --fix-returns  -> isi refund_amount di ERP dari API\n";
-echo "     c. Pastikan returnOrder.refund_amount terisi untuk partial retur\n";
+echo "  CATATAN — CARA SINKRONISASI RETUR:\n";
+echo "  1. API: order retur -> status RETURN/REFUNDED, net=0, return_amount=nilai refund.\n";
+echo "     ERP: harus status RETURN agar net dihitung 0, DAN refund_amount terisi.\n";
+echo "  2. Jika ERP belum diupdate -> net ERP masih dihitung -> selisih dengan API!\n";
+echo "\n";
+echo "  SOLUSI SINKRONISASI:\n";
+echo "  a. php pull_missing_returns.php          -- pull & update status retur dari API ke ERP\n";
+echo "  b. php detail_erp_vs_api_per_order.php --fix-returns  -- isi refund_amount di ERP dari API\n";
+echo "  c. php detail_erp_vs_api_per_order.php --detail       -- lihat detail per baris order\n";
 if ($grand['fixed'] > 0)
-    echo "\n  [SYNC] Total order yang diperbarui sesi ini: " . $grand['fixed'] . " order.\n";
-echo "===================================================================================\n\n";
+    echo "\n  [SYNC] Total order diperbarui sesi ini: " . $grand['fixed'] . " order.\n";
+echo str_repeat("=", $GW) . "\n\n";
