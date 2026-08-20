@@ -396,13 +396,15 @@ class SecretRepairDashboardController extends Controller
 
         if (!$hasFb) {
             return [
-                'has_fb'    => false,
-                'erp_omset' => $erpOmset,
-                'erp_fee'   => $erpFee,
-                'erp_net'   => $erpNet,
-                'api_omset' => null,
-                'api_fee'   => null,
-                'api_net'   => null,
+                'has_fb'     => false,
+                'erp_omset'  => $erpOmset,
+                'erp_fee'    => $erpFee,
+                'erp_net'    => $erpNet,
+                'erp_refund' => 0.0,
+                'api_omset'  => null,
+                'api_fee'    => null,
+                'api_net'    => null,
+                'api_refund' => null,
             ];
         }
 
@@ -491,14 +493,61 @@ class SecretRepairDashboardController extends Controller
             }
         }
 
+        // ── 5. REFUND / PENGEMBALIAN DANA ──
+        // ERP Refund: ambil dari financial_breakdown refund keys
+        $erpRefund = 0.0;
+        $erpRefundKeys = ['customer_refund_amount', 'gross_sales_refund_amount', 'seller_return_refund', 'refund_amount', 'return_amount', 'customer_order_refund_amount'];
+        foreach ($erpRefundKeys as $rk) {
+            if (!empty($inc[$rk]) && (float)$inc[$rk] != 0) {
+                $erpRefund = abs((float)$inc[$rk]);
+                break;
+            }
+        }
+        // Cek juga sub-array statement_transactions TikTok
+        if ($erpRefund <= 0 && is_array($stmtList)) {
+            foreach ($stmtList as $stRow) {
+                if (!is_array($stRow)) continue;
+                foreach ($erpRefundKeys as $rk) {
+                    if (!empty($stRow[$rk]) && (float)$stRow[$rk] != 0) {
+                        $erpRefund = abs((float)$stRow[$rk]);
+                        break 2;
+                    }
+                }
+            }
+        }
+        // Jika status RETURN, refund = omset penuh
+        if ($erpRefund <= 0 && in_array(strtoupper($ord->order_status), ['RETURN','RETURNED','REFUNDED','REFUND'])) {
+            $erpRefund = $erpOmset;
+        }
+
+        // API Refund: dari field refund di financial_breakdown (API side)
+        $apiRefund = 0.0;
+        $apiRefundKeys = ['customer_refund_amount', 'buyer_return_refund_amount', 'return_amount', 'refund_amount', 'seller_return_refund'];
+        foreach ($apiRefundKeys as $rk) {
+            if (isset($inc[$rk]) && (float)$inc[$rk] != 0) {
+                $apiRefund = abs((float)$inc[$rk]);
+                break;
+            }
+        }
+        if ($apiRefund <= 0 && !empty($st0)) {
+            foreach ($apiRefundKeys as $rk) {
+                if (!empty($st0[$rk]) && (float)$st0[$rk] != 0) {
+                    $apiRefund = abs((float)$st0[$rk]);
+                    break;
+                }
+            }
+        }
+
         return [
-            'has_fb'    => true,
-            'erp_omset' => $erpOmset,
-            'erp_fee'   => $erpFee,
-            'erp_net'   => $erpNet,
-            'api_omset' => $apiOmset,
-            'api_fee'   => $apiFee,
-            'api_net'   => $apiNet,
+            'has_fb'     => true,
+            'erp_omset'  => $erpOmset,
+            'erp_fee'    => $erpFee,
+            'erp_net'    => $erpNet,
+            'erp_refund' => $erpRefund,
+            'api_omset'  => $apiOmset,
+            'api_fee'    => $apiFee,
+            'api_net'    => $apiNet,
+            'api_refund' => $apiRefund,
         ];
     }
 
@@ -684,11 +733,17 @@ class SecretRepairDashboardController extends Controller
             $isShopee = $shopeeStores->contains($ord->store_id);
             $fin = $this->parseOrderFinancials($ord, $isShopee);
 
-            $diffOmset = $fin['has_fb'] ? (float) $fin['erp_omset'] - $fin['api_omset'] : null;
-            $diffFee   = $fin['has_fb'] ? (float) $fin['erp_fee'] - $fin['api_fee'] : null;
-            $diffNet   = $fin['has_fb'] ? (float) $fin['erp_net'] - $fin['api_net'] : null;
+            $diffOmset   = $fin['has_fb'] ? (float)$fin['erp_omset'] - (float)$fin['api_omset'] : null;
+            $diffFee     = $fin['has_fb'] ? (float)$fin['erp_fee']   - (float)$fin['api_fee']   : null;
+            $diffNet     = $fin['has_fb'] ? (float)$fin['erp_net']   - (float)$fin['api_net']   : null;
+            $diffRefund  = $fin['has_fb'] ? (float)$fin['erp_refund']- (float)$fin['api_refund']: null;
 
-            $isMismatch = $fin['has_fb'] && (abs($diffNet) > 100 || abs($diffOmset) > 100 || abs($diffFee) > 100);
+            $isMismatch = $fin['has_fb'] && (
+                abs($diffNet)  > 100 ||
+                abs($diffOmset) > 100 ||
+                abs($diffFee)  > 100 ||
+                abs($diffRefund) > 100
+            );
 
             if ($filter === 'mismatch' && !$isMismatch) continue;
 
@@ -699,15 +754,18 @@ class SecretRepairDashboardController extends Controller
                 'order_status'     => $ord->order_status,
                 'store_name'       => $ord->store->store_name ?? '-',
                 'buyer_name'       => $ord->buyer_name,
-                'erp_omset'        => (float) $fin['erp_omset'],
-                'erp_fee'          => (float) $fin['erp_fee'],
-                'erp_net'          => (float) $fin['erp_net'],
+                'erp_omset'        => (float)$fin['erp_omset'],
+                'erp_fee'          => (float)$fin['erp_fee'],
+                'erp_net'          => (float)$fin['erp_net'],
+                'erp_refund'       => (float)$fin['erp_refund'],
                 'api_omset'        => $fin['api_omset'],
                 'api_fee'          => $fin['api_fee'],
                 'api_net'          => $fin['api_net'],
+                'api_refund'       => $fin['api_refund'],
                 'diff_omset'       => $diffOmset,
                 'diff_fee'         => $diffFee,
                 'diff_net'         => $diffNet,
+                'diff_refund'      => $diffRefund,
                 'has_fb'           => $fin['has_fb'],
                 'is_mismatch'      => $isMismatch,
             ];

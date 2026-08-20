@@ -113,6 +113,7 @@
                         <th class="py-3 text-end text-center bl" colspan="2" style="background:#1e3a5f;color:#93c5fd;min-width:260px">OMSET</th>
                         <th class="py-3 text-end text-center bl" colspan="2" style="background:#3b1f0a;color:#fdba74;min-width:260px">BIAYA ADMIN</th>
                         <th class="py-3 text-end text-center bl" colspan="2" style="background:#052e16;color:#86efac;min-width:260px">DANA CAIR</th>
+                        <th class="py-3 text-end text-center bl" colspan="2" style="background:#3b0764;color:#e9d5ff;min-width:260px">REFUND / RETUR</th>
                         <th class="py-3 text-center bl" style="background:#2e1065;color:#d8b4fe;min-width:80px">STATUS</th>
                         <th class="py-3 text-center pe-3 bl" style="background:#1e1b4b;color:#c7d2fe;min-width:110px">AKSI</th>
                     </tr>
@@ -124,6 +125,8 @@
                         <th class="py-2 text-end" style="color:#fdba74">API</th>
                         <th class="py-2 text-end bl" style="color:#86efac">ERP</th>
                         <th class="py-2 text-end" style="color:#86efac">API</th>
+                        <th class="py-2 text-end bl" style="color:#e9d5ff">ERP</th>
+                        <th class="py-2 text-end" style="color:#e9d5ff">API</th>
                         <th class="py-2 bl"></th>
                         <th class="py-2 pe-3 bl"></th>
                     </tr>
@@ -186,6 +189,23 @@
                         @endif
                     </td>
 
+                    {{-- REFUND / RETUR --}}
+                    <td class="text-end font-monospace bl cell-erp-refund" style="background:#faf5ff;color:#7e22ce">
+                        {{ $row['erp_refund'] > 0 ? 'Rp '.number_format($row['erp_refund'],0,',','.') : '—' }}
+                    </td>
+                    <td class="text-end font-monospace cell-api-refund" style="background:#faf5ff;color:#7e22ce">
+                        @if($row['api_refund'] !== null)
+                            {{ $row['api_refund'] > 0 ? 'Rp '.number_format($row['api_refund'],0,',','.') : '—' }}
+                            @if($row['api_refund'] > 0 && abs($row['diff_refund']) > 100)
+                                <br><small class="{{ $row['diff_refund'] > 0 ? 'dp' : 'dn' }}" style="font-size:.65rem">{{ ($row['diff_refund'] > 0 ? '+' : '') . number_format($row['diff_refund'],0,',','.') }}</small>
+                            @elseif($row['api_refund'] > 0)
+                                <br><small style="color:#16a34a;font-size:.65rem">✓ sinkron</small>
+                            @endif
+                        @else
+                            <span class="text-secondary opacity-50">—</span>
+                        @endif
+                    </td>
+
                     <td class="text-center bl cell-status">
                         @if(!$row['has_fb'])
                             <span class="bnf">No API</span>
@@ -218,15 +238,18 @@
                 </tbody>
                 @if(count($rows) > 0)
                 @php
-                    $sumErpOmset = array_sum(array_column($rows, 'erp_omset'));
-                    $sumErpFee   = array_sum(array_column($rows, 'erp_fee'));
-                    $sumErpNet   = array_sum(array_column($rows, 'erp_net'));
-                    $sumApiOmset = array_sum(array_filter(array_column($rows, 'api_omset'), fn($v) => $v !== null));
-                    $sumApiFee   = array_sum(array_filter(array_column($rows, 'api_fee'), fn($v) => $v !== null));
-                    $sumApiNet   = array_sum(array_filter(array_column($rows, 'api_net'), fn($v) => $v !== null));
-                    $sumDiffOmset = $sumErpOmset - $sumApiOmset;
-                    $sumDiffFee   = $sumErpFee - $sumApiFee;
-                    $sumDiffNet   = $sumErpNet - $sumApiNet;
+                    $sumErpOmset  = array_sum(array_column($rows, 'erp_omset'));
+                    $sumErpFee    = array_sum(array_column($rows, 'erp_fee'));
+                    $sumErpNet    = array_sum(array_column($rows, 'erp_net'));
+                    $sumErpRefund = array_sum(array_column($rows, 'erp_refund'));
+                    $sumApiOmset  = array_sum(array_filter(array_column($rows, 'api_omset'),  fn($v) => $v !== null));
+                    $sumApiFee    = array_sum(array_filter(array_column($rows, 'api_fee'),    fn($v) => $v !== null));
+                    $sumApiNet    = array_sum(array_filter(array_column($rows, 'api_net'),    fn($v) => $v !== null));
+                    $sumApiRefund = array_sum(array_filter(array_column($rows, 'api_refund'), fn($v) => $v !== null));
+                    $sumDiffOmset  = $sumErpOmset  - $sumApiOmset;
+                    $sumDiffFee    = $sumErpFee    - $sumApiFee;
+                    $sumDiffNet    = $sumErpNet    - $sumApiNet;
+                    $sumDiffRefund = $sumErpRefund - $sumApiRefund;
                 @endphp
                 <tfoot class="fw-bold" style="background:#0f172a; color:#fff; font-size:0.78rem;">
                     <tr style="border-top:2px solid #334155;">
@@ -273,8 +296,23 @@
                             @endif
                         </td>
 
+                        {{-- TOTAL REFUND --}}
+                        <td class="text-end font-monospace bl" style="color:#e9d5ff; background:#3b0764;">
+                            {{ $sumErpRefund > 0 ? 'Rp ' . number_format($sumErpRefund, 0, ',', '.') : '—' }}
+                        </td>
+                        <td class="text-end font-monospace" style="color:#e9d5ff; background:#3b0764;">
+                            {{ $sumApiRefund > 0 ? 'Rp ' . number_format($sumApiRefund, 0, ',', '.') : '—' }}
+                            @if(abs($sumDiffRefund) > 100)
+                                <br><small style="color:{{ $sumDiffRefund > 0 ? '#fde047' : '#f87171' }}; font-size:0.67rem;">
+                                    {{ ($sumDiffRefund > 0 ? '+' : '') . number_format($sumDiffRefund, 0, ',', '.') }}
+                                </small>
+                            @elseif($sumErpRefund > 0 || $sumApiRefund > 0)
+                                <br><small style="color:#4ade80;font-size:.65rem">✓ sinkron</small>
+                            @endif
+                        </td>
+
                         <td class="text-center bl" style="background:#2e1065;">
-                            @if(abs($sumDiffNet) < 100 && abs($sumDiffOmset) < 100 && abs($sumDiffFee) < 100)
+                            @if(abs($sumDiffNet) < 100 && abs($sumDiffOmset) < 100 && abs($sumDiffFee) < 100 && abs($sumDiffRefund) < 100)
                                 <span class="bm">✓ Match</span>
                             @else
                                 <span class="bmm">Selisih</span>
@@ -389,7 +427,7 @@ function syncAllMismatches() {
 }
 
 function exportCsv(){
-    const rows = [['#','ID Order','Tanggal','Status','Toko','Omset ERP','Omset API','Selisih Omset','Admin ERP','Admin API','Selisih Admin','Dana Cair ERP','Dana Cair API','Selisih Net','Status']];
+    const rows = [['#','ID Order','Tanggal','Status','Toko','Omset ERP','Omset API','Selisih Omset','Admin ERP','Admin API','Selisih Admin','Dana Cair ERP','Dana Cair API','Selisih Net','Refund ERP','Refund API','Selisih Refund','Status']];
     @foreach($rows as $i => $row)
     rows.push([
         {{ $i + 1 }},
@@ -406,6 +444,9 @@ function exportCsv(){
         {{ $row["erp_net"] }},
         {{ $row["api_net"] ?? "null" }},
         {{ $row["diff_net"] ?? "null" }},
+        {{ $row["erp_refund"] }},
+        {{ $row["api_refund"] ?? "null" }},
+        {{ $row["diff_refund"] ?? "null" }},
         '{{ !$row["has_fb"] ? "No API" : ($row["is_mismatch"] ? "Mismatch" : "Match") }}'
     ]);
     @endforeach
