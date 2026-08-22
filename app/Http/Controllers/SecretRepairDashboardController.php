@@ -230,6 +230,11 @@ class SecretRepairDashboardController extends Controller
                     $output .= "\n✅ Selesai! Coba Git Pull lagi.";
                     break;
 
+                case 'run_migrations':
+                    Artisan::call('migrate', ['--force' => true]);
+                    $output = "🚀 Executed php artisan migrate --force:\n" . (Artisan::output() ?: 'Database migration completed with no pending changes.');
+                    break;
+
                 case 'artisan_optimize':
                     Artisan::call('optimize');
                     $optimizeOut = Artisan::output();

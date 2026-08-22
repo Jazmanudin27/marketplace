@@ -802,7 +802,12 @@ Route::middleware('auth')->group(function () {
         Route::get('/marketing/tiered-discounts/create', [\App\Http\Controllers\Marketing\TieredDiscountController::class, 'create'])->name('marketing.tiered_discounts.create');
         Route::post('/marketing/tiered-discounts', [\App\Http\Controllers\Marketing\TieredDiscountController::class, 'store'])->name('marketing.tiered_discounts.store');
         Route::post('/marketing/tiered-discounts/{tieredDiscount}/toggle', [\App\Http\Controllers\Marketing\TieredDiscountController::class, 'toggle'])->name('marketing.tiered_discounts.toggle');
-        Route::delete('/marketing/tiered-discounts/{tieredDiscount}', [\App\Http\Controllers\Marketing\TieredDiscountController::class, 'destroy'])->name('marketing.tiered_discounts.destroy');
+        // Marketing Teams & Targets
+        Route::get('/marketing/teams', [\App\Http\Controllers\Marketing\MarketingTeamController::class, 'index'])->name('marketing.teams.index');
+        Route::post('/marketing/teams', [\App\Http\Controllers\Marketing\MarketingTeamController::class, 'store'])->name('marketing.teams.store');
+        Route::put('/marketing/teams/{marketingTeam}', [\App\Http\Controllers\Marketing\MarketingTeamController::class, 'update'])->name('marketing.teams.update');
+        Route::delete('/marketing/teams/{marketingTeam}', [\App\Http\Controllers\Marketing\MarketingTeamController::class, 'destroy'])->name('marketing.teams.destroy');
+        Route::post('/marketing/teams/{marketingTeam}/toggle-status', [\App\Http\Controllers\Marketing\MarketingTeamController::class, 'toggleStatus'])->name('marketing.teams.toggle_status');
     });
 
     // =========================================================================

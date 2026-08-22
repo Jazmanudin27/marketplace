@@ -519,6 +519,24 @@
                 </div>
             </div>
 
+            <!-- Action 0.7: Run Migration DB -->
+            <div class="col-lg-4 col-md-6">
+                <div class="card-action border-top border-4 border-primary">
+                    <div>
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <span class="badge bg-primary text-white fw-bold px-2 py-1" style="font-size: 0.72rem;"><i class="fas fa-database me-1"></i>DATABASE MIGRATION</span>
+                            <h6 class="fw-bold text-dark mb-0">Update Tabel Database (Migrate)</h6>
+                        </div>
+                        <p class="text-secondary small mb-3" style="font-size: 0.8rem; line-height: 1.45;">
+                            Eksekusi <code class="text-primary fw-bold">php artisan migrate --force</code> untuk membuat/memperbarui tabel baru (seperti Tim & Target Marketing) di DB.
+                        </p>
+                    </div>
+                    <button type="button" class="btn-custom btn-primary fw-semibold" onclick="triggerRepair('run_migrations', this)">
+                        <i class="fas fa-database me-1"></i> Jalankan Migration DB
+                    </button>
+                </div>
+            </div>
+
             <!-- Action 1: Fix Missing Items -->
             <div class="col-lg-4 col-md-6">
                 <div class="card-action border-top border-4 border-warning">

@@ -42,6 +42,7 @@
         request()->routeIs('finance.transfers.*');
 
     $isMarketingActive =
+        request()->routeIs('marketing.teams.*') ||
         request()->routeIs('marketing.ads.*') ||
         request()->routeIs('marketing.flash_sales.*') ||
         request()->routeIs('marketing.tiered_discounts.*') ||
@@ -182,6 +183,13 @@
                 <span>Marketplace Produk</span>
             </a>
         @endcan
+
+        <!-- Target & Tim Marketing -->
+        <a href="{{ route('marketing.teams.index') }}"
+            class="nav-link d-flex align-items-center gap-2 {{ request()->routeIs('marketing.teams.*') ? 'active text-white' : 'text-dark' }}">
+            <i class="bi bi-people-fill text-warning"></i>
+            <span>Target & Tim Marketing</span>
+        </a>
 
 
 
@@ -491,9 +499,11 @@
                             <a href="{{ route('marketing.ads.index') }}"
                                 class="nav-link py-1 {{ request()->routeIs('marketing.ads.*') ? 'active text-white' : 'text-secondary' }}">Dashboard
                                 Keputusan</a>
-{{-- Flash Sale disembunyikan sementara --}}
-{{-- Diskon Bertingkat disembunyikan sementara --}}
                         @endif
+                        <a href="{{ route('marketing.teams.index') }}"
+                            class="nav-link py-1 {{ request()->routeIs('marketing.teams.*') ? 'active text-white' : 'text-secondary' }}">
+                            Target & Tim Marketing
+                        </a>
                     </div>
                 </div>
             </div>
