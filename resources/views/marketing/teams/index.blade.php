@@ -12,9 +12,12 @@
                 <i class="bi bi-bullseye me-1"></i> MODUL MARKETING
             </span>
             <h3 class="fw-bold text-dark mb-1">Target & Tim Marketing</h3>
-            <p class="text-secondary small mb-0">
+            <p class="text-secondary small mb-1">
                 Kelola alokasi toko marketplace, target penjualan Qty, dan insentif komisi rupiah per-Qty.
             </p>
+            <div class="text-primary small">
+                <i class="bi bi-info-circle me-1"></i>Realisasi dihitung khusus pesanan <strong>Selesai / Dilepas (Completed)</strong> berdasarkan <strong>Tanggal Diterima (`completed_at`)</strong>. Pesanan Retur/Refund & Batal otomatis dikecualikan.
+            </div>
         </div>
         <div>
             <button type="button" class="btn btn-primary rounded-pill px-3 py-2 fw-semibold shadow-sm d-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#createTeamModal">

@@ -52,7 +52,8 @@ class MarketingTeam extends Model
     }
 
     /**
-     * Hitung Qty Pesanan Aktual untuk toko-toko di tim ini pada periode target
+     * Hitung Qty Pesanan Aktual (Khusus Transaksi Selesai/Dilepas & Tidak Retur/Refund)
+     * Menggunakan tanggal selesai/diterima (completed_at) pada periode target.
      */
     public function getActualQtyAttribute(): int
     {
@@ -61,35 +62,58 @@ class MarketingTeam extends Model
             return 0;
         }
 
-        $query = DB::table('orders')
-            ->whereIn('store_id', $storeIds)
-            ->whereNotIn('order_status', ['CANCELLED', 'CANCELED', 'RETURNED', 'REFUNDED']);
+        $validStatuses = ['COMPLETED', 'RELEASED', 'COMPLETED_ESCROW'];
 
-        if ($this->period_month && $this->period_year) {
-            $query->whereYear('order_date', $this->period_year)
-                  ->whereMonth('order_date', $this->period_month);
-        }
-
-        // Check if order_items quantity sum is available or use count of orders
+        // Cek jika rincian item order_items tersedia
         if (Schema::hasTable('order_items')) {
-            $qty = DB::table('order_items')
+            $qtyQuery = DB::table('order_items')
                 ->join('orders', 'order_items.order_id', '=', 'orders.id')
                 ->whereIn('orders.store_id', $storeIds)
-                ->whereNotIn('orders.order_status', ['CANCELLED', 'CANCELED', 'RETURNED', 'REFUNDED']);
+                ->whereIn('orders.order_status', $validStatuses)
+                ->whereNotIn('orders.order_status', ['CANCELLED', 'CANCELED', 'RETURNED', 'REFUNDED', 'IN_CANCEL', 'FAILED']);
 
             if ($this->period_month && $this->period_year) {
-                $qty->whereYear('orders.order_date', $this->period_year)
-                    ->whereMonth('orders.order_date', $this->period_month);
+                $qtyQuery->where(function($q) {
+                    $q->where(function($sub) {
+                        $sub->whereNotNull('orders.completed_at')
+                            ->whereYear('orders.completed_at', $this->period_year)
+                            ->whereMonth('orders.completed_at', $this->period_month);
+                    })->orWhere(function($sub) {
+                        $sub->whereNull('orders.completed_at')
+                            ->whereYear('orders.order_date', $this->period_year)
+                            ->whereMonth('orders.order_date', $this->period_month);
+                    });
+                });
             }
 
-            return (int) $qty->sum('order_items.quantity');
+            return (int) $qtyQuery->sum('order_items.quantity');
+        }
+
+        $query = DB::table('orders')
+            ->whereIn('store_id', $storeIds)
+            ->whereIn('order_status', $validStatuses)
+            ->whereNotIn('order_status', ['CANCELLED', 'CANCELED', 'RETURNED', 'REFUNDED', 'IN_CANCEL', 'FAILED']);
+
+        if ($this->period_month && $this->period_year) {
+            $query->where(function($q) {
+                $q->where(function($sub) {
+                    $sub->whereNotNull('completed_at')
+                        ->whereYear('completed_at', $this->period_year)
+                        ->whereMonth('completed_at', $this->period_month);
+                })->orWhere(function($sub) {
+                    $sub->whereNull('completed_at')
+                        ->whereYear('order_date', $this->period_year)
+                        ->whereMonth('order_date', $this->period_month);
+                });
+            });
         }
 
         return (int) $query->count();
     }
 
     /**
-     * Hitung Omset (Total Sales Rp) Aktual untuk toko-toko di tim ini pada periode target
+     * Hitung Omset (Total Sales Rp) Aktual (Khusus Transaksi Selesai/Dilepas & Tidak Retur/Refund)
+     * Menggunakan tanggal selesai/diterima (completed_at) pada periode target.
      */
     public function getActualOmsetAttribute(): float
     {
@@ -98,13 +122,25 @@ class MarketingTeam extends Model
             return 0.0;
         }
 
+        $validStatuses = ['COMPLETED', 'RELEASED', 'COMPLETED_ESCROW'];
+
         $query = DB::table('orders')
             ->whereIn('store_id', $storeIds)
-            ->whereNotIn('order_status', ['CANCELLED', 'CANCELED', 'RETURNED', 'REFUNDED']);
+            ->whereIn('order_status', $validStatuses)
+            ->whereNotIn('order_status', ['CANCELLED', 'CANCELED', 'RETURNED', 'REFUNDED', 'IN_CANCEL', 'FAILED']);
 
         if ($this->period_month && $this->period_year) {
-            $query->whereYear('order_date', $this->period_year)
-                  ->whereMonth('order_date', $this->period_month);
+            $query->where(function($q) {
+                $q->where(function($sub) {
+                    $sub->whereNotNull('completed_at')
+                        ->whereYear('completed_at', $this->period_year)
+                        ->whereMonth('completed_at', $this->period_month);
+                })->orWhere(function($sub) {
+                    $sub->whereNull('completed_at')
+                        ->whereYear('order_date', $this->period_year)
+                        ->whereMonth('order_date', $this->period_month);
+                });
+            });
         }
 
         return (float) ($query->sum('total_amount') ?? 0.0);
