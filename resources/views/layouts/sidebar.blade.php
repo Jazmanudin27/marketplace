@@ -185,7 +185,7 @@
         @endcan
 
         <!-- Target & Tim Marketing -->
-        <a href="{{ route('marketing.teams.index') }}"
+        <a href="{{ Route::has('marketing.teams.index') ? route('marketing.teams.index') : url('/marketing/teams') }}"
             class="nav-link d-flex align-items-center gap-2 {{ request()->routeIs('marketing.teams.*') ? 'active text-white' : 'text-dark' }}">
             <i class="bi bi-people-fill text-warning"></i>
             <span>Target & Tim Marketing</span>
@@ -500,7 +500,7 @@
                                 class="nav-link py-1 {{ request()->routeIs('marketing.ads.*') ? 'active text-white' : 'text-secondary' }}">Dashboard
                                 Keputusan</a>
                         @endif
-                        <a href="{{ route('marketing.teams.index') }}"
+                        <a href="{{ Route::has('marketing.teams.index') ? route('marketing.teams.index') : url('/marketing/teams') }}"
                             class="nav-link py-1 {{ request()->routeIs('marketing.teams.*') ? 'active text-white' : 'text-secondary' }}">
                             Target & Tim Marketing
                         </a>
