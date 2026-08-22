@@ -147,13 +147,77 @@ class OrderController extends Controller
             ->orderBy('ship_before_date')
             ->get();
 
-        // ── Hitung jumlah pesanan per tab status (1 query GROUP BY) ──
-        $rawCounts = Order::where('tenant_id', $tenantId)
+        // ── Hitung jumlah per tab: pakai query yang sama tapi TANPA filter status ──
+        $countBase = Order::where('tenant_id', $tenantId);
+
+        // Terapkan semua filter yang sama, kecuali filter status & pagination
+        if ($request->filled('order_number')) {
+            $search = trim($request->order_number);
+            $countBase->where(function ($q) use ($search) {
+                $q->where('order_marketplace_id', 'like', '%' . $search . '%')
+                  ->orWhere('invoice_number', 'like', '%' . $search . '%')
+                  ->orWhere('tracking_number', 'like', '%' . $search . '%')
+                  ->orWhere('buyer_name', 'like', '%' . $search . '%');
+            });
+        }
+        if ($request->filled('channel_id')) {
+            $countBase->whereHas('store', fn($q) => $q->where('channel_id', $request->channel_id));
+        }
+        if ($request->filled('store_id')) {
+            $countBase->where('store_id', $request->store_id);
+        }
+        if ($request->filled('courier')) {
+            $countBase->where('courier', 'like', '%' . $request->courier . '%');
+        }
+        if ($request->filled('is_po')) {
+            if ($request->is_po === 'po') {
+                $countBase->whereHas('items.masterProduct', fn($q) => $q->where('is_preorder', true));
+            } elseif ($request->is_po === 'ready') {
+                $countBase->whereDoesntHave('items.masterProduct', fn($q) => $q->where('is_preorder', true));
+            }
+        }
+        if ($request->filled('spk_status')) {
+            if ($request->spk_status === 'has_spk') $countBase->has('spks');
+            elseif ($request->spk_status === 'no_spk') $countBase->doesntHave('spks');
+        }
+        if ($request->filled('deadline_status')) {
+            $dl = $request->deadline_status;
+            if ($dl === 'overdue') {
+                $countBase->whereNotNull('ship_before_date')->where('ship_before_date', '<', now());
+            } elseif ($dl === 'urgent') {
+                $countBase->whereNotNull('ship_before_date')->where('ship_before_date', '>', now())->where('ship_before_date', '<=', now()->addHours(24));
+            } elseif ($dl === 'safe') {
+                $countBase->whereNotNull('ship_before_date')->where('ship_before_date', '>', now()->addHours(24));
+            }
+        }
+        if ($request->filled('start_date')) {
+            $countBase->whereDate('order_date', '>=', $request->start_date);
+        }
+        if ($request->filled('end_date')) {
+            $countBase->whereDate('order_date', '<=', $request->end_date);
+        }
+        if ($request->filled('is_dropship')) {
+            $countBase->where('is_dropship', $request->is_dropship);
+        }
+        if ($request->filled('cancel_reason')) {
+            $countBase->where('cancel_reason', 'like', '%' . $request->cancel_reason . '%');
+        }
+        if ($request->filled('print_status')) {
+            if ($request->print_status === 'printed') {
+                $countBase->where('is_printed', true);
+            } elseif ($request->print_status === 'unprinted') {
+                $countBase->where(fn($q) => $q->where('is_printed', false)->orWhereNull('is_printed'));
+            }
+        }
+        if ($request->filled('packing_status')) {
+            $countBase->where('packing_status', $request->packing_status);
+        }
+
+        $rawCounts = (clone $countBase)
             ->selectRaw('UPPER(order_status) as status_key, COUNT(*) as total')
             ->groupBy('status_key')
             ->pluck('total', 'status_key');
 
-        // Mapping: key tab => array status DB yang masuk ke tab tsb
         $tabStatusMap = [
             'UNPAID'        => ['UNPAID', 'PENDING'],
             'READY_TO_SHIP' => ['READY_TO_SHIP', 'TO_SHIP', 'PROCESSED'],
