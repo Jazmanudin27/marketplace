@@ -67,6 +67,16 @@ class SecretRepairDashboardController extends Controller
         // Manual Stats
         $manualTotalOrders = Order::whereNotIn('store_id', $tiktokStores->merge($shopeeStores))->count();
 
+        // Duplicate Orders Stats
+        $duplicateOrdersCount = \DB::table('orders')
+            ->select('tenant_id', \DB::raw('TRIM(order_marketplace_id) as mp_id'))
+            ->whereNotNull('order_marketplace_id')
+            ->where('order_marketplace_id', '!=', '')
+            ->groupBy('tenant_id', \DB::raw('TRIM(order_marketplace_id)'))
+            ->havingRaw('COUNT(*) > 1')
+            ->get()
+            ->count();
+
         return view('secret_repair_dashboard', compact(
             'ordersCount',
             'missingItemsCount',
@@ -88,7 +98,8 @@ class SecretRepairDashboardController extends Controller
             'shopeeCancelled',
             'shopeeMissingFees',
             'shopeeMissingItems',
-            'manualTotalOrders'
+            'manualTotalOrders',
+            'duplicateOrdersCount'
         ));
     }
 
@@ -237,6 +248,14 @@ class SecretRepairDashboardController extends Controller
                     $output = "🗃️ Artisan Migrate Output:\n" . ($migrateOut ?: 'Nothing to migrate.');
                     break;
 
+                case 'clean_duplicate_orders':
+                    $output = $this->executeCleanDuplicateOrders();
+                    break;
+
+                case 'sync_product_stock':
+                    $output = $this->executeSyncProductStock();
+                    break;
+
                 default:
                     return response()->json(['success' => false, 'message' => 'Action tidak dikenali.'], 400);
             }
@@ -371,6 +390,123 @@ class SecretRepairDashboardController extends Controller
 
         $log[] = "======================================================================";
         $log[] = "🎉 SELESAI! Berhasil memperbaiki {$fixedCount} pesanan.";
+        return implode("\n", $log);
+    }
+
+    private function executeCleanDuplicateOrders()
+    {
+        $tenantId = auth()->user()->tenant_id;
+        
+        $duplicates = Order::select('tenant_id', \DB::raw('TRIM(order_marketplace_id) as mp_id'), \DB::raw('COUNT(*) as total_count'))
+            ->where('tenant_id', $tenantId)
+            ->whereNotNull('order_marketplace_id')
+            ->where('order_marketplace_id', '!=', '')
+            ->groupBy('tenant_id', \DB::raw('TRIM(order_marketplace_id)'))
+            ->having('total_count', '>', 1)
+            ->get();
+
+        $log = [];
+        $log[] = "======================================================================";
+        $log[] = "🧹 PEMBERSIHAN & PENGHAPUSAN MASSAL PESANAN GANDA (DUPLICATE ORDERS)";
+        $log[] = "======================================================================";
+
+        if ($duplicates->isEmpty()) {
+            $log[] = "✅ TIDAK DITEMUKAN PESANAN GANDA (DUPLICATE) DI DATABASE ERP!";
+            $log[] = "Database Anda 100% bersih dari pesanan ganda.";
+            return implode("\n", $log);
+        }
+
+        $log[] = "⚠️ Menemukan " . $duplicates->count() . " grup nomor pesanan yang memiliki data ganda (duplicate).\n";
+
+        $deletedCount = 0;
+        $mergedCount  = 0;
+
+        foreach ($duplicates as $dup) {
+            $mpId = $dup->mp_id;
+
+            $orders = Order::where('tenant_id', $tenantId)
+                ->where(\DB::raw('TRIM(order_marketplace_id)'), $mpId)
+                ->orderByDesc('updated_at')
+                ->orderByDesc('id')
+                ->get();
+
+            if ($orders->count() <= 1) {
+                continue;
+            }
+
+            // Pilih 1 Utama (Utamakan yang COMPLETED/CANCELLED/SELESAI atau yang punya item)
+            $primaryOrder = $orders->first(function ($o) {
+                return in_array(strtoupper($o->order_status), ['COMPLETED', 'CANCELLED', 'SELESAI', 'FINISHED', 'BATAL']);
+            });
+
+            if (!$primaryOrder) {
+                $primaryOrder = $orders->first();
+            }
+
+            $log[] = "📌 Order Marketplace ID: {$mpId} ({$orders->count()} pesanan ganda)";
+            $log[] = "   -> Menyimpan Order Utama ID: {$primaryOrder->id} (Status: {$primaryOrder->order_status})";
+
+            foreach ($orders as $order) {
+                if ($order->id == $primaryOrder->id) {
+                    continue;
+                }
+
+                // Pindahkan items jika order utama belum punya item
+                if ($primaryOrder->items->isEmpty() && $order->items->isNotEmpty()) {
+                    OrderItem::where('order_id', $order->id)->update(['order_id' => $primaryOrder->id]);
+                    $log[] = "   -> Item dipindahkan dari ID {$order->id} ke Utama ID {$primaryOrder->id}";
+                } else {
+                    OrderItem::where('order_id', $order->id)->delete();
+                }
+
+                $order->delete();
+                $deletedCount++;
+                $log[] = "   -> Hapus Order Duplikat ID: {$order->id}";
+            }
+
+            $mergedCount++;
+        }
+
+        $log[] = "\n======================================================================";
+        $log[] = "✨ PEMBERSIHAN SELESAI!";
+        $log[] = "• Total grup pesanan ganda yang digabung  : {$mergedCount}";
+        $log[] = "• Total baris pesanan duplikat yang dihapus: {$deletedCount}";
+        $log[] = "======================================================================";
+
+        return implode("\n", $log);
+    }
+
+    private function executeSyncProductStock()
+    {
+        $tenantId = auth()->user()->tenant_id;
+
+        $log = [];
+        $log[] = "======================================================================";
+        $log[] = "📦 SINKRONISASI STOK PRODUK ERP KE MARKETPLACE (SHOPEE, TIKTOK, LAZADA)";
+        $log[] = "======================================================================";
+
+        try {
+            if (\Artisan::has('stock:sync')) {
+                \Artisan::call('stock:sync', [
+                    '--filter' => 'all',
+                    '--tenant_id' => $tenantId
+                ]);
+                $cmdOutput = \Artisan::output();
+                $log[] = $cmdOutput ?: "✅ Command 'stock:sync' berhasil dijalankan.";
+            } else {
+                $masterProducts = MasterProduct::where('tenant_id', $tenantId)->get(['id', 'sku', 'stock']);
+                $count = 0;
+                foreach ($masterProducts as $mp) {
+                    \App\Jobs\PushStockToMarketplaces::dispatch($mp->id, $mp->stock);
+                    $count++;
+                }
+                $log[] = "🚀 Berhasil mengirimkan {$count} produk ERP ke antrean sync stok marketplace.";
+            }
+        } catch (\Exception $e) {
+            $log[] = "❌ Terjadi kesalahan: " . $e->getMessage();
+        }
+
+        $log[] = "======================================================================";
         return implode("\n", $log);
     }
 

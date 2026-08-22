@@ -458,6 +458,49 @@
 
         <div class="row g-3 mb-4">
 
+            <!-- Action 0: Clean Duplicate Orders -->
+            <div class="col-lg-4 col-md-6">
+                <div class="card-action border-top border-4 border-danger">
+                    <div>
+                        <div class="d-flex align-items-center justify-content-between gap-2 mb-2">
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="badge bg-danger text-white fw-bold px-2 py-1" style="font-size: 0.72rem;"><i class="fas fa-copy me-1"></i>DUPLICATE CLEANER</span>
+                                <h6 class="fw-bold text-dark mb-0">Hapus Pesanan Double</h6>
+                            </div>
+                            @if(isset($duplicateOrdersCount) && $duplicateOrdersCount > 0)
+                                <span class="badge bg-danger rounded-pill px-2 py-1" title="{{ $duplicateOrdersCount }} grup pesanan duplikat">{{ $duplicateOrdersCount }} Ganda</span>
+                            @else
+                                <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1" style="font-size:0.68rem;"><i class="fas fa-check me-1"></i>Bersih</span>
+                            @endif
+                        </div>
+                        <p class="text-secondary small mb-3" style="font-size: 0.8rem; line-height: 1.45;">
+                            Mendeteksi &amp; menghapus pesanan ganda (duplikat) di ERP berdasarkan No. Pesanan Marketplace.
+                        </p>
+                    </div>
+                    <button type="button" class="btn-custom btn-danger fw-semibold" onclick="triggerRepair('clean_duplicate_orders', this)">
+                        <i class="fas fa-trash-alt me-1"></i> Hapus Pesanan Double
+                    </button>
+                </div>
+            </div>
+
+            <!-- Action 0.5: Sync Product Stock -->
+            <div class="col-lg-4 col-md-6">
+                <div class="card-action border-top border-4 border-info">
+                    <div>
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle fw-bold px-2 py-1" style="font-size: 0.72rem;"><i class="fas fa-boxes me-1"></i>STOCK SYNC</span>
+                            <h6 class="fw-bold text-dark mb-0">Sinkronisasi Stok Produk</h6>
+                        </div>
+                        <p class="text-secondary small mb-3" style="font-size: 0.8rem; line-height: 1.45;">
+                            Mendorong (<code class="text-primary fw-bold">Push</code>) stok Master Product ERP secara instan ke seluruh toko Marketplace (Shopee, TikTok, Lazada).
+                        </p>
+                    </div>
+                    <button type="button" class="btn-custom btn-info text-white fw-semibold" onclick="triggerRepair('sync_product_stock', this)">
+                        <i class="fas fa-sync-alt me-1"></i> Sync Stok Produk Massal
+                    </button>
+                </div>
+            </div>
+
             <!-- Action 1: Fix Missing Items -->
             <div class="col-lg-4 col-md-6">
                 <div class="card-action border-top border-4 border-warning">

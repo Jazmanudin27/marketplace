@@ -46,7 +46,17 @@ class OrderController extends Controller
 
         // Filter Status
         if ($request->filled('status')) {
-            $query->where('order_status', $request->status);
+            $statusMap = [
+                'UNPAID'        => ['UNPAID', 'PENDING'],
+                'READY_TO_SHIP' => ['READY_TO_SHIP', 'TO_SHIP', 'PROCESSED', 'PROCESSING', 'PROSES', 'RETRY_SHIP', 'TO_RETRY_LOGISTICS'],
+                'SHIPPED'       => ['SHIPPED', 'IN_TRANSIT', 'TO_RECEIVE', 'TO_CONFIRM_RECEIVE'],
+                'COMPLETED'     => ['COMPLETED', 'FINISHED', 'SELESAI', 'DELIVERED'],
+                'CANCELLED'     => ['CANCELLED', 'BATAL', 'IN_CANCEL'],
+            ];
+
+            $reqStatus = strtoupper($request->status);
+            $targetStatuses = $statusMap[$reqStatus] ?? [$request->status];
+            $query->whereIn(\DB::raw('UPPER(order_status)'), array_map('strtoupper', $targetStatuses));
         }
 
         // Filter PO vs Ready Stock
@@ -116,6 +126,32 @@ class OrderController extends Controller
             }
         }
 
+        // Filter Process Status (Perlu diproses / Telah diproses)
+        $unprocessedStatuses = ['UNPAID', 'PENDING', 'READY_TO_SHIP', 'TO_SHIP', 'PROCESSED', 'PROCESSING', 'PROSES', 'RETRY_SHIP', 'TO_RETRY_LOGISTICS'];
+        $processedStatuses   = ['SHIPPED', 'IN_TRANSIT', 'TO_RECEIVE', 'TO_CONFIRM_RECEIVE', 'COMPLETED', 'FINISHED', 'SELESAI', 'DELIVERED'];
+        if ($request->filled('process_status')) {
+            if ($request->process_status === 'to_process') {
+                $query->where(function($q) use ($unprocessedStatuses) {
+                    $q->whereIn(\DB::raw('UPPER(order_status)'), $unprocessedStatuses)
+                      ->where(function($q2) {
+                          $q2->whereNull('tracking_number')
+                             ->orWhere('tracking_number', '')
+                             ->orWhere('is_printed', false)
+                             ->orWhereNull('is_printed');
+                      });
+                });
+            } elseif ($request->process_status === 'processed') {
+                $query->where(function($q) use ($processedStatuses) {
+                    $q->whereIn(\DB::raw('UPPER(order_status)'), $processedStatuses)
+                      ->orWhere(function($q2) {
+                          $q2->whereNotNull('tracking_number')
+                             ->where('tracking_number', '!=', '')
+                             ->where('is_printed', true);
+                      });
+                });
+            }
+        }
+
         // Filter Status Kemas (packing_status)
         if ($request->filled('packing_status')) {
             $query->where('packing_status', $request->packing_status);
@@ -147,7 +183,7 @@ class OrderController extends Controller
             ->orderBy('ship_before_date')
             ->get();
 
-        // ── Hitung jumlah per tab: pakai query yang sama tapi TANPA filter status ──
+        // ── Hitung jumlah per tab: pakai query yang sama tapi TANPA filter status & process_status ──
         $countBase = Order::where('tenant_id', $tenantId);
 
         // Terapkan semua filter yang sama, kecuali filter status & pagination
@@ -213,6 +249,7 @@ class OrderController extends Controller
             $countBase->where('packing_status', $request->packing_status);
         }
 
+        // Tab counts (tanpa filter status)
         $rawCounts = (clone $countBase)
             ->selectRaw('UPPER(order_status) as status_key, COUNT(*) as total')
             ->groupBy('status_key')
@@ -220,8 +257,8 @@ class OrderController extends Controller
 
         $tabStatusMap = [
             'UNPAID'        => ['UNPAID', 'PENDING'],
-            'READY_TO_SHIP' => ['READY_TO_SHIP', 'TO_SHIP', 'PROCESSED'],
-            'SHIPPED'       => ['SHIPPED', 'IN_TRANSIT', 'TO_RECEIVE'],
+            'READY_TO_SHIP' => ['READY_TO_SHIP', 'TO_SHIP', 'PROCESSED', 'PROCESSING', 'PROSES', 'RETRY_SHIP', 'TO_RETRY_LOGISTICS'],
+            'SHIPPED'       => ['SHIPPED', 'IN_TRANSIT', 'TO_RECEIVE', 'TO_CONFIRM_RECEIVE'],
             'COMPLETED'     => ['COMPLETED', 'FINISHED', 'SELESAI', 'DELIVERED'],
             'CANCELLED'     => ['CANCELLED', 'BATAL', 'IN_CANCEL'],
         ];
@@ -231,7 +268,54 @@ class OrderController extends Controller
             $tabCounts[$tabKey] = $rawCounts->only($dbStatuses)->sum();
         }
 
-        return view('orders.index', compact('orders', 'channels', 'stores', 'couriers', 'statuses', 'urgentOrders', 'tabCounts'));
+        // Process status counts (dalam konteks status tab aktif)
+        $processBase = clone $countBase;
+        if ($request->filled('status')) {
+            $reqStatus = strtoupper($request->status);
+            $targetStatuses = $tabStatusMap[$reqStatus] ?? [$request->status];
+            $processBase->whereIn(\DB::raw('UPPER(order_status)'), array_map('strtoupper', $targetStatuses));
+        }
+
+        $toProcessQuery = (clone $processBase)->where(function($q) use ($unprocessedStatuses) {
+            $q->whereIn(\DB::raw('UPPER(order_status)'), $unprocessedStatuses)
+              ->where(function($q2) {
+                  $q2->whereNull('tracking_number')
+                     ->orWhere('tracking_number', '')
+                     ->orWhere('is_printed', false)
+                     ->orWhereNull('is_printed');
+              });
+        });
+
+        $processedQuery = (clone $processBase)->where(function($q) use ($processedStatuses) {
+            $q->whereIn(\DB::raw('UPPER(order_status)'), $processedStatuses)
+              ->orWhere(function($q2) {
+                  $q2->whereNotNull('tracking_number')
+                     ->where('tracking_number', '!=', '')
+                     ->where('is_printed', true);
+              });
+        });
+
+        $processCounts = [
+            '__all__'      => (clone $processBase)->count(),
+            'to_process'   => $toProcessQuery->count(),
+            'processed'    => $processedQuery->count(),
+        ];
+
+        // Jumlah pesanan "Perlu diproses" untuk banner notifikasi (tanpa filter status/process)
+        $toProcessCount = (clone $countBase)->where(function($q) use ($unprocessedStatuses) {
+            $q->whereIn(\DB::raw('UPPER(order_status)'), $unprocessedStatuses)
+              ->where(function($q2) {
+                  $q2->whereNull('tracking_number')
+                     ->orWhere('tracking_number', '')
+                     ->orWhere('is_printed', false)
+                     ->orWhereNull('is_printed');
+              });
+        })->count();
+
+        return view('orders.index', compact(
+            'orders', 'channels', 'stores', 'couriers', 'statuses',
+            'urgentOrders', 'tabCounts', 'processCounts', 'toProcessCount'
+        ));
     }
 
     public function show(Order $order, Request $request)

@@ -400,6 +400,131 @@
         box-shadow: 0 1px 3px rgba(0,0,0,0.06);
     }
 
+    /* ── Notification Banner (di atas tab) ── */
+    .shopee-notif-banner {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 10px 18px;
+        background: linear-gradient(90deg, #fff4f2 0%, #fff8f6 100%);
+        border-bottom: 1px solid #ffd4cc;
+    }
+    .shopee-notif-banner .notif-left {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    .shopee-notif-banner .notif-icon {
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #ee4d2d, #ff8c5a);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        box-shadow: 0 2px 6px rgba(238,77,45,0.3);
+    }
+    .shopee-notif-banner .notif-icon i {
+        color: #fff;
+        font-size: 0.85rem;
+    }
+    .shopee-notif-banner .notif-text strong {
+        font-size: 0.88rem;
+        color: #333;
+        font-weight: 700;
+    }
+    .shopee-notif-banner .notif-text span {
+        font-size: 0.78rem;
+        color: #888;
+        display: block;
+        margin-top: 1px;
+    }
+    .notif-count-pill {
+        background: #ee4d2d;
+        color: #fff;
+        font-weight: 800;
+        font-size: 1.1rem;
+        border-radius: 8px;
+        padding: 4px 14px;
+        letter-spacing: -0.5px;
+        box-shadow: 0 2px 8px rgba(238,77,45,0.35);
+        white-space: nowrap;
+    }
+    .notif-urgent-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        background: #fff1f0;
+        color: #cf1322;
+        border: 1px solid #ffa39e;
+        border-radius: 20px;
+        padding: 3px 10px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+
+    /* ── Sub-Tab Status Pesanan ── */
+    .shopee-sub-tabs {
+        display: flex;
+        align-items: center;
+        gap: 0;
+        padding: 10px 16px;
+        border-bottom: 1px solid var(--shopee-border);
+        background: #fafafa;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    .sub-tabs-label {
+        font-size: 0.78rem;
+        font-weight: 600;
+        color: #555;
+        white-space: nowrap;
+        margin-right: 4px;
+    }
+    .sub-tab-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 4px 14px;
+        border-radius: 20px;
+        font-size: 0.78rem;
+        font-weight: 600;
+        cursor: pointer;
+        text-decoration: none;
+        border: 1px solid #e5e7eb;
+        background: #fff;
+        color: #555;
+        transition: all 0.15s;
+        white-space: nowrap;
+    }
+    .sub-tab-pill:hover {
+        border-color: var(--shopee-orange);
+        color: var(--shopee-orange);
+        text-decoration: none;
+    }
+    .sub-tab-pill.active {
+        background: var(--shopee-orange);
+        border-color: var(--shopee-orange);
+        color: #fff;
+        box-shadow: 0 2px 6px rgba(238,77,45,0.3);
+    }
+    .sub-tab-pill .pill-count {
+        background: rgba(255,255,255,0.3);
+        border-radius: 10px;
+        padding: 0 5px;
+        font-size: 0.7rem;
+        font-weight: 700;
+        min-width: 18px;
+        text-align: center;
+    }
+    .sub-tab-pill:not(.active) .pill-count {
+        background: #f0f0f0;
+        color: #666;
+    }
+
     /* ── Pagination ── */
     .shopee-pagination {
         padding: 12px 16px;
@@ -482,6 +607,37 @@
     {{-- ── Main Card ── --}}
     <div class="shopee-card">
 
+        {{-- ── Notification Banner ── --}}
+        @if($toProcessCount > 0)
+        <div class="shopee-notif-banner">
+            <div class="notif-left">
+                <div class="notif-icon">
+                    <i class="fas fa-exclamation"></i>
+                </div>
+                <div class="notif-text">
+                    <strong>Ada pesanan yang perlu segera diproses!</strong>
+                    <span>Segera tangani sebelum batas waktu pengiriman terlewat.</span>
+                </div>
+                @if($urgentOrders->isNotEmpty())
+                    @php
+                        $overdueCount2 = $urgentOrders->filter(fn($o) => $o->ship_before_date->isPast())->count();
+                    @endphp
+                    @if($overdueCount2 > 0)
+                        <span class="notif-urgent-pill">
+                            <i class="fas fa-clock"></i> {{ $overdueCount2 }} Overdue!
+                        </span>
+                    @endif
+                @endif
+            </div>
+            <div class="d-flex align-items-center gap-3">
+                <div class="text-center">
+                    <div class="notif-count-pill">{{ $toProcessCount }}</div>
+                    <div style="font-size:0.68rem; color:#888; margin-top:3px;">Perlu Diproses</div>
+                </div>
+            </div>
+        </div>
+        @endif
+
         {{-- ── Status Tabs ── --}}
         @php
             $currentStatus = request('status', '');
@@ -519,11 +675,40 @@
             @endforeach
         </div>
 
+        {{-- ── Sub-Tab Status Pesanan ── --}}
+        @php
+            $currentProcess = request('process_status', '');
+            $subTabItems = [
+                ''           => ['label' => 'Semua',          'countKey' => '__all__'],
+                'to_process' => ['label' => 'Perlu diproses', 'countKey' => 'to_process'],
+                'processed'  => ['label' => 'Telah diproses', 'countKey' => 'processed'],
+            ];
+        @endphp
+        <div class="shopee-sub-tabs">
+            <span class="sub-tabs-label"><i class="fas fa-filter me-1"></i>Status Pesanan:</span>
+            @foreach($subTabItems as $ptKey => $ptInfo)
+                @php
+                    $ptUrl      = route('orders.index', array_merge(request()->except(['process_status', 'page']), $ptKey !== '' ? ['process_status' => $ptKey] : []));
+                    $ptActive   = $currentProcess === $ptKey;
+                    $ptCount    = $processCounts[$ptInfo['countKey']] ?? 0;
+                @endphp
+                <a href="{{ $ptUrl }}" class="sub-tab-pill {{ $ptActive ? 'active' : '' }}">
+                    {{ $ptInfo['label'] }}
+                    @if($ptCount > 0)
+                        <span class="pill-count">{{ $ptCount > 999 ? '999+' : $ptCount }}</span>
+                    @endif
+                </a>
+            @endforeach
+        </div>
+
         {{-- ── Filter Bar ── --}}
         <div class="shopee-filter-bar">
             <form method="GET" action="{{ route('orders.index') }}" id="filter-form">
                 @if(request('status'))
                     <input type="hidden" name="status" value="{{ request('status') }}">
+                @endif
+                @if(request('process_status'))
+                    <input type="hidden" name="process_status" value="{{ request('process_status') }}">
                 @endif
 
                 <div class="filter-row">

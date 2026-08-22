@@ -54,7 +54,21 @@ foreach ($shopeeStores as $store) {
                 $dbOrder = $activeOrders->firstWhere('order_marketplace_id', $orderSn);
                 if (!$dbOrder) continue;
 
-                $status = $shopeeOrder['order_status'] ?? $dbOrder->order_status;
+                $statusRaw = strtoupper((string)($shopeeOrder['order_status'] ?? $dbOrder->order_status));
+                $shopeeStatusMap = [
+                    'UNPAID'             => 'UNPAID',
+                    'READY_TO_SHIP'      => 'READY_TO_SHIP',
+                    'PROCESSED'          => 'READY_TO_SHIP',
+                    'RETRY_SHIP'         => 'READY_TO_SHIP',
+                    'TO_RETRY_LOGISTICS' => 'READY_TO_SHIP',
+                    'SHIPPED'            => 'SHIPPED',
+                    'TO_CONFIRM_RECEIVE' => 'SHIPPED',
+                    'DELIVERED'          => 'DELIVERED',
+                    'COMPLETED'          => 'COMPLETED',
+                    'CANCELLED'          => 'CANCELLED',
+                    'IN_CANCEL'          => 'CANCELLED',
+                ];
+                $status = $shopeeStatusMap[$statusRaw] ?? $statusRaw;
                 $dbOrder->order_status = $status;
 
                 if (in_array($status, ['CANCELLED', 'BATAL'])) {
