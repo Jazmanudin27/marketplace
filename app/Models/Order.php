@@ -96,6 +96,12 @@ class Order extends Model
 
     protected static function booted(): void
     {
+        static::creating(function ($order) {
+            if (!empty($order->order_marketplace_id)) {
+                $order->order_marketplace_id = trim((string)$order->order_marketplace_id);
+            }
+        });
+
         static::saving(function ($order) {
             if (in_array($order->order_status, [self::STATUS_COMPLETED, self::STATUS_DELIVERED, 'SELESAI', 'FINISHED']) && empty($order->completed_at)) {
                 $order->completed_at = now();

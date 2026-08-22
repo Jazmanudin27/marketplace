@@ -164,25 +164,37 @@ class MasterProduct extends Model
      */
     public static function recalculateAllBundleStocks(?int $tenantId = null): int
     {
-        // 1. Perbarui stok master_products single yang 0 tetapi memiliki stok di marketplace_products
+        // 1. Bulk Update stok master_products single dari marketplace_products dalam 1 Query SQL Kilat!
+        if (Schema::hasTable('marketplace_products')) {
+            try {
+                $sql = "UPDATE master_products mp
+                        INNER JOIN (
+                            SELECT master_product_id, MAX(stock) as max_mp_stock
+                            FROM marketplace_products
+                            WHERE stock > 0 AND master_product_id IS NOT NULL
+                            GROUP BY master_product_id
+                        ) sub ON sub.master_product_id = mp.id
+                        SET mp.stock = sub.max_mp_stock
+                        WHERE (mp.is_bundle = 0 OR mp.is_bundle IS NULL)
+                          AND (mp.stock IS NULL OR mp.stock < sub.max_mp_stock)";
+
+                if ($tenantId) {
+                    $sql .= " AND mp.tenant_id = " . (int)$tenantId;
+                }
+                DB::statement($sql);
+            } catch (\Throwable $exBulk) {}
+        }
+
+        // 2. Pre-fetch seluruh stok produk single ke dalam in-memory Map (KILAT - 0ms)
         $singleQuery = static::where(function($q) {
             $q->where('is_bundle', false)->orWhereNull('is_bundle');
         });
         if ($tenantId) {
             $singleQuery->where('tenant_id', $tenantId);
         }
+        $singleStocks = $singleQuery->pluck('stock', 'id')->toArray();
 
-        $singles = $singleQuery->get(['id', 'sku', 'stock']);
-        foreach ($singles as $single) {
-            $effStock = $single->effective_stock;
-            if ($effStock > (int)$single->getRawOriginal('stock')) {
-                DB::table('master_products')
-                    ->where('id', $single->id)
-                    ->update(['stock' => $effStock]);
-            }
-        }
-
-        // 2. Hitung ulang stok untuk produk Set / Bundle
+        // 3. Hitung ulang stok untuk produk Set / Bundle
         $query = static::where('is_bundle', true)->with(['components', 'activeRecipe.items']);
         if ($tenantId) {
             $query->where('tenant_id', $tenantId);
@@ -192,7 +204,30 @@ class MasterProduct extends Model
         $updatedCount = 0;
 
         foreach ($bundles as $bundle) {
-            $calcStock = $bundle->stock; // getStockAttribute()
+            $calculatedStocks = collect();
+
+            // A. Dari master_product_bundles
+            if (Schema::hasTable('master_product_bundles') && $bundle->components->isNotEmpty()) {
+                foreach ($bundle->components as $comp) {
+                    $qtyNeeded = max(1, (int) ($comp->pivot->quantity ?? 1));
+                    $compStock = (int) ($singleStocks[$comp->id] ?? $comp->getRawOriginal('stock') ?? 0);
+                    $calculatedStocks->push((int) floor($compStock / $qtyNeeded));
+                }
+            }
+
+            // B. Dari activeRecipe (ProductRecipe) jika komponen bundle kosong
+            if ($calculatedStocks->isEmpty() && Schema::hasTable('product_recipes') && $bundle->activeRecipe && $bundle->activeRecipe->items) {
+                foreach ($bundle->activeRecipe->items as $item) {
+                    $ingId = $item->ingredient_master_product_id ?? $item->component_id ?? null;
+                    if ($ingId) {
+                        $qtyNeeded = max(1, (int) ($item->quantity ?? 1));
+                        $compStock = (int) ($singleStocks[$ingId] ?? 0);
+                        $calculatedStocks->push((int) floor($compStock / $qtyNeeded));
+                    }
+                }
+            }
+
+            $calcStock = $calculatedStocks->isNotEmpty() ? max(0, (int) $calculatedStocks->min()) : (int) $bundle->getRawOriginal('stock');
 
             DB::table('master_products')
                 ->where('id', $bundle->id)
