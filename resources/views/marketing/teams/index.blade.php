@@ -27,24 +27,15 @@
         </div>
     </div>
 
-    <!-- Filter Card Bar (Bulan/Tahun & Range Tanggal Orderan) -->
+    <!-- Filter Card Bar (Bulan/Tahun Target & Range Tanggal Orderan Diterima) -->
     <div class="card border-0 rounded-3 shadow-sm bg-white mb-4">
         <div class="card-body p-3">
             <form action="{{ route('marketing.teams.index') }}" method="GET" class="row g-2 align-items-end">
-                <!-- Tipe Filter -->
-                <div class="col-12 col-md-3">
-                    <label class="form-label small fw-bold text-dark mb-1"><i class="bi bi-funnel me-1 text-primary"></i>Mode Filter Orderan</label>
-                    <select name="filter_type" id="filter_type_select" class="form-select form-select-sm" onchange="toggleFilterMode(this.value)">
-                        <option value="month" {{ $filterType == 'month' ? 'selected' : '' }}>Filter Per Bulan & Tahun</option>
-                        <option value="date_range" {{ $filterType == 'date_range' ? 'selected' : '' }}>Filter Range Tanggal (Dari - Sampai)</option>
-                    </select>
-                </div>
-
-                <!-- Container Filter Bulan & Tahun -->
-                <div class="col-12 col-md-5" id="month_filter_container" style="{{ $filterType == 'date_range' ? 'display: none;' : '' }}">
-                    <div class="row g-2">
+                <!-- Filter Bulan & Tahun Target -->
+                <div class="col-12 col-md-4">
+                    <label class="form-label small fw-bold text-dark mb-1"><i class="bi bi-calendar3 me-1 text-primary"></i>Target Bulan & Tahun</label>
+                    <div class="row g-1">
                         <div class="col-7">
-                            <label class="form-label small fw-semibold text-secondary mb-1">Bulan Orderan</label>
                             <select name="month" class="form-select form-select-sm">
                                 <option value="">-- Semua Bulan --</option>
                                 @for($m = 1; $m <= 12; $m++)
@@ -55,28 +46,26 @@
                             </select>
                         </div>
                         <div class="col-5">
-                            <label class="form-label small fw-semibold text-secondary mb-1">Tahun</label>
                             <input type="number" name="year" class="form-control form-select-sm" value="{{ $reqYear ?? date('Y') }}" placeholder="Tahun">
                         </div>
                     </div>
                 </div>
 
-                <!-- Container Filter Range Tanggal (Dari - Sampai) -->
-                <div class="col-12 col-md-5" id="date_range_container" style="{{ $filterType != 'date_range' ? 'display: none;' : '' }}">
-                    <div class="row g-2">
+                <!-- Filter Range Tanggal Orderan Diterima (Dari Tanggal - Sampai Tanggal) -->
+                <div class="col-12 col-md-5">
+                    <label class="form-label small fw-bold text-dark mb-1"><i class="bi bi-calendar-range me-1 text-primary"></i>Range Tanggal Orderan Diterima</label>
+                    <div class="row g-1">
                         <div class="col-6">
-                            <label class="form-label small fw-semibold text-secondary mb-1">Dari Tanggal Diterima</label>
-                            <input type="date" name="date_from" class="form-control form-select-sm" value="{{ $dateFrom }}">
+                            <input type="date" name="date_from" class="form-control form-select-sm" value="{{ $dateFrom }}" placeholder="Dari Tanggal">
                         </div>
                         <div class="col-6">
-                            <label class="form-label small fw-semibold text-secondary mb-1">Sampai Tanggal Diterima</label>
-                            <input type="date" name="date_to" class="form-control form-select-sm" value="{{ $dateTo }}">
+                            <input type="date" name="date_to" class="form-control form-select-sm" value="{{ $dateTo }}" placeholder="Sampai Tanggal">
                         </div>
                     </div>
                 </div>
 
                 <!-- Tombol Action -->
-                <div class="col-12 col-md-4 text-end d-flex gap-2 justify-content-end">
+                <div class="col-12 col-md-3 text-end d-flex gap-2 justify-content-end">
                     <button type="submit" class="btn btn-primary btn-sm rounded-pill px-3 fw-semibold">
                         <i class="bi bi-search me-1"></i> Terapkan Filter
                     </button>
@@ -195,7 +184,6 @@
                 <span>Daftar Tim & Target</span>
             </h6>
             <form action="{{ route('marketing.teams.index') }}" method="GET" class="d-flex gap-2">
-                <input type="hidden" name="filter_type" value="{{ $filterType }}">
                 <input type="hidden" name="month" value="{{ $reqMonth }}">
                 <input type="hidden" name="year" value="{{ $reqYear }}">
                 <input type="hidden" name="date_from" value="{{ $dateFrom }}">
@@ -575,18 +563,4 @@
         </div>
     </div>
 </div>
-
-<script>
-function toggleFilterMode(mode) {
-    const monthContainer = document.getElementById('month_filter_container');
-    const rangeContainer = document.getElementById('date_range_container');
-    if (mode === 'date_range') {
-        monthContainer.style.display = 'none';
-        rangeContainer.style.display = 'block';
-    } else {
-        monthContainer.style.display = 'block';
-        rangeContainer.style.display = 'none';
-    }
-}
-</script>
 @endsection
