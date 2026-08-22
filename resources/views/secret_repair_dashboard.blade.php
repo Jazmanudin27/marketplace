@@ -768,29 +768,37 @@
                 },
                 body: JSON.stringify({ action: actionName })
             })
-            .then(response => response.json())
+            .then(async response => {
+                const isJson = response.headers.get('content-type')?.includes('application/json');
+                const data = isJson ? await response.json() : null;
+
+                if (!response.ok) {
+                    const text = !isJson ? await response.text() : '';
+                    const errorMsg = data?.message || data?.error || (text ? 'Server HTTP ' + response.status + ' Error' : 'Response error');
+                    throw new Error(errorMsg);
+                }
+                return data;
+            })
             .then(data => {
                 btnElement.disabled = false;
                 btnElement.innerHTML = originalText;
 
-                if (data.success) {
+                if (data && data.success) {
                     appendLog(`✅ EKSEKUSI [${actionName}] SELESAI dalam ${data.duration}:`, 'success');
                     appendLog(data.output || 'Selesai tanpa output.', 'success');
 
-                    if (data.stats) {
-                        if (data.stats.missing_items !== undefined && document.getElementById('statMissingItems')) {
-                            document.getElementById('statMissingItems').innerText = data.stats.missing_items.toLocaleString('id-ID');
-                        }
+                    if (data.stats && data.stats.missing_items !== undefined && document.getElementById('statMissingItems')) {
+                        document.getElementById('statMissingItems').innerText = data.stats.missing_items.toLocaleString('id-ID');
                     }
                 } else {
                     appendLog(`❌ EKSEKUSI [${actionName}] GAGAL:`, 'error');
-                    appendLog(data.output || data.error || data.message || 'Terjadi kesalahan pada server.', 'error');
+                    appendLog(data?.output || data?.error || data?.message || 'Terjadi kesalahan pada server.', 'error');
                 }
             })
             .catch(err => {
                 btnElement.disabled = false;
                 btnElement.innerHTML = originalText;
-                appendLog(`❌ Network Error: ${err.message}`, 'error');
+                appendLog(`❌ Network / Timeout Error: ${err.message}`, 'error');
             });
         }
         function confirmMigrate(btnElement) {

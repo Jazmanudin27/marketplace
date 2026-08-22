@@ -479,6 +479,7 @@ class SecretRepairDashboardController extends Controller
 
     private function executeSyncProductStock()
     {
+        @set_time_limit(180);
         $tenantId = auth()->user()->tenant_id;
 
         $log = [];
@@ -487,28 +488,22 @@ class SecretRepairDashboardController extends Controller
         $log[] = "======================================================================";
 
         try {
-            // 1. Rekalkulasi stok seluruh Produk Set / Bundle berdasarkan komponennya
+            // 1. Rekalkulasi stok seluruh Produk Set / Bundle berdasarkan komponennya (di DB)
             $updatedBundles = MasterProduct::recalculateAllBundleStocks($tenantId);
-            $log[] = "🎁 Berhasil menghitung ulang stok {$updatedBundles} produk Set/Bundle.";
+            $log[] = "🎁 Berhasil menghitung ulang stok {$updatedBundles} produk Set/Bundle di ERP.";
 
-            // 2. Jalankan sinkronisasi stok ke Marketplace
-            try {
-                \Artisan::call('stock:sync', [
-                    '--filter' => 'all',
-                    '--tenant_id' => $tenantId
-                ]);
-                $cmdOutput = \Artisan::output();
-                $log[] = $cmdOutput ?: "✅ Command 'stock:sync' berhasil dijalankan.";
-            } catch (\Throwable $exArtisan) {
-                // Fallback direct dispatch
-                $masterProducts = MasterProduct::where('tenant_id', $tenantId)->get();
-                $count = 0;
-                foreach ($masterProducts as $mp) {
-                    \App\Jobs\PushStockToMarketplaces::dispatch($mp->id, $mp->stock);
-                    $count++;
-                }
-                $log[] = "🚀 Berhasil mengirimkan {$count} produk ERP ke antrean sync stok marketplace.";
+            // 2. Kirim jobs penyesuaian stok ke antrean (Async) agar HTTP request tidak timeout
+            $masterProducts = MasterProduct::where('tenant_id', $tenantId)->get();
+            $count = 0;
+
+            foreach ($masterProducts as $mp) {
+                \App\Jobs\PushStockToMarketplaces::dispatch($mp->id, $mp->stock);
+                $count++;
             }
+
+            $log[] = "🚀 Berhasil mengirimkan {$count} produk ERP ke antrean sync stok marketplace (Shopee, TikTok, Lazada).";
+            $log[] = "⚡ Penyesuaian stok di toko marketplace sedang diproses secara async / background.";
+
         } catch (\Throwable $e) {
             $log[] = "❌ Terjadi kesalahan: " . $e->getMessage();
         }
