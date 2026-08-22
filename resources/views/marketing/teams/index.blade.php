@@ -3,23 +3,21 @@
 @section('title', 'Target & Tim Marketing')
 
 @section('content')
-<div class="container-fluid px-4 py-4" style="background-color: #f8fafc; min-height: 90vh;">
+<div class="container-fluid px-4 py-4 bg-light">
     
     <!-- Header Section -->
     <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
         <div>
-            <div class="d-flex align-items-center gap-2">
-                <span class="badge bg-primary bg-opacity-10 text-primary px-2.5 py-1 rounded-pill fw-semibold" style="font-size: 0.78rem;">
-                    <i class="bi bi-bullseye me-1"></i>MODUL MARKETING
-                </span>
-            </div>
-            <h3 class="fw-bold text-dark mb-1 mt-1">Target & Tim Marketing</h3>
+            <span class="badge bg-primary bg-opacity-10 text-primary px-3 py-1 rounded-pill fw-semibold mb-1">
+                <i class="bi bi-bullseye me-1"></i> MODUL MARKETING
+            </span>
+            <h3 class="fw-bold text-dark mb-1">Target & Tim Marketing</h3>
             <p class="text-secondary small mb-0">
                 Kelola alokasi toko marketplace, target penjualan Qty, dan insentif komisi rupiah per-Qty.
             </p>
         </div>
         <div>
-            <button type="button" class="btn btn-primary rounded-pill px-3 py-2 fw-semibold shadow-sm border-0 d-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#createTeamModal">
+            <button type="button" class="btn btn-primary rounded-pill px-3 py-2 fw-semibold shadow-sm d-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#createTeamModal">
                 <i class="bi bi-plus-lg fs-6"></i>
                 <span>Tambah Tim Baru</span>
             </button>
@@ -28,7 +26,7 @@
 
     <!-- Alert Flash -->
     @if(session('success'))
-        <div class="alert alert-success alert-dismissible fade show border-0 rounded-3 shadow-sm mb-4" role="alert" style="background-color: #dcfce7; color: #15803d;">
+        <div class="alert alert-success alert-dismissible fade show border-0 rounded-3 shadow-sm mb-4" role="alert">
             <div class="d-flex align-items-center gap-2">
                 <i class="bi bi-check-circle-fill fs-5"></i>
                 <div>{{ session('success') }}</div>
@@ -38,7 +36,7 @@
     @endif
 
     @if($errors->any())
-        <div class="alert alert-danger alert-dismissible fade show border-0 rounded-3 shadow-sm mb-4" role="alert" style="background-color: #ffe4e6; color: #9f1239;">
+        <div class="alert alert-danger alert-dismissible fade show border-0 rounded-3 shadow-sm mb-4" role="alert">
             <div class="d-flex align-items-center gap-2 mb-1">
                 <i class="bi bi-exclamation-octagon-fill fs-5"></i>
                 <strong class="fw-bold">Mohon periksa kembali inputan Anda:</strong>
@@ -52,19 +50,19 @@
         </div>
     @endif
 
-    <!-- Simple KPI Cards -->
+    <!-- Simple KPI Cards (Pure Bootstrap 5) -->
     <div class="row g-3 mb-4">
         <div class="col-12 col-sm-6 col-xl-3">
-            <div class="card border-0 rounded-4 shadow-sm bg-white p-3.5 h-100">
+            <div class="card border-0 rounded-3 shadow-sm bg-white p-3 h-100">
                 <div class="d-flex align-items-center justify-content-between">
                     <div>
                         <span class="text-secondary small fw-medium d-block mb-1">Tim Marketing</span>
                         <h4 class="fw-bold text-dark mb-0">{{ number_format($totalTeams) }} <span class="fs-6 fw-normal text-muted">Tim</span></h4>
-                        <span class="badge bg-success-subtle text-success mt-2 fw-medium rounded-pill px-2 py-0.5" style="font-size: 0.72rem;">
+                        <span class="badge bg-success bg-opacity-10 text-success mt-2 fw-medium rounded-pill px-2 py-1">
                             <i class="bi bi-check-circle me-1"></i>{{ number_format($activeTeams) }} Aktif
                         </span>
                     </div>
-                    <div class="bg-primary bg-opacity-10 text-primary rounded-4 p-3 d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+                    <div class="bg-primary bg-opacity-10 text-primary rounded-3 p-3 d-flex align-items-center justify-content-center">
                         <i class="bi bi-people fs-4"></i>
                     </div>
                 </div>
@@ -72,16 +70,16 @@
         </div>
 
         <div class="col-12 col-sm-6 col-xl-3">
-            <div class="card border-0 rounded-4 shadow-sm bg-white p-3.5 h-100">
+            <div class="card border-0 rounded-3 shadow-sm bg-white p-3 h-100">
                 <div class="d-flex align-items-center justify-content-between">
                     <div>
                         <span class="text-secondary small fw-medium d-block mb-1">Toko Terhubung</span>
                         <h4 class="fw-bold text-dark mb-0">{{ number_format($totalStoresLinked) }} <span class="fs-6 fw-normal text-muted">Toko</span></h4>
-                        <span class="text-muted small mt-2 d-block" style="font-size: 0.75rem;">
+                        <span class="text-muted small mt-2 d-block">
                             Dari total {{ $stores->count() }} toko ERP
                         </span>
                     </div>
-                    <div class="bg-info bg-opacity-10 text-info rounded-4 p-3 d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+                    <div class="bg-info bg-opacity-10 text-info rounded-3 p-3 d-flex align-items-center justify-content-center">
                         <i class="bi bi-shop fs-4"></i>
                     </div>
                 </div>
@@ -89,16 +87,16 @@
         </div>
 
         <div class="col-12 col-sm-6 col-xl-3">
-            <div class="card border-0 rounded-4 shadow-sm bg-white p-3.5 h-100">
+            <div class="card border-0 rounded-3 shadow-sm bg-white p-3 h-100">
                 <div class="d-flex align-items-center justify-content-between">
                     <div>
                         <span class="text-secondary small fw-medium d-block mb-1">Target Qty (Aktif)</span>
                         <h4 class="fw-bold text-dark mb-0">{{ number_format($totalTargetQty) }} <span class="fs-6 fw-normal text-muted">Qty</span></h4>
-                        <span class="text-success small mt-2 d-block fw-semibold" style="font-size: 0.75rem;">
+                        <span class="text-success small mt-2 d-block fw-semibold">
                             Realisasi: {{ number_format($totalActualQty) }} Qty
                         </span>
                     </div>
-                    <div class="bg-warning bg-opacity-10 text-warning rounded-4 p-3 d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+                    <div class="bg-warning bg-opacity-10 text-warning rounded-3 p-3 d-flex align-items-center justify-content-center">
                         <i class="bi bi-crosshair fs-4"></i>
                     </div>
                 </div>
@@ -106,16 +104,16 @@
         </div>
 
         <div class="col-12 col-sm-6 col-xl-3">
-            <div class="card border-0 rounded-4 shadow-sm bg-white p-3.5 h-100">
+            <div class="card border-0 rounded-3 shadow-sm bg-white p-3 h-100">
                 <div class="d-flex align-items-center justify-content-between">
                     <div>
                         <span class="text-secondary small fw-medium d-block mb-1">Insentif Realisasi</span>
                         <h4 class="fw-bold text-success mb-0">Rp {{ number_format($totalEarnedReward, 0, ',', '.') }}</h4>
-                        <span class="text-muted small mt-2 d-block" style="font-size: 0.75rem;">
+                        <span class="text-muted small mt-2 d-block">
                             (Actual Qty × Rp/Qty)
                         </span>
                     </div>
-                    <div class="bg-success bg-opacity-10 text-success rounded-4 p-3 d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+                    <div class="bg-success bg-opacity-10 text-success rounded-3 p-3 d-flex align-items-center justify-content-center">
                         <i class="bi bi-wallet2 fs-4"></i>
                     </div>
                 </div>
@@ -123,15 +121,15 @@
         </div>
     </div>
 
-    <!-- Main List Card -->
-    <div class="card border-0 rounded-4 shadow-sm bg-white overflow-hidden">
-        <div class="card-header bg-white py-3 px-4 d-flex justify-content-between align-items-center border-bottom border-light">
+    <!-- Main List Card (Pure Bootstrap 5) -->
+    <div class="card border-0 rounded-3 shadow-sm bg-white overflow-hidden">
+        <div class="card-header bg-white py-3 px-4 d-flex justify-content-between align-items-center border-bottom">
             <h6 class="fw-bold text-dark mb-0 d-flex align-items-center gap-2">
                 <i class="bi bi-journal-text text-primary"></i>
                 <span>Daftar Tim & Target</span>
             </h6>
             <form action="{{ route('marketing.teams.index') }}" method="GET" class="d-flex gap-2">
-                <div class="input-group input-group-sm rounded-pill overflow-hidden border" style="width: 240px;">
+                <div class="input-group input-group-sm rounded-pill overflow-hidden border">
                     <span class="input-group-text bg-white border-0 ps-3 text-muted"><i class="bi bi-search"></i></span>
                     <input type="text" name="search" class="form-control border-0 shadow-none ps-1" placeholder="Cari tim..." value="{{ request('search') }}">
                 </div>
@@ -139,17 +137,17 @@
         </div>
 
         <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0" style="border-color: #f1f5f9;">
-                <thead class="bg-light-subtle text-secondary small text-uppercase fw-semibold">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light small text-uppercase fw-semibold">
                     <tr>
-                        <th class="ps-4 py-3" style="width: 40px;">#</th>
+                        <th class="ps-4 py-3">#</th>
                         <th class="py-3">Tim & Toko Terhubung</th>
                         <th class="py-3 text-end">Target Qty</th>
                         <th class="py-3 text-end">Rupiah / Qty</th>
                         <th class="py-3 text-end">Total Insentif</th>
-                        <th class="py-3 text-center" style="width: 170px;">Progress Qty</th>
-                        <th class="py-3 text-center" style="width: 100px;">Status</th>
-                        <th class="py-3 pe-4 text-end" style="width: 110px;">Aksi</th>
+                        <th class="py-3 text-center">Progress Qty</th>
+                        <th class="py-3 text-center">Status</th>
+                        <th class="py-3 pe-4 text-end">Aksi</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -159,34 +157,34 @@
                             <td class="py-3">
                                 <div class="d-flex align-items-center gap-2 mb-1">
                                     <h6 class="fw-bold text-dark mb-0">{{ $team->name }}</h6>
-                                    <span class="badge bg-light text-dark border rounded-pill px-2 py-0.5 small fw-normal">
+                                    <span class="badge bg-light text-dark border rounded-pill px-2 py-1 small fw-normal">
                                         {{ $team->period_month ? date('F', mktime(0, 0, 0, $team->period_month, 1)) : 'All' }} {{ $team->period_year ?? '' }}
                                     </span>
                                 </div>
                                 
                                 @if($team->description)
-                                    <p class="text-secondary small mb-2 text-truncate" style="max-width: 320px;">{{ $team->description }}</p>
+                                    <p class="text-secondary small mb-2 text-truncate">{{ $team->description }}</p>
                                 @endif
 
-                                <!-- Badges Toko -->
-                                <div class="d-flex flex-wrap gap-1.5 mt-1">
+                                <!-- Badges Toko (Pure Bootstrap 5) -->
+                                <div class="d-flex flex-wrap gap-1 mt-1">
                                     @forelse($team->stores as $store)
                                         @php
                                             $chName = strtolower($store->channel->name ?? '');
-                                            $badgeStyle = 'background-color: #f1f5f9; color: #334155; border: 1px solid #e2e8f0;';
+                                            $badgeClass = 'bg-secondary text-white';
                                             $icon = 'bi-shop';
                                             if (str_contains($chName, 'shopee')) {
-                                                $badgeStyle = 'background-color: #fff7ed; color: #c2410c; border: 1px solid #ffedd5;';
+                                                $badgeClass = 'bg-danger text-white';
                                                 $icon = 'bi-bag-check-fill';
                                             } elseif (str_contains($chName, 'tiktok')) {
-                                                $badgeStyle = 'background-color: #f8fafc; color: #0f172a; border: 1px solid #cbd5e1;';
+                                                $badgeClass = 'bg-dark text-white';
                                                 $icon = 'bi-tiktok';
                                             } elseif (str_contains($chName, 'tokopedia')) {
-                                                $badgeStyle = 'background-color: #f0fdf4; color: #15803d; border: 1px solid #dcfce7;';
+                                                $badgeClass = 'bg-success text-white';
                                                 $icon = 'bi-shop-window';
                                             }
                                         @endphp
-                                        <span class="badge rounded-pill px-2 py-1 small font-monospace fw-normal" style="{{ $badgeStyle }} font-size: 0.73rem;">
+                                        <span class="badge {{ $badgeClass }} rounded-pill px-2.5 py-1 small fw-normal">
                                             <i class="bi {{ $icon }} me-1"></i>{{ $store->store_name }}
                                         </span>
                                     @empty
@@ -210,35 +208,35 @@
                             <!-- Total Insentif -->
                             <td class="text-end py-3">
                                 <span class="fw-bold text-success">Rp {{ number_format($team->total_reward, 0, ',', '.') }}</span>
-                                <span class="text-muted small d-block" style="font-size: 0.7rem;">({{ number_format($team->actual_qty) }} Qty × Rp {{ number_format($team->reward_per_qty, 0, ',', '.') }})</span>
+                                <span class="text-muted small d-block">({{ number_format($team->actual_qty) }} Qty × Rp {{ number_format($team->reward_per_qty, 0, ',', '.') }})</span>
                             </td>
 
-                            <!-- Progress Bar -->
+                            <!-- Progress Bar (Pure Bootstrap 5) -->
                             <td class="py-3 px-3">
                                 @php
                                     $pct = $team->qty_progress_percent;
-                                    $barBg = '#ef4444';
-                                    if ($pct >= 100) $barBg = '#22c55e';
-                                    elseif ($pct >= 50) $barBg = '#f59e0b';
+                                    $barClass = 'bg-danger';
+                                    if ($pct >= 100) $barClass = 'bg-success';
+                                    elseif ($pct >= 50) $barClass = 'bg-warning';
                                 @endphp
                                 <div class="d-flex justify-content-between align-items-center mb-1 small">
                                     <span class="fw-semibold text-dark">{{ number_format($team->actual_qty) }} / {{ number_format($team->target_qty) }}</span>
-                                    <span class="fw-bold" style="color: {{ $barBg }};">{{ $pct }}%</span>
+                                    <span class="fw-bold text-dark">{{ $pct }}%</span>
                                 </div>
-                                <div class="progress rounded-pill" style="height: 6px; background-color: #f1f5f9;">
-                                    <div class="progress-bar rounded-pill" role="progressbar" style="width: {{ $pct }}%; background-color: {{ $barBg }};"></div>
+                                <div class="progress rounded-pill">
+                                    <div class="progress-bar {{ $barClass }} rounded-pill" role="progressbar" aria-valuenow="{{ $pct }}" aria-valuemin="0" aria-valuemax="100"></div>
                                 </div>
                             </td>
 
                             <!-- Status -->
                             <td class="text-center py-3">
                                 @if($team->is_active)
-                                    <span class="badge rounded-pill px-2.5 py-1" style="background-color: #dcfce7; color: #166534; font-size: 0.72rem;">
-                                        ● Aktif
+                                    <span class="badge bg-success bg-opacity-10 text-success rounded-pill px-3 py-1">
+                                        Aktif
                                     </span>
                                 @else
-                                    <span class="badge rounded-pill px-2.5 py-1" style="background-color: #f1f5f9; color: #64748b; font-size: 0.72rem;">
-                                        ● Nonaktif
+                                    <span class="badge bg-secondary bg-opacity-10 text-secondary rounded-pill px-3 py-1">
+                                        Nonaktif
                                     </span>
                                 @endif
                             </td>
@@ -246,12 +244,12 @@
                             <!-- Action Buttons -->
                             <td class="pe-4 text-end py-3">
                                 <div class="dropdown">
-                                    <button class="btn btn-light btn-sm rounded-circle p-1.5" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="width: 32px; height: 32px;">
+                                    <button class="btn btn-light btn-sm rounded-circle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                                         <i class="bi bi-three-dots-vertical text-secondary"></i>
                                     </button>
                                     <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 rounded-3 small">
                                         <li>
-                                            <a class="dropdown-menu-item dropdown-item d-flex align-items-center gap-2 py-2" href="#" data-bs-toggle="modal" data-bs-target="#editTeamModal{{ $team->id }}">
+                                            <a class="dropdown-item d-flex align-items-center gap-2 py-2" href="#" data-bs-toggle="modal" data-bs-target="#editTeamModal{{ $team->id }}">
                                                 <i class="bi bi-pencil text-primary"></i> Edit Tim & Target
                                             </a>
                                         </li>
@@ -279,14 +277,14 @@
                             </td>
                         </tr>
 
-                        <!-- Modal Edit Tim -->
+                        <!-- Modal Edit Tim (Pure Bootstrap 5) -->
                         <div class="modal fade" id="editTeamModal{{ $team->id }}" tabindex="-1" aria-hidden="true">
                             <div class="modal-dialog modal-dialog-centered modal-lg">
-                                <div class="modal-content border-0 rounded-4 shadow">
+                                <div class="modal-content border-0 rounded-3 shadow">
                                     <form action="{{ route('marketing.teams.update', $team->id) }}" method="POST">
                                         @csrf
                                         @method('PUT')
-                                        <div class="modal-header border-bottom border-light px-4 py-3">
+                                        <div class="modal-header border-bottom px-4 py-3">
                                             <h5 class="modal-title fw-bold text-dark d-flex align-items-center gap-2">
                                                 <i class="bi bi-pencil-square text-primary"></i>
                                                 <span>Edit Tim: {{ $team->name }}</span>
@@ -297,14 +295,14 @@
                                             <div class="row g-3">
                                                 <div class="col-12 col-md-6">
                                                     <label class="form-label fw-semibold small text-dark">Nama Tim Marketing <span class="text-danger">*</span></label>
-                                                    <input type="text" name="name" class="form-control rounded-3" value="{{ old('name', $team->name) }}" required placeholder="Contoh: Tim Ruang">
+                                                    <input type="text" name="name" class="form-control" value="{{ old('name', $team->name) }}" required placeholder="Contoh: Tim Ruang">
                                                 </div>
 
                                                 <div class="col-12 col-md-6">
                                                     <label class="form-label fw-semibold small text-dark">Periode Target</label>
                                                     <div class="row g-2">
                                                         <div class="col-7">
-                                                            <select name="period_month" class="form-select rounded-3">
+                                                            <select name="period_month" class="form-select">
                                                                 @for($m = 1; $m <= 12; $m++)
                                                                     <option value="{{ $m }}" {{ old('period_month', $team->period_month) == $m ? 'selected' : '' }}>
                                                                         {{ date('F', mktime(0, 0, 0, $m, 1)) }}
@@ -313,7 +311,7 @@
                                                             </select>
                                                         </div>
                                                         <div class="col-5">
-                                                            <input type="number" name="period_year" class="form-control rounded-3" value="{{ old('period_year', $team->period_year ?? date('Y')) }}" placeholder="Tahun">
+                                                            <input type="number" name="period_year" class="form-control" value="{{ old('period_year', $team->period_year ?? date('Y')) }}" placeholder="Tahun">
                                                         </div>
                                                     </div>
                                                 </div>
@@ -321,23 +319,23 @@
                                                 <div class="col-12 col-md-6">
                                                     <label class="form-label fw-semibold small text-dark">Target Qty (Jumlah Pesanan) <span class="text-danger">*</span></label>
                                                     <div class="input-group">
-                                                        <input type="number" name="target_qty" class="form-control rounded-start-3" value="{{ old('target_qty', $team->target_qty) }}" min="0" required placeholder="1000">
-                                                        <span class="input-group-text bg-light text-muted rounded-end-3">Qty</span>
+                                                        <input type="number" name="target_qty" class="form-control" value="{{ old('target_qty', $team->target_qty) }}" min="0" required placeholder="1000">
+                                                        <span class="input-group-text bg-light text-muted">Qty</span>
                                                     </div>
                                                 </div>
 
                                                 <div class="col-12 col-md-6">
                                                     <label class="form-label fw-semibold small text-dark">Rupiah per Qty (Insentif/Komisi) <span class="text-danger">*</span></label>
                                                     <div class="input-group">
-                                                        <span class="input-group-text bg-light text-muted rounded-start-3">Rp</span>
+                                                        <span class="input-group-text bg-light text-muted">Rp</span>
                                                         <input type="number" name="reward_per_qty" class="form-control" value="{{ old('reward_per_qty', $team->reward_per_qty) }}" min="0" required placeholder="1000">
-                                                        <span class="input-group-text bg-light text-muted rounded-end-3">/ Qty</span>
+                                                        <span class="input-group-text bg-light text-muted">/ Qty</span>
                                                     </div>
                                                 </div>
 
                                                 <div class="col-12">
                                                     <label class="form-label fw-semibold small text-dark mb-1">Pilih Toko Terhubung</label>
-                                                    <div class="card border rounded-3 p-3 bg-light-subtle" style="max-height: 180px; overflow-y: auto;">
+                                                    <div class="card border rounded-3 p-3 bg-light">
                                                         <div class="row g-2">
                                                             @php $selectedStoreIds = $team->stores->pluck('id')->toArray(); @endphp
                                                             @forelse($stores as $st)
@@ -361,7 +359,7 @@
 
                                                 <div class="col-12">
                                                     <label class="form-label fw-semibold small text-dark">Catatan / Description</label>
-                                                    <textarea name="description" class="form-control rounded-3" rows="2" placeholder="Catatan internal tim...">{{ old('description', $team->description) }}</textarea>
+                                                    <textarea name="description" class="form-control" rows="2" placeholder="Catatan internal tim...">{{ old('description', $team->description) }}</textarea>
                                                 </div>
 
                                                 <div class="col-12">
@@ -372,7 +370,7 @@
                                                 </div>
                                             </div>
                                         </div>
-                                        <div class="modal-footer border-top border-light px-4 py-3">
+                                        <div class="modal-footer border-top px-4 py-3">
                                             <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Batal</button>
                                             <button type="submit" class="btn btn-primary rounded-pill px-4 fw-semibold">
                                                 Simpan Perubahan
@@ -402,13 +400,13 @@
     </div>
 </div>
 
-<!-- Modal Create Tim Marketing -->
+<!-- Modal Create Tim Marketing (Pure Bootstrap 5) -->
 <div class="modal fade" id="createTeamModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
-        <div class="modal-content border-0 rounded-4 shadow">
+        <div class="modal-content border-0 rounded-3 shadow">
             <form action="{{ route('marketing.teams.store') }}" method="POST">
                 @csrf
-                <div class="modal-header border-bottom border-light px-4 py-3">
+                <div class="modal-header border-bottom px-4 py-3">
                     <h5 class="modal-title fw-bold text-dark d-flex align-items-center gap-2">
                         <i class="bi bi-plus-circle text-primary"></i>
                         <span>Tambah Tim Marketing & Target Baru</span>
@@ -419,14 +417,14 @@
                     <div class="row g-3">
                         <div class="col-12 col-md-6">
                             <label class="form-label fw-semibold small text-dark">Nama Tim Marketing <span class="text-danger">*</span></label>
-                            <input type="text" name="name" class="form-control rounded-3" value="{{ old('name') }}" required placeholder="Contoh: Tim Ruang, Tim Nusantara">
+                            <input type="text" name="name" class="form-control" value="{{ old('name') }}" required placeholder="Contoh: Tim Ruang, Tim Nusantara">
                         </div>
 
                         <div class="col-12 col-md-6">
                             <label class="form-label fw-semibold small text-dark">Periode Target</label>
                             <div class="row g-2">
                                 <div class="col-7">
-                                    <select name="period_month" class="form-select rounded-3">
+                                    <select name="period_month" class="form-select">
                                         @for($m = 1; $m <= 12; $m++)
                                             <option value="{{ $m }}" {{ old('period_month', date('n')) == $m ? 'selected' : '' }}>
                                                 {{ date('F', mktime(0, 0, 0, $m, 1)) }}
@@ -435,7 +433,7 @@
                                     </select>
                                 </div>
                                 <div class="col-5">
-                                    <input type="number" name="period_year" class="form-control rounded-3" value="{{ old('period_year', date('Y')) }}" placeholder="Tahun">
+                                    <input type="number" name="period_year" class="form-control" value="{{ old('period_year', date('Y')) }}" placeholder="Tahun">
                                 </div>
                             </div>
                         </div>
@@ -443,23 +441,23 @@
                         <div class="col-12 col-md-6">
                             <label class="form-label fw-semibold small text-dark">Target Qty (Jumlah Pesanan) <span class="text-danger">*</span></label>
                             <div class="input-group">
-                                <input type="number" name="target_qty" class="form-control rounded-start-3" value="{{ old('target_qty', 1000) }}" min="0" required placeholder="1000">
-                                <span class="input-group-text bg-light text-muted rounded-end-3">Qty</span>
+                                <input type="number" name="target_qty" class="form-control" value="{{ old('target_qty', 1000) }}" min="0" required placeholder="1000">
+                                <span class="input-group-text bg-light text-muted">Qty</span>
                             </div>
                         </div>
 
                         <div class="col-12 col-md-6">
                             <label class="form-label fw-semibold small text-dark">Rupiah per Qty (Insentif/Komisi) <span class="text-danger">*</span></label>
                             <div class="input-group">
-                                <span class="input-group-text bg-light text-muted rounded-start-3">Rp</span>
+                                <span class="input-group-text bg-light text-muted">Rp</span>
                                 <input type="number" name="reward_per_qty" class="form-control" value="{{ old('reward_per_qty', 1000) }}" min="0" required placeholder="1000">
-                                <span class="input-group-text bg-light text-muted rounded-end-3">/ Qty</span>
+                                <span class="input-group-text bg-light text-muted">/ Qty</span>
                             </div>
                         </div>
 
                         <div class="col-12">
                             <label class="form-label fw-semibold small text-dark mb-1">Pilih Toko Terhubung</label>
-                            <div class="card border rounded-3 p-3 bg-light-subtle" style="max-height: 180px; overflow-y: auto;">
+                            <div class="card border rounded-3 p-3 bg-light">
                                 <div class="row g-2">
                                     @forelse($stores as $st)
                                         <div class="col-12 col-md-6">
@@ -483,7 +481,7 @@
 
                         <div class="col-12">
                             <label class="form-label fw-semibold small text-dark">Catatan / Description</label>
-                            <textarea name="description" class="form-control rounded-3" rows="2" placeholder="Catatan internal tim...">{{ old('description') }}</textarea>
+                            <textarea name="description" class="form-control" rows="2" placeholder="Catatan internal tim...">{{ old('description') }}</textarea>
                         </div>
 
                         <div class="col-12">
@@ -494,7 +492,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="modal-footer border-top border-light px-4 py-3">
+                <div class="modal-footer border-top px-4 py-3">
                     <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Batal</button>
                     <button type="submit" class="btn btn-primary rounded-pill px-4 fw-semibold">
                         Simpan Tim Baru
