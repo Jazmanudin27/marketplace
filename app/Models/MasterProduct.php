@@ -67,6 +67,14 @@ class MasterProduct extends Model
         return $this->hasMany(MarketplaceProduct::class, 'master_product_id');
     }
 
+    public function isLinked(): bool
+    {
+        if ($this->relationLoaded('marketplaceProducts')) {
+            return $this->marketplaceProducts->isNotEmpty();
+        }
+        return $this->marketplaceProducts()->exists();
+    }
+
     public function recipes(): HasMany
     {
         return $this->hasMany(ProductRecipe::class, 'master_product_id');
@@ -97,34 +105,85 @@ class MasterProduct extends Model
                     ->withTimestamps();
     }
 
+    public function getEffectiveStockAttribute(): int
+    {
+        $dbStock = (int) ($this->attributes['stock'] ?? 0);
+        $mpStock = 0;
+        if (Schema::hasTable('marketplace_products')) {
+            $mpStock = (int) DB::table('marketplace_products')
+                ->where('master_product_id', $this->id)
+                ->when($this->sku, fn($q) => $q->orWhere('marketplace_sku', $this->sku))
+                ->max('stock');
+        }
+        return max($dbStock, $mpStock);
+    }
+
     public function getStockAttribute()
     {
-        if ($this->is_bundle && Schema::hasTable('master_product_bundles')) {
-            $comps = $this->relationLoaded('components') ? $this->components : $this->components()->get();
-            if ($comps->isEmpty()) {
-                return 0;
-            }
-            $calculated = $comps->map(function ($comp) {
-                $qtyNeeded = max(1, (int) ($comp->pivot->quantity ?? 1));
-                $compStock = (int) ($comp->stock ?? $comp->attributes['stock'] ?? 0);
-                return (int) floor($compStock / $qtyNeeded);
-            })->min();
+        if ($this->is_bundle) {
+            $componentCalculatedStocks = collect();
 
-            return max(0, (int) $calculated);
+            // 1. Cek komponen dari master_product_bundles
+            if (Schema::hasTable('master_product_bundles')) {
+                $comps = $this->relationLoaded('components') ? $this->components : $this->components()->get();
+                foreach ($comps as $comp) {
+                    $qtyNeeded = max(1, (int) ($comp->pivot->quantity ?? 1));
+                    $compStock = $comp->effective_stock;
+                    $componentCalculatedStocks->push((int) floor($compStock / $qtyNeeded));
+                }
+            }
+
+            // 2. Cek komponen dari activeRecipe (ProductRecipe) jika master_product_bundles kosong
+            if ($componentCalculatedStocks->isEmpty() && Schema::hasTable('product_recipes')) {
+                $recipe = $this->relationLoaded('activeRecipe') ? $this->activeRecipe : $this->activeRecipe()->with('items')->first();
+                if ($recipe && $recipe->items && $recipe->items->isNotEmpty()) {
+                    foreach ($recipe->items as $item) {
+                        $ingId = $item->ingredient_master_product_id ?? $item->component_id ?? null;
+                        if ($ingId) {
+                            $ingProduct = MasterProduct::find($ingId);
+                            if ($ingProduct) {
+                                $qtyNeeded = max(1, (int) ($item->quantity ?? 1));
+                                $compStock = $ingProduct->effective_stock;
+                                $componentCalculatedStocks->push((int) floor($compStock / $qtyNeeded));
+                            }
+                        }
+                    }
+                }
+            }
+
+            if ($componentCalculatedStocks->isNotEmpty()) {
+                return max(0, (int) $componentCalculatedStocks->min());
+            }
         }
+
         return (int) ($this->attributes['stock'] ?? 0);
     }
 
     /**
-     * Hitung & perbarui ulang kolom stok DB untuk semua produk Set/Bundle berdasarkan komponennya.
+     * Hitung & perbarui ulang kolom stok DB untuk semua produk Single dan Set/Bundle berdasarkan komponennya.
      */
     public static function recalculateAllBundleStocks(?int $tenantId = null): int
     {
-        if (!Schema::hasTable('master_product_bundles')) {
-            return 0;
+        // 1. Perbarui stok master_products single yang 0 tetapi memiliki stok di marketplace_products
+        $singleQuery = static::where(function($q) {
+            $q->where('is_bundle', false)->orWhereNull('is_bundle');
+        });
+        if ($tenantId) {
+            $singleQuery->where('tenant_id', $tenantId);
         }
 
-        $query = static::where('is_bundle', true)->with('components');
+        $singles = $singleQuery->get(['id', 'sku', 'stock']);
+        foreach ($singles as $single) {
+            $effStock = $single->effective_stock;
+            if ($effStock > (int)$single->getRawOriginal('stock')) {
+                DB::table('master_products')
+                    ->where('id', $single->id)
+                    ->update(['stock' => $effStock]);
+            }
+        }
+
+        // 2. Hitung ulang stok untuk produk Set / Bundle
+        $query = static::where('is_bundle', true)->with(['components', 'activeRecipe.items']);
         if ($tenantId) {
             $query->where('tenant_id', $tenantId);
         }
@@ -139,15 +198,17 @@ class MasterProduct extends Model
                 ->where('id', $bundle->id)
                 ->update(['stock' => $calcStock]);
 
-            DB::table('marketplace_products')
-                ->where('master_product_id', $bundle->id)
-                ->when($bundle->sku, fn($q) => $q->orWhere('marketplace_sku', $bundle->sku))
-                ->update([
-                    'master_product_id' => $bundle->id,
-                    'stock' => $calcStock,
-                    'sync_stock' => true,
-                    'updated_at' => now(),
-                ]);
+            if (Schema::hasTable('marketplace_products')) {
+                DB::table('marketplace_products')
+                    ->where('master_product_id', $bundle->id)
+                    ->when($bundle->sku, fn($q) => $q->orWhere('marketplace_sku', $bundle->sku))
+                    ->update([
+                        'master_product_id' => $bundle->id,
+                        'stock' => $calcStock,
+                        'sync_stock' => true,
+                        'updated_at' => now(),
+                    ]);
+            }
 
             $updatedCount++;
         }
