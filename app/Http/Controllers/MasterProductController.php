@@ -1259,7 +1259,10 @@ class MasterProductController extends Controller
             return redirect()->back()->with('error', 'Tidak ditemukan komponen produk single yang cocok dalam SKU produk Set yang diproses.');
         }
 
-        return redirect()->back()->with('success', "Berhasil memproses $bundleCount produk Set/Bundling dengan total $componentCount komponen terpasang secara otomatis!");
+        // Recalculate bundle stocks for ERP right after linking components
+        MasterProduct::recalculateAllBundleStocks($tenantId);
+
+        return redirect()->back()->with('success', "Berhasil memproses $bundleCount produk Set/Bundling dengan total $componentCount komponen terpasang dan stok ERP otomatis dihitung!");
     }
 
     /**

@@ -629,10 +629,58 @@ class SecretRepairDashboardController extends Controller
 
         $log = [];
         $log[] = "======================================================================";
-        $log[] = "🎁 REKALKULASI STOK PRODUK SET / BUNDLE (INTERNAL ERP SAJA)";
+        $log[] = "🎁 AUTO-BUNDLE MATCHING & REKALKULASI STOK PRODUK SET / BUNDLE ERP";
         $log[] = "======================================================================";
 
         try {
+            // 1. Jalankan Auto-Bundle Matching berdasarkan pencocokan SKU produk single
+            $singleProducts = MasterProduct::where('tenant_id', $tenantId)
+                ->where(function ($q) {
+                    $q->where('is_bundle', false)->orWhereNull('is_bundle');
+                })
+                ->get(['id', 'sku']);
+
+            $targetProducts = MasterProduct::where('tenant_id', $tenantId)
+                ->where(function ($q) {
+                    $q->where('is_bundle', true)
+                      ->orWhere('sku', 'like', 'SET-%')
+                      ->orWhere('sku', 'like', 'PAKET-%')
+                      ->orWhere('sku', 'like', 'BUNDLE-%');
+                })
+                ->get();
+
+            $autoMatchedCount = 0;
+            $totalComponentsLinked = 0;
+
+            foreach ($targetProducts as $product) {
+                $sku = $product->sku;
+                if (empty($sku)) continue;
+
+                $matchedChildIds = [];
+                foreach ($singleProducts as $single) {
+                    if ($single->id === $product->id) continue;
+                    if (!empty($single->sku) && str_contains($sku, $single->sku)) {
+                        $matchedChildIds[] = $single->id;
+                    }
+                }
+
+                if (!empty($matchedChildIds)) {
+                    $product->update(['is_bundle' => true]);
+
+                    $syncData = [];
+                    foreach ($matchedChildIds as $childId) {
+                        $syncData[$childId] = ['quantity' => 1];
+                    }
+                    $product->components()->syncWithoutDetaching($syncData);
+
+                    $autoMatchedCount++;
+                    $totalComponentsLinked += count($syncData);
+                }
+            }
+
+            $log[] = "🔗 Auto-Bundle Matching: Berhasil mencocokkan {$autoMatchedCount} produk Set dengan total {$totalComponentsLinked} komponen single terhubung.";
+
+            // 2. Rekalkulasi dan update stok fisik di master_products ERP
             $sampleLogs = [];
             $updatedCount = MasterProduct::recalculateAllBundleStocks($tenantId, $sampleLogs);
 
