@@ -52,10 +52,9 @@ class MarketingTeam extends Model
     }
 
     /**
-     * Hitung Qty Pesanan Aktual (Khusus Transaksi Selesai/Dilepas & Tidak Retur/Refund)
-     * Menggunakan tanggal selesai/diterima (completed_at) pada periode target.
+     * Hitung Qty Pesanan Aktual dengan filter dinamis (bulan/tahun atau date_from/date_to)
      */
-    public function getActualQtyAttribute(): int
+    public function calculateActualQty(?int $month = null, ?int $year = null, ?string $dateFrom = null, ?string $dateTo = null): int
     {
         $storeIds = $this->stores->pluck('id')->toArray();
         if (empty($storeIds)) {
@@ -64,7 +63,6 @@ class MarketingTeam extends Model
 
         $validStatuses = ['COMPLETED', 'RELEASED', 'COMPLETED_ESCROW'];
 
-        // Cek jika rincian item order_items tersedia
         if (Schema::hasTable('order_items')) {
             $qtyQuery = DB::table('order_items')
                 ->join('orders', 'order_items.order_id', '=', 'orders.id')
@@ -72,16 +70,28 @@ class MarketingTeam extends Model
                 ->whereIn('orders.order_status', $validStatuses)
                 ->whereNotIn('orders.order_status', ['CANCELLED', 'CANCELED', 'RETURNED', 'REFUNDED', 'IN_CANCEL', 'FAILED']);
 
-            if ($this->period_month && $this->period_year) {
-                $qtyQuery->where(function($q) {
-                    $q->where(function($sub) {
+            if ($dateFrom && $dateTo) {
+                $from = $dateFrom . ' 00:00:00';
+                $to = $dateTo . ' 23:59:59';
+                $qtyQuery->where(function($q) use ($from, $to) {
+                    $q->where(function($sub) use ($from, $to) {
                         $sub->whereNotNull('orders.completed_at')
-                            ->whereYear('orders.completed_at', $this->period_year)
-                            ->whereMonth('orders.completed_at', $this->period_month);
-                    })->orWhere(function($sub) {
+                            ->whereBetween('orders.completed_at', [$from, $to]);
+                    })->orWhere(function($sub) use ($from, $to) {
                         $sub->whereNull('orders.completed_at')
-                            ->whereYear('orders.order_date', $this->period_year)
-                            ->whereMonth('orders.order_date', $this->period_month);
+                            ->whereBetween('orders.order_date', [$from, $to]);
+                    });
+                });
+            } elseif ($month && $year) {
+                $qtyQuery->where(function($q) use ($month, $year) {
+                    $q->where(function($sub) use ($month, $year) {
+                        $sub->whereNotNull('orders.completed_at')
+                            ->whereYear('orders.completed_at', $year)
+                            ->whereMonth('orders.completed_at', $month);
+                    })->orWhere(function($sub) use ($month, $year) {
+                        $sub->whereNull('orders.completed_at')
+                            ->whereYear('orders.order_date', $year)
+                            ->whereMonth('orders.order_date', $month);
                     });
                 });
             }
@@ -94,16 +104,28 @@ class MarketingTeam extends Model
             ->whereIn('order_status', $validStatuses)
             ->whereNotIn('order_status', ['CANCELLED', 'CANCELED', 'RETURNED', 'REFUNDED', 'IN_CANCEL', 'FAILED']);
 
-        if ($this->period_month && $this->period_year) {
-            $query->where(function($q) {
-                $q->where(function($sub) {
+        if ($dateFrom && $dateTo) {
+            $from = $dateFrom . ' 00:00:00';
+            $to = $dateTo . ' 23:59:59';
+            $query->where(function($q) use ($from, $to) {
+                $q->where(function($sub) use ($from, $to) {
                     $sub->whereNotNull('completed_at')
-                        ->whereYear('completed_at', $this->period_year)
-                        ->whereMonth('completed_at', $this->period_month);
-                })->orWhere(function($sub) {
+                        ->whereBetween('completed_at', [$from, $to]);
+                })->orWhere(function($sub) use ($from, $to) {
                     $sub->whereNull('completed_at')
-                        ->whereYear('order_date', $this->period_year)
-                        ->whereMonth('order_date', $this->period_month);
+                        ->whereBetween('order_date', [$from, $to]);
+                });
+            });
+        } elseif ($month && $year) {
+            $query->where(function($q) use ($month, $year) {
+                $q->where(function($sub) use ($month, $year) {
+                    $sub->whereNotNull('completed_at')
+                        ->whereYear('completed_at', $year)
+                        ->whereMonth('completed_at', $month);
+                })->orWhere(function($sub) use ($month, $year) {
+                    $sub->whereNull('completed_at')
+                        ->whereYear('order_date', $year)
+                        ->whereMonth('order_date', $month);
                 });
             });
         }
@@ -111,11 +133,15 @@ class MarketingTeam extends Model
         return (int) $query->count();
     }
 
+    public function getActualQtyAttribute(): int
+    {
+        return $this->calculateActualQty($this->period_month, $this->period_year);
+    }
+
     /**
-     * Hitung Omset (Total Sales Rp) Aktual (Khusus Transaksi Selesai/Dilepas & Tidak Retur/Refund)
-     * Menggunakan tanggal selesai/diterima (completed_at) pada periode target.
+     * Hitung Omset (Total Sales Rp) Aktual dengan filter dinamis
      */
-    public function getActualOmsetAttribute(): float
+    public function calculateActualOmset(?int $month = null, ?int $year = null, ?string $dateFrom = null, ?string $dateTo = null): float
     {
         $storeIds = $this->stores->pluck('id')->toArray();
         if (empty($storeIds)) {
@@ -129,21 +155,38 @@ class MarketingTeam extends Model
             ->whereIn('order_status', $validStatuses)
             ->whereNotIn('order_status', ['CANCELLED', 'CANCELED', 'RETURNED', 'REFUNDED', 'IN_CANCEL', 'FAILED']);
 
-        if ($this->period_month && $this->period_year) {
-            $query->where(function($q) {
-                $q->where(function($sub) {
+        if ($dateFrom && $dateTo) {
+            $from = $dateFrom . ' 00:00:00';
+            $to = $dateTo . ' 23:59:59';
+            $query->where(function($q) use ($from, $to) {
+                $q->where(function($sub) use ($from, $to) {
                     $sub->whereNotNull('completed_at')
-                        ->whereYear('completed_at', $this->period_year)
-                        ->whereMonth('completed_at', $this->period_month);
-                })->orWhere(function($sub) {
+                        ->whereBetween('completed_at', [$from, $to]);
+                })->orWhere(function($sub) use ($from, $to) {
                     $sub->whereNull('completed_at')
-                        ->whereYear('order_date', $this->period_year)
-                        ->whereMonth('order_date', $this->period_month);
+                        ->whereBetween('order_date', [$from, $to]);
+                });
+            });
+        } elseif ($month && $year) {
+            $query->where(function($q) use ($month, $year) {
+                $q->where(function($sub) use ($month, $year) {
+                    $sub->whereNotNull('completed_at')
+                        ->whereYear('completed_at', $year)
+                        ->whereMonth('completed_at', $month);
+                })->orWhere(function($sub) use ($month, $year) {
+                    $sub->whereNull('completed_at')
+                        ->whereYear('order_date', $year)
+                        ->whereMonth('order_date', $month);
                 });
             });
         }
 
         return (float) ($query->sum('total_amount') ?? 0.0);
+    }
+
+    public function getActualOmsetAttribute(): float
+    {
+        return $this->calculateActualOmset($this->period_month, $this->period_year);
     }
 
     /**

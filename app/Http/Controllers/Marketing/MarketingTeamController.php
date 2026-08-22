@@ -26,7 +26,34 @@ class MarketingTeamController extends Controller
             ->orderBy('id', 'desc')
             ->get();
 
-        // Ambil daftar seluruh Toko milik tenant untuk pilihan dropdown/checkbox
+        // Parameter Filter
+        $filterType = $request->get('filter_type', 'month'); // 'month' or 'date_range'
+        $reqMonth   = $request->filled('month') ? (int) $request->month : null;
+        $reqYear    = $request->filled('year') ? (int) $request->year : null;
+        $dateFrom   = $request->filled('date_from') ? $request->date_from : null;
+        $dateTo     = $request->filled('date_to') ? $request->date_to : null;
+
+        // Hitung nilai dinamis aktual per tim berdasarkan filter
+        foreach ($teams as $team) {
+            if ($filterType === 'date_range' && $dateFrom && $dateTo) {
+                $team->custom_actual_qty = $team->calculateActualQty(null, null, $dateFrom, $dateTo);
+                $team->custom_actual_omset = $team->calculateActualOmset(null, null, $dateFrom, $dateTo);
+            } elseif ($reqMonth && $reqYear) {
+                $team->custom_actual_qty = $team->calculateActualQty($reqMonth, $reqYear);
+                $team->custom_actual_omset = $team->calculateActualOmset($reqMonth, $reqYear);
+            } else {
+                // Default sesuai periode target bawaan tim
+                $team->custom_actual_qty = $team->actual_qty;
+                $team->custom_actual_omset = $team->actual_omset;
+            }
+
+            $team->custom_total_reward = $team->custom_actual_qty * $team->reward_per_qty;
+            $team->custom_progress_percent = $team->target_qty > 0 
+                ? min(100.0, round(($team->custom_actual_qty / $team->target_qty) * 100, 1)) 
+                : 0.0;
+        }
+
+        // Ambil daftar seluruh Toko milik tenant
         $stores = Store::where('tenant_id', $tenantId)
             ->with('channel')
             ->orderBy('store_name')
@@ -38,9 +65,9 @@ class MarketingTeamController extends Controller
         $totalStoresLinked = $teams->pluck('stores')->flatten()->unique('id')->count();
         $totalTargetQty = $teams->where('is_active', true)->sum('target_qty');
         $totalTargetOmset = $teams->where('is_active', true)->sum('target_omset');
-        $totalActualQty = $teams->where('is_active', true)->sum('actual_qty');
-        $totalActualOmset = $teams->where('is_active', true)->sum('actual_omset');
-        $totalEarnedReward = $teams->where('is_active', true)->sum('total_reward');
+        $totalActualQty = $teams->where('is_active', true)->sum('custom_actual_qty');
+        $totalActualOmset = $teams->where('is_active', true)->sum('custom_actual_omset');
+        $totalEarnedReward = $teams->where('is_active', true)->sum('custom_total_reward');
 
         return view('marketing.teams.index', compact(
             'teams',
@@ -52,7 +79,12 @@ class MarketingTeamController extends Controller
             'totalTargetOmset',
             'totalActualQty',
             'totalActualOmset',
-            'totalEarnedReward'
+            'totalEarnedReward',
+            'filterType',
+            'reqMonth',
+            'reqYear',
+            'dateFrom',
+            'dateTo'
         ));
     }
 

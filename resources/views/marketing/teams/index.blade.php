@@ -27,6 +27,69 @@
         </div>
     </div>
 
+    <!-- Filter Card Bar (Bulan/Tahun & Range Tanggal Orderan) -->
+    <div class="card border-0 rounded-3 shadow-sm bg-white mb-4">
+        <div class="card-body p-3">
+            <form action="{{ route('marketing.teams.index') }}" method="GET" class="row g-2 align-items-end">
+                <!-- Tipe Filter -->
+                <div class="col-12 col-md-3">
+                    <label class="form-label small fw-bold text-dark mb-1"><i class="bi bi-funnel me-1 text-primary"></i>Mode Filter Orderan</label>
+                    <select name="filter_type" id="filter_type_select" class="form-select form-select-sm" onchange="toggleFilterMode(this.value)">
+                        <option value="month" {{ $filterType == 'month' ? 'selected' : '' }}>Filter Per Bulan & Tahun</option>
+                        <option value="date_range" {{ $filterType == 'date_range' ? 'selected' : '' }}>Filter Range Tanggal (Dari - Sampai)</option>
+                    </select>
+                </div>
+
+                <!-- Container Filter Bulan & Tahun -->
+                <div class="col-12 col-md-5" id="month_filter_container" style="{{ $filterType == 'date_range' ? 'display: none;' : '' }}">
+                    <div class="row g-2">
+                        <div class="col-7">
+                            <label class="form-label small fw-semibold text-secondary mb-1">Bulan Orderan</label>
+                            <select name="month" class="form-select form-select-sm">
+                                <option value="">-- Semua Bulan --</option>
+                                @for($m = 1; $m <= 12; $m++)
+                                    <option value="{{ $m }}" {{ $reqMonth == $m ? 'selected' : '' }}>
+                                        {{ date('F', mktime(0, 0, 0, $m, 1)) }}
+                                    </option>
+                                @endfor
+                            </select>
+                        </div>
+                        <div class="col-5">
+                            <label class="form-label small fw-semibold text-secondary mb-1">Tahun</label>
+                            <input type="number" name="year" class="form-control form-select-sm" value="{{ $reqYear ?? date('Y') }}" placeholder="Tahun">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Container Filter Range Tanggal (Dari - Sampai) -->
+                <div class="col-12 col-md-5" id="date_range_container" style="{{ $filterType != 'date_range' ? 'display: none;' : '' }}">
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold text-secondary mb-1">Dari Tanggal Diterima</label>
+                            <input type="date" name="date_from" class="form-control form-select-sm" value="{{ $dateFrom }}">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold text-secondary mb-1">Sampai Tanggal Diterima</label>
+                            <input type="date" name="date_to" class="form-control form-select-sm" value="{{ $dateTo }}">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tombol Action -->
+                <div class="col-12 col-md-4 text-end d-flex gap-2 justify-content-end">
+                    <button type="submit" class="btn btn-primary btn-sm rounded-pill px-3 fw-semibold">
+                        <i class="bi bi-search me-1"></i> Terapkan Filter
+                    </button>
+                    @if($reqMonth || $dateFrom || $dateTo)
+                        <a href="{{ route('marketing.teams.index') }}" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
+                            <i class="bi bi-arrow-counterclockwise me-1"></i> Reset
+                        </a>
+                    @endif
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Alert Flash -->
     @if(session('success'))
         <div class="alert alert-success alert-dismissible fade show border-0 rounded-3 shadow-sm mb-4" role="alert">
@@ -132,6 +195,11 @@
                 <span>Daftar Tim & Target</span>
             </h6>
             <form action="{{ route('marketing.teams.index') }}" method="GET" class="d-flex gap-2">
+                <input type="hidden" name="filter_type" value="{{ $filterType }}">
+                <input type="hidden" name="month" value="{{ $reqMonth }}">
+                <input type="hidden" name="year" value="{{ $reqYear }}">
+                <input type="hidden" name="date_from" value="{{ $dateFrom }}">
+                <input type="hidden" name="date_to" value="{{ $dateTo }}">
                 <div class="input-group input-group-sm rounded-pill border">
                     <span class="input-group-text bg-white border-0 ps-3 text-muted"><i class="bi bi-search"></i></span>
                     <input type="text" name="search" class="form-control border-0 shadow-none ps-1" placeholder="Cari tim..." value="{{ request('search') }}">
@@ -154,6 +222,11 @@
             </thead>
             <tbody>
                 @forelse($teams as $index => $team)
+                    @php
+                        $actQty = $team->custom_actual_qty ?? $team->actual_qty;
+                        $totRew = $team->custom_total_reward ?? $team->total_reward;
+                        $pct    = $team->custom_progress_percent ?? $team->qty_progress_percent;
+                    @endphp
                     <tr>
                         <td class="ps-4 text-muted fw-medium">{{ $index + 1 }}</td>
                         <td class="py-3">
@@ -209,20 +282,19 @@
 
                         <!-- Total Insentif -->
                         <td class="text-end py-3">
-                            <span class="fw-bold text-success">Rp {{ number_format($team->total_reward, 0, ',', '.') }}</span>
-                            <span class="text-muted small d-block">({{ number_format($team->actual_qty) }} Qty × Rp {{ number_format($team->reward_per_qty, 0, ',', '.') }})</span>
+                            <span class="fw-bold text-success">Rp {{ number_format($totRew, 0, ',', '.') }}</span>
+                            <span class="text-muted small d-block">({{ number_format($actQty) }} Qty × Rp {{ number_format($team->reward_per_qty, 0, ',', '.') }})</span>
                         </td>
 
                         <!-- Progress Bar -->
                         <td class="py-3 px-3">
                             @php
-                                $pct = $team->qty_progress_percent;
                                 $barClass = 'bg-danger';
                                 if ($pct >= 100) $barClass = 'bg-success';
                                 elseif ($pct >= 50) $barClass = 'bg-warning';
                             @endphp
                             <div class="d-flex justify-content-between align-items-center mb-1 small">
-                                <span class="fw-semibold text-dark"><i class="bi bi-box-seam text-secondary me-1"></i>{{ number_format($team->actual_qty) }} / {{ number_format($team->target_qty) }}</span>
+                                <span class="fw-semibold text-dark"><i class="bi bi-box-seam text-secondary me-1"></i>{{ number_format($actQty) }} / {{ number_format($team->target_qty) }}</span>
                                 <span class="badge bg-light text-dark border rounded-pill"><i class="bi bi-graph-up-arrow text-primary me-1"></i>{{ $pct }}%</span>
                             </div>
                             <div class="progress rounded-pill" style="height: 8px;">
@@ -301,7 +373,7 @@
                                             </div>
 
                                             <div class="col-12 col-md-6">
-                                                <label class="form-label fw-semibold small text-dark">Periode Target</label>
+                                                <label class="form-label fw-semibold small text-dark">Periode Target Bawaan</label>
                                                 <div class="row g-2">
                                                     <div class="col-7">
                                                         <select name="period_month" class="form-select">
@@ -422,7 +494,7 @@
                         </div>
 
                         <div class="col-12 col-md-6">
-                            <label class="form-label fw-semibold small text-dark">Periode Target</label>
+                            <label class="form-label fw-semibold small text-dark">Periode Target Bawaan</label>
                             <div class="row g-2">
                                 <div class="col-7">
                                     <select name="period_month" class="form-select">
@@ -503,4 +575,18 @@
         </div>
     </div>
 </div>
+
+<script>
+function toggleFilterMode(mode) {
+    const monthContainer = document.getElementById('month_filter_container');
+    const rangeContainer = document.getElementById('date_range_container');
+    if (mode === 'date_range') {
+        monthContainer.style.display = 'none';
+        rangeContainer.style.display = 'block';
+    } else {
+        monthContainer.style.display = 'block';
+        rangeContainer.style.display = 'none';
+    }
+}
+</script>
 @endsection
