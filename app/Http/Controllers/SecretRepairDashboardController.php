@@ -479,7 +479,6 @@ class SecretRepairDashboardController extends Controller
 
     private function executeSyncProductStock()
     {
-        @set_time_limit(180);
         $tenantId = auth()->user()->tenant_id;
 
         $log = [];
@@ -488,21 +487,33 @@ class SecretRepairDashboardController extends Controller
         $log[] = "======================================================================";
 
         try {
-            // 1. Rekalkulasi stok seluruh Produk Set / Bundle berdasarkan komponennya (di DB)
+            // 1. Rekalkulasi stok seluruh Produk Set / Bundle berdasarkan komponennya (di DB secara Instant)
             $updatedBundles = MasterProduct::recalculateAllBundleStocks($tenantId);
             $log[] = "🎁 Berhasil menghitung ulang stok {$updatedBundles} produk Set/Bundle di ERP.";
 
-            // 2. Kirim jobs penyesuaian stok ke antrean (Async) agar HTTP request tidak timeout
-            $masterProducts = MasterProduct::where('tenant_id', $tenantId)->get();
+            // 2. Ambil produk master dan kirim job via dispatchAfterResponse agar HTTP response langsung kembali tanpa menahan koneksi web
+            $masterProducts = MasterProduct::where('tenant_id', $tenantId)->get(['id', 'sku', 'stock', 'is_bundle']);
             $count = 0;
 
             foreach ($masterProducts as $mp) {
-                \App\Jobs\PushStockToMarketplaces::dispatch($mp->id, $mp->stock);
+                if (method_exists(\App\Jobs\PushStockToMarketplaces::class, 'dispatchAfterResponse')) {
+                    \App\Jobs\PushStockToMarketplaces::dispatchAfterResponse($mp->id, $mp->stock);
+                } else {
+                    \App\Jobs\PushStockToMarketplaces::dispatch($mp->id, $mp->stock);
+                }
                 $count++;
             }
 
-            $log[] = "🚀 Berhasil mengirimkan {$count} produk ERP ke antrean sync stok marketplace (Shopee, TikTok, Lazada).";
-            $log[] = "⚡ Penyesuaian stok di toko marketplace sedang diproses secara async / background.";
+            // 3. Jalankan sync stok di background CLI (Non-Blocking)
+            $artisanCmd = "php artisan stock:sync --filter=all --tenant_id={$tenantId}";
+            if (str_starts_with(strtoupper(PHP_OS), 'WIN')) {
+                @pclose(@popen("start /B " . $artisanCmd, "r"));
+            } else {
+                @exec($artisanCmd . " > /dev/null 2>&1 &");
+            }
+
+            $log[] = "🚀 Berhasil memperbarui stok ERP & mengirimkan {$count} produk ke antrean push marketplace.";
+            $log[] = "⚡ Penyesuaian stok di toko Shopee/TikTok/Lazada berjalan di background secara kilat!";
 
         } catch (\Throwable $e) {
             $log[] = "❌ Terjadi kesalahan: " . $e->getMessage();
