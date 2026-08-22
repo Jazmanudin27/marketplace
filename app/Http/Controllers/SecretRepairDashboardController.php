@@ -487,15 +487,21 @@ class SecretRepairDashboardController extends Controller
         $log[] = "======================================================================";
 
         try {
-            if (\Artisan::has('stock:sync')) {
+            // 1. Rekalkulasi stok seluruh Produk Set / Bundle berdasarkan komponennya
+            $updatedBundles = MasterProduct::recalculateAllBundleStocks($tenantId);
+            $log[] = "🎁 Berhasil menghitung ulang stok {$updatedBundles} produk Set/Bundle.";
+
+            // 2. Jalankan sinkronisasi stok ke Marketplace
+            try {
                 \Artisan::call('stock:sync', [
                     '--filter' => 'all',
                     '--tenant_id' => $tenantId
                 ]);
                 $cmdOutput = \Artisan::output();
                 $log[] = $cmdOutput ?: "✅ Command 'stock:sync' berhasil dijalankan.";
-            } else {
-                $masterProducts = MasterProduct::where('tenant_id', $tenantId)->get(['id', 'sku', 'stock']);
+            } catch (\Throwable $exArtisan) {
+                // Fallback direct dispatch
+                $masterProducts = MasterProduct::where('tenant_id', $tenantId)->get();
                 $count = 0;
                 foreach ($masterProducts as $mp) {
                     \App\Jobs\PushStockToMarketplaces::dispatch($mp->id, $mp->stock);

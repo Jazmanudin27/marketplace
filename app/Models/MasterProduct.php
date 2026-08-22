@@ -100,16 +100,59 @@ class MasterProduct extends Model
     public function getStockAttribute()
     {
         if ($this->is_bundle && Schema::hasTable('master_product_bundles')) {
-            $comps = $this->components;
+            $comps = $this->relationLoaded('components') ? $this->components : $this->components()->get();
             if ($comps->isEmpty()) {
                 return 0;
             }
-            return $comps->map(function ($comp) {
-                $qtyNeeded = max(1, $comp->pivot->quantity);
-                return (int) floor($comp->stock / $qtyNeeded);
+            $calculated = $comps->map(function ($comp) {
+                $qtyNeeded = max(1, (int) ($comp->pivot->quantity ?? 1));
+                $compStock = (int) ($comp->stock ?? $comp->attributes['stock'] ?? 0);
+                return (int) floor($compStock / $qtyNeeded);
             })->min();
+
+            return max(0, (int) $calculated);
         }
-        return $this->attributes['stock'] ?? 0;
+        return (int) ($this->attributes['stock'] ?? 0);
+    }
+
+    /**
+     * Hitung & perbarui ulang kolom stok DB untuk semua produk Set/Bundle berdasarkan komponennya.
+     */
+    public static function recalculateAllBundleStocks(?int $tenantId = null): int
+    {
+        if (!Schema::hasTable('master_product_bundles')) {
+            return 0;
+        }
+
+        $query = static::where('is_bundle', true)->with('components');
+        if ($tenantId) {
+            $query->where('tenant_id', $tenantId);
+        }
+
+        $bundles = $query->get();
+        $updatedCount = 0;
+
+        foreach ($bundles as $bundle) {
+            $calcStock = $bundle->stock; // getStockAttribute()
+
+            DB::table('master_products')
+                ->where('id', $bundle->id)
+                ->update(['stock' => $calcStock]);
+
+            DB::table('marketplace_products')
+                ->where('master_product_id', $bundle->id)
+                ->when($bundle->sku, fn($q) => $q->orWhere('marketplace_sku', $bundle->sku))
+                ->update([
+                    'master_product_id' => $bundle->id,
+                    'stock' => $calcStock,
+                    'sync_stock' => true,
+                    'updated_at' => now(),
+                ]);
+
+            $updatedCount++;
+        }
+
+        return $updatedCount;
     }
 
     public function getCostPriceAttribute()
@@ -220,6 +263,33 @@ class MasterProduct extends Model
             });
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::warning('[StockSync] Push stock error: ' . $e->getMessage());
+        }
+
+        // 5. 🎁 Jika produk ini adalah komponen dari Set/Bundle, perbarui stok Set/Bundle induknya!
+        if (Schema::hasTable('master_product_bundles') && $this->bundles->isNotEmpty()) {
+            foreach ($this->bundles as $parentBundle) {
+                $calcStock = $parentBundle->stock;
+
+                DB::table('master_products')
+                    ->where('id', $parentBundle->id)
+                    ->update(['stock' => $calcStock]);
+
+                DB::table('marketplace_products')
+                    ->where('master_product_id', $parentBundle->id)
+                    ->when($parentBundle->sku, fn($q) => $q->orWhere('marketplace_sku', $parentBundle->sku))
+                    ->update([
+                        'master_product_id' => $parentBundle->id,
+                        'stock' => $calcStock,
+                        'sync_stock' => true,
+                        'updated_at' => now(),
+                    ]);
+
+                try {
+                    DB::afterCommit(function() use ($parentBundle, $calcStock) {
+                        \App\Jobs\PushStockToMarketplaces::dispatch($parentBundle->id, $calcStock);
+                    });
+                } catch (\Exception $e) {}
+            }
         }
     }
 }
