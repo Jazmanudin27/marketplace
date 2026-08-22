@@ -2,794 +2,1181 @@
 @section('title', 'Daftar Pesanan')
 @section('page-title', 'Manajemen Pesanan')
 @section('content')
-    <style>
-        .badge-channel-shopee {
-            background: linear-gradient(135deg, #ee4d2d 0%, #ff6b35 100%) !important;
-            color: #ffffff !important;
-            font-weight: 700;
-            box-shadow: 0 2px 4px rgba(238, 77, 45, 0.25);
-        }
-        .badge-channel-tiktok {
-            background: linear-gradient(135deg, #000000 0%, #111827 100%) !important;
-            color: #ffffff !important;
-            border: 1px solid #374151;
-            font-weight: 700;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-        }
-        .badge-channel-lazada {
-            background: linear-gradient(135deg, #0f146d 0%, #1a237e 100%) !important;
-            color: #ffffff !important;
-            font-weight: 700;
-            box-shadow: 0 2px 4px rgba(15, 20, 109, 0.25);
-        }
-        .badge-channel-tokopedia {
-            background: linear-gradient(135deg, #03ac0e 0%, #10b981 100%) !important;
-            color: #ffffff !important;
-            font-weight: 700;
-            box-shadow: 0 2px 4px rgba(3, 172, 14, 0.25);
-        }
-        .badge-channel-offline {
-            background: linear-gradient(135deg, #475569 0%, #64748b 100%) !important;
-            color: #ffffff !important;
-            font-weight: 700;
-        }
-    </style>
-    <div class="row">
-        <div class="col-md-12">
 
-            {{-- ── Alert Batas Pengiriman ── --}}
-            @if ($urgentOrders->isNotEmpty())
-                @php
-                    $overdueCount = $urgentOrders->filter(fn($o) => $o->ship_before_date->isPast())->count();
-                    $soonCount = $urgentOrders->count() - $overdueCount;
-                @endphp
-                <div class="alert alert-dismissible fade show border-start border-4 p-0 mb-3 overflow-hidden shadow-sm {{ $overdueCount > 0 ? 'alert-danger border-danger' : 'alert-warning border-warning' }}"
-                    role="alert">
-                    <div class="d-flex align-items-stretch">
-                        <div class="d-flex align-items-center justify-content-center px-3 {{ $overdueCount > 0 ? 'bg-danger' : 'bg-warning' }}"
-                            style="min-width:52px;">
-                            <i class="bi bi-clock-fill fs-4 text-white"></i>
-                        </div>
-                        <div class="flex-grow-1 p-2 px-3">
-                            <h6 class="fw-bold mb-1 {{ $overdueCount > 0 ? 'text-danger' : 'text-warning' }} small">
-                                ⚠️ {{ $urgentOrders->count() }} Pesanan Harus Segera Dikirim!
-                            </h6>
-                            <p class="mb-0 small text-secondary">
-                                @if ($overdueCount > 0)
-                                    <span class="badge bg-danger me-1">{{ $overdueCount }} Overdue</span>
-                                @endif
-                                @if ($soonCount > 0)
-                                    <span class="badge bg-warning text-dark me-1">{{ $soonCount }} Dalam 24 Jam</span>
-                                @endif
-                                Batas waktu pengiriman sudah lewat atau kurang dari 24 jam.
-                            </p>
-                        </div>
-                        <div class="d-flex align-items-center pe-3">
-                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                        </div>
+<style>
+    /* ── Shopee Color Palette ── */
+    :root {
+        --shopee-orange: #ee4d2d;
+        --shopee-orange-hover: #d73211;
+        --shopee-orange-light: #fff4f2;
+        --shopee-border: #e5e7eb;
+        --shopee-bg: #f5f5f5;
+        --shopee-text: #333333;
+        --shopee-muted: #888888;
+    }
+
+    /* ── Page Wrapper ── */
+    .shopee-page {
+        background: var(--shopee-bg);
+        min-height: 100vh;
+        padding: 0;
+    }
+
+    /* ── Page Header ── */
+    .shopee-page-header {
+        background: #fff;
+        border-bottom: 1px solid var(--shopee-border);
+        padding: 14px 20px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 12px;
+        border-radius: 4px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    }
+    .shopee-page-header h5 {
+        margin: 0;
+        font-size: 1rem;
+        font-weight: 700;
+        color: var(--shopee-text);
+        letter-spacing: -0.01em;
+    }
+    .shopee-page-header .header-actions {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+    }
+
+    /* ── Main Card ── */
+    .shopee-card {
+        background: #fff;
+        border-radius: 4px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+        overflow: hidden;
+    }
+
+    /* ── Status Tabs ── */
+    .shopee-tabs {
+        display: flex;
+        border-bottom: 1px solid var(--shopee-border);
+        overflow-x: auto;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+        background: #fff;
+    }
+    .shopee-tabs::-webkit-scrollbar { display: none; }
+    .shopee-tab {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 14px 20px;
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #555;
+        cursor: pointer;
+        border-bottom: 2px solid transparent;
+        white-space: nowrap;
+        text-decoration: none;
+        transition: color 0.15s, border-color 0.15s;
+        position: relative;
+    }
+    .shopee-tab:hover {
+        color: var(--shopee-orange);
+        text-decoration: none;
+    }
+    .shopee-tab.active {
+        color: var(--shopee-orange);
+        border-bottom-color: var(--shopee-orange);
+        font-weight: 600;
+    }
+    .shopee-tab .tab-count {
+        background: var(--shopee-orange);
+        color: #fff;
+        border-radius: 10px;
+        font-size: 0.7rem;
+        font-weight: 700;
+        padding: 1px 6px;
+        min-width: 18px;
+        text-align: center;
+        line-height: 1.4;
+    }
+    .shopee-tab:not(.active) .tab-count {
+        background: #ddd;
+        color: #666;
+    }
+
+    /* ── Filter Bar ── */
+    .shopee-filter-bar {
+        padding: 12px 16px;
+        border-bottom: 1px solid var(--shopee-border);
+        background: #fafafa;
+    }
+    .shopee-filter-bar .filter-row {
+        display: flex;
+        gap: 10px;
+        align-items: flex-end;
+        flex-wrap: wrap;
+    }
+    .shopee-filter-group {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        min-width: 0;
+    }
+    .shopee-filter-group label {
+        font-size: 0.72rem;
+        font-weight: 600;
+        color: #555;
+        white-space: nowrap;
+        margin: 0;
+    }
+    .shopee-filter-group .form-control,
+    .shopee-filter-group .form-select {
+        font-size: 0.8rem;
+        border-radius: 3px;
+        border: 1px solid #d1d5db;
+        padding: 5px 10px;
+        height: 32px;
+        color: var(--shopee-text);
+        background: #fff;
+    }
+    .shopee-filter-group .form-control:focus,
+    .shopee-filter-group .form-select:focus {
+        border-color: var(--shopee-orange);
+        box-shadow: 0 0 0 2px rgba(238,77,45,0.12);
+        outline: none;
+    }
+    .shopee-filter-group.w-order { width: 200px; }
+    .shopee-filter-group.w-select { width: 150px; }
+    .shopee-filter-group.w-date { width: 130px; }
+
+    /* ── Buttons ── */
+    .btn-shopee-primary {
+        background: var(--shopee-orange);
+        color: #fff;
+        border: none;
+        border-radius: 3px;
+        padding: 5px 18px;
+        font-size: 0.82rem;
+        font-weight: 600;
+        height: 32px;
+        cursor: pointer;
+        transition: background 0.15s;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        text-decoration: none;
+        white-space: nowrap;
+    }
+    .btn-shopee-primary:hover {
+        background: var(--shopee-orange-hover);
+        color: #fff;
+        text-decoration: none;
+    }
+    .btn-shopee-outline {
+        background: #fff;
+        color: var(--shopee-orange);
+        border: 1px solid var(--shopee-orange);
+        border-radius: 3px;
+        padding: 4px 16px;
+        font-size: 0.82rem;
+        font-weight: 600;
+        height: 32px;
+        cursor: pointer;
+        transition: all 0.15s;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        text-decoration: none;
+        white-space: nowrap;
+    }
+    .btn-shopee-outline:hover {
+        background: var(--shopee-orange-light);
+        color: var(--shopee-orange);
+        text-decoration: none;
+    }
+    .btn-shopee-ghost {
+        background: transparent;
+        color: #555;
+        border: 1px solid #d1d5db;
+        border-radius: 3px;
+        padding: 4px 14px;
+        font-size: 0.82rem;
+        height: 32px;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        text-decoration: none;
+        white-space: nowrap;
+    }
+    .btn-shopee-ghost:hover {
+        border-color: #999;
+        color: #333;
+        text-decoration: none;
+    }
+
+    /* ── Summary Bar ── */
+    .shopee-summary-bar {
+        padding: 10px 16px;
+        border-bottom: 1px solid var(--shopee-border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: #fff;
+    }
+    .shopee-summary-bar .results-count {
+        font-size: 0.82rem;
+        color: var(--shopee-muted);
+        font-weight: 500;
+    }
+    .shopee-summary-bar .results-count strong {
+        color: var(--shopee-text);
+    }
+
+    /* ── Table ── */
+    .shopee-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.82rem;
+    }
+    .shopee-table thead tr {
+        background: #fafafa;
+        border-bottom: 1px solid var(--shopee-border);
+    }
+    .shopee-table thead th {
+        padding: 10px 12px;
+        font-weight: 600;
+        color: #666;
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        white-space: nowrap;
+        border-bottom: 1px solid var(--shopee-border);
+    }
+    .shopee-table tbody tr {
+        border-bottom: 1px solid #f0f0f0;
+        transition: background 0.1s;
+    }
+    .shopee-table tbody tr:hover {
+        background: #fffbf9;
+    }
+    .shopee-table tbody tr:last-child {
+        border-bottom: none;
+    }
+    .shopee-table td {
+        padding: 12px 12px;
+        vertical-align: middle;
+        color: var(--shopee-text);
+    }
+
+    /* ── Product Cell ── */
+    .product-cell {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+    .order-id-link {
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: var(--shopee-orange);
+        text-decoration: none;
+        font-family: 'Courier New', monospace;
+    }
+    .order-id-link:hover {
+        color: var(--shopee-orange-hover);
+        text-decoration: underline;
+    }
+    .sku-tag {
+        font-size: 0.7rem;
+        color: #666;
+        font-family: 'Courier New', monospace;
+        background: #f5f5f5;
+        border-radius: 2px;
+        padding: 1px 5px;
+        display: inline-block;
+    }
+    .buyer-avatar {
+        width: 26px;
+        height: 26px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #ee4d2d, #ff8c5a);
+        color: #fff;
+        font-size: 0.7rem;
+        font-weight: 700;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    /* ── Channel Badges ── */
+    .badge-shopee  { background: linear-gradient(135deg,#ee4d2d,#ff6b35); color:#fff; }
+    .badge-tiktok  { background: linear-gradient(135deg,#000,#111827); color:#fff; border:1px solid #374151; }
+    .badge-lazada  { background: linear-gradient(135deg,#0f146d,#1a237e); color:#fff; }
+    .badge-tokopedia { background: linear-gradient(135deg,#03ac0e,#10b981); color:#fff; }
+    .badge-offline { background: linear-gradient(135deg,#475569,#64748b); color:#fff; }
+    .channel-badge {
+        font-size: 0.68rem;
+        font-weight: 700;
+        border-radius: 2px;
+        padding: 2px 7px;
+        display: inline-block;
+    }
+
+    /* ── Status Badges ── */
+    .status-badge {
+        font-size: 0.7rem;
+        font-weight: 600;
+        border-radius: 20px;
+        padding: 3px 10px;
+        display: inline-block;
+        white-space: nowrap;
+    }
+    .status-pending     { background:#fff7e6; color:#d46b08; border:1px solid #ffd591; }
+    .status-toship      { background:#fff2e8; color:#d4380d; border:1px solid #ffbb96; }
+    .status-shipped     { background:#e6f4ff; color:#096dd9; border:1px solid #91caff; }
+    .status-completed   { background:#f6ffed; color:#389e0d; border:1px solid #b7eb8f; }
+    .status-cancelled   { background:#fff1f0; color:#cf1322; border:1px solid #ffa39e; }
+    .status-default     { background:#fafafa; color:#595959; border:1px solid #d9d9d9; }
+
+    /* ── Deadline Badge ── */
+    .deadline-overdue   { background:#fff1f0; color:#cf1322; border:1px solid #ffa39e; border-radius:3px; padding:2px 7px; font-size:0.7rem; font-weight:600; }
+    .deadline-urgent    { background:#fffbe6; color:#d4b106; border:1px solid #ffe58f; border-radius:3px; padding:2px 7px; font-size:0.7rem; font-weight:600; }
+    .deadline-safe      { background:#f6ffed; color:#389e0d; border:1px solid #b7eb8f; border-radius:3px; padding:2px 7px; font-size:0.7rem; font-weight:600; }
+
+    /* ── Print / Packing badges ── */
+    .meta-badge {
+        font-size: 0.65rem;
+        font-weight: 600;
+        border-radius: 2px;
+        padding: 1px 6px;
+        display: inline-block;
+    }
+
+    /* ── Action Buttons in table ── */
+    .btn-tbl {
+        font-size: 0.72rem;
+        font-weight: 600;
+        border-radius: 2px;
+        padding: 4px 10px;
+        cursor: pointer;
+        border: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        white-space: nowrap;
+        text-decoration: none;
+    }
+    .btn-tbl-primary {
+        background: var(--shopee-orange);
+        color: #fff;
+    }
+    .btn-tbl-primary:hover { background: var(--shopee-orange-hover); color:#fff; }
+    .btn-tbl-outline {
+        background: #fff;
+        color: var(--shopee-orange);
+        border: 1px solid var(--shopee-orange) !important;
+    }
+    .btn-tbl-outline:hover { background: var(--shopee-orange-light); }
+    .btn-tbl-yellow {
+        background: #fff7e6;
+        color: #d46b08;
+        border: 1px solid #ffd591 !important;
+    }
+    .btn-tbl-yellow:hover { background: #ffe7ba; }
+    .btn-tbl-blue {
+        background: #e6f4ff;
+        color: #096dd9;
+        border: 1px solid #91caff !important;
+    }
+    .btn-tbl-blue:hover { background: #bae0ff; }
+
+    /* ── Urgent Alert ── */
+    .shopee-alert {
+        border-radius: 4px;
+        overflow: hidden;
+        margin-bottom: 12px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    }
+
+    /* ── Pagination ── */
+    .shopee-pagination {
+        padding: 12px 16px;
+        border-top: 1px solid var(--shopee-border);
+        background: #fafafa;
+    }
+
+    /* ── Empty state ── */
+    .shopee-empty {
+        padding: 60px 20px;
+        text-align: center;
+        color: #aaa;
+    }
+    .shopee-empty i {
+        font-size: 3rem;
+        opacity: 0.25;
+        display: block;
+        margin-bottom: 12px;
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 768px) {
+        .shopee-filter-group.w-order,
+        .shopee-filter-group.w-select,
+        .shopee-filter-group.w-date { width: 100%; }
+        .shopee-page-header { flex-direction: column; gap: 8px; align-items: flex-start; }
+    }
+</style>
+
+<div class="shopee-page">
+
+    {{-- ── Urgent Alert ── --}}
+    @if ($urgentOrders->isNotEmpty())
+        @php
+            $overdueCount = $urgentOrders->filter(fn($o) => $o->ship_before_date->isPast())->count();
+            $soonCount = $urgentOrders->count() - $overdueCount;
+        @endphp
+        <div class="alert shopee-alert alert-dismissible fade show border-start border-4 p-0 mb-0 {{ $overdueCount > 0 ? 'alert-danger border-danger' : 'alert-warning border-warning' }}"
+            role="alert" style="border-radius: 4px; margin-bottom: 12px;">
+            <div class="d-flex align-items-stretch">
+                <div class="d-flex align-items-center justify-content-center px-3 {{ $overdueCount > 0 ? 'bg-danger' : 'bg-warning' }}" style="min-width:48px;">
+                    <i class="bi bi-clock-fill text-white"></i>
+                </div>
+                <div class="flex-grow-1 p-2 px-3">
+                    <strong class="{{ $overdueCount > 0 ? 'text-danger' : 'text-warning' }}" style="font-size:0.82rem;">
+                        ⚠️ {{ $urgentOrders->count() }} Pesanan Harus Segera Dikirim!
+                    </strong>
+                    <div class="mt-1" style="font-size:0.78rem; color:#666;">
+                        @if ($overdueCount > 0)
+                            <span class="badge bg-danger me-1">{{ $overdueCount }} Overdue</span>
+                        @endif
+                        @if ($soonCount > 0)
+                            <span class="badge bg-warning text-dark me-1">{{ $soonCount }} &lt; 24 Jam</span>
+                        @endif
+                        Batas waktu pengiriman sudah lewat atau kurang dari 24 jam.
                     </div>
                 </div>
-            @endif
-
-
-            {{-- ── Table Card ────────────────────────────────────────────── --}}
-            <div class="card border shadow-sm overflow-hidden">
-                <div
-                    class="card-header bg-info bg-opacity-10 d-flex justify-content-between align-items-center p-3 border-bottom">
-                    <div>
-                        <h6 class="mb-0 fw-bold text-dark"><i class="fas fa-shopping-cart me-2 text-info"></i>Daftar Pesanan
-                        </h6>
-                        <small class="text-muted d-block mt-1">Kelola pesanan dari toko online dan marketplace</small>
-                    </div>
-                    <div class="d-flex gap-2 align-items-center flex-wrap">
-                        @can('orders.export')
-                            <a href="{{ route('orders.export', request()->all()) }}"
-                                class="btn btn-outline-secondary btn-sm px-3 rounded-3">
-                                <i class="fas fa-file-export me-1"></i> Ekspor CSV
-                            </a>
-                        @endcan
-
-                        <button type="submit" form="mass-print-form" class="btn btn-primary btn-sm px-3 rounded-3 fw-semibold">
-                            <i class="fas fa-print me-1"></i> Cetak Massal
-                        </button>
-
-                        <button type="button" class="btn btn-success btn-sm px-3 rounded-3 fw-semibold" id="btn-mass-ship">
-                            <i class="fas fa-truck-loading me-1"></i> Kirim Pesanan Massal
-                        </button>
-
-
-
-
-                    </div>
-                </div>
-
-                <div class="card-body p-3">
-
-                    {{-- ── Filter Card ───────────────────────────────────────────── --}}
-                    <div class="card border shadow-sm p-3 mb-3">
-                        <form method="GET" action="{{ route('orders.index') }}">
-                            <div class="row g-2 align-items-end">
-                                <div class="col-12 col-sm-6 col-md-3">
-                                    <label class="form-label fw-bold small text-dark mb-1">
-                                        <i class="fas fa-search me-1 text-primary"></i>No. Pesanan / Resi / Buyer
-                                    </label>
-                                    <input type="text" name="order_number" class="form-control form-control-sm font-monospace"
-                                        placeholder="Cari ID Pesanan / Resi / Pembeli..."
-                                        value="{{ request('order_number') }}">
-                                </div>
-                                <div class="col-12 col-sm-6 col-md-2">
-                                    <label class="form-label fw-bold small text-dark mb-1">
-                                        <i class="fas fa-shopping-bag me-1 text-secondary"></i>Channel
-                                    </label>
-                                    <select name="channel_id" class="form-select form-select-sm">
-                                        <option value="">Semua Channel</option>
-                                        @foreach ($channels as $channel)
-                                            <option value="{{ $channel->id }}"
-                                                {{ request('channel_id') == $channel->id ? 'selected' : '' }}>
-                                                {{ $channel->name }}
-                                            </option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                                <div class="col-12 col-sm-6 col-md-2">
-                                    <label class="form-label fw-bold small text-dark mb-1">
-                                        <i class="fas fa-store me-1 text-secondary"></i>Toko
-                                    </label>
-                                    <select name="store_id" class="form-select form-select-sm">
-                                        <option value="">Semua Toko</option>
-                                        @foreach ($stores as $store)
-                                            <option value="{{ $store->id }}"
-                                                {{ request('store_id') == $store->id ? 'selected' : '' }}>
-                                                {{ $store->store_name }}
-                                            </option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                                <div class="col-12 col-sm-6 col-md-2">
-                                    <label class="form-label fw-bold small text-dark mb-1">
-                                        <i class="fas fa-truck me-1 text-secondary"></i>Kurir
-                                    </label>
-                                    <select name="courier" class="form-select form-select-sm">
-                                        <option value="">Semua Kurir</option>
-                                        @foreach ($couriers as $courier)
-                                            <option value="{{ $courier }}"
-                                                {{ request('courier') == $courier ? 'selected' : '' }}>
-                                                {{ $courier }}
-                                            </option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                                <div class="col-12 col-sm-6 col-md-2">
-                                    <label class="form-label fw-bold small text-dark mb-1">
-                                        <i class="fas fa-info-circle me-1 text-secondary"></i>Status
-                                    </label>
-                                    <select name="status" class="form-select form-select-sm">
-                                        <option value="">Semua Status</option>
-                                        @foreach ($statuses as $status)
-                                            <option value="{{ $status }}"
-                                                {{ request('status') == $status ? 'selected' : '' }}>
-                                                {{ str_replace('_', ' ', $status) }}
-                                            </option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                                <div class="col-12 col-sm-6 col-md-2">
-                                    <label class="form-label fw-bold small text-dark mb-1">
-                                        <i class="fas fa-hourglass-half me-1 text-secondary"></i>Batas Kirim
-                                    </label>
-                                    <select name="deadline_status" class="form-select form-select-sm">
-                                        <option value="">Semua Batas Kirim</option>
-                                        <option value="overdue"
-                                            {{ request('deadline_status') == 'overdue' ? 'selected' : '' }}>
-                                            Overdue</option>
-                                        <option value="urgent"
-                                            {{ request('deadline_status') == 'urgent' ? 'selected' : '' }}>
-                                            Urgent (&lt; 24 Jam)</option>
-                                        <option value="safe"
-                                            {{ request('deadline_status') == 'safe' ? 'selected' : '' }}>Aman
-                                            (&gt; 24 Jam)</option>
-                                    </select>
-                                </div>
-                                <div class="col-12 col-sm-6 col-md-2">
-                                    <label class="form-label fw-bold small text-dark mb-1">
-                                        <i class="fas fa-shipping-fast me-1 text-secondary"></i>Dropship
-                                    </label>
-                                    <select name="is_dropship" class="form-select form-select-sm">
-                                        <option value="">Semua Tipe</option>
-                                        <option value="1" {{ request('is_dropship') === '1' ? 'selected' : '' }}>
-                                            Dropship</option>
-                                        <option value="0" {{ request('is_dropship') === '0' ? 'selected' : '' }}>
-                                            Non-Dropship</option>
-                                    </select>
-                                </div>
-                                <div class="col-12 col-sm-6 col-md-2">
-                                    <label class="form-label fw-bold small text-dark mb-1">
-                                        <i class="fas fa-box me-1 text-secondary"></i>Tipe Produk
-                                    </label>
-                                    <select name="is_po" class="form-select form-select-sm">
-                                        <option value="">Semua Tipe</option>
-                                        <option value="po" {{ request('is_po') === 'po' ? 'selected' : '' }}>Pre-Order (PO)</option>
-                                        <option value="ready" {{ request('is_po') === 'ready' ? 'selected' : '' }}>Ready Stock</option>
-                                    </select>
-                                </div>
-                                <div class="col-12 col-sm-6 col-md-2">
-                                    <label class="form-label fw-bold small text-dark mb-1">
-                                        <i class="fas fa-tools me-1 text-secondary"></i>Status SPK
-                                    </label>
-                                    <select name="spk_status" class="form-select form-select-sm">
-                                        <option value="">Semua Status SPK</option>
-                                        <option value="has_spk" {{ request('spk_status') === 'has_spk' ? 'selected' : '' }}>Sudah Ada SPK</option>
-                                        <option value="no_spk" {{ request('spk_status') === 'no_spk' ? 'selected' : '' }}>Belum Buat SPK</option>
-                                    </select>
-                                </div>
-                                <div class="col-12 col-sm-6 col-md-3">
-                                    <label class="form-label fw-bold small text-dark mb-1">
-                                        <i class="fas fa-calendar-alt me-1 text-secondary"></i>Rentang Tanggal
-                                    </label>
-                                    <div class="d-flex gap-2">
-                                        <input type="date" name="start_date" class="form-control form-control-sm"
-                                            value="{{ request('start_date') }}">
-                                        <input type="date" name="end_date" class="form-control form-control-sm"
-                                            value="{{ request('end_date') }}">
-                                    </div>
-                                </div>
-                                <div class="col-12 col-sm-6 col-md-2">
-                                    <label class="form-label fw-bold small text-dark mb-1">
-                                        <i class="fas fa-print me-1 text-secondary"></i>Status Print
-                                    </label>
-                                    <select name="print_status" class="form-select form-select-sm">
-                                        <option value="">Semua Status Print</option>
-                                        <option value="unprinted" {{ request('print_status') === 'unprinted' ? 'selected' : '' }}>Belum Diprint</option>
-                                        <option value="printed" {{ request('print_status') === 'printed' ? 'selected' : '' }}>Sudah Diprint</option>
-                                    </select>
-                                </div>
-                                <div class="col-12 col-sm-6 col-md-2">
-                                    <label class="form-label fw-bold small text-dark mb-1">
-                                        <i class="fas fa-box-open me-1 text-secondary"></i>Status Kemas
-                                    </label>
-                                    <select name="packing_status" class="form-select form-select-sm">
-                                        <option value="">Semua Status Kemas</option>
-                                        <option value="pending" {{ request('packing_status') === 'pending' ? 'selected' : '' }}>Menunggu (Pending)</option>
-                                        <option value="packing" {{ request('packing_status') === 'packing' ? 'selected' : '' }}>Sedang Dikemas (Packing)</option>
-                                        <option value="verified" {{ request('packing_status') === 'verified' ? 'selected' : '' }}>Selesai Scan (Verified)</option>
-                                    </select>
-                                </div>
-                                <div class="col-12 col-sm-6 col-md-3">
-                                    <label class="form-label fw-bold small text-dark mb-1">
-                                        <i class="fas fa-comment-slash me-1 text-secondary"></i>Alasan Batal
-                                    </label>
-                                    <input type="text" name="cancel_reason" class="form-control form-control-sm"
-                                        placeholder="Cari alasan pembatalan..." value="{{ request('cancel_reason') }}">
-                                </div>
-                                <div class="col-12 col-sm-6 col-md-auto d-flex gap-2 align-items-end">
-                                    <button type="submit" class="btn btn-primary btn-sm px-3 rounded-3">
-                                        <i class="fas fa-search me-1"></i> Cari
-                                    </button>
-                                    @if (request()->anyFilled([
-                                            'channel_id',
-                                            'store_id',
-                                            'courier',
-                                            'status',
-                                            'start_date',
-                                            'end_date',
-                                            'deadline_status',
-                                            'is_dropship',
-                                            'is_po',
-                                            'spk_status',
-                                            'cancel_reason',
-                                            'print_status',
-                                            'packing_status',
-                                        ]))
-                                        <a href="{{ route('orders.index') }}"
-                                            class="btn btn-secondary btn-sm px-3 rounded-3">
-                                            <i class="fas fa-times me-1"></i> Reset
-                                        </a>
-                                    @endif
-                                </div>
-                            </div>
-                        </form>
-                    </div>
-                    <div class="table-responsive rounded border">
-                        <form id="mass-print-form" action="{{ route('orders.mass_print') }}" method="POST"
-                            target="_blank">
-                            @csrf
-                            <table class="table table-sm table-striped table-bordered align-middle mb-0">
-                                <thead>
-                                    <tr class="small">
-                                        <th class="text-center" style="width: 40px;">
-                                            <input type="checkbox" id="check-all" class="form-check-input">
-                                        </th>
-                                        <th>INVOICE / ID</th>
-                                        <th>PEMBELI / DEPT</th>
-                                        <th>TOKO &amp; CHANNEL</th>
-                                        <th class="text-end">TOTAL</th>
-                                        <th>KURIR</th>
-                                        <th>TANGGAL, BATAS &amp; DANA DILEPAS</th>
-                                        <th class="text-center">STATUS</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @forelse($orders as $order)
-                                        <tr>
-                                            <td class="text-center">
-                                                <input type="checkbox" name="order_ids[]" value="{{ $order->id }}"
-                                                    class="order-checkbox form-check-input">
-                                            </td>
-                                            <td style="mso-number-format:'\@';">
-                                                <a href="{{ route('orders.show', $order) }}"
-                                                    class="text-decoration-none fw-bold text-primary small">
-                                                    {{ $order->invoice_number ?? $order->order_marketplace_id }}
-                                                </a>
-                                                @if ($order->is_dropship)
-                                                    <span class="badge bg-warning text-dark ms-1 font-monospace"
-                                                        style="font-size: 0.6rem; padding: 0.15em 0.3em;">Dropship</span>
-                                                @endif
-
-                                                <div class="mt-1 d-flex flex-wrap gap-1 align-items-center">
-                                                    {{-- Badge PO vs Ready --}}
-                                                    @if ($order->hasPreorderItems())
-                                                        <span class="badge text-white px-2 py-0-5 fw-bold"
-                                                            style="font-size: 0.65rem; background-color: #8b5cf6;" title="Pesanan Pre-Order">
-                                                            <i class="fas fa-clock me-1"></i>PO
-                                                        </span>
-                                                    @else
-                                                        <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-0-5"
-                                                            style="font-size: 0.65rem;" title="Pesanan Ready Stock">
-                                                            <i class="fas fa-check-circle me-1"></i>Ready
-                                                        </span>
-                                                    @endif
-
-                                                    {{-- Badge Status SPK --}}
-                                                    @if ($order->spks && $order->spks->isNotEmpty())
-                                                        <a href="{{ route('spks.show', $order->spks->first()->id) }}"
-                                                            class="badge bg-primary-subtle text-primary border border-primary-subtle text-decoration-none px-2 py-0-5"
-                                                            style="font-size: 0.65rem;" title="Lihat SPK #{{ $order->spks->first()->no_spk }}">
-                                                            <i class="fas fa-tools me-1"></i>{{ $order->spks->first()->no_spk }}
-                                                        </a>
-                                                    @else
-                                                        <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-2 py-0-5"
-                                                            style="font-size: 0.65rem;" title="Belum Dibuatkan SPK">
-                                                            <i class="fas fa-minus-circle me-1"></i>Belum SPK
-                                                        </span>
-                                                    @endif
-                                                </div>
-
-                                                {{-- SKU Item Pesanan --}}
-                                                @if($order->items->isNotEmpty())
-                                                    <div class="mt-1">
-                                                        @foreach($order->items as $orderItem)
-                                                            <div class="text-muted font-monospace" style="font-size: 0.67rem; line-height: 1.4;">
-                                                                <i class="fas fa-tag me-1 text-secondary opacity-50"></i>
-                                                                <span class="fw-semibold text-dark">{{ $orderItem->sku ?? ($orderItem->masterProduct->sku ?? '-') }}</span>
-                                                                <span class="text-muted ms-1">({{ $orderItem->quantity }} PCS)</span>
-                                                            </div>
-                                                        @endforeach
-                                                    </div>
-                                                @endif
-                                            </td>
-                                            <td>
-                                                <strong class="text-dark small">{{ $order->buyer_name ?? '-' }}</strong>
-                                            </td>
-                                            <td>
-                                                @php
-                                                    $channelCode = strtolower($order->store?->channel?->code ?? '');
-                                                    $channelName = $order->store?->channel?->name ?? 'Offline';
-                                                    $badgeClass = match(true) {
-                                                        str_contains($channelCode, 'shopee') => 'badge-channel-shopee',
-                                                        str_contains($channelCode, 'tiktok') => 'badge-channel-tiktok',
-                                                        str_contains($channelCode, 'lazada') => 'badge-channel-lazada',
-                                                        str_contains($channelCode, 'tokopedia') => 'badge-channel-tokopedia',
-                                                        default => 'badge-channel-offline',
-                                                    };
-                                                    $channelIcon = match(true) {
-                                                        str_contains($channelCode, 'shopee') => 'fas fa-shopping-bag',
-                                                        str_contains($channelCode, 'tiktok') => 'fab fa-tiktok',
-                                                        str_contains($channelCode, 'lazada') => 'fas fa-store',
-                                                        str_contains($channelCode, 'tokopedia') => 'fas fa-shopping-cart',
-                                                        default => 'fas fa-store-alt',
-                                                    };
-                                                @endphp
-                                                <div class="lh-sm">
-                                                    <strong class="text-dark small">{{ $order->store->store_name ?? '-' }}</strong>
-                                                    <div class="mt-1">
-                                                        <span class="badge {{ $badgeClass }} px-2 py-1" style="font-size: 0.68rem;">
-                                                            <i class="{{ $channelIcon }} me-1"></i>{{ $channelName }}
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td class="text-end font-monospace">
-                                                <strong class="text-dark small">Rp
-                                                    {{ number_format($order->total_amount, 0, ',', '.') }}</strong>
-                                            </td>
-                                            <td>
-                                                <div class="lh-sm">
-                                                    <span class="small text-muted fw-semibold">
-                                                        <i class="fas fa-truck me-1 text-secondary"></i>{{ $order->courier ?? '—' }}
-                                                    </span>
-
-                                                    <div class="mt-1 d-flex flex-column gap-1">
-                                                        {{-- Resi Info / Tarik Resi --}}
-                                                        @if (!empty($order->tracking_number))
-                                                            <div class="text-muted small font-monospace" style="font-size:0.68rem;" title="Nomor Resi">
-                                                                <i class="fas fa-barcode me-1 text-secondary"></i><span class="fw-semibold text-dark">{{ $order->tracking_number }}</span>
-                                                            </div>
-                                                        @else
-                                                            <div>
-                                                                <button type="button" 
-                                                                    class="btn btn-sm btn-outline-warning text-dark border-warning rounded-1 py-0 px-1.5 fw-semibold btn-fetch-single-tracking"
-                                                                    data-order-id="{{ $order->id }}"
-                                                                    style="font-size: 0.65rem;"
-                                                                    title="Tarik Resi dari Marketplace">
-                                                                    <i class="fas fa-sync-alt me-1"></i>Tarik Resi
-                                                                </button>
-                                                            </div>
-                                                        @endif
-
-                                                        {{-- Status Kirim / Tombol Kirim Pesanan --}}
-                                                        @if (in_array($order->order_status, ['SHIPPED', 'DELIVERED', 'COMPLETED']))
-                                                            <div>
-                                                                <span class="badge bg-success-subtle text-success border border-success-subtle px-1-5 py-0-5"
-                                                                    style="font-size: 0.65rem;" title="Pesanan Sudah Dikirim">
-                                                                    <i class="fas fa-check-circle me-1"></i>Sudah Kirim
-                                                                </span>
-                                                            </div>
-                                                        @elseif ($order->order_status !== 'CANCELLED')
-                                                            <div>
-                                                                <button type="button" 
-                                                                    class="btn btn-sm btn-outline-primary rounded-1 py-0 px-1.5 fw-semibold btn-ship-single-order"
-                                                                    data-order-id="{{ $order->id }}"
-                                                                    style="font-size: 0.65rem;"
-                                                                    title="Kirim Pesanan ke Marketplace">
-                                                                    <i class="fas fa-paper-plane me-1"></i>Kirim Pesanan
-                                                                </button>
-                                                            </div>
-                                                        @endif
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td class="small">
-                                                <div class="lh-sm">
-                                                    <div class="small text-dark fw-semibold" title="Tanggal Pesanan">
-                                                        <i class="far fa-calendar-alt text-secondary me-1"></i>{{ $order->order_date ? $order->order_date->format('d/m/Y H:i') : '-' }}
-                                                    </div>
-                                                    @if ($order->ship_before_date)
-                                                        <div class="mt-1" style="font-size:0.7rem;" title="Batas Kirim">
-                                                            <span class="text-muted">Batas:</span> 
-                                                            <span class="fw-bold text-dark font-monospace">{{ $order->ship_before_date->format('d/m/Y H:i') }}</span>
-                                                        </div>
-                                                        @if (!in_array($order->order_status, ['SHIPPED', 'DELIVERED', 'COMPLETED', 'FINISHED', 'CANCELLED', 'SELESAI', 'BATAL', 'IN_CANCEL']))
-                                                            <div class="mt-1">
-                                                                @if ($order->is_ship_overdue)
-                                                                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle" style="font-size: 0.62rem; padding: 0.2em 0.4em;">
-                                                                        <i class="bi bi-exclamation-circle me-1"></i>Overdue
-                                                                    </span>
-                                                                @elseif ($order->is_ship_urgent)
-                                                                    <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle" style="font-size: 0.62rem; padding: 0.2em 0.4em;">
-                                                                        <i class="bi bi-clock me-1"></i>{{ $order->ship_before_date->diffForHumans() }}
-                                                                    </span>
-                                                                @else
-                                                                    <span class="badge bg-success-subtle text-success border border-success-subtle" style="font-size: 0.62rem; padding: 0.2em 0.4em;">
-                                                                        <i class="bi bi-check-circle me-1"></i>{{ $order->ship_before_date->diffForHumans() }}
-                                                                    </span>
-                                                                @endif
-                                                            </div>
-                                                        @endif
-                                                    @endif
-                                                    @if ($order->completed_at && in_array(strtoupper($order->order_status), ['COMPLETED', 'FINISHED', 'SELESAI', 'DELIVERED']))
-                                                        <div class="mt-1 text-success fw-bold" style="font-size:0.68rem;" title="Tanggal Diterima / Dana Dilepas">
-                                                            <i class="fas fa-check-double text-success me-1"></i><span class="text-muted">Cair:</span> 
-                                                            <span class="font-monospace text-success fw-bold">{{ $order->completed_at->format('d/m/Y H:i') }}</span>
-                                                        </div>
-                                                    @endif
-                                                </div>
-                                            </td>
-                                            <td class="text-center">
-                                                <div class="d-flex flex-column align-items-center gap-1">
-                                                    {{-- Status Pesanan Utama --}}
-                                                    <span class="badge bg-{{ $order->status_badge ?? 'secondary' }}-subtle text-{{ $order->status_badge ?? 'secondary' }} border border-{{ $order->status_badge ?? 'secondary' }}-subtle"
-                                                        style="font-size:0.7rem; padding: 0.2em 0.4em;"
-                                                        @if ($order->order_status === 'CANCELLED' && $order->cancel_reason) data-bs-toggle="tooltip" title="{{ $order->cancel_reason }}" @endif>
-                                                        {{ str_replace('_', ' ', $order->order_status) }}
-                                                    </span>
-                                                    @if ($order->order_status === 'CANCELLED' && $order->cancel_reason)
-                                                        <div class="text-danger small text-truncate mx-auto" style="max-width: 110px; font-size: 0.62rem;" title="{{ $order->cancel_reason }}">
-                                                            {{ $order->cancel_reason }}
-                                                        </div>
-                                                    @endif
-
-                                                    @if ($order->order_status !== 'CANCELLED')
-                                                        {{-- Status Print --}}
-                                                        @if ($order->is_printed)
-                                                            <span class="badge bg-success-subtle text-success border border-success-subtle px-1.5 py-0.5" style="font-size:0.65rem;" title="{{ $order->printed_at ? 'Print: ' . $order->printed_at->format('d/m/Y H:i') : '' }}">
-                                                                <i class="fas fa-print me-1"></i>Sudah Print
-                                                            </span>
-                                                        @else
-                                                            <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-1.5 py-0.5" style="font-size:0.65rem;">
-                                                                <i class="fas fa-print me-1"></i>Belum Print
-                                                            </span>
-                                                        @endif
-
-                                                        {{-- Status Kemas --}}
-                                                        @if ($order->packing_status === 'verified')
-                                                            <span class="badge bg-success text-white px-1.5 py-0.5" style="font-size:0.65rem;" title="{{ $order->packed_at ? 'Kemas: ' . $order->packed_at->format('d/m/Y H:i') : '' }}">
-                                                                <i class="fas fa-check-circle me-1"></i>Verified
-                                                            </span>
-                                                        @elseif($order->packing_status === 'packing')
-                                                            <span class="badge bg-warning text-dark px-1.5 py-0.5" style="font-size:0.65rem;">
-                                                                <i class="fas fa-box-open me-1"></i>Packing
-                                                            </span>
-                                                        @else
-                                                            <span class="badge bg-light text-muted border px-1.5 py-0.5" style="font-size:0.65rem;">
-                                                                <i class="fas fa-hourglass-start me-1"></i>Menunggu
-                                                            </span>
-                                                        @endif
-                                                    @endif
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    @empty
-                                        <tr>
-                                            <td colspan="8" class="text-center text-muted py-5">
-                                                <i class="fas fa-shopping-basket fa-2x mb-3 d-block opacity-25"></i>
-                                                <p class="mb-0 small">Belum ada data pesanan.</p>
-                                            </td>
-                                        </tr>
-                                    @endforelse
-                                </tbody>
-                            </table>
-                        </form>
-                        <form id="single-tracking-form" action="" method="POST" class="d-none">
-                            @csrf
-                        </form>
-                    </div>
-
-                    @if ($orders->hasPages())
-                        <div class="mt-3">
-                            {{ $orders->links('pagination::bootstrap-5') }}
-                        </div>
-                    @endif
+                <div class="d-flex align-items-center pe-3">
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                 </div>
             </div>
         </div>
+    @endif
+
+    {{-- ── Page Header ── --}}
+    <div class="shopee-page-header">
+        <h5><i class="fas fa-shopping-cart me-2" style="color: var(--shopee-orange);"></i>Pesanan Saya</h5>
+        <div class="header-actions">
+            @can('orders.export')
+                <a href="{{ route('orders.export', request()->all()) }}" class="btn-shopee-ghost">
+                    <i class="fas fa-file-export"></i> Export CSV
+                </a>
+            @endcan
+            <button type="submit" form="mass-print-form" class="btn-shopee-ghost">
+                <i class="fas fa-print"></i> Cetak Massal
+            </button>
+        </div>
+    </div>
+
+    {{-- ── Main Card ── --}}
+    <div class="shopee-card">
+
+        {{-- ── Status Tabs ── --}}
+        @php
+            $currentStatus = request('status', '');
+            $tabStatuses = [
+                ''                  => ['label' => 'Semua',           'icon' => 'fas fa-list'],
+                'UNPAID'            => ['label' => 'Belum Bayar',     'icon' => 'fas fa-credit-card'],
+                'READY_TO_SHIP'     => ['label' => 'Perlu Dikirim',   'icon' => 'fas fa-box'],
+                'SHIPPED'           => ['label' => 'Dikirim',         'icon' => 'fas fa-truck'],
+                'COMPLETED'         => ['label' => 'Selesai',         'icon' => 'fas fa-check-circle'],
+                'CANCELLED'         => ['label' => 'Dibatalkan',      'icon' => 'fas fa-times-circle'],
+            ];
+            // Build tab counts using status from $statuses variable
+            $tabCounts = [];
+            foreach($statuses as $st) {
+                if (!isset($tabCounts[$st])) $tabCounts[$st] = 0;
+            }
+        @endphp
+        <div class="shopee-tabs" role="tablist">
+            @foreach($tabStatuses as $tabKey => $tabInfo)
+                @php
+                    $tabUrl = route('orders.index', array_merge(request()->except(['status', 'page']), $tabKey !== '' ? ['status' => $tabKey] : []));
+                    $isActive = $currentStatus === $tabKey;
+                @endphp
+                <a class="shopee-tab {{ $isActive ? 'active' : '' }}"
+                   href="{{ $tabUrl }}"
+                   role="tab">
+                    <i class="{{ $tabInfo['icon'] }}" style="font-size:0.8rem;"></i>
+                    {{ $tabInfo['label'] }}
+                </a>
+            @endforeach
+        </div>
+
+        {{-- ── Filter Bar ── --}}
+        <div class="shopee-filter-bar">
+            <form method="GET" action="{{ route('orders.index') }}" id="filter-form">
+                {{-- Pertahankan status tab yang aktif --}}
+                @if(request('status'))
+                    <input type="hidden" name="status" value="{{ request('status') }}">
+                @endif
+
+                <div class="filter-row">
+                    {{-- No. Pesanan --}}
+                    <div class="shopee-filter-group w-order">
+                        <label><i class="fas fa-search me-1"></i>No. Pesanan / Resi / Pembeli</label>
+                        <input type="text" name="order_number" class="form-control"
+                            placeholder="Cari no. pesanan, resi, pembeli..."
+                            value="{{ request('order_number') }}">
+                    </div>
+
+                    {{-- Channel --}}
+                    <div class="shopee-filter-group w-select">
+                        <label><i class="fas fa-shopping-bag me-1"></i>Channel</label>
+                        <select name="channel_id" class="form-select">
+                            <option value="">Semua Channel</option>
+                            @foreach ($channels as $channel)
+                                <option value="{{ $channel->id }}"
+                                    {{ request('channel_id') == $channel->id ? 'selected' : '' }}>
+                                    {{ $channel->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    {{-- Toko --}}
+                    <div class="shopee-filter-group w-select">
+                        <label><i class="fas fa-store me-1"></i>Toko</label>
+                        <select name="store_id" class="form-select">
+                            <option value="">Semua Toko</option>
+                            @foreach ($stores as $store)
+                                <option value="{{ $store->id }}"
+                                    {{ request('store_id') == $store->id ? 'selected' : '' }}>
+                                    {{ $store->store_name }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    {{-- Kurir --}}
+                    <div class="shopee-filter-group w-select">
+                        <label><i class="fas fa-truck me-1"></i>Jasa Kirim</label>
+                        <select name="courier" class="form-select">
+                            <option value="">Semua Jasa Kirim</option>
+                            @foreach ($couriers as $courier)
+                                <option value="{{ $courier }}"
+                                    {{ request('courier') == $courier ? 'selected' : '' }}>
+                                    {{ $courier }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    {{-- Batas Kirim --}}
+                    <div class="shopee-filter-group w-select">
+                        <label><i class="fas fa-hourglass-half me-1"></i>Batas Kirim</label>
+                        <select name="deadline_status" class="form-select">
+                            <option value="">Semua</option>
+                            <option value="overdue"  {{ request('deadline_status') == 'overdue'  ? 'selected' : '' }}>Overdue</option>
+                            <option value="urgent"   {{ request('deadline_status') == 'urgent'   ? 'selected' : '' }}>Urgent (&lt;24 Jam)</option>
+                            <option value="safe"     {{ request('deadline_status') == 'safe'     ? 'selected' : '' }}>Aman (&gt;24 Jam)</option>
+                        </select>
+                    </div>
+
+                    {{-- Tanggal Mulai --}}
+                    <div class="shopee-filter-group w-date">
+                        <label><i class="fas fa-calendar me-1"></i>Dari Tanggal</label>
+                        <input type="date" name="start_date" class="form-control"
+                            value="{{ request('start_date') }}">
+                    </div>
+
+                    {{-- Tanggal Akhir --}}
+                    <div class="shopee-filter-group w-date">
+                        <label><i class="fas fa-calendar-check me-1"></i>Sampai Tanggal</label>
+                        <input type="date" name="end_date" class="form-control"
+                            value="{{ request('end_date') }}">
+                    </div>
+
+                    {{-- Status Print --}}
+                    <div class="shopee-filter-group w-select">
+                        <label><i class="fas fa-print me-1"></i>Status Print</label>
+                        <select name="print_status" class="form-select">
+                            <option value="">Semua</option>
+                            <option value="unprinted" {{ request('print_status') === 'unprinted' ? 'selected' : '' }}>Belum Diprint</option>
+                            <option value="printed"   {{ request('print_status') === 'printed'   ? 'selected' : '' }}>Sudah Diprint</option>
+                        </select>
+                    </div>
+
+                    {{-- Status Kemas --}}
+                    <div class="shopee-filter-group w-select">
+                        <label><i class="fas fa-box-open me-1"></i>Status Kemas</label>
+                        <select name="packing_status" class="form-select">
+                            <option value="">Semua</option>
+                            <option value="pending"  {{ request('packing_status') === 'pending'  ? 'selected' : '' }}>Pending</option>
+                            <option value="packing"  {{ request('packing_status') === 'packing'  ? 'selected' : '' }}>Packing</option>
+                            <option value="verified" {{ request('packing_status') === 'verified' ? 'selected' : '' }}>Verified</option>
+                        </select>
+                    </div>
+
+                    {{-- Status SPK --}}
+                    <div class="shopee-filter-group w-select">
+                        <label><i class="fas fa-tools me-1"></i>Status SPK</label>
+                        <select name="spk_status" class="form-select">
+                            <option value="">Semua</option>
+                            <option value="has_spk" {{ request('spk_status') === 'has_spk' ? 'selected' : '' }}>Ada SPK</option>
+                            <option value="no_spk"  {{ request('spk_status') === 'no_spk'  ? 'selected' : '' }}>Belum SPK</option>
+                        </select>
+                    </div>
+
+                    {{-- Tipe Produk --}}
+                    <div class="shopee-filter-group w-select">
+                        <label><i class="fas fa-box me-1"></i>Tipe Produk</label>
+                        <select name="is_po" class="form-select">
+                            <option value="">Semua</option>
+                            <option value="po"    {{ request('is_po') === 'po'    ? 'selected' : '' }}>Pre-Order</option>
+                            <option value="ready" {{ request('is_po') === 'ready' ? 'selected' : '' }}>Ready Stock</option>
+                        </select>
+                    </div>
+
+                    {{-- Dropship --}}
+                    <div class="shopee-filter-group w-select">
+                        <label><i class="fas fa-shipping-fast me-1"></i>Dropship</label>
+                        <select name="is_dropship" class="form-select">
+                            <option value="">Semua</option>
+                            <option value="1" {{ request('is_dropship') === '1' ? 'selected' : '' }}>Dropship</option>
+                            <option value="0" {{ request('is_dropship') === '0' ? 'selected' : '' }}>Non-Dropship</option>
+                        </select>
+                    </div>
+
+                    {{-- Tombol ── --}}
+                    <div class="shopee-filter-group" style="justify-content: flex-end; padding-bottom: 0;">
+                        <label style="visibility:hidden;">.</label>
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn-shopee-primary">
+                                <i class="fas fa-search"></i> Terapkan
+                            </button>
+                            @if (request()->anyFilled(['channel_id','store_id','courier','start_date','end_date','deadline_status','is_dropship','is_po','spk_status','cancel_reason','print_status','packing_status','order_number']))
+                                <a href="{{ route('orders.index', request('status') ? ['status' => request('status')] : []) }}"
+                                   class="btn-shopee-ghost">
+                                    <i class="fas fa-times"></i> Atur Ulang
+                                </a>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        {{-- ── Summary Bar ── --}}
+        <div class="shopee-summary-bar">
+            <div class="results-count">
+                <i class="fas fa-list-ul me-1"></i>
+                <strong>{{ $orders->total() }}</strong> Hasil Ditemukan
+                @if($orders->total() > 0)
+                    &nbsp;·&nbsp; Halaman {{ $orders->currentPage() }} dari {{ $orders->lastPage() }}
+                @endif
+            </div>
+            <div class="d-flex gap-2">
+                <button type="button" class="btn-shopee-ghost" id="btn-mass-ship">
+                    <i class="fas fa-truck-loading"></i> Pengiriman Massal
+                </button>
+            </div>
+        </div>
+
+        {{-- ── Table ── --}}
+        <div class="table-responsive">
+            <form id="mass-print-form" action="{{ route('orders.mass_print') }}" method="POST" target="_blank">
+                @csrf
+                <table class="shopee-table">
+                    <thead>
+                        <tr>
+                            <th style="width:40px; text-align:center;">
+                                <input type="checkbox" id="check-all" class="form-check-input" style="cursor:pointer;">
+                            </th>
+                            <th>PRODUK &amp; PESANAN</th>
+                            <th>PEMBELI</th>
+                            <th>TOKO &amp; CHANNEL</th>
+                            <th style="text-align:right;">DIBAYAR PEMBELI</th>
+                            <th>BATAS PENGIRIMAN</th>
+                            <th>JASA KIRIM &amp; RESI</th>
+                            <th style="text-align:center;">STATUS</th>
+                            <th style="text-align:center;">AKSI</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($orders as $order)
+                            @php
+                                $channelCode = strtolower($order->store?->channel?->code ?? '');
+                                $channelName = $order->store?->channel?->name ?? 'Offline';
+                                $channelBadgeClass = match(true) {
+                                    str_contains($channelCode, 'shopee')    => 'badge-shopee',
+                                    str_contains($channelCode, 'tiktok')    => 'badge-tiktok',
+                                    str_contains($channelCode, 'lazada')    => 'badge-lazada',
+                                    str_contains($channelCode, 'tokopedia') => 'badge-tokopedia',
+                                    default                                 => 'badge-offline',
+                                };
+                                $channelIcon = match(true) {
+                                    str_contains($channelCode, 'shopee')    => 'fas fa-shopping-bag',
+                                    str_contains($channelCode, 'tiktok')    => 'fab fa-tiktok',
+                                    str_contains($channelCode, 'lazada')    => 'fas fa-store',
+                                    str_contains($channelCode, 'tokopedia') => 'fas fa-shopping-cart',
+                                    default                                 => 'fas fa-store-alt',
+                                };
+
+                                $orderStatusUp = strtoupper($order->order_status ?? '');
+                                $statusBadgeClass = match(true) {
+                                    in_array($orderStatusUp, ['UNPAID', 'PENDING'])                         => 'status-pending',
+                                    in_array($orderStatusUp, ['READY_TO_SHIP', 'TO_SHIP', 'PROCESSED'])     => 'status-toship',
+                                    in_array($orderStatusUp, ['SHIPPED', 'IN_TRANSIT', 'TO_RECEIVE'])       => 'status-shipped',
+                                    in_array($orderStatusUp, ['COMPLETED', 'FINISHED', 'SELESAI', 'DELIVERED']) => 'status-completed',
+                                    in_array($orderStatusUp, ['CANCELLED', 'BATAL', 'IN_CANCEL'])           => 'status-cancelled',
+                                    default                                                                 => 'status-default',
+                                };
+
+                                $buyerInitial = strtoupper(substr($order->buyer_name ?? 'U', 0, 1));
+                            @endphp
+                            <tr>
+                                {{-- Checkbox --}}
+                                <td style="text-align:center;">
+                                    <input type="checkbox" name="order_ids[]" value="{{ $order->id }}"
+                                        class="order-checkbox form-check-input" style="cursor:pointer;">
+                                </td>
+
+                                {{-- Produk & Pesanan --}}
+                                <td>
+                                    <div class="product-cell">
+                                        {{-- Order ID --}}
+                                        <a href="{{ route('orders.show', $order) }}" class="order-id-link">
+                                            {{ $order->invoice_number ?? $order->order_marketplace_id }}
+                                        </a>
+
+                                        {{-- Badges row --}}
+                                        <div class="d-flex flex-wrap gap-1 align-items-center mt-1">
+                                            @if ($order->is_dropship)
+                                                <span class="meta-badge" style="background:#fff7e6;color:#d46b08;border:1px solid #ffd591;">Dropship</span>
+                                            @endif
+                                            @if ($order->hasPreorderItems())
+                                                <span class="meta-badge" style="background:#f3e8ff;color:#7c3aed;border:1px solid #c4b5fd;">
+                                                    <i class="fas fa-clock me-1"></i>PO
+                                                </span>
+                                            @else
+                                                <span class="meta-badge" style="background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0;">
+                                                    <i class="fas fa-check-circle me-1"></i>Ready
+                                                </span>
+                                            @endif
+
+                                            @if ($order->spks && $order->spks->isNotEmpty())
+                                                <a href="{{ route('spks.show', $order->spks->first()->id) }}"
+                                                   class="meta-badge text-decoration-none"
+                                                   style="background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;">
+                                                    <i class="fas fa-tools me-1"></i>{{ $order->spks->first()->no_spk }}
+                                                </a>
+                                            @else
+                                                <span class="meta-badge" style="background:#fafafa;color:#888;border:1px solid #ddd;">
+                                                    <i class="fas fa-minus-circle me-1"></i>Belum SPK
+                                                </span>
+                                            @endif
+                                        </div>
+
+                                        {{-- SKU Items --}}
+                                        @if($order->items->isNotEmpty())
+                                            <div class="mt-1 d-flex flex-column gap-1">
+                                                @foreach($order->items as $orderItem)
+                                                    <span class="sku-tag">
+                                                        <i class="fas fa-tag me-1 opacity-50"></i>
+                                                        {{ $orderItem->sku ?? ($orderItem->masterProduct->sku ?? '-') }}
+                                                        <span style="color:#aaa;">&times;{{ $orderItem->quantity }}</span>
+                                                    </span>
+                                                @endforeach
+                                            </div>
+                                        @endif
+                                    </div>
+                                </td>
+
+                                {{-- Pembeli --}}
+                                <td>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="buyer-avatar">{{ $buyerInitial }}</div>
+                                        <span style="font-size:0.82rem; font-weight:600; color:#333;">
+                                            {{ $order->buyer_name ?? '-' }}
+                                        </span>
+                                    </div>
+                                </td>
+
+                                {{-- Toko & Channel --}}
+                                <td>
+                                    <div style="font-size:0.82rem; font-weight:600; color:#333; margin-bottom:4px;">
+                                        {{ $order->store->store_name ?? '-' }}
+                                    </div>
+                                    <span class="channel-badge {{ $channelBadgeClass }}">
+                                        <i class="{{ $channelIcon }} me-1"></i>{{ $channelName }}
+                                    </span>
+                                </td>
+
+                                {{-- Dibayar Pembeli --}}
+                                <td style="text-align:right;">
+                                    <div style="font-size:0.85rem; font-weight:700; color:#333; font-family:'Courier New',monospace;">
+                                        Rp {{ number_format($order->total_amount, 0, ',', '.') }}
+                                    </div>
+                                </td>
+
+                                {{-- Batas Pengiriman --}}
+                                <td>
+                                    <div style="font-size:0.78rem; color:#555;">
+                                        <div style="margin-bottom:3px;">
+                                            <i class="far fa-calendar-alt text-secondary me-1"></i>
+                                            <span style="font-weight:600;">{{ $order->order_date ? $order->order_date->format('d/m/Y H:i') : '-' }}</span>
+                                        </div>
+                                        @if ($order->ship_before_date)
+                                            <div style="margin-bottom:3px;">
+                                                <span style="color:#aaa;">Batas:</span>
+                                                <span style="font-weight:700; color:#333; font-family:monospace;">
+                                                    {{ $order->ship_before_date->format('d/m/Y H:i') }}
+                                                </span>
+                                            </div>
+                                            @if (!in_array($orderStatusUp, ['SHIPPED', 'DELIVERED', 'COMPLETED', 'FINISHED', 'CANCELLED', 'SELESAI', 'BATAL', 'IN_CANCEL']))
+                                                @if ($order->is_ship_overdue)
+                                                    <span class="deadline-overdue"><i class="bi bi-exclamation-circle me-1"></i>Overdue</span>
+                                                @elseif ($order->is_ship_urgent)
+                                                    <span class="deadline-urgent"><i class="bi bi-clock me-1"></i>{{ $order->ship_before_date->diffForHumans() }}</span>
+                                                @else
+                                                    <span class="deadline-safe"><i class="bi bi-check-circle me-1"></i>{{ $order->ship_before_date->diffForHumans() }}</span>
+                                                @endif
+                                            @endif
+                                        @endif
+                                        @if ($order->completed_at && in_array($orderStatusUp, ['COMPLETED', 'FINISHED', 'SELESAI', 'DELIVERED']))
+                                            <div style="margin-top:3px; font-size:0.7rem; color:#15803d; font-weight:600;">
+                                                <i class="fas fa-check-double me-1"></i>Cair:
+                                                <span style="font-family:monospace;">{{ $order->completed_at->format('d/m/Y H:i') }}</span>
+                                            </div>
+                                        @endif
+                                    </div>
+                                </td>
+
+                                {{-- Jasa Kirim & Resi --}}
+                                <td>
+                                    <div style="font-size:0.78rem; color:#555;">
+                                        <div style="font-weight:600; color:#333; margin-bottom:4px;">
+                                            <i class="fas fa-truck me-1 text-secondary"></i>{{ $order->courier ?? '—' }}
+                                        </div>
+                                        @if (!empty($order->tracking_number))
+                                            <div style="font-family:monospace; font-size:0.7rem; color:#555;" title="Nomor Resi">
+                                                <i class="fas fa-barcode me-1 text-secondary"></i>
+                                                <span style="font-weight:600; color:#222;">{{ $order->tracking_number }}</span>
+                                            </div>
+                                        @else
+                                            <button type="button"
+                                                class="btn-tbl btn-tbl-yellow btn-fetch-single-tracking"
+                                                data-order-id="{{ $order->id }}"
+                                                title="Tarik Resi dari Marketplace">
+                                                <i class="fas fa-sync-alt"></i> Tarik Resi
+                                            </button>
+                                        @endif
+                                    </div>
+                                </td>
+
+                                {{-- Status --}}
+                                <td style="text-align:center;">
+                                    <div class="d-flex flex-column align-items-center gap-1">
+                                        <span class="status-badge {{ $statusBadgeClass }}">
+                                            {{ str_replace('_', ' ', $order->order_status) }}
+                                        </span>
+                                        @if ($order->order_status === 'CANCELLED' && $order->cancel_reason)
+                                            <div class="text-danger text-truncate" style="max-width:110px; font-size:0.62rem;" title="{{ $order->cancel_reason }}">
+                                                {{ $order->cancel_reason }}
+                                            </div>
+                                        @endif
+
+                                        @if ($order->order_status !== 'CANCELLED')
+                                            {{-- Print Badge --}}
+                                            @if ($order->is_printed)
+                                                <span class="meta-badge" style="background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0;"
+                                                    title="{{ $order->printed_at ? 'Print: ' . $order->printed_at->format('d/m/Y H:i') : '' }}">
+                                                    <i class="fas fa-print me-1"></i>Sudah Print
+                                                </span>
+                                            @else
+                                                <span class="meta-badge" style="background:#fafafa;color:#888;border:1px solid #ddd;">
+                                                    <i class="fas fa-print me-1"></i>Belum Print
+                                                </span>
+                                            @endif
+
+                                            {{-- Kemas Badge --}}
+                                            @if ($order->packing_status === 'verified')
+                                                <span class="meta-badge" style="background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0;"
+                                                    title="{{ $order->packed_at ? 'Kemas: ' . $order->packed_at->format('d/m/Y H:i') : '' }}">
+                                                    <i class="fas fa-check-circle me-1"></i>Verified
+                                                </span>
+                                            @elseif($order->packing_status === 'packing')
+                                                <span class="meta-badge" style="background:#fffbe6;color:#d4b106;border:1px solid #ffe58f;">
+                                                    <i class="fas fa-box-open me-1"></i>Packing
+                                                </span>
+                                            @else
+                                                <span class="meta-badge" style="background:#fafafa;color:#aaa;border:1px solid #eee;">
+                                                    <i class="fas fa-hourglass-start me-1"></i>Menunggu
+                                                </span>
+                                            @endif
+                                        @endif
+                                    </div>
+                                </td>
+
+                                {{-- Aksi --}}
+                                <td style="text-align:center;">
+                                    <div class="d-flex flex-column align-items-center gap-1">
+                                        <a href="{{ route('orders.show', $order) }}" class="btn-tbl btn-tbl-blue">
+                                            <i class="fas fa-eye"></i> Detail
+                                        </a>
+                                        @if (in_array($orderStatusUp, ['SHIPPED', 'DELIVERED', 'COMPLETED', 'FINISHED', 'SELESAI']))
+                                            <span class="meta-badge" style="background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0; padding:4px 8px;">
+                                                <i class="fas fa-check-circle me-1"></i>Sudah Kirim
+                                            </span>
+                                        @elseif ($orderStatusUp !== 'CANCELLED')
+                                            <button type="button"
+                                                class="btn-tbl btn-tbl-primary btn-ship-single-order"
+                                                data-order-id="{{ $order->id }}"
+                                                title="Kirim Pesanan ke Marketplace">
+                                                <i class="fas fa-paper-plane"></i> Kirim
+                                            </button>
+                                        @endif
+                                    </div>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="9">
+                                    <div class="shopee-empty">
+                                        <i class="fas fa-shopping-basket"></i>
+                                        <p style="font-size:0.9rem; margin:0;">Tidak ada pesanan ditemukan.</p>
+                                        <p style="font-size:0.78rem; color:#bbb; margin-top:4px;">Coba ubah filter atau tab status di atas.</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </form>
+
+            <form id="single-tracking-form" action="" method="POST" class="d-none">
+                @csrf
+            </form>
+        </div>
+
+        {{-- ── Pagination ── --}}
+        @if ($orders->hasPages())
+            <div class="shopee-pagination">
+                {{ $orders->links('pagination::bootstrap-5') }}
+            </div>
+        @endif
+
+    </div>{{-- end shopee-card --}}
+</div>{{-- end shopee-page --}}
+
 @endsection
 
 @push('scripts')
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const checkAll = document.getElementById('check-all');
-            const checkboxes = document.querySelectorAll('.order-checkbox');
-            const form = document.getElementById('mass-print-form');
-            const btnShip = document.getElementById('btn-mass-ship');
-            const btnTracking = document.getElementById('btn-mass-tracking');
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const checkAll   = document.getElementById('check-all');
+        const checkboxes = document.querySelectorAll('.order-checkbox');
+        const form       = document.getElementById('mass-print-form');
+        const btnShip    = document.getElementById('btn-mass-ship');
 
-            document.querySelectorAll('.btn-fetch-single-tracking').forEach(btn => {
-                btn.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    const $btn = this;
-                    const orderId = $btn.dataset.orderId;
-                    const originalHtml = $btn.innerHTML;
+        /* ── Check All ── */
+        if (checkAll) {
+            checkAll.addEventListener('change', function () {
+                checkboxes.forEach(cb => cb.checked = checkAll.checked);
+            });
+        }
 
-                    $btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Menarik...';
-                    $btn.disabled = true;
+        /* ── Tarik Resi Single ── */
+        document.querySelectorAll('.btn-fetch-single-tracking').forEach(btn => {
+            btn.addEventListener('click', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                const $btn = this;
+                const orderId = $btn.dataset.orderId;
+                const originalHtml = $btn.innerHTML;
 
-                    fetch(`{{ url('/orders') }}/${orderId}/tracking`, {
-                        method: 'POST',
-                        headers: {
-                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                            'Accept': 'application/json',
-                            'X-Requested-With': 'XMLHttpRequest'
-                        }
-                    })
-                    .then(res => res.json())
-                    .then(data => {
-                        if (data.success) {
-                            if (typeof Swal !== 'undefined') {
-                                Swal.fire({
-                                    icon: 'success',
-                                    title: 'Resi Berhasil Ditarik!',
-                                    text: data.message,
-                                    timer: 2500,
-                                    showConfirmButton: false
-                                });
-                            } else {
-                                alert(data.message);
-                            }
+                $btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Menarik...';
+                $btn.disabled = true;
 
-                            // Ganti tombol Tarik Resi secara langsung dengan tampilan Nomor Resi
-                            const parentDiv = $btn.closest('div');
-                            if (parentDiv && data.tracking_number) {
-                                parentDiv.outerHTML = `
-                                    <div class="text-muted small font-monospace" style="font-size:0.68rem;" title="Nomor Resi">
-                                        <i class="fas fa-barcode me-1 text-secondary"></i><span class="fw-semibold text-dark">${data.tracking_number}</span>
-                                    </div>
-                                `;
-                            }
+                fetch(`{{ url('/orders') }}/${orderId}/tracking`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        if (typeof Swal !== 'undefined') {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Resi Berhasil Ditarik!',
+                                text: data.message,
+                                timer: 2500,
+                                showConfirmButton: false
+                            });
                         } else {
-                            if (typeof Swal !== 'undefined') {
-                                Swal.fire({
-                                    icon: 'error',
-                                    title: 'Gagal Tarik Resi',
-                                    text: data.message || 'Terjadi kesalahan saat menarik resi.',
-                                    confirmButtonColor: '#0d6efd'
-                                });
-                            } else {
-                                alert(data.message || 'Gagal menarik resi.');
-                            }
-                            $btn.innerHTML = originalHtml;
-                            $btn.disabled = false;
+                            alert(data.message);
                         }
-                    })
-                    .catch(err => {
+                        const parentDiv = $btn.closest('div');
+                        if (parentDiv && data.tracking_number) {
+                            parentDiv.outerHTML = `
+                                <div style="font-family:monospace; font-size:0.7rem; color:#555;" title="Nomor Resi">
+                                    <i class="fas fa-barcode me-1 text-secondary"></i>
+                                    <span style="font-weight:600; color:#222;">${data.tracking_number}</span>
+                                </div>`;
+                        }
+                    } else {
                         if (typeof Swal !== 'undefined') {
                             Swal.fire({
                                 icon: 'error',
                                 title: 'Gagal Tarik Resi',
-                                text: 'Terjadi kesalahan sistem atau koneksi: ' + err.message,
-                                confirmButtonColor: '#0d6efd'
+                                text: data.message || 'Terjadi kesalahan saat menarik resi.',
+                                confirmButtonColor: '#ee4d2d'
                             });
                         } else {
-                            alert('Terjadi kesalahan koneksi.');
+                            alert(data.message || 'Gagal menarik resi.');
                         }
                         $btn.innerHTML = originalHtml;
                         $btn.disabled = false;
-                    });
+                    }
+                })
+                .catch(err => {
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Gagal Tarik Resi',
+                            text: 'Terjadi kesalahan koneksi: ' + err.message,
+                            confirmButtonColor: '#ee4d2d'
+                        });
+                    } else {
+                        alert('Terjadi kesalahan koneksi.');
+                    }
+                    $btn.innerHTML = originalHtml;
+                    $btn.disabled = false;
                 });
             });
+        });
 
-            document.querySelectorAll('.btn-ship-single-order').forEach(btn => {
-                btn.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    const $btn = this;
-                    const orderId = $btn.dataset.orderId;
-                    const originalHtml = $btn.innerHTML;
-                    
-                    Swal.fire({
-                        title: 'Kirim Pesanan ke Marketplace?',
-                        text: 'Status pesanan akan diubah menjadi dikirim di Marketplace.',
-                        icon: 'question',
-                        showCancelButton: true,
-                        confirmButtonText: 'Ya, Kirim Sekarang',
-                        cancelButtonText: 'Batal',
-                        confirmButtonColor: '#0d6efd'
-                    }).then((res) => {
-                        if (res.isConfirmed) {
-                            $btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Mengirim...';
-                            $btn.disabled = true;
+        /* ── Kirim Pesanan Single ── */
+        document.querySelectorAll('.btn-ship-single-order').forEach(btn => {
+            btn.addEventListener('click', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                const $btn = this;
+                const orderId = $btn.dataset.orderId;
+                const originalHtml = $btn.innerHTML;
 
-                            fetch(`{{ url('/orders') }}/${orderId}/ship`, {
-                                method: 'POST',
-                                headers: {
-                                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                                    'Accept': 'application/json',
-                                    'X-Requested-With': 'XMLHttpRequest'
-                                }
-                            })
-                            .then(res => res.json())
-                            .then(data => {
-                                if (data.success) {
-                                    Swal.fire({
-                                        icon: 'success',
-                                        title: 'Pesanan Berhasil Dikirim!',
-                                        text: data.message,
-                                        timer: 3000,
-                                        showConfirmButton: false
-                                    });
+                Swal.fire({
+                    title: 'Kirim Pesanan ke Marketplace?',
+                    text: 'Status pesanan akan diubah menjadi dikirim di Marketplace.',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'Ya, Kirim Sekarang',
+                    cancelButtonText: 'Batal',
+                    confirmButtonColor: '#ee4d2d'
+                }).then(res => {
+                    if (res.isConfirmed) {
+                        $btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Mengirim...';
+                        $btn.disabled = true;
 
-                                    const $flexContainer = $btn.closest('.d-flex');
-                                    const trackingBtn = $flexContainer ? $flexContainer.querySelector('.btn-fetch-single-tracking') : null;
-
-                                    // 1. Update tampilan resi jika resi otomatis didapatkan
-                                    if (data.tracking_number && trackingBtn) {
-                                        const trackingDiv = trackingBtn.closest('div');
-                                        if (trackingDiv) {
-                                            trackingDiv.outerHTML = `
-                                                <div class="text-muted small font-monospace" style="font-size:0.68rem;" title="Nomor Resi">
-                                                    <i class="fas fa-barcode me-1 text-secondary"></i><span class="fw-semibold text-dark">${data.tracking_number}</span>
-                                                </div>
-                                            `;
-                                        }
+                        fetch(`{{ url('/orders') }}/${orderId}/ship`, {
+                            method: 'POST',
+                            headers: {
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                'Accept': 'application/json',
+                                'X-Requested-With': 'XMLHttpRequest'
+                            }
+                        })
+                        .then(res => res.json())
+                        .then(data => {
+                            if (data.success) {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Pesanan Berhasil Dikirim!',
+                                    text: data.message,
+                                    timer: 3000,
+                                    showConfirmButton: false
+                                });
+                                const $flexContainer = $btn.closest('.d-flex');
+                                const trackingBtn = $flexContainer ? $flexContainer.querySelector('.btn-fetch-single-tracking') : null;
+                                if (data.tracking_number && trackingBtn) {
+                                    const trackingDiv = trackingBtn.closest('div');
+                                    if (trackingDiv) {
+                                        trackingDiv.outerHTML = `
+                                            <div style="font-family:monospace; font-size:0.7rem; color:#555;" title="Nomor Resi">
+                                                <i class="fas fa-barcode me-1 text-secondary"></i>
+                                                <span style="font-weight:600; color:#222;">${data.tracking_number}</span>
+                                            </div>`;
                                     }
-
-                                    // 2. Ganti tombol Kirim Pesanan dengan Badge Sudah Kirim
-                                    const parentDiv = $btn.closest('div');
-                                    if (parentDiv) {
-                                        parentDiv.outerHTML = `
-                                            <div>
-                                                <span class="badge bg-success-subtle text-success border border-success-subtle px-1-5 py-0-5"
-                                                    style="font-size: 0.65rem;" title="Pesanan Sudah Dikirim">
-                                                    <i class="fas fa-check-circle me-1"></i>Sudah Kirim
-                                                </span>
-                                            </div>
-                                        `;
-                                    }
-                                } else {
-                                    Swal.fire({
-                                        icon: 'error',
-                                        title: 'Gagal Kirim Pesanan',
-                                        text: data.message || 'Terjadi kesalahan saat memproses pengiriman.',
-                                        confirmButtonColor: '#0d6efd'
-                                    });
-                                    $btn.innerHTML = originalHtml;
-                                    $btn.disabled = false;
                                 }
-                            })
-                            .catch(err => {
+                                const parentDiv = $btn.closest('div');
+                                if (parentDiv) {
+                                    parentDiv.outerHTML = `
+                                        <span class="meta-badge" style="background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0; padding:4px 8px;">
+                                            <i class="fas fa-check-circle me-1"></i>Sudah Kirim
+                                        </span>`;
+                                }
+                            } else {
                                 Swal.fire({
                                     icon: 'error',
                                     title: 'Gagal Kirim Pesanan',
-                                    text: 'Terjadi kesalahan sistem atau koneksi: ' + err.message,
-                                    confirmButtonColor: '#0d6efd'
+                                    text: data.message || 'Terjadi kesalahan saat memproses pengiriman.',
+                                    confirmButtonColor: '#ee4d2d'
                                 });
                                 $btn.innerHTML = originalHtml;
                                 $btn.disabled = false;
+                            }
+                        })
+                        .catch(err => {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Gagal Kirim Pesanan',
+                                text: 'Terjadi kesalahan koneksi: ' + err.message,
+                                confirmButtonColor: '#ee4d2d'
                             });
-                        }
-                    });
+                            $btn.innerHTML = originalHtml;
+                            $btn.disabled = false;
+                        });
+                    }
                 });
             });
-
-            if (checkAll) {
-                checkAll.addEventListener('change', function() {
-                    checkboxes.forEach(cb => cb.checked = checkAll.checked);
-                });
-            }
-
-            if (btnShip) {
-                btnShip.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    const checked = document.querySelectorAll('.order-checkbox:checked');
-                    if (checked.length === 0) {
-                        Swal.fire('Pilih Pesanan', 'Pilih minimal satu pesanan dengan mencentang checkbox.', 'warning');
-                        return;
-                    }
-
-                    Swal.fire({
-                        title: 'Kirim Pesanan Massal?',
-                        text: `Anda akan memproses pengiriman untuk ${checked.length} pesanan terpilih sekaligus ke Marketplace.`,
-                        icon: 'question',
-                        showCancelButton: true,
-                        confirmButtonText: 'Ya, Kirim Sekarang',
-                        cancelButtonText: 'Batal',
-                        confirmButtonColor: '#198754'
-                    }).then((res) => {
-                        if (res.isConfirmed) {
-                            form.action = "{{ route('orders.mass_ship') }}";
-                            form.removeAttribute('target');
-                            form.submit();
-                        }
-                    });
-                });
-            }
-
-            if (btnTracking) {
-                btnTracking.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    const checked = document.querySelectorAll('.order-checkbox:checked');
-                    if (checked.length === 0) {
-                        Swal.fire('Pilih Pesanan', 'Pilih minimal satu pesanan dengan mencentang checkbox.', 'warning');
-                        return;
-                    }
-
-                    Swal.fire({
-                        title: 'Tarik Resi Massal?',
-                        text: `Anda akan menarik nomor resi untuk ${checked.length} pesanan terpilih dari Marketplace.`,
-                        icon: 'info',
-                        showCancelButton: true,
-                        confirmButtonText: 'Ya, Tarik Resi',
-                        cancelButtonText: 'Batal',
-                        confirmButtonColor: '#ffc107'
-                    }).then((res) => {
-                        if (res.isConfirmed) {
-                            form.action = "{{ route('orders.mass_tracking') }}";
-                            form.removeAttribute('target');
-                            form.submit();
-                        }
-                    });
-                });
-            }
         });
-    </script>
+
+        /* ── Pengiriman Massal ── */
+        if (btnShip) {
+            btnShip.addEventListener('click', function (e) {
+                e.preventDefault();
+                const checked = document.querySelectorAll('.order-checkbox:checked');
+                if (checked.length === 0) {
+                    Swal.fire('Pilih Pesanan', 'Pilih minimal satu pesanan dengan mencentang checkbox.', 'warning');
+                    return;
+                }
+                Swal.fire({
+                    title: 'Kirim Pesanan Massal?',
+                    text: `Anda akan memproses pengiriman untuk ${checked.length} pesanan terpilih ke Marketplace.`,
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'Ya, Kirim Sekarang',
+                    cancelButtonText: 'Batal',
+                    confirmButtonColor: '#ee4d2d'
+                }).then(res => {
+                    if (res.isConfirmed) {
+                        form.action = "{{ route('orders.mass_ship') }}";
+                        form.removeAttribute('target');
+                        form.submit();
+                    }
+                });
+            });
+        }
+
+        /* ── Tooltips ── */
+        const tooltipEls = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+        tooltipEls.forEach(el => new bootstrap.Tooltip(el));
+    });
+</script>
 @endpush
