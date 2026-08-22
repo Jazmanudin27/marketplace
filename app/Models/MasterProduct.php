@@ -227,7 +227,7 @@ class MasterProduct extends Model
             if (Schema::hasTable('master_product_bundles') && $bundle->components->isNotEmpty()) {
                 foreach ($bundle->components as $comp) {
                     $qtyNeeded = max(1, (int) ($comp->pivot->quantity ?? 1));
-                    $compStock = (int) ($singleStocks[$comp->id] ?? $comp->getRawOriginal('stock') ?? 0);
+                    $compStock = max((int)($singleStocks[$comp->id] ?? 0), (int)$comp->effective_stock);
                     $calculatedStocks->push((int) floor($compStock / $qtyNeeded));
                 }
             }
@@ -237,8 +237,9 @@ class MasterProduct extends Model
                 foreach ($bundle->activeRecipe->items as $item) {
                     $ingId = $item->ingredient_master_product_id ?? $item->component_id ?? null;
                     if ($ingId) {
+                        $ingProduct = MasterProduct::find($ingId);
                         $qtyNeeded = max(1, (int) ($item->quantity ?? 1));
-                        $compStock = (int) ($singleStocks[$ingId] ?? 0);
+                        $compStock = $ingProduct ? max((int)($singleStocks[$ingId] ?? 0), (int)$ingProduct->effective_stock) : 0;
                         $calculatedStocks->push((int) floor($compStock / $qtyNeeded));
                     }
                 }
@@ -252,7 +253,8 @@ class MasterProduct extends Model
                 ->update(['stock' => $calcStock]);
 
             if (count($sampleLogs) < 8) {
-                $sampleLogs[] = "   -> Set/Bundle [{$bundle->sku}] {$bundle->name}: Stok ERP di-update ke {$calcStock}";
+                $compInfo = $calculatedStocks->isNotEmpty() ? " (Hasil kalkulasi dari {$calculatedStocks->count()} komponen)" : " (Tidak ada komponen terhubung)";
+                $sampleLogs[] = "   -> Set/Bundle [{$bundle->sku}] {$bundle->name}: Stok ERP di-update ke {$calcStock}{$compInfo}";
             }
 
             $updatedCount++;
