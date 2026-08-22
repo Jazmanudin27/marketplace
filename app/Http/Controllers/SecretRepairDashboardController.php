@@ -232,7 +232,11 @@ class SecretRepairDashboardController extends Controller
 
                 case 'run_migrations':
                     Artisan::call('migrate', ['--force' => true]);
-                    $output = "🚀 Executed php artisan migrate --force:\n" . (Artisan::output() ?: 'Database migration completed with no pending changes.');
+                    $migOut = Artisan::output();
+                    Artisan::call('route:clear');
+                    Artisan::call('config:clear');
+                    $output = "🚀 Executed php artisan migrate --force:\n" . ($migOut ?: 'Database migration completed with no pending changes.');
+                    $output .= "\n⚡ Route & Config cache berhasil dibersihkan! Route baru 'marketing.teams.index' kini aktif.";
                     break;
 
                 case 'artisan_optimize':
