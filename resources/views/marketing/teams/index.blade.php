@@ -143,13 +143,13 @@
             <thead class="table-light small text-uppercase fw-semibold">
                 <tr>
                     <th class="ps-4 py-3">#</th>
-                    <th class="py-3">Tim & Toko Terhubung</th>
-                    <th class="py-3 text-end">Target Qty</th>
-                    <th class="py-3 text-end">Rupiah / Qty</th>
-                    <th class="py-3 text-end">Total Insentif</th>
-                    <th class="py-3 text-center">Progress Qty</th>
-                    <th class="py-3 text-center">Status</th>
-                    <th class="py-3 pe-4 text-end">Aksi</th>
+                    <th class="py-3"><i class="bi bi-people me-1 text-primary"></i>Tim & Toko Terhubung</th>
+                    <th class="py-3 text-end"><i class="bi bi-box-seam me-1 text-primary"></i>Target Qty</th>
+                    <th class="py-3 text-end"><i class="bi bi-currency-dollar me-1 text-primary"></i>Rupiah / Qty</th>
+                    <th class="py-3 text-end"><i class="bi bi-wallet2 me-1 text-primary"></i>Total Insentif</th>
+                    <th class="py-3 text-center"><i class="bi bi-bar-chart-line me-1 text-primary"></i>Progress Qty</th>
+                    <th class="py-3 text-center"><i class="bi bi-toggle-on me-1 text-primary"></i>Status</th>
+                    <th class="py-3 pe-4 text-end"><i class="bi bi-gear me-1 text-primary"></i>Aksi</th>
                 </tr>
             </thead>
             <tbody>
@@ -222,11 +222,11 @@
                                 elseif ($pct >= 50) $barClass = 'bg-warning';
                             @endphp
                             <div class="d-flex justify-content-between align-items-center mb-1 small">
-                                <span class="fw-semibold text-dark">{{ number_format($team->actual_qty) }} / {{ number_format($team->target_qty) }}</span>
-                                <span class="fw-bold text-dark">{{ $pct }}%</span>
+                                <span class="fw-semibold text-dark"><i class="bi bi-box-seam text-secondary me-1"></i>{{ number_format($team->actual_qty) }} / {{ number_format($team->target_qty) }}</span>
+                                <span class="badge bg-light text-dark border rounded-pill"><i class="bi bi-graph-up-arrow text-primary me-1"></i>{{ $pct }}%</span>
                             </div>
-                            <div class="progress rounded-pill">
-                                <div class="progress-bar {{ $barClass }} rounded-pill" role="progressbar" aria-valuenow="{{ $pct }}" aria-valuemin="0" aria-valuemax="100"></div>
+                            <div class="progress rounded-pill" style="height: 8px;">
+                                <div class="progress-bar {{ $barClass }} rounded-pill" role="progressbar" style="width: {{ $pct }}%;" aria-valuenow="{{ $pct }}" aria-valuemin="0" aria-valuemax="100"></div>
                             </div>
                         </td>
 
