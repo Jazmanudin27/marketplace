@@ -740,9 +740,12 @@
                         <select name="store_id" class="form-select">
                             <option value="">Semua Toko</option>
                             @foreach ($stores as $store)
+                                @php
+                                    $channelName = $store->channel->name ?? ucfirst($store->channel->code ?? 'Marketplace');
+                                @endphp
                                 <option value="{{ $store->id }}"
                                     {{ request('store_id') == $store->id ? 'selected' : '' }}>
-                                    {{ $store->store_name }}
+                                    {{ $store->store_name }} ({{ $channelName }})
                                 </option>
                             @endforeach
                         </select>

@@ -163,7 +163,7 @@ class OrderController extends Controller
 
         // Data pendukung untuk UI filter
         $channels = \App\Models\Channel::all();
-        $stores = \App\Models\Store::where('tenant_id', $tenantId)->get();
+        $stores = \App\Models\Store::with('channel')->where('tenant_id', $tenantId)->get();
         
         $couriers = Order::where('tenant_id', $tenantId)
             ->whereNotNull('courier')
