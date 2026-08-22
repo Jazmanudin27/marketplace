@@ -26,22 +26,22 @@ class MarketingTeamController extends Controller
             ->orderBy('id', 'desc')
             ->get();
 
-        // Parameter Filter (Default Bulan & Tahun sekarang)
+        // Parameter Filter (Default: Range Tanggal dari Tanggal 1 s/d Hari ini pada Bulan Sekarang)
         $reqMonth   = $request->filled('month') ? (int) $request->month : (int) date('n');
         $reqYear    = $request->filled('year') ? (int) $request->year : (int) date('Y');
-        $dateFrom   = $request->filled('date_from') ? $request->date_from : null;
-        $dateTo     = $request->filled('date_to') ? $request->date_to : null;
+        $dateFrom   = $request->filled('date_from') ? $request->date_from : date('Y-m-01');
+        $dateTo     = $request->filled('date_to') ? $request->date_to : date('Y-m-d');
 
         // Hitung nilai dinamis aktual per tim berdasarkan filter
         foreach ($teams as $team) {
-            if ($dateFrom && $dateTo) {
-                // Jika diisi Range Tanggal (Dari - Sampai)
-                $team->custom_actual_qty = $team->calculateActualQty(null, null, $dateFrom, $dateTo);
-                $team->custom_actual_omset = $team->calculateActualOmset(null, null, $dateFrom, $dateTo);
-            } else {
-                // Filter Bulan & Tahun (otomatis default ke bulan & tahun berjalan saat ini)
+            if ($request->filled('month') || $request->filled('year')) {
+                // Jika user memilih filter spesifik Bulan & Tahun
                 $team->custom_actual_qty = $team->calculateActualQty($reqMonth, $reqYear);
                 $team->custom_actual_omset = $team->calculateActualOmset($reqMonth, $reqYear);
+            } else {
+                // Default: Filter Range Tanggal (Tanggal 1 s/d Hari Ini pada bulan berjalan)
+                $team->custom_actual_qty = $team->calculateActualQty(null, null, $dateFrom, $dateTo);
+                $team->custom_actual_omset = $team->calculateActualOmset(null, null, $dateFrom, $dateTo);
             }
 
             $team->custom_total_reward = $team->custom_actual_qty * $team->reward_per_qty;
