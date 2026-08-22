@@ -56,10 +56,10 @@
                     <label class="form-label small fw-bold text-dark mb-1"><i class="bi bi-calendar-range me-1 text-primary"></i>Range Tanggal Orderan Diterima</label>
                     <div class="row g-1">
                         <div class="col-6">
-                            <input type="date" name="date_from" class="form-control form-select-sm" value="{{ $dateFrom }}" placeholder="Dari Tanggal">
+                            <input type="date" name="date_from" class="form-control form-select-sm" value="{{ $dateFrom ? $dateFrom : date('Y-m-01') }}" placeholder="Dari Tanggal">
                         </div>
                         <div class="col-6">
-                            <input type="date" name="date_to" class="form-control form-select-sm" value="{{ $dateTo }}" placeholder="Sampai Tanggal">
+                            <input type="date" name="date_to" class="form-control form-select-sm" value="{{ $dateTo ? $dateTo : date('Y-m-d') }}" placeholder="Sampai Tanggal">
                         </div>
                     </div>
                 </div>
