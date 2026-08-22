@@ -522,7 +522,6 @@
         {{-- ── Filter Bar ── --}}
         <div class="shopee-filter-bar">
             <form method="GET" action="{{ route('orders.index') }}" id="filter-form">
-                {{-- Pertahankan status tab yang aktif --}}
                 @if(request('status'))
                     <input type="hidden" name="status" value="{{ request('status') }}">
                 @endif
@@ -564,104 +563,28 @@
                         </select>
                     </div>
 
-                    {{-- Kurir --}}
-                    <div class="shopee-filter-group w-select">
-                        <label><i class="fas fa-truck me-1"></i>Jasa Kirim</label>
-                        <select name="courier" class="form-select">
-                            <option value="">Semua Jasa Kirim</option>
-                            @foreach ($couriers as $courier)
-                                <option value="{{ $courier }}"
-                                    {{ request('courier') == $courier ? 'selected' : '' }}>
-                                    {{ $courier }}
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
-
-                    {{-- Batas Kirim --}}
-                    <div class="shopee-filter-group w-select">
-                        <label><i class="fas fa-hourglass-half me-1"></i>Batas Kirim</label>
-                        <select name="deadline_status" class="form-select">
-                            <option value="">Semua</option>
-                            <option value="overdue"  {{ request('deadline_status') == 'overdue'  ? 'selected' : '' }}>Overdue</option>
-                            <option value="urgent"   {{ request('deadline_status') == 'urgent'   ? 'selected' : '' }}>Urgent (&lt;24 Jam)</option>
-                            <option value="safe"     {{ request('deadline_status') == 'safe'     ? 'selected' : '' }}>Aman (&gt;24 Jam)</option>
-                        </select>
-                    </div>
-
-                    {{-- Tanggal Mulai --}}
+                    {{-- Dari Tanggal --}}
                     <div class="shopee-filter-group w-date">
                         <label><i class="fas fa-calendar me-1"></i>Dari Tanggal</label>
                         <input type="date" name="start_date" class="form-control"
                             value="{{ request('start_date') }}">
                     </div>
 
-                    {{-- Tanggal Akhir --}}
+                    {{-- Sampai Tanggal --}}
                     <div class="shopee-filter-group w-date">
                         <label><i class="fas fa-calendar-check me-1"></i>Sampai Tanggal</label>
                         <input type="date" name="end_date" class="form-control"
                             value="{{ request('end_date') }}">
                     </div>
 
-                    {{-- Status Print --}}
-                    <div class="shopee-filter-group w-select">
-                        <label><i class="fas fa-print me-1"></i>Status Print</label>
-                        <select name="print_status" class="form-select">
-                            <option value="">Semua</option>
-                            <option value="unprinted" {{ request('print_status') === 'unprinted' ? 'selected' : '' }}>Belum Diprint</option>
-                            <option value="printed"   {{ request('print_status') === 'printed'   ? 'selected' : '' }}>Sudah Diprint</option>
-                        </select>
-                    </div>
-
-                    {{-- Status Kemas --}}
-                    <div class="shopee-filter-group w-select">
-                        <label><i class="fas fa-box-open me-1"></i>Status Kemas</label>
-                        <select name="packing_status" class="form-select">
-                            <option value="">Semua</option>
-                            <option value="pending"  {{ request('packing_status') === 'pending'  ? 'selected' : '' }}>Pending</option>
-                            <option value="packing"  {{ request('packing_status') === 'packing'  ? 'selected' : '' }}>Packing</option>
-                            <option value="verified" {{ request('packing_status') === 'verified' ? 'selected' : '' }}>Verified</option>
-                        </select>
-                    </div>
-
-                    {{-- Status SPK --}}
-                    <div class="shopee-filter-group w-select">
-                        <label><i class="fas fa-tools me-1"></i>Status SPK</label>
-                        <select name="spk_status" class="form-select">
-                            <option value="">Semua</option>
-                            <option value="has_spk" {{ request('spk_status') === 'has_spk' ? 'selected' : '' }}>Ada SPK</option>
-                            <option value="no_spk"  {{ request('spk_status') === 'no_spk'  ? 'selected' : '' }}>Belum SPK</option>
-                        </select>
-                    </div>
-
-                    {{-- Tipe Produk --}}
-                    <div class="shopee-filter-group w-select">
-                        <label><i class="fas fa-box me-1"></i>Tipe Produk</label>
-                        <select name="is_po" class="form-select">
-                            <option value="">Semua</option>
-                            <option value="po"    {{ request('is_po') === 'po'    ? 'selected' : '' }}>Pre-Order</option>
-                            <option value="ready" {{ request('is_po') === 'ready' ? 'selected' : '' }}>Ready Stock</option>
-                        </select>
-                    </div>
-
-                    {{-- Dropship --}}
-                    <div class="shopee-filter-group w-select">
-                        <label><i class="fas fa-shipping-fast me-1"></i>Dropship</label>
-                        <select name="is_dropship" class="form-select">
-                            <option value="">Semua</option>
-                            <option value="1" {{ request('is_dropship') === '1' ? 'selected' : '' }}>Dropship</option>
-                            <option value="0" {{ request('is_dropship') === '0' ? 'selected' : '' }}>Non-Dropship</option>
-                        </select>
-                    </div>
-
-                    {{-- Tombol ── --}}
+                    {{-- Tombol --}}
                     <div class="shopee-filter-group" style="justify-content: flex-end; padding-bottom: 0;">
                         <label style="visibility:hidden;">.</label>
                         <div class="d-flex gap-2">
                             <button type="submit" class="btn-shopee-primary">
                                 <i class="fas fa-search"></i> Terapkan
                             </button>
-                            @if (request()->anyFilled(['channel_id','store_id','courier','start_date','end_date','deadline_status','is_dropship','is_po','spk_status','cancel_reason','print_status','packing_status','order_number']))
+                            @if (request()->anyFilled(['channel_id', 'store_id', 'start_date', 'end_date', 'order_number']))
                                 <a href="{{ route('orders.index', request('status') ? ['status' => request('status')] : []) }}"
                                    class="btn-shopee-ghost">
                                     <i class="fas fa-times"></i> Atur Ulang
@@ -672,6 +595,7 @@
                 </div>
             </form>
         </div>
+
 
         {{-- ── Summary Bar ── --}}
         <div class="shopee-summary-bar">
