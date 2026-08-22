@@ -37,6 +37,7 @@
                     <div class="row g-1">
                         <div class="col-7">
                             <select name="month" class="form-select form-select-sm">
+                                <option value="">-- Semua Bulan --</option>
                                 @for($m = 1; $m <= 12; $m++)
                                     <option value="{{ $m }}" {{ $reqMonth == $m ? 'selected' : '' }}>
                                         {{ date('F', mktime(0, 0, 0, $m, 1)) }}
@@ -45,7 +46,7 @@
                             </select>
                         </div>
                         <div class="col-5">
-                            <input type="number" name="year" class="form-control form-select-sm" value="{{ $reqYear ?? date('Y') }}" placeholder="Tahun">
+                            <input type="number" name="year" class="form-control form-select-sm" value="{{ $reqYear }}" placeholder="Tahun (e.g. 2026)">
                         </div>
                     </div>
                 </div>
