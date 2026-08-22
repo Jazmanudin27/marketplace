@@ -486,30 +486,35 @@
         @php
             $currentStatus = request('status', '');
             $tabStatuses = [
-                ''                  => ['label' => 'Semua',           'icon' => 'fas fa-list'],
-                'UNPAID'            => ['label' => 'Belum Bayar',     'icon' => 'fas fa-credit-card'],
-                'READY_TO_SHIP'     => ['label' => 'Perlu Dikirim',   'icon' => 'fas fa-box'],
-                'SHIPPED'           => ['label' => 'Dikirim',         'icon' => 'fas fa-truck'],
-                'COMPLETED'         => ['label' => 'Selesai',         'icon' => 'fas fa-check-circle'],
-                'CANCELLED'         => ['label' => 'Dibatalkan',      'icon' => 'fas fa-times-circle'],
+                ''              => ['label' => 'Semua',         'icon' => 'fas fa-list',         'countKey' => '__all__'],
+                'UNPAID'        => ['label' => 'Belum Bayar',   'icon' => 'fas fa-credit-card',  'countKey' => 'UNPAID'],
+                'READY_TO_SHIP' => ['label' => 'Perlu Dikirim', 'icon' => 'fas fa-box',          'countKey' => 'READY_TO_SHIP'],
+                'SHIPPED'       => ['label' => 'Dikirim',       'icon' => 'fas fa-truck',        'countKey' => 'SHIPPED'],
+                'COMPLETED'     => ['label' => 'Selesai',       'icon' => 'fas fa-check-circle', 'countKey' => 'COMPLETED'],
+                'CANCELLED'     => ['label' => 'Dibatalkan',    'icon' => 'fas fa-times-circle', 'countKey' => 'CANCELLED'],
             ];
-            // Build tab counts using status from $statuses variable
-            $tabCounts = [];
-            foreach($statuses as $st) {
-                if (!isset($tabCounts[$st])) $tabCounts[$st] = 0;
-            }
         @endphp
         <div class="shopee-tabs" role="tablist">
             @foreach($tabStatuses as $tabKey => $tabInfo)
                 @php
-                    $tabUrl = route('orders.index', array_merge(request()->except(['status', 'page']), $tabKey !== '' ? ['status' => $tabKey] : []));
+                    $tabUrl   = route('orders.index', array_merge(request()->except(['status', 'page']), $tabKey !== '' ? ['status' => $tabKey] : []));
                     $isActive = $currentStatus === $tabKey;
+                    $count    = $tabCounts[$tabInfo['countKey']] ?? 0;
+                    // Tab "Perlu Dikirim" pakai badge merah agar lebih mencolok
+                    $badgeStyle = ($tabKey === 'READY_TO_SHIP' && $count > 0)
+                        ? 'background:#ee4d2d; color:#fff;'
+                        : ($count > 0 ? 'background:#ee4d2d; color:#fff;' : 'background:#e5e7eb; color:#888;');
                 @endphp
                 <a class="shopee-tab {{ $isActive ? 'active' : '' }}"
                    href="{{ $tabUrl }}"
                    role="tab">
                     <i class="{{ $tabInfo['icon'] }}" style="font-size:0.8rem;"></i>
                     {{ $tabInfo['label'] }}
+                    @if($count > 0)
+                        <span class="tab-count" style="{{ $badgeStyle }}">
+                            {{ $count > 999 ? '999+' : $count }}
+                        </span>
+                    @endif
                 </a>
             @endforeach
         </div>

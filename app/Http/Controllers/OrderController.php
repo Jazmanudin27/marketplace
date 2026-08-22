@@ -122,7 +122,7 @@ class OrderController extends Controller
         }
 
         $orders = $query->orderByDesc('order_date')
-            ->paginate(20)
+            ->paginate(50)
             ->withQueryString();
 
         // Data pendukung untuk UI filter
@@ -147,7 +147,27 @@ class OrderController extends Controller
             ->orderBy('ship_before_date')
             ->get();
 
-        return view('orders.index', compact('orders', 'channels', 'stores', 'couriers', 'statuses', 'urgentOrders'));
+        // ── Hitung jumlah pesanan per tab status (1 query GROUP BY) ──
+        $rawCounts = Order::where('tenant_id', $tenantId)
+            ->selectRaw('UPPER(order_status) as status_key, COUNT(*) as total')
+            ->groupBy('status_key')
+            ->pluck('total', 'status_key');
+
+        // Mapping: key tab => array status DB yang masuk ke tab tsb
+        $tabStatusMap = [
+            'UNPAID'        => ['UNPAID', 'PENDING'],
+            'READY_TO_SHIP' => ['READY_TO_SHIP', 'TO_SHIP', 'PROCESSED'],
+            'SHIPPED'       => ['SHIPPED', 'IN_TRANSIT', 'TO_RECEIVE'],
+            'COMPLETED'     => ['COMPLETED', 'FINISHED', 'SELESAI', 'DELIVERED'],
+            'CANCELLED'     => ['CANCELLED', 'BATAL', 'IN_CANCEL'],
+        ];
+
+        $tabCounts = ['__all__' => $rawCounts->sum()];
+        foreach ($tabStatusMap as $tabKey => $dbStatuses) {
+            $tabCounts[$tabKey] = $rawCounts->only($dbStatuses)->sum();
+        }
+
+        return view('orders.index', compact('orders', 'channels', 'stores', 'couriers', 'statuses', 'urgentOrders', 'tabCounts'));
     }
 
     public function show(Order $order, Request $request)

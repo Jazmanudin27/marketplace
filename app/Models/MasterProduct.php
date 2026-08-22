@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use App\Models\Category;
@@ -64,6 +65,17 @@ class MasterProduct extends Model
     public function marketplaceProducts(): HasMany
     {
         return $this->hasMany(MarketplaceProduct::class, 'master_product_id');
+    }
+
+    public function recipes(): HasMany
+    {
+        return $this->hasMany(ProductRecipe::class, 'master_product_id');
+    }
+
+    public function activeRecipe(): HasOne
+    {
+        return $this->hasOne(ProductRecipe::class, 'master_product_id')
+                    ->where('is_active', true);
     }
 
     public function stockMovements(): HasMany
