@@ -26,24 +26,21 @@ class MarketingTeamController extends Controller
             ->orderBy('id', 'desc')
             ->get();
 
-        // Parameter Filter (Default: Tanggal 1 s/d Hari ini pada Bulan berjalan)
+        // Parameter Filter
+        // Input Box Tanggal otomatis default ke Tanggal 1 s/d Hari ini pada Bulan berjalan jika tidak diisi
         $dateFrom = $request->filled('date_from') ? $request->date_from : date('Y-m-01');
         $dateTo   = $request->filled('date_to') ? $request->date_to : date('Y-m-d');
         $reqMonth = $request->filled('month') ? (int) $request->month : null;
         $reqYear  = $request->filled('year') ? (int) $request->year : null;
 
-        // Hitung nilai dinamis aktual per tim berdasarkan filter
+        // Hitung nilai dinamis aktual per tim berdasarkan filter yang dipilih pengguna
         foreach ($teams as $team) {
-            if ($request->filled('date_from') || $request->filled('date_to')) {
-                // Prioritas 1: Filter Range Tanggal Orderan Diterima
-                $team->custom_actual_qty = $team->calculateActualQty(null, null, $dateFrom, $dateTo);
-                $team->custom_actual_omset = $team->calculateActualOmset(null, null, $dateFrom, $dateTo);
-            } elseif ($reqMonth && $reqYear) {
-                // Prioritas 2: Filter Spesifik Bulan & Tahun
+            if ($reqMonth && $reqYear) {
+                // 1. Jika user memilih filter spesifik Bulan & Tahun
                 $team->custom_actual_qty = $team->calculateActualQty($reqMonth, $reqYear);
                 $team->custom_actual_omset = $team->calculateActualOmset($reqMonth, $reqYear);
             } else {
-                // DEFAULT (Buka Halaman Pertama Kali): Tanggal 1 s/d Hari ini di Bulan Berjalan
+                // 2. Menggunakan Range Tanggal (dateFrom s/d dateTo)
                 $team->custom_actual_qty = $team->calculateActualQty(null, null, $dateFrom, $dateTo);
                 $team->custom_actual_omset = $team->calculateActualOmset(null, null, $dateFrom, $dateTo);
             }
