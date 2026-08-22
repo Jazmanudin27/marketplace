@@ -77,7 +77,6 @@ class MarketingTeamController extends Controller
             'totalActualQty',
             'totalActualOmset',
             'totalEarnedReward',
-            'filterType',
             'reqMonth',
             'reqYear',
             'dateFrom',
