@@ -633,9 +633,17 @@ class SecretRepairDashboardController extends Controller
         $log[] = "======================================================================";
 
         try {
-            $updatedCount = MasterProduct::recalculateAllBundleStocks($tenantId);
+            $sampleLogs = [];
+            $updatedCount = MasterProduct::recalculateAllBundleStocks($tenantId, $sampleLogs);
 
             $log[] = "✅ SELESAI! Berhasil menghitung ulang & memperbarui stok untuk {$updatedCount} produk Set/Bundle di ERP.";
+            if (!empty($sampleLogs)) {
+                $log[] = "\n📋 Sampel Hasil Update Stok Bundle ERP:";
+                foreach ($sampleLogs as $sLog) {
+                    $log[] = $sLog;
+                }
+                $log[] = "";
+            }
             $log[] = "📌 Stok produk Set/Bundle di ERP kini 100% selaras dengan ketersediaan stok komponen single-nya.";
             $log[] = "💡 Catatan: Perubahan stok ini khusus internal ERP. Pendorongan ke toko marketplace berjalan otomatis via Scheduler.";
         } catch (\Throwable $e) {
