@@ -257,6 +257,14 @@ class SecretRepairDashboardController extends Controller
                     $output = $this->executeSyncProductStock();
                     break;
 
+                case 'resync_shopee_status':
+                    $output = $this->executeResyncShopeeStatus();
+                    break;
+
+                case 'recalculate_bundle_stocks':
+                    $output = $this->executeRecalculateBundleStocks();
+                    break;
+
                 default:
                     return response()->json(['success' => false, 'message' => 'Action tidak dikenali.'], 400);
             }
@@ -515,6 +523,120 @@ class SecretRepairDashboardController extends Controller
             $log[] = "🚀 Berhasil memperbarui stok ERP & mengirimkan {$count} produk ke antrean push marketplace.";
             $log[] = "⚡ Penyesuaian stok di toko Shopee/TikTok/Lazada berjalan di background secara kilat!";
 
+        } catch (\Throwable $e) {
+            $log[] = "❌ Terjadi kesalahan: " . $e->getMessage();
+        }
+
+        $log[] = "======================================================================";
+        return implode("\n", $log);
+    }
+
+    private function executeResyncShopeeStatus()
+    {
+        $shopeeService = app(ShopeeService::class);
+        $tenantId = auth()->user()->tenant_id;
+
+        $shopeeStores = Store::where('tenant_id', $tenantId)
+            ->whereHas('channel', fn($q) => $q->where('code', 'shopee'))
+            ->get();
+
+        $log = [];
+        $log[] = "======================================================================";
+        $log[] = "⚡ RE-SINKRONISASI KOREKSI STATUS PESANAN SHOPEE RESMI DARI SHOPEE API";
+        $log[] = "======================================================================";
+
+        if ($shopeeStores->isEmpty()) {
+            $log[] = "⚠️ Tidak ditemukan toko Shopee yang terhubung di tenant ini.";
+            return implode("\n", $log);
+        }
+
+        $totalRestored = 0;
+
+        foreach ($shopeeStores as $store) {
+            $activeOrders = Order::where('store_id', $store->id)
+                ->where('order_date', '>=', now()->subDays(60))
+                ->get();
+
+            if ($activeOrders->isEmpty()) {
+                $log[] = "📌 Toko {$store->store_name}: Tidak ada pesanan Shopee 60 hari terakhir.";
+                continue;
+            }
+
+            try {
+                $accessToken = $store->getValidAccessToken();
+                $orderSns = $activeOrders->pluck('order_marketplace_id')->toArray();
+                $chunks = array_chunk($orderSns, 50);
+
+                foreach ($chunks as $chunk) {
+                    $detailRes = $shopeeService->getOrderDetail(
+                        $accessToken,
+                        (int) $store->marketplace_store_id,
+                        $chunk
+                    );
+
+                    $ordersList = $detailRes['order_list'] ?? [];
+                    foreach ($ordersList as $shopeeOrder) {
+                        $orderSn = $shopeeOrder['order_sn'] ?? null;
+                        if (!$orderSn) continue;
+
+                        $dbOrder = $activeOrders->firstWhere('order_marketplace_id', $orderSn);
+                        if (!$dbOrder) continue;
+
+                        $statusRaw = strtoupper((string)($shopeeOrder['order_status'] ?? $dbOrder->order_status));
+                        $shopeeStatusMap = [
+                            'UNPAID'             => 'UNPAID',
+                            'READY_TO_SHIP'      => 'READY_TO_SHIP',
+                            'PROCESSED'          => 'READY_TO_SHIP',
+                            'RETRY_SHIP'         => 'READY_TO_SHIP',
+                            'TO_RETRY_LOGISTICS' => 'READY_TO_SHIP',
+                            'SHIPPED'            => 'SHIPPED',
+                            'TO_CONFIRM_RECEIVE' => 'SHIPPED',
+                            'DELIVERED'          => 'DELIVERED',
+                            'COMPLETED'          => 'COMPLETED',
+                            'CANCELLED'          => 'CANCELLED',
+                            'IN_CANCEL'          => 'CANCELLED',
+                        ];
+                        $correctStatus = $shopeeStatusMap[$statusRaw] ?? $statusRaw;
+
+                        if ($dbOrder->order_status !== $correctStatus) {
+                            $oldSt = $dbOrder->order_status;
+                            $dbOrder->order_status = $correctStatus;
+                            if (in_array($correctStatus, ['CANCELLED', 'BATAL'])) {
+                                $dbOrder->cancel_reason = $shopeeOrder['cancel_reason'] ?? 'Cancelled on Shopee';
+                                $dbOrder->cancelled_by = 'Shopee / System';
+                            }
+                            $dbOrder->save();
+                            $totalRestored++;
+                            $log[] = "   -> Order #{$orderSn}: Status dikoreksi dari {$oldSt} => {$correctStatus}";
+                        }
+                    }
+                }
+            } catch (\Throwable $e) {
+                $log[] = "❌ Toko {$store->store_name} Error: " . $e->getMessage();
+            }
+        }
+
+        $log[] = "======================================================================";
+        $log[] = "✨ SELESAI! Berhasil mengoreksi {$totalRestored} status pesanan Shopee di ERP.";
+        $log[] = "======================================================================";
+
+        return implode("\n", $log);
+    }
+
+    private function executeRecalculateBundleStocks()
+    {
+        $tenantId = auth()->user()->tenant_id;
+
+        $log = [];
+        $log[] = "======================================================================";
+        $log[] = "🎁 REKALKULASI & SINKRONISASI STOK PRODUK SET / BUNDLE ERP";
+        $log[] = "======================================================================";
+
+        try {
+            $updatedCount = MasterProduct::recalculateAllBundleStocks($tenantId);
+
+            $log[] = "✅ SELESAI! Berhasil menghitung ulang & memperbarui stok untuk {$updatedCount} produk Set/Bundle.";
+            $log[] = "📌 Stok produk Set/Bundle kini 100% selaras dengan ketersediaan stok komponen single-nya.";
         } catch (\Throwable $e) {
             $log[] = "❌ Terjadi kesalahan: " . $e->getMessage();
         }

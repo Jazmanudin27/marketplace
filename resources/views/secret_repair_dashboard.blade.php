@@ -501,6 +501,24 @@
                 </div>
             </div>
 
+            <!-- Action 0.6: Recalculate Bundle Stock -->
+            <div class="col-lg-4 col-md-6">
+                <div class="card-action border-top border-4 border-success">
+                    <div>
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <span class="badge bg-success text-white fw-bold px-2 py-1" style="font-size: 0.72rem;"><i class="fas fa-cubes me-1"></i>BUNDLE STOCKS</span>
+                            <h6 class="fw-bold text-dark mb-0">Sync Stok Produk Set / Bundle</h6>
+                        </div>
+                        <p class="text-secondary small mb-3" style="font-size: 0.8rem; line-height: 1.45;">
+                            Menghitung ulang &amp; memperbarui stok seluruh produk Paket/Setelan berdasarkan ketersediaan stok komponen single-nya di DB.
+                        </p>
+                    </div>
+                    <button type="button" class="btn-custom btn-success fw-semibold" onclick="triggerRepair('recalculate_bundle_stocks', this)">
+                        <i class="fas fa-sync me-1"></i> Hitung Ulang Stok Bundle
+                    </button>
+                </div>
+            </div>
+
             <!-- Action 1: Fix Missing Items -->
             <div class="col-lg-4 col-md-6">
                 <div class="card-action border-top border-4 border-warning">
@@ -551,6 +569,24 @@
                     </div>
                     <button type="button" class="btn-custom btn-danger" onclick="triggerRepair('sync_shopee_escrow', this)">
                         <i class="fas fa-sync me-1"></i> Sync Escrow Shopee
+                    </button>
+                </div>
+            </div>
+
+            <!-- Action 3.5: Resync Shopee Status -->
+            <div class="col-lg-4 col-md-6">
+                <div class="card-action border-top border-4 border-danger">
+                    <div>
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <span class="badge bg-danger text-white px-2 py-1" style="font-size: 0.72rem;"><i class="fas fa-sync me-1"></i>FIX SHOPEE STATUS</span>
+                            <h6 class="fw-bold text-dark mb-0">Koreksi Status Pesanan Shopee</h6>
+                        </div>
+                        <p class="text-secondary small mb-3" style="font-size: 0.8rem; line-height: 1.45;">
+                            Menarik status asli dari API Shopee untuk mengembalikan pesanan yang tertimpa status ke status sebenarnya (misal: Perlu Dikirim).
+                        </p>
+                    </div>
+                    <button type="button" class="btn-custom btn-outline-danger fw-semibold" onclick="triggerRepair('resync_shopee_status', this)">
+                        <i class="fas fa-sync me-1"></i> Koreksi Status Shopee API
                     </button>
                 </div>
             </div>

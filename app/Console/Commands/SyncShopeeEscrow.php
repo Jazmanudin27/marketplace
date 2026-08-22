@@ -176,12 +176,17 @@ class SyncShopeeEscrow extends Command
 
                         $order->marketplace_fee = $totalFee;
                         $order->net_amount = $escrowAmount > 0 ? $escrowAmount : max(0.0, $merchantSubtotal - $totalFee);
-                        $order->order_status = 'COMPLETED';
-                        $order->recon_status = 'RECONCILED';
-                        if (!$order->completed_at) {
-                            $order->completed_at = now();
+
+                        // 🔒 PRESERVE ACTIVE STATUS: Hanya ubah ke COMPLETED jika pesanan memang sudah dikirim/selesai!
+                        // Jangan pernah menimpa pesanan yang masih READY_TO_SHIP atau SHIPPED.
+                        if (in_array(strtoupper((string)$order->order_status), ['DELIVERED', 'COMPLETED', 'FINISHED', 'SELESAI'])) {
+                            $order->order_status = 'COMPLETED';
+                            if (!$order->completed_at) {
+                                $order->completed_at = now();
+                            }
                         }
 
+                        $order->recon_status = 'RECONCILED';
                         $order->saveQuietly();
 
                         // Update rincian item produk agar nilainya selaras

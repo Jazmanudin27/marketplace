@@ -22,13 +22,13 @@ $shopeeStores = Store::whereHas('channel', function ($q) {
 $totalUpdated = 0;
 
 foreach ($shopeeStores as $store) {
-    // Ambil order Shopee di DB yang belum COMPLETED / CANCELLED (seperti SHIPPED, READY_TO_SHIP, UNPAID)
+    // Ambil semua order Shopee di DB 60 hari terakhir untuk mencocokkan status asli dari Shopee API
     $activeOrders = Order::where('store_id', $store->id)
-        ->whereNotIn('order_status', ['COMPLETED', 'CANCELLED', 'FINISHED', 'SELESAI', 'BATAL'])
+        ->where('order_date', '>=', now()->subDays(60))
         ->get();
 
     if ($activeOrders->isEmpty()) {
-        echo "📌 Toko {$store->store_name}: Tidak ada pesanan aktif yang menggantung.\n";
+        echo "📌 Toko {$store->store_name}: Tidak ada pesanan Shopee 60 hari terakhir.\n";
         continue;
     }
 
