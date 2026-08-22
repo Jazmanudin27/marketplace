@@ -736,6 +736,8 @@
         }
 
         function escapeHtml(text) {
+            if (text === null || text === undefined) return '';
+            if (typeof text !== 'string') text = String(text);
             return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
         }
 
@@ -773,16 +775,16 @@
 
                 if (data.success) {
                     appendLog(`✅ EKSEKUSI [${actionName}] SELESAI dalam ${data.duration}:`, 'success');
-                    appendLog(data.output, 'success');
+                    appendLog(data.output || 'Selesai tanpa output.', 'success');
 
                     if (data.stats) {
-                        if (data.stats.missing_items !== undefined) {
+                        if (data.stats.missing_items !== undefined && document.getElementById('statMissingItems')) {
                             document.getElementById('statMissingItems').innerText = data.stats.missing_items.toLocaleString('id-ID');
                         }
                     }
                 } else {
                     appendLog(`❌ EKSEKUSI [${actionName}] GAGAL:`, 'error');
-                    appendLog(data.output || data.error, 'error');
+                    appendLog(data.output || data.error || data.message || 'Terjadi kesalahan pada server.', 'error');
                 }
             })
             .catch(err => {

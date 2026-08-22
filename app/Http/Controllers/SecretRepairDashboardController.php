@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\Order;
 use App\Models\Store;
 use App\Models\OrderItem;
+use App\Models\MasterProduct;
 use App\Services\TiktokService;
 use App\Services\ShopeeService;
 use App\Jobs\PullOrdersFromTiktok;
@@ -281,7 +282,7 @@ class SecretRepairDashboardController extends Controller
                 ]
             ]);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             return response()->json([
                 'success' => false,
                 'action'  => $action,
@@ -502,7 +503,7 @@ class SecretRepairDashboardController extends Controller
                 }
                 $log[] = "🚀 Berhasil mengirimkan {$count} produk ERP ke antrean sync stok marketplace.";
             }
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             $log[] = "❌ Terjadi kesalahan: " . $e->getMessage();
         }
 
