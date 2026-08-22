@@ -26,25 +26,22 @@ class MarketingTeamController extends Controller
             ->orderBy('id', 'desc')
             ->get();
 
-        // Parameter Filter
-        $filterType = $request->get('filter_type', 'month'); // 'month' or 'date_range'
-        $reqMonth   = $request->filled('month') ? (int) $request->month : null;
-        $reqYear    = $request->filled('year') ? (int) $request->year : null;
+        // Parameter Filter (Default Bulan & Tahun sekarang)
+        $reqMonth   = $request->filled('month') ? (int) $request->month : (int) date('n');
+        $reqYear    = $request->filled('year') ? (int) $request->year : (int) date('Y');
         $dateFrom   = $request->filled('date_from') ? $request->date_from : null;
         $dateTo     = $request->filled('date_to') ? $request->date_to : null;
 
         // Hitung nilai dinamis aktual per tim berdasarkan filter
         foreach ($teams as $team) {
-            if ($filterType === 'date_range' && $dateFrom && $dateTo) {
+            if ($dateFrom && $dateTo) {
+                // Jika diisi Range Tanggal (Dari - Sampai)
                 $team->custom_actual_qty = $team->calculateActualQty(null, null, $dateFrom, $dateTo);
                 $team->custom_actual_omset = $team->calculateActualOmset(null, null, $dateFrom, $dateTo);
-            } elseif ($reqMonth && $reqYear) {
+            } else {
+                // Filter Bulan & Tahun (otomatis default ke bulan & tahun berjalan saat ini)
                 $team->custom_actual_qty = $team->calculateActualQty($reqMonth, $reqYear);
                 $team->custom_actual_omset = $team->calculateActualOmset($reqMonth, $reqYear);
-            } else {
-                // Default sesuai periode target bawaan tim
-                $team->custom_actual_qty = $team->actual_qty;
-                $team->custom_actual_omset = $team->actual_omset;
             }
 
             $team->custom_total_reward = $team->custom_actual_qty * $team->reward_per_qty;

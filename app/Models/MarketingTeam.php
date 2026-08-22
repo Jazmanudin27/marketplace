@@ -61,39 +61,29 @@ class MarketingTeam extends Model
             return 0;
         }
 
-        $validStatuses = ['COMPLETED', 'RELEASED', 'COMPLETED_ESCROW'];
+        $validStatuses = [
+            'COMPLETED', 'RELEASED', 'COMPLETED_ESCROW', 'SELESAI', 'DELIVERED', 'FINISHED',
+            'completed', 'released', 'selesai', 'delivered', 'finished'
+        ];
+        $invalidStatuses = [
+            'CANCELLED', 'CANCELED', 'BATAL', 'RETURNED', 'REFUNDED', 'RETUR', 'IN_CANCEL', 'FAILED',
+            'cancelled', 'canceled', 'batal', 'returned', 'refunded'
+        ];
 
         if (Schema::hasTable('order_items')) {
             $qtyQuery = DB::table('order_items')
                 ->join('orders', 'order_items.order_id', '=', 'orders.id')
                 ->whereIn('orders.store_id', $storeIds)
                 ->whereIn('orders.order_status', $validStatuses)
-                ->whereNotIn('orders.order_status', ['CANCELLED', 'CANCELED', 'RETURNED', 'REFUNDED', 'IN_CANCEL', 'FAILED']);
+                ->whereNotIn('orders.order_status', $invalidStatuses);
 
             if ($dateFrom && $dateTo) {
                 $from = $dateFrom . ' 00:00:00';
                 $to = $dateTo . ' 23:59:59';
-                $qtyQuery->where(function($q) use ($from, $to) {
-                    $q->where(function($sub) use ($from, $to) {
-                        $sub->whereNotNull('orders.completed_at')
-                            ->whereBetween('orders.completed_at', [$from, $to]);
-                    })->orWhere(function($sub) use ($from, $to) {
-                        $sub->whereNull('orders.completed_at')
-                            ->whereBetween('orders.order_date', [$from, $to]);
-                    });
-                });
+                $qtyQuery->whereBetween(DB::raw('COALESCE(orders.completed_at, orders.updated_at, orders.order_date)'), [$from, $to]);
             } elseif ($month && $year) {
-                $qtyQuery->where(function($q) use ($month, $year) {
-                    $q->where(function($sub) use ($month, $year) {
-                        $sub->whereNotNull('orders.completed_at')
-                            ->whereYear('orders.completed_at', $year)
-                            ->whereMonth('orders.completed_at', $month);
-                    })->orWhere(function($sub) use ($month, $year) {
-                        $sub->whereNull('orders.completed_at')
-                            ->whereYear('orders.order_date', $year)
-                            ->whereMonth('orders.order_date', $month);
-                    });
-                });
+                $qtyQuery->whereYear(DB::raw('COALESCE(orders.completed_at, orders.updated_at, orders.order_date)'), $year)
+                        ->whereMonth(DB::raw('COALESCE(orders.completed_at, orders.updated_at, orders.order_date)'), $month);
             }
 
             return (int) $qtyQuery->sum('order_items.quantity');
@@ -102,32 +92,15 @@ class MarketingTeam extends Model
         $query = DB::table('orders')
             ->whereIn('store_id', $storeIds)
             ->whereIn('order_status', $validStatuses)
-            ->whereNotIn('order_status', ['CANCELLED', 'CANCELED', 'RETURNED', 'REFUNDED', 'IN_CANCEL', 'FAILED']);
+            ->whereNotIn('order_status', $invalidStatuses);
 
         if ($dateFrom && $dateTo) {
             $from = $dateFrom . ' 00:00:00';
             $to = $dateTo . ' 23:59:59';
-            $query->where(function($q) use ($from, $to) {
-                $q->where(function($sub) use ($from, $to) {
-                    $sub->whereNotNull('completed_at')
-                        ->whereBetween('completed_at', [$from, $to]);
-                })->orWhere(function($sub) use ($from, $to) {
-                    $sub->whereNull('completed_at')
-                        ->whereBetween('order_date', [$from, $to]);
-                });
-            });
+            $query->whereBetween(DB::raw('COALESCE(completed_at, updated_at, order_date)'), [$from, $to]);
         } elseif ($month && $year) {
-            $query->where(function($q) use ($month, $year) {
-                $q->where(function($sub) use ($month, $year) {
-                    $sub->whereNotNull('completed_at')
-                        ->whereYear('completed_at', $year)
-                        ->whereMonth('completed_at', $month);
-                })->orWhere(function($sub) use ($month, $year) {
-                    $sub->whereNull('completed_at')
-                        ->whereYear('order_date', $year)
-                        ->whereMonth('order_date', $month);
-                });
-            });
+            $query->whereYear(DB::raw('COALESCE(completed_at, updated_at, order_date)'), $year)
+                  ->whereMonth(DB::raw('COALESCE(completed_at, updated_at, order_date)'), $month);
         }
 
         return (int) $query->count();
@@ -148,37 +121,27 @@ class MarketingTeam extends Model
             return 0.0;
         }
 
-        $validStatuses = ['COMPLETED', 'RELEASED', 'COMPLETED_ESCROW'];
+        $validStatuses = [
+            'COMPLETED', 'RELEASED', 'COMPLETED_ESCROW', 'SELESAI', 'DELIVERED', 'FINISHED',
+            'completed', 'released', 'selesai', 'delivered', 'finished'
+        ];
+        $invalidStatuses = [
+            'CANCELLED', 'CANCELED', 'BATAL', 'RETURNED', 'REFUNDED', 'RETUR', 'IN_CANCEL', 'FAILED',
+            'cancelled', 'canceled', 'batal', 'returned', 'refunded'
+        ];
 
         $query = DB::table('orders')
             ->whereIn('store_id', $storeIds)
             ->whereIn('order_status', $validStatuses)
-            ->whereNotIn('order_status', ['CANCELLED', 'CANCELED', 'RETURNED', 'REFUNDED', 'IN_CANCEL', 'FAILED']);
+            ->whereNotIn('order_status', $invalidStatuses);
 
         if ($dateFrom && $dateTo) {
             $from = $dateFrom . ' 00:00:00';
             $to = $dateTo . ' 23:59:59';
-            $query->where(function($q) use ($from, $to) {
-                $q->where(function($sub) use ($from, $to) {
-                    $sub->whereNotNull('completed_at')
-                        ->whereBetween('completed_at', [$from, $to]);
-                })->orWhere(function($sub) use ($from, $to) {
-                    $sub->whereNull('completed_at')
-                        ->whereBetween('order_date', [$from, $to]);
-                });
-            });
+            $query->whereBetween(DB::raw('COALESCE(completed_at, updated_at, order_date)'), [$from, $to]);
         } elseif ($month && $year) {
-            $query->where(function($q) use ($month, $year) {
-                $q->where(function($sub) use ($month, $year) {
-                    $sub->whereNotNull('completed_at')
-                        ->whereYear('completed_at', $year)
-                        ->whereMonth('completed_at', $month);
-                })->orWhere(function($sub) use ($month, $year) {
-                    $sub->whereNull('completed_at')
-                        ->whereYear('order_date', $year)
-                        ->whereMonth('order_date', $month);
-                });
-            });
+            $query->whereYear(DB::raw('COALESCE(completed_at, updated_at, order_date)'), $year)
+                  ->whereMonth(DB::raw('COALESCE(completed_at, updated_at, order_date)'), $month);
         }
 
         return (float) ($query->sum('total_amount') ?? 0.0);

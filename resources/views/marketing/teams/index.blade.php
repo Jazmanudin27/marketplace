@@ -37,7 +37,6 @@
                     <div class="row g-1">
                         <div class="col-7">
                             <select name="month" class="form-select form-select-sm">
-                                <option value="">-- Semua Bulan --</option>
                                 @for($m = 1; $m <= 12; $m++)
                                     <option value="{{ $m }}" {{ $reqMonth == $m ? 'selected' : '' }}>
                                         {{ date('F', mktime(0, 0, 0, $m, 1)) }}
