@@ -26,21 +26,36 @@ class MarketingTeamController extends Controller
             ->orderBy('id', 'desc')
             ->get();
 
-        // Parameter Filter
-        // Input Box Tanggal otomatis default ke Tanggal 1 s/d Hari ini pada Bulan berjalan jika tidak diisi
+        // Ambil daftar tahun unik dari data tim & orders milik tenant untuk dropdown option
+        $currentYear = (int) date('Y');
+        $teamYears = MarketingTeam::forTenant($tenantId)
+            ->whereNotNull('period_year')
+            ->pluck('period_year')
+            ->toArray();
+        $orderYears = DB::table('orders')
+            ->where('tenant_id', $tenantId)
+            ->whereNotNull('order_date')
+            ->selectRaw('YEAR(order_date) as yr')
+            ->pluck('yr')
+            ->toArray();
+
+        $availableYears = array_values(array_unique(array_filter(array_merge([$currentYear], $teamYears, $orderYears))));
+        rsort($availableYears);
+
+        // Parameter Filter (Default Bulan & Tahun sekarang jika tidak diisi)
+        $reqMonth = $request->filled('month') ? (int) $request->month : (int) date('n');
+        $reqYear  = $request->filled('year') ? (int) $request->year : $currentYear;
         $dateFrom = $request->filled('date_from') ? $request->date_from : date('Y-m-01');
         $dateTo   = $request->filled('date_to') ? $request->date_to : date('Y-m-d');
-        $reqMonth = $request->filled('month') ? (int) $request->month : null;
-        $reqYear  = $request->filled('year') ? (int) $request->year : null;
 
-        // Hitung nilai dinamis aktual per tim berdasarkan filter yang dipilih pengguna
+        // Hitung nilai dinamis aktual per tim berdasarkan filter
         foreach ($teams as $team) {
-            if ($reqMonth && $reqYear) {
-                // 1. Jika user memilih filter spesifik Bulan & Tahun
+            if ($request->filled('month') || $request->filled('year')) {
+                // Jika user memilih filter spesifik Bulan & Tahun
                 $team->custom_actual_qty = $team->calculateActualQty($reqMonth, $reqYear);
                 $team->custom_actual_omset = $team->calculateActualOmset($reqMonth, $reqYear);
             } else {
-                // 2. Menggunakan Range Tanggal (dateFrom s/d dateTo)
+                // Menggunakan Range Tanggal (dateFrom s/d dateTo)
                 $team->custom_actual_qty = $team->calculateActualQty(null, null, $dateFrom, $dateTo);
                 $team->custom_actual_omset = $team->calculateActualOmset(null, null, $dateFrom, $dateTo);
             }
@@ -81,7 +96,8 @@ class MarketingTeamController extends Controller
             'reqMonth',
             'reqYear',
             'dateFrom',
-            'dateTo'
+            'dateTo',
+            'availableYears'
         ));
     }
 
