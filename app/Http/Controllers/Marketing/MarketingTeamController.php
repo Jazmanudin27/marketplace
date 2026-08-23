@@ -7,6 +7,7 @@ use App\Models\MarketingTeam;
 use App\Models\Store;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class MarketingTeamController extends Controller
 {
