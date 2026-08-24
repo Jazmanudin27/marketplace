@@ -885,7 +885,7 @@
 
                     <div class="row g-2 align-items-end">
                         {{-- No. Pesanan --}}
-                        <div class="col-12 col-md-3">
+                        <div class="col-12 col-md-2">
                             <div class="shopee-filter-group w-100">
                                 <label><i class="fas fa-search me-1"></i>No. Pesanan / Resi / Pembeli</label>
                                 <input type="text" name="order_number" class="form-control w-100"
@@ -949,7 +949,7 @@
                         </div>
 
                         {{-- Tombol --}}
-                        <div class="col-12 d-flex justify-content-end mt-2 gap-2">
+                        <div class="col-12 col-sm-6 col-md-2 d-flex justify-content-end mt-2 gap-2">
                             <button type="submit" class="btn-shopee-primary">
                                 <i class="fas fa-search"></i> Terapkan
                             </button>
