@@ -142,12 +142,12 @@ class SyncTiktokEscrow extends Command
             if (!$orderIdOption && !$forceAll) {
                 $orders = $allOrders->filter(function($ord) {
                     $fb = $ord->financial_breakdown;
-                    if (empty($fb)) return false; // Abaikan jika pesanan memang belum punya data breakdown
+                    if (empty($fb)) return true; // Jika kosong, wajib disinkronkan agar terisi
 
                     if (is_string($fb)) {
                         $fb = json_decode($fb, true);
                     }
-                    if (!is_array($fb) || empty($fb)) return false;
+                    if (!is_array($fb) || empty($fb)) return true;
 
                     $stmtList = $fb['statement_transactions'] ?? $fb['statement_transaction_list'] ?? $fb['transactions'] ?? [];
                     $st0 = (is_array($stmtList) && !empty($stmtList[0]) && is_array($stmtList[0])) ? $stmtList[0] : [];
@@ -180,7 +180,7 @@ class SyncTiktokEscrow extends Command
                     $diffNet   = abs((float)$ord->net_amount - $apiNet);
                     $diffFee   = abs((float)$ord->marketplace_fee - $apiFee);
 
-                    return ($diffOmset > 100 || $diffNet > 100 || $diffFee > 100);
+                    return ($ord->recon_status !== 'RECONCILED' || $diffOmset > 100 || $diffNet > 100 || $diffFee > 100);
                 });
 
                 $skippedCount = $allOrders->count() - $orders->count();

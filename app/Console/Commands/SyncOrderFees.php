@@ -197,8 +197,8 @@ class SyncOrderFees extends Command
                                 $growthXtraFee = (float) ($paymentInfo['growth_xtra_fee'] ?? 0);
                                 $orderProcessingFee = (float) ($paymentInfo['order_processing_fee'] ?? $paymentInfo['transaction_fee'] ?? 0);
 
-                                // Tembak API Finance TikTok jika settlement belum ada di data order
-                                if ($escrowAmount <= 0) {
+                                // Tembak API Finance TikTok jika settlement belum ada di data order atau belum ter-rekonsiliasi resmi
+                                if ($escrowAmount <= 0 || $dbOrder->recon_status !== 'RECONCILED') {
                                     try {
                                         $stmtData = $tiktokService->getOrderStatementTransactions($accToken, $shopCipher, $mId);
                                         $stmtList = $stmtData['statement_transactions'] ?? $stmtData['statement_transaction_list'] ?? [];
@@ -223,12 +223,14 @@ class SyncOrderFees extends Command
                                     } catch (\Exception $exStmt) {}
                                 }
 
+                                $totalTiktokFees = $netPlatformCommission + $preorderServiceFee + $dynamicCommission + $growthXtraFee + $orderProcessingFee;
                                 $marketplaceFee = $totalTiktokFees > 0 ? $totalTiktokFees : max(0.0, $totalAmount - $escrowAmount);
                                 $netAmount = max(0.0, (float)$totalAmount - (float)$marketplaceFee);
 
                                 $dbOrder->total_amount = $totalAmount;
                                 $dbOrder->marketplace_fee = $marketplaceFee;
                                 $dbOrder->net_amount = $netAmount;
+                                $dbOrder->recon_status = 'RECONCILED';
 
                                 $dbOrder->financial_breakdown = [
                                     'original_price' => $totalAmount,
