@@ -556,39 +556,6 @@
 
 <div class="shopee-page">
 
-    {{-- ── Urgent Alert ── --}}
-    @if ($urgentOrders->isNotEmpty())
-        @php
-            $overdueCount = $urgentOrders->filter(fn($o) => $o->ship_before_date->isPast())->count();
-            $soonCount = $urgentOrders->count() - $overdueCount;
-        @endphp
-        <div class="alert shopee-alert alert-dismissible fade show border-start border-4 p-0 mb-0 {{ $overdueCount > 0 ? 'alert-danger border-danger' : 'alert-warning border-warning' }}"
-            role="alert" style="border-radius: 4px; margin-bottom: 12px;">
-            <div class="d-flex align-items-stretch">
-                <div class="d-flex align-items-center justify-content-center px-3 {{ $overdueCount > 0 ? 'bg-danger' : 'bg-warning' }}" style="min-width:48px;">
-                    <i class="bi bi-clock-fill text-white"></i>
-                </div>
-                <div class="flex-grow-1 p-2 px-3">
-                    <strong class="{{ $overdueCount > 0 ? 'text-danger' : 'text-warning' }}" style="font-size:0.82rem;">
-                        ⚠️ {{ $urgentOrders->count() }} Pesanan Harus Segera Dikirim!
-                    </strong>
-                    <div class="mt-1" style="font-size:0.78rem; color:#666;">
-                        @if ($overdueCount > 0)
-                            <span class="badge bg-danger me-1">{{ $overdueCount }} Overdue</span>
-                        @endif
-                        @if ($soonCount > 0)
-                            <span class="badge bg-warning text-dark me-1">{{ $soonCount }} &lt; 24 Jam</span>
-                        @endif
-                        Batas waktu pengiriman sudah lewat atau kurang dari 24 jam.
-                    </div>
-                </div>
-                <div class="d-flex align-items-center pe-3">
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-            </div>
-        </div>
-    @endif
-
     {{-- ── Page Header ── --}}
     <div class="shopee-page-header">
         <h5><i class="fas fa-shopping-cart me-2" style="color: var(--shopee-orange);"></i>Pesanan Saya</h5>
