@@ -123,8 +123,8 @@ class SyncMissingShopeeOrders extends Command
 
                     $allOrderSn = [];
 
-                    // Scan default (READY_TO_SHIP) dan PROCESSED (Kilat)
-                    $statusesToScan = [null, 'PROCESSED'];
+                    // Scan semua status utama Shopee agar tidak ada order kilat terlewat
+                    $statusesToScan = [null, 'PROCESSED', 'SHIPPED', 'COMPLETED'];
                     foreach ($statusesToScan as $scanStatus) {
                         $cursor  = '';
                         $hasMore = true;

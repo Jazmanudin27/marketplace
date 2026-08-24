@@ -105,7 +105,7 @@ class PullOrdersFromShopee implements ShouldQueue
             }
 
             $allOrderSn = [];
-            $statusesToScan = [null, 'PROCESSED']; // Scan default (READY_TO_SHIP) dan PROCESSED (Kilat)
+            $statusesToScan = [null, 'PROCESSED', 'SHIPPED', 'COMPLETED']; // Scan semua status utama Shopee agar tidak ada order kilat terlewat
 
             foreach ($statusesToScan as $scanStatus) {
                 $cursor = '';
