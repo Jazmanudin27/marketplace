@@ -73,7 +73,7 @@ class MarketingTeam extends Model
         $query = \App\Models\Order::whereIn('store_id', $storeIds)
             ->whereIn('order_status', $validStatuses)
             ->whereNotIn('order_status', $invalidStatuses)
-            ->with(['items.masterProduct', 'returnOrder']);
+            ->with(['items.masterProduct', 'items.marketplaceProduct.masterProduct', 'returnOrder']);
 
         if ($dateFrom && $dateTo) {
             $from = $dateFrom . ' 00:00:00';
@@ -90,7 +90,14 @@ class MarketingTeam extends Model
         foreach ($orders as $order) {
             if ($order->refund_amount <= 0) {
                 foreach ($order->items as $item) {
-                    if (!($item->masterProduct && $item->masterProduct->exclude_commission)) {
+                    $isExcluded = false;
+                    if ($item->masterProduct && $item->masterProduct->exclude_commission) {
+                        $isExcluded = true;
+                    } elseif ($item->marketplaceProduct && $item->marketplaceProduct->masterProduct && $item->marketplaceProduct->masterProduct->exclude_commission) {
+                        $isExcluded = true;
+                    }
+
+                    if (!$isExcluded) {
                         $qty += $item->quantity;
                     }
                 }

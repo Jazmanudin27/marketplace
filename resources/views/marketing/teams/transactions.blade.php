@@ -178,11 +178,17 @@
                         @php
                             // Hitung total Qty barang dalam order ini
                             $totalQtyInOrder = $order->items->sum('quantity');
-                            // Hitung Qty barang yang masuk hitungan komisi
-                            $commQty = $order->items->filter(function($item) {
-                                return !($item->masterProduct && $item->masterProduct->exclude_commission);
-                            })->sum('quantity');
-                            $orderComm = $commQty * $rewardPerQty;
+                             // Hitung Qty barang yang masuk hitungan komisi
+                             $commQty = $order->items->filter(function($item) {
+                                 $isExcluded = false;
+                                 if ($item->masterProduct && $item->masterProduct->exclude_commission) {
+                                     $isExcluded = true;
+                                 } elseif ($item->marketplaceProduct && $item->marketplaceProduct->masterProduct && $item->marketplaceProduct->masterProduct->exclude_commission) {
+                                     $isExcluded = true;
+                                 }
+                                 return !$isExcluded;
+                             })->sum('quantity');
+                             $orderComm = $commQty * $rewardPerQty;
                             
                             $chName = strtolower($order->store->channel->name ?? '');
                             $badgeClass = 'bg-secondary text-white';
