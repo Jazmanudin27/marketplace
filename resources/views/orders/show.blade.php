@@ -208,91 +208,139 @@
                     </div>
                 </div>
 
-                <!-- Order Items Card -->
-                <div class="card border shadow-sm overflow-hidden mb-3">
-                    <div class="card-header bg-primary bg-opacity-10 d-flex align-items-center p-3 border-bottom">
-                        <h6 class="mb-0 fw-bold text-dark"><i class="fas fa-box me-2 text-primary"></i>Item Pesanan (Rincian Produk API)</h6>
+                <!-- Informasi Pembayaran Card -->
+                <div class="card border shadow-sm mb-3 rounded-3 overflow-hidden">
+                    <div class="card-header bg-white d-flex justify-content-between align-items-center p-3 border-bottom">
+                        <h6 class="mb-0 fw-bold text-dark">
+                            <i class="fas fa-file-invoice-dollar text-danger me-2"></i>Informasi Pembayaran
+                        </h6>
+                        <a href="{{ route('orders.print', $order->id) }}" target="_blank" class="text-decoration-none small text-primary fw-semibold">
+                            Lihat rincian pesanan
+                        </a>
                     </div>
                     <div class="card-body p-3">
-                        <div class="table-responsive rounded border">
-                            <table class="table table-sm table-striped table-bordered align-middle mb-0">
-                                <thead>
-                                    <tr class="small text-center fw-bold">
-                                        <th>PRODUK & VARIAN</th>
-                                        <th>SKU / SKU ID</th>
-                                        <th>HARGA ASLI</th>
-                                        <th>DISKON TOKO</th>
-                                        <th>HARGA JUAL</th>
-                                        <th>QTY</th>
-                                        <th>SUBTOTAL</th>
+                        <div class="table-responsive rounded border mb-3">
+                            <table class="table align-middle mb-0" style="font-size: 0.85rem;">
+                                <thead class="table-light text-muted">
+                                    <tr>
+                                        <th class="ps-3 py-2 text-center" style="width: 50px;">No.</th>
+                                        <th class="py-2">Produk</th>
+                                        <th class="py-2 text-end" style="width: 140px;">Harga Satuan</th>
+                                        <th class="py-2 text-end" style="width: 100px;">Jumlah</th>
+                                        <th class="py-2 text-end pe-3" style="width: 140px;">Subtotal</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     @php
-                                        $totalOrderItemsPrice = $order->items->sum(fn($it) => $it->price * $it->quantity);
+                                        $subtotalPesanan = 0.0;
                                     @endphp
-                                    @foreach ($order->items as $item)
+                                    @foreach ($order->items as $index => $item)
                                         @php
                                             $itemPrice = (float) $item->price;
                                             $itemQty = (int) $item->quantity;
-                                            $itemOrigPrice = (float) ($item->original_price > 0 ? $item->original_price : 0);
-                                            $itemDiscount = (float) ($item->seller_discount > 0 ? $item->seller_discount : 0);
+                                            $itemSubtotal = $itemPrice * $itemQty;
+                                            $subtotalPesanan += $itemSubtotal;
 
-                                            // Intelligent fallback for item original price & discount if null in DB
-                                            if ($itemOrigPrice <= 0 && $itemDiscount <= 0 && $order->discount_amount > 0 && $totalOrderItemsPrice > 0) {
-                                                $itemPortion = ($itemPrice * $itemQty) / $totalOrderItemsPrice;
-                                                $itemDiscount = ($order->discount_amount * $itemPortion) / $itemQty;
-                                                $itemOrigPrice = $itemPrice + $itemDiscount;
+                                            // Fallback image source
+                                            $imgUrl = $item->product_image 
+                                                ?: ($item->masterProduct->image ?? ($item->marketplaceProduct->image_url ?? ''));
+                                            $imgSrc = '';
+                                            if ($imgUrl) {
+                                                if (str_starts_with($imgUrl, 'http://') || str_starts_with($imgUrl, 'https://')) {
+                                                    $imgSrc = $imgUrl;
+                                                } else {
+                                                    $imgSrc = asset('storage/' . $imgUrl);
+                                                }
+                                            } else {
+                                                $imgSrc = 'https://placehold.co/60x60/f8f9fa/a3a3a3?text=Product';
                                             }
 
-                                            if ($itemOrigPrice <= 0) {
-                                                $itemOrigPrice = $itemPrice;
+                                            // Fallback SKU
+                                            $cleanSku = trim($item->sku);
+                                            $cleanSellerSku = trim($item->seller_sku);
+                                            $displaySku = '';
+                                            if ($cleanSellerSku && $cleanSellerSku !== '-') {
+                                                $displaySku = $cleanSellerSku;
+                                            } elseif ($cleanSku && $cleanSku !== '-') {
+                                                $displaySku = $cleanSku;
+                                            } elseif ($item->masterProduct && $item->masterProduct->sku) {
+                                                $displaySku = $item->masterProduct->sku;
+                                            } elseif ($item->marketplaceProduct && $item->marketplaceProduct->masterProduct && $item->marketplaceProduct->masterProduct->sku) {
+                                                $displaySku = $item->marketplaceProduct->masterProduct->sku;
                                             }
                                         @endphp
-                                        <tr>
+                                        <tr style="border-bottom: 1px solid #f0f0f0;">
+                                            <td class="text-center ps-3 text-muted">{{ $index + 1 }}</td>
                                             <td>
-                                                <strong class="text-dark small d-block">{{ $item->product_name }}</strong>
-                                                @if ($item->sku_name)
-                                                    <span class="badge bg-secondary-subtle text-secondary border small">{{ $item->sku_name }}</span>
-                                                @endif
+                                                <div class="d-flex align-items-center py-1">
+                                                    <img src="{{ $imgSrc }}" class="img-thumbnail me-3 animate-fade-in" style="width: 60px; height: 60px; object-fit: cover; border-radius: 4px;" alt="Product Image">
+                                                    <div>
+                                                        @if ($item->masterProduct && $item->masterProduct->is_preorder)
+                                                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle small me-1" style="font-size:0.65rem; padding: 2px 6px;">Pre-Order</span>
+                                                        @endif
+                                                        <span class="text-dark fw-semibold d-block" style="font-size: 0.85rem; line-height: 1.4;">{{ $item->product_name }}</span>
+                                                        @if ($item->sku_name)
+                                                            <span class="text-muted d-block mt-1" style="font-size: 0.78rem;">Variasi: {{ $item->sku_name }}</span>
+                                                        @endif
+                                                        @if ($displaySku)
+                                                            <span class="text-muted d-block mt-0.5" style="font-size: 0.78rem;">Kode Variasi: {{ $displaySku }}</span>
+                                                        @endif
+                                                    </div>
+                                                </div>
                                             </td>
-                                            <td>
-                                                @php
-                                                    $cleanSku = trim($item->sku);
-                                                    $cleanSellerSku = trim($item->seller_sku);
-                                                    $displaySku = '';
-                                                    if ($cleanSellerSku && $cleanSellerSku !== '-') {
-                                                        $displaySku = $cleanSellerSku;
-                                                    } elseif ($cleanSku && $cleanSku !== '-') {
-                                                        $displaySku = $cleanSku;
-                                                    } elseif ($item->masterProduct && $item->masterProduct->sku) {
-                                                        $displaySku = $item->masterProduct->sku;
-                                                    } elseif ($item->marketplaceProduct && $item->marketplaceProduct->masterProduct && $item->marketplaceProduct->masterProduct->sku) {
-                                                        $displaySku = $item->marketplaceProduct->masterProduct->sku;
-                                                    }
-                                                @endphp
-                                                @if ($displaySku)
-                                                    <code class="text-info font-monospace small d-block">{{ $displaySku }}</code>
-                                                @else
-                                                    <span class="text-muted font-monospace small">—</span>
-                                                @endif
-                                                @if ($item->sku_id)
-                                                    <span class="text-muted font-monospace small" style="font-size:0.65rem;">ID: {{ $item->sku_id }}</span>
-                                                @endif
-                                            </td>
-                                            <td class="text-end font-monospace text-muted small">
-                                                Rp {{ number_format($itemOrigPrice, 0, ',', '.') }}
-                                            </td>
-                                            <td class="text-end font-monospace text-danger small">
-                                                {{ $itemDiscount > 0 ? '-Rp ' . number_format($itemDiscount, 0, ',', '.') : '-' }}
-                                            </td>
-                                            <td class="text-end font-monospace text-dark small fw-semibold">Rp {{ number_format($itemPrice, 0, ',', '.') }}</td>
-                                            <td class="text-center text-dark small fw-bold">{{ $itemQty }}</td>
-                                            <td class="text-end font-monospace text-primary small fw-bold">Rp {{ number_format($itemPrice * $itemQty, 0, ',', '.') }}</td>
+                                            <td class="text-end text-dark font-monospace">{{ number_format($itemPrice, 0, ',', '.') }}</td>
+                                            <td class="text-end text-dark font-monospace">{{ $itemQty }}</td>
+                                            <td class="text-end text-dark font-monospace pe-3 fw-semibold">{{ number_format($itemSubtotal, 0, ',', '.') }}</td>
                                         </tr>
                                     @endforeach
                                 </tbody>
                             </table>
+                        </div>
+
+                        {{-- Dotted Divider Line --}}
+                        <div class="w-100 mb-3" style="border-top: 1px dotted #ccc;"></div>
+
+                        @php
+                            $platformFee = (float) ($order->fee_breakdown_details['platform_fee'] ?? 0);
+                            $freeShipping = (float) ($order->fee_breakdown_details['free_shipping'] ?? 0);
+                            $shippingFee = (float) ($order->shipping_fee ?? 0);
+                            
+                            // Group remaining admin fee components (service, promo, other)
+                            $totalMarketplaceFee = abs((float) $order->marketplace_fee);
+                            $layananTambahan = max(0.0, $totalMarketplaceFee - $platformFee - $freeShipping);
+                            
+                            $estimasiPenghasilan = (float) $order->net_amount;
+                            if ($estimasiPenghasilan <= 0) {
+                                $estimasiPenghasilan = $subtotalPesanan + $shippingFee - $totalMarketplaceFee;
+                            }
+                        @endphp
+
+                        {{-- Summary Grid --}}
+                        <div class="row justify-content-end">
+                            <div class="col-12 col-md-8 col-lg-7 d-flex justify-content-end align-items-stretch">
+                                <!-- Labels Column -->
+                                <div class="pe-4 text-end d-flex flex-column justify-content-between py-1" style="color: #555; font-size: 0.82rem; line-height: 2;">
+                                    <div>Subtotal Pesanan</div>
+                                    <div>Estimasi Subtotal Ongkos Kirim</div>
+                                    <div>Biaya Platform <i class="far fa-question-circle text-muted" style="font-size: 0.75rem; cursor: help;" title="Biaya Komisi / Platform Marketplace"></i></div>
+                                    <div>Biaya Gratis Ongkir XTRA <i class="far fa-question-circle text-muted" style="font-size: 0.75rem; cursor: help;" title="Biaya Layanan Ongkir XTRA / Program Penjual"></i></div>
+                                    <div>Subtotal Biaya Layanan Tambahan</div>
+                                    <div class="text-dark fw-bold mt-1" style="font-size: 0.88rem;">Estimasi Total Penghasilan <i class="far fa-question-circle text-muted" style="font-size: 0.75rem; cursor: help;" title="Total pendapatan bersih yang akan dilepas ke saldo penjual"></i></div>
+                                </div>
+                                
+                                <!-- Dotted Vertical Divider Line -->
+                                <div style="border-left: 1px dotted #ccc; margin: 0 5px;"></div>
+                                
+                                <!-- Values Column -->
+                                <div class="ps-4 text-end d-flex flex-column justify-content-between py-1 font-monospace" style="font-size: 0.82rem; line-height: 2; min-width: 160px;">
+                                    <div class="text-dark">Rp{{ number_format($subtotalPesanan, 0, ',', '.') }} <i class="fas fa-chevron-down text-muted" style="font-size: 0.65rem;"></i></div>
+                                    <div class="text-dark">Rp{{ number_format($shippingFee, 0, ',', '.') }} <i class="fas fa-chevron-down text-muted" style="font-size: 0.65rem;"></i></div>
+                                    <div class="text-dark">{{ $platformFee > 0 ? '-Rp' . number_format($platformFee, 0, ',', '.') : 'Rp0' }} <i class="fas fa-chevron-down text-muted" style="font-size: 0.65rem;"></i></div>
+                                    <div class="text-dark">{{ $freeShipping > 0 ? '-Rp' . number_format($freeShipping, 0, ',', '.') : 'Rp0' }} <i class="fas fa-chevron-down text-muted" style="font-size: 0.65rem;"></i></div>
+                                    <div class="text-dark">{{ $layananTambahan > 0 ? '-Rp' . number_format($layananTambahan, 0, ',', '.') : 'Rp0' }}</div>
+                                    <div class="fw-bold fs-5 text-danger mt-1" style="color: #ee4d2d !important; font-size: 1.25rem !important;">Rp{{ number_format($estimasiPenghasilan, 0, ',', '.') }}</div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -301,79 +349,6 @@
 
             <!-- Right Side: Pay Breakdown, Store, Profit, Tracking -->
             <div class="col-lg-4">
-
-                <!-- Payment Breakdown Card -->
-                <div class="card border shadow-sm mb-3">
-                    <div class="card-header bg-primary bg-opacity-10 p-3 border-bottom">
-                        <h6 class="mb-0 fw-bold text-dark"><i class="fas fa-wallet me-2 text-primary"></i>Ringkasan Pembayaran</h6>
-                    </div>
-                    <div class="card-body p-3">
-                        @php 
-                            $sumNetSubtotal = (float) $order->total_amount;
-                            $sumSellerDiscount = (float) $order->discount_amount;
-
-                            if ($sumSellerDiscount <= 0) {
-                                foreach ($order->items as $item) {
-                                    $sumSellerDiscount += ((float) $item->seller_discount * (int) $item->quantity);
-                                }
-                            }
-
-                            if ($sumNetSubtotal <= 0) {
-                                $sumNetSubtotal = $order->items->sum(fn($it) => (float)$it->price * (int)$it->quantity);
-                            }
-
-                            $sumGrossSubtotal = $sumNetSubtotal + $sumSellerDiscount;
-
-                            $feeAmt = abs((float) $order->marketplace_fee);
-                            $refundAmount = (float) $order->refund_amount;
-                            $finalNet = (float) $order->net_amount;
-                        @endphp
-
-                        @if ($sumSellerDiscount > 0)
-                            <div class="d-flex justify-content-between mb-2 align-items-center">
-                                <span class="text-muted small">Subtotal Harga Produk (Sebelum Diskon)</span>
-                                <span class="font-monospace text-dark fw-bold small">Rp {{ number_format($sumGrossSubtotal, 0, ',', '.') }}</span>
-                            </div>
-
-                            <div class="d-flex justify-content-between mb-2 align-items-center">
-                                <span class="text-danger small">
-                                    <i class="fas fa-tag me-1"></i>Diskon Toko (Seller Voucher / Discount)
-                                </span>
-                                <span class="font-monospace text-danger fw-bold small">-Rp {{ number_format($sumSellerDiscount, 0, ',', '.') }}</span>
-                            </div>
-                        @endif
-
-                        <div class="d-flex justify-content-between mb-2 align-items-center {{ $sumSellerDiscount > 0 ? 'pt-2 border-top' : '' }}">
-                            <span class="text-dark fw-bold small">Total Nilai Transaksi Penjualan (Net Sales)</span>
-                            <span class="font-monospace text-dark fw-bold small">Rp {{ number_format($sumNetSubtotal, 0, ',', '.') }}</span>
-                        </div>
-
-                        <div class="d-flex justify-content-between mb-2 align-items-center">
-                            <span class="text-danger small">
-                                <i class="fas fa-cut me-1"></i>Total Potongan Marketplace / Fee Admin
-                            </span>
-                            <span class="font-monospace text-danger fw-bold small">-Rp {{ number_format($feeAmt, 0, ',', '.') }}</span>
-                        </div>
-
-                        @if ($refundAmount > 0)
-                            <div class="d-flex justify-content-between mb-2 align-items-center">
-                                <span class="text-danger small fw-semibold">
-                                    <i class="fas fa-undo-alt me-1"></i>Total Refund / Pengembalian Dana
-                                </span>
-                                <span class="font-monospace text-danger fw-bold small">-Rp {{ number_format($refundAmount, 0, ',', '.') }}</span>
-                            </div>
-                        @endif
-
-                        <hr class="my-2 border-dashed opacity-50">
-
-                        <div class="d-flex justify-content-between align-items-center">
-                            <span class="fw-bold text-dark">Jumlah Dana Dilepas / Cair (Net)</span>
-                            <span class="font-monospace text-success fw-bold fs-6">
-                                Rp {{ number_format($finalNet, 0, ',', '.') }}
-                            </span>
-                        </div>
-                    </div>
-                </div>
 
                 <!-- Store Info Card -->
                 <div class="card border shadow-sm mb-3">
