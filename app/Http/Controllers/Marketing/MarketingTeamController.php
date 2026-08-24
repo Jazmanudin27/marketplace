@@ -18,15 +18,6 @@ class MarketingTeamController extends Controller
     {
         $tenantId = Auth::user()->tenant_id;
 
-        $teams = MarketingTeam::forTenant($tenantId)
-            ->with(['stores.channel'])
-            ->when($request->filled('search'), function ($q) use ($request) {
-                $q->where('name', 'like', '%' . $request->search . '%')
-                  ->orWhere('description', 'like', '%' . $request->search . '%');
-            })
-            ->orderBy('id', 'desc')
-            ->get();
-
         // Ambil daftar tahun unik dari data tim & orders milik tenant untuk dropdown option
         $currentYear = (int) date('Y');
         $teamYears = MarketingTeam::forTenant($tenantId)
@@ -58,6 +49,21 @@ class MarketingTeamController extends Controller
         // Mode aktif: bulan/tahun diprioritaskan hanya jika user memilihnya
         // dan tidak sekalian mengisi date range
         $useMonthYear = $userFilledMonthYear && !$userFilledDateRange;
+
+        // Query teams — jika mode bulan/tahun, filter hanya tim dengan period_month & period_year sesuai
+        $teams = MarketingTeam::forTenant($tenantId)
+            ->with(['stores.channel'])
+            ->when($request->filled('search'), function ($q) use ($request) {
+                $q->where('name', 'like', '%' . $request->search . '%')
+                  ->orWhere('description', 'like', '%' . $request->search . '%');
+            })
+            ->when($useMonthYear, function ($q) use ($reqMonth, $reqYear) {
+                // Tampilkan hanya tim yang target bulan & tahunnya sesuai filter
+                $q->where('period_month', $reqMonth)
+                  ->where('period_year', $reqYear);
+            })
+            ->orderBy('id', 'desc')
+            ->get();
 
         // Hitung nilai dinamis aktual per tim berdasarkan filter
         foreach ($teams as $team) {
