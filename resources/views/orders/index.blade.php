@@ -697,74 +697,81 @@
                     <input type="hidden" name="print_status" value="{{ request('print_status') }}">
                 @endif
 
-                <div class="filter-row">
+                <div class="row g-2 align-items-end">
                     {{-- No. Pesanan --}}
-                    <div class="shopee-filter-group w-order">
-                        <label><i class="fas fa-search me-1"></i>No. Pesanan / Resi / Pembeli</label>
-                        <input type="text" name="order_number" class="form-control"
-                            placeholder="Cari no. pesanan, resi, pembeli..."
-                            value="{{ request('order_number') }}">
+                    <div class="col-12 col-md-4">
+                        <div class="shopee-filter-group w-100">
+                            <label><i class="fas fa-search me-1"></i>No. Pesanan / Resi / Pembeli</label>
+                            <input type="text" name="order_number" class="form-control w-100"
+                                placeholder="Cari no. pesanan, resi, pembeli..."
+                                value="{{ request('order_number') }}">
+                        </div>
                     </div>
 
                     {{-- Channel --}}
-                    <div class="shopee-filter-group w-select">
-                        <label><i class="fas fa-shopping-bag me-1"></i>Channel</label>
-                        <select name="channel_id" class="form-select">
-                            <option value="">Semua Channel</option>
-                            @foreach ($channels as $channel)
-                                <option value="{{ $channel->id }}"
-                                    {{ request('channel_id') == $channel->id ? 'selected' : '' }}>
-                                    {{ $channel->name }}
-                                </option>
-                            @endforeach
-                        </select>
+                    <div class="col-12 col-sm-6 col-md-2">
+                        <div class="shopee-filter-group w-100">
+                            <label><i class="fas fa-shopping-bag me-1"></i>Channel</label>
+                            <select name="channel_id" class="form-select w-100">
+                                <option value="">Semua Channel</option>
+                                @foreach ($channels as $channel)
+                                    <option value="{{ $channel->id }}"
+                                        {{ request('channel_id') == $channel->id ? 'selected' : '' }}>
+                                        {{ $channel->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
                     </div>
 
                     {{-- Toko --}}
-                    <div class="shopee-filter-group w-select">
-                        <label><i class="fas fa-store me-1"></i>Toko</label>
-                        <select name="store_id" class="form-select">
-                            <option value="">Semua Toko</option>
-                            @foreach ($stores as $store)
-                                @php
-                                    $channelName = $store->channel->name ?? ucfirst($store->channel->code ?? 'Marketplace');
-                                @endphp
-                                <option value="{{ $store->id }}"
-                                    {{ request('store_id') == $store->id ? 'selected' : '' }}>
-                                    {{ $store->store_name }} ({{ $channelName }})
-                                </option>
-                            @endforeach
-                        </select>
+                    <div class="col-12 col-sm-6 col-md-2">
+                        <div class="shopee-filter-group w-100">
+                            <label><i class="fas fa-store me-1"></i>Toko</label>
+                            <select name="store_id" class="form-select w-100">
+                                <option value="">Semua Toko</option>
+                                @foreach ($stores as $store)
+                                    @php
+                                        $channelName = $store->channel->name ?? ucfirst($store->channel->code ?? 'Marketplace');
+                                    @endphp
+                                    <option value="{{ $store->id }}"
+                                        {{ request('store_id') == $store->id ? 'selected' : '' }}>
+                                        {{ $store->store_name }} ({{ $channelName }})
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
                     </div>
 
                     {{-- Dari Tanggal --}}
-                    <div class="shopee-filter-group w-date">
-                        <label><i class="fas fa-calendar me-1"></i>Dari Tanggal</label>
-                        <input type="date" name="start_date" class="form-control"
-                            value="{{ request('start_date') }}">
+                    <div class="col-12 col-sm-6 col-md-2">
+                        <div class="shopee-filter-group w-100">
+                            <label><i class="fas fa-calendar me-1"></i>Dari Tanggal</label>
+                            <input type="date" name="start_date" class="form-control w-100"
+                                value="{{ request('start_date') }}">
+                        </div>
                     </div>
 
                     {{-- Sampai Tanggal --}}
-                    <div class="shopee-filter-group w-date">
-                        <label><i class="fas fa-calendar-check me-1"></i>Sampai Tanggal</label>
-                        <input type="date" name="end_date" class="form-control"
-                            value="{{ request('end_date') }}">
+                    <div class="col-12 col-sm-6 col-md-2">
+                        <div class="shopee-filter-group w-100">
+                            <label><i class="fas fa-calendar-check me-1"></i>Sampai Tanggal</label>
+                            <input type="date" name="end_date" class="form-control w-100"
+                                value="{{ request('end_date') }}">
+                        </div>
                     </div>
 
                     {{-- Tombol --}}
-                    <div class="shopee-filter-group" style="justify-content: flex-end; padding-bottom: 0;">
-                        <label style="visibility:hidden;">.</label>
-                        <div class="d-flex gap-2">
-                            <button type="submit" class="btn-shopee-primary">
-                                <i class="fas fa-search"></i> Terapkan
-                            </button>
-                            @if (request()->anyFilled(['channel_id', 'store_id', 'start_date', 'end_date', 'order_number']))
-                                <a href="{{ route('orders.index', request('status') ? ['status' => request('status')] : []) }}"
-                                   class="btn-shopee-ghost">
-                                    <i class="fas fa-times"></i> Atur Ulang
-                                </a>
-                            @endif
-                        </div>
+                    <div class="col-12 d-flex justify-content-end mt-2 gap-2">
+                        <button type="submit" class="btn-shopee-primary">
+                            <i class="fas fa-search"></i> Terapkan
+                        </button>
+                        @if (request()->anyFilled(['channel_id', 'store_id', 'start_date', 'end_date', 'order_number']))
+                            <a href="{{ route('orders.index', request('status') ? ['status' => request('status')] : []) }}"
+                               class="btn-shopee-ghost">
+                                <i class="fas fa-times"></i> Atur Ulang
+                            </a>
+                        @endif
                     </div>
                 </div>
             </form>
