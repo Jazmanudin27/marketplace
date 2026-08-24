@@ -30,9 +30,9 @@
     <!-- Filter Card Bar -->
     <div class="card border-0 rounded-3 shadow-sm bg-white mb-4">
         <div class="card-body p-3">
-            <form action="{{ route('marketing.teams.index') }}" method="GET" class="row g-2 align-items-end">
+            <form id="filterForm" action="{{ route('marketing.teams.index') }}" method="GET" class="row g-2 align-items-end">
 
-                <!-- Filter Bulan & Tahun (Opsional — jika diisi akan mengabaikan range tanggal) -->
+                <!-- Filter Bulan & Tahun (Opsional) -->
                 <div class="col-12 col-md-4">
                     <label class="form-label small fw-bold text-dark mb-1">
                         <i class="bi bi-calendar3 me-1 text-primary"></i>Filter Bulan & Tahun
@@ -40,7 +40,7 @@
                     </label>
                     <div class="row g-1">
                         <div class="col-7">
-                            <select name="month" class="form-select form-select-sm">
+                            <select id="filterMonth" name="month" class="form-select form-select-sm">
                                 <option value="">-- Semua Bulan --</option>
                                 @for($m = 1; $m <= 12; $m++)
                                     <option value="{{ $m }}" {{ request('month') == $m ? 'selected' : '' }}>
@@ -50,7 +50,7 @@
                             </select>
                         </div>
                         <div class="col-5">
-                            <select name="year" class="form-select form-select-sm">
+                            <select id="filterYear" name="year" class="form-select form-select-sm">
                                 <option value="">-- Tahun --</option>
                                 @foreach($availableYears as $yr)
                                     <option value="{{ $yr }}" {{ request('year') == $yr ? 'selected' : '' }}>
@@ -60,28 +60,34 @@
                             </select>
                         </div>
                     </div>
-                    <div class="form-text text-muted" style="font-size:0.72rem;">Jika diisi, filter ini menggantikan range tanggal.</div>
+                    <div class="form-text text-muted" style="font-size:0.72rem;">
+                        <i class="bi bi-info-circle me-1"></i>Jika dipilih, range tanggal di kanan otomatis dikosongkan.
+                    </div>
                 </div>
 
                 <!-- Filter Range Tanggal Orderan Diterima -->
                 <div class="col-12 col-md-5">
                     <label class="form-label small fw-bold text-dark mb-1">
                         <i class="bi bi-calendar-range me-1 text-primary"></i>Range Tanggal Diterima
-                        <span class="badge bg-success bg-opacity-10 text-success rounded-pill px-2 fw-normal" style="font-size:0.68rem;">
-                            <i class="bi bi-check-circle me-1"></i>Default Aktif
-                        </span>
+                        @if(!request()->filled('month') && !request()->filled('year'))
+                            <span class="badge bg-success bg-opacity-10 text-success rounded-pill px-2 fw-normal" style="font-size:0.68rem;">
+                                <i class="bi bi-check-circle me-1"></i>Aktif
+                            </span>
+                        @endif
                     </label>
                     <div class="row g-1">
                         <div class="col-6">
-                            <input type="date" name="date_from" class="form-control form-select-sm"
+                            <input type="date" id="filterDateFrom" name="date_from" class="form-control form-select-sm"
                                 value="{{ request('date_from', $dateFrom) }}" placeholder="Dari Tanggal">
                         </div>
                         <div class="col-6">
-                            <input type="date" name="date_to" class="form-control form-select-sm"
+                            <input type="date" id="filterDateTo" name="date_to" class="form-control form-select-sm"
                                 value="{{ request('date_to', $dateTo) }}" placeholder="Sampai Tanggal">
                         </div>
                     </div>
-                    <div class="form-text text-muted" style="font-size:0.72rem;">Digunakan jika Bulan & Tahun di atas dikosongkan.</div>
+                    <div class="form-text text-muted" style="font-size:0.72rem;">
+                        <i class="bi bi-info-circle me-1"></i>Jika diubah, pilihan Bulan & Tahun di kiri otomatis dikosongkan.
+                    </div>
                 </div>
 
                 <!-- Tombol Action -->
@@ -606,3 +612,37 @@
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+(function () {
+    const selMonth    = document.getElementById('filterMonth');
+    const selYear     = document.getElementById('filterYear');
+    const inputFrom   = document.getElementById('filterDateFrom');
+    const inputTo     = document.getElementById('filterDateTo');
+
+    if (!selMonth || !selYear || !inputFrom || !inputTo) return;
+
+    // Saat user mengubah Bulan atau Tahun → kosongkan date range
+    function onMonthYearChange() {
+        if (selMonth.value !== '' || selYear.value !== '') {
+            inputFrom.value = '';
+            inputTo.value   = '';
+        }
+    }
+
+    // Saat user mengubah date range → kosongkan Bulan & Tahun
+    function onDateRangeChange() {
+        if (inputFrom.value !== '' || inputTo.value !== '') {
+            selMonth.value = '';
+            selYear.value  = '';
+        }
+    }
+
+    selMonth.addEventListener('change', onMonthYearChange);
+    selYear.addEventListener('change', onMonthYearChange);
+    inputFrom.addEventListener('change', onDateRangeChange);
+    inputTo.addEventListener('change', onDateRangeChange);
+})();
+</script>
+@endpush
