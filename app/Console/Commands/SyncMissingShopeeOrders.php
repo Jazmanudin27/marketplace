@@ -162,13 +162,20 @@ class SyncMissingShopeeOrders extends Command
                         continue;
                     }
 
-                    // Cek mana yang sudah ada di DB dengan status final
-                    $existingIds = Order::where('store_id', $store->id)
+                    // Cek mana yang sudah ada di DB
+                    $existingOrders = Order::where('store_id', $store->id)
                         ->whereIn('order_marketplace_id', $allOrderSn)
+                        ->get(['order_marketplace_id', 'order_status']);
+
+                    $existingIds = $existingOrders->pluck('order_marketplace_id')->toArray();
+
+                    // Pesanan yang statusnya sudah COMPLETED/CANCELLED dianggap final dan dilewati
+                    // Pesanan aktif (READY_TO_SHIP, dll) tetap dimasukkan ke antrean pull detail agar statusnya sinkron otomatis
+                    $finalizedIds = $existingOrders->filter(fn($o) => in_array($o->order_status, ['COMPLETED', 'CANCELLED', 'BATAL', 'CANCELED']))
                         ->pluck('order_marketplace_id')
                         ->toArray();
 
-                    $missingIds = array_diff($allOrderSn, $existingIds);
+                    $missingIds = array_diff($allOrderSn, $finalizedIds);
                     $totalChunk = count($allOrderSn);
                     $missingCnt = count($missingIds);
 
