@@ -58,7 +58,7 @@ if ($orderMarketplaceId === '585445938895291619') {
 $totalTiktokFees = $platformCommission + $preorderServiceFee + $orderProcessingFee + $growthXtraFee + $affiliateCommission + $shippingAdjustment;
 
 // Update field database tabel 'orders'
-$order->order_status    = 'COMPLETED';
+$order->order_status    = $order->exists && $order->order_status ? $order->order_status : 'COMPLETED';
 $order->total_amount    = $productSubtotal; // Omset Kotor
 $order->discount_amount = $sellerDiscount;  
 $order->marketplace_fee = $totalTiktokFees; // Total Potongan Biaya TikTok
