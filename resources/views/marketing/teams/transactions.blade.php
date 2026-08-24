@@ -252,6 +252,16 @@
                         </tr>
                     @endforelse
                 </tbody>
+                @if($orders->isNotEmpty())
+                    <tfoot class="table-light border-top-2 fw-bold text-dark" style="border-top: 2px solid #dee2e6; font-size: 0.9rem;">
+                        <tr>
+                            <td colspan="6" class="ps-4 py-3 text-start text-uppercase fw-bold">TOTAL</td>
+                            <td class="py-3 text-end">{{ number_format($totalQty) }}</td>
+                            <td class="py-3 text-end text-primary">Rp {{ number_format($totalOmset, 0, ',', '.') }}</td>
+                            <td class="py-3 text-end text-success pe-4">Rp {{ number_format($totalEarnedReward, 0, ',', '.') }}</td>
+                        </tr>
+                    </tfoot>
+                @endif
             </table>
         </div>
     </div>
