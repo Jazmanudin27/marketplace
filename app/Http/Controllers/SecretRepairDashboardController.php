@@ -697,7 +697,16 @@ class SecretRepairDashboardController extends Controller
                     continue;
                 }
 
-                $orderSns = $activeOrders->pluck('order_marketplace_id')->toArray();
+                $orderSns = $activeOrders->pluck('order_marketplace_id')
+                    ->map(fn($id) => trim($id))
+                    ->filter(fn($id) => is_numeric($id) && strlen($id) >= 15)
+                    ->toArray();
+
+                if (empty($orderSns)) {
+                    $log[] = "📌 Toko {$store->store_name}: Tidak ada pesanan TikTok numerik aktif yang perlu disinkronkan.";
+                    continue;
+                }
+
                 $chunks = array_chunk($orderSns, 50);
 
                 foreach ($chunks as $chunk) {

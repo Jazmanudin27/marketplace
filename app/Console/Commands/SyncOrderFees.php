@@ -159,7 +159,12 @@ class SyncOrderFees extends Command
                 if ($tOrders->count() > 0) {
                     $this->info("Menyinkronkan {$tOrders->count()} order TikTok di toko {$s->store_name}...");
                     foreach ($tOrders->chunk(50) as $chunk) {
-                        $ids = $chunk->pluck('order_marketplace_id')->toArray();
+                        $ids = $chunk->pluck('order_marketplace_id')
+                            ->map(fn($id) => trim($id))
+                            ->filter(fn($id) => is_numeric($id) && strlen($id) >= 15)
+                            ->toArray();
+
+                        if (empty($ids)) continue;
                         try {
                             $detailRes = $tiktokService->getOrderDetail($accToken, $shopCipher, $ids);
                             $tOrdersRes = $detailRes['order_list'] ?? $detailRes['orders'] ?? [];
