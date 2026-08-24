@@ -261,7 +261,7 @@ class MarketingTeamController extends Controller
             $query = \App\Models\Order::whereIn('store_id', $storeIds)
                 ->whereIn('order_status', $validStatuses)
                 ->whereNotIn('order_status', $invalidStatuses)
-                ->with(['store.channel', 'items', 'returnOrder']);
+                ->with(['store.channel', 'items.masterProduct', 'returnOrder']);
 
             if ($useMonthYear) {
                 if ($reqYear) {
@@ -289,7 +289,11 @@ class MarketingTeamController extends Controller
             $totalQty = 0;
             $totalOmset = 0.0;
             foreach ($orders as $order) {
-                $totalQty += $order->items->sum('quantity');
+                foreach ($order->items as $item) {
+                    if (!($item->masterProduct && $item->masterProduct->exclude_commission)) {
+                        $totalQty += $item->quantity;
+                    }
+                }
                 $totalOmset += (float) $order->total_amount;
             }
 

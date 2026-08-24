@@ -258,6 +258,17 @@
                         </div>
 
                         <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <div class="form-check form-switch mt-2">
+                                    <input class="form-check-input" type="checkbox" id="exclude_commission" name="exclude_commission"
+                                        value="1"
+                                        {{ old('exclude_commission', $product->exclude_commission ?? 0) == 1 ? 'checked' : '' }}>
+                                    <label class="form-label form-label-sm fw-semibold ms-2" for="exclude_commission">Abaikan Produk dari Target Komisi Marketing</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
                             <div class="col-md-6 mb-3" id="preorder_days_wrapper"
                                 style="display: {{ old('is_preorder', $product->is_preorder ?? 0) == 1 ? 'block' : 'none' }};">
                                 <label for="preorder_days" class="form-label form-label-sm fw-semibold">Estimasi Waktu

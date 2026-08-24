@@ -35,6 +35,7 @@ class MasterProduct extends Model
         'is_bundle',
         'image',
         'status',
+        'exclude_commission',
     ];
 
     protected $casts = [
@@ -45,6 +46,7 @@ class MasterProduct extends Model
         'safety_stock' => 'integer',
         'is_preorder' => 'boolean',
         'is_bundle' => 'boolean',
+        'exclude_commission' => 'boolean',
     ];
 
     public function tenant(): BelongsTo

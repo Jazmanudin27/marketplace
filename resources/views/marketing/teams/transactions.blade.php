@@ -177,8 +177,12 @@
                     @forelse($orders as $index => $order)
                         @php
                             // Hitung total Qty barang dalam order ini
-                            $orderQty = $order->items->sum('quantity');
-                            $orderComm = $orderQty * $rewardPerQty;
+                            $totalQtyInOrder = $order->items->sum('quantity');
+                            // Hitung Qty barang yang masuk hitungan komisi
+                            $commQty = $order->items->filter(function($item) {
+                                return !($item->masterProduct && $item->masterProduct->exclude_commission);
+                            })->sum('quantity');
+                            $orderComm = $commQty * $rewardPerQty;
                             
                             $chName = strtolower($order->store->channel->name ?? '');
                             $badgeClass = 'bg-secondary text-white';
@@ -231,7 +235,12 @@
                                 </span>
                             </td>
                             <td class="py-3 text-end fw-semibold text-dark">
-                                {{ number_format($orderQty) }}
+                                {{ number_format($commQty) }}
+                                @if($totalQtyInOrder > $commQty)
+                                    <span class="text-muted small d-block" style="font-size:0.72rem; font-weight:normal;">
+                                        dari {{ number_format($totalQtyInOrder) }} pcs
+                                    </span>
+                                @endif
                             </td>
                             <td class="py-3 text-end fw-semibold text-primary">
                                 Rp {{ number_format($order->total_amount, 0, ',', '.') }}
