@@ -261,7 +261,7 @@ class MarketingTeamController extends Controller
             $query = \App\Models\Order::whereIn('store_id', $storeIds)
                 ->whereIn('order_status', $validStatuses)
                 ->whereNotIn('order_status', $invalidStatuses)
-                ->with(['store.channel', 'items']);
+                ->with(['store.channel', 'items', 'returnOrder']);
 
             if ($useMonthYear) {
                 if ($reqYear) {
@@ -280,44 +280,17 @@ class MarketingTeamController extends Controller
             $orders = $query->orderBy(DB::raw('COALESCE(completed_at, order_date)'), 'desc')
                             ->get();
 
+            // Filter out orders with refund
+            $orders = $orders->filter(function ($order) {
+                return $order->refund_amount <= 0;
+            });
+
             // Summary metrics
-            $summaryQuery = DB::table('orders')
-                ->whereIn('store_id', $storeIds)
-                ->whereIn('order_status', $validStatuses)
-                ->whereNotIn('order_status', $invalidStatuses);
-
-            if ($useMonthYear) {
-                if ($reqYear) {
-                    $summaryQuery->whereYear(DB::raw('COALESCE(completed_at, updated_at, order_date)'), $reqYear);
-                }
-                if ($reqMonth) {
-                    $summaryQuery->whereMonth(DB::raw('COALESCE(completed_at, updated_at, order_date)'), $reqMonth);
-                }
-            } else {
-                $from = $dateFrom . ' 00:00:00';
-                $to = $dateTo . ' 23:59:59';
-                $summaryQuery->whereBetween(DB::raw('COALESCE(completed_at, updated_at, order_date)'), [$from, $to]);
-            }
-
-            $totalOmset = (float) $summaryQuery->sum('total_amount');
-
-            if (\Illuminate\Support\Facades\Schema::hasTable('order_items')) {
-                $totalQty = (int) DB::table('order_items')
-                    ->join('orders', 'order_items.order_id', '=', 'orders.id')
-                    ->whereIn('orders.store_id', $storeIds)
-                    ->whereIn('orders.order_status', $validStatuses)
-                    ->whereNotIn('orders.order_status', $invalidStatuses)
-                    ->when($useMonthYear, function($q) use ($reqMonth, $reqYear) {
-                        if ($reqYear) $q->whereYear(DB::raw('COALESCE(orders.completed_at, orders.updated_at, orders.order_date)'), $reqYear);
-                        if ($reqMonth) $q->whereMonth(DB::raw('COALESCE(orders.completed_at, orders.updated_at, orders.order_date)'), $reqMonth);
-                    }, function($q) use ($dateFrom, $dateTo) {
-                        $from = $dateFrom . ' 00:00:00';
-                        $to = $dateTo . ' 23:59:59';
-                        $q->whereBetween(DB::raw('COALESCE(orders.completed_at, orders.updated_at, orders.order_date)'), [$from, $to]);
-                    })
-                    ->sum('order_items.quantity');
-            } else {
-                $totalQty = (int) $summaryQuery->count();
+            $totalQty = 0;
+            $totalOmset = 0.0;
+            foreach ($orders as $order) {
+                $totalQty += $order->items->sum('quantity');
+                $totalOmset += (float) $order->total_amount;
             }
 
             $totalEarnedReward = $totalQty * $rewardPerQty;

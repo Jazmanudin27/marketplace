@@ -70,29 +70,10 @@ class MarketingTeam extends Model
             'cancelled', 'canceled', 'batal', 'returned', 'refunded'
         ];
 
-        if (Schema::hasTable('order_items')) {
-            $qtyQuery = DB::table('order_items')
-                ->join('orders', 'order_items.order_id', '=', 'orders.id')
-                ->whereIn('orders.store_id', $storeIds)
-                ->whereIn('orders.order_status', $validStatuses)
-                ->whereNotIn('orders.order_status', $invalidStatuses);
-
-            if ($dateFrom && $dateTo) {
-                $from = $dateFrom . ' 00:00:00';
-                $to = $dateTo . ' 23:59:59';
-                $qtyQuery->whereBetween(DB::raw('COALESCE(orders.completed_at, orders.updated_at, orders.order_date)'), [$from, $to]);
-            } elseif ($month && $year) {
-                $qtyQuery->whereYear(DB::raw('COALESCE(orders.completed_at, orders.updated_at, orders.order_date)'), $year)
-                        ->whereMonth(DB::raw('COALESCE(orders.completed_at, orders.updated_at, orders.order_date)'), $month);
-            }
-
-            return (int) $qtyQuery->sum('order_items.quantity');
-        }
-
-        $query = DB::table('orders')
-            ->whereIn('store_id', $storeIds)
+        $query = \App\Models\Order::whereIn('store_id', $storeIds)
             ->whereIn('order_status', $validStatuses)
-            ->whereNotIn('order_status', $invalidStatuses);
+            ->whereNotIn('order_status', $invalidStatuses)
+            ->with(['items', 'returnOrder']);
 
         if ($dateFrom && $dateTo) {
             $from = $dateFrom . ' 00:00:00';
@@ -103,7 +84,16 @@ class MarketingTeam extends Model
                   ->whereMonth(DB::raw('COALESCE(completed_at, updated_at, order_date)'), $month);
         }
 
-        return (int) $query->count();
+        $orders = $query->get();
+
+        $qty = 0;
+        foreach ($orders as $order) {
+            if ($order->refund_amount <= 0) {
+                $qty += $order->items->sum('quantity');
+            }
+        }
+
+        return $qty;
     }
 
     public function getActualQtyAttribute(): int
@@ -130,10 +120,10 @@ class MarketingTeam extends Model
             'cancelled', 'canceled', 'batal', 'returned', 'refunded'
         ];
 
-        $query = DB::table('orders')
-            ->whereIn('store_id', $storeIds)
+        $query = \App\Models\Order::whereIn('store_id', $storeIds)
             ->whereIn('order_status', $validStatuses)
-            ->whereNotIn('order_status', $invalidStatuses);
+            ->whereNotIn('order_status', $invalidStatuses)
+            ->with(['returnOrder']);
 
         if ($dateFrom && $dateTo) {
             $from = $dateFrom . ' 00:00:00';
@@ -144,7 +134,16 @@ class MarketingTeam extends Model
                   ->whereMonth(DB::raw('COALESCE(completed_at, updated_at, order_date)'), $month);
         }
 
-        return (float) ($query->sum('total_amount') ?? 0.0);
+        $orders = $query->get();
+
+        $omset = 0.0;
+        foreach ($orders as $order) {
+            if ($order->refund_amount <= 0) {
+                $omset += (float) $order->total_amount;
+            }
+        }
+
+        return $omset;
     }
 
     public function getActualOmsetAttribute(): float
