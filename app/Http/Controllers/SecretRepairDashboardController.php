@@ -679,7 +679,8 @@ class SecretRepairDashboardController extends Controller
 
         foreach ($tiktokStores as $store) {
             $activeOrders = Order::where('store_id', $store->id)
-                ->where('order_date', '>=', now()->subDays(60))
+                ->whereNotNull('order_marketplace_id')
+                ->whereNotIn('order_status', ['COMPLETED', 'CANCELLED', 'BATAL', 'CANCELED'])
                 ->get();
 
             if ($activeOrders->isEmpty()) {
@@ -1164,10 +1165,20 @@ class SecretRepairDashboardController extends Controller
         }
 
         $notCancelled = ['CANCELLED', 'BATAL', 'CANCELED'];
+        $status   = $request->input('status', 'all'); // all | READY_TO_SHIP | SHIPPED | DELIVERED | COMPLETED | CANCELLED | etc.
 
         $query = Order::with(['store', 'items'])
-            ->whereIn('store_id', $storeIds)
-            ->whereNotIn('order_status', $notCancelled);
+            ->whereIn('store_id', $storeIds);
+
+        if ($status !== 'all') {
+            if ($status === 'CANCELLED') {
+                $query->whereIn('order_status', $notCancelled);
+            } else {
+                $query->where('order_status', $status);
+            }
+        } else {
+            $query->whereNotIn('order_status', $notCancelled);
+        }
 
         if ($dateFrom) $query->whereDate('order_date', '>=', $dateFrom);
         if ($dateTo)   $query->whereDate('order_date', '<=', $dateTo);
@@ -1228,7 +1239,7 @@ class SecretRepairDashboardController extends Controller
 
         return view('secret_repair_compare_detail', compact(
             'rows', 'channel', 'dateFrom', 'dateTo',
-            'filter', 'storeId', 'stores',
+            'filter', 'storeId', 'stores', 'status',
             'totalRows', 'mismatchRows', 'noFbRows'
         ));
     }

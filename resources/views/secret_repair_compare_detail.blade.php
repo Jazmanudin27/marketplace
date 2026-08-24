@@ -82,6 +82,19 @@
                 @endforeach
             </select>
         </div>
+        <div>
+            <label class="text-secondary fw-semibold me-1" style="font-size:.75rem">Status:</label>
+            <select name="status" class="form-select form-select-sm d-inline-block rounded-2" style="width:180px;font-size:.8rem" onchange="this.form.submit()">
+                <option value="all" {{ ($status ?? 'all') == 'all' ? 'selected' : '' }}>Semua Status (Aktif)</option>
+                <option value="READY_TO_SHIP" {{ ($status ?? '') == 'READY_TO_SHIP' ? 'selected' : '' }}>Ready to Ship</option>
+                <option value="SHIPPED" {{ ($status ?? '') == 'SHIPPED' ? 'selected' : '' }}>Shipped</option>
+                <option value="DELIVERED" {{ ($status ?? '') == 'DELIVERED' ? 'selected' : '' }}>Delivered</option>
+                <option value="COMPLETED" {{ ($status ?? '') == 'COMPLETED' ? 'selected' : '' }}>Completed</option>
+                <option value="CANCELLED" {{ ($status ?? '') == 'CANCELLED' ? 'selected' : '' }}>Cancelled</option>
+                <option value="UNPAID" {{ ($status ?? '') == 'UNPAID' ? 'selected' : '' }}>Unpaid</option>
+                <option value="RETURNED" {{ ($status ?? '') == 'RETURNED' ? 'selected' : '' }}>Returned</option>
+            </select>
+        </div>
         <div class="d-flex gap-2">
             <a href="{{ route('secret_repair.compare_detail', array_merge(request()->all(), ['filter' => 'all'])) }}" class="btn btn-sm rounded-2 {{ $filter === 'all' ? 'btn-dark' : 'btn-outline-secondary' }}" style="font-size:.77rem">Semua</a>
             <a href="{{ route('secret_repair.compare_detail', array_merge(request()->all(), ['filter' => 'mismatch'])) }}" class="btn btn-sm rounded-2 {{ $filter === 'mismatch' ? 'btn-warning text-dark' : 'btn-outline-warning' }}" style="font-size:.77rem"><i class="fas fa-exclamation-triangle me-1"></i>Mismatch ({{ $mismatchRows }})</a>
