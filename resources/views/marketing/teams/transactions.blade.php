@@ -56,7 +56,7 @@
                 <div class="d-flex align-items-center justify-content-between">
                     <div>
                         <span class="text-secondary small fw-medium d-block mb-1">Total Transaksi</span>
-                        <h4 class="fw-bold text-dark mb-0">{{ number_format($orders->total()) }}</h4>
+                        <h4 class="fw-bold text-dark mb-0">{{ number_format($orders->count()) }}</h4>
                         <span class="text-muted small mt-2 d-block">Pesanan Selesai</span>
                     </div>
                     <div class="bg-primary bg-opacity-10 text-primary rounded-3 p-3 d-flex align-items-center justify-content-center">
@@ -192,22 +192,24 @@
                         @endphp
                         <tr>
                             <td class="ps-4 text-muted small fw-medium">
-                                {{ $orders->firstItem() + $index }}
+                                {{ $index + 1 }}
                             </td>
                             <td class="py-3">
                                 <span class="fw-semibold text-dark d-block" style="font-size:0.875rem;">
-                                    {{ $order->invoice_number ?? 'N/A' }}
+                                    {{ $order->invoice_number ?: ($order->order_marketplace_id ?: '—') }}
                                 </span>
-                                <span class="text-muted small fst-italic" style="font-size:0.75rem;">
-                                    ID: {{ $order->order_marketplace_id }}
-                                </span>
+                                @if($order->invoice_number && $order->order_marketplace_id)
+                                    <span class="text-muted small fst-italic" style="font-size:0.75rem;">
+                                        ID: {{ $order->order_marketplace_id }}
+                                    </span>
+                                @endif
                             </td>
                             <td class="py-3">
                                 <span class="fw-bold text-dark d-block" style="font-size:0.82rem;">
-                                    {{ $order->store->store_name ?? 'N/A' }}
+                                    {{ $order->store ? $order->store->store_name : ('Toko ID #' . $order->store_id) }}
                                 </span>
                                 <span class="badge {{ $badgeClass }} rounded-pill px-2 py-0.5" style="font-size:0.68rem;">
-                                    {{ $order->store->channel->name ?? 'N/A' }}
+                                    {{ $order->store && $order->store->channel ? $order->store->channel->name : 'Marketplace' }}
                                 </span>
                             </td>
                             <td class="py-3 text-muted small">
@@ -215,7 +217,7 @@
                             </td>
                             <td class="py-3">
                                 <span class="fw-medium text-dark d-block" style="font-size:0.82rem;">
-                                    {{ $order->buyer_name ?? '—' }}
+                                    {{ $order->buyer_name ?: '—' }}
                                 </span>
                                 @if($order->buyer_phone)
                                     <span class="text-muted small d-block" style="font-size:0.72rem;">
@@ -225,7 +227,7 @@
                             </td>
                             <td class="py-3 text-center">
                                 <span class="badge bg-success bg-opacity-10 text-success rounded-pill px-3 py-1 small fw-semibold">
-                                    {{ strtoupper($order->order_status) }}
+                                    {{ strtoupper($order->order_status ?: 'SELESAI') }}
                                 </span>
                             </td>
                             <td class="py-3 text-end fw-semibold text-dark">
@@ -252,19 +254,6 @@
                 </tbody>
             </table>
         </div>
-
-        @if($orders->hasPages())
-            <div class="card-footer bg-white border-top py-3 px-4">
-                <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
-                    <span class="text-muted small">
-                        Menampilkan {{ $orders->firstItem() }} - {{ $orders->lastItem() }} dari {{ $orders->total() }} transaksi
-                    </span>
-                    <div>
-                        {{ $orders->links() }}
-                    </div>
-                </div>
-            </div>
-        @endif
     </div>
 </div>
 @endsection

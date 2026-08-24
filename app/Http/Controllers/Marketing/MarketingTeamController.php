@@ -230,7 +230,7 @@ class MarketingTeamController extends Controller
         $rewardPerQty = $marketingTeam->reward_per_qty;
 
         if (empty($storeIds)) {
-            $orders = new \Illuminate\Pagination\LengthAwarePaginator([], 0, 50);
+            $orders = collect();
             $totalQty = 0;
             $totalOmset = 0.0;
             $totalEarnedReward = 0.0;
@@ -276,10 +276,9 @@ class MarketingTeamController extends Controller
                 $query->whereBetween(DB::raw('COALESCE(completed_at, updated_at, order_date)'), [$from, $to]);
             }
 
-            // Paginated result
+            // Get all records without pagination
             $orders = $query->orderBy(DB::raw('COALESCE(completed_at, order_date)'), 'desc')
-                            ->paginate(50)
-                            ->withQueryString();
+                            ->get();
 
             // Summary metrics
             $summaryQuery = DB::table('orders')
