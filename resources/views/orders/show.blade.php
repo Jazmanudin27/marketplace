@@ -257,7 +257,14 @@
                                                 @endif
                                             </td>
                                             <td>
-                                                <code class="text-info font-monospace small d-block">{{ $item->seller_sku ?? $item->sku ?? '-' }}</code>
+                                                @php
+                                                    $displaySku = $item->seller_sku ?: ($item->sku ?: ($item->masterProduct->sku ?? ''));
+                                                @endphp
+                                                @if ($displaySku)
+                                                    <code class="text-info font-monospace small d-block">{{ $displaySku }}</code>
+                                                @else
+                                                    <span class="text-muted font-monospace small">—</span>
+                                                @endif
                                                 @if ($item->sku_id)
                                                     <span class="text-muted font-monospace small" style="font-size:0.65rem;">ID: {{ $item->sku_id }}</span>
                                                 @endif
