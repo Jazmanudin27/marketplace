@@ -612,6 +612,7 @@ class SecretRepairDashboardController extends Controller
                         ];
                         $correctStatus = $shopeeStatusMap[$statusRaw] ?? $statusRaw;
 
+                        $isChanged = false;
                         if ($dbOrder->order_status !== $correctStatus) {
                             $oldSt = $dbOrder->order_status;
                             $dbOrder->order_status = $correctStatus;
@@ -622,9 +623,27 @@ class SecretRepairDashboardController extends Controller
                             if (!empty($shopeeOrder['update_time'])) {
                                 $dbOrder->completed_at = date('Y-m-d H:i:s', $shopeeOrder['update_time']);
                             }
+                            $isChanged = true;
+                            $log[] = "   -> Order #{$orderSn}: Status dikoreksi dari {$oldSt} => {$correctStatus}";
+                        }
+
+                        // Sinkronisasi nomor resi asli Shopee (hapus resi palsu jika belum dibooking)
+                        $apiTrackingNumber = (!empty($shopeeOrder['package_list']) && !empty(current($shopeeOrder['package_list'])['tracking_number'])) ? current($shopeeOrder['package_list'])['tracking_number'] : null;
+                        if ($dbOrder->tracking_number !== $apiTrackingNumber) {
+                            if (empty($apiTrackingNumber) && !empty($dbOrder->tracking_number) && (str_starts_with($dbOrder->tracking_number, 'PSG') || str_starts_with($dbOrder->tracking_number, 'psg'))) {
+                                $dbOrder->tracking_number = null;
+                                $isChanged = true;
+                                $log[] = "   -> Order #{$orderSn}: Nomor paket palsu (package_number) dihapus agar kembali ke tab Perlu Diproses";
+                            } elseif (!empty($apiTrackingNumber)) {
+                                $dbOrder->tracking_number = $apiTrackingNumber;
+                                $isChanged = true;
+                                $log[] = "   -> Order #{$orderSn}: Resi diperbarui menjadi {$apiTrackingNumber}";
+                            }
+                        }
+
+                        if ($isChanged) {
                             $dbOrder->save();
                             $totalRestored++;
-                            $log[] = "   -> Order #{$orderSn}: Status dikoreksi dari {$oldSt} => {$correctStatus}";
                         }
                     }
                 }
