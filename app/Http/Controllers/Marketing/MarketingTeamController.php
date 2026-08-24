@@ -43,27 +43,37 @@ class MarketingTeamController extends Controller
         $availableYears = array_values(array_unique(array_filter(array_merge([$currentYear], $teamYears, $orderYears))));
         rsort($availableYears);
 
-        // Parameter Filter (Default Bulan & Tahun sekarang jika tidak diisi)
+        // Deteksi mode filter yang digunakan user:
+        // 1. Jika user mengisi date_from / date_to → pakai Range Tanggal
+        // 2. Jika user mengisi month / year → pakai Bulan & Tahun
+        // 3. Default (tidak ada yang diisi) → pakai Range Tanggal bulan ini
+        $userFilledDateRange = $request->filled('date_from') || $request->filled('date_to');
+        $userFilledMonthYear = $request->filled('month') || $request->filled('year');
+
         $reqMonth = $request->filled('month') ? (int) $request->month : (int) date('n');
         $reqYear  = $request->filled('year') ? (int) $request->year : $currentYear;
         $dateFrom = $request->filled('date_from') ? $request->date_from : date('Y-m-01');
         $dateTo   = $request->filled('date_to') ? $request->date_to : date('Y-m-d');
 
+        // Mode aktif: bulan/tahun diprioritaskan hanya jika user memilihnya
+        // dan tidak sekalian mengisi date range
+        $useMonthYear = $userFilledMonthYear && !$userFilledDateRange;
+
         // Hitung nilai dinamis aktual per tim berdasarkan filter
         foreach ($teams as $team) {
-            if ($request->filled('month') || $request->filled('year')) {
-                // Jika user memilih filter spesifik Bulan & Tahun
-                $team->custom_actual_qty = $team->calculateActualQty($reqMonth, $reqYear);
+            if ($useMonthYear) {
+                // Mode Bulan & Tahun
+                $team->custom_actual_qty   = $team->calculateActualQty($reqMonth, $reqYear);
                 $team->custom_actual_omset = $team->calculateActualOmset($reqMonth, $reqYear);
             } else {
-                // Menggunakan Range Tanggal (dateFrom s/d dateTo)
-                $team->custom_actual_qty = $team->calculateActualQty(null, null, $dateFrom, $dateTo);
+                // Mode Range Tanggal (default: dari awal bulan ini s/d hari ini)
+                $team->custom_actual_qty   = $team->calculateActualQty(null, null, $dateFrom, $dateTo);
                 $team->custom_actual_omset = $team->calculateActualOmset(null, null, $dateFrom, $dateTo);
             }
 
             $team->custom_total_reward = $team->custom_actual_qty * $team->reward_per_qty;
-            $team->custom_progress_percent = $team->target_qty > 0 
-                ? min(100.0, round(($team->custom_actual_qty / $team->target_qty) * 100, 1)) 
+            $team->custom_progress_percent = $team->target_qty > 0
+                ? min(100.0, round(($team->custom_actual_qty / $team->target_qty) * 100, 1))
                 : 0.0;
         }
 
