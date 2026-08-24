@@ -668,6 +668,32 @@
             @endforeach
         </div>
 
+        {{-- ── Sub-Tab Status Cetak (Print) ── --}}
+        @php
+            $currentPrint = request('print_status', '');
+            $printTabItems = [
+                ''          => ['label' => 'Semua',          'countKey' => '__all__'],
+                'unprinted' => ['label' => 'Belum di Print', 'countKey' => 'unprinted'],
+                'printed'   => ['label' => 'Sudah di Print', 'countKey' => 'printed'],
+            ];
+        @endphp
+        <div class="shopee-sub-tabs mt-2" style="border-top: none; padding-top: 0; padding-bottom: 8px;">
+            <span class="sub-tabs-label"><i class="fas fa-print me-1"></i>Status Cetak:</span>
+            @foreach($printTabItems as $prKey => $prInfo)
+                @php
+                    $prUrl      = route('orders.index', array_merge(request()->except(['print_status', 'page']), $prKey !== '' ? ['print_status' => $prKey] : []));
+                    $prActive   = $currentPrint === $prKey;
+                    $prCount    = $printCounts[$prInfo['countKey']] ?? 0;
+                @endphp
+                <a href="{{ $prUrl }}" class="sub-tab-pill {{ $prActive ? 'active' : '' }}">
+                    {{ $prInfo['label'] }}
+                    @if($prCount > 0)
+                        <span class="pill-count">{{ $prCount > 999 ? '999+' : $prCount }}</span>
+                    @endif
+                </a>
+            @endforeach
+        </div>
+
         {{-- ── Filter Bar ── --}}
         <div class="shopee-filter-bar">
             <form method="GET" action="{{ route('orders.index') }}" id="filter-form">
@@ -676,6 +702,9 @@
                 @endif
                 @if(request('process_status'))
                     <input type="hidden" name="process_status" value="{{ request('process_status') }}">
+                @endif
+                @if(request('print_status'))
+                    <input type="hidden" name="print_status" value="{{ request('print_status') }}">
                 @endif
 
                 <div class="filter-row">

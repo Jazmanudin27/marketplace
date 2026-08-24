@@ -295,6 +295,15 @@ class OrderController extends Controller
             'processed'    => $processedQuery->count(),
         ];
 
+        // Hitung jumlah print status (Semua, Sudah di Print, Belum di Print)
+        $printCounts = [
+            '__all__'      => (clone $processBase)->count(),
+            'printed'      => (clone $processBase)->where('is_printed', true)->count(),
+            'unprinted'    => (clone $processBase)->where(function ($q) {
+                                  $q->where('is_printed', false)->orWhereNull('is_printed');
+                              })->count(),
+        ];
+
         // Jumlah pesanan "Perlu diproses" untuk banner notifikasi (tanpa filter status/process)
         $toProcessCount = (clone $countBase)->where(function($q) use ($unprocessedStatuses) {
             $q->whereIn(\DB::raw('UPPER(order_status)'), $unprocessedStatuses)
@@ -306,7 +315,7 @@ class OrderController extends Controller
 
         return view('orders.index', compact(
             'orders', 'channels', 'stores', 'couriers', 'statuses',
-            'urgentOrders', 'tabCounts', 'processCounts', 'toProcessCount'
+            'urgentOrders', 'tabCounts', 'processCounts', 'toProcessCount', 'printCounts'
         ));
     }
 
