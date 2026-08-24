@@ -135,9 +135,7 @@ class OrderController extends Controller
                     $q->whereIn(\DB::raw('UPPER(order_status)'), $unprocessedStatuses)
                       ->where(function($q2) {
                           $q2->whereNull('tracking_number')
-                             ->orWhere('tracking_number', '')
-                             ->orWhere('is_printed', false)
-                             ->orWhereNull('is_printed');
+                             ->orWhere('tracking_number', '');
                       });
                 });
             } elseif ($request->process_status === 'processed') {
@@ -145,8 +143,7 @@ class OrderController extends Controller
                     $q->whereIn(\DB::raw('UPPER(order_status)'), $processedStatuses)
                       ->orWhere(function($q2) {
                           $q2->whereNotNull('tracking_number')
-                             ->where('tracking_number', '!=', '')
-                             ->where('is_printed', true);
+                             ->where('tracking_number', '!=', '');
                       });
                 });
             }
@@ -280,9 +277,7 @@ class OrderController extends Controller
             $q->whereIn(\DB::raw('UPPER(order_status)'), $unprocessedStatuses)
               ->where(function($q2) {
                   $q2->whereNull('tracking_number')
-                     ->orWhere('tracking_number', '')
-                     ->orWhere('is_printed', false)
-                     ->orWhereNull('is_printed');
+                     ->orWhere('tracking_number', '');
               });
         });
 
@@ -290,8 +285,7 @@ class OrderController extends Controller
             $q->whereIn(\DB::raw('UPPER(order_status)'), $processedStatuses)
               ->orWhere(function($q2) {
                   $q2->whereNotNull('tracking_number')
-                     ->where('tracking_number', '!=', '')
-                     ->where('is_printed', true);
+                     ->where('tracking_number', '!=', '');
               });
         });
 
@@ -306,9 +300,7 @@ class OrderController extends Controller
             $q->whereIn(\DB::raw('UPPER(order_status)'), $unprocessedStatuses)
               ->where(function($q2) {
                   $q2->whereNull('tracking_number')
-                     ->orWhere('tracking_number', '')
-                     ->orWhere('is_printed', false)
-                     ->orWhereNull('is_printed');
+                     ->orWhere('tracking_number', '');
               });
         })->count();
 
