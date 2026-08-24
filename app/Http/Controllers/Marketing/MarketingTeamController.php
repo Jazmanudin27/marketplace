@@ -35,20 +35,15 @@ class MarketingTeamController extends Controller
         rsort($availableYears);
 
         // Deteksi mode filter yang digunakan user:
-        // 1. Jika user mengisi date_from / date_to → pakai Range Tanggal
-        // 2. Jika user mengisi month / year → pakai Bulan & Tahun
-        // 3. Default (tidak ada yang diisi) → pakai Range Tanggal bulan ini
-        $userFilledDateRange = $request->filled('date_from') || $request->filled('date_to');
-        $userFilledMonthYear = $request->filled('month') || $request->filled('year');
+        // Mode filter:
+        // - Jika user memilih Bulan & Tahun → mode bulan/tahun (tim & realisasi difilter per bulan)
+        // - Jika tidak → mode Range Tanggal (default: awal bulan s/d hari ini)
+        $useMonthYear = $request->filled('month') || $request->filled('year');
 
         $reqMonth = $request->filled('month') ? (int) $request->month : (int) date('n');
         $reqYear  = $request->filled('year') ? (int) $request->year : $currentYear;
         $dateFrom = $request->filled('date_from') ? $request->date_from : date('Y-m-01');
         $dateTo   = $request->filled('date_to') ? $request->date_to : date('Y-m-d');
-
-        // Mode aktif: bulan/tahun diprioritaskan hanya jika user memilihnya
-        // dan tidak sekalian mengisi date range
-        $useMonthYear = $userFilledMonthYear && !$userFilledDateRange;
 
         // Query teams — jika mode bulan/tahun, filter hanya tim dengan period_month & period_year sesuai
         $teams = MarketingTeam::forTenant($tenantId)
