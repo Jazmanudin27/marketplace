@@ -885,7 +885,7 @@
 
                     <div class="row g-2 align-items-end">
                         {{-- No. Pesanan --}}
-                        <div class="col-12 col-md-4">
+                        <div class="col-12 col-md-3">
                             <div class="shopee-filter-group w-100">
                                 <label><i class="fas fa-search me-1"></i>No. Pesanan / Resi / Pembeli</label>
                                 <input type="text" name="order_number" class="form-control w-100"
@@ -931,7 +931,7 @@
                         </div>
 
                         {{-- Dari Tanggal --}}
-                        <div class="col-12 col-sm-6 col-md-1">
+                        <div class="col-12 col-sm-6 col-md-2">
                             <div class="shopee-filter-group w-100">
                                 <label><i class="fas fa-calendar me-1"></i>Dari Tanggal</label>
                                 <input type="date" name="start_date" class="form-control w-100"
@@ -940,7 +940,7 @@
                         </div>
 
                         {{-- Sampai Tanggal --}}
-                        <div class="col-12 col-sm-6 col-md-1">
+                        <div class="col-12 col-sm-6 col-md-2">
                             <div class="shopee-filter-group w-100">
                                 <label><i class="fas fa-calendar-check me-1"></i>Sampai Tanggal</label>
                                 <input type="date" name="end_date" class="form-control w-100"
