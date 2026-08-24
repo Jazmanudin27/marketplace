@@ -340,7 +340,13 @@ class PullOrdersFromShopee implements ShouldQueue
                 'net_amount' => $netAmount,
                 'marketplace_fee' => $marketplaceFee,
                 'courier' => $shopeeOrder['shipping_carrier'] ?? null,
-                'tracking_number' => (!empty($shopeeOrder['package_list']) && !empty(current($shopeeOrder['package_list'])['tracking_number'])) ? current($shopeeOrder['package_list'])['tracking_number'] : null,
+                'tracking_number' => (function() use ($shopeeOrder) {
+                    $tracking = (!empty($shopeeOrder['package_list']) && !empty(current($shopeeOrder['package_list'])['tracking_number'])) ? current($shopeeOrder['package_list'])['tracking_number'] : null;
+                    if ($tracking && (str_starts_with($tracking, 'PSG') || str_starts_with($tracking, 'psg'))) {
+                        return null;
+                    }
+                    return $tracking;
+                })(),
                 'order_date' => date('Y-m-d H:i:s', $shopeeOrder['create_time'] ?? time()),
                 'completed_at' => in_array($erpStatus, ['COMPLETED', 'DELIVERED', 'SELESAI', 'FINISHED']) ? date('Y-m-d H:i:s', $shopeeOrder['update_time'] ?? ($shopeeOrder['create_time'] ?? time())) : null,
                 'ship_before_date' => $this->resolveShipBeforeDate($shopeeOrder),

@@ -629,11 +629,15 @@ class SecretRepairDashboardController extends Controller
 
                         // Sinkronisasi nomor resi asli Shopee (hapus resi palsu jika belum dibooking)
                         $apiTrackingNumber = (!empty($shopeeOrder['package_list']) && !empty(current($shopeeOrder['package_list'])['tracking_number'])) ? current($shopeeOrder['package_list'])['tracking_number'] : null;
+                        if ($apiTrackingNumber && (str_starts_with($apiTrackingNumber, 'PSG') || str_starts_with($apiTrackingNumber, 'psg'))) {
+                            $apiTrackingNumber = null;
+                        }
+
                         if ($dbOrder->tracking_number !== $apiTrackingNumber) {
-                            if (empty($apiTrackingNumber) && !empty($dbOrder->tracking_number) && (str_starts_with($dbOrder->tracking_number, 'PSG') || str_starts_with($dbOrder->tracking_number, 'psg'))) {
+                            if (empty($apiTrackingNumber) && !empty($dbOrder->tracking_number)) {
                                 $dbOrder->tracking_number = null;
                                 $isChanged = true;
-                                $log[] = "   -> Order #{$orderSn}: Nomor paket palsu (package_number) dihapus agar kembali ke tab Perlu Diproses";
+                                $log[] = "   -> Order #{$orderSn}: Resi kosong di API, resi di ERP dikosongkan agar kembali ke tab Perlu Diproses";
                             } elseif (!empty($apiTrackingNumber)) {
                                 $dbOrder->tracking_number = $apiTrackingNumber;
                                 $isChanged = true;
