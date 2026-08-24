@@ -956,7 +956,7 @@
                             @if (request()->anyFilled(['channel_id', 'store_id', 'start_date', 'end_date', 'order_number']))
                                 <a href="{{ route('orders.index', request('status') ? ['status' => request('status')] : []) }}"
                                     class="btn-shopee-ghost">
-                                    <i class="fas fa-times"></i> Atur Ulang
+                                    <i class="fas fa-times"></i> Reset
                                 </a>
                             @endif
                         </div>
