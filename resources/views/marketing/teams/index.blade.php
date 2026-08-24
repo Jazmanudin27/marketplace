@@ -626,15 +626,15 @@
     <!-- Modal Pengecualian Komisi Produk -->
     <div class="modal fade" id="excludeProductsModal" tabindex="-1" aria-labelledby="excludeProductsModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-scrollable">
-            <div class="modal-content rounded-3 border-0 shadow">
-                <div class="modal-header bg-danger text-white py-3">
-                    <h5 class="modal-title fw-bold" id="excludeProductsModalLabel">
-                        <i class="bi bi-slash-circle me-2"></i>Pengecualian Komisi Produk
-                    </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <form action="{{ route('marketing.teams.exclude_products') }}" method="POST">
-                    @csrf
+            <form action="{{ route('marketing.teams.exclude_products') }}" method="POST">
+                @csrf
+                <div class="modal-content rounded-3 border-0 shadow">
+                    <div class="modal-header bg-danger text-white py-3">
+                        <h5 class="modal-title fw-bold" id="excludeProductsModalLabel">
+                            <i class="bi bi-slash-circle me-2"></i>Pengecualian Komisi Produk
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
                     <div class="modal-body p-4">
                         <p class="text-secondary small mb-3">
                             Centang produk di bawah ini yang <strong>tidak ingin dimasukkan</strong> ke dalam perhitungan target kuantitas (Qty) maupun komisi marketing.
@@ -687,8 +687,8 @@
                         <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill px-3" data-bs-dismiss="modal">Batal</button>
                         <button type="submit" class="btn btn-danger btn-sm rounded-pill px-4 fw-semibold shadow-sm">Simpan Pengaturan</button>
                     </div>
-                </form>
-            </div>
+                </div>
+            </form>
         </div>
     </div>
 @endsection
