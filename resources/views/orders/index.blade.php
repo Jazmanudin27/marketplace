@@ -545,6 +545,25 @@
         margin-bottom: 12px;
     }
 
+    .print-status-group {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+    @media (min-width: 768px) {
+        .print-status-group {
+            border-left: 1px solid var(--shopee-border);
+            padding-left: 16px;
+        }
+    }
+    @media (max-width: 767.98px) {
+        .print-status-group {
+            border-top: 1px solid var(--shopee-border);
+            padding-top: 8px;
+            width: 100%;
+        }
+    }
+
     /* ── Responsive ── */
     @media (max-width: 768px) {
         .shopee-filter-group.w-order,
@@ -573,37 +592,6 @@
 
     {{-- ── Main Card ── --}}
     <div class="shopee-card">
-
-        {{-- ── Notification Banner ── --}}
-        @if($toProcessCount > 0)
-        <div class="shopee-notif-banner">
-            <div class="notif-left">
-                <div class="notif-icon">
-                    <i class="fas fa-exclamation"></i>
-                </div>
-                <div class="notif-text">
-                    <strong>Ada pesanan yang perlu segera diproses!</strong>
-                    <span>Segera tangani sebelum batas waktu pengiriman terlewat.</span>
-                </div>
-                @if($urgentOrders->isNotEmpty())
-                    @php
-                        $overdueCount2 = $urgentOrders->filter(fn($o) => $o->ship_before_date->isPast())->count();
-                    @endphp
-                    @if($overdueCount2 > 0)
-                        <span class="notif-urgent-pill">
-                            <i class="fas fa-clock"></i> {{ $overdueCount2 }} Overdue!
-                        </span>
-                    @endif
-                @endif
-            </div>
-            <div class="d-flex align-items-center gap-3">
-                <div class="text-center">
-                    <div class="notif-count-pill">{{ $toProcessCount }}</div>
-                    <div style="font-size:0.68rem; color:#888; margin-top:3px;">Perlu Diproses</div>
-                </div>
-            </div>
-        </div>
-        @endif
 
         {{-- ── Status Tabs ── --}}
         @php
@@ -642,7 +630,7 @@
             @endforeach
         </div>
 
-        {{-- ── Sub-Tab Status Pesanan ── --}}
+        {{-- ── Sub-Tabs: Status Pesanan & Status Cetak ── --}}
         @php
             $currentProcess = request('process_status', '');
             $subTabItems = [
@@ -650,26 +638,7 @@
                 'to_process' => ['label' => 'Perlu diproses', 'countKey' => 'to_process'],
                 'processed'  => ['label' => 'Telah diproses', 'countKey' => 'processed'],
             ];
-        @endphp
-        <div class="shopee-sub-tabs">
-            <span class="sub-tabs-label"><i class="fas fa-filter me-1"></i>Status Pesanan:</span>
-            @foreach($subTabItems as $ptKey => $ptInfo)
-                @php
-                    $ptUrl      = route('orders.index', array_merge(request()->except(['process_status', 'page']), $ptKey !== '' ? ['process_status' => $ptKey] : []));
-                    $ptActive   = $currentProcess === $ptKey;
-                    $ptCount    = $processCounts[$ptInfo['countKey']] ?? 0;
-                @endphp
-                <a href="{{ $ptUrl }}" class="sub-tab-pill {{ $ptActive ? 'active' : '' }}">
-                    {{ $ptInfo['label'] }}
-                    @if($ptCount > 0)
-                        <span class="pill-count">{{ $ptCount > 999 ? '999+' : $ptCount }}</span>
-                    @endif
-                </a>
-            @endforeach
-        </div>
 
-        {{-- ── Sub-Tab Status Cetak (Print) ── --}}
-        @php
             $currentPrint = request('print_status', '');
             $printTabItems = [
                 ''          => ['label' => 'Semua',          'countKey' => '__all__'],
@@ -677,21 +646,42 @@
                 'printed'   => ['label' => 'Sudah di Print', 'countKey' => 'printed'],
             ];
         @endphp
-        <div class="shopee-sub-tabs mt-2" style="border-top: none; padding-top: 0; padding-bottom: 8px;">
-            <span class="sub-tabs-label"><i class="fas fa-print me-1"></i>Status Cetak:</span>
-            @foreach($printTabItems as $prKey => $prInfo)
-                @php
-                    $prUrl      = route('orders.index', array_merge(request()->except(['print_status', 'page']), $prKey !== '' ? ['print_status' => $prKey] : []));
-                    $prActive   = $currentPrint === $prKey;
-                    $prCount    = $printCounts[$prInfo['countKey']] ?? 0;
-                @endphp
-                <a href="{{ $prUrl }}" class="sub-tab-pill {{ $prActive ? 'active' : '' }}">
-                    {{ $prInfo['label'] }}
-                    @if($prCount > 0)
-                        <span class="pill-count">{{ $prCount > 999 ? '999+' : $prCount }}</span>
-                    @endif
-                </a>
-            @endforeach
+        <div class="shopee-sub-tabs d-flex justify-content-between flex-wrap gap-3 align-items-center">
+            <!-- Left: Status Pesanan -->
+            <div class="d-flex align-items-center flex-wrap gap-2">
+                <span class="sub-tabs-label"><i class="fas fa-filter me-1"></i>Status Pesanan:</span>
+                @foreach($subTabItems as $ptKey => $ptInfo)
+                    @php
+                        $ptUrl      = route('orders.index', array_merge(request()->except(['process_status', 'page']), $ptKey !== '' ? ['process_status' => $ptKey] : []));
+                        $ptActive   = $currentProcess === $ptKey;
+                        $ptCount    = $processCounts[$ptInfo['countKey']] ?? 0;
+                    @endphp
+                    <a href="{{ $ptUrl }}" class="sub-tab-pill {{ $ptActive ? 'active' : '' }}">
+                        {{ $ptInfo['label'] }}
+                        @if($ptCount > 0)
+                            <span class="pill-count">{{ $ptCount > 999 ? '999+' : $ptCount }}</span>
+                        @endif
+                    </a>
+                @endforeach
+            </div>
+
+            <!-- Right: Status Cetak -->
+            <div class="print-status-group ms-md-auto pe-md-2">
+                <span class="sub-tabs-label"><i class="fas fa-print me-1"></i>Status Cetak:</span>
+                @foreach($printTabItems as $prKey => $prInfo)
+                    @php
+                        $prUrl      = route('orders.index', array_merge(request()->except(['print_status', 'page']), $prKey !== '' ? ['print_status' => $prKey] : []));
+                        $prActive   = $currentPrint === $prKey;
+                        $prCount    = $printCounts[$prInfo['countKey']] ?? 0;
+                    @endphp
+                    <a href="{{ $prUrl }}" class="sub-tab-pill {{ $prActive ? 'active' : '' }}">
+                        {{ $prInfo['label'] }}
+                        @if($prCount > 0)
+                            <span class="pill-count">{{ $prCount > 999 ? '999+' : $prCount }}</span>
+                        @endif
+                    </a>
+                @endforeach
+            </div>
         </div>
 
         {{-- ── Filter Bar ── --}}
