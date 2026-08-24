@@ -24,27 +24,48 @@ if (!$order) {
 }
 
 // Data mentah dari API TikTok & Detail Settlement resmi TikTok Seller Center
-$productSubtotal     = 99500.00; // Subtotal Harga Produk
-$buyerPaidTotal      = 101909.00; // Total Pembayaran Pembeli (Termasuk buyer handling fee)
-$sellerDiscount      = 0.00;     // Diskon Penjual / Voucher Toko
-$escrowAmount        = 75310.00; // Dana Bersih yang Cair ke Rekening Penjual
-
-// 5 Komponen Rincian Biaya TikTok Shop (Total Rp 24.190)
-$platformCommission  = 6030.00;  // Biaya komisi platform
-$preorderServiceFee  = 2985.00;  // Biaya layanan pre-order
-$orderProcessingFee  = 1250.00;  // Biaya pemrosesan pesanan
-$growthXtraFee       = 2488.00;  // Biaya layanan Program Growth Xtra
-$affiliateCommission = 10447.00; // Komisi Afiliasi / Komisi Dinamis (2985 + 7462)
-$shippingAdjustment  = 990.00;   // Ongkir / Penyesuaian
+if ($orderMarketplaceId === '585445938895291619') {
+    $productSubtotal     = 82000.00; // Subtotal Harga Produk
+    $buyerPaidTotal      = 82000.00; // Total Pembayaran Pembeli
+    $sellerDiscount      = 0.00;     // Diskon Penjual
+    $escrowAmount        = 64175.00; // Dana Bersih yang Cair ke Rekening Penjual
+    
+    // 5 Komponen Rincian Biaya TikTok Shop (Total Rp 17.825)
+    $platformCommission  = 7585.00;  // Biaya komisi platform
+    $preorderServiceFee  = 0.00;     // Biaya layanan pre-order
+    $orderProcessingFee  = 1250.00;  // Biaya pemrosesan pesanan
+    $growthXtraFee       = 0.00;     // Biaya layanan Program Growth Xtra
+    $affiliateCommission = 6560.00;  // Komisi Afiliasi / Komisi Dinamis
+    $shippingAdjustment  = 2430.00;  // Ongkir / Penyesuaian
+    $completedAt         = '2026-08-21 18:27:00'; // Tanggal tanda terima (21/08/2026)
+} else {
+    // Default: 585293879388046348
+    $productSubtotal     = 99500.00; // Subtotal Harga Produk
+    $buyerPaidTotal      = 101909.00; // Total Pembayaran Pembeli (Termasuk buyer handling fee)
+    $sellerDiscount      = 0.00;     // Diskon Penjual / Voucher Toko
+    $escrowAmount        = 75310.00; // Dana Bersih yang Cair ke Rekening Penjual
+    
+    // 5 Komponen Rincian Biaya TikTok Shop (Total Rp 24.190)
+    $platformCommission  = 6030.00;  // Biaya komisi platform
+    $preorderServiceFee  = 2985.00;  // Biaya layanan pre-order
+    $orderProcessingFee  = 1250.00;  // Biaya pemrosesan pesanan
+    $growthXtraFee       = 2488.00;  // Biaya layanan Program Growth Xtra
+    $affiliateCommission = 10447.00; // Komisi Afiliasi / Komisi Dinamis (2985 + 7462)
+    $shippingAdjustment  = 990.00;   // Ongkir / Penyesuaian
+    $completedAt         = null;
+}
 
 $totalTiktokFees = $platformCommission + $preorderServiceFee + $orderProcessingFee + $growthXtraFee + $affiliateCommission + $shippingAdjustment;
 
 // Update field database tabel 'orders'
 $order->order_status    = 'COMPLETED';
-$order->total_amount    = $productSubtotal; // Omset Kotor (Subtotal Produk = Rp 99.500)
-$order->discount_amount = $sellerDiscount;  // Rp 0
-$order->marketplace_fee = $totalTiktokFees; // Total Potongan Biaya TikTok = Rp 24.190
-$order->net_amount      = $escrowAmount;    // Omset Bersih (Dana Cair ke Bank = Rp 75.310)
+$order->total_amount    = $productSubtotal; // Omset Kotor
+$order->discount_amount = $sellerDiscount;  
+$order->marketplace_fee = $totalTiktokFees; // Total Potongan Biaya TikTok
+$order->net_amount      = $escrowAmount;    // Omset Bersih (Dana Cair ke Bank)
+if ($completedAt) {
+    $order->completed_at = $completedAt;
+}
 
 $order->financial_breakdown = [
     'original_price'                  => $productSubtotal,

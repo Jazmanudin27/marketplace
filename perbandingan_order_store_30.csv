@@ -1,0 +1,5 @@
+"=== PEMBANDING 1: BERDASARKAN TANGGAL DIBUAT (Order Date) - Cocok Seller Center Pesanan ==="
+No,"Order ID TikTok","Tanggal Order Dibuat","Tanggal Cair (Completed At)",Status,Buyer,"Total Amount","Net Amount (Cair)"
+
+"=== PEMBANDING 2: BERDASARKAN TANGGAL CAIR (Completed At) - Cocok Laporan ERP / Pencairan Saldo ==="
+No,"Order ID TikTok","Tanggal Order Dibuat","Tanggal Cair (Completed At)",Status,Buyer,"Total Amount","Net Amount (Cair)"
