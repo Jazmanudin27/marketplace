@@ -22,16 +22,18 @@ class PullOrdersFromShopee implements ShouldQueue
     public ?int $timeFrom;
     public ?int $timeTo;
     public bool $skipStockDeduction;
+    public ?string $orderSn;
 
     /**
      * Create a new job instance.
      */
-    public function __construct(Store|int $store, ?int $timeFrom = null, ?int $timeTo = null, bool $skipStockDeduction = false)
+    public function __construct(Store|int $store, ?int $timeFrom = null, ?int $timeTo = null, bool $skipStockDeduction = false, ?string $orderSn = null)
     {
         $this->storeId = $store instanceof Store ? $store->id : $store;
         $this->timeFrom = $timeFrom ?? now()->subDays(15)->timestamp;
         $this->timeTo = $timeTo ?? now()->timestamp;
         $this->skipStockDeduction = $skipStockDeduction;
+        $this->orderSn = $orderSn;
     }
 
     public Store $store;
@@ -83,39 +85,65 @@ class PullOrdersFromShopee implements ShouldQueue
         }
 
         try {
-            $cursor = '';
-            $allOrderSn = [];
-            $pageCount = 0;
-
-            do {
-                $response = $this->getValidAccessTokenWithRetry(function($token) use ($shopeeService, $cursor) {
-                    return $shopeeService->getOrderList(
+            // 🎯 JIKA ORDER_SN SPESIFIK DIISI (KILAT WEBHOOK)
+            if ($this->orderSn) {
+                Log::info("[Shopee] Webhook Trigger: Menyinkronkan order detail tunggal: {$this->orderSn}");
+                $detailsResponse = $this->getValidAccessTokenWithRetry(function($token) use ($shopeeService) {
+                    return $shopeeService->getOrderDetail(
                         $token,
                         (int) $this->store->marketplace_store_id,
-                        $this->timeFrom,
-                        $this->timeTo,
-                        'create_time',
-                        $cursor,
-                        50
+                        [$this->orderSn]
                     );
                 });
 
-                $orderList = $response['order_list'] ?? [];
-                foreach ($orderList as $o) {
-                    if (!empty($o['order_sn'])) {
-                        $allOrderSn[] = $o['order_sn'];
+                if (!empty($detailsResponse['order_list'])) {
+                    foreach ($detailsResponse['order_list'] as $shopeeOrder) {
+                        $this->saveOrder($shopeeOrder);
                     }
                 }
+                return;
+            }
 
-                $cursor = $response['next_cursor'] ?? '';
-                $hasMore = $response['more'] ?? false;
-                $pageCount++;
+            $allOrderSn = [];
+            $statusesToScan = [null, 'PROCESSED']; // Scan default (READY_TO_SHIP) dan PROCESSED (Kilat)
 
-                if ($pageCount > 10) {
-                    break;
-                }
+            foreach ($statusesToScan as $scanStatus) {
+                $cursor = '';
+                $pageCount = 0;
 
-            } while ($hasMore && !empty($cursor));
+                do {
+                    $response = $this->getValidAccessTokenWithRetry(function($token) use ($shopeeService, $cursor, $scanStatus) {
+                        return $shopeeService->getOrderList(
+                            $token,
+                            (int) $this->store->marketplace_store_id,
+                            $this->timeFrom,
+                            $this->timeTo,
+                            'create_time',
+                            $cursor,
+                            50,
+                            $scanStatus
+                        );
+                    });
+
+                    $orderList = $response['order_list'] ?? [];
+                    foreach ($orderList as $o) {
+                        if (!empty($o['order_sn'])) {
+                            $allOrderSn[] = $o['order_sn'];
+                        }
+                    }
+
+                    $cursor = $response['next_cursor'] ?? '';
+                    $hasMore = $response['more'] ?? false;
+                    $pageCount++;
+
+                    if ($pageCount > 10) {
+                        break;
+                    }
+
+                } while ($hasMore && !empty($cursor));
+            }
+
+            $allOrderSn = array_unique($allOrderSn);
 
             if (empty($allOrderSn)) {
                 Log::info('[Shopee] No orders found in range for store ' . $this->store->store_name);

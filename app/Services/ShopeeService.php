@@ -253,13 +253,13 @@ class ShopeeService
         return $data['response'] ?? [];
     }
 
-    public function getOrderList(string $accessToken, int $shopId, int $timeFrom, int $timeTo, string $timeRangeField = 'create_time', string $cursor = '', int $pageSize = 50): array
+    public function getOrderList(string $accessToken, int $shopId, int $timeFrom, int $timeTo, string $timeRangeField = 'create_time', string $cursor = '', int $pageSize = 50, ?string $orderStatus = null): array
     {
         $path = '/api/v2/order/get_order_list';
         $timestamp = time();
         $sign = $this->signShopRequest($path, $timestamp, $accessToken, $shopId);
 
-        $response = Http::timeout(30)->retry(3, 1000)->get($this->baseUrl . $path, [
+        $params = [
             'partner_id' => $this->partnerId,
             'timestamp' => $timestamp,
             'sign' => $sign,
@@ -270,7 +270,13 @@ class ShopeeService
             'time_to' => $timeTo,
             'page_size' => $pageSize,
             'cursor' => $cursor,
-        ]);
+        ];
+
+        if ($orderStatus) {
+            $params['order_status'] = $orderStatus;
+        }
+
+        $response = Http::timeout(30)->retry(3, 1000)->get($this->baseUrl . $path, $params);
 
         if ($response->failed()) {
             throw new \RuntimeException('Gagal ambil daftar pesanan Shopee: ' . $response->body());

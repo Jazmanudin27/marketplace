@@ -66,8 +66,8 @@ class WebhookController extends Controller
                     $timeFrom = now()->subDays(3)->timestamp;
                     $timeTo = now()->timestamp;
 
-                    PullOrdersFromShopee::dispatch($store, $timeFrom, $timeTo);
-                    Log::info("[Webhook] Job PullOrdersFromShopee dispatched untuk store {$store->name}");
+                    PullOrdersFromShopee::dispatch($store, $timeFrom, $timeTo, false, $orderSn);
+                    Log::info("[Webhook] Job PullOrdersFromShopee dispatched untuk store {$store->name} dengan order_sn {$orderSn}");
                 }
             } else {
                 Log::warning('[Webhook] Shopee code=3 tapi shop_id atau ordersn kosong', $data);

@@ -123,32 +123,35 @@ class SyncMissingShopeeOrders extends Command
 
                     $allOrderSn = [];
 
-                    // Single scan by create_time
-                    $cursor  = '';
-                    $hasMore = true;
-                    $pageCount = 0;
+                    // Scan default (READY_TO_SHIP) dan PROCESSED (Kilat)
+                    $statusesToScan = [null, 'PROCESSED'];
+                    foreach ($statusesToScan as $scanStatus) {
+                        $cursor  = '';
+                        $hasMore = true;
+                        $pageCount = 0;
 
-                    while ($hasMore) {
-                        try {
-                            $resp = $shopeeService->getOrderList($accessToken, $shopId, $chunkStart, $chunkEnd, 'create_time', $cursor);
-                        } catch (\Exception $e) {
-                            $this->error("API Error: " . $e->getMessage());
-                            $storeError++;
-                            break;
-                        }
-
-                        $orderList = $resp['order_list'] ?? [];
-                        if (empty($orderList)) break;
-
-                        foreach ($orderList as $o) {
-                            if (!empty($o['order_sn'])) {
-                                $allOrderSn[] = $o['order_sn'];
+                        while ($hasMore) {
+                            try {
+                                $resp = $shopeeService->getOrderList($accessToken, $shopId, $chunkStart, $chunkEnd, 'create_time', $cursor, 50, $scanStatus);
+                            } catch (\Exception $e) {
+                                $this->error("API Error: " . $e->getMessage());
+                                $storeError++;
+                                break;
                             }
-                        }
 
-                        $hasMore = $resp['more'] ?? false;
-                        $cursor  = $resp['next_cursor'] ?? '';
-                        if (++$pageCount > 50) break;
+                            $orderList = $resp['order_list'] ?? [];
+                            if (empty($orderList)) break;
+
+                            foreach ($orderList as $o) {
+                                if (!empty($o['order_sn'])) {
+                                    $allOrderSn[] = $o['order_sn'];
+                                }
+                            }
+
+                            $hasMore = $resp['more'] ?? false;
+                            $cursor  = $resp['next_cursor'] ?? '';
+                            if (++$pageCount > 50) break;
+                        }
                     }
 
                     $allOrderSn = array_unique($allOrderSn);
