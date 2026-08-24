@@ -49,8 +49,8 @@ class OrderController extends Controller
             $statusMap = [
                 'UNPAID'        => ['UNPAID', 'PENDING'],
                 'READY_TO_SHIP' => ['READY_TO_SHIP', 'TO_SHIP', 'PROCESSED', 'PROCESSING', 'PROSES', 'RETRY_SHIP', 'TO_RETRY_LOGISTICS'],
-                'SHIPPED'       => ['SHIPPED', 'IN_TRANSIT', 'TO_RECEIVE', 'TO_CONFIRM_RECEIVE'],
-                'COMPLETED'     => ['COMPLETED', 'FINISHED', 'SELESAI', 'DELIVERED'],
+                'SHIPPED'       => ['SHIPPED', 'IN_TRANSIT', 'TO_RECEIVE', 'TO_CONFIRM_RECEIVE', 'DELIVERED'],
+                'COMPLETED'     => ['COMPLETED', 'FINISHED', 'SELESAI'],
                 'CANCELLED'     => ['CANCELLED', 'BATAL', 'IN_CANCEL'],
             ];
 
@@ -258,8 +258,8 @@ class OrderController extends Controller
         $tabStatusMap = [
             'UNPAID'        => ['UNPAID', 'PENDING'],
             'READY_TO_SHIP' => ['READY_TO_SHIP', 'TO_SHIP', 'PROCESSED', 'PROCESSING', 'PROSES', 'RETRY_SHIP', 'TO_RETRY_LOGISTICS'],
-            'SHIPPED'       => ['SHIPPED', 'IN_TRANSIT', 'TO_RECEIVE', 'TO_CONFIRM_RECEIVE'],
-            'COMPLETED'     => ['COMPLETED', 'FINISHED', 'SELESAI', 'DELIVERED'],
+            'SHIPPED'       => ['SHIPPED', 'IN_TRANSIT', 'TO_RECEIVE', 'TO_CONFIRM_RECEIVE', 'DELIVERED'],
+            'COMPLETED'     => ['COMPLETED', 'FINISHED', 'SELESAI'],
             'CANCELLED'     => ['CANCELLED', 'BATAL', 'IN_CANCEL'],
         ];
 
