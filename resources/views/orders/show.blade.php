@@ -258,7 +258,18 @@
                                             </td>
                                             <td>
                                                 @php
-                                                    $displaySku = $item->seller_sku ?: ($item->sku ?: ($item->masterProduct->sku ?? ''));
+                                                    $cleanSku = trim($item->sku);
+                                                    $cleanSellerSku = trim($item->seller_sku);
+                                                    $displaySku = '';
+                                                    if ($cleanSellerSku && $cleanSellerSku !== '-') {
+                                                        $displaySku = $cleanSellerSku;
+                                                    } elseif ($cleanSku && $cleanSku !== '-') {
+                                                        $displaySku = $cleanSku;
+                                                    } elseif ($item->masterProduct && $item->masterProduct->sku) {
+                                                        $displaySku = $item->masterProduct->sku;
+                                                    } elseif ($item->marketplaceProduct && $item->marketplaceProduct->masterProduct && $item->marketplaceProduct->masterProduct->sku) {
+                                                        $displaySku = $item->marketplaceProduct->masterProduct->sku;
+                                                    }
                                                 @endphp
                                                 @if ($displaySku)
                                                     <code class="text-info font-monospace small d-block">{{ $displaySku }}</code>
