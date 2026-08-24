@@ -385,6 +385,10 @@ class PullOrdersFromShopee implements ShouldQueue
                         ->first();
                 }
 
+                if (empty($itemSku) && $masterProduct) {
+                    $itemSku = $masterProduct->sku;
+                }
+
                 $insertRows[] = [
                     'order_id' => $order->id,
                     'marketplace_product_id' => $mp ? $mp->id : null,

@@ -447,6 +447,10 @@ class PullOrdersFromTiktok implements ShouldQueue
                         ->first();
                 }
 
+                if (empty($sellerSku) && $masterProduct) {
+                    $sellerSku = $masterProduct->sku;
+                }
+
                 $marketplaceProductId = $marketplaceProduct ? $marketplaceProduct->id : null;
                 $masterProductId = $masterProduct ? $masterProduct->id : null;
 

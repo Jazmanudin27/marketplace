@@ -175,6 +175,10 @@ class PullOrdersFromLazada implements ShouldQueue
                                               ->first();
             }
 
+            if (empty($sellerSku) && $masterProduct) {
+                $sellerSku = $masterProduct->sku;
+            }
+
             $costPrice = $masterProduct ? (float) $masterProduct->cost_price : 0;
             $qty = $item['quantity'] ?? 1;
             $price = (float) ($item['price'] ?? 0);
