@@ -949,7 +949,7 @@
                         </div>
 
                         {{-- Tombol --}}
-                        <div class="col-12 col-sm-6 col-md-2 d-flex justify-content-end mt-2 gap-2">
+                        <div class="col-12 d-flex justify-content-end mt-2 gap-2">
                             <button type="submit" class="btn-shopee-primary">
                                 <i class="fas fa-search"></i> Terapkan
                             </button>
