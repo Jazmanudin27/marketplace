@@ -267,7 +267,9 @@
                         <td class="ps-4 text-muted fw-medium">{{ $index + 1 }}</td>
                         <td class="py-3">
                             <div class="d-flex align-items-center gap-2 mb-1">
-                                <h6 class="fw-bold text-dark mb-0">{{ $team->name }}</h6>
+                                <a href="{{ route('marketing.teams.transactions', [$team->id, 'month' => request('month'), 'year' => request('year'), 'date_from' => request('date_from'), 'date_to' => request('date_to')]) }}" class="fw-bold text-primary text-decoration-none hover-underline">
+                                    {{ $team->name }}
+                                </a>
                                 <span class="badge bg-light text-dark border rounded-pill px-2 py-1 small fw-normal">
                                     {{ $team->period_month ? date('F', mktime(0, 0, 0, $team->period_month, 1)) : 'All' }} {{ $team->period_year ?? '' }}
                                 </span>
@@ -358,6 +360,11 @@
                                     <i class="bi bi-three-dots-vertical text-secondary"></i>
                                 </button>
                                 <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 rounded-3 small">
+                                    <li>
+                                        <a class="dropdown-item d-flex align-items-center gap-2 py-2" href="{{ route('marketing.teams.transactions', [$team->id, 'month' => request('month'), 'year' => request('year'), 'date_from' => request('date_from'), 'date_to' => request('date_to')]) }}">
+                                            <i class="bi bi-list-check text-info"></i> Detail Transaksi
+                                        </a>
+                                    </li>
                                     <li>
                                         <a class="dropdown-item d-flex align-items-center gap-2 py-2" href="#" data-bs-toggle="modal" data-bs-target="#editTeamModal{{ $team->id }}">
                                             <i class="bi bi-pencil text-primary"></i> Edit Tim & Target

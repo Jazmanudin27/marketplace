@@ -218,4 +218,124 @@ class MarketingTeamController extends Controller
         return redirect()->route('marketing.teams.index')
             ->with('success', "Status Tim '{$marketingTeam->name}' berhasil {$statusStr}.");
     }
+
+    /**
+     * Tampilkan detail transaksi (order) untuk tim marketing berdasarkan filter yang aktif
+     */
+    public function transactions(Request $request, MarketingTeam $marketingTeam)
+    {
+        abort_unless($marketingTeam->tenant_id === Auth::user()->tenant_id, 403);
+
+        $storeIds = $marketingTeam->stores->pluck('id')->toArray();
+        $rewardPerQty = $marketingTeam->reward_per_qty;
+
+        if (empty($storeIds)) {
+            $orders = new \Illuminate\Pagination\LengthAwarePaginator([], 0, 50);
+            $totalQty = 0;
+            $totalOmset = 0.0;
+            $totalEarnedReward = 0.0;
+        } else {
+            $validStatuses = [
+                'COMPLETED', 'RELEASED', 'COMPLETED_ESCROW', 'SELESAI', 'DELIVERED', 'FINISHED',
+                'completed', 'released', 'selesai', 'delivered', 'finished'
+            ];
+            $invalidStatuses = [
+                'CANCELLED', 'CANCELED', 'BATAL', 'RETURNED', 'REFUNDED', 'RETUR', 'IN_CANCEL', 'FAILED',
+                'cancelled', 'canceled', 'batal', 'returned', 'refunded'
+            ];
+
+            // Resolve filters
+            $reqMonth = $request->filled('month') ? (int) $request->month : null;
+            $reqYear  = $request->filled('year') ? (int) $request->year : null;
+            $dateFrom = $request->filled('date_from') ? $request->date_from : null;
+            $dateTo   = $request->filled('date_to') ? $request->date_to : null;
+
+            if (!$reqMonth && !$reqYear && !$dateFrom && !$dateTo) {
+                $dateFrom = date('Y-m-01');
+                $dateTo   = date('Y-m-d');
+            }
+
+            $useMonthYear = ($reqMonth || $reqYear);
+
+            // Base query for orders
+            $query = \App\Models\Order::whereIn('store_id', $storeIds)
+                ->whereIn('order_status', $validStatuses)
+                ->whereNotIn('order_status', $invalidStatuses)
+                ->with(['store.channel', 'items']);
+
+            if ($useMonthYear) {
+                if ($reqYear) {
+                    $query->whereYear(DB::raw('COALESCE(completed_at, updated_at, order_date)'), $reqYear);
+                }
+                if ($reqMonth) {
+                    $query->whereMonth(DB::raw('COALESCE(completed_at, updated_at, order_date)'), $reqMonth);
+                }
+            } else {
+                $from = $dateFrom . ' 00:00:00';
+                $to = $dateTo . ' 23:59:59';
+                $query->whereBetween(DB::raw('COALESCE(completed_at, updated_at, order_date)'), [$from, $to]);
+            }
+
+            // Paginated result
+            $orders = $query->orderBy(DB::raw('COALESCE(completed_at, order_date)'), 'desc')
+                            ->paginate(50)
+                            ->withQueryString();
+
+            // Summary metrics
+            $summaryQuery = DB::table('orders')
+                ->whereIn('store_id', $storeIds)
+                ->whereIn('order_status', $validStatuses)
+                ->whereNotIn('order_status', $invalidStatuses);
+
+            if ($useMonthYear) {
+                if ($reqYear) {
+                    $summaryQuery->whereYear(DB::raw('COALESCE(completed_at, updated_at, order_date)'), $reqYear);
+                }
+                if ($reqMonth) {
+                    $summaryQuery->whereMonth(DB::raw('COALESCE(completed_at, updated_at, order_date)'), $reqMonth);
+                }
+            } else {
+                $from = $dateFrom . ' 00:00:00';
+                $to = $dateTo . ' 23:59:59';
+                $summaryQuery->whereBetween(DB::raw('COALESCE(completed_at, updated_at, order_date)'), [$from, $to]);
+            }
+
+            $totalOmset = (float) $summaryQuery->sum('total_amount');
+
+            if (\Illuminate\Support\Facades\Schema::hasTable('order_items')) {
+                $totalQty = (int) DB::table('order_items')
+                    ->join('orders', 'order_items.order_id', '=', 'orders.id')
+                    ->whereIn('orders.store_id', $storeIds)
+                    ->whereIn('orders.order_status', $validStatuses)
+                    ->whereNotIn('orders.order_status', $invalidStatuses)
+                    ->when($useMonthYear, function($q) use ($reqMonth, $reqYear) {
+                        if ($reqYear) $q->whereYear(DB::raw('COALESCE(orders.completed_at, orders.updated_at, orders.order_date)'), $reqYear);
+                        if ($reqMonth) $q->whereMonth(DB::raw('COALESCE(orders.completed_at, orders.updated_at, orders.order_date)'), $reqMonth);
+                    }, function($q) use ($dateFrom, $dateTo) {
+                        $from = $dateFrom . ' 00:00:00';
+                        $to = $dateTo . ' 23:59:59';
+                        $q->whereBetween(DB::raw('COALESCE(orders.completed_at, orders.updated_at, orders.order_date)'), [$from, $to]);
+                    })
+                    ->sum('order_items.quantity');
+            } else {
+                $totalQty = (int) $summaryQuery->count();
+            }
+
+            $totalEarnedReward = $totalQty * $rewardPerQty;
+        }
+
+        return view('marketing.teams.transactions', compact(
+            'marketingTeam',
+            'orders',
+            'totalQty',
+            'totalOmset',
+            'totalEarnedReward',
+            'rewardPerQty',
+            'reqMonth',
+            'reqYear',
+            'dateFrom',
+            'dateTo'
+        ));
+    }
 }
+

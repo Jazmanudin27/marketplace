@@ -808,6 +808,7 @@ Route::middleware('auth')->group(function () {
         Route::put('/marketing/teams/{marketingTeam}', [\App\Http\Controllers\Marketing\MarketingTeamController::class, 'update'])->name('marketing.teams.update');
         Route::delete('/marketing/teams/{marketingTeam}', [\App\Http\Controllers\Marketing\MarketingTeamController::class, 'destroy'])->name('marketing.teams.destroy');
         Route::post('/marketing/teams/{marketingTeam}/toggle-status', [\App\Http\Controllers\Marketing\MarketingTeamController::class, 'toggleStatus'])->name('marketing.teams.toggle_status');
+        Route::get('/marketing/teams/{marketingTeam}/transactions', [\App\Http\Controllers\Marketing\MarketingTeamController::class, 'transactions'])->name('marketing.teams.transactions');
     });
 
     // =========================================================================
