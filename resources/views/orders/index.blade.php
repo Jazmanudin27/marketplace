@@ -894,7 +894,7 @@
                         </div>
 
                         {{-- Channel --}}
-                        <div class="col-12 col-sm-6 col-md-q">
+                        <div class="col-12 col-sm-6 col-md-1">
                             <div class="shopee-filter-group w-100">
                                 <label><i class="fas fa-shopping-bag me-1"></i>Channel</label>
                                 <select name="channel_id" class="form-select w-100">
