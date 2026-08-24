@@ -270,6 +270,10 @@ class SecretRepairDashboardController extends Controller
                     $output = $this->executeResyncShopeeStatus();
                     break;
 
+                case 'resync_tiktok_status':
+                    $output = $this->executeResyncTiktokStatus();
+                    break;
+
                 case 'recalculate_bundle_stocks':
                     $output = $this->executeRecalculateBundleStocks();
                     break;
@@ -563,11 +567,12 @@ class SecretRepairDashboardController extends Controller
 
         foreach ($shopeeStores as $store) {
             $activeOrders = Order::where('store_id', $store->id)
-                ->where('order_date', '>=', now()->subDays(60))
+                ->whereNotNull('order_marketplace_id')
+                ->whereNotIn('order_status', ['COMPLETED', 'CANCELLED', 'BATAL', 'CANCELED'])
                 ->get();
 
             if ($activeOrders->isEmpty()) {
-                $log[] = "📌 Toko {$store->store_name}: Tidak ada pesanan Shopee 60 hari terakhir.";
+                $log[] = "📌 Toko {$store->store_name}: Tidak ada pesanan Shopee aktif di database ERP.";
                 continue;
             }
 
@@ -614,6 +619,9 @@ class SecretRepairDashboardController extends Controller
                                 $dbOrder->cancel_reason = $shopeeOrder['cancel_reason'] ?? 'Cancelled on Shopee';
                                 $dbOrder->cancelled_by = 'Shopee / System';
                             }
+                            if (!empty($shopeeOrder['update_time'])) {
+                                $dbOrder->completed_at = date('Y-m-d H:i:s', $shopeeOrder['update_time']);
+                            }
                             $dbOrder->save();
                             $totalRestored++;
                             $log[] = "   -> Order #{$orderSn}: Status dikoreksi dari {$oldSt} => {$correctStatus}";
@@ -627,6 +635,111 @@ class SecretRepairDashboardController extends Controller
 
         $log[] = "======================================================================";
         $log[] = "✨ SELESAI! Berhasil mengoreksi {$totalRestored} status pesanan Shopee di ERP.";
+        $log[] = "======================================================================";
+
+        return implode("\n", $log);
+    }
+
+    private function executeResyncTiktokStatus()
+    {
+        $tiktokService = app(TiktokService::class);
+        $tenantId = auth()->user()->tenant_id;
+
+        $tiktokStores = Store::where('tenant_id', $tenantId)
+            ->whereHas('channel', fn($q) => $q->whereIn('code', ['tiktok', 'tokopedia']))
+            ->get();
+
+        $log = [];
+        $log[] = "======================================================================";
+        $log[] = "⚡ RE-SINKRONISASI KOREKSI STATUS PESANAN TIKTOK RESMI DARI TIKTOK API";
+        $log[] = "======================================================================";
+
+        if ($tiktokStores->isEmpty()) {
+            $log[] = "⚠️ Tidak ditemukan toko TikTok/Tokopedia yang terhubung di tenant ini.";
+            return implode("\n", $log);
+        }
+
+        $totalRestored = 0;
+        $statusMap = [
+            'UNPAID' => 'UNPAID',
+            '100' => 'UNPAID',
+            'AWAITING_SHIPMENT' => 'READY_TO_SHIP',
+            '111' => 'READY_TO_SHIP',
+            'AWAITING_COLLECTION' => 'READY_TO_SHIP',
+            '112' => 'READY_TO_SHIP',
+            'IN_TRANSIT' => 'SHIPPED',
+            '121' => 'SHIPPED',
+            'DELIVERED' => 'DELIVERED',
+            '122' => 'DELIVERED',
+            'COMPLETED' => 'COMPLETED',
+            '130' => 'COMPLETED',
+            'CANCELLED' => 'CANCELLED',
+            '140' => 'CANCELLED',
+        ];
+
+        foreach ($tiktokStores as $store) {
+            $activeOrders = Order::where('store_id', $store->id)
+                ->where('order_date', '>=', now()->subDays(60))
+                ->get();
+
+            if ($activeOrders->isEmpty()) {
+                $log[] = "📌 Toko {$store->store_name}: Tidak ada pesanan TikTok 60 hari terakhir.";
+                continue;
+            }
+
+            try {
+                $accessToken = $store->getValidAccessToken();
+                $shopCipher = $store->shop_cipher;
+
+                if (empty($shopCipher)) {
+                    $log[] = "📌 Toko {$store->store_name}: Skip (shop_cipher kosong)";
+                    continue;
+                }
+
+                $orderSns = $activeOrders->pluck('order_marketplace_id')->toArray();
+                $chunks = array_chunk($orderSns, 50);
+
+                foreach ($chunks as $chunk) {
+                    $detailRes = $tiktokService->getOrderDetail(
+                        $accessToken,
+                        $shopCipher,
+                        $chunk
+                    );
+
+                    $ordersList = $detailRes['order_list'] ?? $detailRes['orders'] ?? [];
+                    foreach ($ordersList as $tiktokOrder) {
+                        $orderSn = $tiktokOrder['id'] ?? $tiktokOrder['order_id'] ?? null;
+                        if (!$orderSn) continue;
+
+                        $dbOrder = $activeOrders->firstWhere('order_marketplace_id', $orderSn);
+                        if (!$dbOrder) continue;
+
+                        $statusRaw = strtoupper((string)($tiktokOrder['status'] ?? $tiktokOrder['order_status'] ?? ''));
+                        $correctStatus = $statusMap[$statusRaw] ?? $statusRaw;
+
+                        if ($dbOrder->order_status !== $correctStatus) {
+                            $oldSt = $dbOrder->order_status;
+                            $dbOrder->order_status = $correctStatus;
+                            
+                            if (in_array($correctStatus, ['COMPLETED', 'DELIVERED', 'CANCELLED'])) {
+                                $ts = $tiktokOrder['finish_time'] ?? $tiktokOrder['delivered_time'] ?? $tiktokOrder['complete_time'] ?? $tiktokOrder['update_time'] ?? time();
+                                $compTsSec = (is_numeric($ts) && strlen((string)$ts) >= 13) ? (int)($ts / 1000) : (int)$ts;
+                                $dbOrder->completed_at = date('Y-m-d H:i:s', $compTsSec);
+                            }
+                            
+                            $dbOrder->save();
+                            $totalRestored++;
+                            $log[] = "   -> Order #{$orderSn}: Status dikoreksi dari {$oldSt} => {$correctStatus}";
+                        }
+                    }
+                }
+            } catch (\Throwable $e) {
+                $log[] = "❌ Toko {$store->store_name} Error: " . $e->getMessage();
+            }
+        }
+
+        $log[] = "======================================================================";
+        $log[] = "✨ SELESAI! Berhasil mengoreksi {$totalRestored} status pesanan TikTok di ERP.";
         $log[] = "======================================================================";
 
         return implode("\n", $log);

@@ -609,6 +609,24 @@
                 </div>
             </div>
 
+            <!-- Action 3.6: Resync TikTok Status -->
+            <div class="col-lg-4 col-md-6">
+                <div class="card-action border-top border-4 border-dark">
+                    <div>
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <span class="badge bg-dark text-white px-2 py-1" style="font-size: 0.72rem;"><i class="fab fa-tiktok me-1"></i>FIX TIKTOK STATUS</span>
+                            <h6 class="fw-bold text-dark mb-0">Koreksi Status Pesanan TikTok</h6>
+                        </div>
+                        <p class="text-secondary small mb-3" style="font-size: 0.8rem; line-height: 1.45;">
+                            Menarik status asli dari API TikTok untuk mengembalikan pesanan yang tertimpa status ke status sebenarnya (misal: Awaiting Shipment).
+                        </p>
+                    </div>
+                    <button type="button" class="btn-custom btn-outline-dark fw-semibold" onclick="triggerRepair('resync_tiktok_status', this)">
+                        <i class="fas fa-sync me-1"></i> Koreksi Status TikTok API
+                    </button>
+                </div>
+            </div>
+
             <!-- Action 4: Pull TikTok Orders -->
             <div class="col-lg-3 col-md-6">
                 <div class="card-action border-top border-4 border-primary">
