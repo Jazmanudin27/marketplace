@@ -809,6 +809,7 @@ Route::middleware('auth')->group(function () {
         Route::delete('/marketing/teams/{marketingTeam}', [\App\Http\Controllers\Marketing\MarketingTeamController::class, 'destroy'])->name('marketing.teams.destroy');
         Route::post('/marketing/teams/{marketingTeam}/toggle-status', [\App\Http\Controllers\Marketing\MarketingTeamController::class, 'toggleStatus'])->name('marketing.teams.toggle_status');
         Route::get('/marketing/teams/{marketingTeam}/transactions', [\App\Http\Controllers\Marketing\MarketingTeamController::class, 'transactions'])->name('marketing.teams.transactions');
+        Route::post('/marketing/teams/exclude-products', [\App\Http\Controllers\Marketing\MarketingTeamController::class, 'updateExcludedProducts'])->name('marketing.teams.exclude_products');
     });
 
     // =========================================================================

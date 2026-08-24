@@ -258,7 +258,6 @@ class MasterProductController extends Controller
             'warna'        => 'nullable|string|max:100',
             'is_active'    => 'nullable|boolean',
             'is_preorder'  => 'nullable|boolean',
-            'exclude_commission' => 'nullable|boolean',
             'preorder_days'=> 'nullable|integer|min:0',
             'is_bundle'    => 'nullable|boolean',
             'components'   => 'nullable|array',
@@ -268,7 +267,6 @@ class MasterProductController extends Controller
 
         $data['is_bundle'] = $request->has('is_bundle') ? true : false;
         $data['is_preorder'] = $request->has('is_preorder') ? true : false;
-        $data['exclude_commission'] = $request->has('exclude_commission') ? true : false;
         if (!$data['is_preorder']) {
             $data['preorder_days'] = null;
         }
@@ -464,7 +462,6 @@ class MasterProductController extends Controller
             'warna'        => 'nullable|string|max:100',
             'is_active'    => 'nullable|boolean',
             'is_preorder'  => 'nullable|boolean',
-            'exclude_commission' => 'nullable|boolean',
             'preorder_days'=> 'nullable|integer|min:0',
             'is_bundle'    => 'nullable|boolean',
             'components'   => 'nullable|array',
@@ -474,7 +471,6 @@ class MasterProductController extends Controller
 
         $data['is_bundle'] = $request->has('is_bundle') ? true : false;
         $data['is_preorder'] = $request->has('is_preorder') ? true : false;
-        $data['exclude_commission'] = $request->has('exclude_commission') ? true : false;
         if (!$data['is_preorder']) {
             $data['preorder_days'] = null;
         }

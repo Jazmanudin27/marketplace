@@ -84,6 +84,11 @@ class MarketingTeamController extends Controller
             ->orderBy('store_name')
             ->get();
 
+        // Ambil daftar seluruh Master Product untuk modal pengecualian komisi
+        $masterProducts = \App\Models\MasterProduct::where('tenant_id', $tenantId)
+            ->orderBy('name')
+            ->get(['id', 'sku', 'name', 'exclude_commission']);
+
         // Summary KPI Metrics
         $totalTeams = $teams->count();
         $activeTeams = $teams->where('is_active', true)->count();
@@ -109,7 +114,8 @@ class MarketingTeamController extends Controller
             'reqYear',
             'dateFrom',
             'dateTo',
-            'availableYears'
+            'availableYears',
+            'masterProducts'
         ));
     }
 
@@ -312,6 +318,35 @@ class MarketingTeamController extends Controller
             'dateFrom',
             'dateTo'
         ));
+    }
+
+    /**
+     * Memperbarui daftar produk yang dikecualikan dari komisi marketing secara massal
+     */
+    public function updateExcludedProducts(Request $request)
+    {
+        $tenantId = Auth::user()->tenant_id;
+
+        $request->validate([
+            'excluded_product_ids' => 'nullable|array',
+            'excluded_product_ids.*' => 'exists:master_products,id',
+        ]);
+
+        $excludedIds = $request->input('excluded_product_ids', []);
+
+        // 1. Reset semua produk milik tenant ini agar exclude_commission = false
+        \App\Models\MasterProduct::where('tenant_id', $tenantId)
+            ->update(['exclude_commission' => false]);
+
+        // 2. Set produk yang dipilih menjadi exclude_commission = true
+        if (!empty($excludedIds)) {
+            \App\Models\MasterProduct::where('tenant_id', $tenantId)
+                ->whereIn('id', $excludedIds)
+                ->update(['exclude_commission' => true]);
+        }
+
+        return redirect()->back()
+            ->with('success', 'Pengaturan pengecualian komisi produk berhasil diperbarui!');
     }
 }
 

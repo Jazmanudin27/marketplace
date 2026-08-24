@@ -19,7 +19,11 @@
                 <i class="bi bi-info-circle me-1"></i>Realisasi dihitung khusus pesanan <strong>Selesai / Dilepas (Completed)</strong> berdasarkan <strong>Tanggal Diterima (`completed_at`)</strong>. Pesanan Retur/Refund & Batal otomatis dikecualikan.
             </div>
         </div>
-        <div>
+        <div class="d-flex gap-2">
+            <button type="button" class="btn btn-outline-danger rounded-pill px-3 py-2 fw-semibold shadow-sm d-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#excludeProductsModal">
+                <i class="bi bi-slash-circle fs-6"></i>
+                <span>Pengecualian Komisi</span>
+            </button>
             <button type="button" class="btn btn-primary rounded-pill px-3 py-2 fw-semibold shadow-sm d-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#createTeamModal">
                 <i class="bi bi-plus-lg fs-6"></i>
                 <span>Tambah Tim Baru</span>
@@ -618,6 +622,75 @@
         </div>
     </div>
 </div>
+
+    <!-- Modal Pengecualian Komisi Produk -->
+    <div class="modal fade" id="excludeProductsModal" tabindex="-1" aria-labelledby="excludeProductsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content rounded-3 border-0 shadow">
+                <div class="modal-header bg-danger text-white py-3">
+                    <h5 class="modal-title fw-bold" id="excludeProductsModalLabel">
+                        <i class="bi bi-slash-circle me-2"></i>Pengecualian Komisi Produk
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form action="{{ route('marketing.teams.exclude_products') }}" method="POST">
+                    @csrf
+                    <div class="modal-body p-4">
+                        <p class="text-secondary small mb-3">
+                            Centang produk di bawah ini yang <strong>tidak ingin dimasukkan</strong> ke dalam perhitungan target kuantitas (Qty) maupun komisi marketing.
+                        </p>
+
+                        <!-- Search Input -->
+                        <div class="input-group input-group-sm mb-3">
+                            <span class="input-group-text bg-light text-muted border-end-0"><i class="bi bi-search"></i></span>
+                            <input type="text" id="modalProductSearch" class="form-control form-control-sm border-start-0 ps-0" placeholder="Cari produk berdasarkan nama atau SKU...">
+                        </div>
+
+                        <!-- Product List Container -->
+                        <div class="border rounded-3" style="max-height: 400px; overflow-y: auto; background-color: #fafafa;">
+                            <table class="table table-hover align-middle mb-0" id="modalProductsTable">
+                                <thead class="table-light sticky-top small text-uppercase fw-semibold">
+                                    <tr>
+                                        <th class="ps-3 py-2 text-center" style="width: 50px;">Pilih</th>
+                                        <th class="py-2">Nama Produk / SKU</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @forelse($masterProducts as $product)
+                                        <tr class="modal-product-item" data-name="{{ $product->name }}" data-sku="{{ $product->sku }}">
+                                            <td class="text-center ps-3">
+                                                <div class="form-check d-flex justify-content-center">
+                                                    <input class="form-check-input" type="checkbox" name="excluded_product_ids[]" value="{{ $product->id }}" id="chk_prod_{{ $product->id }}" {{ $product->exclude_commission ? 'checked' : '' }}>
+                                                </div>
+                                            </td>
+                                            <td class="py-2">
+                                                <label class="form-check-label d-block text-dark fw-medium small mb-0" for="chk_prod_{{ $product->id }}" style="cursor: pointer;">
+                                                    {{ $product->name }}
+                                                </label>
+                                                <span class="text-muted" style="font-size: 0.72rem;">
+                                                    SKU: <code>{{ $product->sku ?: '—' }}</code>
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    @empty
+                                        <tr>
+                                            <td colspan="2" class="text-center py-4 text-muted small">
+                                                Tidak ada produk master ditemukan.
+                                            </td>
+                                        </tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="modal-footer bg-light py-2">
+                        <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill px-3" data-bs-dismiss="modal">Batal</button>
+                        <button type="submit" class="btn btn-danger btn-sm rounded-pill px-4 fw-semibold shadow-sm">Simpan Pengaturan</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 @endsection
 
 @push('scripts')
@@ -650,6 +723,24 @@
     selYear.addEventListener('change', onMonthYearChange);
     inputFrom.addEventListener('change', onDateRangeChange);
     inputTo.addEventListener('change', onDateRangeChange);
+
+    // Search filter untuk produk di modal
+    const searchInput = document.getElementById('modalProductSearch');
+    if (searchInput) {
+        searchInput.addEventListener('keyup', function () {
+            const query = this.value.toLowerCase();
+            const rows = document.querySelectorAll('.modal-product-item');
+            rows.forEach(function (row) {
+                const name = row.getAttribute('data-name').toLowerCase();
+                const sku = row.getAttribute('data-sku').toLowerCase();
+                if (name.includes(query) || sku.includes(query)) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        });
+    }
 })();
 </script>
 @endpush
