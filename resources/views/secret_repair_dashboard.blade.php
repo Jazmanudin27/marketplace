@@ -1125,15 +1125,15 @@
                 // Footer Total
                 const t = data.total;
                 document.getElementById('compareTableFoot').innerHTML = `
-                    <tr style="border-top:2px solid #334155; background:#0f172a; color:#fff;">
-                        <td class="ps-4 fw-bold text-white" style="font-size:0.72rem; letter-spacing:0.04em;">TOTAL SEMUA CHANNEL</td>
-                        <td class="text-end font-monospace fw-bold text-white">${t.erp_count.toLocaleString('id-ID')} order</td>
-                        <td class="text-end font-monospace fw-bold border-start" style="color:#93c5fd;">${formatRp(t.erp_omset)}</td>
-                        <td class="text-end font-monospace fw-bold" style="color:#93c5fd;">${formatRp(t.api_omset)}</td>
-                        <td class="text-end font-monospace fw-bold border-start" style="color:#fca5a5;">${formatRp(t.erp_fee)}</td>
-                        <td class="text-end font-monospace fw-bold" style="color:#fca5a5;">${formatRp(t.api_fee)}</td>
-                        <td class="text-end font-monospace fw-bold border-start" style="color:#86efac;">${formatRp(t.erp_net)}</td>
-                        <td class="text-end font-monospace fw-bold" style="color:#86efac;">${formatRp(t.api_net)}</td>
+                    <tr style="border-top:2px solid #94a3b8; background:#f1f5f9; color:#1e293b;">
+                        <td class="ps-4 fw-bold text-dark" style="font-size:0.72rem; letter-spacing:0.04em;">TOTAL SEMUA CHANNEL</td>
+                        <td class="text-end font-monospace fw-bold text-dark">${t.erp_count.toLocaleString('id-ID')} order</td>
+                        <td class="text-end font-monospace fw-bold border-start" style="color:#1d4ed8; background:#eff6ff;">${formatRp(t.erp_omset)}</td>
+                        <td class="text-end font-monospace fw-bold" style="color:#1d4ed8; background:#eff6ff;">${formatRp(t.api_omset)}</td>
+                        <td class="text-end font-monospace fw-bold border-start" style="color:#c2410c; background:#fff7ed;">${formatRp(t.erp_fee)}</td>
+                        <td class="text-end font-monospace fw-bold" style="color:#c2410c; background:#fff7ed;">${formatRp(t.api_fee)}</td>
+                        <td class="text-end font-monospace fw-bold border-start" style="color:#15803d; background:#f0fdf4;">${formatRp(t.erp_net)}</td>
+                        <td class="text-end font-monospace fw-bold" style="color:#15803d; background:#f0fdf4;">${formatRp(t.api_net)}</td>
                         <td class="text-end border-start">${diffBadge(t.diff_omset)}</td>
                         <td class="text-end">${diffBadge(t.diff_fee)}</td>
                         <td class="text-end pe-4">${diffBadge(t.diff_net)}</td>
@@ -1262,15 +1262,15 @@
                 // Footer Total
                 const t = data.total;
                 document.getElementById('compareTableFootCompleted').innerHTML = `
-                    <tr style="border-top:2px solid #334155; background:#0f172a; color:#fff;">
-                        <td class="ps-4 fw-bold text-white" style="font-size:0.72rem; letter-spacing:0.04em;">TOTAL SEMUA CHANNEL</td>
-                        <td class="text-end font-monospace fw-bold text-white">${t.erp_count.toLocaleString('id-ID')} order</td>
-                        <td class="text-end font-monospace fw-bold border-start" style="color:#93c5fd;">${formatRp(t.erp_omset)}</td>
-                        <td class="text-end font-monospace fw-bold" style="color:#93c5fd;">${formatRp(t.api_omset)}</td>
-                        <td class="text-end font-monospace fw-bold border-start" style="color:#fca5a5;">${formatRp(t.erp_fee)}</td>
-                        <td class="text-end font-monospace fw-bold" style="color:#fca5a5;">${formatRp(t.api_fee)}</td>
-                        <td class="text-end font-monospace fw-bold border-start" style="color:#86efac;">${formatRp(t.erp_net)}</td>
-                        <td class="text-end font-monospace fw-bold" style="color:#86efac;">${formatRp(t.api_net)}</td>
+                    <tr style="border-top:2px solid #94a3b8; background:#f1f5f9; color:#1e293b;">
+                        <td class="ps-4 fw-bold text-dark" style="font-size:0.72rem; letter-spacing:0.04em;">TOTAL SEMUA CHANNEL</td>
+                        <td class="text-end font-monospace fw-bold text-dark">${t.erp_count.toLocaleString('id-ID')} order</td>
+                        <td class="text-end font-monospace fw-bold border-start" style="color:#1d4ed8; background:#eff6ff;">${formatRp(t.erp_omset)}</td>
+                        <td class="text-end font-monospace fw-bold" style="color:#1d4ed8; background:#eff6ff;">${formatRp(t.api_omset)}</td>
+                        <td class="text-end font-monospace fw-bold border-start" style="color:#c2410c; background:#fff7ed;">${formatRp(t.erp_fee)}</td>
+                        <td class="text-end font-monospace fw-bold" style="color:#c2410c; background:#fff7ed;">${formatRp(t.api_fee)}</td>
+                        <td class="text-end font-monospace fw-bold border-start" style="color:#15803d; background:#f0fdf4;">${formatRp(t.erp_net)}</td>
+                        <td class="text-end font-monospace fw-bold" style="color:#15803d; background:#f0fdf4;">${formatRp(t.api_net)}</td>
                         <td class="text-end border-start">${diffBadge(t.diff_omset)}</td>
                         <td class="text-end">${diffBadge(t.diff_fee)}</td>
                         <td class="text-end pe-4">${diffBadge(t.diff_net)}</td>
