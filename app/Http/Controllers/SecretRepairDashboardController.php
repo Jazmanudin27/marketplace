@@ -1392,8 +1392,10 @@ class SecretRepairDashboardController extends Controller
 
         $dateFrom = $request->input('date_from');
         $dateTo   = $request->input('date_to');
+        $notCancelled = ['CANCELLED', 'BATAL', 'CANCELED', 'RETURNED', 'REFUNDED', 'RETURN', 'RETUR', 'TO_RETURN'];
 
-        $applyDateFilter = function ($query) use ($dateFrom, $dateTo) {
+        $applyDateFilter = function ($query) use ($dateFrom, $dateTo, $notCancelled) {
+            $query->whereNotIn('order_status', $notCancelled);
             if ($dateFrom) $query->whereDate('completed_at', '>=', $dateFrom);
             if ($dateTo)   $query->whereDate('completed_at', '<=', $dateTo);
             return $query;
@@ -1401,7 +1403,6 @@ class SecretRepairDashboardController extends Controller
 
         $tiktokStores = Store::whereHas('channel', fn($q) => $q->where('code', 'LIKE', '%tiktok%'))->pluck('id');
         $shopeeStores = Store::whereHas('channel', fn($q) => $q->where('code', 'LIKE', '%shopee%'))->pluck('id');
-        $notCancelled = ['CANCELLED', 'BATAL', 'CANCELED', 'RETURNED', 'REFUNDED', 'RETURN', 'RETUR', 'TO_RETURN'];
 
         // Helper: hitung stats ERP + API dari sekumpulan order
         $calcStats = function ($storeIds) use ($applyDateFilter, $notCancelled, $shopeeStores) {
@@ -1529,6 +1530,7 @@ class SecretRepairDashboardController extends Controller
             ->select(\DB::raw('TRIM(order_marketplace_id) as mp_id'))
             ->whereNotNull('order_marketplace_id')
             ->where('order_marketplace_id', '!=', '')
+            ->whereNotIn('order_status', $notCancelled)
             ->where('tenant_id', auth()->user()->tenant_id);
         if ($dateFrom) $qDup->whereDate('completed_at', '>=', $dateFrom);
         if ($dateTo)   $qDup->whereDate('completed_at', '<=', $dateTo);
@@ -1583,23 +1585,23 @@ class SecretRepairDashboardController extends Controller
         $query = Order::with(['store', 'items'])
             ->whereIn('store_id', $storeIds);
 
-        if ($status !== 'all') {
-            if ($status === 'CANCELLED') {
-                $query->whereIn('order_status', $notCancelled);
-            } else {
-                $query->where('order_status', $status);
-            }
-        } else {
-            $query->whereNotIn('order_status', $notCancelled);
-        }
-
         $filterType = $request->input('filter_type', 'order_date');
 
         if ($filterType === 'completed_at') {
+            $query->whereNotIn('order_status', $notCancelled);
             if ($dateFrom) $query->whereDate('completed_at', '>=', $dateFrom);
             if ($dateTo)   $query->whereDate('completed_at', '<=', $dateTo);
             $query->orderBy('completed_at', 'desc');
         } else {
+            if ($status !== 'all') {
+                if ($status === 'CANCELLED') {
+                    $query->whereIn('order_status', $notCancelled);
+                } else {
+                    $query->where('order_status', $status);
+                }
+            } else {
+                $query->whereNotIn('order_status', $notCancelled);
+            }
             if ($dateFrom) $query->whereDate('order_date', '>=', $dateFrom);
             if ($dateTo)   $query->whereDate('order_date', '<=', $dateTo);
             $query->orderBy('order_date', 'desc');
