@@ -31,6 +31,7 @@ class SecretRepairDashboardController extends Controller
 
         // Stats summary for repair panel
         $ordersCount = Order::count();
+        $apiOrdersCount = Order::whereNotNull('financial_breakdown')->count();
         $missingItemsCount = Order::whereDoesntHave('items')
             ->whereNotNull('order_marketplace_id')
             ->where('order_marketplace_id', 'NOT LIKE', 'MANUAL-%')
@@ -80,6 +81,7 @@ class SecretRepairDashboardController extends Controller
 
         return view('secret_repair_dashboard', compact(
             'ordersCount',
+            'apiOrdersCount',
             'missingItemsCount',
             'unreconciledCount',
             'completedCount',

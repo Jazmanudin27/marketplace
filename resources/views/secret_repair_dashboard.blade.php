@@ -155,6 +155,41 @@
 
     <div class="container-fluid px-4">
 
+        <!-- 📊 SECTION 1: Ringkasan Jumlah Pesanan ERP vs API -->
+        <div class="row g-3 mb-4 mt-2">
+            <div class="col-md-6">
+                <div class="card border-0 shadow-sm rounded-3 overflow-hidden" style="background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);">
+                    <div class="card-body p-3.5">
+                        <div class="d-flex align-items-center">
+                            <div class="rounded-circle bg-primary bg-opacity-10 p-3.5 me-3 text-primary d-flex align-items-center justify-content-center" style="width: 56px; height: 56px;">
+                                <i class="fas fa-database fa-lg"></i>
+                            </div>
+                            <div>
+                                <span class="text-uppercase text-secondary fw-bold" style="font-size: 0.68rem; letter-spacing: 0.05em;">Total Pesanan di ERP</span>
+                                <h2 class="fw-bold text-dark mb-0 mt-1" style="font-size: 1.65rem;">{{ number_format($ordersCount, 0, ',', '.') }}</h2>
+                                <small class="text-muted" style="font-size: 0.72rem;">Jumlah seluruh record pesanan di database lokal ERP</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card border-0 shadow-sm rounded-3 overflow-hidden" style="background: linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%);">
+                    <div class="card-body p-3.5">
+                        <div class="d-flex align-items-center">
+                            <div class="rounded-circle bg-success bg-opacity-10 p-3.5 me-3 text-success d-flex align-items-center justify-content-center" style="width: 56px; height: 56px;">
+                                <i class="fas fa-cloud-download-alt fa-lg"></i>
+                            </div>
+                            <div>
+                                <span class="text-uppercase text-secondary fw-bold" style="font-size: 0.68rem; letter-spacing: 0.05em;">Total Pesanan Ter-Sync API (Shopee & TikTok)</span>
+                                <h2 class="fw-bold text-success mb-0 mt-1" style="font-size: 1.65rem;">{{ number_format($apiOrdersCount, 0, ',', '.') }}</h2>
+                                <small class="text-muted" style="font-size: 0.72rem;">Pesanan yang data settlement/keuangannya berhasil ditarik via API</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
 
         <!-- 🌐 SECTION 2: Tabel Perbandingan Data ERP per Channel + Filter Tanggal -->
         <div class="card border-0 shadow-sm rounded-3 mb-4">
