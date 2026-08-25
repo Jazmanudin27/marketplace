@@ -1523,6 +1523,19 @@ class SecretRepairDashboardController extends Controller
         $isShopee = str_contains($chCode, 'shopee');
         $isTiktok = str_contains($chCode, 'tiktok') || str_contains($chCode, 'tokopedia');
 
+        // Validasi kecocokan format ID Order dengan Channel Toko
+        $isOrderNumeric = ctype_digit($orderSn);
+        if ($isTiktok && !$isOrderNumeric) {
+            return response()->json([
+                'error' => "Format ID Pesanan ({$orderSn}) adalah format Shopee (alphanumeric), sedangkan toko '{$store->store_name}' terdaftar sebagai Toko TikTok/Tokopedia. Harap periksa apakah data store_id pesanan ini tertukar di database.",
+            ], 422);
+        }
+        if ($isShopee && $isOrderNumeric && strlen($orderSn) >= 18) {
+            return response()->json([
+                'error' => "Format ID Pesanan ({$orderSn}) adalah format TikTok/Tokopedia (pure numeric), sedangkan toko '{$store->store_name}' terdaftar sebagai Toko Shopee. Harap periksa apakah data store_id pesanan ini tertukar di database.",
+            ], 422);
+        }
+
         // 1. Coba tarik data live dari API Marketplace (Graceful - tidak gagalkan proses jika token expired)
         $tokenError = null;
         try {
