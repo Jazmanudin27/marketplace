@@ -50,7 +50,7 @@ class SecretRepairDashboardController extends Controller
         $returnedCount = Order::whereIn('order_status', ['RETURNED', 'REFUNDED', 'RETUR'])->count();
 
         // 🌐 Channel Comparison Metrics (ERP vs API)
-        $tiktokStores = Store::whereHas('channel', fn($q) => $q->where('code', 'LIKE', '%tiktok%'))->pluck('id');
+        $tiktokStores = Store::whereHas('channel', fn($q) => $q->whereIn('code', ['tiktok', 'tokopedia']))->pluck('id');
         $shopeeStores = Store::whereHas('channel', fn($q) => $q->where('code', 'LIKE', '%shopee%'))->pluck('id');
 
         // TikTok Stats
@@ -134,7 +134,7 @@ class SecretRepairDashboardController extends Controller
                     break;
 
                 case 'pull_tiktok_orders':
-                    $stores = Store::whereHas('channel', fn($q) => $q->where('code', 'LIKE', '%tiktok%'))->get();
+                    $stores = Store::whereHas('channel', fn($q) => $q->whereIn('code', ['tiktok', 'tokopedia']))->get();
                     $timeTo = time();
                     $timeFrom = strtotime('-7 days', $timeTo);
                     $count = 0;
@@ -872,7 +872,7 @@ class SecretRepairDashboardController extends Controller
 
         // Get Shopee and TikTok stores
         $tiktokStores = Store::where('tenant_id', $tenantId)
-            ->whereHas('channel', fn($q) => $q->where('code', 'LIKE', '%tiktok%'))
+            ->whereHas('channel', fn($q) => $q->whereIn('code', ['tiktok', 'tokopedia']))
             ->get();
         $shopeeStores = Store::where('tenant_id', $tenantId)
             ->whereHas('channel', fn($q) => $q->where('code', 'LIKE', '%shopee%'))
@@ -1255,7 +1255,7 @@ class SecretRepairDashboardController extends Controller
             return $query;
         };
 
-        $tiktokStores = Store::whereHas('channel', fn($q) => $q->where('code', 'LIKE', '%tiktok%'))->pluck('id');
+        $tiktokStores = Store::whereHas('channel', fn($q) => $q->whereIn('code', ['tiktok', 'tokopedia']))->pluck('id');
         $shopeeStores = Store::whereHas('channel', fn($q) => $q->where('code', 'LIKE', '%shopee%'))->pluck('id');
         $notCancelled = ['CANCELLED', 'BATAL', 'CANCELED', 'RETURNED', 'REFUNDED', 'RETURN', 'RETUR', 'TO_RETURN'];
 
@@ -1424,7 +1424,7 @@ class SecretRepairDashboardController extends Controller
             return $query;
         };
 
-        $tiktokStores = Store::whereHas('channel', fn($q) => $q->where('code', 'LIKE', '%tiktok%'))->pluck('id');
+        $tiktokStores = Store::whereHas('channel', fn($q) => $q->whereIn('code', ['tiktok', 'tokopedia']))->pluck('id');
         $shopeeStores = Store::whereHas('channel', fn($q) => $q->where('code', 'LIKE', '%shopee%'))->pluck('id');
 
         // Helper: hitung stats ERP + API dari sekumpulan order
@@ -1620,7 +1620,7 @@ class SecretRepairDashboardController extends Controller
 
         $shopeeStores = Store::whereHas('channel', fn($q) => $q->where('code', 'LIKE', '%shopee%'))->pluck('id');
 
-        $tiktokStores = Store::whereHas('channel', fn($q) => $q->where('code', 'LIKE', '%tiktok%'))->pluck('id');
+        $tiktokStores = Store::whereHas('channel', fn($q) => $q->whereIn('code', ['tiktok', 'tokopedia']))->pluck('id');
 
         // Resolve store IDs
         if ($storeId) {
@@ -1906,12 +1906,15 @@ class SecretRepairDashboardController extends Controller
         $storeId  = $request->input('store_id');
 
         $shopeeStores = Store::whereHas('channel', fn($q) => $q->where('code', 'LIKE', '%shopee%'))->pluck('id');
+        $tiktokStores = Store::whereHas('channel', fn($q) => $q->whereIn('code', ['tiktok', 'tokopedia']))->pluck('id');
         if ($storeId) {
             $storeIds = collect([$storeId]);
         } elseif ($channel === 'shopee') {
             $storeIds = $shopeeStores;
+        } elseif ($channel === 'tiktok') {
+            $storeIds = $tiktokStores;
         } else {
-            $storeIds = Store::whereHas('channel', fn($q) => $q->where('code', 'LIKE', '%tiktok%'))->pluck('id');
+            $storeIds = $tiktokStores->merge($shopeeStores);
         }
 
         $notCancelled = ['CANCELLED', 'BATAL', 'CANCELED'];

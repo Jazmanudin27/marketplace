@@ -131,6 +131,17 @@
             background-color: #1e293b;
             color: #ffffff !important;
         }
+
+        .btn-info-custom {
+            background-color: #0ea5e9;
+            color: #ffffff !important;
+            border: none;
+        }
+
+        .btn-info-custom:hover {
+            background-color: #0284c7;
+            color: #ffffff !important;
+        }
     </style>
 </head>
 <body>
@@ -619,7 +630,7 @@
                             Mendorong (<code class="text-primary fw-bold">Push</code>) stok Master Product ERP secara instan ke seluruh toko Marketplace (Shopee, TikTok, Lazada).
                         </p>
                     </div>
-                    <button type="button" class="btn-custom btn-info text-white fw-semibold" onclick="triggerRepair('sync_product_stock', this)">
+                    <button type="button" class="btn-custom btn-info-custom fw-semibold" onclick="triggerRepair('sync_product_stock', this)">
                         <i class="fas fa-sync-alt me-1"></i> Sync Stok Produk Massal
                     </button>
                 </div>
