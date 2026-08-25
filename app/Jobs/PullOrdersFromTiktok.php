@@ -22,13 +22,14 @@ class PullOrdersFromTiktok implements ShouldQueue
     public ?int $timeFrom;
     public ?int $timeTo;
     public bool $skipStockDeduction;
+    public ?string $orderId;
 
     public ?Store $store = null;
 
     /**
      * Create a new job instance.
      */
-    public function __construct(Store|int $store, ?int $timeFrom = null, ?int $timeTo = null, bool $skipStockDeduction = false)
+    public function __construct(Store|int $store, ?int $timeFrom = null, ?int $timeTo = null, bool $skipStockDeduction = false, ?string $orderId = null)
     {
         if ($store instanceof Store) {
             $this->store = $store;
@@ -43,6 +44,7 @@ class PullOrdersFromTiktok implements ShouldQueue
         $this->timeFrom = $timeFrom ?? now()->subDays(15)->timestamp;
         $this->timeTo = $timeTo ?? now()->timestamp;
         $this->skipStockDeduction = $skipStockDeduction;
+        $this->orderId = $orderId;
     }
 
     /**
@@ -70,6 +72,22 @@ class PullOrdersFromTiktok implements ShouldQueue
 
             if (empty($shopCipher)) {
                 Log::warning("[TikTok] shop_cipher kosong untuk toko {$this->store->store_name}.");
+                return;
+            }
+
+            // 🎯 JIKA ORDER_ID SPESIFIK DIISI (KILAT WEBHOOK)
+            if ($this->orderId) {
+                Log::info("[TikTok] Webhook Trigger: Menyinkronkan order detail tunggal: {$this->orderId}");
+                $detailResponse = $tiktokService->getOrderDetail(
+                    $accessToken,
+                    $shopCipher,
+                    [$this->orderId]
+                );
+
+                $orderList = $detailResponse['orders'] ?? $detailResponse['order_list'] ?? [];
+                foreach ($orderList as $tiktokOrder) {
+                    $this->processOrder($tiktokOrder);
+                }
                 return;
             }
 

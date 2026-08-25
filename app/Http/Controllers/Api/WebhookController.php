@@ -47,8 +47,8 @@ class WebhookController extends Controller
 
         Log::info('[Webhook] Shopee payload decoded', ['code' => $data['code'] ?? null, 'shop_id' => $data['shop_id'] ?? null]);
 
-        // Shopee sends order updates with code = 3 (bisa berupa string atau integer)
-        if (isset($data['code']) && $data['code'] == 3) {
+        // Shopee sends order updates with code = 3 (status), code = 4 (tracking/logistics), and code = 29 (return/refund)
+        if (isset($data['code']) && in_array((int)$data['code'], [3, 4, 29])) {
             $shopId = $data['shop_id'] ?? null;
             $orderSn = $data['data']['ordersn'] ?? null;
 
@@ -61,7 +61,7 @@ class WebhookController extends Controller
                 } elseif ($store->status !== 'connected') {
                     Log::warning("[Webhook] Store {$store->name} tidak berstatus connected (status: {$store->status})");
                 } else {
-                    Log::info("[Webhook] Triggering sync for Store: {$store->name}, Order: {$orderSn}");
+                    Log::info("[Webhook] Triggering sync for Store: {$store->name}, Order: {$orderSn} (Event Code: {$data['code']})");
 
                     $timeFrom = now()->subDays(3)->timestamp;
                     $timeTo = now()->timestamp;
@@ -70,11 +70,9 @@ class WebhookController extends Controller
                     Log::info("[Webhook] Job PullOrdersFromShopee dispatched untuk store {$store->name} dengan order_sn {$orderSn}");
                 }
             } else {
-                Log::warning('[Webhook] Shopee code=3 tapi shop_id atau ordersn kosong', $data);
+                Log::warning('[Webhook] Shopee code=' . $data['code'] . ' tapi shop_id atau ordersn kosong', $data);
             }
         }
-
-        // Untuk webhook Shopee B2C Returns (code = 4) dll bisa ditambahkan di sini.
 
         return response()->json(['message' => 'success'], 200);
     }
@@ -92,19 +90,20 @@ class WebhookController extends Controller
         // Usually contains 'type', 'shop_id', 'data'
         $type = $data['type'] ?? null;
         $shopId = $data['shop_id'] ?? null;
+        $orderId = $data['data']['order_id'] ?? null;
 
         if ($shopId) {
             $store = Store::where('marketplace_store_id', (string) $shopId)->first();
 
             if ($store && $store->status === 'connected') {
-                Log::info("[Webhook] Triggering sync for TikTok Store: {$store->name}, Type: {$type}");
+                Log::info("[Webhook] Triggering sync for TikTok Store: {$store->name}, Type: {$type}, Order: {$orderId}");
 
                 // Trigger sinkronisasi pesanan dari 1 hari terakhir
                 // untuk memastikan pesanan yang menyebabkan event ini tertarik ke database ERP
                 $timeFrom = now()->subDays(1)->timestamp;
                 $timeTo = now()->timestamp;
 
-                \App\Jobs\PullOrdersFromTiktok::dispatch($store, $timeFrom, $timeTo);
+                \App\Jobs\PullOrdersFromTiktok::dispatch($store, $timeFrom, $timeTo, false, $orderId);
             }
         }
 
