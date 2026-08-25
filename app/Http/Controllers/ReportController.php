@@ -1977,9 +1977,6 @@ class ReportController extends Controller
             }
 
             $onlineOrders = $ordersQuery->get();
-            if ($statusFilter === 'completed') {
-                $onlineOrders = $onlineOrders->filter(fn($o) => $o->refund_amount <= 0);
-            }
             foreach ($onlineOrders as $order) {
                 if ($order->items && $order->items->count() > 0) {
                     $itemSum = (float) $order->items->sum(fn($i) => $i->total_price ?? ($i->unit_price * $i->quantity));
@@ -2275,9 +2272,6 @@ class ReportController extends Controller
             }
 
             $allOnlineOrders = $ordersQuery->get();
-            if ($statusFilter === 'completed') {
-                $allOnlineOrders = $allOnlineOrders->filter(fn($o) => $o->refund_amount <= 0);
-            }
 
             // Group by store_id
             $groupedByStore = $allOnlineOrders->groupBy('store_id');
@@ -2444,9 +2438,6 @@ class ReportController extends Controller
             }
 
             $onlineOrders = $onQuery->get();
-            if ($statusFilter === 'completed') {
-                $onlineOrders = $onlineOrders->filter(fn($o) => $o->refund_amount <= 0);
-            }
             foreach ($onlineOrders as $o) {
                 $itemSummary = [];
                 foreach ($o->items as $it) {
@@ -2588,9 +2579,6 @@ class ReportController extends Controller
                 }
 
                 $onOrdersGet = $onQuery->get();
-                if ($statusFilter === 'completed') {
-                    $onOrdersGet = $onOrdersGet->filter(fn($o) => $o->refund_amount <= 0);
-                }
                 $onOmset = (float) $onOrdersGet->sum('total_amount');
                 $onNetReleased = 0.0;
                 foreach ($onOrdersGet as $o) {
