@@ -1487,7 +1487,7 @@ class ReportController extends Controller
         $statusFilter = 'completed'; // Strictly completed / released sales
 
         if ($reportFormat === 'ringkasan_penghasilan') {
-            $data = $this->getIncomeStatementData($tenantId, $dateFrom, $dateTo, $channelCode, $customerCat, $statusFilter, $storeId);
+            $data = $this->getIncomeStatementData($tenantId, $dateFrom, $dateTo, $channelCode, $customerCat, $statusFilter, $storeId, 'completed_at');
             $storeObj = $storeId ? \App\Models\Store::with('channel')->find($storeId) : null;
             return view('reports.print_income_statement', array_merge($data, [
                 'dateFrom' => $dateFrom, 
@@ -1496,7 +1496,7 @@ class ReportController extends Controller
                 'title' => 'Laporan Ringkasan Penghasilan & Biaya Escrow Marketplace'
             ]));
         } elseif ($reportFormat === 'per_channel') {
-            $data = $this->getSalesReportPerChannelData($tenantId, $dateFrom, $dateTo, $channelCode, $customerCat, $statusFilter, $storeId);
+            $data = $this->getSalesReportPerChannelData($tenantId, $dateFrom, $dateTo, $channelCode, $customerCat, $statusFilter, $storeId, 'completed_at');
             return view('reports.print_sales_report_channel', array_merge($data, [
                 'dateFrom' => $dateFrom, 
                 'dateTo' => $dateTo, 
@@ -1504,14 +1504,14 @@ class ReportController extends Controller
                 'title' => 'Laporan Penjualan Dilepas Per Toko Marketplace'
             ]));
         } elseif ($reportFormat === 'detail') {
-            $data = $this->getSalesReportDetailData($tenantId, $dateFrom, $dateTo, $categoryId, $brandId, $channelCode, $customerCat, $statusFilter, $search, $isBundle, $isPo, $storeId);
+            $data = $this->getSalesReportDetailData($tenantId, $dateFrom, $dateTo, $categoryId, $brandId, $channelCode, $customerCat, $statusFilter, $search, $isBundle, $isPo, $storeId, 'completed_at');
             return view('reports.print_sales_report_detail', array_merge($data, [
                 'dateFrom' => $dateFrom, 
                 'dateTo' => $dateTo,
                 'title' => 'Laporan Detail Transaksi Penjualan Dilepas'
             ]));
         } elseif ($reportFormat === 'per_tanggal') {
-            $data = $this->getSalesReportPerDateData($tenantId, $dateFrom, $dateTo, $channelCode, $customerCat, $statusFilter, $storeId);
+            $data = $this->getSalesReportPerDateData($tenantId, $dateFrom, $dateTo, $channelCode, $customerCat, $statusFilter, $storeId, 'completed_at');
             return view('reports.print_sales_report_date', array_merge($data, [
                 'dateFrom' => $dateFrom, 
                 'dateTo' => $dateTo,
@@ -1519,7 +1519,7 @@ class ReportController extends Controller
             ]));
         } else {
             // Default: per_produk
-            $data = $this->getSalesReportData($tenantId, $dateFrom, $dateTo, $categoryId, $brandId, $channelCode, $customerCat, $statusFilter, $search, $hideZeroSales, $isBundle, $isPo, $storeId);
+            $data = $this->getSalesReportData($tenantId, $dateFrom, $dateTo, $categoryId, $brandId, $channelCode, $customerCat, $statusFilter, $search, $hideZeroSales, $isBundle, $isPo, $storeId, 'completed_at');
             return view('reports.print_sales_report', array_merge($data, [
                 'dateFrom' => $dateFrom, 
                 'dateTo' => $dateTo,
@@ -1557,7 +1557,7 @@ class ReportController extends Controller
         ];
 
         if ($reportFormat === 'per_channel') {
-            $channelData = $this->getSalesReportPerChannelData($tenantId, $dateFrom, $dateTo, $channelCode, $customerCat, $statusFilter, $storeId);
+            $channelData = $this->getSalesReportPerChannelData($tenantId, $dateFrom, $dateTo, $channelCode, $customerCat, $statusFilter, $storeId, 'completed_at');
             $callback = function () use ($channelData) {
                 $file = fopen('php://output', 'w');
                 fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF)); // BOM UTF-8
@@ -1616,7 +1616,7 @@ class ReportController extends Controller
                 fclose($file);
             };
         } else {
-            $detailData = $this->getSalesReportDetailData($tenantId, $dateFrom, $dateTo, $categoryId, $brandId, $channelCode, $customerCat, $statusFilter, $search, $isBundle, $isPo, $storeId);
+            $detailData = $this->getSalesReportDetailData($tenantId, $dateFrom, $dateTo, $categoryId, $brandId, $channelCode, $customerCat, $statusFilter, $search, $isBundle, $isPo, $storeId, 'completed_at');
             $callback = function () use ($detailData) {
                 $file = fopen('php://output', 'w');
                 fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF)); // BOM UTF-8
@@ -1868,7 +1868,7 @@ class ReportController extends Controller
         ];
     }
 
-    private function getSalesReportData($tenantId, $dateFrom, $dateTo, $categoryId = null, $brandId = null, $channelCode = 'all', $customerCat = 'all', $statusFilter = 'all', $search = null, $hideZeroSales = false, $isBundle = null, $isPo = null, $storeId = null)
+    private function getSalesReportData($tenantId, $dateFrom, $dateTo, $categoryId = null, $brandId = null, $channelCode = 'all', $customerCat = 'all', $statusFilter = 'all', $search = null, $hideZeroSales = false, $isBundle = null, $isPo = null, $storeId = null, $dateType = 'order_date')
     {
         $allMasterProducts = MasterProduct::where('tenant_id', $tenantId)->with(['category', 'brand'])->get();
         $masterById = $allMasterProducts->keyBy('id');
@@ -1960,7 +1960,11 @@ class ReportController extends Controller
             $ordersQuery = \App\Models\Order::where('tenant_id', $tenantId)
                 ->with('items');
 
-            $ordersQuery->whereBetween('order_date', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59']);
+            if ($dateType === 'completed_at') {
+                $ordersQuery->whereBetween('completed_at', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59']);
+            } else {
+                $ordersQuery->whereBetween('order_date', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59']);
+            }
 
             $this->applyOnlineStatusFilter($ordersQuery, $statusFilter);
 
@@ -2175,7 +2179,7 @@ class ReportController extends Controller
         ];
     }
 
-    private function getSalesReportPerChannelData($tenantId, $dateFrom, $dateTo, $channelCode = 'all', $customerCat = 'all', $statusFilter = 'all', $storeId = null)
+    private function getSalesReportPerChannelData($tenantId, $dateFrom, $dateTo, $channelCode = 'all', $customerCat = 'all', $statusFilter = 'all', $storeId = null, $dateType = 'order_date')
     {
         $stores = \App\Models\Store::where('tenant_id', $tenantId)->with('channel')->get();
         
@@ -2252,7 +2256,11 @@ class ReportController extends Controller
             $ordersQuery = \App\Models\Order::where('tenant_id', $tenantId)
                 ->with(['store.channel', 'items']);
 
-            $ordersQuery->whereBetween('order_date', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59']);
+            if ($dateType === 'completed_at') {
+                $ordersQuery->whereBetween('completed_at', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59']);
+            } else {
+                $ordersQuery->whereBetween('order_date', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59']);
+            }
 
             $this->applyOnlineStatusFilter($ordersQuery, $statusFilter);
 
@@ -2350,7 +2358,7 @@ class ReportController extends Controller
         );
     }
 
-    private function getSalesReportDetailData($tenantId, $dateFrom, $dateTo, $categoryId = null, $brandId = null, $channelCode = 'all', $customerCat = 'all', $statusFilter = 'all', $search = null, $isBundle = null, $isPo = null, $storeId = null)
+    private function getSalesReportDetailData($tenantId, $dateFrom, $dateTo, $categoryId = null, $brandId = null, $channelCode = 'all', $customerCat = 'all', $statusFilter = 'all', $search = null, $isBundle = null, $isPo = null, $storeId = null, $dateType = 'order_date')
     {
         $transactions = [];
 
@@ -2407,7 +2415,11 @@ class ReportController extends Controller
             $onQuery = \App\Models\Order::where('tenant_id', $tenantId)
                 ->with(['store.channel', 'customer', 'items']);
 
-            $onQuery->whereBetween('order_date', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59']);
+            if ($dateType === 'completed_at') {
+                $onQuery->whereBetween('completed_at', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59']);
+            } else {
+                $onQuery->whereBetween('order_date', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59']);
+            }
 
             $this->applyOnlineStatusFilter($onQuery, $statusFilter);
 
@@ -2484,7 +2496,7 @@ class ReportController extends Controller
         return compact('transactions', 'grandTotalOmset', 'grandTotalQty', 'grandTotalRefund', 'grandTotalPlatformFee', 'grandTotalFreeShipping', 'grandTotalServiceFee', 'grandTotalPromoFee', 'grandTotalOtherFee', 'grandTotalTotalFee', 'grandTotalNetReleased');
     }
 
-    private function getSalesReportPerDateData($tenantId, $dateFrom, $dateTo, $channelCode = 'all', $customerCat = 'all', $statusFilter = 'all', $storeId = null)
+    private function getSalesReportPerDateData($tenantId, $dateFrom, $dateTo, $channelCode = 'all', $customerCat = 'all', $statusFilter = 'all', $storeId = null, $dateType = 'order_date')
     {
         $dates = [];
         $current = strtotime($dateFrom);
@@ -2536,7 +2548,11 @@ class ReportController extends Controller
                 $onQuery = \App\Models\Order::where('tenant_id', $tenantId)
                     ->with('items');
 
-                $onQuery->whereDate('order_date', $dt);
+                if ($dateType === 'completed_at') {
+                    $onQuery->whereDate('completed_at', $dt);
+                } else {
+                    $onQuery->whereDate('order_date', $dt);
+                }
 
                 $this->applyOnlineStatusFilter($onQuery, $statusFilter);
 
@@ -2710,9 +2726,9 @@ class ReportController extends Controller
         }
     }
 
-    private function getIncomeStatementData($tenantId, $dateFrom, $dateTo, $channelCode = 'online', $customerCat = 'all', $statusFilter = 'completed', $storeId = null)
+    private function getIncomeStatementData($tenantId, $dateFrom, $dateTo, $channelCode = 'online', $customerCat = 'all', $statusFilter = 'completed', $storeId = null, $dateType = 'order_date')
     {
-        $detailData = $this->getSalesReportDetailData($tenantId, $dateFrom, $dateTo, null, null, $channelCode, $customerCat, $statusFilter, null, null, null, $storeId);
+        $detailData = $this->getSalesReportDetailData($tenantId, $dateFrom, $dateTo, null, null, $channelCode, $customerCat, $statusFilter, null, null, null, $storeId, $dateType);
 
         $grossSales = (float) $detailData['grandTotalOmset'];
         
@@ -2735,8 +2751,12 @@ class ReportController extends Controller
                 $retQuery->where('store_id', $storeId);
             }
 
-            $retQuery->whereNotNull('completed_at')
-                    ->whereBetween('completed_at', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59']);
+            if ($dateType === 'completed_at') {
+                $retQuery->whereNotNull('completed_at')
+                        ->whereBetween('completed_at', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59']);
+            } else {
+                $retQuery->whereBetween('order_date', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59']);
+            }
 
             $refunds = (float) $retQuery->sum('total_amount');
         }
