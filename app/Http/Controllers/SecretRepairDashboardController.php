@@ -1534,6 +1534,7 @@ class SecretRepairDashboardController extends Controller
 
                 if (!empty($tiktokOrders[0])) {
                     $job = new \App\Jobs\PullOrdersFromTiktok($store, time() - 86400, time());
+                    $job->store = $store;
                     $reflection = new \ReflectionClass($job);
                     $method = $reflection->getMethod('processOrder');
                     $method->setAccessible(true);
@@ -1555,6 +1556,7 @@ class SecretRepairDashboardController extends Controller
 
                 if (!empty($shopeeOrders[0])) {
                     $job = new \App\Jobs\PullOrdersFromShopee($store, time() - 86400, time());
+                    $job->store = $store;
                     $reflection = new \ReflectionClass($job);
                     $method = $reflection->getMethod('saveOrder');
                     $method->setAccessible(true);
