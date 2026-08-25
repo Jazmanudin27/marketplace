@@ -627,6 +627,24 @@
                 </div>
             </div>
 
+            <!-- Action 3.7: Sync Order Dates -->
+            <div class="col-lg-4 col-md-6">
+                <div class="card-action border-top border-4 border-info">
+                    <div>
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <span class="badge bg-info text-white px-2 py-1" style="font-size: 0.72rem;"><i class="fas fa-calendar-alt me-1"></i>SYNC ORDER DATES</span>
+                            <h6 class="fw-bold text-dark mb-0">Sync Tanggal Order & Selesai</h6>
+                        </div>
+                        <p class="text-secondary small mb-3" style="font-size: 0.8rem; line-height: 1.45;">
+                            Menyelaraskan ulang Tanggal Order (Tanggal Pesan) dan Tanggal Selesai (Dana Cair) dengan data asli di API Shopee & TikTok berdasarkan range tanggal filter aktif.
+                        </p>
+                    </div>
+                    <button type="button" class="btn-custom btn-outline-info fw-semibold" onclick="triggerRepair('sync_order_dates', this)">
+                        <i class="fas fa-calendar-check me-1"></i> Sinkronkan Tanggal API
+                    </button>
+                </div>
+            </div>
+
             <!-- Action 4: Pull TikTok Orders -->
             <div class="col-lg-3 col-md-6">
                 <div class="card-action border-top border-4 border-primary">
@@ -831,6 +849,9 @@
 
             appendLog(`▶ Menjalankan eksekusi: [${actionName}]...`, 'info');
 
+            const dateFrom = document.getElementById('filterDateFrom').value;
+            const dateTo   = document.getElementById('filterDateTo').value;
+
             fetch('{{ route("secret_repair.run") }}', {
                 method: 'POST',
                 headers: {
@@ -838,7 +859,11 @@
                     'X-CSRF-TOKEN': csrfToken,
                     'Accept': 'application/json'
                 },
-                body: JSON.stringify({ action: actionName })
+                body: JSON.stringify({ 
+                    action: actionName,
+                    date_from: dateFrom,
+                    date_to: dateTo
+                })
             })
             .then(async response => {
                 const isJson = response.headers.get('content-type')?.includes('application/json');

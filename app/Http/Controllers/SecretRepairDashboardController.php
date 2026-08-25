@@ -281,6 +281,12 @@ class SecretRepairDashboardController extends Controller
                     $output = $this->executeRecalculateBundleStocks();
                     break;
 
+                case 'sync_order_dates':
+                    $dateFrom = $request->input('date_from');
+                    $dateTo   = $request->input('date_to');
+                    $output = $this->executeSyncOrderDates($dateFrom, $dateTo);
+                    break;
+
                 default:
                     return response()->json(['success' => false, 'message' => 'Action tidak dikenali.'], 400);
             }
@@ -857,6 +863,177 @@ class SecretRepairDashboardController extends Controller
         }
 
         $log[] = "======================================================================";
+        return implode("\n", $log);
+    }
+
+    private function executeSyncOrderDates($dateFrom, $dateTo)
+    {
+        $tenantId = auth()->user()->tenant_id;
+
+        // Get Shopee and TikTok stores
+        $tiktokStores = Store::where('tenant_id', $tenantId)
+            ->whereHas('channel', fn($q) => $q->where('code', 'LIKE', '%tiktok%'))
+            ->get();
+        $shopeeStores = Store::where('tenant_id', $tenantId)
+            ->whereHas('channel', fn($q) => $q->where('code', 'LIKE', '%shopee%'))
+            ->get();
+
+        $log = [];
+        $log[] = "======================================================================";
+        $log[] = "🛠️ RE-SINKRONISASI TANGGAL ORDER & TANGGAL CAIR DARI API MARKETPLACE";
+        $log[] = "======================================================================";
+        $log[] = "Filter Tanggal: " . ($dateFrom ?: 'Semua') . " s/d " . ($dateTo ?: 'Semua');
+
+        $totalTiktok = 0;
+        $totalShopee = 0;
+
+        // 1. Process TikTok
+        foreach ($tiktokStores as $store) {
+            $query = Order::where('store_id', $store->id)
+                ->whereNotNull('order_marketplace_id');
+            if ($dateFrom) $query->whereDate('order_date', '>=', $dateFrom);
+            if ($dateTo)   $query->whereDate('order_date', '<=', $dateTo);
+
+            $orders = $query->get();
+            if ($orders->isEmpty()) continue;
+
+            $tiktokService = app(TiktokService::class);
+            $orderSns = $orders->pluck('order_marketplace_id')->toArray();
+            $chunks = array_chunk($orderSns, 50);
+
+            foreach ($chunks as $chunk) {
+                try {
+                    $accessToken = $store->getValidAccessToken();
+                    $shopCipher = $store->shop_cipher;
+                    $detailRes = $tiktokService->getOrderDetail($accessToken, $shopCipher, $chunk);
+                    $ordersList = $detailRes['orders'] ?? ($detailRes['order_list'] ?? []);
+
+                    foreach ($ordersList as $tiktokOrder) {
+                        $orderSn = $tiktokOrder['order_id'] ?? null;
+                        if (!$orderSn) continue;
+
+                        $dbOrder = $orders->firstWhere('order_marketplace_id', $orderSn);
+                        if (!$dbOrder) continue;
+
+                        $isChanged = false;
+
+                        // Correct order_date (create_time)
+                        if (!empty($tiktokOrder['create_time'])) {
+                            $createTime = $tiktokOrder['create_time'];
+                            $createTsSec = (is_numeric($createTime) && strlen((string)$createTime) >= 13) ? (int)($createTime / 1000) : (int)$createTime;
+                            $orderDateTime = date('Y-m-d H:i:s', $createTsSec);
+                            if ($dbOrder->order_date != $orderDateTime) {
+                                $oldDate = $dbOrder->order_date;
+                                $dbOrder->order_date = $orderDateTime;
+                                $isChanged = true;
+                                $log[] = "   [TikTok] Order #{$orderSn}: Tanggal Order dikoreksi dari {$oldDate} => {$orderDateTime}";
+                            }
+                        }
+
+                        // Correct completed_at (finish_time, delivered_time, etc.)
+                        $erpStatus = $dbOrder->order_status;
+                        $isCompleted = in_array($erpStatus, ['COMPLETED', 'DELIVERED', 'SELESAI', 'FINISHED']);
+                        if ($isCompleted) {
+                            $createTime = $tiktokOrder['create_time'] ?? time();
+                            $ts = $tiktokOrder['finish_time'] ?? $tiktokOrder['delivered_time'] ?? $tiktokOrder['complete_time'] ?? $tiktokOrder['delivery_time'] ?? $tiktokOrder['update_time'] ?? $tiktokOrder['paid_time'] ?? $createTime;
+                            $tsSec = (is_numeric($ts) && strlen((string)$ts) >= 13) ? (int)($ts / 1000) : (int)$ts;
+                            $compTime = date('Y-m-d H:i:s', $tsSec);
+                            
+                            if ($dbOrder->completed_at != $compTime) {
+                                $oldComp = $dbOrder->completed_at;
+                                $dbOrder->completed_at = $compTime;
+                                $isChanged = true;
+                                $log[] = "   [TikTok] Order #{$orderSn}: Tanggal Selesai/Cair dikoreksi dari " . ($oldComp ?: 'NULL') . " => {$compTime}";
+                            }
+                        }
+
+                        if ($isChanged) {
+                            $dbOrder->save();
+                            $totalTiktok++;
+                        }
+                    }
+                } catch (\Exception $ex) {
+                    $log[] = "⚠️ Error sinkronisasi TikTok Store {$store->store_name}: " . $ex->getMessage();
+                }
+            }
+        }
+
+        // 2. Process Shopee
+        foreach ($shopeeStores as $store) {
+            $query = Order::where('store_id', $store->id)
+                ->whereNotNull('order_marketplace_id');
+            if ($dateFrom) $query->whereDate('order_date', '>=', $dateFrom);
+            if ($dateTo)   $query->whereDate('order_date', '<=', $dateTo);
+
+            $orders = $query->get();
+            if ($orders->isEmpty()) continue;
+
+            $shopeeService = app(ShopeeService::class);
+            $accessToken = $store->getValidAccessToken();
+            $orderSns = $orders->pluck('order_marketplace_id')->toArray();
+            $chunks = array_chunk($orderSns, 50);
+
+            foreach ($chunks as $chunk) {
+                try {
+                    $detailRes = $shopeeService->getOrderDetail(
+                        $accessToken,
+                        (int) $store->marketplace_store_id,
+                        $chunk
+                    );
+
+                    $ordersList = $detailRes['order_list'] ?? [];
+                    foreach ($ordersList as $shopeeOrder) {
+                        $orderSn = $shopeeOrder['order_sn'] ?? null;
+                        if (!$orderSn) continue;
+
+                        $dbOrder = $orders->firstWhere('order_marketplace_id', $orderSn);
+                        if (!$dbOrder) continue;
+
+                        $isChanged = false;
+
+                        // Correct order_date (create_time)
+                        if (!empty($shopeeOrder['create_time'])) {
+                            $createTime = date('Y-m-d H:i:s', $shopeeOrder['create_time']);
+                            if ($dbOrder->order_date != $createTime) {
+                                $oldDate = $dbOrder->order_date;
+                                $dbOrder->order_date = $createTime;
+                                $isChanged = true;
+                                $log[] = "   [Shopee] Order #{$orderSn}: Tanggal Order dikoreksi dari {$oldDate} => {$createTime}";
+                            }
+                        }
+
+                        // Correct completed_at (update_time for completed status)
+                        $erpStatus = $dbOrder->order_status;
+                        $isCompleted = in_array($erpStatus, ['COMPLETED', 'DELIVERED', 'SELESAI', 'FINISHED']);
+                        if ($isCompleted) {
+                            if (!empty($shopeeOrder['update_time'])) {
+                                $compTime = date('Y-m-d H:i:s', $shopeeOrder['update_time']);
+                                if ($dbOrder->completed_at != $compTime) {
+                                    $oldComp = $dbOrder->completed_at;
+                                    $dbOrder->completed_at = $compTime;
+                                    $isChanged = true;
+                                    $log[] = "   [Shopee] Order #{$orderSn}: Tanggal Selesai/Cair dikoreksi dari " . ($oldComp ?: 'NULL') . " => {$compTime}";
+                                }
+                            }
+                        }
+
+                        if ($isChanged) {
+                            $dbOrder->save();
+                            $totalShopee++;
+                        }
+                    }
+                } catch (\Exception $ex) {
+                    $log[] = "⚠️ Error sinkronisasi Shopee Store {$store->store_name}: " . $ex->getMessage();
+                }
+            }
+        }
+
+        $log[] = "======================================================================";
+        $log[] = "✨ SELESAI! Berhasil mengoreksi tanggal untuk:";
+        $log[] = "   -> {$totalTiktok} pesanan TikTok Shop";
+        $log[] = "   -> {$totalShopee} pesanan Shopee";
+        $log[] = "======================================================================";
+
         return implode("\n", $log);
     }
 
