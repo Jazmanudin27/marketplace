@@ -1514,6 +1514,16 @@ class SecretRepairDashboardController extends Controller
             return response()->json(['error' => 'Pesanan ini tidak memiliki ID Marketplace.'], 422);
         }
 
+        // Cek jika pesanan adalah pesanan manual/offline
+        $isManual = str_starts_with($orderSn, 'MANUAL-') || 
+                    str_starts_with($orderSn, 'DS-') || 
+                    str_starts_with($orderSn, 'SHOPEE-DEMO-');
+        if ($isManual) {
+            return response()->json([
+                'error' => "Pesanan ini adalah Pesanan Manual (Offline/Dropship) yang diinput langsung di ERP. Pesanan manual tidak memiliki data settlement keuangan di API Shopee maupun TikTok Shop.",
+            ], 422);
+        }
+
         $store = $order->store;
         if (!$store) {
             return response()->json(['error' => 'Toko tidak ditemukan.'], 404);
