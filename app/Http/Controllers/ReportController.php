@@ -1976,7 +1976,11 @@ class ReportController extends Controller
                 });
             }
 
-            foreach ($ordersQuery->get() as $order) {
+            $onlineOrders = $ordersQuery->get();
+            if ($statusFilter === 'completed') {
+                $onlineOrders = $onlineOrders->filter(fn($o) => $o->refund_amount <= 0);
+            }
+            foreach ($onlineOrders as $order) {
                 if ($order->items && $order->items->count() > 0) {
                     $itemSum = (float) $order->items->sum(fn($i) => $i->total_price ?? ($i->unit_price * $i->quantity));
                     $scale = ($itemSum > 0 && abs($itemSum - $order->total_amount) > 1) ? ((float)$order->total_amount / $itemSum) : 1.0;
@@ -2271,6 +2275,9 @@ class ReportController extends Controller
             }
 
             $allOnlineOrders = $ordersQuery->get();
+            if ($statusFilter === 'completed') {
+                $allOnlineOrders = $allOnlineOrders->filter(fn($o) => $o->refund_amount <= 0);
+            }
 
             // Group by store_id
             $groupedByStore = $allOnlineOrders->groupBy('store_id');
@@ -2429,7 +2436,11 @@ class ReportController extends Controller
                 $onQuery->whereHas('store.channel', fn($cq) => $cq->where('code', strtolower($channelCode)));
             }
 
-            foreach ($onQuery->get() as $o) {
+            $onlineOrders = $onQuery->get();
+            if ($statusFilter === 'completed') {
+                $onlineOrders = $onlineOrders->filter(fn($o) => $o->refund_amount <= 0);
+            }
+            foreach ($onlineOrders as $o) {
                 $itemSummary = [];
                 foreach ($o->items as $it) {
                     $itemSummary[] = ($it->sku) . ' x' . $it->quantity;
@@ -2563,6 +2574,9 @@ class ReportController extends Controller
                 }
 
                 $onOrdersGet = $onQuery->get();
+                if ($statusFilter === 'completed') {
+                    $onOrdersGet = $onOrdersGet->filter(fn($o) => $o->refund_amount <= 0);
+                }
                 $onOmset = (float) $onOrdersGet->sum('total_amount');
                 foreach ($onOrdersGet as $o) {
                     $iQty = $o->items->sum('quantity');
@@ -2709,7 +2723,7 @@ class ReportController extends Controller
     private function applyOnlineStatusFilter($query, $statusFilter)
     {
         if ($statusFilter === 'completed') {
-            $query->whereIn('order_status', ['COMPLETED', 'DELIVERED', 'SELESAI', 'FINISHED']);
+            $query->whereIn('order_status', ['COMPLETED', 'SELESAI', 'FINISHED']);
         } elseif ($statusFilter === 'shipped') {
             $query->whereIn('order_status', ['SHIPPED', 'IN_TRANSIT', 'DIKIRIM']);
         } elseif ($statusFilter === 'processing') {
