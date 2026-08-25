@@ -354,6 +354,130 @@
             </div>
         </div>
 
+        <!-- 🌐 SECTION 2B: Tabel Perbandingan Data ERP per Channel (Berdasarkan Tanggal Cair/Selesai) -->
+        <div class="card border-0 shadow-sm rounded-3 mb-4">
+            <div class="card-header bg-white py-3 px-4 border-bottom">
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+                    <div>
+                        <h6 class="fw-bold text-dark mb-0"><i class="fas fa-hand-holding-usd me-2 text-success"></i>Perbandingan Data ERP per Channel (Acuan Tanggal Cair / Dana Dilepas)</h6>
+                        <small class="text-secondary">Jml Order, Omset, Biaya Admin, Dana Cair — disaring berdasarkan tanggal completed_at</small>
+                    </div>
+                    <!-- Filter Tanggal -->
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                        <div class="d-flex align-items-center gap-1">
+                            <label class="text-secondary fw-semibold" style="font-size:0.78rem; white-space:nowrap;">Pilih Bulan:</label>
+                            <select id="filterMonthSelectCompleted" class="form-select form-select-sm rounded-2" style="font-size:0.82rem; width:135px;" onchange="applyMonthFilterCompleted(this.value)">
+                                <option value="">Custom Tanggal</option>
+                                @php
+                                    $currentCompleted = \Carbon\Carbon::now()->startOfMonth();
+                                    $monthNamesCompleted = [
+                                        1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
+                                        5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus',
+                                        9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember'
+                                    ];
+                                @endphp
+                                @for ($i = 0; $i < 12; $i++)
+                                    @php
+                                        $mVal = $currentCompleted->format('Y-m');
+                                        $mText = $monthNamesCompleted[$currentCompleted->month] . ' ' . $currentCompleted->year;
+                                        $currentCompleted->subMonth();
+                                    @endphp
+                                    <option value="{{ $mVal }}">{{ $mText }}</option>
+                                @endfor
+                            </select>
+                        </div>
+                        <div class="d-flex align-items-center gap-1">
+                            <label class="text-secondary fw-semibold" style="font-size:0.78rem; white-space:nowrap;">Dari:</label>
+                            <input type="date" id="filterDateFromCompleted" class="form-control form-control-sm rounded-2" style="font-size:0.82rem; width:145px;" value="{{ date('Y-m-01') }}">
+                        </div>
+                        <div class="d-flex align-items-center gap-1">
+                            <label class="text-secondary fw-semibold" style="font-size:0.78rem; white-space:nowrap;">Sampai:</label>
+                            <input type="date" id="filterDateToCompleted" class="form-control form-control-sm rounded-2" style="font-size:0.82rem; width:145px;" value="{{ date('Y-m-d') }}">
+                        </div>
+                        <button id="btnLoadCompareCompleted" class="btn btn-success btn-sm px-3 fw-semibold rounded-2" style="font-size:0.82rem;" onclick="loadCompareStatsCompleted()">
+                            <i class="fas fa-search me-1"></i> Tampilkan
+                        </button>
+                        <button class="btn btn-outline-secondary btn-sm px-2 rounded-2" style="font-size:0.82rem;" onclick="resetCompareFilterCompleted()" title="Reset ke semua waktu">
+                            <i class="fas fa-undo"></i>
+                        </button>
+                    </div>
+                </div>
+                <div id="compareFilterLabelCompleted" class="mt-2">
+                    <span class="badge bg-success-subtle text-success-emphasis border border-success-subtle px-3 py-1" style="font-size:0.75rem;">
+                        <i class="fas fa-calendar me-1"></i> <span id="compareDateRangeTextCompleted">Bulan ini</span>
+                    </span>
+                </div>
+            </div>
+
+            <!-- Tabel Ringkasan Channel -->
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0" style="font-size: 0.82rem;" id="compareTableCompleted">
+                    <thead style="font-size: 0.68rem;">
+                        <!-- Group Header -->
+                        <tr class="text-uppercase fw-bold" style="background:#f1f5f9; border-bottom:1px solid #e2e8f0;">
+                            <th class="ps-4 py-2" rowspan="2" style="vertical-align:middle; min-width:170px;">CHANNEL</th>
+                            <th class="py-2 text-end" rowspan="2" style="vertical-align:middle; min-width:100px;">JML ORDER ERP</th>
+                            <th class="py-2 text-center border-start" colspan="2" style="background:#eff6ff; color:#1d4ed8;">OMSET</th>
+                            <th class="py-2 text-center border-start" colspan="2" style="background:#fff7ed; color:#c2410c;">BIAYA ADMIN</th>
+                            <th class="py-2 text-center border-start" colspan="2" style="background:#f0fdf4; color:#15803d;">DANA CAIR</th>
+                            <th class="py-2 text-center border-start" colspan="3" style="background:#fdf4ff; color:#7e22ce;">SELISIH ERP-API</th>
+                        </tr>
+                        <tr class="text-uppercase fw-bold" style="background:#f8fafc; font-size:0.66rem;">
+                            <th class="py-2 text-end border-start" style="color:#1d4ed8;">ERP</th>
+                            <th class="py-2 text-end" style="color:#1d4ed8;">API</th>
+                            <th class="py-2 text-end border-start" style="color:#c2410c;">ERP</th>
+                            <th class="py-2 text-end" style="color:#c2410c;">API</th>
+                            <th class="py-2 text-end border-start" style="color:#15803d;">ERP</th>
+                            <th class="py-2 text-end" style="color:#15803d;">API</th>
+                            <th class="py-2 text-end border-start" style="color:#7e22ce;">OMSET</th>
+                            <th class="py-2 text-end" style="color:#7e22ce;">BIAYA ADMIN</th>
+                            <th class="py-2 text-end pe-4" style="color:#7e22ce;">DANA CAIR</th>
+                        </tr>
+                    </thead>
+                    <tbody id="compareTableBodyCompleted">
+                        <tr>
+                            <td colspan="11" class="text-center py-5 text-secondary">
+                                <i class="fas fa-spinner fa-spin me-2"></i> Memuat data...
+                            </td>
+                        </tr>
+                    </tbody>
+                    <tfoot id="compareTableFootCompleted" class="fw-bold" style="background:#f8fafc;"></tfoot>
+                </table>
+            </div>
+
+            <!-- Per-Store Detail (collapsible) -->
+            <div class="px-4 py-2 border-top bg-white">
+                <button class="btn btn-sm btn-outline-secondary rounded-2 fw-semibold" style="font-size:0.78rem;" type="button" data-bs-toggle="collapse" data-bs-target="#storeDetailCollapseCompleted">
+                    <i class="fas fa-store me-1"></i> Lihat Detail per Toko
+                </button>
+            </div>
+            <div class="collapse" id="storeDetailCollapseCompleted">
+                <div class="table-responsive border-top">
+                    <table class="table table-sm table-hover align-middle mb-0" style="font-size:0.81rem;">
+                        <thead class="text-uppercase fw-bold" style="font-size:0.66rem; background:#f8fafc;">
+                            <tr>
+                                <th class="ps-4 py-2">NAMA TOKO</th>
+                                <th class="py-2">CH</th>
+                                <th class="py-2 text-end">JML ORDER</th>
+                                <th class="py-2 text-end text-danger">BATAL</th>
+                                <th class="py-2 text-end" style="color:#1d4ed8;">OMSET ERP</th>
+                                <th class="py-2 text-end" style="color:#1d4ed8;">OMSET API</th>
+                                <th class="py-2 text-end" style="color:#c2410c;">ADMIN ERP</th>
+                                <th class="py-2 text-end" style="color:#c2410c;">ADMIN API</th>
+                                <th class="py-2 text-end" style="color:#15803d;">CAIR ERP</th>
+                                <th class="py-2 text-end" style="color:#15803d;">CAIR API</th>
+                                <th class="py-2 text-end" style="color:#7e22ce;">SELISIH ADMIN</th>
+                                <th class="py-2 text-end pe-4" style="color:#7e22ce;">SELISIH CAIR</th>
+                            </tr>
+                        </thead>
+                        <tbody id="storeDetailBodyCompleted">
+                            <tr><td colspan="12" class="text-center py-3 text-secondary"><i class="fas fa-spinner fa-spin me-1"></i> Memuat...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
 
         <div class="card border-0 shadow-sm rounded-3 mb-4">
             <div class="card-header bg-white py-3 px-3 border-bottom d-flex justify-content-between align-items-center">
@@ -1077,8 +1201,142 @@
             loadCompareStats();
         }
 
+        const compareUrlCompleted = '{{ route("secret_repair.compare_stats_completed") }}';
+
+        function renderChannelRowCompleted(icon, label, d, channelKey) {
+            const dateFrom = document.getElementById('filterDateFromCompleted').value;
+            const dateTo   = document.getElementById('filterDateToCompleted').value;
+            const url = `${detailBaseUrl}?channel=${channelKey}&date_from=${dateFrom}&date_to=${dateTo}&filter_type=completed_at`;
+            return `
+                <tr style="cursor:pointer" onclick="window.open('${url}', '_blank')" title="Klik untuk lihat detail order ${label}">
+                    <td class="ps-4 fw-bold">
+                        ${icon} ${label}
+                        <span class="badge bg-secondary-subtle text-secondary-emphasis border ms-2" style="font-size:0.62rem;">
+                            <i class="fas fa-external-link-alt me-1"></i>Lihat Detail
+                        </span>
+                    </td>
+                    <td class="text-end font-monospace fw-semibold">${d.erp_count.toLocaleString('id-ID')}
+                        <br><small class="text-secondary" style="font-size:0.65rem;">API: ${d.api_count.toLocaleString('id-ID')}</small></td>
+                    <td class="text-end font-monospace border-start" style="color:#1d4ed8;">${formatRp(d.erp_omset)}</td>
+                    <td class="text-end font-monospace" style="color:#1d4ed8; background:#eff6ff;">${formatRp(d.api_omset)}</td>
+                    <td class="text-end font-monospace border-start" style="color:#c2410c;">${formatRp(d.erp_fee)}</td>
+                    <td class="text-end font-monospace" style="color:#c2410c; background:#fff7ed;">${formatRp(d.api_fee)}</td>
+                    <td class="text-end font-monospace border-start" style="color:#15803d;">${formatRp(d.erp_net)}</td>
+                    <td class="text-end font-monospace" style="color:#15803d; background:#f0fdf4;">${formatRp(d.api_net)}</td>
+                    <td class="text-end border-start">${diffBadge(d.diff_omset)}</td>
+                    <td class="text-end">${diffBadge(d.diff_fee)}</td>
+                    <td class="text-end pe-4">${diffBadge(d.diff_net)}</td>
+                </tr>`;
+        }
+
+        function loadCompareStatsCompleted() {
+            const dateFrom = document.getElementById('filterDateFromCompleted').value;
+            const dateTo   = document.getElementById('filterDateToCompleted').value;
+            const btn      = document.getElementById('btnLoadCompareCompleted');
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Memuat...';
+
+            document.getElementById('compareTableBodyCompleted').innerHTML = '<tr><td colspan="11" class="text-center py-4 text-secondary"><i class="fas fa-spinner fa-spin me-2"></i> Mengambil data ERP + API...</td></tr>';
+            document.getElementById('compareTableFootCompleted').innerHTML = '';
+            document.getElementById('storeDetailBodyCompleted').innerHTML = '<tr><td colspan="12" class="text-center py-3 text-secondary"><i class="fas fa-spinner fa-spin me-1"></i> Memuat...</td></tr>';
+
+            const params = new URLSearchParams({ date_from: dateFrom, date_to: dateTo });
+
+            fetch(compareUrlCompleted + '?' + params.toString(), {
+                headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': csrfToken }
+            })
+            .then(r => r.json())
+            .then(data => {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-search me-1"></i> Tampilkan';
+
+                const label = (data.date_from === 'Semua waktu') ? 'Semua waktu' : (data.date_from + ' s/d ' + data.date_to);
+                document.getElementById('compareDateRangeTextCompleted').textContent = label;
+
+                // Render channel rows
+                document.getElementById('compareTableBodyCompleted').innerHTML =
+                    renderChannelRowCompleted('<i class="fab fa-tiktok text-dark"></i>', 'TikTok Shop & Tokopedia', data.tiktok, 'tiktok') +
+                    renderChannelRowCompleted('<i class="fas fa-shopping-bag text-danger"></i>', 'Shopee Seller Center', data.shopee, 'shopee');
+
+                // Footer Total
+                const t = data.total;
+                document.getElementById('compareTableFootCompleted').innerHTML = `
+                    <tr style="border-top:2px solid #334155; background:#0f172a; color:#fff;">
+                        <td class="ps-4 fw-bold text-white" style="font-size:0.72rem; letter-spacing:0.04em;">TOTAL SEMUA CHANNEL</td>
+                        <td class="text-end font-monospace fw-bold text-white">${t.erp_count.toLocaleString('id-ID')} order</td>
+                        <td class="text-end font-monospace fw-bold border-start" style="color:#93c5fd;">${formatRp(t.erp_omset)}</td>
+                        <td class="text-end font-monospace fw-bold" style="color:#93c5fd;">${formatRp(t.api_omset)}</td>
+                        <td class="text-end font-monospace fw-bold border-start" style="color:#fca5a5;">${formatRp(t.erp_fee)}</td>
+                        <td class="text-end font-monospace fw-bold" style="color:#fca5a5;">${formatRp(t.api_fee)}</td>
+                        <td class="text-end font-monospace fw-bold border-start" style="color:#86efac;">${formatRp(t.erp_net)}</td>
+                        <td class="text-end font-monospace fw-bold" style="color:#86efac;">${formatRp(t.api_net)}</td>
+                        <td class="text-end border-start">${diffBadge(t.diff_omset)}</td>
+                        <td class="text-end">${diffBadge(t.diff_fee)}</td>
+                        <td class="text-end pe-4">${diffBadge(t.diff_net)}</td>
+                    </tr>`;
+
+                // Per-store detail
+                let storeHtml = '';
+                if (data.stores && data.stores.length > 0) {
+                    data.stores.forEach(s => {
+                        storeHtml += `
+                            <tr>
+                                <td class="ps-4 fw-semibold">${escapeHtml(s.store_name)}</td>
+                                <td>${getChannelBadge(s.channel)}</td>
+                                <td class="text-end font-monospace">${s.erp_count.toLocaleString('id-ID')}</td>
+                                <td class="text-end font-monospace text-danger">${s.erp_cancelled.toLocaleString('id-ID')}</td>
+                                <td class="text-end font-monospace" style="color:#1d4ed8;">${formatRp(s.erp_omset)}</td>
+                                <td class="text-end font-monospace" style="color:#1d4ed8; background:#eff6ff;">${formatRp(s.api_omset)}</td>
+                                <td class="text-end font-monospace" style="color:#c2410c;">${formatRp(s.erp_fee)}</td>
+                                <td class="text-end font-monospace" style="color:#c2410c; background:#fff7ed;">${formatRp(s.api_fee)}</td>
+                                <td class="text-end font-monospace" style="color:#15803d;">${formatRp(s.erp_net)}</td>
+                                <td class="text-end font-monospace" style="color:#15803d; background:#f0fdf4;">${formatRp(s.api_net)}</td>
+                                <td class="text-end">${diffBadge(s.diff_fee)}</td>
+                                <td class="text-end pe-4">${diffBadge(s.diff_net)}</td>
+                            </tr>`;
+                    });
+                } else {
+                    storeHtml = '<tr><td colspan="12" class="text-center py-3 text-secondary">Tidak ada data toko.</td></tr>';
+                }
+
+                document.getElementById('storeDetailBodyCompleted').innerHTML = storeHtml;
+            })
+            .catch(err => {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-search me-1"></i> Tampilkan';
+                document.getElementById('compareTableBodyCompleted').innerHTML = `<tr><td colspan="11" class="text-center py-4 text-danger"><i class="fas fa-exclamation-triangle me-2"></i>Gagal memuat: ${err.message}</td></tr>`;
+            });
+        }
+
+        function applyMonthFilterCompleted(val) {
+            if (!val) return;
+            const parts = val.split('-');
+            const year = parseInt(parts[0]);
+            const month = parseInt(parts[1]);
+            
+            const firstDay = year + '-' + String(month).padStart(2, '0') + '-01';
+            const lastDayDate = new Date(year, month, 0);
+            const lastDay = year + '-' + String(month).padStart(2, '0') + '-' + String(lastDayDate.getDate()).padStart(2, '0');
+            
+            document.getElementById('filterDateFromCompleted').value = firstDay;
+            document.getElementById('filterDateToCompleted').value = lastDay;
+            loadCompareStatsCompleted();
+        }
+
+        function resetCompareFilterCompleted() {
+            document.getElementById('filterMonthSelectCompleted').value = '';
+            document.getElementById('filterDateFromCompleted').value = '';
+            document.getElementById('filterDateToCompleted').value = '';
+            document.getElementById('compareDateRangeTextCompleted').textContent = 'Semua waktu';
+            loadCompareStatsCompleted();
+        }
+
         // Auto-load saat halaman dibuka
-        document.addEventListener('DOMContentLoaded', () => loadCompareStats());
+        document.addEventListener('DOMContentLoaded', () => {
+            loadCompareStats();
+            loadCompareStatsCompleted();
+        });
     </script>
 </body>
 </html>

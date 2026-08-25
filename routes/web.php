@@ -887,6 +887,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/fix/run', [\App\Http\Controllers\SecretRepairDashboardController::class, 'runAction'])->name('secret_repair.run');
     Route::post('/secret-system-repair-tools-x8912/run', [\App\Http\Controllers\SecretRepairDashboardController::class, 'runAction']);
     Route::get('/fix/compare-stats', [\App\Http\Controllers\SecretRepairDashboardController::class, 'compareStats'])->name('secret_repair.compare_stats');
+    Route::get('/fix/compare-stats-completed', [\App\Http\Controllers\SecretRepairDashboardController::class, 'compareStatsCompleted'])->name('secret_repair.compare_stats_completed');
     Route::get('/fix/compare-detail', [\App\Http\Controllers\SecretRepairDashboardController::class, 'compareDetail'])->name('secret_repair.compare_detail');
     Route::post('/fix/sync-order/{order}', [\App\Http\Controllers\SecretRepairDashboardController::class, 'syncSingleOrder'])->name('secret_repair.sync_single_order');
     Route::post('/fix/sync-mismatches', [\App\Http\Controllers\SecretRepairDashboardController::class, 'syncMismatches'])->name('secret_repair.sync_mismatches');

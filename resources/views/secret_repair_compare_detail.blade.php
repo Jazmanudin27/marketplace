@@ -107,6 +107,7 @@
         <input type="hidden" name="date_from" value="{{ $dateFrom }}">
         <input type="hidden" name="date_to" value="{{ $dateTo }}">
         <input type="hidden" name="filter" value="{{ $filter }}">
+        <input type="hidden" name="filter_type" value="{{ $filterType ?? 'order_date' }}">
         <div>
             <label class="text-secondary fw-semibold me-1" style="font-size:.75rem">Toko:</label>
             <select name="store_id" class="form-select form-select-sm d-inline-block rounded-2" style="width:180px;font-size:.8rem" onchange="this.form.submit()">
@@ -156,7 +157,7 @@
                     <tr style="background:#0f172a">
                         <th class="ps-3 py-3 text-white" style="min-width:45px">#</th>
                         <th class="py-3 text-white" style="min-width:200px">ID ORDER MARKETPLACE</th>
-                        <th class="py-3 text-white" style="min-width:95px">TANGGAL</th>
+                        <th class="py-3 text-white" style="min-width:95px">{{ ($filterType ?? 'order_date') === 'completed_at' ? 'TANGGAL CAIR' : 'TANGGAL ORDER' }}</th>
                         <th class="py-3 text-white" style="min-width:115px">STATUS</th>
                         <th class="py-3 text-white" style="min-width:120px">TOKO</th>
                         <th class="py-3 text-end text-center bl" colspan="2" style="background:#1e3a5f;color:#93c5fd;min-width:260px">OMSET</th>
@@ -190,7 +191,13 @@
                     <td>
                         <a href="{{ route('orders.show', $row['id']) }}" target="_blank" class="oid st">{{ $row['marketplace_id'] ?? 'ID-'.$row['id'] }}</a>
                     </td>
-                    <td class="text-secondary" style="font-size:.78rem;white-space:nowrap">{{ \Carbon\Carbon::parse($row['order_date'])->format('d M Y') }}</td>
+                    <td class="text-secondary" style="font-size:.78rem;white-space:nowrap">
+                        @if(($filterType ?? 'order_date') === 'completed_at')
+                            {{ $row['completed_at'] ? \Carbon\Carbon::parse($row['completed_at'])->format('d M Y') : '—' }}
+                        @else
+                            {{ $row['order_date'] ? \Carbon\Carbon::parse($row['order_date'])->format('d M Y') : '—' }}
+                        @endif
+                    </td>
                     <td>
                         @php
                             $sc = ['COMPLETED'=>'success','SELESAI'=>'success','FINISHED'=>'success','DELIVERED'=>'success','SHIPPED'=>'primary','IN_TRANSIT'=>'primary','READY_TO_SHIP'=>'info','PROCESSING'=>'warning','UNPAID'=>'secondary'][$row['order_status']] ?? 'secondary';
@@ -481,7 +488,7 @@ function exportCsv(){
     rows.push([
         {{ $i + 1 }},
         '{{ addslashes($row["marketplace_id"] ?? "ID-".$row["id"]) }}',
-        '{{ \Carbon\Carbon::parse($row["order_date"])->format("d/m/Y") }}',
+        '{{ ($filterType ?? "order_date") === "completed_at" ? ($row["completed_at"] ? \Carbon\Carbon::parse($row["completed_at"])->format("d/m/Y") : "—") : ($row["order_date"] ? \Carbon\Carbon::parse($row["order_date"])->format("d/m/Y") : "—") }}',
         '{{ $row["order_status"] }}',
         '{{ addslashes($row["store_name"]) }}',
         {{ $row["erp_omset"] }},
@@ -502,7 +509,7 @@ function exportCsv(){
     const csv = rows.map(r => r.map(v => `"${String(v ?? '').replace(/"/g,'""')}"`).join(',')).join('\n');
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' }));
-    a.download = `erp_api_{{ $channel }}_{{ $dateFrom }}_{{ $dateTo }}.csv`;
+    a.download = `erp_api_{{ $channel }}_{{ $dateFrom }}_{{ $dateTo }}_{{ $filterType ?? "order_date" }}.csv`;
     a.click();
 }
 </script>

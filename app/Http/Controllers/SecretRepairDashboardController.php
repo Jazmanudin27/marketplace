@@ -1384,6 +1384,173 @@ class SecretRepairDashboardController extends Controller
         ]);
     }
 
+    public function compareStatsCompleted(Request $request)
+    {
+        if (!auth()->check()) {
+            return response()->json(['error' => 'Unauthorized'], 401);
+        }
+
+        $dateFrom = $request->input('date_from');
+        $dateTo   = $request->input('date_to');
+
+        $applyDateFilter = function ($query) use ($dateFrom, $dateTo) {
+            if ($dateFrom) $query->whereDate('completed_at', '>=', $dateFrom);
+            if ($dateTo)   $query->whereDate('completed_at', '<=', $dateTo);
+            return $query;
+        };
+
+        $tiktokStores = Store::whereHas('channel', fn($q) => $q->where('code', 'LIKE', '%tiktok%'))->pluck('id');
+        $shopeeStores = Store::whereHas('channel', fn($q) => $q->where('code', 'LIKE', '%shopee%'))->pluck('id');
+        $notCancelled = ['CANCELLED', 'BATAL', 'CANCELED', 'RETURNED', 'REFUNDED', 'RETURN', 'RETUR', 'TO_RETURN'];
+
+        // Helper: hitung stats ERP + API dari sekumpulan order
+        $calcStats = function ($storeIds) use ($applyDateFilter, $notCancelled, $shopeeStores) {
+            $q = Order::whereIn('store_id', $storeIds);
+            $applyDateFilter($q);
+
+            $erpCount = (clone $q)->whereNotIn('order_status', $notCancelled)->count();
+            $active   = (clone $q)->whereNotIn('order_status', $notCancelled);
+
+            $erpOmset = $erpFee = $erpNet = 0.0;
+            $apiOmset = $apiFee = $apiNet = 0.0;
+            $apiCount = 0;
+
+            (clone $active)->select(['id', 'store_id', 'total_amount', 'discount_amount', 'marketplace_fee', 'net_amount', 'financial_breakdown'])
+                ->chunk(500, function ($orders) use (&$erpOmset, &$erpFee, &$erpNet, &$apiOmset, &$apiFee, &$apiNet, &$apiCount, $shopeeStores) {
+                    foreach ($orders as $ord) {
+                        $isShopee = $shopeeStores->contains($ord->store_id);
+                        $fin = $this->parseOrderFinancials($ord, $isShopee);
+
+                        $erpOmset += $fin['erp_omset'];
+                        $erpFee   += $fin['erp_fee'];
+                        $erpNet   += $fin['erp_net'];
+
+                        if ($fin['has_fb']) {
+                            $apiOmset += $fin['api_omset'];
+                            $apiFee   += $fin['api_fee'];
+                            $apiNet   += $fin['api_net'];
+                            $apiCount++;
+                        }
+                    }
+                });
+
+            return [
+                'erp_count'  => $erpCount,
+                'erp_omset'  => (float) $erpOmset,
+                'erp_fee'    => (float) $erpFee,
+                'erp_net'    => (float) $erpNet,
+                'api_count'  => $apiCount,
+                'api_omset'  => (float) $apiOmset,
+                'api_fee'    => (float) $apiFee,
+                'api_net'    => (float) $apiNet,
+                'diff_omset' => (float) $erpOmset - $apiOmset,
+                'diff_fee'   => (float) $erpFee   - $apiFee,
+                'diff_net'   => (float) $erpNet    - $apiNet,
+            ];
+        };
+
+        // ── Per Store Breakdown ───────────────────────────────────────────────
+        $allStores = Store::with('channel')
+            ->whereIn('id', $tiktokStores->merge($shopeeStores))
+            ->get();
+
+        $storeRows = [];
+        foreach ($allStores as $st) {
+            $sq = Order::where('store_id', $st->id);
+            $applyDateFilter($sq);
+
+            $count  = (clone $sq)->count();
+            $cancel = (clone $sq)->whereIn('order_status', $notCancelled)->count();
+            $active = (clone $sq)->whereNotIn('order_status', $notCancelled);
+
+            $isShopee = $shopeeStores->contains($st->id);
+
+            $sErpOmset = $sErpFee = $sErpNet = 0.0;
+            $sApiOmset = $sApiFee = $sApiNet = 0.0;
+
+            (clone $active)->select(['id', 'store_id', 'total_amount', 'discount_amount', 'marketplace_fee', 'net_amount', 'financial_breakdown'])
+                ->chunk(300, function ($orders) use (&$sErpOmset, &$sErpFee, &$sErpNet, &$sApiOmset, &$sApiFee, &$sApiNet, $isShopee) {
+                    foreach ($orders as $ord) {
+                        $fin = $this->parseOrderFinancials($ord, $isShopee);
+                        $sErpOmset += $fin['erp_omset'];
+                        $sErpFee   += $fin['erp_fee'];
+                        $sErpNet   += $fin['erp_net'];
+
+                        if ($fin['has_fb']) {
+                            $sApiOmset += $fin['api_omset'];
+                            $sApiFee   += $fin['api_fee'];
+                            $sApiNet   += $fin['api_net'];
+                        }
+                    }
+                });
+
+            $storeRows[] = [
+                'store_name'    => $st->store_name,
+                'channel'       => strtolower($st->channel->code ?? ''),
+                'erp_count'     => $count,
+                'erp_cancelled' => $cancel,
+                'erp_omset'     => (float) $sErpOmset,
+                'erp_fee'       => (float) $sErpFee,
+                'erp_net'       => (float) $sErpNet,
+                'api_omset'     => (float) $sApiOmset,
+                'api_fee'       => (float) $sApiFee,
+                'api_net'       => (float) $sApiNet,
+                'diff_omset'    => (float) $sErpOmset - $sApiOmset,
+                'diff_fee'      => (float) $sErpFee - $sApiFee,
+                'diff_net'      => (float) $sErpNet - $sApiNet,
+            ];
+        }
+
+        $tiktok = $calcStats($tiktokStores);
+        $shopee = $calcStats($shopeeStores);
+
+        $allStoreIds = $tiktokStores->merge($shopeeStores);
+        $total = $calcStats($allStoreIds);
+
+        // Overall totals with date filter applied
+        $qAll = Order::query()->whereNotIn('order_status', $notCancelled);
+        $applyDateFilter($qAll);
+        $totalErpAll = $qAll->count();
+
+        $qApi = Order::whereNotNull('financial_breakdown')->whereNotIn('order_status', $notCancelled);
+        $applyDateFilter($qApi);
+        $totalApiAll = $qApi->count();
+
+        $qMissing = Order::whereDoesntHave('items')
+            ->whereNotNull('order_marketplace_id')
+            ->where('order_marketplace_id', 'NOT LIKE', 'MANUAL-%')
+            ->where('order_marketplace_id', 'NOT LIKE', 'SHOPEE-DEMO-%')
+            ->where('order_marketplace_id', 'NOT LIKE', 'DS-%')
+            ->whereNotIn('order_status', $notCancelled);
+        $applyDateFilter($qMissing);
+        $missingItemsCountAll = $qMissing->count();
+
+        $qDup = \DB::table('orders')
+            ->select(\DB::raw('TRIM(order_marketplace_id) as mp_id'))
+            ->whereNotNull('order_marketplace_id')
+            ->where('order_marketplace_id', '!=', '')
+            ->where('tenant_id', auth()->user()->tenant_id);
+        if ($dateFrom) $qDup->whereDate('completed_at', '>=', $dateFrom);
+        if ($dateTo)   $qDup->whereDate('completed_at', '<=', $dateTo);
+        $duplicateOrdersCountAll = $qDup->groupBy(\DB::raw('TRIM(order_marketplace_id)'))
+            ->havingRaw('COUNT(*) > 1')
+            ->get()
+            ->count();
+
+        return response()->json([
+            'date_from' => $dateFrom ?: 'Semua waktu',
+            'date_to'   => $dateTo   ?: 'Semua waktu',
+            'tiktok'    => $tiktok,
+            'shopee'    => $shopee,
+            'total'     => $total,
+            'stores'    => $storeRows,
+            'erp_count_all' => $totalErpAll,
+            'api_count_all' => $totalApiAll,
+            'missing_items_count_all' => $missingItemsCountAll,
+            'duplicate_orders_count_all' => $duplicateOrdersCountAll,
+        ]);
+    }
+
     /**
      * Halaman detail: daftar order per channel dengan perbandingan ERP vs API
      */
@@ -1426,12 +1593,19 @@ class SecretRepairDashboardController extends Controller
             $query->whereNotIn('order_status', $notCancelled);
         }
 
-        if ($dateFrom) $query->whereDate('order_date', '>=', $dateFrom);
-        if ($dateTo)   $query->whereDate('order_date', '<=', $dateTo);
+        $filterType = $request->input('filter_type', 'order_date');
 
-        $query->orderBy('order_date', 'desc');
+        if ($filterType === 'completed_at') {
+            if ($dateFrom) $query->whereDate('completed_at', '>=', $dateFrom);
+            if ($dateTo)   $query->whereDate('completed_at', '<=', $dateTo);
+            $query->orderBy('completed_at', 'desc');
+        } else {
+            if ($dateFrom) $query->whereDate('order_date', '>=', $dateFrom);
+            if ($dateTo)   $query->whereDate('order_date', '<=', $dateTo);
+            $query->orderBy('order_date', 'desc');
+        }
 
-        $allOrders = $query->get(['id', 'order_marketplace_id', 'order_date', 'order_status',
+        $allOrders = $query->get(['id', 'order_marketplace_id', 'order_date', 'completed_at', 'order_status',
             'total_amount', 'discount_amount', 'marketplace_fee', 'net_amount', 'financial_breakdown',
             'store_id', 'buyer_name', 'shipping_fee']);
 
@@ -1456,6 +1630,7 @@ class SecretRepairDashboardController extends Controller
                 'id'               => $ord->id,
                 'marketplace_id'   => $ord->order_marketplace_id,
                 'order_date'       => $ord->order_date,
+                'completed_at'     => $ord->completed_at ? $ord->completed_at->format('Y-m-d H:i:s') : null,
                 'order_status'     => $ord->order_status,
                 'store_name'       => $ord->store->store_name ?? '-',
                 'buyer_name'       => $ord->buyer_name,
@@ -1496,7 +1671,8 @@ class SecretRepairDashboardController extends Controller
         return view('secret_repair_compare_detail', compact(
             'rows', 'channel', 'dateFrom', 'dateTo',
             'filter', 'storeId', 'stores', 'status',
-            'totalRowsGlobal', 'mismatchRowsGlobal', 'noFbRowsGlobal', 'matchRowsGlobal'
+            'totalRowsGlobal', 'mismatchRowsGlobal', 'noFbRowsGlobal', 'matchRowsGlobal',
+            'filterType'
         ));
     }
 
