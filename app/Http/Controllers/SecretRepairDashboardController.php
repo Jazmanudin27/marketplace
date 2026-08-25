@@ -30,8 +30,9 @@ class SecretRepairDashboardController extends Controller
         }
 
         // Stats summary for repair panel
-        $ordersCount = Order::count();
-        $apiOrdersCount = Order::whereNotNull('financial_breakdown')->count();
+        $notCancelled = ['CANCELLED', 'BATAL', 'CANCELED', 'RETURNED', 'REFUNDED', 'RETURN', 'RETUR', 'TO_RETURN'];
+        $ordersCount = Order::whereNotIn('order_status', $notCancelled)->count();
+        $apiOrdersCount = Order::whereNotNull('financial_breakdown')->whereNotIn('order_status', $notCancelled)->count();
         $missingItemsCount = Order::whereDoesntHave('items')
             ->whereNotNull('order_marketplace_id')
             ->where('order_marketplace_id', 'NOT LIKE', 'MANUAL-%')
@@ -68,6 +69,10 @@ class SecretRepairDashboardController extends Controller
 
         // Manual Stats
         $manualTotalOrders = Order::whereNotIn('store_id', $tiktokStores->merge($shopeeStores))->count();
+        $allStores = Store::with('channel')
+            ->whereIn('id', $tiktokStores->merge($shopeeStores))
+            ->orderBy('store_name')
+            ->get();
 
         // Duplicate Orders Stats
         $duplicateOrdersCount = \DB::table('orders')
@@ -102,7 +107,8 @@ class SecretRepairDashboardController extends Controller
             'shopeeMissingFees',
             'shopeeMissingItems',
             'manualTotalOrders',
-            'duplicateOrdersCount'
+            'duplicateOrdersCount',
+            'allStores'
         ));
     }
 
@@ -1047,6 +1053,7 @@ class SecretRepairDashboardController extends Controller
 
         $dateFrom = $request->input('date_from');
         $dateTo   = $request->input('date_to');
+        $storeId  = $request->input('store_id');
 
         $applyDateFilter = function ($query) use ($dateFrom, $dateTo) {
             if ($dateFrom) $query->whereDate('order_date', '>=', $dateFrom);
@@ -1056,14 +1063,20 @@ class SecretRepairDashboardController extends Controller
 
         $tiktokStores = Store::whereHas('channel', fn($q) => $q->where('code', 'LIKE', '%tiktok%'))->pluck('id');
         $shopeeStores = Store::whereHas('channel', fn($q) => $q->where('code', 'LIKE', '%shopee%'))->pluck('id');
-        $notCancelled = ['CANCELLED', 'BATAL', 'CANCELED'];
+
+        if ($storeId) {
+            $tiktokStores = $tiktokStores->filter(fn($id) => $id == $storeId);
+            $shopeeStores = $shopeeStores->filter(fn($id) => $id == $storeId);
+        }
+
+        $notCancelled = ['CANCELLED', 'BATAL', 'CANCELED', 'RETURNED', 'REFUNDED', 'RETURN', 'RETUR', 'TO_RETURN'];
 
         // Helper: hitung stats ERP + API dari sekumpulan order
         $calcStats = function ($storeIds) use ($applyDateFilter, $notCancelled, $shopeeStores) {
             $q = Order::whereIn('store_id', $storeIds);
             $applyDateFilter($q);
 
-            $erpCount = (clone $q)->count();
+            $erpCount = (clone $q)->whereNotIn('order_status', $notCancelled)->count();
             $active   = (clone $q)->whereNotIn('order_status', $notCancelled);
 
             $erpOmset = $erpFee = $erpNet = 0.0;
@@ -1163,13 +1176,36 @@ class SecretRepairDashboardController extends Controller
         $total = $calcStats($allStoreIds);
 
         // Overall totals with date filter applied
-        $qAll = Order::query();
+        $qAll = Order::query()->whereIn('store_id', $allStoreIds)->whereNotIn('order_status', $notCancelled);
         $applyDateFilter($qAll);
         $totalErpAll = $qAll->count();
 
-        $qApi = Order::whereNotNull('financial_breakdown');
+        $qApi = Order::whereIn('store_id', $allStoreIds)->whereNotNull('financial_breakdown')->whereNotIn('order_status', $notCancelled);
         $applyDateFilter($qApi);
         $totalApiAll = $qApi->count();
+
+        $qMissing = Order::whereIn('store_id', $allStoreIds)
+            ->whereDoesntHave('items')
+            ->whereNotNull('order_marketplace_id')
+            ->where('order_marketplace_id', 'NOT LIKE', 'MANUAL-%')
+            ->where('order_marketplace_id', 'NOT LIKE', 'SHOPEE-DEMO-%')
+            ->where('order_marketplace_id', 'NOT LIKE', 'DS-%')
+            ->whereNotIn('order_status', $notCancelled);
+        $applyDateFilter($qMissing);
+        $missingItemsCountAll = $qMissing->count();
+
+        $qDup = \DB::table('orders')
+            ->select(\DB::raw('TRIM(order_marketplace_id) as mp_id'))
+            ->whereIn('store_id', $allStoreIds)
+            ->whereNotNull('order_marketplace_id')
+            ->where('order_marketplace_id', '!=', '')
+            ->where('tenant_id', auth()->user()->tenant_id);
+        if ($dateFrom) $qDup->whereDate('order_date', '>=', $dateFrom);
+        if ($dateTo)   $qDup->whereDate('order_date', '<=', $dateTo);
+        $duplicateOrdersCountAll = $qDup->groupBy(\DB::raw('TRIM(order_marketplace_id)'))
+            ->havingRaw('COUNT(*) > 1')
+            ->get()
+            ->count();
 
         return response()->json([
             'date_from' => $dateFrom ?: 'Semua waktu',
@@ -1180,6 +1216,8 @@ class SecretRepairDashboardController extends Controller
             'stores'    => $storeRows,
             'erp_count_all' => $totalErpAll,
             'api_count_all' => $totalApiAll,
+            'missing_items_count_all' => $missingItemsCountAll,
+            'duplicate_orders_count_all' => $duplicateOrdersCountAll,
         ]);
     }
 
@@ -1209,7 +1247,7 @@ class SecretRepairDashboardController extends Controller
             $storeIds = Store::whereHas('channel', fn($q) => $q->where('code', 'LIKE', '%tiktok%'))->pluck('id');
         }
 
-        $notCancelled = ['CANCELLED', 'BATAL', 'CANCELED'];
+        $notCancelled = ['CANCELLED', 'BATAL', 'CANCELED', 'RETURNED', 'REFUNDED', 'RETURN', 'RETUR', 'TO_RETURN'];
         $status   = $request->input('status', 'all'); // all | READY_TO_SHIP | SHIPPED | DELIVERED | COMPLETED | CANCELLED | etc.
 
         $query = Order::with(['store', 'items'])

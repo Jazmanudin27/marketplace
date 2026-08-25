@@ -263,6 +263,15 @@
                             </select>
                         </div>
                         <div class="d-flex align-items-center gap-1">
+                            <label class="text-secondary fw-semibold" style="font-size:0.78rem; white-space:nowrap;">Toko:</label>
+                            <select id="filterStoreSelect" class="form-select form-select-sm rounded-2" style="font-size:0.82rem; width:145px;" onchange="loadCompareStats()">
+                                <option value="">Semua Toko</option>
+                                @foreach ($allStores as $st)
+                                    <option value="{{ $st->id }}">{{ $st->store_name }} ({{ strtoupper($st->channel->code ?? '') }})</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="d-flex align-items-center gap-1">
                             <label class="text-secondary fw-semibold" style="font-size:0.78rem; white-space:nowrap;">Dari:</label>
                             <input type="date" id="filterDateFrom" class="form-control form-control-sm rounded-2" style="font-size:0.82rem; width:145px;" value="{{ date('Y-m-01') }}">
                         </div>
@@ -906,7 +915,11 @@
         function renderChannelRow(icon, label, d, channelKey) {
             const dateFrom = document.getElementById('filterDateFrom').value;
             const dateTo   = document.getElementById('filterDateTo').value;
-            const url = `${detailBaseUrl}?channel=${channelKey}&date_from=${dateFrom}&date_to=${dateTo}`;
+            const storeId  = document.getElementById('filterStoreSelect').value;
+            let url = `${detailBaseUrl}?channel=${channelKey}&date_from=${dateFrom}&date_to=${dateTo}`;
+            if (storeId) {
+                url += `&store_id=${storeId}`;
+            }
             return `
                 <tr style="cursor:pointer" onclick="window.open('${url}', '_blank')" title="Klik untuk lihat detail order ${label}">
                     <td class="ps-4 fw-bold">
@@ -932,6 +945,7 @@
         function loadCompareStats() {
             const dateFrom = document.getElementById('filterDateFrom').value;
             const dateTo   = document.getElementById('filterDateTo').value;
+            const storeId  = document.getElementById('filterStoreSelect').value;
             const btn      = document.getElementById('btnLoadCompare');
 
             btn.disabled = true;
@@ -942,6 +956,9 @@
             document.getElementById('storeDetailBody').innerHTML = '<tr><td colspan="12" class="text-center py-3 text-secondary"><i class="fas fa-spinner fa-spin me-1"></i> Memuat...</td></tr>';
 
             const params = new URLSearchParams({ date_from: dateFrom, date_to: dateTo });
+            if (storeId) {
+                params.append('store_id', storeId);
+            }
 
             fetch(compareUrl + '?' + params.toString(), {
                 headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': csrfToken }
@@ -1046,6 +1063,7 @@
 
         function resetCompareFilter() {
             document.getElementById('filterMonthSelect').value = '';
+            document.getElementById('filterStoreSelect').value = '';
             document.getElementById('filterDateFrom').value = '';
             document.getElementById('filterDateTo').value = '';
             document.getElementById('compareDateRangeText').textContent = 'Semua waktu';
