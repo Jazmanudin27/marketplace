@@ -25,23 +25,35 @@
         <div class="small text-muted">Periode Penjualan: {{ date('d F Y', strtotime($dateFrom)) }} s/d {{ date('d F Y', strtotime($dateTo)) }}</div>
     </div>
 
-    <div class="row mb-3">
-        <div class="col-4">
-            <div class="p-2 border rounded text-center">
-                <small class="text-muted d-block">TOTAL OMSET TRANSAKSI</small>
-                <strong class="fs-6 text-primary">Rp {{ number_format($grandTotalOmset, 0, ',', '.') }}</strong>
+    <div class="row g-2 mb-3">
+        <div class="col">
+            <div class="p-2 border rounded text-center" style="background-color: #f8fafc;">
+                <small class="text-muted d-block fw-bold" style="font-size: 9px; letter-spacing: 0.5px;">TOTAL OMSET KOTOR</small>
+                <strong class="text-primary font-monospace" style="font-size: 13px;">Rp {{ number_format($grandTotalOmset, 0, ',', '.') }}</strong>
             </div>
         </div>
-        <div class="col-4">
-            <div class="p-2 border rounded text-center">
-                <small class="text-muted d-block">TOTAL REFUND / RETUR</small>
-                <strong class="fs-6 text-danger">-Rp {{ number_format($grandTotalRefund ?? 0, 0, ',', '.') }}</strong>
+        <div class="col">
+            <div class="p-2 border rounded text-center" style="background-color: #f8fafc;">
+                <small class="text-muted d-block fw-bold" style="font-size: 9px; letter-spacing: 0.5px;">TOTAL REFUND / RETUR</small>
+                <strong class="text-danger font-monospace" style="font-size: 13px;">-Rp {{ number_format($grandTotalRefund ?? 0, 0, ',', '.') }}</strong>
             </div>
         </div>
-        <div class="col-4">
-            <div class="p-2 border rounded text-center">
-                <small class="text-muted d-block">TOTAL ITEM TERJUAL</small>
-                <strong class="fs-6 text-success">{{ number_format($grandTotalQty) }} Pcs</strong>
+        <div class="col">
+            <div class="p-2 border rounded text-center" style="background-color: #f8fafc;">
+                <small class="text-muted d-block fw-bold" style="font-size: 9px; letter-spacing: 0.5px;">TOTAL POTONGAN</small>
+                <strong class="text-warning font-monospace" style="font-size: 13px;">-Rp {{ number_format($grandTotalTotalFee ?? 0, 0, ',', '.') }}</strong>
+            </div>
+        </div>
+        <div class="col">
+            <div class="p-2 border rounded text-center" style="background-color: #f8fafc;">
+                <small class="text-muted d-block fw-bold" style="font-size: 9px; letter-spacing: 0.5px;">TOTAL DANA DILEPAS NET</small>
+                <strong class="text-success font-monospace" style="font-size: 13px;">Rp {{ number_format($grandTotalNetReleased ?? 0, 0, ',', '.') }}</strong>
+            </div>
+        </div>
+        <div class="col">
+            <div class="p-2 border rounded text-center" style="background-color: #f8fafc;">
+                <small class="text-muted d-block fw-bold" style="font-size: 9px; letter-spacing: 0.5px;">TOTAL ITEM TERJUAL</small>
+                <strong class="text-dark font-monospace" style="font-size: 13px;">{{ number_format($grandTotalQty) }} Pcs</strong>
             </div>
         </div>
     </div>
