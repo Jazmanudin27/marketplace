@@ -56,9 +56,9 @@
         <div style="font-size:.72rem;color:#94a3b8">Periode: <strong class="text-white">{{ $dateFrom ?: 'semua' }} s/d {{ $dateTo ?: 'semua' }}</strong></div>
     </div>
     <div class="ms-auto d-flex gap-2">
-        @if($mismatchRows > 0)
+        @if($mismatchRowsGlobal > 0)
             <button onclick="syncAllMismatches()" id="btnTopSyncAll" class="btn btn-sm btn-warning text-dark rounded-2 fw-bold" style="font-size:.75rem">
-                <i class="fas fa-bolt me-1"></i>Sinkronkan Semua ({{ $mismatchRows }})
+                <i class="fas fa-bolt me-1"></i>Sinkronkan Semua ({{ $mismatchRowsGlobal }})
             </button>
         @endif
         <button onclick="window.print()" class="btn btn-sm btn-outline-light rounded-2" style="font-size:.75rem"><i class="fas fa-print me-1"></i>Print</button>
