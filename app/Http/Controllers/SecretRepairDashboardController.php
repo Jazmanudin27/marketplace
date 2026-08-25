@@ -1118,7 +1118,9 @@ class SecretRepairDashboardController extends Controller
 
         // ── 3. DANA CAIR API (ESCROW / SETTLEMENT RESMI SEPERTI DI SYNC-ESCROW) ──
         $apiNet = 0.0;
-        if (isset($inc['escrow_amount']) && (float)$inc['escrow_amount'] > 0) {
+        if (isset($inc['escrow_amount_after_adjustment'])) {
+            $apiNet = (float) $inc['escrow_amount_after_adjustment'];
+        } elseif (isset($inc['escrow_amount']) && (float)$inc['escrow_amount'] > 0) {
             $apiNet = (float) $inc['escrow_amount'];
         } elseif (isset($st0['settlement_amount']) && (float)$st0['settlement_amount'] > 0) {
             $apiNet = (float) $st0['settlement_amount'];
@@ -1174,7 +1176,7 @@ class SecretRepairDashboardController extends Controller
         // ── 5. REFUND / PENGEMBALIAN DANA ──
         // ERP Refund: ambil dari financial_breakdown refund keys
         $erpRefund = 0.0;
-        $erpRefundKeys = ['customer_refund_amount', 'gross_sales_refund_amount', 'seller_return_refund', 'refund_amount', 'return_amount', 'customer_order_refund_amount'];
+        $erpRefundKeys = ['customer_refund_amount', 'gross_sales_refund_amount', 'seller_return_refund', 'buyer_return_refund_amount', 'refund_amount', 'return_amount', 'customer_order_refund_amount', 'total_adjustment_amount'];
         foreach ($erpRefundKeys as $rk) {
             if (!empty($inc[$rk]) && (float)$inc[$rk] != 0) {
                 $erpRefund = abs((float)$inc[$rk]);
@@ -1200,7 +1202,7 @@ class SecretRepairDashboardController extends Controller
 
         // API Refund: dari field refund di financial_breakdown (API side)
         $apiRefund = 0.0;
-        $apiRefundKeys = ['customer_refund_amount', 'buyer_return_refund_amount', 'return_amount', 'refund_amount', 'seller_return_refund'];
+        $apiRefundKeys = ['customer_refund_amount', 'buyer_return_refund_amount', 'return_amount', 'refund_amount', 'seller_return_refund', 'total_adjustment_amount'];
         foreach ($apiRefundKeys as $rk) {
             if (isset($inc[$rk]) && (float)$inc[$rk] != 0) {
                 $apiRefund = abs((float)$inc[$rk]);
@@ -1217,7 +1219,7 @@ class SecretRepairDashboardController extends Controller
         }
 
         $originalApiNet = $apiNet;
-        if ($apiNet > 0 && $apiRefund > 0) {
+        if ($apiNet > 0 && $apiRefund > 0 && !isset($inc['escrow_amount_after_adjustment'])) {
             $apiNet = $apiNet - $apiRefund;
         }
 

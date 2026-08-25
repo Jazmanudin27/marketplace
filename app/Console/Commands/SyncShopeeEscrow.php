@@ -169,11 +169,11 @@ class SyncShopeeEscrow extends Command
                             $order->total_amount = $merchantSubtotal;
                         }
 
-                        $escrowAmount = (float) ($income['escrow_amount'] ?? 0);
+                        $rawEscrow = (float) ($income['escrow_amount'] ?? 0);
 
                         // Hitung refund jika ada
                         $refundAmt = 0.0;
-                        $refundKeys = ['customer_refund_amount', 'gross_sales_refund_amount', 'seller_return_refund', 'buyer_return_refund_amount', 'refund_amount', 'return_amount', 'customer_order_refund_amount'];
+                        $refundKeys = ['customer_refund_amount', 'gross_sales_refund_amount', 'seller_return_refund', 'buyer_return_refund_amount', 'refund_amount', 'return_amount', 'customer_order_refund_amount', 'total_adjustment_amount'];
                         foreach ($refundKeys as $rk) {
                             if (!empty($income[$rk]) && (float)$income[$rk] != 0) {
                                 $refundAmt = abs((float)$income[$rk]);
@@ -185,8 +185,8 @@ class SyncShopeeEscrow extends Command
                         $details = $order->fee_breakdown_details;
                         $totalFee = abs($details['total_fee'] ?? 0);
 
-                        if ($totalFee <= 0 && $escrowAmount > 0 && $merchantSubtotal > $escrowAmount) {
-                            $totalFee = max(0.0, $merchantSubtotal - $escrowAmount);
+                        if ($totalFee <= 0 && $rawEscrow > 0 && $merchantSubtotal > $rawEscrow) {
+                            $totalFee = max(0.0, $merchantSubtotal - $rawEscrow);
                         }
 
                         if ($totalFee <= 0 && $merchantSubtotal > 0) {
@@ -194,7 +194,12 @@ class SyncShopeeEscrow extends Command
                         }
 
                         $order->marketplace_fee = $totalFee;
-                        $order->net_amount = $escrowAmount > 0 ? ($escrowAmount - $refundAmt) : max(0.0, $merchantSubtotal - $refundAmt - $totalFee);
+
+                        if (isset($income['escrow_amount_after_adjustment'])) {
+                            $order->net_amount = (float) $income['escrow_amount_after_adjustment'];
+                        } else {
+                            $order->net_amount = $rawEscrow > 0 ? ($rawEscrow - $refundAmt) : max(0.0, $merchantSubtotal - $refundAmt - $totalFee);
+                        }
 
                         // Jika terdeteksi ada refund/retur, ubah status pesanan menjadi RETURN
                         if ($refundAmt > 0) {
