@@ -166,7 +166,7 @@
                             </div>
                             <div>
                                 <span class="text-uppercase text-secondary fw-bold" style="font-size: 0.68rem; letter-spacing: 0.05em;">Total Pesanan di ERP</span>
-                                <h2 class="fw-bold text-dark mb-0 mt-1" style="font-size: 1.65rem;">{{ number_format($ordersCount, 0, ',', '.') }}</h2>
+                                <h2 class="fw-bold text-dark mb-0 mt-1" id="statErpCount" style="font-size: 1.65rem;">{{ number_format($ordersCount, 0, ',', '.') }}</h2>
                                 <small class="text-muted" style="font-size: 0.72rem;">Jumlah seluruh record pesanan di database lokal ERP</small>
                             </div>
                         </div>
@@ -182,7 +182,7 @@
                             </div>
                             <div>
                                 <span class="text-uppercase text-secondary fw-bold" style="font-size: 0.68rem; letter-spacing: 0.05em;">Total Pesanan Ter-Sync API (Shopee & TikTok)</span>
-                                <h2 class="fw-bold text-success mb-0 mt-1" style="font-size: 1.65rem;">{{ number_format($apiOrdersCount, 0, ',', '.') }}</h2>
+                                <h2 class="fw-bold text-success mb-0 mt-1" id="statApiCount" style="font-size: 1.65rem;">{{ number_format($apiOrdersCount, 0, ',', '.') }}</h2>
                                 <small class="text-muted" style="font-size: 0.72rem;">Pesanan yang data settlement/keuangannya berhasil ditarik via API</small>
                             </div>
                         </div>
@@ -201,6 +201,28 @@
                     </div>
                     <!-- Filter Tanggal -->
                     <div class="d-flex align-items-center gap-2 flex-wrap">
+                        <div class="d-flex align-items-center gap-1">
+                            <label class="text-secondary fw-semibold" style="font-size:0.78rem; white-space:nowrap;">Pilih Bulan:</label>
+                            <select id="filterMonthSelect" class="form-select form-select-sm rounded-2" style="font-size:0.82rem; width:135px;" onchange="applyMonthFilter(this.value)">
+                                <option value="">Custom Tanggal</option>
+                                @php
+                                    $current = \Carbon\Carbon::now()->startOfMonth();
+                                    $monthNames = [
+                                        1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
+                                        5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus',
+                                        9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember'
+                                    ];
+                                @endphp
+                                @for ($i = 0; $i < 12; $i++)
+                                    @php
+                                        $mVal = $current->format('Y-m');
+                                        $mText = $monthNames[$current->month] . ' ' . $current->year;
+                                        $current->subMonth();
+                                    @endphp
+                                    <option value="{{ $mVal }}">{{ $mText }}</option>
+                                @endfor
+                            </select>
+                        </div>
                         <div class="d-flex align-items-center gap-1">
                             <label class="text-secondary fw-semibold" style="font-size:0.78rem; white-space:nowrap;">Dari:</label>
                             <input type="date" id="filterDateFrom" class="form-control form-control-sm rounded-2" style="font-size:0.82rem; width:145px;" value="{{ date('Y-m-01') }}">
@@ -893,6 +915,14 @@
                 const label = (data.date_from === 'Semua waktu') ? 'Semua waktu' : (data.date_from + ' s/d ' + data.date_to);
                 document.getElementById('compareDateRangeText').textContent = label;
 
+                // Update dynamic counts in Section 1 cards
+                if (data.erp_count_all !== undefined) {
+                    document.getElementById('statErpCount').textContent = data.erp_count_all.toLocaleString('id-ID');
+                }
+                if (data.api_count_all !== undefined) {
+                    document.getElementById('statApiCount').textContent = data.api_count_all.toLocaleString('id-ID');
+                }
+
                 // Render channel rows
                 document.getElementById('compareTableBody').innerHTML =
                     renderChannelRow('<i class="fab fa-tiktok text-dark"></i>', 'TikTok Shop & Tokopedia', data.tiktok, 'tiktok') +
@@ -948,7 +978,29 @@
             });
         }
 
+        function applyMonthFilter(val) {
+            if (!val) {
+                // If reset to custom, do nothing
+                return;
+            }
+            const parts = val.split('-');
+            const year = parseInt(parts[0]);
+            const month = parseInt(parts[1]);
+            
+            // Format first day: YYYY-MM-01
+            const firstDay = year + '-' + String(month).padStart(2, '0') + '-01';
+            
+            // Get last day of that month
+            const lastDayDate = new Date(year, month, 0); // month is 1-indexed (e.g. 8 for Aug), 0 gets last day of previous (which is 31st of Aug)
+            const lastDay = year + '-' + String(month).padStart(2, '0') + '-' + String(lastDayDate.getDate()).padStart(2, '0');
+            
+            document.getElementById('filterDateFrom').value = firstDay;
+            document.getElementById('filterDateTo').value = lastDay;
+            loadCompareStats();
+        }
+
         function resetCompareFilter() {
+            document.getElementById('filterMonthSelect').value = '';
             document.getElementById('filterDateFrom').value = '';
             document.getElementById('filterDateTo').value = '';
             document.getElementById('compareDateRangeText').textContent = 'Semua waktu';

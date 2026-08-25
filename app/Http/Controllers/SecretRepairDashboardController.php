@@ -1162,6 +1162,15 @@ class SecretRepairDashboardController extends Controller
         $allStoreIds = $tiktokStores->merge($shopeeStores);
         $total = $calcStats($allStoreIds);
 
+        // Overall totals with date filter applied
+        $qAll = Order::query();
+        $applyDateFilter($qAll);
+        $totalErpAll = $qAll->count();
+
+        $qApi = Order::whereNotNull('financial_breakdown');
+        $applyDateFilter($qApi);
+        $totalApiAll = $qApi->count();
+
         return response()->json([
             'date_from' => $dateFrom ?: 'Semua waktu',
             'date_to'   => $dateTo   ?: 'Semua waktu',
@@ -1169,6 +1178,8 @@ class SecretRepairDashboardController extends Controller
             'shopee'    => $shopee,
             'total'     => $total,
             'stores'    => $storeRows,
+            'erp_count_all' => $totalErpAll,
+            'api_count_all' => $totalApiAll,
         ]);
     }
 
