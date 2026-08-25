@@ -388,7 +388,7 @@ class SecretRepairDashboardController extends Controller
                                 $sDisc     = (float)($item['seller_discount'] ?? 0);
                                 $pDisc     = (float)($item['platform_discount'] ?? 0);
                                 $qty       = (int)($item['quantity'] ?? 1);
-                                $unitPrice = (float)($item['sale_price'] ?? $item['sku_display_price'] ?? $item['price'] ?? $origPrice);
+                                $unitPrice = max(0.0, $origPrice - $sDisc);
                                 $pName     = $item['product_name'] ?? $item['item_name'] ?? 'Produk TikTok';
                                 $vName     = $item['sku_name'] ?? $item['variant_name'] ?? '';
 

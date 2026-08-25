@@ -280,7 +280,9 @@ class PullOrdersFromTiktok implements ShouldQueue
         $productSubtotal = 0.0;
         if (!empty($itemList)) {
             foreach ($itemList as $it) {
-                $iPrice = (float) ($it['original_price'] ?? $it['sale_price'] ?? $it['sku_display_price'] ?? $it['price'] ?? 0);
+                $origP = (float) ($it['original_price'] ?? $it['price'] ?? 0);
+                $sD = (float) ($it['seller_discount'] ?? 0);
+                $iPrice = max(0.0, $origP - $sD);
                 $iQty = (int) ($it['quantity'] ?? 1);
                 $productSubtotal += ($iPrice * $iQty);
             }
@@ -475,13 +477,7 @@ class PullOrdersFromTiktok implements ShouldQueue
                 $costPrice = $masterProduct ? (float) $masterProduct->cost_price : 0;
                 $qty = (int) ($item['quantity'] ?? 1);
                 
-                if (isset($item['sale_price']) && (float)$item['sale_price'] > 0) {
-                    $unitPrice = (float)$item['sale_price'];
-                } elseif ($sDisc > 0 && $origPrice > $sDisc) {
-                    $unitPrice = max(0.0, $origPrice - $sDisc);
-                } else {
-                    $unitPrice = (float)($item['sku_display_price'] ?? $item['price'] ?? $origPrice);
-                }
+                $unitPrice = max(0.0, $origPrice - $sDisc);
 
                 $pName = $item['product_name'] ?? $item['item_name'] ?? 'Produk TikTok';
                 $vName = $item['sku_name'] ?? $item['variant_name'] ?? '';

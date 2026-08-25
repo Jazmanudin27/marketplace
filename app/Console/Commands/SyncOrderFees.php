@@ -183,7 +183,7 @@ class SyncOrderFees extends Command
 
                                 if ($productSubtotal <= 0 && !empty($tOrder['line_items'])) {
                                     foreach ($tOrder['line_items'] as $lItem) {
-                                        $itemPrice = (float) ($lItem['original_price'] ?? $lItem['sale_price'] ?? 0);
+                                        $itemPrice = max(0.0, ((float)($lItem['original_price'] ?? $lItem['price'] ?? 0)) - ((float)($lItem['seller_discount'] ?? 0)));
                                         $itemQty = (int) ($lItem['quantity'] ?? 1);
                                         $productSubtotal += ($itemPrice * $itemQty);
                                     }

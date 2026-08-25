@@ -217,7 +217,7 @@ class SyncTiktokEscrow extends Command
 
                         if ($productSubtotal <= 0 && !empty($tOrder['line_items'])) {
                             foreach ($tOrder['line_items'] as $lItem) {
-                                $itemPrice = (float) ($lItem['original_price'] ?? $lItem['sale_price'] ?? 0);
+                                $itemPrice = max(0.0, ((float)($lItem['original_price'] ?? $lItem['price'] ?? 0)) - ((float)($lItem['seller_discount'] ?? 0)));
                                 $itemQty = (int) ($lItem['quantity'] ?? 1);
                                 $productSubtotal += ($itemPrice * $itemQty);
                             }
@@ -428,7 +428,7 @@ class SyncTiktokEscrow extends Command
                                     $sDisc     = (float)($itSync['seller_discount'] ?? 0);
                                     $pDisc     = (float)($itSync['platform_discount'] ?? 0);
                                     $qty       = (int)($itSync['quantity'] ?? 1);
-                                    $unitPrice = (float)($itSync['sale_price'] ?? $itSync['sku_display_price'] ?? $itSync['price'] ?? $origPrice);
+                                    $unitPrice = max(0.0, $origPrice - $sDisc);
                                     $pName     = $itSync['product_name'] ?? $itSync['item_name'] ?? 'Produk TikTok';
                                     $vName     = $itSync['sku_name'] ?? $itSync['variant_name'] ?? '';
 
