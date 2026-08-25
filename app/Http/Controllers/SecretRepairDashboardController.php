@@ -1405,26 +1405,28 @@ class SecretRepairDashboardController extends Controller
         $shopeeStores = Store::whereHas('channel', fn($q) => $q->where('code', 'LIKE', '%shopee%'))->pluck('id');
 
         // Helper: hitung stats ERP + API dari sekumpulan order
-        $calcStats = function ($storeIds) use ($applyDateFilter, $notCancelled, $shopeeStores) {
-            $q = Order::whereIn('store_id', $storeIds);
+        $calcStats = function ($storeIds) use ($applyDateFilter, $shopeeStores) {
+            $q = Order::with('returnOrder')->whereIn('store_id', $storeIds);
             $applyDateFilter($q);
 
-            $erpCount = (clone $q)->whereNotIn('order_status', $notCancelled)->count();
-            $active   = (clone $q)->whereNotIn('order_status', $notCancelled);
-
+            $erpCount = 0;
             $erpOmset = $erpFee = $erpNet = 0.0;
             $apiOmset = $apiFee = $apiNet = 0.0;
             $apiCount = 0;
 
-            (clone $active)->select(['id', 'store_id', 'total_amount', 'discount_amount', 'marketplace_fee', 'net_amount', 'financial_breakdown'])
-                ->chunk(500, function ($orders) use (&$erpOmset, &$erpFee, &$erpNet, &$apiOmset, &$apiFee, &$apiNet, &$apiCount, $shopeeStores) {
+            $q->select(['id', 'store_id', 'total_amount', 'discount_amount', 'marketplace_fee', 'net_amount', 'financial_breakdown', 'order_status'])
+                ->chunk(500, function ($orders) use (&$erpOmset, &$erpFee, &$erpNet, &$apiOmset, &$apiFee, &$apiNet, &$apiCount, &$erpCount, $shopeeStores) {
                     foreach ($orders as $ord) {
+                        if ($ord->refund_amount > 0) {
+                            continue;
+                        }
                         $isShopee = $shopeeStores->contains($ord->store_id);
                         $fin = $this->parseOrderFinancials($ord, $isShopee);
 
                         $erpOmset += $fin['erp_omset'];
                         $erpFee   += $fin['erp_fee'];
                         $erpNet   += $fin['erp_net'];
+                        $erpCount++;
 
                         if ($fin['has_fb']) {
                             $apiOmset += $fin['api_omset'];
@@ -1455,27 +1457,28 @@ class SecretRepairDashboardController extends Controller
             ->whereIn('id', $tiktokStores->merge($shopeeStores))
             ->get();
 
-        $storeRows = [];
         foreach ($allStores as $st) {
-            $sq = Order::where('store_id', $st->id);
+            $sq = Order::with('returnOrder')->where('store_id', $st->id);
             $applyDateFilter($sq);
 
-            $count  = (clone $sq)->count();
-            $cancel = (clone $sq)->whereIn('order_status', $notCancelled)->count();
-            $active = (clone $sq)->whereNotIn('order_status', $notCancelled);
-
+            $count  = 0;
+            $cancel = 0;
             $isShopee = $shopeeStores->contains($st->id);
 
             $sErpOmset = $sErpFee = $sErpNet = 0.0;
             $sApiOmset = $sApiFee = $sApiNet = 0.0;
 
-            (clone $active)->select(['id', 'store_id', 'total_amount', 'discount_amount', 'marketplace_fee', 'net_amount', 'financial_breakdown'])
-                ->chunk(300, function ($orders) use (&$sErpOmset, &$sErpFee, &$sErpNet, &$sApiOmset, &$sApiFee, &$sApiNet, $isShopee) {
+            $sq->select(['id', 'store_id', 'total_amount', 'discount_amount', 'marketplace_fee', 'net_amount', 'financial_breakdown', 'order_status'])
+                ->chunk(300, function ($orders) use (&$sErpOmset, &$sErpFee, &$sErpNet, &$sApiOmset, &$sApiFee, &$sApiNet, &$count, $isShopee) {
                     foreach ($orders as $ord) {
+                        if ($ord->refund_amount > 0) {
+                            continue;
+                        }
                         $fin = $this->parseOrderFinancials($ord, $isShopee);
                         $sErpOmset += $fin['erp_omset'];
                         $sErpFee   += $fin['erp_fee'];
                         $sErpNet   += $fin['erp_net'];
+                        $count++;
 
                         if ($fin['has_fb']) {
                             $sApiOmset += $fin['api_omset'];
@@ -1509,35 +1512,59 @@ class SecretRepairDashboardController extends Controller
         $total = $calcStats($allStoreIds);
 
         // Overall totals with date filter applied
-        $qAll = Order::query()->whereNotIn('order_status', $notCancelled);
+        $qAll = Order::with('returnOrder');
         $applyDateFilter($qAll);
-        $totalErpAll = $qAll->count();
+        $totalErpAll = 0;
+        $qAll->select(['id', 'order_status', 'financial_breakdown'])->chunk(500, function ($orders) use (&$totalErpAll) {
+            foreach ($orders as $ord) {
+                if ($ord->refund_amount > 0) continue;
+                $totalErpAll++;
+            }
+        });
 
-        $qApi = Order::whereNotNull('financial_breakdown')->whereNotIn('order_status', $notCancelled);
+        $qApi = Order::with('returnOrder')->whereNotNull('financial_breakdown');
         $applyDateFilter($qApi);
-        $totalApiAll = $qApi->count();
+        $totalApiAll = 0;
+        $qApi->select(['id', 'order_status', 'financial_breakdown'])->chunk(500, function ($orders) use (&$totalApiAll) {
+            foreach ($orders as $ord) {
+                if ($ord->refund_amount > 0) continue;
+                $totalApiAll++;
+            }
+        });
 
-        $qMissing = Order::whereDoesntHave('items')
+        $qMissing = Order::with('returnOrder')->whereDoesntHave('items')
             ->whereNotNull('order_marketplace_id')
             ->where('order_marketplace_id', 'NOT LIKE', 'MANUAL-%')
             ->where('order_marketplace_id', 'NOT LIKE', 'SHOPEE-DEMO-%')
-            ->where('order_marketplace_id', 'NOT LIKE', 'DS-%')
-            ->whereNotIn('order_status', $notCancelled);
+            ->where('order_marketplace_id', 'NOT LIKE', 'DS-%');
         $applyDateFilter($qMissing);
-        $missingItemsCountAll = $qMissing->count();
+        $missingItemsCountAll = 0;
+        $qMissing->select(['id', 'order_status', 'financial_breakdown'])->chunk(500, function ($orders) use (&$missingItemsCountAll) {
+            foreach ($orders as $ord) {
+                if ($ord->refund_amount > 0) continue;
+                $missingItemsCountAll++;
+            }
+        });
 
-        $qDup = \DB::table('orders')
-            ->select(\DB::raw('TRIM(order_marketplace_id) as mp_id'))
+        $qDup = Order::with('returnOrder')
+            ->select(['id', 'order_marketplace_id', 'completed_at', 'order_status', 'financial_breakdown'])
             ->whereNotNull('order_marketplace_id')
             ->where('order_marketplace_id', '!=', '')
-            ->whereNotIn('order_status', $notCancelled)
             ->where('tenant_id', auth()->user()->tenant_id);
-        if ($dateFrom) $qDup->whereDate('completed_at', '>=', $dateFrom);
-        if ($dateTo)   $qDup->whereDate('completed_at', '<=', $dateTo);
-        $duplicateOrdersCountAll = $qDup->groupBy(\DB::raw('TRIM(order_marketplace_id)'))
-            ->havingRaw('COUNT(*) > 1')
-            ->get()
-            ->count();
+        $applyDateFilter($qDup);
+
+        $mpIds = [];
+        $qDup->chunk(500, function ($orders) use (&$mpIds) {
+            foreach ($orders as $ord) {
+                if ($ord->refund_amount > 0) continue;
+                $mpId = trim($ord->order_marketplace_id);
+                if (!isset($mpIds[$mpId])) {
+                    $mpIds[$mpId] = 0;
+                }
+                $mpIds[$mpId]++;
+            }
+        });
+        $duplicateOrdersCountAll = count(array_filter($mpIds, fn($cnt) => $cnt > 1));
 
         return response()->json([
             'date_from' => $dateFrom ?: 'Semua waktu',
@@ -1582,7 +1609,7 @@ class SecretRepairDashboardController extends Controller
         $notCancelled = ['CANCELLED', 'BATAL', 'CANCELED', 'RETURNED', 'REFUNDED', 'RETURN', 'RETUR', 'TO_RETURN'];
         $status   = $request->input('status', 'all'); // all | READY_TO_SHIP | SHIPPED | DELIVERED | COMPLETED | CANCELLED | etc.
 
-        $query = Order::with(['store', 'items'])
+        $query = Order::with(['store', 'items', 'returnOrder'])
             ->whereIn('store_id', $storeIds);
 
         $filterType = $request->input('filter_type', 'order_date');
@@ -1613,6 +1640,9 @@ class SecretRepairDashboardController extends Controller
 
         $rowsAll = [];
         foreach ($allOrders as $ord) {
+            if ($filterType === 'completed_at' && $ord->refund_amount > 0) {
+                continue;
+            }
             $isShopee = $shopeeStores->contains($ord->store_id);
             $fin = $this->parseOrderFinancials($ord, $isShopee);
 
