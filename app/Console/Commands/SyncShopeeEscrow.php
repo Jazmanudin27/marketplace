@@ -90,13 +90,18 @@ class SyncShopeeEscrow extends Command
             // 🎯 FILTER HANYA PESANAN MISMATCH / BEDA DENGAN API
             if (!$orderSnOption && !$forceAll) {
                 $orders = $allOrders->filter(function($ord) {
+                    $status = strtoupper($ord->order_status);
+                    if (!in_array($status, ['COMPLETED', 'SELESAI', 'CANCELLED', 'BATAL', 'CANCELED', 'RETURNED', 'REFUNDED', 'RETURN', 'REFUND'])) {
+                        return true;
+                    }
+
                     $fb = $ord->financial_breakdown;
-                    if (empty($fb)) return false;
+                    if (empty($fb)) return true; // Jika kosong, wajib disinkronkan agar terisi
 
                     if (is_string($fb)) {
                         $fb = json_decode($fb, true);
                     }
-                    if (!is_array($fb) || empty($fb)) return false;
+                    if (!is_array($fb) || empty($fb)) return true;
 
                     $sellerDisc = (float)($fb['voucher_from_seller'] ?? $fb['seller_discount'] ?? 0);
                     $cogs = (float)($fb['cost_of_goods_sold'] ?? $fb['order_selling_price'] ?? $ord->total_amount);

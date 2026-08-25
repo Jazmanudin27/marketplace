@@ -144,7 +144,7 @@ class SyncMissingTiktokOrders extends Command
 
                     // Pesanan yang statusnya sudah COMPLETED/CANCELLED/DELIVERED dianggap final dan dilewati
                     // Pesanan aktif (READY_TO_SHIP, dll) tetap dimasukkan ke antrean pull detail agar statusnya sinkron otomatis
-                    $finalizedIds = $existingOrders->filter(fn($o) => in_array($o->order_status, ['COMPLETED', 'DELIVERED', 'CANCELLED', 'BATAL', 'CANCELED']))
+                    $finalizedIds = $existingOrders->filter(fn($o) => in_array($o->order_status, ['COMPLETED', 'CANCELLED', 'BATAL', 'CANCELED', 'RETURNED', 'REFUNDED', 'RETURN', 'REFUND']))
                         ->pluck('order_marketplace_id')
                         ->toArray();
 

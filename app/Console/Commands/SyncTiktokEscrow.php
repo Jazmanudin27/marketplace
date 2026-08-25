@@ -141,6 +141,11 @@ class SyncTiktokEscrow extends Command
             // 🎯 FILTER HANYA PESANAN YANG BENAR-BENAR MISMATCH (SAMA PERSIS DENGAN LOGIKA DASHBOARD)
             if (!$orderIdOption && !$forceAll) {
                 $orders = $allOrders->filter(function($ord) {
+                    $status = strtoupper($ord->order_status);
+                    if (!in_array($status, ['COMPLETED', 'SELESAI', 'CANCELLED', 'BATAL', 'CANCELED', 'RETURNED', 'REFUNDED', 'RETURN', 'REFUND'])) {
+                        return true;
+                    }
+
                     $fb = $ord->financial_breakdown;
                     if (empty($fb)) return true; // Jika kosong, wajib disinkronkan agar terisi
 
