@@ -157,33 +157,72 @@
 
         <!-- 📊 SECTION 1: Ringkasan Jumlah Pesanan ERP vs API -->
         <div class="row g-3 mb-4 mt-2">
-            <div class="col-md-6">
+            <!-- Total ERP -->
+            <div class="col-xl-3 col-md-6">
                 <div class="card border-0 shadow-sm rounded-3 overflow-hidden" style="background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);">
-                    <div class="card-body p-3.5">
+                    <div class="card-body p-3">
                         <div class="d-flex align-items-center">
-                            <div class="rounded-circle bg-primary bg-opacity-10 p-3.5 me-3 text-primary d-flex align-items-center justify-content-center" style="width: 56px; height: 56px;">
-                                <i class="fas fa-database fa-lg"></i>
+                            <div class="rounded-circle bg-primary bg-opacity-10 p-3 me-3 text-primary d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
+                                <i class="fas fa-database"></i>
                             </div>
                             <div>
-                                <span class="text-uppercase text-secondary fw-bold" style="font-size: 0.68rem; letter-spacing: 0.05em;">Total Pesanan di ERP</span>
-                                <h2 class="fw-bold text-dark mb-0 mt-1" id="statErpCount" style="font-size: 1.65rem;">{{ number_format($ordersCount, 0, ',', '.') }}</h2>
-                                <small class="text-muted" style="font-size: 0.72rem;">Jumlah seluruh record pesanan di database lokal ERP</small>
+                                <span class="text-uppercase text-secondary fw-bold" style="font-size: 0.65rem; letter-spacing: 0.05em;">Total Pesanan di ERP</span>
+                                <h3 class="fw-bold text-dark mb-0 mt-1" id="statErpCount" style="font-size: 1.4rem;">{{ number_format($ordersCount, 0, ',', '.') }}</h3>
+                                <small class="text-muted" style="font-size: 0.68rem;">Record pesanan di database lokal ERP</small>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
-            <div class="col-md-6">
+            
+            <!-- Total API -->
+            <div class="col-xl-3 col-md-6">
                 <div class="card border-0 shadow-sm rounded-3 overflow-hidden" style="background: linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%);">
-                    <div class="card-body p-3.5">
+                    <div class="card-body p-3">
                         <div class="d-flex align-items-center">
-                            <div class="rounded-circle bg-success bg-opacity-10 p-3.5 me-3 text-success d-flex align-items-center justify-content-center" style="width: 56px; height: 56px;">
-                                <i class="fas fa-cloud-download-alt fa-lg"></i>
+                            <div class="rounded-circle bg-success bg-opacity-10 p-3 me-3 text-success d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
+                                <i class="fas fa-cloud-download-alt"></i>
                             </div>
                             <div>
-                                <span class="text-uppercase text-secondary fw-bold" style="font-size: 0.68rem; letter-spacing: 0.05em;">Total Pesanan Ter-Sync API (Shopee & TikTok)</span>
-                                <h2 class="fw-bold text-success mb-0 mt-1" id="statApiCount" style="font-size: 1.65rem;">{{ number_format($apiOrdersCount, 0, ',', '.') }}</h2>
-                                <small class="text-muted" style="font-size: 0.72rem;">Pesanan yang data settlement/keuangannya berhasil ditarik via API</small>
+                                <span class="text-uppercase text-secondary fw-bold" style="font-size: 0.65rem; letter-spacing: 0.05em;">Total Ter-Sync API</span>
+                                <h3 class="fw-bold text-success mb-0 mt-1" id="statApiCount" style="font-size: 1.4rem;">{{ number_format($apiOrdersCount, 0, ',', '.') }}</h3>
+                                <small class="text-muted" style="font-size: 0.68rem;">Data settlement ditarik via API</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Item Kosong -->
+            <div class="col-xl-3 col-md-6">
+                <div class="card border-0 shadow-sm rounded-3 overflow-hidden" style="background: linear-gradient(135deg, #ffffff 0%, #fef2f2 100%);">
+                    <div class="card-body p-3">
+                        <div class="d-flex align-items-center">
+                            <div class="rounded-circle bg-danger bg-opacity-10 p-3 me-3 text-danger d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
+                                <i class="fas fa-exclamation-triangle"></i>
+                            </div>
+                            <div>
+                                <span class="text-uppercase text-secondary fw-bold" style="font-size: 0.65rem; letter-spacing: 0.05em;">Item Kosong</span>
+                                <h3 class="fw-bold text-danger mb-0 mt-1" id="statMissingCount" style="font-size: 1.4rem;">{{ number_format($missingItemsCount, 0, ',', '.') }}</h3>
+                                <small class="text-muted" style="font-size: 0.68rem;">Pesanan ter-import tanpa rincian item</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pesanan Double -->
+            <div class="col-xl-3 col-md-6">
+                <div class="card border-0 shadow-sm rounded-3 overflow-hidden" style="background: linear-gradient(135deg, #ffffff 0%, #fffbeb 100%);">
+                    <div class="card-body p-3">
+                        <div class="d-flex align-items-center">
+                            <div class="rounded-circle bg-warning bg-opacity-10 p-3 me-3 text-warning d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
+                                <i class="fas fa-copy"></i>
+                            </div>
+                            <div>
+                                <span class="text-uppercase text-secondary fw-bold" style="font-size: 0.65rem; letter-spacing: 0.05em;">Pesanan Double</span>
+                                <h3 class="fw-bold text-warning mb-0 mt-1" id="statDuplicateCount" style="font-size: 1.4rem;">{{ number_format($duplicateOrdersCount, 0, ',', '.') }}</h3>
+                                <small class="text-muted" style="font-size: 0.68rem;">ID pesanan ter-import ganda/duplikat</small>
                             </div>
                         </div>
                     </div>
@@ -921,6 +960,12 @@
                 }
                 if (data.api_count_all !== undefined) {
                     document.getElementById('statApiCount').textContent = data.api_count_all.toLocaleString('id-ID');
+                }
+                if (data.missing_items_count_all !== undefined) {
+                    document.getElementById('statMissingCount').textContent = data.missing_items_count_all.toLocaleString('id-ID');
+                }
+                if (data.duplicate_orders_count_all !== undefined) {
+                    document.getElementById('statDuplicateCount').textContent = data.duplicate_orders_count_all.toLocaleString('id-ID');
                 }
 
                 // Render channel rows
