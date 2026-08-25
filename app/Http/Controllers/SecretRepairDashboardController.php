@@ -1126,8 +1126,6 @@ class SecretRepairDashboardController extends Controller
             $apiNet = (float) $inc['settlement_amount'];
         } elseif (isset($inc['seller_settlement_amount']) && (float)$inc['seller_settlement_amount'] > 0) {
             $apiNet = (float) $inc['seller_settlement_amount'];
-        } else {
-            $apiNet = $erpNet;
         }
 
         // ── 4. BIAYA ADMIN API (PERSIS SAMA DENGAN SYNC-ESCROW) ──
@@ -1147,12 +1145,29 @@ class SecretRepairDashboardController extends Controller
             // TikTok
             if (!empty($st0['fee_amount']) && (float)$st0['fee_amount'] != 0) {
                 $apiFee = abs((float)$st0['fee_amount']);
-            } elseif ($apiOmset > 0 && $apiNet > 0 && $apiOmset > $apiNet) {
-                $apiFee = max(0.0, $apiOmset - $apiNet);
             } else {
-                $feeDetails = $ord->fee_breakdown_details;
-                $totalFeeCalc = abs((float)($feeDetails['total_fee'] ?? 0));
-                $apiFee = $totalFeeCalc > 0 ? $totalFeeCalc : $erpFee;
+                // Sum estimated TikTok fees from financial_breakdown keys (payment_info side)
+                $platComm = (float) ($inc['platform_commission'] ?? $inc['commission_before_discount'] ?? 0);
+                $platCommDisc = (float) ($inc['platform_commission_discount'] ?? 0);
+                $netPlatComm = (float) ($inc['net_platform_commission'] ?? ($platComm > 0 ? max(0.0, $platComm - $platCommDisc) : 0));
+
+                $preorder = (float) ($inc['preorder_service_fee'] ?? 0);
+                $dynComm  = (float) ($inc['dynamic_commission'] ?? $inc['affiliate_commission'] ?? 0);
+                $growth   = (float) ($inc['growth_xtra_fee'] ?? 0);
+                $procFee  = (float) ($inc['order_processing_fee'] ?? $inc['transaction_fee'] ?? $inc['seller_transaction_fee'] ?? 0);
+                $protFee  = (float) ($inc['shipping_seller_protection_fee_amount'] ?? $inc['protection_fee'] ?? 0);
+
+                $totalEstFees = $netPlatComm + $preorder + $dynComm + $growth + $procFee + $protFee;
+
+                if ($totalEstFees > 0) {
+                    $apiFee = $totalEstFees;
+                } elseif ($apiOmset > 0 && $apiNet > 0 && $apiOmset > $apiNet) {
+                    $apiFee = max(0.0, $apiOmset - $apiNet);
+                } else {
+                    $feeDetails = $ord->fee_breakdown_details;
+                    $totalFeeCalc = abs((float)($feeDetails['total_fee'] ?? 0));
+                    $apiFee = $totalFeeCalc > 0 ? $totalFeeCalc : $erpFee;
+                }
             }
         }
 
@@ -1198,6 +1213,14 @@ class SecretRepairDashboardController extends Controller
                     $apiRefund = abs((float)$st0[$rk]);
                     break;
                 }
+            }
+        }
+
+        if ($apiNet <= 0) {
+            if ($apiRefund >= $apiOmset && $apiOmset > 0) {
+                $apiNet = 0.0;
+            } else {
+                $apiNet = max(0.0, $apiOmset - $apiFee);
             }
         }
 
