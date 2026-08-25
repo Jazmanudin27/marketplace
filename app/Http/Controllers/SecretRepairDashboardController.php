@@ -1418,7 +1418,7 @@ class SecretRepairDashboardController extends Controller
         $notCancelled = ['CANCELLED', 'BATAL', 'CANCELED', 'RETURNED', 'REFUNDED', 'RETURN', 'RETUR', 'TO_RETURN'];
 
         $applyDateFilter = function ($query) use ($dateFrom, $dateTo) {
-            $query->whereIn('order_status', ['COMPLETED', 'SELESAI']);
+            $query->whereIn('order_status', ['COMPLETED', 'SELESAI', 'FINISHED']);
             if ($dateFrom) $query->whereDate('completed_at', '>=', $dateFrom);
             if ($dateTo)   $query->whereDate('completed_at', '<=', $dateTo);
             return $query;
@@ -1620,13 +1620,17 @@ class SecretRepairDashboardController extends Controller
 
         $shopeeStores = Store::whereHas('channel', fn($q) => $q->where('code', 'LIKE', '%shopee%'))->pluck('id');
 
+        $tiktokStores = Store::whereHas('channel', fn($q) => $q->where('code', 'LIKE', '%tiktok%'))->pluck('id');
+
         // Resolve store IDs
         if ($storeId) {
             $storeIds = collect([$storeId]);
         } elseif ($channel === 'shopee') {
             $storeIds = $shopeeStores;
+        } elseif ($channel === 'tiktok') {
+            $storeIds = $tiktokStores;
         } else {
-            $storeIds = Store::whereHas('channel', fn($q) => $q->where('code', 'LIKE', '%tiktok%'))->pluck('id');
+            $storeIds = $tiktokStores->merge($shopeeStores);
         }
 
         $notCancelled = ['CANCELLED', 'BATAL', 'CANCELED', 'RETURNED', 'REFUNDED', 'RETURN', 'RETUR', 'TO_RETURN'];
@@ -1638,7 +1642,7 @@ class SecretRepairDashboardController extends Controller
         $filterType = $request->input('filter_type', 'order_date');
 
         if ($filterType === 'completed_at') {
-            $query->whereIn('order_status', ['COMPLETED', 'SELESAI']);
+            $query->whereIn('order_status', ['COMPLETED', 'SELESAI', 'FINISHED']);
             if ($dateFrom) $query->whereDate('completed_at', '>=', $dateFrom);
             if ($dateTo)   $query->whereDate('completed_at', '<=', $dateTo);
             $query->orderBy('completed_at', 'desc');
