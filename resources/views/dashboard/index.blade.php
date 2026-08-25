@@ -250,54 +250,6 @@
         </div>
     @endif
 
-    <!-- Marketplace Channels Overview -->
-    @if ($hasMarketingAccess)
-    <div class="mb-3">
-        <h6 class="text-secondary text-uppercase fw-bold mb-2 small d-flex align-items-center gap-2">
-            <i class="bi bi-plug-fill text-primary"></i> Status Toko Marketplace
-        </h6>
-        <div class="row g-2">
-            @forelse($stores as $store)
-                <div class="col-sm-6 col-md-4 col-lg-3">
-                    <div class="card border rounded-3 h-100 p-2 shadow-sm d-flex flex-row align-items-center gap-2 bg-white">
-                        <div class="flex-shrink-0">
-                            @if ($store->channel->logo_path ?? false)
-                                <img src="{{ asset($store->channel->logo_path) }}" alt="{{ $store->channel->name }}"
-                                    width="28" height="28" class="rounded-circle object-fit-contain">
-                            @else
-                                <div class="bg-light text-dark rounded-circle d-flex align-items-center justify-content-center fw-bold text-uppercase small"
-                                    style="width: 28px; height: 28px; font-size: 10px;">
-                                    {{ substr($store->channel->name ?? $store->name, 0, 2) }}
-                                </div>
-                            @endif
-                        </div>
-                        <div class="flex-grow-1 min-width-0">
-                            <span class="fw-semibold text-truncate text-dark small d-block" title="{{ $store->name }}">
-                                {{ $store->name }}
-                            </span>
-                            <div class="text-secondary small d-flex align-items-center gap-1">
-                                <i class="bi bi-receipt"></i> {{ number_format($store->orders_count) }} Pesanan
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            @empty
-                <div class="col-12">
-                    <div class="card border rounded-3 text-center p-4 shadow-sm">
-                        <div class="card-body py-4">
-                            <i class="bi bi-plug fs-3 text-secondary mb-2"></i>
-                            <p class="card-text text-secondary mb-2 small">Belum ada toko yang terhubung.</p>
-                            @can('manage-stores')
-                                <a href="{{ route('stores.create') }}" class="btn btn-primary btn-sm px-2 rounded-3">Tambah
-                                    Toko</a>
-                            @endcan
-                        </div>
-                    </div>
-                </div>
-            @endforelse
-        </div>
-    </div>
-    @endif
 
     <!-- Chart & Integrations Summary Row -->
     @if ($hasFinanceAccess || $hasGeneralAccess)

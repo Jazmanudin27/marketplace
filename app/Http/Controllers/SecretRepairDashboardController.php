@@ -1524,6 +1524,7 @@ class SecretRepairDashboardController extends Controller
         $isTiktok = str_contains($chCode, 'tiktok') || str_contains($chCode, 'tokopedia');
 
         // 1. Coba tarik data live dari API Marketplace (Graceful - tidak gagalkan proses jika token expired)
+        $tokenError = null;
         try {
             if ($isTiktok && !empty($store->shop_cipher)) {
                 $accessToken = $store->getValidAccessToken();
@@ -1569,6 +1570,7 @@ class SecretRepairDashboardController extends Controller
             }
         } catch (\Throwable $liveEx) {
             Log::warning("Live API call notice for {$orderSn}: " . $liveEx->getMessage());
+            $tokenError = $liveEx->getMessage();
         }
 
         // 2. Ekstrak data resmi API dari breakdown (baik dari live API maupun yang tersimpan di DB)
@@ -1617,9 +1619,15 @@ class SecretRepairDashboardController extends Controller
                 'api_net'   => $finAfter['api_net'],
             ]);
         } else {
-            return response()->json([
-                'error' => "Token toko '{$store->store_name}' sudah kadaluarsa atau pesanan ini belum memiliki data settlement escrow dari Marketplace. Silakan sambungkan ulang toko di menu Integrasi Toko.",
-            ], 422);
+            if ($tokenError) {
+                return response()->json([
+                    'error' => "Gagal terhubung dengan API Marketplace: {$tokenError}. Silakan periksa koneksi atau sambungkan ulang toko '{$store->store_name}' di menu Integrasi Toko.",
+                ], 422);
+            } else {
+                return response()->json([
+                    'error' => "Toko '{$store->store_name}' terhubung dengan baik, namun Shopee/TikTok belum mencairkan dana / belum menerbitkan rincian settlement keuangan (escrow) untuk pesanan ini di sistem API mereka. Silakan tunggu beberapa saat hingga dana pesanan dilepas ke Saldo Penjual Anda.",
+                ], 422);
+            }
         }
     }
 
