@@ -2321,11 +2321,18 @@ class ReportController extends Controller
                     $feePromo += abs($details['promo_fee'] ?? $o->fee_promo_amount ?? 0);
                     $feeOther += abs($details['other_fee'] ?? $o->fee_other_amount ?? 0);
 
-                    $oFee = abs($details['total_fee'] ?? $o->marketplace_fee ?? 0);
+                    $oFee = (float)$o->marketplace_fee;
+                    if ($oFee <= 0 && !empty($details['total_fee'])) {
+                        $oFee = abs((float)$details['total_fee']);
+                    }
                     $totalFee += $oFee;
-                }
 
-                $netReleased = max(0.0, $omset - $refundTotal - $totalFee);
+                    $oNet = (float)$o->net_amount;
+                    if ($oNet <= 0) {
+                        $oNet = max(0.0, (float)$o->total_amount - $refAmt - $oFee);
+                    }
+                    $netReleased += $oNet;
+                }
 
                 $channels[] = [
                     'name' => $storeName,
@@ -2452,11 +2459,18 @@ class ReportController extends Controller
                 $fees = $o->fee_breakdown_details;
                 $refundAmt = $o->refund_amount;
 
-                $absFee = abs($fees['total_fee'] ?? 0);
-                if ($refundAmt >= (float)$o->total_amount && (float)$o->total_amount > 0) {
-                    $netAmt = 0.0;
-                } else {
-                    $netAmt = max(0.0, (float)$o->total_amount - $refundAmt - $absFee);
+                $absFee = (float)$o->marketplace_fee;
+                if ($absFee <= 0 && !empty($fees['total_fee'])) {
+                    $absFee = abs((float)$fees['total_fee']);
+                }
+
+                $netAmt = (float)$o->net_amount;
+                if ($netAmt <= 0) {
+                    if ($refundAmt >= (float)$o->total_amount && (float)$o->total_amount > 0) {
+                        $netAmt = 0.0;
+                    } else {
+                        $netAmt = max(0.0, (float)$o->total_amount - $refundAmt - $absFee);
+                    }
                 }
 
                 $refVal = $o->order_marketplace_id ?: ($o->order_number ?: $o->invoice_number);
@@ -2479,12 +2493,12 @@ class ReportController extends Controller
                     'total_qty' => max(1, $o->items->sum('quantity')),
                     'omset' => (float)$o->total_amount,
                     'refund' => $refundAmt,
-                    'platform_fee' => $fees['platform_fee'],
-                    'free_shipping_fee' => $fees['free_shipping'],
-                    'service_fee' => $fees['service_fee'],
-                    'promo_fee' => $fees['promo_fee'],
-                    'other_fee' => $fees['other_fee'],
-                    'total_fee' => $fees['total_fee'],
+                    'platform_fee' => $fees['platform_fee'] ?? 0,
+                    'free_shipping_fee' => $fees['free_shipping'] ?? 0,
+                    'service_fee' => $fees['service_fee'] ?? 0,
+                    'promo_fee' => $fees['promo_fee'] ?? 0,
+                    'other_fee' => $fees['other_fee'] ?? 0,
+                    'total_fee' => $absFee,
                     'net_released' => $netAmt,
                     'status' => $o->order_status,
                 ];
@@ -2578,6 +2592,7 @@ class ReportController extends Controller
                     $onOrdersGet = $onOrdersGet->filter(fn($o) => $o->refund_amount <= 0);
                 }
                 $onOmset = (float) $onOrdersGet->sum('total_amount');
+                $onNetReleased = 0.0;
                 foreach ($onOrdersGet as $o) {
                     $iQty = $o->items->sum('quantity');
                     $onQty += ($iQty > 0 ? $iQty : 1);
@@ -2588,13 +2603,23 @@ class ReportController extends Controller
                     $onServiceFee += abs($details['service_fee'] ?? $o->fee_service_amount ?? 0);
                     $onPromoFee += abs($details['promo_fee'] ?? $o->fee_promo_amount ?? 0);
                     $onOtherFee += abs($details['other_fee'] ?? $o->fee_other_amount ?? 0);
-                    $onTotalFee += abs($details['total_fee'] ?? $o->marketplace_fee ?? 0);
+
+                    $oFee = (float)$o->marketplace_fee;
+                    if ($oFee <= 0 && !empty($details['total_fee'])) {
+                        $oFee = abs((float)$details['total_fee']);
+                    }
+                    $onTotalFee += $oFee;
+
+                    $oNet = (float)$o->net_amount;
+                    if ($oNet <= 0) {
+                        $oNet = max(0.0, (float)$o->total_amount - $oFee);
+                    }
+                    $onNetReleased += $oNet;
                 }
             }
 
             $tQty = $offQty + $onQty;
             $tOmset = $offOmset + $onOmset;
-            $onNetReleased = max(0.0, $onOmset - $onTotalFee);
 
             if ($tQty > 0 || $tOmset > 0) {
                 $dates[] = [
