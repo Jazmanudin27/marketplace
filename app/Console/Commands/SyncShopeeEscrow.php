@@ -135,6 +135,10 @@ class SyncShopeeEscrow extends Command
 
                     if (!empty($escrowResponse['order_income'])) {
                         $income = $escrowResponse['order_income'];
+                        if ($orderSnOption) {
+                            $this->line("\n[DEBUG] Shopee Escrow Income for {$orderSn}:");
+                            $this->line(json_encode($income, JSON_PRETTY_PRINT) . "\n");
+                        }
                         $order->financial_breakdown = $income;
 
                         // Ambil Tanggal Selesai / Tanggal Diterima Resmi dari Shopee API (update_time)
