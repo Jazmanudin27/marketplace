@@ -1425,7 +1425,7 @@ class SecretRepairDashboardController extends Controller
         $notCancelled = ['CANCELLED', 'BATAL', 'CANCELED', 'RETURNED', 'REFUNDED', 'RETURN', 'RETUR', 'TO_RETURN'];
 
         $applyDateFilter = function ($query) use ($dateFrom, $dateTo) {
-            $query->whereIn('order_status', ['COMPLETED', 'SELESAI', 'FINISHED']);
+            $query->whereIn('order_status', ['COMPLETED', 'SELESAI', 'FINISHED', 'RETURNED', 'REFUNDED', 'RETURN', 'RETUR']);
             if ($dateFrom) $query->whereDate('completed_at', '>=', $dateFrom);
             if ($dateTo)   $query->whereDate('completed_at', '<=', $dateTo);
             return $query;
@@ -1646,7 +1646,7 @@ class SecretRepairDashboardController extends Controller
         $filterType = $request->input('filter_type', 'order_date');
 
         if ($filterType === 'completed_at') {
-            $query->whereIn('order_status', ['COMPLETED', 'SELESAI', 'FINISHED']);
+            $query->whereIn('order_status', ['COMPLETED', 'SELESAI', 'FINISHED', 'RETURNED', 'REFUNDED', 'RETURN', 'RETUR']);
             if ($dateFrom) $query->whereDate('completed_at', '>=', $dateFrom);
             if ($dateTo)   $query->whereDate('completed_at', '<=', $dateTo);
             $query->orderBy('completed_at', 'desc');

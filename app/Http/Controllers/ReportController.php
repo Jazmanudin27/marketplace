@@ -2736,7 +2736,7 @@ class ReportController extends Controller
     private function applyOnlineStatusFilter($query, $statusFilter)
     {
         if ($statusFilter === 'completed') {
-            $query->whereIn('order_status', ['COMPLETED', 'SELESAI', 'FINISHED']);
+            $query->whereIn('order_status', ['COMPLETED', 'SELESAI', 'FINISHED', 'RETURNED', 'REFUNDED', 'RETURN', 'RETUR']);
         } elseif ($statusFilter === 'shipped') {
             $query->whereIn('order_status', ['SHIPPED', 'IN_TRANSIT', 'DIKIRIM']);
         } elseif ($statusFilter === 'processing') {
