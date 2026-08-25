@@ -15,7 +15,12 @@
         .ch-badge { font-size: .72rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; padding: 4px 12px; border-radius: 20px; }
         .ch-tiktok { background: #333; color: #fff; }
         .ch-shopee { background: #e53e1e; color: #fff; }
-        .stat-card { background: #fff; border-radius: 12px; padding: 16px 20px; box-shadow: 0 1px 6px rgba(0,0,0,.07); }
+        .stat-card { background: #fff; border-radius: 12px; padding: 16px 20px; box-shadow: 0 1px 6px rgba(0,0,0,.07); transition: all 0.2s ease-in-out; border-bottom: 4px solid transparent; }
+        .stat-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,.12); }
+        .stat-card.active-all { border-bottom: 4px solid #1e293b; background: #f8fafc; }
+        .stat-card.active-mismatch { border-bottom: 4px solid #f59e0b; background: #fffbeb; }
+        .stat-card.active-no_api { border-bottom: 4px solid #64748b; background: #f1f5f9; }
+        .stat-card.active-match { border-bottom: 4px solid #22c55e; background: #f0fdf4; }
         .stat-card .val { font-size: 1.5rem; font-weight: 700; line-height: 1.2; }
         .stat-card .lbl { font-size: .72rem; color: #64748b; text-transform: uppercase; letter-spacing: .06em; margin-top: 4px; }
         .filter-bar { background: #fff; border-radius: 12px; padding: 12px 20px; box-shadow: 0 1px 6px rgba(0,0,0,.07); display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
@@ -63,16 +68,45 @@
 
 <div class="container-fluid py-4 px-4">
     <div class="row g-3 mb-4">
-        <div class="col-6 col-md-3"><div class="stat-card"><div class="val text-dark">{{ number_format($totalRows) }}</div><div class="lbl">Total Order</div></div></div>
-        <div class="col-6 col-md-3"><div class="stat-card" style="border-left:4px solid #f59e0b"><div class="val" style="color:#b45309">{{ number_format($mismatchRows) }}</div><div class="lbl">Mismatch ERP≠API</div></div></div>
-        <div class="col-6 col-md-3"><div class="stat-card" style="border-left:4px solid #94a3b8"><div class="val text-secondary">{{ number_format($noFbRows) }}</div><div class="lbl">Tanpa Data API</div></div></div>
-        <div class="col-6 col-md-3"><div class="stat-card" style="border-left:4px solid #22c55e"><div class="val" style="color:#16a34a">{{ number_format($totalRows - $mismatchRows - $noFbRows) }}</div><div class="lbl">Match ✓</div></div></div>
+        <div class="col-6 col-md-3">
+            <a href="{{ route('secret_repair.compare_detail', array_merge(request()->all(), ['filter' => 'all'])) }}" class="text-decoration-none text-dark">
+                <div class="stat-card {{ $filter === 'all' ? 'active-all' : '' }}">
+                    <div class="val text-dark">{{ number_format($totalRowsGlobal) }}</div>
+                    <div class="lbl">Total Order</div>
+                </div>
+            </a>
+        </div>
+        <div class="col-6 col-md-3">
+            <a href="{{ route('secret_repair.compare_detail', array_merge(request()->all(), ['filter' => 'mismatch'])) }}" class="text-decoration-none">
+                <div class="stat-card {{ $filter === 'mismatch' ? 'active-mismatch' : '' }}" style="border-left:4px solid #f59e0b">
+                    <div class="val" style="color:#b45309">{{ number_format($mismatchRowsGlobal) }}</div>
+                    <div class="lbl" style="color:#b45309">Mismatch ERP≠API</div>
+                </div>
+            </a>
+        </div>
+        <div class="col-6 col-md-3">
+            <a href="{{ route('secret_repair.compare_detail', array_merge(request()->all(), ['filter' => 'no_api'])) }}" class="text-decoration-none">
+                <div class="stat-card {{ $filter === 'no_api' ? 'active-no_api' : '' }}" style="border-left:4px solid #94a3b8">
+                    <div class="val text-secondary">{{ number_format($noFbRowsGlobal) }}</div>
+                    <div class="lbl text-secondary">Tanpa Data API</div>
+                </div>
+            </a>
+        </div>
+        <div class="col-6 col-md-3">
+            <a href="{{ route('secret_repair.compare_detail', array_merge(request()->all(), ['filter' => 'match'])) }}" class="text-decoration-none">
+                <div class="stat-card {{ $filter === 'match' ? 'active-match' : '' }}" style="border-left:4px solid #22c55e">
+                    <div class="val" style="color:#16a34a">{{ number_format($matchRowsGlobal) }}</div>
+                    <div class="lbl" style="color:#16a34a">Match ✓</div>
+                </div>
+            </a>
+        </div>
     </div>
 
     <form method="GET" action="{{ route('secret_repair.compare_detail') }}" class="filter-bar mb-4">
         <input type="hidden" name="channel" value="{{ $channel }}">
         <input type="hidden" name="date_from" value="{{ $dateFrom }}">
         <input type="hidden" name="date_to" value="{{ $dateTo }}">
+        <input type="hidden" name="filter" value="{{ $filter }}">
         <div>
             <label class="text-secondary fw-semibold me-1" style="font-size:.75rem">Toko:</label>
             <select name="store_id" class="form-select form-select-sm d-inline-block rounded-2" style="width:180px;font-size:.8rem" onchange="this.form.submit()">
@@ -95,12 +129,14 @@
                 <option value="RETURNED" {{ ($status ?? '') == 'RETURNED' ? 'selected' : '' }}>Returned</option>
             </select>
         </div>
-        <div class="d-flex gap-2">
+        <div class="d-flex gap-2 align-items-center">
             <a href="{{ route('secret_repair.compare_detail', array_merge(request()->all(), ['filter' => 'all'])) }}" class="btn btn-sm rounded-2 {{ $filter === 'all' ? 'btn-dark' : 'btn-outline-secondary' }}" style="font-size:.77rem">Semua</a>
-            <a href="{{ route('secret_repair.compare_detail', array_merge(request()->all(), ['filter' => 'mismatch'])) }}" class="btn btn-sm rounded-2 {{ $filter === 'mismatch' ? 'btn-warning text-dark' : 'btn-outline-warning' }}" style="font-size:.77rem"><i class="fas fa-exclamation-triangle me-1"></i>Mismatch ({{ $mismatchRows }})</a>
+            <a href="{{ route('secret_repair.compare_detail', array_merge(request()->all(), ['filter' => 'mismatch'])) }}" class="btn btn-sm rounded-2 {{ $filter === 'mismatch' ? 'btn-warning text-dark' : 'btn-outline-warning' }}" style="font-size:.77rem"><i class="fas fa-exclamation-triangle me-1"></i>Mismatch ({{ $mismatchRowsGlobal }})</a>
+            <a href="{{ route('secret_repair.compare_detail', array_merge(request()->all(), ['filter' => 'no_api'])) }}" class="btn btn-sm rounded-2 {{ $filter === 'no_api' ? 'btn-secondary text-white' : 'btn-outline-secondary' }}" style="font-size:.77rem"><i class="fas fa-unlink me-1"></i>Tanpa API ({{ $noFbRowsGlobal }})</a>
+            <a href="{{ route('secret_repair.compare_detail', array_merge(request()->all(), ['filter' => 'match'])) }}" class="btn btn-sm rounded-2 {{ $filter === 'match' ? 'btn-success text-white' : 'btn-outline-success' }}" style="font-size:.77rem"><i class="fas fa-check-circle me-1"></i>Match ({{ $matchRowsGlobal }})</a>
         </div>
 
-        @if($mismatchRows > 0)
+        @if($mismatchRowsGlobal > 0)
             <div>
                 <button type="button" onclick="syncAllMismatches()" id="btnSyncAllBar" class="btn btn-sm btn-success rounded-2 fw-semibold" style="font-size:.77rem">
                     <i class="fas fa-magic me-1"></i>Sinkronkan Semua Mismatch

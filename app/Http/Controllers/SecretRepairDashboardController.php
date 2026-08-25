@@ -1435,7 +1435,7 @@ class SecretRepairDashboardController extends Controller
             'total_amount', 'discount_amount', 'marketplace_fee', 'net_amount', 'financial_breakdown',
             'store_id', 'buyer_name', 'shipping_fee']);
 
-        $rows = [];
+        $rowsAll = [];
         foreach ($allOrders as $ord) {
             $isShopee = $shopeeStores->contains($ord->store_id);
             $fin = $this->parseOrderFinancials($ord, $isShopee);
@@ -1452,9 +1452,7 @@ class SecretRepairDashboardController extends Controller
                 abs($diffRefund) > 100
             );
 
-            if ($filter === 'mismatch' && !$isMismatch) continue;
-
-            $rows[] = [
+            $rowsAll[] = [
                 'id'               => $ord->id,
                 'marketplace_id'   => $ord->order_marketplace_id,
                 'order_date'       => $ord->order_date,
@@ -1478,15 +1476,27 @@ class SecretRepairDashboardController extends Controller
             ];
         }
 
+        // Hitung total data global untuk stat cards sebelum difilter
+        $totalRowsGlobal    = count($rowsAll);
+        $mismatchRowsGlobal = count(array_filter($rowsAll, fn($r) => $r['is_mismatch']));
+        $noFbRowsGlobal     = count(array_filter($rowsAll, fn($r) => !$r['has_fb']));
+        $matchRowsGlobal    = $totalRowsGlobal - $mismatchRowsGlobal - $noFbRowsGlobal;
+
+        // Terapkan filter list ke rows yang ditampilkan
+        $rows = [];
+        foreach ($rowsAll as $row) {
+            if ($filter === 'mismatch' && !$row['is_mismatch']) continue;
+            if ($filter === 'no_api' && $row['has_fb']) continue;
+            if ($filter === 'match' && (!$row['has_fb'] || $row['is_mismatch'])) continue;
+            $rows[] = $row;
+        }
+
         $stores = Store::whereIn('id', $storeIds)->get(['id', 'store_name']);
-        $totalRows    = count($rows);
-        $mismatchRows = count(array_filter($rows, fn($r) => $r['is_mismatch']));
-        $noFbRows     = count(array_filter($rows, fn($r) => !$r['has_fb']));
 
         return view('secret_repair_compare_detail', compact(
             'rows', 'channel', 'dateFrom', 'dateTo',
             'filter', 'storeId', 'stores', 'status',
-            'totalRows', 'mismatchRows', 'noFbRows'
+            'totalRowsGlobal', 'mismatchRowsGlobal', 'noFbRowsGlobal', 'matchRowsGlobal'
         ));
     }
 
