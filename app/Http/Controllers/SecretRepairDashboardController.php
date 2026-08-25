@@ -1216,7 +1216,12 @@ class SecretRepairDashboardController extends Controller
             }
         }
 
-        if ($apiNet <= 0) {
+        $originalApiNet = $apiNet;
+        if ($apiNet > 0 && $apiRefund > 0) {
+            $apiNet = $apiNet - $apiRefund;
+        }
+
+        if ($originalApiNet <= 0) {
             if ($apiRefund >= $apiOmset && $apiOmset > 0) {
                 $apiNet = 0.0;
             } else {

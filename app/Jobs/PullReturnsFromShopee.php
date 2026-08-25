@@ -19,10 +19,14 @@ class PullReturnsFromShopee implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     protected int $storeId;
+    protected ?int $timeFrom;
+    protected ?int $timeTo;
 
-    public function __construct(Store $store)
+    public function __construct(Store $store, ?int $timeFrom = null, ?int $timeTo = null)
     {
         $this->storeId = $store->id;
+        $this->timeFrom = $timeFrom;
+        $this->timeTo = $timeTo;
     }
 
     /**
@@ -48,9 +52,9 @@ class PullReturnsFromShopee implements ShouldQueue
         }
 
         try {
-            // Get returns from the last 15 days
-            $timeFrom = now()->subDays(15)->timestamp;
-            $timeTo = now()->timestamp;
+            // Get returns from custom range or fallback to last 15 days
+            $timeFrom = $this->timeFrom ?? now()->subDays(15)->timestamp;
+            $timeTo = $this->timeTo ?? now()->timestamp;
 
             $accessToken = $this->store->getValidAccessToken();
 

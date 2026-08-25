@@ -367,7 +367,7 @@ class Order extends Model
         $fb = $this->financial_breakdown ?? [];
 
         // 2. Cek field top-level financial_breakdown
-        $keys = ['customer_refund_amount', 'gross_sales_refund_amount', 'seller_return_refund', 'refund_amount', 'return_amount', 'customer_order_refund_amount'];
+        $keys = ['customer_refund_amount', 'gross_sales_refund_amount', 'seller_return_refund', 'buyer_return_refund_amount', 'refund_amount', 'return_amount', 'customer_order_refund_amount'];
         foreach ($keys as $k) {
             if (!empty($fb[$k]) && (float)$fb[$k] != 0) {
                 return abs((float)$fb[$k]);

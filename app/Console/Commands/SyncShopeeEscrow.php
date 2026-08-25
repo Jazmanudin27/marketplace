@@ -167,6 +167,16 @@ class SyncShopeeEscrow extends Command
 
                         $escrowAmount = (float) ($income['escrow_amount'] ?? 0);
 
+                        // Hitung refund jika ada
+                        $refundAmt = 0.0;
+                        $refundKeys = ['customer_refund_amount', 'gross_sales_refund_amount', 'seller_return_refund', 'buyer_return_refund_amount', 'refund_amount', 'return_amount', 'customer_order_refund_amount'];
+                        foreach ($refundKeys as $rk) {
+                            if (!empty($income[$rk]) && (float)$income[$rk] != 0) {
+                                $refundAmt = abs((float)$income[$rk]);
+                                break;
+                            }
+                        }
+
                         // Hitung total fee dari breakdown rincian atau selisih Subtotal - Escrow Amount
                         $details = $order->fee_breakdown_details;
                         $totalFee = abs($details['total_fee'] ?? 0);
@@ -180,14 +190,19 @@ class SyncShopeeEscrow extends Command
                         }
 
                         $order->marketplace_fee = $totalFee;
-                        $order->net_amount = $escrowAmount > 0 ? $escrowAmount : max(0.0, $merchantSubtotal - $totalFee);
+                        $order->net_amount = $escrowAmount > 0 ? ($escrowAmount - $refundAmt) : max(0.0, $merchantSubtotal - $refundAmt - $totalFee);
 
-                        // 🔒 PRESERVE ACTIVE STATUS: Hanya ubah ke COMPLETED jika pesanan memang sudah dikirim/selesai!
-                        // Jangan pernah menimpa pesanan yang masih READY_TO_SHIP atau SHIPPED.
-                        if (in_array(strtoupper((string)$order->order_status), ['DELIVERED', 'COMPLETED', 'FINISHED', 'SELESAI'])) {
-                            $order->order_status = 'COMPLETED';
-                            if (!$order->completed_at) {
-                                $order->completed_at = now();
+                        // Jika terdeteksi ada refund/retur, ubah status pesanan menjadi RETURN
+                        if ($refundAmt > 0) {
+                            $order->order_status = 'RETURN';
+                        } else {
+                            // 🔒 PRESERVE ACTIVE STATUS: Hanya ubah ke COMPLETED jika pesanan memang sudah dikirim/selesai!
+                            // Jangan pernah menimpa pesanan yang masih READY_TO_SHIP atau SHIPPED.
+                            if (in_array(strtoupper((string)$order->order_status), ['DELIVERED', 'COMPLETED', 'FINISHED', 'SELESAI'])) {
+                                $order->order_status = 'COMPLETED';
+                                if (!$order->completed_at) {
+                                    $order->completed_at = now();
+                                }
                             }
                         }
 

@@ -14,7 +14,7 @@ class SyncShopeeReturns extends Command
      *
      * @var string
      */
-    protected $signature = 'shopee:sync-returns';
+    protected $signature = 'shopee:sync-returns {--days=3 : Jumlah hari ke belakang untuk dicari (default: 3)}';
 
     /**
      * The console command description.
@@ -28,8 +28,9 @@ class SyncShopeeReturns extends Command
      */
     public function handle()
     {
-        $this->info('Memulai sinkronisasi retur otomatis dari Shopee...');
-        Log::info('[Cron] Memulai shopee:sync-returns');
+        $days = (int) ($this->option('days') ?? 3);
+        $this->info("Memulai sinkronisasi retur otomatis dari Shopee ({$days} hari ke belakang)...");
+        Log::info("[Cron] Memulai shopee:sync-returns dengan days={$days}");
 
         $stores = Store::whereHas('channel', function($q) {
             $q->where('code', 'shopee');
@@ -40,9 +41,8 @@ class SyncShopeeReturns extends Command
             return;
         }
 
-        // Tarik retur 3 hari terakhir (lebih pendek karena ditarik otomatis sering)
         $timeTo = time();
-        $timeFrom = strtotime('-3 days', $timeTo);
+        $timeFrom = strtotime("-{$days} days", $timeTo);
 
         foreach ($stores as $store) {
             $this->info("Mengirim job retur untuk toko: {$store->store_name}");
