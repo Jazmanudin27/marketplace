@@ -1447,9 +1447,6 @@ class SecretRepairDashboardController extends Controller
             $q->select(['id', 'store_id', 'total_amount', 'discount_amount', 'marketplace_fee', 'net_amount', 'financial_breakdown', 'order_status'])
                 ->chunk(500, function ($orders) use (&$erpOmset, &$erpFee, &$erpNet, &$apiOmset, &$apiFee, &$apiNet, &$apiCount, &$erpCount, $shopeeStores) {
                     foreach ($orders as $ord) {
-                        if ($ord->refund_amount > 0) {
-                            continue;
-                        }
                         $isShopee = $shopeeStores->contains($ord->store_id);
                         $fin = $this->parseOrderFinancials($ord, $isShopee);
 
@@ -1674,9 +1671,6 @@ class SecretRepairDashboardController extends Controller
 
         $rowsAll = [];
         foreach ($allOrders as $ord) {
-            if ($filterType === 'completed_at' && $ord->refund_amount > 0) {
-                continue;
-            }
             $isShopee = $shopeeStores->contains($ord->store_id);
             $fin = $this->parseOrderFinancials($ord, $isShopee);
 
