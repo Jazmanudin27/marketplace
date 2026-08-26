@@ -207,17 +207,12 @@ class SyncShopeeEscrow extends Command
                             $order->net_amount = $netAmountApi;
                         }
 
-                        // Jika terdeteksi ada refund/retur, ubah status pesanan menjadi RETURN
-                        if ($refundAmt > 0) {
-                            $order->order_status = 'RETURN';
-                        } else {
-                            // 🔒 PRESERVE ACTIVE STATUS: Hanya ubah ke COMPLETED jika pesanan memang sudah dikirim/selesai!
-                            // Jangan pernah menimpa pesanan yang masih READY_TO_SHIP atau SHIPPED.
-                            if (in_array(strtoupper((string)$order->order_status), ['DELIVERED', 'COMPLETED', 'FINISHED', 'SELESAI'])) {
-                                $order->order_status = 'COMPLETED';
-                                if (!$order->completed_at) {
-                                    $order->completed_at = now();
-                                }
+                        // 🔒 PRESERVE ACTIVE STATUS: Hanya ubah ke COMPLETED jika pesanan memang sudah dikirim/selesai!
+                        // Jangan pernah menimpa pesanan yang masih READY_TO_SHIP atau SHIPPED.
+                        if (in_array(strtoupper((string)$order->order_status), ['DELIVERED', 'COMPLETED', 'FINISHED', 'SELESAI'])) {
+                            $order->order_status = 'COMPLETED';
+                            if (!$order->completed_at) {
+                                $order->completed_at = now();
                             }
                         }
 

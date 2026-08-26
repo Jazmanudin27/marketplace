@@ -258,47 +258,48 @@ class SyncTiktokEscrow extends Command
                         $settlementFromStmt = null;
                         $customerRefundFromStmt = 0.0;
                         $returnShippingFromStmt = 0.0;
+                        $settlementSum = 0.0;
+                        $feeSum = 0.0;
+                        $hasSettlement = false;
 
                         try {
                             $stmtData = $tiktokService->getOrderStatementTransactions($accessToken, $shopCipher, $mId);
                             $stmtList = $stmtData['statement_transactions'] ?? $stmtData['statement_transaction_list'] ?? $stmtData['transactions'] ?? [];
                             foreach ($stmtList as $st) {
                                 if (isset($st['customer_refund_amount']) && (float)$st['customer_refund_amount'] != 0) {
-                                    $customerRefundFromStmt = abs((float)$st['customer_refund_amount']);
+                                    $customerRefundFromStmt += abs((float)$st['customer_refund_amount']);
                                 } elseif (isset($st['gross_sales_refund_amount']) && (float)$st['gross_sales_refund_amount'] != 0) {
-                                    $customerRefundFromStmt = abs((float)$st['gross_sales_refund_amount']);
+                                    $customerRefundFromStmt += abs((float)$st['gross_sales_refund_amount']);
                                 } elseif (isset($st['customer_order_refund_amount']) && (float)$st['customer_order_refund_amount'] != 0) {
-                                    $customerRefundFromStmt = abs((float)$st['customer_order_refund_amount']);
+                                    $customerRefundFromStmt += abs((float)$st['customer_order_refund_amount']);
                                 }
 
                                 if (isset($st['return_shipping_fee_amount']) && (float)$st['return_shipping_fee_amount'] != 0) {
-                                    $returnShippingFromStmt = abs((float)$st['return_shipping_fee_amount']);
+                                    $returnShippingFromStmt += abs((float)$st['return_shipping_fee_amount']);
                                 } elseif (isset($st['actual_return_shipping_fee_amount']) && (float)$st['actual_return_shipping_fee_amount'] != 0) {
-                                    $returnShippingFromStmt = abs((float)$st['actual_return_shipping_fee_amount']);
+                                    $returnShippingFromStmt += abs((float)$st['actual_return_shipping_fee_amount']);
                                 }
 
                                 if (isset($st['revenue_amount']) && (float)$st['revenue_amount'] > 0) {
-                                    $revenueFromStmt = (float)$st['revenue_amount'];
+                                    $revenueFromStmt = max($revenueFromStmt, (float)$st['revenue_amount']);
                                 } elseif (isset($st['net_sales_amount']) && (float)$st['net_sales_amount'] > 0) {
-                                    $revenueFromStmt = (float)$st['net_sales_amount'];
+                                    $revenueFromStmt = max($revenueFromStmt, (float)$st['net_sales_amount']);
                                 }
 
-                                if (isset($st['fee_amount']) && (float)$st['fee_amount'] != 0 && $customerRefundFromStmt == 0) {
-                                    $totalFeeFromStmt = abs((float)$st['fee_amount']);
+                                if (isset($st['fee_amount'])) {
+                                    $feeSum += (float)$st['fee_amount'];
                                 }
 
                                 if (isset($st['settlement_amount'])) {
-                                    $settlementFromStmt = (float)$st['settlement_amount'];
-                                }
-
-                                if (isset($st['platform_commission_amount']) && (float)$st['platform_commission_amount'] != 0) {
-                                    $platformCommission = abs((float)$st['platform_commission_amount']);
-                                }
-
-                                if (isset($st['seller_discount_amount']) && (float)$st['seller_discount_amount'] != 0) {
-                                    $sellerDiscount = abs((float)$st['seller_discount_amount']);
+                                    $settlementSum += (float)$st['settlement_amount'];
+                                    $hasSettlement = true;
                                 }
                             }
+
+                            if ($hasSettlement) {
+                                $settlementFromStmt = $settlementSum;
+                            }
+                            $totalFeeFromStmt = abs($feeSum);
                         } catch (\Exception $exStmt) {}
 
                         if ($revenueFromStmt > 0) {
@@ -306,7 +307,7 @@ class SyncTiktokEscrow extends Command
                         }
 
                         if ($settlementFromStmt !== null) {
-                            $escrowAmount = max(0.0, $settlementFromStmt);
+                            $escrowAmount = $settlementFromStmt;
                         }
 
                         $sellerDiscount = (float) ($paymentInfo['seller_discount'] ?? $paymentInfo['discount_amount'] ?? $sellerDiscount ?? 0);
@@ -319,7 +320,7 @@ class SyncTiktokEscrow extends Command
                         $protectionFee = (float) ($paymentInfo['shipping_seller_protection_fee_amount'] ?? $paymentInfo['protection_fee'] ?? 0);
 
                         // 🎯 PRESISI 100%: Total Fee dari TikTok Statement
-                        if ($totalFeeFromStmt > 0 && $sellerReturnRefund == 0) {
+                        if ($totalFeeFromStmt > 0) {
                             $totalTiktokFees = $totalFeeFromStmt;
                         } elseif ($escrowAmount > 0 && $totalAmount > $escrowAmount) {
                             $totalTiktokFees = max(0.0, $totalAmount - $escrowAmount);
@@ -331,11 +332,19 @@ class SyncTiktokEscrow extends Command
                             $totalTiktokFees = round($totalAmount * 0.085);
                         }
 
-                        if ($sellerReturnRefund >= $totalAmount && $totalAmount > 0) {
-                            $escrowAmount = 0.0;
-                            $totalTiktokFees = 0.0;
-                        } elseif ($escrowAmount <= 0 && $sellerReturnRefund == 0) {
-                            $escrowAmount = max(0.0, $totalAmount - $totalTiktokFees);
+                        // Jika nominal settlement didapatkan langsung dari transaksi API, jangan paksa menjadi 0!
+                        if ($settlementFromStmt !== null) {
+                            $escrowAmount = $settlementFromStmt;
+                            if ($totalFeeFromStmt > 0) {
+                                $totalTiktokFees = $totalFeeFromStmt;
+                            }
+                        } else {
+                            if ($sellerReturnRefund >= $totalAmount && $totalAmount > 0) {
+                                $escrowAmount = 0.0;
+                                $totalTiktokFees = 0.0;
+                            } elseif ($escrowAmount <= 0 && $sellerReturnRefund == 0) {
+                                $escrowAmount = max(0.0, $totalAmount - $totalTiktokFees);
+                            }
                         }
 
                         $financialData = [

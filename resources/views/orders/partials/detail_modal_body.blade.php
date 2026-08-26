@@ -347,8 +347,8 @@
                         // Group remaining admin fee components (service, promo, other)
                         $totalMarketplaceFee = abs((float) $order->marketplace_fee);
                         $layananTambahan = max(0.0, $totalMarketplaceFee - $platformFee - $freeShipping);
-                                               $estimasiPenghasilan = (float) $order->net_amount;
-                        if ($estimasiPenghasilan <= 0) {
+                        $estimasiPenghasilan = (float) $order->net_amount;
+                        if ($estimasiPenghasilan == 0 && empty($order->financial_breakdown)) {
                             $estimasiPenghasilan = $subtotalPesanan + $shippingFee - $totalMarketplaceFee - $order->refund_amount;
                         }
                     @endphp
