@@ -340,13 +340,22 @@
                     <div class="w-100 mb-2" style="border-top: 1px dotted #ccc;"></div>
 
                     @php
-                        $platformFee = (float) ($order->fee_breakdown_details['platform_fee'] ?? 0);
-                        $freeShipping = (float) ($order->fee_breakdown_details['free_shipping'] ?? 0);
-                        $shippingFee = (float) ($order->shipping_fee ?? 0);
+                        $store = $order->store;
+                        $chCode = strtolower($store->channel->code ?? '');
+                        $isTiktok = (in_array($chCode, ['tiktok', 'tiktok_shop', 'tokopedia']) || ($store->channel_id ?? 0) == 3);
+
+                        $platformFee = abs((float) ($order->fee_breakdown_details['platform_fee'] ?? 0));
+                        $freeShipping = abs((float) ($order->fee_breakdown_details['free_shipping'] ?? 0));
+                        $shippingFee = abs((float) ($order->shipping_fee ?? 0));
                         
-                        // Group remaining admin fee components (service, promo, other)
+                        $promoFee = abs((float) ($order->fee_breakdown_details['promo_fee'] ?? 0));
+                        $serviceFee = abs((float) ($order->fee_breakdown_details['service_fee'] ?? 0));
+                        $otherFee = abs((float) ($order->fee_breakdown_details['other_fee'] ?? 0));
+
+                        // Group remaining admin fee components for Shopee
                         $totalMarketplaceFee = abs((float) $order->marketplace_fee);
                         $layananTambahan = max(0.0, $totalMarketplaceFee - $platformFee - $freeShipping);
+                        
                         $estimasiPenghasilan = (float) $order->net_amount;
                         if ($estimasiPenghasilan == 0 && empty($order->financial_breakdown)) {
                             $estimasiPenghasilan = $subtotalPesanan + $shippingFee - $totalMarketplaceFee - $order->refund_amount;
@@ -358,13 +367,24 @@
                         <div class="col-12 col-md-10 d-flex justify-content-end align-items-stretch">
                             <!-- Labels Column -->
                             <div class="pe-3 text-end d-flex flex-column justify-content-between py-0.5" style="color: #555; font-size: 0.68rem; line-height: 1.8;">
-                                <div>Subtotal Pesanan</div>
-                                <div>Estimasi Subtotal Ongkos Kirim</div>
-                                <div>Biaya Platform <i class="far fa-question-circle text-muted" style="font-size: 0.65rem; cursor: help;" title="Biaya Komisi / Platform Marketplace"></i></div>
-                                <div>Biaya Gratis Ongkir XTRA <i class="far fa-question-circle text-muted" style="font-size: 0.65rem; cursor: help;" title="Biaya Layanan Ongkir XTRA / Program Penjual"></i></div>
-                                <div>Subtotal Biaya Layanan Tambahan</div>
-                                <div>Retur / Refund <i class="far fa-question-circle text-muted" style="font-size: 0.65rem; cursor: help;" title="Pengembalian dana kepada pembeli akibat retur / pengembalian sebagian"></i></div>
-                                <div class="text-dark fw-bold mt-0.5" style="font-size: 0.72rem;">Estimasi Total Penghasilan <i class="far fa-question-circle text-muted" style="font-size: 0.65rem; cursor: help;" title="Total pendapatan bersih yang akan dilepas ke saldo penjual"></i></div>
+                                @if($isTiktok)
+                                    <div>Subtotal setelah diskon penjual</div>
+                                    <div>Ongkir <i class="far fa-question-circle text-muted" style="font-size: 0.65rem; cursor: help;" title="Ongkir / Ongkir retur pengembalian barang"></i></div>
+                                    <div>Biaya Komisi <i class="far fa-question-circle text-muted" style="font-size: 0.65rem; cursor: help;" title="Biaya Komisi Platform"></i></div>
+                                    <div>Biaya Program XTRA <i class="far fa-question-circle text-muted" style="font-size: 0.65rem; cursor: help;" title="Biaya Program Bebas Ongkir / Layanan XTRA"></i></div>
+                                    <div>Komisi dinamis <i class="far fa-question-circle text-muted" style="font-size: 0.65rem; cursor: help;" title="Biaya Komisi Afiliasi Kreator / Promosi"></i></div>
+                                    <div>Biaya pemrosesan pesanan <i class="far fa-question-circle text-muted" style="font-size: 0.65rem; cursor: help;" title="Biaya Layanan & Transaksi Penjualan"></i></div>
+                                    <div>Total pengembalian dana setelah diskon <i class="far fa-question-circle text-muted" style="font-size: 0.65rem; cursor: help;" title="Pengembalian dana akibat pembatalan / retur"></i></div>
+                                    <div class="text-dark fw-bold mt-0.5" style="font-size: 0.72rem;">Jumlah penyelesaian pembayaran <i class="far fa-question-circle text-muted" style="font-size: 0.65rem; cursor: help;" title="Total pendapatan bersih yang dilepas ke saldo penjual"></i></div>
+                                @else
+                                    <div>Subtotal Pesanan</div>
+                                    <div>Estimasi Subtotal Ongkos Kirim</div>
+                                    <div>Biaya Platform <i class="far fa-question-circle text-muted" style="font-size: 0.65rem; cursor: help;" title="Biaya Komisi / Platform Marketplace"></i></div>
+                                    <div>Biaya Gratis Ongkir XTRA <i class="far fa-question-circle text-muted" style="font-size: 0.65rem; cursor: help;" title="Biaya Layanan Ongkir XTRA / Program Penjual"></i></div>
+                                    <div>Subtotal Biaya Layanan Tambahan</div>
+                                    <div>Retur / Refund <i class="far fa-question-circle text-muted" style="font-size: 0.65rem; cursor: help;" title="Pengembalian dana kepada pembeli akibat retur / pengembalian sebagian"></i></div>
+                                    <div class="text-dark fw-bold mt-0.5" style="font-size: 0.72rem;">Estimasi Total Penghasilan <i class="far fa-question-circle text-muted" style="font-size: 0.65rem; cursor: help;" title="Total pendapatan bersih yang akan dilepas ke saldo penjual"></i></div>
+                                @endif
                             </div>
                             
                             <!-- Dotted Vertical Divider Line -->
@@ -372,13 +392,24 @@
                             
                             <!-- Values Column -->
                             <div class="ps-3 text-end d-flex flex-column justify-content-between py-0.5 font-monospace" style="font-size: 0.68rem; line-height: 1.8; min-width: 130px;">
-                                <div class="text-dark">Rp{{ number_format($subtotalPesanan, 0, ',', '.') }} <i class="fas fa-chevron-down text-muted" style="font-size: 0.55rem;"></i></div>
-                                <div class="text-dark">Rp{{ number_format($shippingFee, 0, ',', '.') }} <i class="fas fa-chevron-down text-muted" style="font-size: 0.55rem;"></i></div>
-                                <div class="text-dark">{{ $platformFee > 0 ? '-Rp' . number_format($platformFee, 0, ',', '.') : 'Rp0' }} <i class="fas fa-chevron-down text-muted" style="font-size: 0.55rem;"></i></div>
-                                <div class="text-dark">{{ $freeShipping > 0 ? '-Rp' . number_format($freeShipping, 0, ',', '.') : 'Rp0' }} <i class="fas fa-chevron-down text-muted" style="font-size: 0.55rem;"></i></div>
-                                <div class="text-dark">{{ $layananTambahan > 0 ? '-Rp' . number_format($layananTambahan, 0, ',', '.') : 'Rp0' }}</div>
-                                <div class="text-danger">{{ $order->refund_amount > 0 ? '-Rp' . number_format($order->refund_amount, 0, ',', '.') : 'Rp0' }}</div>
-                                <div class="fw-bold text-danger mt-0.5" style="color: #ee4d2d !important; font-size: 1.05rem !important;">Rp{{ number_format($estimasiPenghasilan, 0, ',', '.') }}</div>
+                                @if($isTiktok)
+                                    <div class="text-dark">Rp{{ number_format($subtotalPesanan, 0, ',', '.') }}</div>
+                                    <div class="text-dark">{{ $otherFee > 0 ? '-Rp' . number_format($otherFee, 0, ',', '.') : 'Rp0' }}</div>
+                                    <div class="text-dark">{{ $platformFee > 0 ? '-Rp' . number_format($platformFee, 0, ',', '.') : 'Rp0' }}</div>
+                                    <div class="text-dark">{{ $freeShipping > 0 ? '-Rp' . number_format($freeShipping, 0, ',', '.') : 'Rp0' }}</div>
+                                    <div class="text-dark">{{ $promoFee > 0 ? '-Rp' . number_format($promoFee, 0, ',', '.') : 'Rp0' }}</div>
+                                    <div class="text-dark">{{ $serviceFee > 0 ? '-Rp' . number_format($serviceFee, 0, ',', '.') : 'Rp0' }}</div>
+                                    <div class="text-danger">{{ $order->refund_amount > 0 ? '-Rp' . number_format($order->refund_amount, 0, ',', '.') : 'Rp0' }}</div>
+                                    <div class="fw-bold text-danger mt-0.5" style="color: #ee4d2d !important; font-size: 1.05rem !important;">Rp{{ number_format($estimasiPenghasilan, 0, ',', '.') }}</div>
+                                @else
+                                    <div class="text-dark">Rp{{ number_format($subtotalPesanan, 0, ',', '.') }} <i class="fas fa-chevron-down text-muted" style="font-size: 0.55rem;"></i></div>
+                                    <div class="text-dark">Rp{{ number_format($shippingFee, 0, ',', '.') }} <i class="fas fa-chevron-down text-muted" style="font-size: 0.55rem;"></i></div>
+                                    <div class="text-dark">{{ $platformFee > 0 ? '-Rp' . number_format($platformFee, 0, ',', '.') : 'Rp0' }} <i class="fas fa-chevron-down text-muted" style="font-size: 0.55rem;"></i></div>
+                                    <div class="text-dark">{{ $freeShipping > 0 ? '-Rp' . number_format($freeShipping, 0, ',', '.') : 'Rp0' }} <i class="fas fa-chevron-down text-muted" style="font-size: 0.55rem;"></i></div>
+                                    <div class="text-dark">{{ $layananTambahan > 0 ? '-Rp' . number_format($layananTambahan, 0, ',', '.') : 'Rp0' }}</div>
+                                    <div class="text-danger">{{ $order->refund_amount > 0 ? '-Rp' . number_format($order->refund_amount, 0, ',', '.') : 'Rp0' }}</div>
+                                    <div class="fw-bold text-danger mt-0.5" style="color: #ee4d2d !important; font-size: 1.05rem !important;">Rp{{ number_format($estimasiPenghasilan, 0, ',', '.') }}</div>
+                                @endif
                             </div>
                         </div>
                     </div>
