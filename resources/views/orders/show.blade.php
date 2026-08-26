@@ -366,13 +366,12 @@
                             // Group remaining admin fee components (service, promo, other)
                             $totalMarketplaceFee = abs((float) $order->marketplace_fee);
                             $layananTambahan = max(0.0, $totalMarketplaceFee - $platformFee - $freeShipping);
-                            
-                            $estimasiPenghasilan = (float) $order->net_amount;
+                                                       $estimasiPenghasilan = (float) $order->net_amount;
                             if ($estimasiPenghasilan <= 0) {
-                                $estimasiPenghasilan = $subtotalPesanan + $shippingFee - $totalMarketplaceFee;
+                                $estimasiPenghasilan = $subtotalPesanan + $shippingFee - $totalMarketplaceFee - $order->refund_amount;
                             }
                         @endphp
-
+ 
                         {{-- Summary Grid --}}
                         <div class="row justify-content-end">
                             <div class="col-12 col-md-8 col-lg-7 d-flex justify-content-end align-items-stretch">
@@ -383,6 +382,7 @@
                                     <div>Biaya Platform <i class="far fa-question-circle text-muted" style="font-size: 0.75rem; cursor: help;" title="Biaya Komisi / Platform Marketplace"></i></div>
                                     <div>Biaya Gratis Ongkir XTRA <i class="far fa-question-circle text-muted" style="font-size: 0.75rem; cursor: help;" title="Biaya Layanan Ongkir XTRA / Program Penjual"></i></div>
                                     <div>Subtotal Biaya Layanan Tambahan</div>
+                                    <div>Retur / Refund <i class="far fa-question-circle text-muted" style="font-size: 0.75rem; cursor: help;" title="Pengembalian dana kepada pembeli akibat retur / pengembalian sebagian"></i></div>
                                     <div class="text-dark fw-bold mt-1" style="font-size: 0.88rem;">Estimasi Total Penghasilan <i class="far fa-question-circle text-muted" style="font-size: 0.75rem; cursor: help;" title="Total pendapatan bersih yang akan dilepas ke saldo penjual"></i></div>
                                 </div>
                                 
@@ -396,6 +396,7 @@
                                     <div class="text-dark">{{ $platformFee > 0 ? '-Rp' . number_format($platformFee, 0, ',', '.') : 'Rp0' }} <i class="fas fa-chevron-down text-muted" style="font-size: 0.65rem;"></i></div>
                                     <div class="text-dark">{{ $freeShipping > 0 ? '-Rp' . number_format($freeShipping, 0, ',', '.') : 'Rp0' }} <i class="fas fa-chevron-down text-muted" style="font-size: 0.65rem;"></i></div>
                                     <div class="text-dark">{{ $layananTambahan > 0 ? '-Rp' . number_format($layananTambahan, 0, ',', '.') : 'Rp0' }}</div>
+                                    <div class="text-danger">{{ $order->refund_amount > 0 ? '-Rp' . number_format($order->refund_amount, 0, ',', '.') : 'Rp0' }}</div>
                                     <div class="fw-bold fs-5 text-danger mt-1" style="color: #ee4d2d !important; font-size: 1.25rem !important;">Rp{{ number_format($estimasiPenghasilan, 0, ',', '.') }}</div>
                                 </div>
                             </div>
