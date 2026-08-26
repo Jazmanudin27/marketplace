@@ -2480,16 +2480,13 @@ class ReportController extends Controller
                     }
                 }
 
-                $netAmt = (float)$o->net_amount;
-                if ($o->recon_status !== 'RECONCILED') {
-                    $status = strtoupper((string)($o->order_status ?? ''));
-                    if (in_array($status, ['CANCELLED', 'BATAL', 'CANCELED', 'IN_CANCEL'])) {
-                        $netAmt = 0.0;
-                    } elseif ($refundAmt >= (float)$o->total_amount && (float)$o->total_amount > 0) {
-                        $netAmt = 0.0;
-                    } else {
-                        $netAmt = (float)$o->total_amount - $refundAmt - $absFee;
-                    }
+                $status = strtoupper((string)($o->order_status ?? ''));
+                if (in_array($status, ['CANCELLED', 'BATAL', 'CANCELED', 'IN_CANCEL'])) {
+                    $netAmt = 0.0;
+                } else {
+                    $refundValAmt = $o->refund_amount;
+                    $isRefundedOrder = $refundValAmt > 0 || in_array($status, ['RETURNED', 'REFUNDED', 'RETURN', 'REFUND']);
+                    $netAmt = ($isRefundedOrder && $refundValAmt >= $o->total_amount) ? 0.0 : (float)$o->net_amount;
                 }
 
                 $refVal = $o->order_marketplace_id ?: ($o->order_number ?: $o->invoice_number);
