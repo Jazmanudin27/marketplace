@@ -138,25 +138,36 @@ class SyncTiktokEscrow extends Command
                 continue;
             }
 
-            // 🎯 FILTER HANYA PESANAN YANG BENAR-BENAR MISMATCH (SAMA PERSIS DENGAN LOGIKA DASHBOARD)
+            // 🎯 FILTER HANYA PESANAN YANG BENAR-BENAR MISMATCH ATAU BELUM MEMILIKI SETTLEMENT RESMI
             if (!$orderIdOption && !$forceAll) {
                 $orders = $allOrders->filter(function($ord) {
                     $status = strtoupper($ord->order_status);
-                    if (!in_array($status, ['COMPLETED', 'SELESAI', 'CANCELLED', 'BATAL', 'CANCELED', 'RETURNED', 'REFUNDED', 'RETURN', 'REFUND'])) {
-                        return true;
+                    
+                    // 1. Jika status pesanan belum selesai/final (misal masih dikirim/siap dikirim), 
+                    //    jangan tarik escrow/settlement dulu karena belum ada dana cair resmi di API.
+                    $finalStatuses = ['COMPLETED', 'SELESAI', 'FINISHED', 'DELIVERED', 'RETURNED', 'REFUNDED', 'RETURN', 'REFUND', 'RETURN_APPROVED', 'RETURN_COMPLETED', 'PARTIAL_RETURN'];
+                    if (!in_array($status, $finalStatuses)) {
+                        return false; 
                     }
 
+                    // 2. Jika financial_breakdown masih kosong atau tidak valid, wajib disinkronkan agar terisi
                     $fb = $ord->financial_breakdown;
-                    if (empty($fb)) return true; // Jika kosong, wajib disinkronkan agar terisi
+                    if (empty($fb)) return true;
 
                     if (is_string($fb)) {
                         $fb = json_decode($fb, true);
                     }
                     if (!is_array($fb) || empty($fb)) return true;
 
+                    // 3. Jika rincian statement_transactions belum ada/kosong untuk pesanan selesai,
+                    //    wajib disinkronkan agar data transaksi riil dari API Finance ditarik.
                     $stmtList = $fb['statement_transactions'] ?? $fb['statement_transaction_list'] ?? $fb['transactions'] ?? [];
-                    $st0 = (is_array($stmtList) && !empty($stmtList[0]) && is_array($stmtList[0])) ? $stmtList[0] : [];
+                    if (empty($stmtList)) {
+                        return true;
+                    }
 
+                    // 4. Jika ada statement, cek kecocokan data nominal ERP dengan API
+                    $st0 = (is_array($stmtList) && !empty($stmtList[0]) && is_array($stmtList[0])) ? $stmtList[0] : [];
                     $sellerDisc = (float)($fb['seller_discount'] ?? $fb['voucher_from_seller'] ?? $fb['discount_amount'] ?? 0);
                     if (isset($fb['subtotal_after_seller_discounts']) && (float)$fb['subtotal_after_seller_discounts'] > 0) {
                         $apiOmset = (float)$fb['subtotal_after_seller_discounts'];

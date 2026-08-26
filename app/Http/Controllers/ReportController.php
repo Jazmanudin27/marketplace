@@ -2816,14 +2816,21 @@ class ReportController extends Controller
         $subtotalPesanan = max(0.0, $grossSales - $refunds);
         $vouchers = 0.0;
 
-        $platformFee = (float) ($detailData['grandTotalPlatformFee'] ?? 0);
+        $platformFee     = (float) ($detailData['grandTotalPlatformFee'] ?? 0);
         $freeShippingFee = (float) ($detailData['grandTotalFreeShipping'] ?? 0);
-        $serviceFee = (float) ($detailData['grandTotalServiceFee'] ?? 0);
-        $promoFee = (float) ($detailData['grandTotalPromoFee'] ?? 0);
-        $otherFee = (float) ($detailData['grandTotalOtherFee'] ?? 0);
-        $tax = 0.0;
+        $serviceFee      = (float) ($detailData['grandTotalServiceFee'] ?? 0);
+        $promoFee        = (float) ($detailData['grandTotalPromoFee'] ?? 0);
+        $otherFee        = (float) ($detailData['grandTotalOtherFee'] ?? 0);
+        $tax             = 0.0;
 
-        $totalPengeluaran = $platformFee + $freeShippingFee + $serviceFee + $promoFee + $otherFee + $tax;
+        // Gunakan grandTotalTotalFee sebagai acuan tunggal totalPengeluaran
+        // agar selaras 100% dengan kolom "total_fee" di tabel Detail Transaksi
+        $grandTotalFee = (float) ($detailData['grandTotalTotalFee'] ?? 0);
+        if ($grandTotalFee > 0) {
+            $totalPengeluaran = $grandTotalFee;
+        } else {
+            $totalPengeluaran = abs($platformFee) + abs($freeShippingFee) + abs($serviceFee) + abs($promoFee) + abs($otherFee) + $tax;
+        }
         $totalPendapatan = $subtotalPesanan + $vouchers;
         // PRIORITAS: gunakan grandTotalNetReleased dari detail data (nilai aktual net_amount per order, termasuk nilai negatif)
         // agar selaras 100% dengan tampilan tabel detail transaksi

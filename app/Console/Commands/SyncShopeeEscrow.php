@@ -88,21 +88,35 @@ class SyncShopeeEscrow extends Command
             $allOrders = $ordersQuery->get();
 
             // 🎯 FILTER HANYA PESANAN MISMATCH / BEDA DENGAN API
+            // 🎯 FILTER HANYA PESANAN MISMATCH ATAU BELUM MEMILIKI SETTLEMENT RESMI
             if (!$orderSnOption && !$forceAll) {
                 $orders = $allOrders->filter(function($ord) {
                     $status = strtoupper($ord->order_status);
-                    if (!in_array($status, ['COMPLETED', 'SELESAI', 'CANCELLED', 'BATAL', 'CANCELED', 'RETURNED', 'REFUNDED', 'RETURN', 'REFUND'])) {
-                        return true;
+                    
+                    // 1. Jika status pesanan belum selesai/final (misal masih dikirim/siap dikirim), 
+                    //    jangan tarik escrow/settlement dulu karena belum ada dana cair resmi di API.
+                    $finalStatuses = ['COMPLETED', 'SELESAI', 'FINISHED', 'DELIVERED', 'RETURNED', 'REFUNDED', 'RETURN', 'REFUND', 'RETURN_APPROVED', 'RETURN_COMPLETED', 'PARTIAL_RETURN'];
+                    if (!in_array($status, $finalStatuses)) {
+                        return false; 
                     }
 
+                    // 2. Jika financial_breakdown masih kosong atau tidak valid, wajib disinkronkan agar terisi
                     $fb = $ord->financial_breakdown;
-                    if (empty($fb)) return true; // Jika kosong, wajib disinkronkan agar terisi
+                    if (empty($fb)) return true; 
 
                     if (is_string($fb)) {
                         $fb = json_decode($fb, true);
                     }
                     if (!is_array($fb) || empty($fb)) return true;
 
+                    // 3. Jika escrow_amount di financial_breakdown masih kosong atau bernilai <= 0, 
+                    //    wajib disinkronkan agar dana cair resmi Shopee ditarik.
+                    $escrowAmt = (float)($fb['escrow_amount'] ?? 0);
+                    if ($escrowAmt <= 0) {
+                        return true;
+                    }
+
+                    // 4. Jika ada escrow, cek kecocokan data nominal ERP dengan API
                     $sellerDisc = (float)($fb['voucher_from_seller'] ?? $fb['seller_discount'] ?? 0);
                     $cogs = (float)($fb['cost_of_goods_sold'] ?? $fb['order_selling_price'] ?? $ord->total_amount);
                     $apiOmset = ($sellerDisc > 0 && $cogs > $sellerDisc) ? ($cogs - $sellerDisc) : $cogs;
@@ -113,7 +127,7 @@ class SyncShopeeEscrow extends Command
                     $diffNet   = abs((float)$ord->net_amount - $apiNet);
                     $diffFee   = abs((float)$ord->marketplace_fee - $apiFee);
 
-                    return ($diffOmset > 100 || $diffNet > 100 || $diffFee > 100);
+                    return ($ord->recon_status !== 'RECONCILED' || $diffOmset > 100 || $diffNet > 100 || $diffFee > 100);
                 });
 
                 $skippedCount = $allOrders->count() - $orders->count();
