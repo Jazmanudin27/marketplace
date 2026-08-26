@@ -410,18 +410,12 @@ class SyncTiktokEscrow extends Command
                             $dbOrder->order_date = \Carbon\Carbon::createFromTimestamp($cTsSec, 'Asia/Jakarta')->format('Y-m-d H:i:s');
                         }
 
+                        $dbOrder->total_amount = $totalAmount;
+                        $dbOrder->marketplace_fee = $totalTiktokFees;
+                        $dbOrder->net_amount = $escrowAmount;
                         $dbOrder->recon_status = 'RECONCILED';
-                        $dbOrder->saveQuietly();
-
-                        // Simpan pasti ke tabel orders langsung
-                        \DB::table('orders')->where('id', $dbOrder->id)->update([
-                            'total_amount'        => $totalAmount,
-                            'marketplace_fee'     => $totalTiktokFees,
-                            'net_amount'          => $escrowAmount,
-                            'recon_status'        => 'RECONCILED',
-                            'financial_breakdown' => json_encode($finalFb),
-                            'updated_at'          => now(),
-                        ]);
+                        $dbOrder->financial_breakdown = $finalFb;
+                        $dbOrder->save();
 
                         // 📦 PERBAIKAN OTOMATIS: Jika order belum punya item di DB, buatkan itemnya dari API
                         if ($dbOrder->items()->count() === 0) {

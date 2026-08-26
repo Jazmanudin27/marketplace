@@ -217,7 +217,7 @@ class SyncShopeeEscrow extends Command
                         }
 
                         $order->recon_status = 'RECONCILED';
-                        $order->saveQuietly();
+                        $order->save();
 
                         // Update rincian item produk agar nilainya selaras
                         $existItems = $order->items;

@@ -406,16 +406,21 @@ class Order extends Model
     public function getFeeBreakdownDetailsAttribute(): array
     {
         $fb = $this->financial_breakdown ?? [];
-        $fb = $this->financial_breakdown;
-        if (is_string($fb)) {
-            $fb = json_decode($fb, true);
+        $totalGross = (float) $this->total_amount;
+        $sellerReturnRefund = $this->refund_amount;
+
+        // Jika pesanan direfund penuh, biaya admin reguler = 0 (hanya sisa ongkir retur jika ada)
+        if ($sellerReturnRefund >= $totalGross && $totalGross > 0) {
+            $returnShipping = abs((float) ($fb['return_shipping_fee'] ?? $fb['actual_return_shipping_fee_amount'] ?? 0));
+            return [
+                'platform_fee'   => 0.0,
+                'free_shipping'  => 0.0,
+                'service_fee'    => 0.0,
+                'promo_fee'      => 0.0,
+                'other_fee'      => $returnShipping > 0 ? -$returnShipping : 0.0,
+                'total_fee'      => $returnShipping > 0 ? -$returnShipping : 0.0,
+            ];
         }
-
-        $sellerReturnRefund = (float) ($fb['seller_return_refund'] ?? $fb['refund_amount'] ?? 0);
-        $totalGross = (float) ($fb['original_price'] ?? $this->total_amount);
-
-        // Jika order di-refund penuh/sebagian di statement transaksi, hitung ongkir retur sebagai other_fee
-        $returnShipping = (float) ($fb['return_shipping_fee'] ?? 0);
 
         $stmtList = $fb['statement_transactions'] ?? $fb['statement_transaction_list'] ?? $fb['transactions'] ?? [];
         $st0 = (is_array($stmtList) && !empty($stmtList[0]) && is_array($stmtList[0])) ? $stmtList[0] : [];
@@ -456,7 +461,7 @@ class Order extends Model
                     + $shippingAdjustment
                     + abs((float) ($fb['shipping_seller_protection_fee_amount'] ?? $fb['delivery_seller_protection_fee_premium_amount'] ?? 0))
                     + abs((float) ($fb['withholding_tax'] ?? $fb['escrow_tax'] ?? $fb['vat'] ?? $fb['buyer_tax_amount'] ?? 0))
-                    + $returnShipping;
+                    + abs((float) ($fb['return_shipping_fee'] ?? $fb['return_shipping_fee_amount'] ?? 0));
 
         // Jika ada adjustment eksplisit yang bukan pembatalan penuh
         $refundOrAdj = abs((float) ($fb['total_adjustment_amount'] ?? $fb['adjustment_amount'] ?? $st0['adjustment_amount'] ?? 0));
