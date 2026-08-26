@@ -57,6 +57,9 @@ class OrderController extends Controller
             $reqStatus = strtoupper($request->status);
             $targetStatuses = $statusMap[$reqStatus] ?? [$request->status];
             $query->whereIn(\DB::raw('UPPER(order_status)'), array_map('strtoupper', $targetStatuses));
+        } else {
+            // Sembunyikan status batal secara default agar tidak memadati daftar utama
+            $query->whereNotIn(\DB::raw('UPPER(order_status)'), ['CANCELLED', 'BATAL', 'CANCELED', 'IN_CANCEL']);
         }
 
         // Filter PO vs Ready Stock
