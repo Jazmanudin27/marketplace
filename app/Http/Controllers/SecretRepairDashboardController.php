@@ -1084,7 +1084,9 @@ class SecretRepairDashboardController extends Controller
         $apiOmset = 0.0;
         if ($isShopee) {
             $sellerDisc = (float)($inc['voucher_from_seller'] ?? $inc['seller_discount'] ?? $inc['seller_discount_amount'] ?? 0);
-            if (isset($inc['order_selling_price']) && (float)$inc['order_selling_price'] > 0) {
+            if (isset($inc['original_cost_of_goods_sold']) && (float)$inc['original_cost_of_goods_sold'] > 0) {
+                $apiOmset = (float)$inc['original_cost_of_goods_sold'];
+            } elseif (isset($inc['order_selling_price']) && (float)$inc['order_selling_price'] > 0) {
                 $apiOmset = (float)$inc['order_selling_price'];
             } elseif (isset($inc['cost_of_goods_sold']) && (float)$inc['cost_of_goods_sold'] > 0) {
                 $cogs = (float)$inc['cost_of_goods_sold'];
@@ -1234,9 +1236,6 @@ class SecretRepairDashboardController extends Controller
             }
         }
 
-        if ($apiRefund > 0) {
-            $apiOmset = $apiOmset + $apiRefund;
-        }
 
         return [
             'has_fb'     => true,

@@ -156,7 +156,9 @@ class SyncShopeeEscrow extends Command
 
                         // Ambil Subtotal Produk Penjual setelah diskon penjual (Net Sales)
                         $sellerDisc = (float) ($income['voucher_from_seller'] ?? $income['seller_discount'] ?? 0);
-                        if (isset($income['order_selling_price']) && (float)$income['order_selling_price'] > 0) {
+                        if (isset($income['original_cost_of_goods_sold']) && (float)$income['original_cost_of_goods_sold'] > 0) {
+                            $merchantSubtotal = (float)$income['original_cost_of_goods_sold'];
+                        } elseif (isset($income['order_selling_price']) && (float)$income['order_selling_price'] > 0) {
                             $merchantSubtotal = (float)$income['order_selling_price'];
                         } elseif (isset($income['cost_of_goods_sold']) && (float)$income['cost_of_goods_sold'] > 0) {
                             $cogs = (float)$income['cost_of_goods_sold'];
@@ -176,9 +178,6 @@ class SyncShopeeEscrow extends Command
                         }
 
                         if ($merchantSubtotal > 0) {
-                            if ($refundAmt > 0) {
-                                $merchantSubtotal = $merchantSubtotal + $refundAmt;
-                            }
                             $order->total_amount = $merchantSubtotal;
                         }
 
