@@ -1228,11 +1228,6 @@ class SecretRepairDashboardController extends Controller
 
         $rawEscrow = (float) ($inc['escrow_amount'] ?? 0);
         $originalApiNet = $apiNet;
-        if ($apiNet > 0 && $apiRefund > 0) {
-            if ($apiNet == $rawEscrow || !isset($inc['escrow_amount_after_adjustment'])) {
-                $apiNet = $apiNet - $apiRefund;
-            }
-        }
 
         if (!$hasEscrowApi && $originalApiNet <= 0) {
             if ($apiRefund >= $apiOmset && $apiOmset > 0) {
