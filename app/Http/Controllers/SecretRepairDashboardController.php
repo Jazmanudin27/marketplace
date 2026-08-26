@@ -1124,16 +1124,16 @@ class SecretRepairDashboardController extends Controller
         if (isset($inc['escrow_amount_after_adjustment'])) {
             $apiNet = (float) $inc['escrow_amount_after_adjustment'];
             $hasEscrowApi = true;
-        } elseif (isset($inc['escrow_amount']) && (float)$inc['escrow_amount'] > 0) {
+        } elseif (isset($inc['escrow_amount']) && $inc['escrow_amount'] !== '') {
             $apiNet = (float) $inc['escrow_amount'];
             $hasEscrowApi = true;
-        } elseif (isset($st0['settlement_amount']) && (float)$st0['settlement_amount'] > 0) {
+        } elseif (isset($st0['settlement_amount']) && $st0['settlement_amount'] !== '') {
             $apiNet = (float) $st0['settlement_amount'];
             $hasEscrowApi = true;
-        } elseif (isset($inc['settlement_amount']) && (float)$inc['settlement_amount'] > 0) {
+        } elseif (isset($inc['settlement_amount']) && $inc['settlement_amount'] !== '') {
             $apiNet = (float) $inc['settlement_amount'];
             $hasEscrowApi = true;
-        } elseif (isset($inc['seller_settlement_amount']) && (float)$inc['seller_settlement_amount'] > 0) {
+        } elseif (isset($inc['seller_settlement_amount']) && $inc['seller_settlement_amount'] !== '') {
             $apiNet = (float) $inc['seller_settlement_amount'];
             $hasEscrowApi = true;
         }

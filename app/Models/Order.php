@@ -561,16 +561,16 @@ class Order extends Model
 
         $escrow = 0.0;
         $hasEscrowVal = false;
-        if (isset($fb['escrow_amount']) && (float)$fb['escrow_amount'] > 0) {
+        if (isset($fb['escrow_amount']) && $fb['escrow_amount'] !== '') {
             $escrow = (float) $fb['escrow_amount'];
             $hasEscrowVal = true;
-        } elseif (isset($fb['settlement_amount']) && (float)$fb['settlement_amount'] > 0) {
+        } elseif (isset($fb['settlement_amount']) && $fb['settlement_amount'] !== '') {
             $escrow = (float) $fb['settlement_amount'];
             $hasEscrowVal = true;
-        } elseif (isset($st0['settlement_amount']) && (float)$st0['settlement_amount'] > 0) {
+        } elseif (isset($st0['settlement_amount']) && $st0['settlement_amount'] !== '') {
             $escrow = (float) $st0['settlement_amount'];
             $hasEscrowVal = true;
-        } elseif (isset($fb['seller_settlement_amount']) && (float)$fb['seller_settlement_amount'] > 0) {
+        } elseif (isset($fb['seller_settlement_amount']) && $fb['seller_settlement_amount'] !== '') {
             $escrow = (float) $fb['seller_settlement_amount'];
             $hasEscrowVal = true;
         }
