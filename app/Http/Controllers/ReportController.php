@@ -2811,7 +2811,14 @@ class ReportController extends Controller
 
         $totalPengeluaran = $platformFee + $freeShippingFee + $serviceFee + $promoFee + $otherFee + $tax;
         $totalPendapatan = $subtotalPesanan + $vouchers;
-        $totalDilepas = max(0.0, $totalPendapatan - abs($totalPengeluaran));
+        // PRIORITAS: gunakan grandTotalNetReleased dari detail data (nilai aktual net_amount per order, termasuk nilai negatif)
+        // agar selaras 100% dengan tampilan tabel detail transaksi
+        $grandTotalNetReleased = (float) ($detailData['grandTotalNetReleased'] ?? 0);
+        if ($grandTotalNetReleased != 0.0) {
+            $totalDilepas = $grandTotalNetReleased;
+        } else {
+            $totalDilepas = $totalPendapatan - abs($totalPengeluaran);
+        }
 
         return compact(
             'grossSales', 'refunds', 'subtotalPesanan', 'vouchers', 'totalPendapatan',
