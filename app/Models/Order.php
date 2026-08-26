@@ -409,8 +409,8 @@ class Order extends Model
         $totalGross = (float) $this->total_amount;
         $sellerReturnRefund = $this->refund_amount;
 
-        // Jika pesanan direfund penuh, biaya admin reguler = 0 (hanya sisa ongkir retur jika ada)
-        if ($sellerReturnRefund >= $totalGross && $totalGross > 0) {
+        // Jika pesanan direfund penuh, biaya admin reguler = 0 (hanya sisa ongkir retur jika ada) dan tidak ada breakdown resmi
+        if ($sellerReturnRefund >= $totalGross && $totalGross > 0 && empty($fb)) {
             $returnShipping = abs((float) ($fb['return_shipping_fee'] ?? $fb['actual_return_shipping_fee_amount'] ?? 0));
             return [
                 'platform_fee'   => 0.0,
