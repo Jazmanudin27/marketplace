@@ -2488,7 +2488,7 @@ class ReportController extends Controller
                     } elseif ($refundAmt >= (float)$o->total_amount && (float)$o->total_amount > 0) {
                         $netAmt = 0.0;
                     } else {
-                        $netAmt = max(0.0, (float)$o->total_amount - $refundAmt - $absFee);
+                        $netAmt = (float)$o->total_amount - $refundAmt - $absFee;
                     }
                 }
 

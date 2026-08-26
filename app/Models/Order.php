@@ -171,7 +171,7 @@ class Order extends Model
                 if ($refundAmt >= (float)$order->total_amount && (float)$order->total_amount > 0) {
                     $order->net_amount = 0.0;
                 } else {
-                    $order->net_amount = max(0.0, (float)$order->total_amount - $refundAmt - (float)$order->marketplace_fee);
+                    $order->net_amount = (float)$order->total_amount - $refundAmt - (float)$order->marketplace_fee;
                 }
             }
         });
