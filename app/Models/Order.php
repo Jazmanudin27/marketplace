@@ -553,6 +553,10 @@ class Order extends Model
      */
     public function getMarketplaceFeeAttribute($value): float
     {
+        if ($this->recon_status === 'RECONCILED') {
+            return (float) $value;
+        }
+
         if (!empty($this->financial_breakdown)) {
             $details = $this->fee_breakdown_details;
             $calcFee = (float) abs($details['total_fee'] ?? 0);
@@ -577,6 +581,10 @@ class Order extends Model
      */
     public function getNetAmountAttribute($value): float
     {
+        if ($this->recon_status === 'RECONCILED') {
+            return (float) $value;
+        }
+
         $fb = $this->financial_breakdown;
         if (is_string($fb)) {
             $fb = json_decode($fb, true);
