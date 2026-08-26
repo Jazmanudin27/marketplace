@@ -1705,7 +1705,7 @@ class SecretRepairDashboardController extends Controller
 
         $allOrders = $query->get(['id', 'order_marketplace_id', 'order_date', 'completed_at', 'order_status',
             'total_amount', 'discount_amount', 'marketplace_fee', 'net_amount', 'financial_breakdown',
-            'store_id', 'buyer_name', 'shipping_fee']);
+            'store_id', 'buyer_name', 'shipping_fee', 'recon_status']);
 
         $rowsAll = [];
         foreach ($allOrders as $ord) {
