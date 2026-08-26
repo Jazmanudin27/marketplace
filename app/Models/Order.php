@@ -423,7 +423,39 @@ class Order extends Model
         }
 
         $stmtList = $fb['statement_transactions'] ?? $fb['statement_transaction_list'] ?? $fb['transactions'] ?? [];
-        $st0 = (is_array($stmtList) && !empty($stmtList[0]) && is_array($stmtList[0])) ? $stmtList[0] : [];
+        
+        $store = $this->store;
+        $chCode = strtolower($store->channel->code ?? '');
+        $isTiktok = (in_array($chCode, ['tiktok', 'tiktok_shop', 'tokopedia']) || ($this->store_id && $store->channel_id == 3));
+
+        $st0 = [];
+        if ($isTiktok && !empty($stmtList)) {
+            $st0 = [
+                'platform_commission_amount' => 0.0,
+                'growth_xtra_fee_amount' => 0.0,
+                'preorder_service_fee_amount' => 0.0,
+                'transaction_fee_amount' => 0.0,
+                'affiliate_commission_amount' => 0.0,
+                'dynamic_commission_amount' => 0.0,
+                'actual_shipping_fee_amount' => 0.0,
+                'shipping_cost_amount' => 0.0,
+                'customer_paid_shipping_fee_amount' => 0.0,
+                'platform_shipping_fee_discount_amount' => 0.0,
+                'adjustment_amount' => 0.0,
+                'fee_amount' => 0.0,
+                'settlement_amount' => 0.0,
+            ];
+            foreach ($stmtList as $st) {
+                if (!is_array($st)) continue;
+                foreach ($st0 as $key => $val) {
+                    if (isset($st[$key])) {
+                        $st0[$key] += (float)$st[$key];
+                    }
+                }
+            }
+        } else {
+            $st0 = (is_array($stmtList) && !empty($stmtList[0]) && is_array($stmtList[0])) ? $stmtList[0] : [];
+        }
 
         // 1. Biaya Platform Komisi (Shopee: commission_fee | TikTok: net_platform_commission / platform_commission / platform_commission_amount)
         $platformFee = abs((float) ($fb['commission_fee'] ?? $fb['net_platform_commission'] ?? $fb['platform_commission'] ?? $fb['platform_fee'] ?? $st0['platform_commission_amount'] ?? 0));
@@ -552,7 +584,39 @@ class Order extends Model
         $refundDeduction = $this->refund_amount;
 
         $stmtList = $fb['statement_transactions'] ?? $fb['statement_transaction_list'] ?? $fb['transactions'] ?? [];
-        $st0 = (is_array($stmtList) && !empty($stmtList[0]) && is_array($stmtList[0])) ? $stmtList[0] : [];
+        
+        $store = $this->store;
+        $chCode = strtolower($store->channel->code ?? '');
+        $isTiktok = (in_array($chCode, ['tiktok', 'tiktok_shop', 'tokopedia']) || ($this->store_id && $store->channel_id == 3));
+
+        $st0 = [];
+        if ($isTiktok && !empty($stmtList)) {
+            $st0 = [
+                'platform_commission_amount' => 0.0,
+                'growth_xtra_fee_amount' => 0.0,
+                'preorder_service_fee_amount' => 0.0,
+                'transaction_fee_amount' => 0.0,
+                'affiliate_commission_amount' => 0.0,
+                'dynamic_commission_amount' => 0.0,
+                'actual_shipping_fee_amount' => 0.0,
+                'shipping_cost_amount' => 0.0,
+                'customer_paid_shipping_fee_amount' => 0.0,
+                'platform_shipping_fee_discount_amount' => 0.0,
+                'adjustment_amount' => 0.0,
+                'fee_amount' => 0.0,
+                'settlement_amount' => 0.0,
+            ];
+            foreach ($stmtList as $st) {
+                if (!is_array($st)) continue;
+                foreach ($st0 as $key => $val) {
+                    if (isset($st[$key])) {
+                        $st0[$key] += (float)$st[$key];
+                    }
+                }
+            }
+        } else {
+            $st0 = (is_array($stmtList) && !empty($stmtList[0]) && is_array($stmtList[0])) ? $stmtList[0] : [];
+        }
 
         // Jika ada escrow_amount_after_adjustment resmi dari API (sudah terpotong penyesuaian)
         if (isset($fb['escrow_amount_after_adjustment'])) {

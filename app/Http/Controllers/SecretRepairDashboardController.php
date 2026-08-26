@@ -1121,21 +1121,39 @@ class SecretRepairDashboardController extends Controller
         // ── 3. DANA CAIR API (ESCROW / SETTLEMENT RESMI SEPERTI DI SYNC-ESCROW) ──
         $apiNet = 0.0;
         $hasEscrowApi = false;
-        if (isset($inc['escrow_amount_after_adjustment'])) {
-            $apiNet = (float) $inc['escrow_amount_after_adjustment'];
-            $hasEscrowApi = true;
-        } elseif (isset($inc['escrow_amount']) && (float)$inc['escrow_amount'] > 0) {
-            $apiNet = (float) $inc['escrow_amount'];
-            $hasEscrowApi = true;
-        } elseif (isset($st0['settlement_amount']) && (float)$st0['settlement_amount'] > 0) {
-            $apiNet = (float) $st0['settlement_amount'];
-            $hasEscrowApi = true;
-        } elseif (isset($inc['settlement_amount']) && (float)$inc['settlement_amount'] > 0) {
-            $apiNet = (float) $inc['settlement_amount'];
-            $hasEscrowApi = true;
-        } elseif (isset($inc['seller_settlement_amount']) && (float)$inc['seller_settlement_amount'] > 0) {
-            $apiNet = (float) $inc['seller_settlement_amount'];
-            $hasEscrowApi = true;
+
+        if (!$isShopee && !empty($stmtList)) {
+            $settlementSum = 0.0;
+            $hasSettlement = false;
+            foreach ($stmtList as $st) {
+                if (isset($st['settlement_amount'])) {
+                    $settlementSum += (float)$st['settlement_amount'];
+                    $hasSettlement = true;
+                }
+            }
+            if ($hasSettlement) {
+                $apiNet = $settlementSum;
+                $hasEscrowApi = true;
+            }
+        }
+
+        if (!$hasEscrowApi) {
+            if (isset($inc['escrow_amount_after_adjustment'])) {
+                $apiNet = (float) $inc['escrow_amount_after_adjustment'];
+                $hasEscrowApi = true;
+            } elseif (isset($inc['escrow_amount']) && (float)$inc['escrow_amount'] > 0) {
+                $apiNet = (float) $inc['escrow_amount'];
+                $hasEscrowApi = true;
+            } elseif (isset($st0['settlement_amount']) && (float)$st0['settlement_amount'] > 0) {
+                $apiNet = (float) $st0['settlement_amount'];
+                $hasEscrowApi = true;
+            } elseif (isset($inc['settlement_amount']) && (float)$inc['settlement_amount'] > 0) {
+                $apiNet = (float) $inc['settlement_amount'];
+                $hasEscrowApi = true;
+            } elseif (isset($inc['seller_settlement_amount']) && (float)$inc['seller_settlement_amount'] > 0) {
+                $apiNet = (float) $inc['seller_settlement_amount'];
+                $hasEscrowApi = true;
+            }
         }
 
         // ── 4. BIAYA ADMIN API (PERSIS SAMA DENGAN SYNC-ESCROW) ──
@@ -1153,7 +1171,20 @@ class SecretRepairDashboardController extends Controller
             }
         } else {
             // TikTok
-            if (!empty($st0['fee_amount']) && (float)$st0['fee_amount'] != 0) {
+            $feeSum = 0.0;
+            $hasFeeFromStmt = false;
+            if (!empty($stmtList)) {
+                foreach ($stmtList as $st) {
+                    if (isset($st['fee_amount'])) {
+                        $feeSum += (float)$st['fee_amount'];
+                        $hasFeeFromStmt = true;
+                    }
+                }
+            }
+
+            if ($hasFeeFromStmt && abs($feeSum) > 0) {
+                $apiFee = abs($feeSum);
+            } elseif (!empty($st0['fee_amount']) && (float)$st0['fee_amount'] != 0) {
                 $apiFee = abs((float)$st0['fee_amount']);
             } else {
                 // Sum estimated TikTok fees from financial_breakdown keys (payment_info side)
