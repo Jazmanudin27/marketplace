@@ -1814,12 +1814,21 @@ class ReportController extends Controller
                 $query->whereHas('store.channel', fn($cq) => $cq->where('code', strtolower($channelCode)));
             }
 
-            $orders = $query->get();
+            $orders = $query->get(['total_amount', 'marketplace_fee', 'net_amount', 'recon_status']);
             $totalOrders += $orders->count();
             $gRev = (float) $orders->sum('total_amount');
             $mpFee = (float) $orders->sum('marketplace_fee');
             $grossRevenue += $gRev;
             $marketplaceFee += $mpFee;
+            // Hitung net released per order agar nilai negatif (retur penuh) ikut terakumulasi
+            foreach ($orders as $ord) {
+                $netVal = (float) $ord->getRawOriginal('net_amount');
+                if ($ord->recon_status === 'RECONCILED') {
+                    $netReleased += $netVal;
+                } else {
+                    $netReleased += max(0.0, $netVal);
+                }
+            }
         }
 
         // 2. Offline POS Sales (COMPLETED)
@@ -1857,7 +1866,9 @@ class ReportController extends Controller
             $totalRefunds += $ord->refund_amount;
         }
 
-        $netReleased = max(0.0, $grossRevenue - $totalRefunds - $marketplaceFee);
+        if ($netReleased == 0.0) {
+            $netReleased = max(0.0, $grossRevenue - $totalRefunds - $marketplaceFee);
+        }
 
         return [
             'total_orders'    => $totalOrders,
@@ -2456,7 +2467,7 @@ class ReportController extends Controller
                 }
 
                 $netAmt = (float)$o->net_amount;
-                if ($netAmt <= 0) {
+                if ($o->recon_status !== 'RECONCILED' && $netAmt <= 0) {
                     if ($refundAmt >= (float)$o->total_amount && (float)$o->total_amount > 0) {
                         $netAmt = 0.0;
                     } else {

@@ -1316,7 +1316,7 @@ class SecretRepairDashboardController extends Controller
             $apiOmset = $apiFee = $apiNet = 0.0;
             $apiCount = 0;
 
-            (clone $active)->select(['id', 'store_id', 'total_amount', 'discount_amount', 'marketplace_fee', 'net_amount', 'financial_breakdown'])
+            (clone $active)->select(['id', 'store_id', 'total_amount', 'discount_amount', 'marketplace_fee', 'net_amount', 'financial_breakdown', 'recon_status'])
                 ->chunk(500, function ($orders) use (&$erpOmset, &$erpFee, &$erpNet, &$apiOmset, &$apiFee, &$apiNet, &$apiCount, $shopeeStores) {
                     foreach ($orders as $ord) {
                         $isShopee = $shopeeStores->contains($ord->store_id);
@@ -1369,7 +1369,7 @@ class SecretRepairDashboardController extends Controller
             $sErpOmset = $sErpFee = $sErpNet = 0.0;
             $sApiOmset = $sApiFee = $sApiNet = 0.0;
 
-            (clone $active)->select(['id', 'store_id', 'total_amount', 'discount_amount', 'marketplace_fee', 'net_amount', 'financial_breakdown'])
+            (clone $active)->select(['id', 'store_id', 'total_amount', 'discount_amount', 'marketplace_fee', 'net_amount', 'financial_breakdown', 'recon_status'])
                 ->chunk(300, function ($orders) use (&$sErpOmset, &$sErpFee, &$sErpNet, &$sApiOmset, &$sApiFee, &$sApiNet, $isShopee) {
                     foreach ($orders as $ord) {
                         $fin = $this->parseOrderFinancials($ord, $isShopee);
@@ -1482,7 +1482,7 @@ class SecretRepairDashboardController extends Controller
             $apiOmset = $apiFee = $apiNet = 0.0;
             $apiCount = 0;
 
-            $q->select(['id', 'store_id', 'total_amount', 'discount_amount', 'marketplace_fee', 'net_amount', 'financial_breakdown', 'order_status'])
+            $q->select(['id', 'store_id', 'total_amount', 'discount_amount', 'marketplace_fee', 'net_amount', 'financial_breakdown', 'order_status', 'recon_status'])
                 ->chunk(500, function ($orders) use (&$erpOmset, &$erpFee, &$erpNet, &$apiOmset, &$apiFee, &$apiNet, &$apiCount, &$erpCount, $shopeeStores) {
                     foreach ($orders as $ord) {
                         $isShopee = $shopeeStores->contains($ord->store_id);
@@ -1533,7 +1533,7 @@ class SecretRepairDashboardController extends Controller
             $sErpOmset = $sErpFee = $sErpNet = 0.0;
             $sApiOmset = $sApiFee = $sApiNet = 0.0;
 
-            $sq->select(['id', 'store_id', 'total_amount', 'discount_amount', 'marketplace_fee', 'net_amount', 'financial_breakdown', 'order_status'])
+            $sq->select(['id', 'store_id', 'total_amount', 'discount_amount', 'marketplace_fee', 'net_amount', 'financial_breakdown', 'order_status', 'recon_status'])
                 ->chunk(300, function ($orders) use (&$sErpOmset, &$sErpFee, &$sErpNet, &$sApiOmset, &$sApiFee, &$sApiNet, &$count, $isShopee) {
                     foreach ($orders as $ord) {
                         if ($ord->refund_amount > 0) {
