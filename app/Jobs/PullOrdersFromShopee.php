@@ -322,45 +322,55 @@ class PullOrdersFromShopee implements ShouldQueue
             $netAmount = max(0.0, $totalAmount - $marketplaceFee);
         }
 
-        $order = Order::updateOrCreate(
-            [
-                'tenant_id' => $this->store->tenant_id,
-                'order_marketplace_id' => trim($shopeeOrder['order_sn']),
-            ],
-            [
-                'store_id' => $this->store->id,
-                'customer_id' => $customer->id,
-                'order_status' => $erpStatus,
-                'buyer_name' => $shopeeOrder['buyer_username'] ?? 'Buyer',
-                'buyer_phone' => $shopeeOrder['recipient_address']['phone'] ?? null,
-                'shipping_address' => $shopeeOrder['recipient_address']['full_address'] ?? null,
-                'total_amount' => $totalAmount,
-                'shipping_fee' => $shippingFee,
-                'discount_amount' => $sellerDiscount,
-                'net_amount' => $netAmount,
-                'marketplace_fee' => $marketplaceFee,
-                'courier' => $shopeeOrder['shipping_carrier'] ?? null,
-                'tracking_number' => (function() use ($shopeeOrder) {
-                    $tracking = (!empty($shopeeOrder['package_list']) && !empty(current($shopeeOrder['package_list'])['tracking_number'])) ? current($shopeeOrder['package_list'])['tracking_number'] : null;
-                    if ($tracking && (str_starts_with($tracking, 'PSG') || str_starts_with($tracking, 'psg'))) {
-                        return null;
-                    }
-                    return $tracking;
-                })(),
-                'order_date' => date('Y-m-d H:i:s', $shopeeOrder['create_time'] ?? time()),
-                'completed_at' => in_array($erpStatus, ['COMPLETED', 'DELIVERED', 'SELESAI', 'FINISHED']) ? date('Y-m-d H:i:s', $shopeeOrder['update_time'] ?? ($shopeeOrder['create_time'] ?? time())) : null,
-                'ship_before_date' => $this->resolveShipBeforeDate($shopeeOrder),
-                'financial_breakdown' => $financialBreakdown,
-                'voucher_code' => $voucherCode,
-                'shopee_utm_keyword' => $shopeeUtmKeyword,
-                'shopee_live_session_id' => $liveSessionId,
-                'is_dropship' => $isDropship,
-                'dropshipper_name' => $dropshipperName,
-                'dropshipper_phone' => $dropshipperPhone,
-                'cancel_reason' => $cancelReason,
-                'cancelled_by' => $cancelledBy,
-            ]
-        );
+        $order = Order::where('tenant_id', $this->store->tenant_id)
+            ->where('order_marketplace_id', trim($shopeeOrder['order_sn']))
+            ->first();
+
+        $updateData = [
+            'store_id' => $this->store->id,
+            'customer_id' => $customer->id,
+            'order_status' => $erpStatus,
+            'buyer_name' => $shopeeOrder['buyer_username'] ?? 'Buyer',
+            'buyer_phone' => $shopeeOrder['recipient_address']['phone'] ?? null,
+            'shipping_address' => $shopeeOrder['recipient_address']['full_address'] ?? null,
+            'total_amount' => $totalAmount,
+            'shipping_fee' => $shippingFee,
+            'discount_amount' => $sellerDiscount,
+            'courier' => $shopeeOrder['shipping_carrier'] ?? null,
+            'tracking_number' => (function() use ($shopeeOrder) {
+                $tracking = (!empty($shopeeOrder['package_list']) && !empty(current($shopeeOrder['package_list'])['tracking_number'])) ? current($shopeeOrder['package_list'])['tracking_number'] : null;
+                if ($tracking && (str_starts_with($tracking, 'PSG') || str_starts_with($tracking, 'psg'))) {
+                    return null;
+                }
+                return $tracking;
+            })(),
+            'order_date' => date('Y-m-d H:i:s', $shopeeOrder['create_time'] ?? time()),
+            'completed_at' => in_array($erpStatus, ['COMPLETED', 'DELIVERED', 'SELESAI', 'FINISHED']) ? date('Y-m-d H:i:s', $shopeeOrder['update_time'] ?? ($shopeeOrder['create_time'] ?? time())) : null,
+            'ship_before_date' => $this->resolveShipBeforeDate($shopeeOrder),
+            'voucher_code' => $voucherCode,
+            'shopee_utm_keyword' => $shopeeUtmKeyword,
+            'shopee_live_session_id' => $liveSessionId,
+            'is_dropship' => $isDropship,
+            'dropshipper_name' => $dropshipperName,
+            'dropshipper_phone' => $dropshipperPhone,
+            'cancel_reason' => $cancelReason,
+            'cancelled_by' => $cancelledBy,
+        ];
+
+        // Proteksi Data Keuangan: Hanya update net_amount, marketplace_fee, dan financial_breakdown jika data belum RECONCILED
+        if (!$order || $order->recon_status !== 'RECONCILED') {
+            $updateData['net_amount'] = $netAmount;
+            $updateData['marketplace_fee'] = $marketplaceFee;
+            $updateData['financial_breakdown'] = $financialBreakdown;
+        }
+
+        if ($order) {
+            $order->update($updateData);
+        } else {
+            $updateData['tenant_id'] = $this->store->tenant_id;
+            $updateData['order_marketplace_id'] = trim($shopeeOrder['order_sn']);
+            $order = Order::create($updateData);
+        }
 
         if (!empty($shopeeOrder['item_list'])) {
             OrderItem::where('order_id', $order->id)->delete();

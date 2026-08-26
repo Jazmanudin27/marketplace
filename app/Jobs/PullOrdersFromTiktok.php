@@ -388,46 +388,56 @@ class PullOrdersFromTiktok implements ShouldQueue
         $cancelReason = $tiktokOrder['cancel_reason'] ?? $tiktokOrder['cancel_user_reason'] ?? null;
         $cancelledBy = $tiktokOrder['cancel_by'] ?? null;
 
-        $order = Order::updateOrCreate(
-            [
-                'tenant_id' => $this->store->tenant_id,
-                'order_marketplace_id' => $orderIdStr,
-            ],
-            [
-                'store_id' => $this->store->id,
-                'customer_id' => $customer->id,
-                'order_status' => $erpStatus,
-                'order_date' => $orderDateTime,
-                'buyer_name' => $buyerName,
-                'buyer_phone' => $buyerPhone,
-                'shipping_address' => $buyerAddress,
-                'total_amount' => $totalAmount,
-                'shipping_fee' => $shippingFee,
-                'discount_amount' => $discountAmount,
-                'net_amount' => $netAmount,
-                'marketplace_fee' => $marketplaceFee,
-                'courier' => $courier,
-                'tracking_number' => $trackingNumber,
-                'completed_at' => in_array($erpStatus, ['COMPLETED', 'DELIVERED', 'SELESAI', 'FINISHED']) ? \Carbon\Carbon::createFromTimestamp((function() use ($tiktokOrder, $createTime) {
-                    $ts = $tiktokOrder['finish_time'] ?? $tiktokOrder['delivered_time'] ?? $tiktokOrder['complete_time'] ?? $tiktokOrder['delivery_time'] ?? $tiktokOrder['update_time'] ?? $tiktokOrder['paid_time'] ?? $createTime;
-                    return (is_numeric($ts) && strlen((string)$ts) >= 13) ? (int)($ts / 1000) : (int)$ts;
-                })(), 'Asia/Jakarta')->format('Y-m-d H:i:s') : null,
-                'ship_before_date' => $this->resolveShipBeforeDate($tiktokOrder),
-                'paid_at' => !empty($tiktokOrder['paid_time']) ? \Carbon\Carbon::createFromTimestamp((is_numeric($tiktokOrder['paid_time']) && strlen((string)$tiktokOrder['paid_time']) >= 13) ? (int)($tiktokOrder['paid_time'] / 1000) : (int)$tiktokOrder['paid_time'], 'Asia/Jakarta')->format('Y-m-d H:i:s') : null,
-                'payment_method' => $tiktokOrder['payment_method_name'] ?? $tiktokOrder['payment_method_code'] ?? (!empty($tiktokOrder['is_cod']) ? 'Cash on Delivery' : null),
-                'buyer_email' => $tiktokOrder['buyer_email'] ?? null,
-                'buyer_message' => $tiktokOrder['buyer_message'] ?? null,
-                'seller_note' => $tiktokOrder['seller_note'] ?? null,
-                'package_id' => $tiktokOrder['packages'][0]['id'] ?? $tiktokOrder['package_id'] ?? null,
-                'financial_breakdown' => $financialBreakdown,
-                'tiktok_creator_name' => $tiktokCreatorName,
-                'tiktok_creator_id' => $tiktokCreatorId,
-                'affiliate_commission' => $affiliateCommission,
-                'tiktok_live_session_id' => $liveSessionId,
-                'cancel_reason' => $cancelReason,
-                'cancelled_by' => $cancelledBy,
-            ]
-        );
+        $order = Order::where('tenant_id', $this->store->tenant_id)
+            ->where('order_marketplace_id', $orderIdStr)
+            ->first();
+
+        $updateData = [
+            'store_id' => $this->store->id,
+            'customer_id' => $customer->id,
+            'order_status' => $erpStatus,
+            'order_date' => $orderDateTime,
+            'buyer_name' => $buyerName,
+            'buyer_phone' => $buyerPhone,
+            'shipping_address' => $buyerAddress,
+            'total_amount' => $totalAmount,
+            'shipping_fee' => $shippingFee,
+            'discount_amount' => $discountAmount,
+            'courier' => $courier,
+            'tracking_number' => $trackingNumber,
+            'completed_at' => in_array($erpStatus, ['COMPLETED', 'DELIVERED', 'SELESAI', 'FINISHED']) ? \Carbon\Carbon::createFromTimestamp((function() use ($tiktokOrder, $createTime) {
+                $ts = $tiktokOrder['finish_time'] ?? $tiktokOrder['delivered_time'] ?? $tiktokOrder['complete_time'] ?? $tiktokOrder['delivery_time'] ?? $tiktokOrder['update_time'] ?? $tiktokOrder['paid_time'] ?? $createTime;
+                return (is_numeric($ts) && strlen((string)$ts) >= 13) ? (int)($ts / 1000) : (int)$ts;
+            })(), 'Asia/Jakarta')->format('Y-m-d H:i:s') : null,
+            'ship_before_date' => $this->resolveShipBeforeDate($tiktokOrder),
+            'paid_at' => !empty($tiktokOrder['paid_time']) ? \Carbon\Carbon::createFromTimestamp((is_numeric($tiktokOrder['paid_time']) && strlen((string)$tiktokOrder['paid_time']) >= 13) ? (int)($tiktokOrder['paid_time'] / 1000) : (int)$tiktokOrder['paid_time'], 'Asia/Jakarta')->format('Y-m-d H:i:s') : null,
+            'payment_method' => $tiktokOrder['payment_method_name'] ?? $tiktokOrder['payment_method_code'] ?? (!empty($tiktokOrder['is_cod']) ? 'Cash on Delivery' : null),
+            'buyer_email' => $tiktokOrder['buyer_email'] ?? null,
+            'buyer_message' => $tiktokOrder['buyer_message'] ?? null,
+            'seller_note' => $tiktokOrder['seller_note'] ?? null,
+            'package_id' => $tiktokOrder['packages'][0]['id'] ?? $tiktokOrder['package_id'] ?? null,
+            'tiktok_creator_name' => $tiktokCreatorName,
+            'tiktok_creator_id' => $tiktokCreatorId,
+            'affiliate_commission' => $affiliateCommission,
+            'tiktok_live_session_id' => $liveSessionId,
+            'cancel_reason' => $cancelReason,
+            'cancelled_by' => $cancelledBy,
+        ];
+
+        // Proteksi Data Keuangan: Hanya update net_amount, marketplace_fee, dan financial_breakdown jika data belum RECONCILED
+        if (!$order || $order->recon_status !== 'RECONCILED') {
+            $updateData['net_amount'] = $netAmount;
+            $updateData['marketplace_fee'] = $marketplaceFee;
+            $updateData['financial_breakdown'] = $financialBreakdown;
+        }
+
+        if ($order) {
+            $order->update($updateData);
+        } else {
+            $updateData['tenant_id'] = $this->store->tenant_id;
+            $updateData['order_marketplace_id'] = $orderIdStr;
+            $order = Order::create($updateData);
+        }
 
         if (!empty($itemList)) {
             OrderItem::where('order_id', $order->id)->delete();
