@@ -1120,16 +1120,22 @@ class SecretRepairDashboardController extends Controller
 
         // ── 3. DANA CAIR API (ESCROW / SETTLEMENT RESMI SEPERTI DI SYNC-ESCROW) ──
         $apiNet = 0.0;
+        $hasEscrowApi = false;
         if (isset($inc['escrow_amount_after_adjustment'])) {
             $apiNet = (float) $inc['escrow_amount_after_adjustment'];
+            $hasEscrowApi = true;
         } elseif (isset($inc['escrow_amount']) && (float)$inc['escrow_amount'] > 0) {
             $apiNet = (float) $inc['escrow_amount'];
+            $hasEscrowApi = true;
         } elseif (isset($st0['settlement_amount']) && (float)$st0['settlement_amount'] > 0) {
             $apiNet = (float) $st0['settlement_amount'];
+            $hasEscrowApi = true;
         } elseif (isset($inc['settlement_amount']) && (float)$inc['settlement_amount'] > 0) {
             $apiNet = (float) $inc['settlement_amount'];
+            $hasEscrowApi = true;
         } elseif (isset($inc['seller_settlement_amount']) && (float)$inc['seller_settlement_amount'] > 0) {
             $apiNet = (float) $inc['seller_settlement_amount'];
+            $hasEscrowApi = true;
         }
 
         // ── 4. BIAYA ADMIN API (PERSIS SAMA DENGAN SYNC-ESCROW) ──
@@ -1228,7 +1234,7 @@ class SecretRepairDashboardController extends Controller
             }
         }
 
-        if ($originalApiNet <= 0) {
+        if (!$hasEscrowApi && $originalApiNet <= 0) {
             if ($apiRefund >= $apiOmset && $apiOmset > 0) {
                 $apiNet = 0.0;
             } else {

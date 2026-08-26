@@ -542,18 +542,37 @@ class Order extends Model
     public function getNetAmountAttribute($value): float
     {
         $fb = $this->financial_breakdown;
-        $refundDeduction = $this->refund_amount;
-
-        if ($refundDeduction >= (float)$this->total_amount && (float)$this->total_amount > 0) {
-            return 0.0;
+        if (is_string($fb)) {
+            $fb = json_decode($fb, true);
         }
+        $refundDeduction = $this->refund_amount;
 
         $stmtList = $fb['statement_transactions'] ?? $fb['statement_transaction_list'] ?? $fb['transactions'] ?? [];
         $st0 = (is_array($stmtList) && !empty($stmtList[0]) && is_array($stmtList[0])) ? $stmtList[0] : [];
-        $escrow = (float) ($fb['escrow_amount'] ?? $fb['settlement_amount'] ?? $st0['settlement_amount'] ?? $fb['seller_settlement_amount'] ?? 0);
 
-        if ($escrow > 0) {
-            return max(0.0, $escrow - $refundDeduction);
+        // Jika ada escrow_amount_after_adjustment resmi dari API (sudah terpotong penyesuaian)
+        if (isset($fb['escrow_amount_after_adjustment'])) {
+            return (float) $fb['escrow_amount_after_adjustment'];
+        }
+
+        $escrow = 0.0;
+        $hasEscrowVal = false;
+        if (isset($fb['escrow_amount']) && (float)$fb['escrow_amount'] > 0) {
+            $escrow = (float) $fb['escrow_amount'];
+            $hasEscrowVal = true;
+        } elseif (isset($fb['settlement_amount']) && (float)$fb['settlement_amount'] > 0) {
+            $escrow = (float) $fb['settlement_amount'];
+            $hasEscrowVal = true;
+        } elseif (isset($st0['settlement_amount']) && (float)$st0['settlement_amount'] > 0) {
+            $escrow = (float) $st0['settlement_amount'];
+            $hasEscrowVal = true;
+        } elseif (isset($fb['seller_settlement_amount']) && (float)$fb['seller_settlement_amount'] > 0) {
+            $escrow = (float) $fb['seller_settlement_amount'];
+            $hasEscrowVal = true;
+        }
+
+        if ($hasEscrowVal) {
+            return $escrow - $refundDeduction;
         }
 
         $details = $this->fee_breakdown_details;
