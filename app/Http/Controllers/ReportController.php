@@ -2480,14 +2480,7 @@ class ReportController extends Controller
                     }
                 }
 
-                $status = strtoupper((string)($o->order_status ?? ''));
-                if (in_array($status, ['CANCELLED', 'BATAL', 'CANCELED', 'IN_CANCEL'])) {
-                    $netAmt = 0.0;
-                } else {
-                    $refundValAmt = $o->refund_amount;
-                    $isRefundedOrder = $refundValAmt > 0 || in_array($status, ['RETURNED', 'REFUNDED', 'RETURN', 'REFUND']);
-                    $netAmt = ($isRefundedOrder && $refundValAmt >= $o->total_amount) ? 0.0 : (float)$o->net_amount;
-                }
+                $netAmt = (float)$o->net_amount;
 
                 $refVal = $o->order_marketplace_id ?: ($o->order_number ?: $o->invoice_number);
                 $chCode = strtolower($o->store->channel->code ?? '');
