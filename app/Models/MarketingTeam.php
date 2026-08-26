@@ -73,7 +73,7 @@ class MarketingTeam extends Model
         $query = \App\Models\Order::whereIn('store_id', $storeIds)
             ->whereIn('order_status', $validStatuses)
             ->whereNotIn('order_status', $invalidStatuses)
-            ->with(['items.masterProduct', 'items.marketplaceProduct.masterProduct', 'returnOrder']);
+            ->with(['items.masterProduct', 'items.marketplaceProduct.masterProduct', 'returnOrder.items']);
 
         if ($dateFrom && $dateTo) {
             $from = $dateFrom . ' 00:00:00';
@@ -88,18 +88,32 @@ class MarketingTeam extends Model
 
         $qty = 0;
         foreach ($orders as $order) {
-            if ($order->refund_amount <= 0) {
-                foreach ($order->items as $item) {
-                    $isExcluded = false;
-                    if ($item->masterProduct && $item->masterProduct->exclude_commission) {
-                        $isExcluded = true;
-                    } elseif ($item->marketplaceProduct && $item->marketplaceProduct->masterProduct && $item->marketplaceProduct->masterProduct->exclude_commission) {
-                        $isExcluded = true;
-                    }
+            foreach ($order->items as $item) {
+                $isExcluded = false;
+                if ($item->masterProduct && $item->masterProduct->exclude_commission) {
+                    $isExcluded = true;
+                } elseif ($item->marketplaceProduct && $item->marketplaceProduct->masterProduct && $item->marketplaceProduct->masterProduct->exclude_commission) {
+                    $isExcluded = true;
+                }
 
-                    if (!$isExcluded) {
-                        $qty += $item->quantity;
+                if (!$isExcluded) {
+                    $returnedQty = 0;
+                    if ($order->returnOrder) {
+                        $returnedQty = $order->returnOrder->items
+                            ->where('order_item_id', $item->id)
+                            ->sum('quantity');
                     }
+                    
+                    if ($returnedQty == 0 && $order->refund_amount > 0 && $order->total_amount > 0) {
+                        if ($order->refund_amount >= $order->total_amount) {
+                            $returnedQty = $item->quantity;
+                        } else {
+                            $ratio = (float)$order->refund_amount / (float)$order->total_amount;
+                            $returnedQty = min($item->quantity, (int) round($item->quantity * $ratio));
+                        }
+                    }
+                    
+                    $qty += max(0, $item->quantity - $returnedQty);
                 }
             }
         }
@@ -133,8 +147,7 @@ class MarketingTeam extends Model
 
         $query = \App\Models\Order::whereIn('store_id', $storeIds)
             ->whereIn('order_status', $validStatuses)
-            ->whereNotIn('order_status', $invalidStatuses)
-            ->with(['returnOrder']);
+            ->whereNotIn('order_status', $invalidStatuses);
 
         if ($dateFrom && $dateTo) {
             $from = $dateFrom . ' 00:00:00';
@@ -149,9 +162,8 @@ class MarketingTeam extends Model
 
         $omset = 0.0;
         foreach ($orders as $order) {
-            if ($order->refund_amount <= 0) {
-                $omset += (float) $order->total_amount;
-            }
+            $effectiveOmset = (float) $order->total_amount - (float) $order->refund_amount;
+            $omset += max(0.0, $effectiveOmset);
         }
 
         return $omset;

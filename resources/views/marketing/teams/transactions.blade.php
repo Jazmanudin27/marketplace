@@ -178,17 +178,37 @@
                         @php
                             // Hitung total Qty barang dalam order ini
                             $totalQtyInOrder = $order->items->sum('quantity');
-                             // Hitung Qty barang yang masuk hitungan komisi
-                             $commQty = $order->items->filter(function($item) {
-                                 $isExcluded = false;
-                                 if ($item->masterProduct && $item->masterProduct->exclude_commission) {
-                                     $isExcluded = true;
-                                 } elseif ($item->marketplaceProduct && $item->marketplaceProduct->masterProduct && $item->marketplaceProduct->masterProduct->exclude_commission) {
-                                     $isExcluded = true;
-                                 }
-                                 return !$isExcluded;
-                             })->sum('quantity');
-                             $orderComm = $commQty * $rewardPerQty;
+                            // Hitung Qty barang yang masuk hitungan komisi (dikurangi retur/refund per item)
+                            $commQty = 0;
+                            foreach ($order->items as $item) {
+                                $isExcluded = false;
+                                if ($item->masterProduct && $item->masterProduct->exclude_commission) {
+                                    $isExcluded = true;
+                                } elseif ($item->marketplaceProduct && $item->marketplaceProduct->masterProduct && $item->marketplaceProduct->masterProduct->exclude_commission) {
+                                    $isExcluded = true;
+                                }
+
+                                if (!$isExcluded) {
+                                    $returnedQty = 0;
+                                    if ($order->returnOrder) {
+                                        $returnedQty = $order->returnOrder->items
+                                            ->where('order_item_id', $item->id)
+                                            ->sum('quantity');
+                                    }
+                                    
+                                    if ($returnedQty == 0 && $order->refund_amount > 0 && $order->total_amount > 0) {
+                                        if ($order->refund_amount >= $order->total_amount) {
+                                            $returnedQty = $item->quantity;
+                                        } else {
+                                            $ratio = (float)$order->refund_amount / (float)$order->total_amount;
+                                            $returnedQty = min($item->quantity, (int) round($item->quantity * $ratio));
+                                        }
+                                    }
+                                    
+                                    $commQty += max(0, $item->quantity - $returnedQty);
+                                }
+                            }
+                            $orderComm = $commQty * $rewardPerQty;
                             
                             $chName = strtolower($order->store->channel->name ?? '');
                             $badgeClass = 'bg-secondary text-white';
@@ -242,14 +262,33 @@
                             </td>
                             <td class="py-3 text-end fw-semibold text-dark">
                                 {{ number_format($commQty) }}
-                                @if($totalQtyInOrder > $commQty)
+                                @php
+                                    $allReturnedQty = 0;
+                                    if ($order->returnOrder) {
+                                        $allReturnedQty = $order->returnOrder->items->sum('quantity');
+                                    }
+                                    if ($allReturnedQty == 0 && $order->refund_amount > 0 && $order->total_amount > 0) {
+                                        $ratio = (float)$order->refund_amount / (float)$order->total_amount;
+                                        $allReturnedQty = (int) round($totalQtyInOrder * $ratio);
+                                    }
+                                @endphp
+                                @if($allReturnedQty > 0)
+                                    <span class="text-danger small d-block" style="font-size:0.72rem; font-weight:normal;">
+                                        (Retur {{ number_format($allReturnedQty) }} pcs)
+                                    </span>
+                                @elseif($totalQtyInOrder > $commQty)
                                     <span class="text-muted small d-block" style="font-size:0.72rem; font-weight:normal;">
                                         dari {{ number_format($totalQtyInOrder) }} pcs
                                     </span>
                                 @endif
                             </td>
                             <td class="py-3 text-end fw-semibold text-primary">
-                                Rp {{ number_format($order->total_amount, 0, ',', '.') }}
+                                Rp {{ number_format(max(0.0, (float)$order->total_amount - (float)$order->refund_amount), 0, ',', '.') }}
+                                @if($order->refund_amount > 0)
+                                    <span class="text-danger small d-block" style="font-size:0.72rem; font-weight:normal;">
+                                        (Dipotong refund Rp {{ number_format($order->refund_amount, 0, ',', '.') }})
+                                    </span>
+                                @endif
                             </td>
                             <td class="py-3 text-end fw-bold text-success pe-4">
                                 Rp {{ number_format($orderComm, 0, ',', '.') }}

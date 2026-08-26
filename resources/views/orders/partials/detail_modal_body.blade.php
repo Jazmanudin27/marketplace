@@ -158,7 +158,16 @@
                                 <div class="table-responsive">
                                     <table class="table table-borderless table-sm mb-0 align-top" style="font-size: 0.72rem;">
                                         <tr>
-                                            <td class="text-muted py-1 ps-0" style="width: 110px;">Kurir</td>
+                                            <td class="text-muted py-1 ps-0" style="width: 110px;">Toko / Platform</td>
+                                            <td class="py-1 text-dark fw-bold">
+                                                {{ $order->store->store_name }}
+                                                <span class="badge bg-secondary channel-{{ $order->store->channel->code }} text-uppercase ms-1" style="font-size: 0.6rem;">
+                                                    {{ $order->store->channel->name }}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td class="text-muted py-1 ps-0">Kurir</td>
                                             <td class="py-1 text-dark fw-bold">
                                                 <span class="badge bg-success-subtle text-success border border-success-subtle py-0.5 px-1.5">{{ $order->courier ?? '-' }}</span>
                                             </td>

@@ -267,7 +267,7 @@ class MarketingTeamController extends Controller
             $query = \App\Models\Order::whereIn('store_id', $storeIds)
                 ->whereIn('order_status', $validStatuses)
                 ->whereNotIn('order_status', $invalidStatuses)
-                ->with(['store.channel', 'items.masterProduct', 'items.marketplaceProduct.masterProduct', 'returnOrder']);
+                ->with(['store.channel', 'items.masterProduct', 'items.marketplaceProduct.masterProduct', 'returnOrder.items']);
 
             if ($useMonthYear) {
                 if ($reqYear) {
@@ -286,15 +286,19 @@ class MarketingTeamController extends Controller
             $orders = $query->orderBy(DB::raw('COALESCE(completed_at, order_date)'), 'desc')
                             ->get();
 
-            // Filter out orders with refund
+            // Filter out only fully returned/refunded orders
             $orders = $orders->filter(function ($order) {
-                return $order->refund_amount <= 0;
+                if ($order->refund_amount >= $order->total_amount && $order->total_amount > 0) {
+                    return false;
+                }
+                return true;
             });
 
             // Summary metrics
             $totalQty = 0;
             $totalOmset = 0.0;
             foreach ($orders as $order) {
+                $orderQty = 0;
                 foreach ($order->items as $item) {
                     $isExcluded = false;
                     if ($item->masterProduct && $item->masterProduct->exclude_commission) {
@@ -304,10 +308,29 @@ class MarketingTeamController extends Controller
                     }
 
                     if (!$isExcluded) {
-                        $totalQty += $item->quantity;
+                        $returnedQty = 0;
+                        if ($order->returnOrder) {
+                            $returnedQty = $order->returnOrder->items
+                                ->where('order_item_id', $item->id)
+                                ->sum('quantity');
+                        }
+                        
+                        if ($returnedQty == 0 && $order->refund_amount > 0 && $order->total_amount > 0) {
+                            if ($order->refund_amount >= $order->total_amount) {
+                                $returnedQty = $item->quantity;
+                            } else {
+                                $ratio = (float)$order->refund_amount / (float)$order->total_amount;
+                                $returnedQty = min($item->quantity, (int) round($item->quantity * $ratio));
+                            }
+                        }
+                        
+                        $orderQty += max(0, $item->quantity - $returnedQty);
                     }
                 }
-                $totalOmset += (float) $order->total_amount;
+                
+                $totalQty += $orderQty;
+                $effectiveOmset = (float) $order->total_amount - (float) $order->refund_amount;
+                $totalOmset += max(0.0, $effectiveOmset);
             }
 
             $totalEarnedReward = $totalQty * $rewardPerQty;
