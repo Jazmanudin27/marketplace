@@ -2458,6 +2458,8 @@ class ReportController extends Controller
                 $orderDate = $o->order_date ? date('Y-m-d H:i', strtotime($o->order_date)) : '—';
                 $releasedDate = $o->completed_at ? $o->completed_at->format('Y-m-d H:i') : ($o->order_date ? date('Y-m-d H:i', strtotime($o->order_date)) : '—');
 
+                $refundAmt = $o->refund_amount;
+
                 // Untuk order RECONCILED: gunakan nilai kolom database secara langsung (raw)
                 // agar selaras 100% dengan data yang sudah disinkronisasi dari API marketplace
                 if ($o->recon_status === 'RECONCILED') {
