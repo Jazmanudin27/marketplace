@@ -522,7 +522,10 @@ class Order extends Model
     {
         if (!empty($this->financial_breakdown)) {
             $details = $this->fee_breakdown_details;
-            return (float) abs($details['total_fee'] ?? 0);
+            $calcFee = (float) abs($details['total_fee'] ?? 0);
+            if ($calcFee > 0) {
+                return $calcFee;
+            }
         }
 
         $val = (float) $value;

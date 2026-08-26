@@ -1851,14 +1851,16 @@ class SecretRepairDashboardController extends Controller
             $targetNet   = ($fin['api_net'] !== null) ? (float)$fin['api_net'] : (float)$order->net_amount;
 
             // Simpan langsung ke database ERP agar data ERP dan API sama persis (Match)
-            \DB::table('orders')->where('id', $order->id)->update([
-                'total_amount'        => $targetOmset,
-                'marketplace_fee'     => $targetFee,
-                'net_amount'          => $targetNet,
-                'recon_status'        => 'RECONCILED',
-                'financial_breakdown' => is_array($order->financial_breakdown) ? json_encode($order->financial_breakdown) : $order->financial_breakdown,
-                'updated_at'          => now(),
-            ]);
+            $order->total_amount        = $targetOmset;
+            $order->marketplace_fee     = $targetFee;
+            $order->net_amount          = $targetNet;
+            $order->recon_status        = 'RECONCILED';
+            if (is_array($order->financial_breakdown)) {
+                $order->financial_breakdown = $order->financial_breakdown;
+            } else {
+                $order->financial_breakdown = json_decode($order->financial_breakdown, true);
+            }
+            $order->save();
 
             // Update items jika single item
             $items = $order->items;
@@ -1996,14 +1998,16 @@ class SecretRepairDashboardController extends Controller
                         $targetFee   = ($finUpdated['api_fee'] !== null) ? (float)$finUpdated['api_fee'] : (float)$ord->marketplace_fee;
                         $targetNet   = ($finUpdated['api_net'] !== null) ? (float)$finUpdated['api_net'] : (float)$ord->net_amount;
 
-                        \DB::table('orders')->where('id', $ord->id)->update([
-                            'total_amount'        => $targetOmset,
-                            'marketplace_fee'     => $targetFee,
-                            'net_amount'          => $targetNet,
-                            'recon_status'        => 'RECONCILED',
-                            'financial_breakdown' => is_array($ord->financial_breakdown) ? json_encode($ord->financial_breakdown) : $ord->financial_breakdown,
-                            'updated_at'          => now(),
-                        ]);
+                        $ord->total_amount        = $targetOmset;
+                        $ord->marketplace_fee     = $targetFee;
+                        $ord->net_amount          = $targetNet;
+                        $ord->recon_status        = 'RECONCILED';
+                        if (is_array($ord->financial_breakdown)) {
+                            $ord->financial_breakdown = $ord->financial_breakdown;
+                        } else {
+                            $ord->financial_breakdown = json_decode($ord->financial_breakdown, true);
+                        }
+                        $ord->save();
 
                         $items = $ord->items;
                         if ($items->count() === 1 && $targetOmset > 0) {
