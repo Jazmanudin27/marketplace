@@ -2458,12 +2458,24 @@ class ReportController extends Controller
                 $orderDate = $o->order_date ? date('Y-m-d H:i', strtotime($o->order_date)) : '—';
                 $releasedDate = $o->completed_at ? $o->completed_at->format('Y-m-d H:i') : ($o->order_date ? date('Y-m-d H:i', strtotime($o->order_date)) : '—');
 
-                $fees = $o->fee_breakdown_details;
-                $refundAmt = $o->refund_amount;
-
-                $absFee = (float)$o->marketplace_fee;
-                if ($absFee <= 0 && !empty($fees['total_fee'])) {
-                    $absFee = abs((float)$fees['total_fee']);
+                // Untuk order RECONCILED: gunakan nilai kolom database secara langsung (raw)
+                // agar selaras 100% dengan data yang sudah disinkronisasi dari API marketplace
+                if ($o->recon_status === 'RECONCILED') {
+                    $absFee = abs((float) $o->getRawOriginal('marketplace_fee'));
+                    $fees = [
+                        'platform_fee'  => -(float) $o->getRawOriginal('fee_platform_amount'),
+                        'free_shipping' => -(float) $o->getRawOriginal('fee_free_shipping_amount'),
+                        'service_fee'   => -(float) $o->getRawOriginal('fee_service_amount'),
+                        'promo_fee'     => -(float) $o->getRawOriginal('fee_promo_amount'),
+                        'other_fee'     => -(float) $o->getRawOriginal('fee_other_amount'),
+                        'total_fee'     => -(float) $o->getRawOriginal('marketplace_fee'),
+                    ];
+                } else {
+                    $fees = $o->fee_breakdown_details;
+                    $absFee = (float)$o->marketplace_fee;
+                    if ($absFee <= 0 && !empty($fees['total_fee'])) {
+                        $absFee = abs((float)$fees['total_fee']);
+                    }
                 }
 
                 $netAmt = (float)$o->net_amount;
