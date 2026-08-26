@@ -2481,8 +2481,11 @@ class ReportController extends Controller
                 }
 
                 $netAmt = (float)$o->net_amount;
-                if ($o->recon_status !== 'RECONCILED' && $netAmt <= 0) {
-                    if ($refundAmt >= (float)$o->total_amount && (float)$o->total_amount > 0) {
+                if ($o->recon_status !== 'RECONCILED') {
+                    $status = strtoupper((string)($o->order_status ?? ''));
+                    if (in_array($status, ['CANCELLED', 'BATAL', 'CANCELED', 'IN_CANCEL'])) {
+                        $netAmt = 0.0;
+                    } elseif ($refundAmt >= (float)$o->total_amount && (float)$o->total_amount > 0) {
                         $netAmt = 0.0;
                     } else {
                         $netAmt = max(0.0, (float)$o->total_amount - $refundAmt - $absFee);
