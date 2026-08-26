@@ -107,6 +107,14 @@ class Order extends Model
                 $order->completed_at = now();
             }
 
+            // Pengosongan data pembeli untuk pesanan batal
+            if (in_array(strtoupper((string)$order->order_status), ['CANCELLED', 'BATAL', 'CANCELED'])) {
+                $order->buyer_name = null;
+                $order->buyer_phone = null;
+                $order->shipping_address = null;
+                $order->buyer_email = null;
+            }
+
             // Sync 5 fee breakdown columns & marketplace_fee & net_amount
             $details = $order->fee_breakdown_details;
             $order->fee_platform_amount = abs($details['platform_fee'] ?? 0);
