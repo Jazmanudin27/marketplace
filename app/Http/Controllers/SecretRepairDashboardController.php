@@ -1118,6 +1118,9 @@ class SecretRepairDashboardController extends Controller
             $apiOmset = $erpOmset;
         }
 
+        $statusUpper = strtoupper((string)($ord->order_status ?? ''));
+        $isFinal = in_array($statusUpper, ['COMPLETED', 'SELESAI', 'FINISHED', 'DELIVERED', 'RETURNED', 'REFUNDED', 'RETURN', 'REFUND', 'CANCELLED', 'BATAL', 'CANCELED', 'IN_CANCEL', 'RETURN_APPROVED', 'RETURN_COMPLETED', 'PARTIAL_RETURN']);
+
         // ── 3. DANA CAIR API (ESCROW / SETTLEMENT RESMI SEPERTI DI SYNC-ESCROW) ──
         $apiNet = 0.0;
         $hasEscrowApi = false;
@@ -1141,16 +1144,16 @@ class SecretRepairDashboardController extends Controller
             if (isset($inc['escrow_amount_after_adjustment'])) {
                 $apiNet = (float) $inc['escrow_amount_after_adjustment'];
                 $hasEscrowApi = true;
-            } elseif (isset($inc['escrow_amount']) && (float)$inc['escrow_amount'] > 0) {
+            } elseif (isset($inc['escrow_amount']) && ($isFinal || (float)$inc['escrow_amount'] > 0)) {
                 $apiNet = (float) $inc['escrow_amount'];
                 $hasEscrowApi = true;
-            } elseif (isset($st0['settlement_amount']) && (float)$st0['settlement_amount'] > 0) {
+            } elseif (isset($st0['settlement_amount']) && ($isFinal || (float)$st0['settlement_amount'] > 0)) {
                 $apiNet = (float) $st0['settlement_amount'];
                 $hasEscrowApi = true;
-            } elseif (isset($inc['settlement_amount']) && (float)$inc['settlement_amount'] > 0) {
+            } elseif (isset($inc['settlement_amount']) && ($isFinal || (float)$inc['settlement_amount'] > 0)) {
                 $apiNet = (float) $inc['settlement_amount'];
                 $hasEscrowApi = true;
-            } elseif (isset($inc['seller_settlement_amount']) && (float)$inc['seller_settlement_amount'] > 0) {
+            } elseif (isset($inc['seller_settlement_amount']) && ($isFinal || (float)$inc['seller_settlement_amount'] > 0)) {
                 $apiNet = (float) $inc['seller_settlement_amount'];
                 $hasEscrowApi = true;
             }
@@ -1264,7 +1267,7 @@ class SecretRepairDashboardController extends Controller
             if ($apiRefund >= $apiOmset && $apiOmset > 0) {
                 $apiNet = 0.0;
             } else {
-                $apiNet = max(0.0, $apiOmset - $apiFee);
+                $apiNet = max(0.0, $apiOmset - $apiRefund - $apiFee);
             }
         }
 

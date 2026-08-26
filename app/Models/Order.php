@@ -144,11 +144,35 @@ class Order extends Model
                 $order->marketplace_fee = $totalFee;
             }
 
-            // 3. Omset Bersih / Net Amount = Omset Kotor - Total Refund - Total Potongan Marketplace (Presisi 100%)
-            if ($refundAmt >= (float)$order->total_amount && (float)$order->total_amount > 0) {
-                $order->net_amount = 0.0;
+            // 3. Omset Bersih / Net Amount
+            // Proteksi: Jika data Dana Cair (escrow/settlement) riil dari API sudah ada di financial_breakdown, gunakan nilai tersebut secara langsung
+            $fb = $order->financial_breakdown ?? [];
+            if (is_string($fb)) {
+                $fb = json_decode($fb, true) ?? [];
+            }
+            
+            $officialEscrow = null;
+            if (is_array($fb)) {
+                if (isset($fb['escrow_amount_after_adjustment'])) {
+                    $officialEscrow = (float)$fb['escrow_amount_after_adjustment'];
+                } elseif (isset($fb['escrow_amount'])) {
+                    $officialEscrow = (float)$fb['escrow_amount'];
+                } elseif (isset($fb['settlement_amount'])) {
+                    $officialEscrow = (float)$fb['settlement_amount'];
+                } elseif (isset($fb['seller_settlement_amount'])) {
+                    $officialEscrow = (float)$fb['seller_settlement_amount'];
+                }
+            }
+
+            if ($officialEscrow !== null) {
+                $order->net_amount = $officialEscrow;
             } else {
-                $order->net_amount = max(0.0, (float)$order->total_amount - $refundAmt - (float)$order->marketplace_fee);
+                // Fallback kalkulasi internal: Omset Kotor - Total Refund - Total Potongan Marketplace
+                if ($refundAmt >= (float)$order->total_amount && (float)$order->total_amount > 0) {
+                    $order->net_amount = 0.0;
+                } else {
+                    $order->net_amount = max(0.0, (float)$order->total_amount - $refundAmt - (float)$order->marketplace_fee);
+                }
             }
         });
     }
