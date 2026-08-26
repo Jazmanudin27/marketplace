@@ -195,10 +195,19 @@ class SyncShopeeEscrow extends Command
 
                         $order->marketplace_fee = $totalFee;
 
-                        if (isset($income['escrow_amount_after_adjustment'])) {
-                            $order->net_amount = (float) $income['escrow_amount_after_adjustment'];
+                        $netAmountApi = isset($income['escrow_amount_after_adjustment']) 
+                            ? (float) $income['escrow_amount_after_adjustment'] 
+                            : $rawEscrow;
+
+                        // Jika net amount masih sama dengan escrow awal (belum terpotong) dan ada refund, potong
+                        if ($refundAmt > 0 && $netAmountApi == $rawEscrow) {
+                            $netAmountApi = $netAmountApi - $refundAmt;
+                        }
+
+                        if ($netAmountApi == 0 && $rawEscrow == 0) {
+                            $order->net_amount = max(0.0, $merchantSubtotal - $refundAmt - $totalFee);
                         } else {
-                            $order->net_amount = $rawEscrow > 0 ? ($rawEscrow - $refundAmt) : max(0.0, $merchantSubtotal - $refundAmt - $totalFee);
+                            $order->net_amount = $netAmountApi;
                         }
 
                         // Jika terdeteksi ada refund/retur, ubah status pesanan menjadi RETURN
