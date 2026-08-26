@@ -124,6 +124,10 @@ class Order extends Model
                 }
             }
 
+            if ($order->recon_status === 'RECONCILED') {
+                return;
+            }
+
             $totalFee = abs($details['total_fee'] ?? 0);
             $refundAmt = $order->refund_amount;
 
