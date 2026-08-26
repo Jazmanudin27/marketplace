@@ -1234,6 +1234,10 @@ class SecretRepairDashboardController extends Controller
             }
         }
 
+        if ($apiRefund > 0) {
+            $apiOmset = $apiOmset + $apiRefund;
+        }
+
         return [
             'has_fb'     => true,
             'erp_omset'  => $erpOmset,

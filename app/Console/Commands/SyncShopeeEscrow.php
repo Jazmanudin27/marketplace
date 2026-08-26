@@ -165,12 +165,6 @@ class SyncShopeeEscrow extends Command
                             $merchantSubtotal = (float) ($income['order_original_price'] ?? $order->total_amount);
                         }
 
-                        if ($merchantSubtotal > 0) {
-                            $order->total_amount = $merchantSubtotal;
-                        }
-
-                        $rawEscrow = (float) ($income['escrow_amount'] ?? 0);
-
                         // Hitung refund jika ada
                         $refundAmt = 0.0;
                         $refundKeys = ['customer_refund_amount', 'gross_sales_refund_amount', 'seller_return_refund', 'buyer_return_refund_amount', 'refund_amount', 'return_amount', 'customer_order_refund_amount', 'total_adjustment_amount'];
@@ -180,6 +174,15 @@ class SyncShopeeEscrow extends Command
                                 break;
                             }
                         }
+
+                        if ($merchantSubtotal > 0) {
+                            if ($refundAmt > 0) {
+                                $merchantSubtotal = $merchantSubtotal + $refundAmt;
+                            }
+                            $order->total_amount = $merchantSubtotal;
+                        }
+
+                        $rawEscrow = (float) ($income['escrow_amount'] ?? 0);
 
                         // Hitung total fee dari breakdown rincian atau selisih Subtotal - Escrow Amount
                         $details = $order->fee_breakdown_details;
