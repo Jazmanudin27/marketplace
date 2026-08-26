@@ -117,93 +117,142 @@
                                     </div>
                                 </div>
                             @endif
-                            <div class="col-md-6">
-                                <div class="p-3 border rounded h-100 bg-light">
-                                    @if(str_starts_with($order->order_marketplace_id, 'MANUAL-'))
-                                        <small class="text-muted d-block text-uppercase fw-semibold mb-1" style="font-size: 0.65rem;">Departemen Pengaju</small>
-                                    @else
-                                        <small class="text-muted d-block text-uppercase fw-semibold mb-1" style="font-size: 0.65rem;">Pembeli</small>
-                                    @endif
-                                    <span class="fw-bold text-dark small">
-                                        @if ($order->customer_id)
-                                            <a href="{{ route('customers.show', $order->customer_id) }}"
-                                                class="text-decoration-none text-primary">
-                                                {{ $order->buyer_name ?? '-' }} <i class="fas fa-external-link-alt ms-1 small"></i>
-                                            </a>
-                                        @else
-                                            {{ $order->buyer_name ?? '-' }}
+                        <style>
+                            @media (min-width: 768px) {
+                                .border-end-md {
+                                    border-right: 1px solid rgba(0,0,0,0.08) !important;
+                                }
+                            }
+                        </style>
+                        <div class="row g-3">
+                            <!-- Left Column: Informasi Pengiriman -->
+                            <div class="col-md-7 pe-md-4 border-end-md">
+                                <h6 class="text-uppercase fw-bold text-secondary mb-3" style="font-size: 0.7rem; letter-spacing: 0.5px;">
+                                    <i class="fas fa-shipping-fast text-primary me-2"></i>Informasi Pengiriman
+                                </h6>
+                                <div class="table-responsive">
+                                    <table class="table table-borderless table-sm mb-0 align-top" style="font-size: 0.78rem;">
+                                        <tr>
+                                            <td class="text-muted py-1.5 ps-0" style="width: 140px;">
+                                                {{ str_starts_with($order->order_marketplace_id, 'MANUAL-') ? 'Departemen Pengaju' : 'Nama Pembeli' }}
+                                            </td>
+                                            <td class="py-1.5 text-dark fw-bold">
+                                                @if ($order->customer_id)
+                                                    <a href="{{ route('customers.show', $order->customer_id) }}" class="text-decoration-none text-primary fw-bold">
+                                                        {{ $order->buyer_name ?? '-' }} <i class="fas fa-external-link-alt ms-1" style="font-size: 0.65rem;"></i>
+                                                    </a>
+                                                @else
+                                                    {{ $order->buyer_name ?? '-' }}
+                                                @endif
+                                                @if ($order->buyer_email)
+                                                    <div class="text-muted font-monospace fw-normal mt-0.5" style="font-size: 0.68rem;">{{ $order->buyer_email }}</div>
+                                                @endif
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td class="text-muted py-1.5 ps-0">
+                                                {{ str_starts_with($order->order_marketplace_id, 'MANUAL-') ? 'Tipe Permintaan' : 'No. Telepon' }}
+                                            </td>
+                                            <td class="py-1.5 text-dark font-monospace fw-semibold">
+                                                {{ $order->buyer_phone ?? '-' }}
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td class="text-muted py-1.5 ps-0">
+                                                {{ str_starts_with($order->order_marketplace_id, 'MANUAL-') ? 'Tujuan / Detail' : 'Alamat Pengiriman' }}
+                                            </td>
+                                            <td class="py-1.5 text-dark-emphasis text-wrap" style="white-space: pre-line; line-height: 1.45;">
+                                                {{ $order->shipping_address ?? '-' }}
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <!-- Right Column: Status & Logistik -->
+                            <div class="col-md-5 ps-md-4">
+                                <h6 class="text-uppercase fw-bold text-secondary mb-3" style="font-size: 0.7rem; letter-spacing: 0.5px;">
+                                    <i class="fas fa-info-circle text-primary me-2"></i>Status & Logistik
+                                </h6>
+                                <div class="table-responsive">
+                                    <table class="table table-borderless table-sm mb-0 align-top" style="font-size: 0.78rem;">
+                                        <tr>
+                                            <td class="text-muted py-1.5 ps-0" style="width: 120px;">Kurir</td>
+                                            <td class="py-1.5 text-dark fw-bold">
+                                                <span class="badge bg-success-subtle text-success border border-success-subtle py-1 px-2">{{ $order->courier ?? '-' }}</span>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td class="text-muted py-1.5 ps-0">No. Resi</td>
+                                            <td class="py-1.5">
+                                                @if ($order->tracking_number)
+                                                    <span class="font-monospace fw-bold text-dark bg-warning-subtle py-1 px-2 rounded border border-warning-subtle">{{ $order->tracking_number }}</span>
+                                                @else
+                                                    <span class="text-muted">—</span>
+                                                @endif
+                                                @if ($order->package_id)
+                                                    <div class="text-muted font-monospace mt-1.5" style="font-size: 0.65rem;">Pkg ID: {{ $order->package_id }}</div>
+                                                @endif
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td class="text-muted py-1.5 ps-0">Tgl Pesanan</td>
+                                            <td class="py-1.5 text-dark">
+                                                <span class="fw-semibold">{{ $order->order_date ? $order->order_date->format('d M Y, H:i') : '-' }}</span>
+                                                @if ($order->paid_at)
+                                                    <div class="text-success mt-1" style="font-size:0.68rem;">
+                                                        <i class="fas fa-check-circle me-1"></i>Dibayar: {{ \Carbon\Carbon::parse($order->paid_at)->format('d M Y, H:i') }}
+                                                    </div>
+                                                @endif
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td class="text-muted py-1.5 ps-0">Tgl Cair (Net)</td>
+                                            <td class="py-1.5">
+                                                @if ($order->completed_at)
+                                                    <span class="fw-bold text-primary">{{ \Carbon\Carbon::parse($order->completed_at)->format('d M Y, H:i') }}</span>
+                                                @else
+                                                    <span class="text-muted fw-semibold">Belum Cair / Selesai</span>
+                                                @endif
+                                            </td>
+                                        </tr>
+                                        @if ($order->payment_method)
+                                            <tr>
+                                                <td class="text-muted py-1.5 ps-0">Metode Bayar</td>
+                                                <td class="py-1.5 text-dark">
+                                                    <span class="badge bg-info-subtle text-info border border-info-subtle py-1 px-2">{{ $order->payment_method }}</span>
+                                                </td>
+                                            </tr>
                                         @endif
-                                    </span>
+                                    </table>
                                 </div>
                             </div>
-                            <div class="col-md-6">
-                                <div class="p-3 border rounded h-100 bg-light">
-                                    @if(str_starts_with($order->order_marketplace_id, 'MANUAL-'))
-                                        <small class="text-muted d-block text-uppercase fw-semibold mb-1" style="font-size: 0.65rem;">Tipe Permintaan</small>
-                                        <span class="fw-bold text-primary small">{{ $order->buyer_phone ?? '-' }}</span>
-                                    @else
-                                        <small class="text-muted d-block text-uppercase fw-semibold mb-1" style="font-size: 0.65rem;">No. Telp</small>
-                                        <span class="font-monospace fw-semibold text-dark small">{{ $order->buyer_phone ?? '-' }}</span>
-                                    @endif
-                                </div>
-                            </div>
-                            <div class="col-md-12">
-                                <div class="p-3 border rounded h-100 bg-light">
-                                    @if(str_starts_with($order->order_marketplace_id, 'MANUAL-'))
-                                        <small class="text-muted d-block text-uppercase fw-semibold mb-1" style="font-size: 0.65rem;">Tujuan / Detail Pengiriman</small>
-                                    @else
-                                        <small class="text-muted d-block text-uppercase fw-semibold mb-1" style="font-size: 0.65rem;">Alamat Pengiriman</small>
-                                    @endif
-                                    <span class="fw-semibold text-dark text-wrap small" style="white-space: pre-line;">{{ $order->shipping_address ?? '-' }}</span>
-                                </div>
-                            </div>
-                            @if ($order->is_dropship)
-                                <div class="col-md-12">
-                                    <div class="p-3 border border-warning rounded h-100 bg-warning bg-opacity-10">
-                                        <small class="text-warning-emphasis d-block text-uppercase fw-bold mb-2" style="font-size: 0.65rem;">
-                                            <i class="fas fa-shipping-fast me-1"></i> Informasi Dropshipper
-                                        </small>
-                                        <div class="row g-2">
-                                            <div class="col-md-6 text-dark small">
-                                                <span class="text-muted">Nama Pengirim:</span> <strong>{{ $order->dropshipper_name ?? '-' }}</strong>
-                                            </div>
-                                            <div class="col-md-6 text-dark small">
-                                                <span class="text-muted">No. Telepon:</span> <strong class="font-monospace">{{ $order->dropshipper_phone ?? '-' }}</strong>
-                                            </div>
-                                        </div>
+
+                            @if ($order->buyer_message || $order->seller_note)
+                                <div class="col-12 mt-3">
+                                    <div class="p-3 border border-warning-subtle rounded-3 bg-warning bg-opacity-10 text-dark" style="font-size: 0.78rem;">
+                                        @if ($order->buyer_message)
+                                            <div class="mb-1"><strong class="text-warning-emphasis"><i class="fas fa-comment-dots me-1"></i> Pesan Pembeli:</strong> {{ $order->buyer_message }}</div>
+                                        @endif
+                                        @if ($order->seller_note)
+                                            <div><strong class="text-secondary"><i class="fas fa-sticky-note me-1"></i> Catatan Penjual:</strong> {{ $order->seller_note }}</div>
+                                        @endif
                                     </div>
                                 </div>
                             @endif
-                            <div class="col-md-3">
-                                <div class="p-3 border rounded h-100 bg-light">
-                                    <small class="text-muted d-block text-uppercase fw-semibold mb-1" style="font-size: 0.65rem;">Kurir</small>
-                                    <span class="fw-bold text-success small">{{ $order->courier ?? '-' }}</span>
+
+                            @if ($order->is_dropship)
+                                <div class="col-12 mt-3">
+                                    <div class="p-3 border border-warning-subtle rounded-3 bg-warning bg-opacity-10 text-dark" style="font-size: 0.78rem;">
+                                        <div class="fw-bold text-warning-emphasis mb-2 small">
+                                            <i class="fas fa-shipping-fast me-1.5"></i>Informasi Dropshipper
+                                        </div>
+                                        <span class="text-muted">Pengirim:</span> <strong class="me-3 text-dark">{{ $order->dropshipper_name ?? '-' }}</strong>
+                                        <span class="text-muted">No. Telp:</span> <span class="font-monospace fw-semibold text-dark">{{ $order->dropshipper_phone ?? '-' }}</span>
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="col-md-3">
-                                <div class="p-3 border rounded h-100 bg-light">
-                                    <small class="text-muted d-block text-uppercase fw-semibold mb-1" style="font-size: 0.65rem;">No. Resi</small>
-                                    <span class="font-monospace fw-bold text-warning small text-truncate d-block">{{ $order->tracking_number ?? '-' }}</span>
-                                    @if ($order->package_id)
-                                        <div class="text-muted font-monospace small text-truncate" style="font-size: 0.65rem;">Pkg: {{ $order->package_id }}</div>
-                                    @endif
-                                </div>
-                            </div>
-                            <div class="col-md-3">
-                                <div class="p-3 border rounded h-100 bg-light">
-                                    <small class="text-muted d-block text-uppercase fw-semibold mb-1" style="font-size: 0.65rem;">Tanggal Pesanan</small>
-                                    <span class="fw-semibold text-dark small">{{ $order->order_date ? $order->order_date->format('d M Y, H:i') : '-' }}</span>
-                                    @if ($order->paid_at)
-                                        <div class="text-success small" style="font-size:0.65rem;">Bayar: {{ \Carbon\Carbon::parse($order->paid_at)->format('d M Y, H:i') }}</div>
-                                    @endif
-                                </div>
-                            </div>
-                            <div class="col-md-3">
-                                <div class="p-3 border rounded h-100 bg-light">
-                                    <small class="text-muted d-block text-uppercase fw-semibold mb-1" style="font-size: 0.65rem;">Tanggal Cair</small>
-                                    <span class="fw-bold text-primary small">{{ $order->completed_at ? \Carbon\Carbon::parse($order->completed_at)->format('d M Y, H:i') : 'Belum Cair' }}</span>
-                                </div>
-                            </div>
+                            @endif
+                        </div>
                         </div>
                     </div>
                 </div>
