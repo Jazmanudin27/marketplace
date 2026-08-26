@@ -393,68 +393,72 @@
                     $preorderFeeVal = -$unassignedDiff;
                 }
             @endphp
-            <div class="card border shadow-sm mb-3 rounded-3">
-                <div class="card-header bg-dark bg-opacity-10 py-2 px-3 border-bottom d-flex justify-content-between align-items-center">
-                    <h6 class="mb-0 fw-bold text-dark small">
-                        <i class="fas fa-file-excel me-1.5 text-success"></i>Detail Statement Excel TikTok / Tokopedia
+            <div class="card border shadow-sm mb-3 rounded-3 shadow-sm border-danger-subtle">
+                <div class="card-header bg-danger bg-opacity-10 py-2 px-3 border-bottom border-danger-subtle d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0 fw-bold text-danger small">
+                        <i class="fas fa-undo-alt me-1.5"></i>Informasi Retur / Pengembalian Dana
                     </h6>
-                    <button class="btn btn-sm btn-outline-dark py-0 px-2 font-monospace" style="font-size:0.7rem;" type="button" data-bs-toggle="collapse" data-bs-target="#tiktokExcelCollapse-{{ $order->id }}">
-                        <i class="fas fa-list me-1"></i>Tampilkan / Sembunyikan Detail
-                    </button>
                 </div>
-                <div class="collapse {{ !empty($st0['settlement_amount']) ? 'show' : '' }}" id="tiktokExcelCollapse-{{ $order->id }}">
-                    <div class="card-body p-2" style="font-size: 0.75rem;">
-                        <div class="table-responsive rounded border" style="max-height: 350px; overflow-y: auto;">
-                            <table class="table table-sm table-striped table-bordered align-middle mb-0 font-monospace" style="font-size:0.72rem;">
-                                <thead class="table-dark text-center sticky-top">
-                                    <tr>
-                                        <th>Field (Format Resmi Excel TikTok Seller Center)</th>
-                                        <th>Nilai</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr><td>ID Pesanan/Penyesuaian</td><td>{{ $order->order_marketplace_id }}</td></tr>
-                                    <tr><td>Jenis transaksi</td><td>{{ str_replace('_', ' ', $order->order_status) }}</td></tr>
-                                    <tr><td>Waktu pemesanan</td><td>{{ $order->order_date ? $order->order_date->format('Y/m/d H:i') : '-' }}</td></tr>
-                                    <tr><td>Waktu pembayaran pesanan</td><td>{{ $order->paid_at ? \Carbon\Carbon::parse($order->paid_at)->format('Y/m/d H:i') : '-' }}</td></tr>
-                                    <tr><td>Mata uang</td><td>IDR</td></tr>
-                                    <tr class="table-secondary fw-bold"><td>Subtotal sebelum diskon</td><td>Rp {{ number_format((float)($st0['gross_sales_amount'] ?? $st0['original_total_product_price'] ?? ($order->total_amount + $order->discount_amount)), 0, ',', '.') }}</td></tr>
-                                    <tr class="text-danger"><td>Diskon penjual</td><td>-Rp {{ number_format(abs((float)($st0['seller_discount_amount'] ?? $st0['seller_discount'] ?? $order->discount_amount)), 0, ',', '.') }}</td></tr>
-                                    <tr class="fw-bold"><td>Subtotal setelah diskon penjual</td><td>Rp {{ number_format((float)($st0['after_seller_discounts_subtotal_amount'] ?? $st0['revenue_amount'] ?? $order->total_amount), 0, ',', '.') }}</td></tr>
-                                    
-                                    @if ((float)($st0['customer_refund_amount'] ?? $st0['gross_sales_refund_amount'] ?? $order->refund_amount) > 0)
-                                        <tr class="table-warning text-danger fw-bold"><td>Subtotal pengembalian dana sebelum diskon penjual</td><td>-Rp {{ number_format(abs((float)($st0['gross_sales_refund_amount'] ?? $st0['customer_refund_amount'] ?? $order->refund_amount)), 0, ',', '.') }}</td></tr>
-                                        <tr class="text-success"><td>Pengembalian dana diskon penjual</td><td>+Rp {{ number_format(abs((float)($st0['seller_discount_refund_amount'] ?? 0)), 0, ',', '.') }}</td></tr>
-                                        <tr class="table-danger text-danger fw-bold"><td>Subtotal pengembalian dana setelah diskon penjual</td><td>-Rp {{ number_format(abs((float)($st0['customer_refund_amount'] ?? $order->refund_amount)), 0, ',', '.') }}</td></tr>
-                                    @endif
-
-                                    <tr class="text-danger"><td>Biaya komisi platform</td><td>{{ $platformCommVal != 0 ? '-Rp ' . number_format(abs($platformCommVal), 0, ',', '.') : '0' }}</td></tr>
-                                    <tr class="text-danger"><td>Biaya layanan pre-order</td><td>{{ $preorderFeeVal != 0 ? '-Rp ' . number_format(abs($preorderFeeVal), 0, ',', '.') : '0' }}</td></tr>
-                                    <tr class="text-danger"><td>Biaya layanan Program Bebas Ongkir</td><td>{{ $growthXtraVal != 0 ? '-Rp ' . number_format(abs($growthXtraVal), 0, ',', '.') : '0' }}</td></tr>
-                                    <tr class="text-danger"><td>Biaya pemrosesan pesanan</td><td>{{ $transFeeVal != 0 ? '-Rp ' . number_format(abs($transFeeVal), 0, ',', '.') : '0' }}</td></tr>
-                                    <tr class="text-danger"><td>Komisi Afiliasi</td><td>{{ $affiliateCommVal != 0 ? '-Rp ' . number_format(abs($affiliateCommVal), 0, ',', '.') : '0' }}</td></tr>
-                                    <tr class="text-danger"><td>Komisi dinamis</td><td>{{ $dynamicCommVal != 0 ? '-Rp ' . number_format(abs($dynamicCommVal), 0, ',', '.') : '0' }}</td></tr>
-                                    <tr class="text-danger"><td>Ongkir yang ditalangi penyedia jasa logistik</td><td>{{ $actualShippingVal != 0 ? '-Rp ' . number_format(abs($actualShippingVal), 0, ',', '.') : '0' }}</td></tr>
-                                    <tr class="text-danger"><td>Ongkir pengembalian barang (ditanggung pembeli)</td><td>{{ $returnShippingVal != 0 ? '-Rp ' . number_format(abs($returnShippingVal), 0, ',', '.') : '0' }}</td></tr>
-                                    <tr class="text-danger"><td>Biaya layanan logistik</td><td>{{ $logisticsFeeVal != 0 ? '-Rp ' . number_format(abs($logisticsFeeVal), 0, ',', '.') : '0' }}</td></tr>
-                                    <tr class="table-danger text-danger fw-bold"><td>Total Biaya / Potongan Admin</td><td>-Rp {{ number_format(abs($totalFeeVal), 0, ',', '.') }}</td></tr>
-                                    
-                                    <tr><td>Pembayaran oleh pembeli</td><td>Rp {{ number_format((float)($st0['customer_payment_amount'] ?? $st0['total_amount'] ?? $order->total_amount), 0, ',', '.') }}</td></tr>
-                                    @if ((float)($st0['customer_order_refund_amount'] ?? 0) > 0)
-                                        <tr class="text-danger"><td>Pengembalian dana pembeli</td><td>-Rp {{ number_format(abs((float)$st0['customer_order_refund_amount']), 0, ',', '.') }}</td></tr>
-                                    @endif
-                                    <tr><td>Diskon platform</td><td>Rp {{ number_format((float)($st0['platform_discount_amount'] ?? $st0['platform_discount'] ?? 0), 0, ',', '.') }}</td></tr>
-                                    <tr><td>Ongkir yang ditanggung pembeli sebelum diskon</td><td>Rp {{ number_format((float)($st0['original_shipping_fee'] ?? 0), 0, ',', '.') }}</td></tr>
-                                    <tr><td>Ongkir yang ditanggung platform</td><td>-Rp {{ number_format(abs((float)($st0['platform_shipping_fee_discount_amount'] ?? $st0['shipping_fee_platform_discount'] ?? 0)), 0, ',', '.') }}</td></tr>
-                                    <tr class="table-success fw-bold text-success fs-6">
-                                        <td>Jumlah penyelesaian pembayaran (Dana Cair Net)</td>
-                                        <td>Rp {{ number_format((float)($st0['settlement_amount'] ?? $order->net_amount), 0, ',', '.') }}</td>
-                                    </tr>
-                                </tbody>
-                            </table>
+                <div class="card-body p-3" style="font-size: 0.78rem;">
+                    @if ($order->refund_amount > 0 || ($order->returnOrder && $order->returnOrder->refund_amount > 0))
+                        <div class="row g-2">
+                            <div class="col-sm-6">
+                                <div class="p-2 border rounded bg-light">
+                                    <small class="text-muted d-block text-uppercase fw-semibold mb-1" style="font-size: 0.65rem;">Tanggal Retur / Refund</small>
+                                    <span class="fw-semibold text-dark">
+                                        @if ($order->returnOrder && $order->returnOrder->created_at)
+                                            {{ $order->returnOrder->created_at->format('d M Y, H:i') }}
+                                        @elseif ($order->completed_at)
+                                            {{ \Carbon\Carbon::parse($order->completed_at)->format('d M Y, H:i') }} (Saat Cair)
+                                        @else
+                                            {{ $order->updated_at ? $order->updated_at->format('d M Y, H:i') : '-' }}
+                                        @endif
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="col-sm-6">
+                                <div class="p-2 border rounded bg-light">
+                                    <small class="text-muted d-block text-uppercase fw-semibold mb-1" style="font-size: 0.65rem;">Jumlah Retur / Refund</small>
+                                    <span class="fw-bold text-danger font-monospace">
+                                        Rp {{ number_format($order->refund_amount > 0 ? $order->refund_amount : ($order->returnOrder ? $order->returnOrder->refund_amount : 0), 0, ',', '.') }}
+                                    </span>
+                                </div>
+                            </div>
+                            @if ($order->returnOrder)
+                                <div class="col-sm-6">
+                                    <div class="p-2 border rounded bg-light">
+                                        <small class="text-muted d-block text-uppercase fw-semibold mb-1" style="font-size: 0.65rem;">No. Retur (Return SN)</small>
+                                        <span class="font-monospace fw-bold text-primary">{{ $order->returnOrder->return_sn ?? '-' }}</span>
+                                    </div>
+                                </div>
+                                <div class="col-sm-6">
+                                    <div class="p-2 border rounded bg-light">
+                                        <small class="text-muted d-block text-uppercase fw-semibold mb-1" style="font-size: 0.65rem;">Status Retur</small>
+                                        <span class="badge bg-danger bg-opacity-10 text-danger border border-danger-subtle py-1 px-2">{{ $order->returnOrder->status ?? '-' }}</span>
+                                    </div>
+                                </div>
+                                <div class="col-12">
+                                    <div class="p-2 border rounded bg-light">
+                                        <small class="text-muted d-block text-uppercase fw-semibold mb-1" style="font-size: 0.65rem;">Alasan Retur</small>
+                                        <span class="text-dark">{{ $order->returnOrder->reason ?? '-' }}</span>
+                                    </div>
+                                </div>
+                            @else
+                                <div class="col-12">
+                                    <div class="p-2 border rounded bg-light">
+                                        <small class="text-muted d-block text-uppercase fw-semibold mb-1" style="font-size: 0.65rem;">Keterangan</small>
+                                        <span class="text-dark">Penyesuaian dana otomatis (Late Refund / Penyesuaian Escrow) dari sistem marketplace.</span>
+                                    </div>
+                                </div>
+                            @endif
                         </div>
-                    </div>
+                    @else
+                        <div class="text-center py-2 text-muted">
+                            <i class="fas fa-check-circle me-1 text-success"></i> Tidak ada data retur atau pengembalian dana untuk pesanan ini.
+                        </div>
+                    @endif
                 </div>
+            </div>
             </div>
 
             <!-- Profit Summary Card -->
