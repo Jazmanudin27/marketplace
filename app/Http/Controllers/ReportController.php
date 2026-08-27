@@ -2206,6 +2206,7 @@ class ReportController extends Controller
         $grandOtherFee = 0;
         $grandMarketplaceFee = 0;
         $grandNetReleased = 0;
+        $grandTotalRefund = 0;
 
         // POS Offline - Grouped by Instansi / Channel
         if (($channelCode === 'all' || $channelCode === 'offline') && empty($storeId)) {
