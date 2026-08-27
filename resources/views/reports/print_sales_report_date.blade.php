@@ -9,9 +9,12 @@
         body { font-family: Arial, sans-serif; font-size: 11px; color: #000; background: #fff; }
         .table-print th, .table-print td { padding: 5px 8px; border: 1px solid #ddd; }
         .table-print th { background-color: #f2f2f2 !important; text-transform: uppercase; font-size: 10px; }
+        .table-container { width: 100%; overflow-x: auto; }
+        .table-print { min-width: 100%; width: 125%; max-width: 130%; }
         @media print {
             .no-print { display: none !important; }
             @page { size: landscape; margin: 10mm; }
+            .table-print { width: 100% !important; min-width: 100% !important; max-width: 100% !important; }
         }
     </style>
 </head>
@@ -52,45 +55,47 @@
         </div>
     </div>
 
-    <table class="table table-print w-100 align-middle">
-        <thead>
-            <tr>
-                <th style="width: 30px;">No</th>
-                <th>Tanggal Harian</th>
-                <th class="text-center">Qty</th>
-                <th class="text-end">Omset Kotor (Gross)</th>
-                <th class="text-end text-danger">Refund</th>
-                <th class="text-end text-danger fw-bold">Total Potongan</th>
-                <th class="text-end text-success fw-bold">Dana Dilepas (Net)</th>
-            </tr>
-        </thead>
-        <tbody>
-            @forelse($dates as $idx => $row)
+    <div class="table-container">
+        <table class="table table-print align-middle">
+            <thead>
                 <tr>
-                    <td class="text-center">{{ $idx + 1 }}</td>
-                    <td class="fw-bold font-monospace">{{ date('d F Y (l)', strtotime($row['date'])) }}</td>
-                    <td class="text-center font-monospace fw-bold">{{ number_format($row['total_qty']) }}</td>
-                    <td class="text-end font-monospace fw-bold text-primary">Rp {{ number_format($row['total_omset'], 0, ',', '.') }}</td>
-                    <td class="text-end font-monospace {{ ($row['refund'] ?? 0) > 0 ? 'text-danger fw-bold' : 'text-muted' }}">{{ ($row['refund'] ?? 0) > 0 ? '-Rp ' . number_format($row['refund'], 0, ',', '.') : '0' }}</td>
-                    <td class="text-end font-monospace fw-bold text-danger">Rp {{ number_format($row['total_fee'] ?? 0, 0, ',', '.') }}</td>
-                    <td class="text-end font-monospace fw-bold text-success">Rp {{ number_format($row['net_released'] ?? 0, 0, ',', '.') }}</td>
+                    <th style="width: 30px;">No</th>
+                    <th>Tanggal Harian</th>
+                    <th class="text-center">Qty</th>
+                    <th class="text-end">Omset Kotor (Gross)</th>
+                    <th class="text-end text-danger">Refund</th>
+                    <th class="text-end text-danger fw-bold">Total Potongan</th>
+                    <th class="text-end text-success fw-bold">Dana Dilepas (Net)</th>
                 </tr>
-            @empty
-                <tr>
-                    <td colspan="7" class="text-center py-3 text-muted">Tidak ada data harian penjualan ditemukan.</td>
+            </thead>
+            <tbody>
+                @forelse($dates as $idx => $row)
+                    <tr>
+                        <td class="text-center">{{ $idx + 1 }}</td>
+                        <td class="fw-bold font-monospace">{{ date('d F Y (l)', strtotime($row['date'])) }}</td>
+                        <td class="text-center font-monospace fw-bold">{{ number_format($row['total_qty']) }}</td>
+                        <td class="text-end font-monospace fw-bold text-primary">Rp {{ number_format($row['total_omset'], 0, ',', '.') }}</td>
+                        <td class="text-end font-monospace {{ ($row['refund'] ?? 0) > 0 ? 'text-danger fw-bold' : 'text-muted' }}">{{ ($row['refund'] ?? 0) > 0 ? '-Rp ' . number_format($row['refund'], 0, ',', '.') : '0' }}</td>
+                        <td class="text-end font-monospace fw-bold text-danger">Rp {{ number_format($row['total_fee'] ?? 0, 0, ',', '.') }}</td>
+                        <td class="text-end font-monospace fw-bold text-success">Rp {{ number_format($row['net_released'] ?? 0, 0, ',', '.') }}</td>
+                    </tr>
+                @empty
+                    <tr>
+                        <td colspan="7" class="text-center py-3 text-muted">Tidak ada data harian penjualan ditemukan.</td>
+                    </tr>
+                @endforelse
+            </tbody>
+            <tfoot>
+                <tr class="fw-bold bg-light">
+                    <td colspan="2" class="text-end">TOTAL REKAPITULASI HARIAN:</td>
+                    <td class="text-center font-monospace">{{ number_format($grandTotalQty) }}</td>
+                    <td class="text-end text-primary">Rp {{ number_format($grandTotalOmset, 0, ',', '.') }}</td>
+                    <td class="text-end text-danger">{{ ($grandTotalRefund ?? 0) > 0 ? '-Rp ' . number_format($grandTotalRefund, 0, ',', '.') : '0' }}</td>
+                    <td class="text-end text-danger fs-6">Rp {{ number_format($grandMarketplaceFee ?? 0, 0, ',', '.') }}</td>
+                    <td class="text-end text-success fs-6">Rp {{ number_format($grandNetReleased ?? $grandTotalOmset, 0, ',', '.') }}</td>
                 </tr>
-            @endforelse
-        </tbody>
-        <tfoot>
-            <tr class="fw-bold bg-light">
-                <td colspan="2" class="text-end">TOTAL REKAPITULASI HARIAN:</td>
-                <td class="text-center font-monospace">{{ number_format($grandTotalQty) }}</td>
-                <td class="text-end text-primary">Rp {{ number_format($grandTotalOmset, 0, ',', '.') }}</td>
-                <td class="text-end text-danger">{{ ($grandTotalRefund ?? 0) > 0 ? '-Rp ' . number_format($grandTotalRefund, 0, ',', '.') : '0' }}</td>
-                <td class="text-end text-danger fs-6">Rp {{ number_format($grandMarketplaceFee ?? 0, 0, ',', '.') }}</td>
-                <td class="text-end text-success fs-6">Rp {{ number_format($grandNetReleased ?? $grandTotalOmset, 0, ',', '.') }}</td>
-            </tr>
-        </tfoot>
-    </table>
+            </tfoot>
+        </table>
+    </div>
 </body>
 </html>

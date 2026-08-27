@@ -9,9 +9,12 @@
         body { font-family: Arial, sans-serif; font-size: 11px; color: #000; background: #fff; }
         .table-print th, .table-print td { padding: 4px 6px; border: 1px solid #ddd; }
         .table-print th { background-color: #f2f2f2 !important; text-transform: uppercase; font-size: 10px; }
+        .table-container { width: 100%; overflow-x: auto; }
+        .table-print { min-width: 100%; width: 125%; max-width: 130%; }
         @media print {
             .no-print { display: none !important; }
             @page { size: landscape; margin: 10mm; }
+            .table-print { width: 100% !important; min-width: 100% !important; max-width: 100% !important; }
         }
     </style>
 </head>
@@ -76,65 +79,67 @@
         </div>
     </div>
 
-    <table class="table table-print w-100 align-middle">
-        <thead>
-            <tr>
-                <th style="width: 25px;">No.</th>
-                <th>Tanggal Order</th>
-                <th>Tanggal Dilepas</th>
-                <th>No. Pesanan / Invoice</th>
-                <th>Channel / Toko</th>
-                <th>Ringkasan Produk</th>
-                <th class="text-center">Qty</th>
-                <th class="text-end">Omset Kotor</th>
-                <th class="text-end text-danger">Refund</th>
-                <th class="text-end text-danger fw-bold">Total Potongan</th>
-                <th class="text-end text-success">Dana Dilepas Net</th>
-                <th class="text-end text-secondary">HPP</th>
-                <th class="text-end text-primary">Margin (Rp)</th>
-                <th class="text-center text-primary">Margin %</th>
-                <th class="text-center">Status</th>
-            </tr>
-        </thead>
-        <tbody>
-            @forelse($transactions as $idx => $row)
+    <div class="table-container">
+        <table class="table table-print align-middle">
+            <thead>
                 <tr>
-                    <td class="text-center">{{ $idx + 1 }}</td>
-                    <td class="font-monospace small">{{ $row['order_date'] }}</td>
-                    <td class="font-monospace small text-success fw-bold">{{ $row['released_date'] }}</td>
-                    <td class="font-monospace fw-bold" style="mso-number-format:'\@';">{{ $row['ref'] }}</td>
-                    <td>{{ $row['channel'] }}</td>
-                    <td class="small">{{ $row['items_summary'] }}</td>
-                    <td class="text-center font-monospace">{{ number_format($row['total_qty']) }}</td>
-                    <td class="text-end font-monospace">Rp {{ number_format($row['omset'], 0, ',', '.') }}</td>
-                    <td class="text-end font-monospace {{ ($row['refund'] ?? 0) > 0 ? 'text-danger fw-bold' : 'text-muted' }}">{{ ($row['refund'] ?? 0) > 0 ? '-Rp ' . number_format($row['refund'], 0, ',', '.') : '0' }}</td>
-                    <td class="text-end font-monospace text-danger fw-bold">{{ number_format(($row['total_fee'] ?? 0) < 0 ? $row['total_fee'] : -($row['total_fee'] ?? 0), 0, ',', '.') }}</td>
-                    <td class="text-end font-monospace fw-bold text-success">Rp {{ number_format($row['net_released'], 0, ',', '.') }}</td>
-                    <td class="text-end font-monospace text-secondary">Rp {{ number_format($row['hpp'] ?? 0, 0, ',', '.') }}</td>
-                    <td class="text-end font-monospace fw-bold text-primary">Rp {{ number_format($row['margin_rp'] ?? 0, 0, ',', '.') }}</td>
-                    <td class="text-center font-monospace fw-bold text-primary">{{ number_format($row['margin_pct'] ?? 0, 2, ',', '.') }}%</td>
-                    <td class="text-center"><span class="badge bg-success">{{ $row['status'] }}</span></td>
+                    <th style="width: 25px;">No.</th>
+                    <th>Tanggal Order</th>
+                    <th>Tanggal Dilepas</th>
+                    <th>No. Pesanan / Invoice</th>
+                    <th>Channel / Toko</th>
+                    <th>Ringkasan Produk</th>
+                    <th class="text-center">Qty</th>
+                    <th class="text-end">Omset Kotor</th>
+                    <th class="text-end text-danger">Refund</th>
+                    <th class="text-end text-danger fw-bold">Total Potongan</th>
+                    <th class="text-end text-success">Dana Dilepas Net</th>
+                    <th class="text-end text-secondary">HPP</th>
+                    <th class="text-end text-primary">Margin (Rp)</th>
+                    <th class="text-center text-primary">Margin %</th>
+                    <th class="text-center">Status</th>
                 </tr>
-            @empty
-                <tr>
-                    <td colspan="15" class="text-center py-3 text-muted">Tidak ada data detail transaksi ditemukan.</td>
+            </thead>
+            <tbody>
+                @forelse($transactions as $idx => $row)
+                    <tr>
+                        <td class="text-center">{{ $idx + 1 }}</td>
+                        <td class="font-monospace small">{{ $row['order_date'] }}</td>
+                        <td class="font-monospace small text-success fw-bold">{{ $row['released_date'] }}</td>
+                        <td class="font-monospace fw-bold" style="mso-number-format:'\@';">{{ $row['ref'] }}</td>
+                        <td>{{ $row['channel'] }}</td>
+                        <td class="small">{{ $row['items_summary'] }}</td>
+                        <td class="text-center font-monospace">{{ number_format($row['total_qty']) }}</td>
+                        <td class="text-end font-monospace">Rp {{ number_format($row['omset'], 0, ',', '.') }}</td>
+                        <td class="text-end font-monospace {{ ($row['refund'] ?? 0) > 0 ? 'text-danger fw-bold' : 'text-muted' }}">{{ ($row['refund'] ?? 0) > 0 ? '-Rp ' . number_format($row['refund'], 0, ',', '.') : '0' }}</td>
+                        <td class="text-end font-monospace text-danger fw-bold">{{ number_format(($row['total_fee'] ?? 0) < 0 ? $row['total_fee'] : -($row['total_fee'] ?? 0), 0, ',', '.') }}</td>
+                        <td class="text-end font-monospace fw-bold text-success">Rp {{ number_format($row['net_released'], 0, ',', '.') }}</td>
+                        <td class="text-end font-monospace text-secondary">Rp {{ number_format($row['hpp'] ?? 0, 0, ',', '.') }}</td>
+                        <td class="text-end font-monospace fw-bold text-primary">Rp {{ number_format($row['margin_rp'] ?? 0, 0, ',', '.') }}</td>
+                        <td class="text-center font-monospace fw-bold text-primary">{{ number_format($row['margin_pct'] ?? 0, 2, ',', '.') }}%</td>
+                        <td class="text-center"><span class="badge bg-success">{{ $row['status'] }}</span></td>
+                    </tr>
+                @empty
+                    <tr>
+                        <td colspan="15" class="text-center py-3 text-muted">Tidak ada data detail transaksi ditemukan.</td>
+                    </tr>
+                @endforelse
+            </tbody>
+            <tfoot>
+                <tr class="fw-bold bg-light">
+                    <td colspan="6" class="text-end">TOTAL REKAPITULASI:</td>
+                    <td class="text-center font-monospace">{{ number_format($grandTotalQty) }}</td>
+                    <td class="text-end font-monospace text-primary">Rp {{ number_format($grandTotalOmset, 0, ',', '.') }}</td>
+                    <td class="text-end font-monospace text-danger">{{ ($grandTotalRefund ?? 0) > 0 ? '-Rp ' . number_format($grandTotalRefund, 0, ',', '.') : '0' }}</td>
+                    <td class="text-end font-monospace text-danger fw-bold">{{ number_format($grandTotalTotalFee ?? 0, 0, ',', '.') }}</td>
+                    <td class="text-end font-monospace text-success fs-6">Rp {{ number_format($grandTotalNetReleased ?? $grandTotalOmset, 0, ',', '.') }}</td>
+                    <td class="text-end font-monospace text-secondary">Rp {{ number_format($grandTotalHpp ?? 0, 0, ',', '.') }}</td>
+                    <td class="text-end font-monospace text-primary">Rp {{ number_format($grandTotalMarginRp ?? 0, 0, ',', '.') }}</td>
+                    <td class="text-center font-monospace text-primary">{{ number_format($grandOverallMarginPct ?? 0, 2, ',', '.') }}%</td>
+                    <td></td>
                 </tr>
-            @endforelse
-        </tbody>
-        <tfoot>
-            <tr class="fw-bold bg-light">
-                <td colspan="6" class="text-end">TOTAL REKAPITULASI:</td>
-                <td class="text-center font-monospace">{{ number_format($grandTotalQty) }}</td>
-                <td class="text-end font-monospace text-primary">Rp {{ number_format($grandTotalOmset, 0, ',', '.') }}</td>
-                <td class="text-end font-monospace text-danger">{{ ($grandTotalRefund ?? 0) > 0 ? '-Rp ' . number_format($grandTotalRefund, 0, ',', '.') : '0' }}</td>
-                <td class="text-end font-monospace text-danger fw-bold">{{ number_format($grandTotalTotalFee ?? 0, 0, ',', '.') }}</td>
-                <td class="text-end font-monospace text-success fs-6">Rp {{ number_format($grandTotalNetReleased ?? $grandTotalOmset, 0, ',', '.') }}</td>
-                <td class="text-end font-monospace text-secondary">Rp {{ number_format($grandTotalHpp ?? 0, 0, ',', '.') }}</td>
-                <td class="text-end font-monospace text-primary">Rp {{ number_format($grandTotalMarginRp ?? 0, 0, ',', '.') }}</td>
-                <td class="text-center font-monospace text-primary">{{ number_format($grandOverallMarginPct ?? 0, 2, ',', '.') }}%</td>
-                <td></td>
-            </tr>
-        </tfoot>
-    </table>
+            </tfoot>
+        </table>
+    </div>
 </body>
 </html>
