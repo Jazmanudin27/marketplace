@@ -390,23 +390,6 @@
         <!-- Right Side: Payment, Store, SPK, Profit -->
         <div class="col-lg-5">
 
-            <!-- Store & Channel Card -->
-            <div class="card border shadow-sm mb-3 rounded-3">
-                <div class="card-header bg-light py-2 px-3 border-bottom fw-bold small text-dark">
-                    <i class="fas fa-store me-1.5 text-primary"></i> Info Toko & Channel
-                </div>
-                <div class="card-body p-3 small">
-                    <div class="d-flex justify-content-between mb-2 align-items-center">
-                        <span class="text-muted">Platform</span>
-                        <span class="badge bg-secondary text-uppercase small">{{ $order->store->channel->name ?? 'Marketplace' }}</span>
-                    </div>
-                    <div class="d-flex justify-content-between align-items-center">
-                        <span class="text-muted">Nama Toko</span>
-                        <span class="fw-bold text-dark">{{ $order->store->store_name ?? '-' }}</span>
-                    </div>
-                </div>
-            </div>
-
             <!-- TikTok / Tokopedia Financial Statement Excel Breakdown Card -->
             @php
                 $fb = $order->financial_breakdown ?? [];
@@ -440,72 +423,6 @@
                     $preorderFeeVal = -$unassignedDiff;
                 }
             @endphp
-            <div class="card border shadow-sm mb-3 rounded-3 shadow-sm border-danger-subtle">
-                <div class="card-header bg-danger bg-opacity-10 py-2 px-3 border-bottom border-danger-subtle d-flex justify-content-between align-items-center">
-                    <h6 class="mb-0 fw-bold text-danger small">
-                        <i class="fas fa-undo-alt me-1.5"></i>Informasi Retur / Pengembalian Dana
-                    </h6>
-                </div>
-                <div class="card-body p-3" style="font-size: 0.78rem;">
-                    @if ($order->refund_amount > 0 || ($order->returnOrder && $order->returnOrder->refund_amount > 0))
-                        <div class="row g-2">
-                            <div class="col-sm-6">
-                                <div class="p-2 border rounded bg-light">
-                                    <small class="text-muted d-block text-uppercase fw-semibold mb-1" style="font-size: 0.65rem;">Tanggal Retur / Refund</small>
-                                    <span class="fw-semibold text-dark">
-                                        @if ($order->returnOrder && $order->returnOrder->created_at)
-                                            {{ $order->returnOrder->created_at->format('d M Y, H:i') }}
-                                        @elseif ($order->completed_at)
-                                            {{ \Carbon\Carbon::parse($order->completed_at)->format('d M Y, H:i') }} (Saat Cair)
-                                        @else
-                                            {{ $order->updated_at ? $order->updated_at->format('d M Y, H:i') : '-' }}
-                                        @endif
-                                    </span>
-                                </div>
-                            </div>
-                            <div class="col-sm-6">
-                                <div class="p-2 border rounded bg-light">
-                                    <small class="text-muted d-block text-uppercase fw-semibold mb-1" style="font-size: 0.65rem;">Jumlah Retur / Refund</small>
-                                    <span class="fw-bold text-danger font-monospace">
-                                        Rp {{ number_format($order->refund_amount > 0 ? $order->refund_amount : ($order->returnOrder ? $order->returnOrder->refund_amount : 0), 0, ',', '.') }}
-                                    </span>
-                                </div>
-                            </div>
-                            @if ($order->returnOrder)
-                                <div class="col-sm-6">
-                                    <div class="p-2 border rounded bg-light">
-                                        <small class="text-muted d-block text-uppercase fw-semibold mb-1" style="font-size: 0.65rem;">No. Retur (Return SN)</small>
-                                        <span class="font-monospace fw-bold text-primary">{{ $order->returnOrder->return_sn ?? '-' }}</span>
-                                    </div>
-                                </div>
-                                <div class="col-sm-6">
-                                    <div class="p-2 border rounded bg-light">
-                                        <small class="text-muted d-block text-uppercase fw-semibold mb-1" style="font-size: 0.65rem;">Status Retur</small>
-                                        <span class="badge bg-danger bg-opacity-10 text-danger border border-danger-subtle py-1 px-2">{{ $order->returnOrder->status ?? '-' }}</span>
-                                    </div>
-                                </div>
-                                <div class="col-12">
-                                    <div class="p-2 border rounded bg-light">
-                                        <small class="text-muted d-block text-uppercase fw-semibold mb-1" style="font-size: 0.65rem;">Alasan Retur</small>
-                                        <span class="text-dark">{{ $order->returnOrder->formatted_reason ?? '-' }}</span>
-                                    </div>
-                                </div>
-                            @else
-                                <div class="col-12">
-                                    <div class="p-2 border rounded bg-light">
-                                        <small class="text-muted d-block text-uppercase fw-semibold mb-1" style="font-size: 0.65rem;">Keterangan</small>
-                                        <span class="text-dark">Penyesuaian dana otomatis (Late Refund / Penyesuaian Escrow) dari sistem marketplace.</span>
-                                    </div>
-                                </div>
-                            @endif
-                        </div>
-                    @else
-                        <div class="text-center py-2 text-muted">
-                            <i class="fas fa-check-circle me-1 text-success"></i> Tidak ada data retur atau pengembalian dana untuk pesanan ini.
-                        </div>
-                    @endif
-                </div>
-            </div>
             </div>
 
             <!-- Profit Summary Card -->
