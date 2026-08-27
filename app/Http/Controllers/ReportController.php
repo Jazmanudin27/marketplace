@@ -2421,6 +2421,9 @@ class ReportController extends Controller
                     'other_fee' => 0,
                     'total_fee' => 0,
                     'net_released' => (float)$s->grand_total,
+                    'hpp' => (float)$s->hpp_total,
+                    'margin_rp' => (float)$s->grand_total - (float)$s->hpp_total,
+                    'margin_pct' => (float)$s->grand_total > 0 ? round((((float)$s->grand_total - (float)$s->hpp_total) / (float)$s->grand_total) * 100, 2) : 0.0,
                     'status' => ucfirst($s->status),
                 ];
             }
@@ -2487,6 +2490,10 @@ class ReportController extends Controller
                     }
                 }
 
+                $hpp = (float)$o->hpp_total;
+                $marginRp = $netAmt - $hpp;
+                $marginPct = $netAmt > 0 ? round(($marginRp / $netAmt) * 100, 2) : 0.0;
+
                 $transactions[] = [
                     'order_date' => $orderDate,
                     'released_date' => $releasedDate,
@@ -2506,6 +2513,9 @@ class ReportController extends Controller
                     'other_fee' => $fees['other_fee'] ?? 0,
                     'total_fee' => $absFee,
                     'net_released' => $netAmt,
+                    'hpp' => $hpp,
+                    'margin_rp' => $marginRp,
+                    'margin_pct' => $marginPct,
                     'status' => $o->order_status,
                 ];
             }
@@ -2524,7 +2534,16 @@ class ReportController extends Controller
         $grandTotalTotalFee = array_sum(array_column($transactions, 'total_fee'));
         $grandTotalNetReleased = array_sum(array_column($transactions, 'net_released'));
 
-        return compact('transactions', 'grandTotalOmset', 'grandTotalQty', 'grandTotalRefund', 'grandTotalPlatformFee', 'grandTotalFreeShipping', 'grandTotalServiceFee', 'grandTotalPromoFee', 'grandTotalOtherFee', 'grandTotalTotalFee', 'grandTotalNetReleased');
+        $grandTotalHpp = array_sum(array_column($transactions, 'hpp'));
+        $grandTotalMarginRp = array_sum(array_column($transactions, 'margin_rp'));
+        $grandOverallMarginPct = $grandTotalNetReleased > 0 ? round(($grandTotalMarginRp / $grandTotalNetReleased) * 100, 2) : 0.0;
+
+        return compact(
+            'transactions', 'grandTotalOmset', 'grandTotalQty', 'grandTotalRefund',
+            'grandTotalPlatformFee', 'grandTotalFreeShipping', 'grandTotalServiceFee',
+            'grandTotalPromoFee', 'grandTotalOtherFee', 'grandTotalTotalFee', 'grandTotalNetReleased',
+            'grandTotalHpp', 'grandTotalMarginRp', 'grandOverallMarginPct'
+        );
     }
 
     private function getSalesReportPerDateData($tenantId, $dateFrom, $dateTo, $channelCode = 'all', $customerCat = 'all', $statusFilter = 'all', $storeId = null, $dateType = 'order_date')
