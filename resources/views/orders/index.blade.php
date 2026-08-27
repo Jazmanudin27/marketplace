@@ -1261,6 +1261,11 @@
                                             <a href="{{ route('orders.show', $order) }}" class="btn-tbl btn-tbl-blue">
                                                 <i class="fas fa-eye"></i> Detail
                                             </a>
+                                            @if (!in_array($orderStatusUp, ['UNPAID', 'PENDING', 'CANCELLED', 'BATAL', 'IN_CANCEL']))
+                                                <a href="{{ route('orders.print', $order->id) }}" target="_blank" class="btn-tbl btn-tbl-outline" title="Cetak Resi / Label Pengiriman">
+                                                    <i class="fas fa-print"></i> Cetak Resi
+                                                </a>
+                                            @endif
                                             @if (in_array($orderStatusUp, ['SHIPPED', 'DELIVERED', 'COMPLETED', 'FINISHED', 'SELESAI']))
                                                 <span class="meta-badge"
                                                     style="background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0; padding:4px 8px;">
