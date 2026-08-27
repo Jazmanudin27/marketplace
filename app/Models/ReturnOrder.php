@@ -74,6 +74,7 @@ class ReturnOrder extends Model
             'ITEM_MISSING' => 'Barang kurang / hilang dalam paket',
             'NOT_RECEIPT' => 'Barang belum diterima oleh pembeli',
             'NOT_RECEIVED' => 'Barang belum diterima oleh pembeli',
+            'ITEM_FAKE' => 'Produk palsu / tiruan',
             'SP_DIFFERENT_DESCRIPTION' => 'Produk tidak sesuai deskripsi/foto',
             'SP_WRONG_ITEM' => 'Produk yang dikirim salah/tidak sesuai pesanan',
             'SP_DAMAGED_ITEM' => 'Produk rusak/cacat',
