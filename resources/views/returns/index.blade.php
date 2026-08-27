@@ -517,13 +517,24 @@
                             <!-- Column 1: Produk -->
                             <td class="ps-3 py-3 align-top">
                                 <div class="d-flex flex-column gap-3">
-                                    @foreach ($ret->items as $rItem)
+                                    @php
+                                        $displayItems = $ret->items;
+                                        $isFallback = false;
+                                        if ($displayItems->isEmpty() && $ret->order && $ret->order->items) {
+                                            $displayItems = $ret->order->items;
+                                            $isFallback = true;
+                                        }
+                                    @endphp
+                                    @forelse ($displayItems as $item)
                                         @php
-                                            $orderItem = $rItem->orderItem;
+                                            $orderItem = $isFallback ? $item : ($item->orderItem ?? null);
+                                            if (!$orderItem) continue;
+
                                             $mpProduct = $orderItem->marketplaceProduct ?? null;
                                             $imgUrl = $orderItem->product_image ?? null;
                                             $sku = $orderItem->sku ?? $mpProduct->sku ?? '—';
                                             $variant = $orderItem->variant_name ?? '—';
+                                            $qty = $isFallback ? $orderItem->quantity : ($item->quantity ?? 1);
                                         @endphp
                                         <div class="d-flex align-items-start gap-3">
                                             <div class="position-relative border rounded overflow-hidden" style="width: 54px; height: 54px; flex-shrink: 0; background-color: #f8f9fa;">
@@ -535,7 +546,7 @@
                                                     </div>
                                                 @endif
                                                 <span class="position-absolute bottom-0 end-0 bg-dark bg-opacity-75 text-white px-1.5 py-0.25 small font-monospace fw-bold" style="font-size: 0.65rem; border-top-left-radius: 4px;">
-                                                    x{{ $rItem->quantity }}
+                                                    x{{ $qty }}
                                                 </span>
                                             </div>
                                             <div class="flex-grow-1 min-w-0">
@@ -549,10 +560,17 @@
                                                     @if($variant && $variant !== '—')
                                                         <span class="badge bg-light text-dark border px-1.5 py-0.5" style="font-size: 0.65rem;">Variasi: {{ $variant }}</span>
                                                     @endif
+                                                    @if($isFallback)
+                                                        <span class="badge bg-secondary bg-opacity-10 text-secondary border px-1.5 py-0.5" style="font-size: 0.65rem;" title="Item diperoleh dari pesanan asli karena data item retur marketplace tidak lengkap">Item Pesanan</span>
+                                                    @endif
                                                 </div>
                                             </div>
                                         </div>
-                                    @endforeach
+                                    @empty
+                                        <div class="text-muted small py-2">
+                                            <i class="fas fa-exclamation-triangle text-warning me-1"></i> Rincian produk tidak tersedia.
+                                        </div>
+                                    @endforelse
                                 </div>
                             </td>
                             
