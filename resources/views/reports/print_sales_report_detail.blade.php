@@ -83,8 +83,7 @@
                 <th>Tanggal Order</th>
                 <th>Tanggal Dilepas</th>
                 <th>No. Pesanan / Invoice</th>
-                <th>Toko / Channel</th>
-                <th>Pelanggan</th>
+                <th>Channel / Toko</th>
                 <th>Ringkasan Produk</th>
                 <th class="text-center">Qty</th>
                 <th class="text-end">Omset Kotor</th>
@@ -105,7 +104,6 @@
                     <td class="font-monospace small text-success fw-bold">{{ $row['released_date'] }}</td>
                     <td class="font-monospace fw-bold" style="mso-number-format:'\@';">{{ $row['ref'] }}</td>
                     <td>{{ $row['channel'] }}</td>
-                    <td>{{ $row['customer'] }}</td>
                     <td class="small">{{ $row['items_summary'] }}</td>
                     <td class="text-center font-monospace">{{ number_format($row['total_qty']) }}</td>
                     <td class="text-end font-monospace">Rp {{ number_format($row['omset'], 0, ',', '.') }}</td>
@@ -119,13 +117,13 @@
                 </tr>
             @empty
                 <tr>
-                    <td colspan="16" class="text-center py-3 text-muted">Tidak ada data detail transaksi ditemukan.</td>
+                    <td colspan="15" class="text-center py-3 text-muted">Tidak ada data detail transaksi ditemukan.</td>
                 </tr>
             @endforelse
         </tbody>
         <tfoot>
             <tr class="fw-bold bg-light">
-                <td colspan="7" class="text-end">TOTAL REKAPITULASI:</td>
+                <td colspan="6" class="text-end">TOTAL REKAPITULASI:</td>
                 <td class="text-center font-monospace">{{ number_format($grandTotalQty) }}</td>
                 <td class="text-end font-monospace text-primary">Rp {{ number_format($grandTotalOmset, 0, ',', '.') }}</td>
                 <td class="text-end font-monospace text-danger">{{ ($grandTotalRefund ?? 0) > 0 ? '-Rp ' . number_format($grandTotalRefund, 0, ',', '.') : '0' }}</td>
