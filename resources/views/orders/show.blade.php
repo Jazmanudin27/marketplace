@@ -11,8 +11,37 @@
             </a>
         </div>
 
+        <style>
+            /* Uniform font size for order details page */
+            .order-detail-page-content,
+            .order-detail-page-content td,
+            .order-detail-page-content th,
+            .order-detail-page-content span,
+            .order-detail-page-content strong,
+            .order-detail-page-content label,
+            .order-detail-page-content div:not(.fs-5):not(.fs-6):not(.fw-bold.text-danger),
+            .order-detail-page-content small,
+            .order-detail-page-content input,
+            .order-detail-page-content textarea,
+            .order-detail-page-content select {
+                font-size: 0.82rem !important;
+            }
+            .order-detail-page-content h5,
+            .order-detail-page-content h6,
+            .order-detail-page-content .card-header,
+            .order-detail-page-content .card-header span {
+                font-size: 0.86rem !important;
+            }
+            .order-detail-page-content .badge {
+                font-size: 0.72rem !important;
+            }
+            .order-detail-page-content .btn {
+                font-size: 0.78rem !important;
+            }
+        </style>
+
         <!-- Main Grid Layout -->
-        <div class="row g-3">
+        <div class="row g-3 order-detail-page-content">
 
             <!-- Left Side: Order & Item Details -->
             <div class="col-lg-8">

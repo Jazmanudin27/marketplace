@@ -1,3 +1,32 @@
+<style>
+    /* Uniform font size for order details modal */
+    .modal-body,
+    .modal-body td,
+    .modal-body th,
+    .modal-body span,
+    .modal-body strong,
+    .modal-body label,
+    .modal-body div:not(.fs-5):not(.fs-6):not(.fw-bold.text-danger),
+    .modal-body small,
+    .modal-body input,
+    .modal-body textarea,
+    .modal-body select {
+        font-size: 0.82rem !important;
+    }
+    .modal-body h5,
+    .modal-body h6,
+    .modal-body .card-header,
+    .modal-body .card-header span {
+        font-size: 0.86rem !important;
+    }
+    .modal-body .badge {
+        font-size: 0.72rem !important;
+    }
+    .modal-body .btn {
+        font-size: 0.78rem !important;
+    }
+</style>
+
 <div class="modal-header bg-info bg-opacity-10 py-2 px-3 border-bottom d-flex flex-wrap align-items-center justify-content-between gap-2">
     <div class="d-flex align-items-center gap-2">
         <h6 class="modal-title fw-bold text-dark mb-0" style="font-size: 0.85rem;">
