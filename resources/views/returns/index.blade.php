@@ -172,27 +172,27 @@
                     <li class="nav-item" role="presentation">
                         <a class="nav-link border-0 pb-2 px-3 {{ is_null($status) && is_null($isRestocked) ? 'active fw-bold border-bottom border-primary text-primary' : 'text-secondary' }}" 
                            style="border-width: 0 0 3px 0 !important; border-style: solid !important; border-color: {{ is_null($status) && is_null($isRestocked) ? '#FF5722' : 'transparent' }} !important; color: {{ is_null($status) && is_null($isRestocked) ? '#FF5722' : '#6c757d' }} !important;" 
-                           href="{{ route('returns.index') }}">Semua</a>
+                           href="{{ route('returns.index') }}">Semua <span class="badge ms-1 text-white" style="font-size: 0.68rem; font-weight: normal; background-color: {{ is_null($status) && is_null($isRestocked) ? '#FF5722' : '#6c757d' }} !important;">{{ $totalReturns }}</span></a>
                     </li>
                     <li class="nav-item" role="presentation">
                         <a class="nav-link border-0 pb-2 px-3 {{ $isRestocked === '0' ? 'active fw-bold border-bottom border-primary text-primary' : 'text-secondary' }}" 
                            style="border-width: 0 0 3px 0 !important; border-style: solid !important; border-color: {{ $isRestocked === '0' ? '#FF5722' : 'transparent' }} !important; color: {{ $isRestocked === '0' ? '#FF5722' : '#6c757d' }} !important;" 
-                           href="{{ route('returns.index', array_merge(request()->except('page'), ['is_restocked' => '0', 'status' => null])) }}">Dalam Pengecekan (Belum QC)</a>
+                           href="{{ route('returns.index', array_merge(request()->except('page'), ['is_restocked' => '0', 'status' => null])) }}">Dalam Pengecekan (Belum QC) <span class="badge ms-1 text-white" style="font-size: 0.68rem; font-weight: normal; background-color: {{ $isRestocked === '0' ? '#FF5722' : '#6c757d' }} !important;">{{ $pendingQc }}</span></a>
                     </li>
                     <li class="nav-item" role="presentation">
                         <a class="nav-link border-0 pb-2 px-3 {{ $isRestocked === '1' ? 'active fw-bold border-bottom border-primary text-primary' : 'text-secondary' }}" 
                            style="border-width: 0 0 3px 0 !important; border-style: solid !important; border-color: {{ $isRestocked === '1' ? '#FF5722' : 'transparent' }} !important; color: {{ $isRestocked === '1' ? '#FF5722' : '#6c757d' }} !important;" 
-                           href="{{ route('returns.index', array_merge(request()->except('page'), ['is_restocked' => '1', 'status' => null])) }}">Sudah QC (Selesai QC)</a>
+                           href="{{ route('returns.index', array_merge(request()->except('page'), ['is_restocked' => '1', 'status' => null])) }}">Sudah QC (Selesai QC) <span class="badge ms-1 text-white" style="font-size: 0.68rem; font-weight: normal; background-color: {{ $isRestocked === '1' ? '#FF5722' : '#6c757d' }} !important;">{{ $alreadyQc }}</span></a>
                     </li>
                     <li class="nav-item" role="presentation">
                         <a class="nav-link border-0 pb-2 px-3 {{ $status === 'REQUESTED' ? 'active fw-bold border-bottom border-primary text-primary' : 'text-secondary' }}" 
                            style="border-width: 0 0 3px 0 !important; border-style: solid !important; border-color: {{ $status === 'REQUESTED' ? '#FF5722' : 'transparent' }} !important; color: {{ $status === 'REQUESTED' ? '#FF5722' : '#6c757d' }} !important;" 
-                           href="{{ route('returns.index', array_merge(request()->except('page'), ['status' => 'REQUESTED', 'is_restocked' => null])) }}">Pengajuan Baru</a>
+                           href="{{ route('returns.index', array_merge(request()->except('page'), ['status' => 'REQUESTED', 'is_restocked' => null])) }}">Pengajuan Baru <span class="badge ms-1 text-white" style="font-size: 0.68rem; font-weight: normal; background-color: {{ $status === 'REQUESTED' ? '#FF5722' : '#6c757d' }} !important;">{{ $newRequested }}</span></a>
                     </li>
                     <li class="nav-item" role="presentation">
                         <a class="nav-link border-0 pb-2 px-3 {{ $status === 'CLOSED' || $status === 'COMPLETED' ? 'active fw-bold border-bottom border-primary text-primary' : 'text-secondary' }}" 
                            style="border-width: 0 0 3px 0 !important; border-style: solid !important; border-color: {{ $status === 'CLOSED' || $status === 'COMPLETED' ? '#FF5722' : 'transparent' }} !important; color: {{ $status === 'CLOSED' || $status === 'COMPLETED' ? '#FF5722' : '#6c757d' }} !important;" 
-                           href="{{ route('returns.index', array_merge(request()->except('page'), ['status' => 'CLOSED', 'is_restocked' => null])) }}">Selesai</a>
+                           href="{{ route('returns.index', array_merge(request()->except('page'), ['status' => 'CLOSED', 'is_restocked' => null])) }}">Selesai <span class="badge ms-1 text-white" style="font-size: 0.68rem; font-weight: normal; background-color: {{ $status === 'CLOSED' || $status === 'COMPLETED' ? '#FF5722' : '#6c757d' }} !important;">{{ $completedClosed }}</span></a>
                     </li>
                 </ul>
             </div>

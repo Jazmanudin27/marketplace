@@ -71,10 +71,37 @@ class ReturnOrderController extends Controller
             ->distinct()
             ->pluck('status');
 
-        $totalReturns = ReturnOrder::where('tenant_id', $tenantId)->count();
-        $pendingQc = ReturnOrder::where('tenant_id', $tenantId)->where('is_restocked', false)->count();
-        $goodCount = ReturnOrder::where('tenant_id', $tenantId)->where('is_restocked', true)->where('inspection_status', 'GOOD')->count();
-        $defectiveCount = ReturnOrder::where('tenant_id', $tenantId)->where('is_restocked', true)->where('inspection_status', 'DEFECTIVE')->count();
+        // Base query for dynamic counts based on applied filters (except status/restocked)
+        $baseQuery = ReturnOrder::where('tenant_id', $tenantId);
+        if ($search) {
+            $baseQuery->where(function ($q) use ($search) {
+                $q->where('return_sn', 'like', "%{$search}%")
+                  ->orWhereHas('order', function ($o) use ($search) {
+                      $o->where('invoice_number', 'like', "%{$search}%")
+                        ->orWhere('order_marketplace_id', 'like', "%{$search}%");
+                  });
+            });
+        }
+        if ($channelId) {
+            $baseQuery->whereHas('store', function ($q) use ($channelId) {
+                $q->where('channel_id', $channelId);
+            });
+        }
+        if ($storeId) {
+            $baseQuery->where('store_id', $storeId);
+        }
+
+        $totalReturns = (clone $baseQuery)->count();
+        $pendingQc = (clone $baseQuery)->where('is_restocked', false)->count();
+        $alreadyQc = (clone $baseQuery)->where('is_restocked', true)->count();
+        $newRequested = (clone $baseQuery)->where('status', 'REQUESTED')->count();
+        $completedClosed = (clone $baseQuery)->where(function ($q) {
+            $q->whereIn('status', ['CLOSED', 'COMPLETED', 'SUCCESS', 'REFUNDED'])
+              ->orWhere('status', 'like', '%CLOSED%')
+              ->orWhere('status', 'like', '%COMPLETED%')
+              ->orWhere('status', 'like', '%SUCCESS%')
+              ->orWhere('status', 'like', '%REFUNDED%');
+        })->count();
 
         $reasonsStats = ReturnOrder::where('tenant_id', $tenantId)
             ->whereNotNull('reason')
@@ -96,8 +123,9 @@ class ReturnOrderController extends Controller
             'isRestocked',
             'totalReturns',
             'pendingQc',
-            'goodCount',
-            'defectiveCount',
+            'alreadyQc',
+            'newRequested',
+            'completedClosed',
             'reasonsStats'
         ));
     }
