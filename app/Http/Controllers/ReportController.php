@@ -2613,11 +2613,7 @@ class ReportController extends Controller
                     }
                     $onTotalFee += $oFee;
 
-                    $oNet = (float)$o->net_amount;
-                    if ($oNet <= 0) {
-                        $oNet = max(0.0, (float)$o->total_amount - $oFee);
-                    }
-                    $onNetReleased += $oNet;
+                    $onNetReleased += (float)$o->net_amount;
                 }
             }
 

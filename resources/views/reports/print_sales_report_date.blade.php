@@ -60,11 +60,6 @@
                 <th class="text-center">Qty</th>
                 <th class="text-end">Omset Kotor (Gross)</th>
                 <th class="text-end text-danger">Refund</th>
-                <th class="text-end text-danger">Biaya Platform</th>
-                <th class="text-end text-danger">Gratis Ongkir</th>
-                <th class="text-end text-danger">Biaya Layanan</th>
-                <th class="text-end text-danger">Biaya Promosi</th>
-                <th class="text-end text-danger">Biaya Lainnya</th>
                 <th class="text-end text-danger fw-bold">Total Potongan</th>
                 <th class="text-end text-success fw-bold">Dana Dilepas (Net)</th>
             </tr>
@@ -77,17 +72,12 @@
                     <td class="text-center font-monospace fw-bold">{{ number_format($row['total_qty']) }}</td>
                     <td class="text-end font-monospace fw-bold text-primary">Rp {{ number_format($row['total_omset'], 0, ',', '.') }}</td>
                     <td class="text-end font-monospace {{ ($row['refund'] ?? 0) > 0 ? 'text-danger fw-bold' : 'text-muted' }}">{{ ($row['refund'] ?? 0) > 0 ? '-Rp ' . number_format($row['refund'], 0, ',', '.') : '0' }}</td>
-                    <td class="text-end font-monospace text-danger">Rp {{ number_format($row['fee_platform'] ?? 0, 0, ',', '.') }}</td>
-                    <td class="text-end font-monospace text-danger">Rp {{ number_format($row['fee_free_shipping'] ?? 0, 0, ',', '.') }}</td>
-                    <td class="text-end font-monospace text-danger">Rp {{ number_format($row['fee_service'] ?? 0, 0, ',', '.') }}</td>
-                    <td class="text-end font-monospace text-danger">Rp {{ number_format($row['fee_promo'] ?? 0, 0, ',', '.') }}</td>
-                    <td class="text-end font-monospace text-danger">Rp {{ number_format($row['fee_other'] ?? 0, 0, ',', '.') }}</td>
                     <td class="text-end font-monospace fw-bold text-danger">Rp {{ number_format($row['total_fee'] ?? 0, 0, ',', '.') }}</td>
                     <td class="text-end font-monospace fw-bold text-success">Rp {{ number_format($row['net_released'] ?? 0, 0, ',', '.') }}</td>
                 </tr>
             @empty
                 <tr>
-                    <td colspan="12" class="text-center py-3 text-muted">Tidak ada data harian penjualan ditemukan.</td>
+                    <td colspan="7" class="text-center py-3 text-muted">Tidak ada data harian penjualan ditemukan.</td>
                 </tr>
             @endforelse
         </tbody>
@@ -97,11 +87,6 @@
                 <td class="text-center font-monospace">{{ number_format($grandTotalQty) }}</td>
                 <td class="text-end text-primary">Rp {{ number_format($grandTotalOmset, 0, ',', '.') }}</td>
                 <td class="text-end text-danger">{{ ($grandTotalRefund ?? 0) > 0 ? '-Rp ' . number_format($grandTotalRefund, 0, ',', '.') : '0' }}</td>
-                <td class="text-end text-danger">Rp {{ number_format($grandPlatformFee ?? 0, 0, ',', '.') }}</td>
-                <td class="text-end text-danger">Rp {{ number_format($grandFreeShippingFee ?? 0, 0, ',', '.') }}</td>
-                <td class="text-end text-danger">Rp {{ number_format($grandServiceFee ?? 0, 0, ',', '.') }}</td>
-                <td class="text-end text-danger">Rp {{ number_format($grandPromoFee ?? 0, 0, ',', '.') }}</td>
-                <td class="text-end text-danger">Rp {{ number_format($grandOtherFee ?? 0, 0, ',', '.') }}</td>
                 <td class="text-end text-danger fs-6">Rp {{ number_format($grandMarketplaceFee ?? 0, 0, ',', '.') }}</td>
                 <td class="text-end text-success fs-6">Rp {{ number_format($grandNetReleased ?? $grandTotalOmset, 0, ',', '.') }}</td>
             </tr>
