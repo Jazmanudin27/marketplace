@@ -67,7 +67,7 @@
     <div class="row g-2.5">
 
         <!-- Left Side: Order & Item Details -->
-        <div class="col-lg-7">
+        <div class="col-12">
 
             <!-- Order Info Card -->
             <div class="card border shadow-sm mb-2.5 rounded-2">
@@ -388,7 +388,7 @@
         </div>
 
         <!-- Right Side: Payment, Store, SPK, Profit -->
-        <div class="col-lg-5">
+        <div class="col-12">
 
             <!-- TikTok / Tokopedia Financial Statement Excel Breakdown Card -->
             @php
@@ -423,7 +423,6 @@
                     $preorderFeeVal = -$unassignedDiff;
                 }
             @endphp
-            </div>
 
             <!-- Profit Summary Card -->
             @php
