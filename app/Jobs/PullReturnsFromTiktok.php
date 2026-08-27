@@ -108,6 +108,13 @@ class PullReturnsFromTiktok implements ShouldQueue
             }
         }
 
+        $createTime = $tiktokReturn['create_time'] ?? null;
+        $createdAt = null;
+        if ($createTime) {
+            $ts = (int)($createTime / (strlen((string)$createTime) >= 13 ? 1000 : 1));
+            $createdAt = \Carbon\Carbon::createFromTimestamp($ts);
+        }
+
         $returnOrder = ReturnOrder::updateOrCreate(
             [
                 'tenant_id' => $this->store->tenant_id,
@@ -124,6 +131,11 @@ class PullReturnsFromTiktok implements ShouldQueue
                 'refund_amount' => $tiktokReturn['refund_amount']['refund_total'] ?? $tiktokReturn['refund_amount'] ?? 0,
             ]
         );
+
+        if ($createdAt) {
+            $returnOrder->created_at = $createdAt;
+            $returnOrder->save();
+        }
 
         $order->update(['order_status' => Order::STATUS_RETURN]);
 

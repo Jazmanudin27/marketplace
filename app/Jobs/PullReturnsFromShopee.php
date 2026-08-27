@@ -141,6 +141,9 @@ class PullReturnsFromShopee implements ShouldQueue
         $dueTimestamp = $shopeeReturn['due_date'] ?? null;
         $slaDeadline = $dueTimestamp ? \Carbon\Carbon::createFromTimestamp($dueTimestamp) : null;
 
+        $createTime = $shopeeReturn['create_time'] ?? null;
+        $createdAt = $createTime ? \Carbon\Carbon::createFromTimestamp($createTime) : null;
+
         // Simpan Return Order
         $returnOrder = ReturnOrder::updateOrCreate(
             [
@@ -158,6 +161,11 @@ class PullReturnsFromShopee implements ShouldQueue
                 'refund_amount' => $shopeeReturn['refund_amount'] ?? 0,
             ]
         );
+
+        if ($createdAt) {
+            $returnOrder->created_at = $createdAt;
+            $returnOrder->save();
+        }
 
         // Ubah status pesanan asli ke RETURN
         $order->update(['order_status' => Order::STATUS_RETURN]);
