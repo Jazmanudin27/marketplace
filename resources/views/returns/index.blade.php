@@ -57,71 +57,7 @@
     }
 </style>
 
-    {{-- Statistics & Analytics Section --}}
-    <div class="row g-3 mb-3">
-        <div class="col-12 col-lg-8">
-            <div class="row g-3 h-100">
-                <div class="col-6 col-md-3">
-                    <div class="card border-0 shadow-sm bg-gradient bg-primary text-white h-100 transition-hover">
-                        <div class="card-body p-3 d-flex flex-column justify-content-between">
-                            <div class="d-flex align-items-center justify-content-between">
-                                <span class="small opacity-75 text-uppercase fw-semibold" style="font-size: 0.72rem;">Total Retur</span>
-                                <i class="fas fa-undo-alt opacity-50"></i>
-                            </div>
-                            <h3 class="fw-bold mb-0 mt-2">{{ $totalReturns }}</h3>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-6 col-md-3">
-                    <div class="card border-0 shadow-sm bg-gradient bg-warning text-white h-100 transition-hover">
-                        <div class="card-body p-3 d-flex flex-column justify-content-between">
-                            <div class="d-flex align-items-center justify-content-between">
-                                <span class="small opacity-75 text-uppercase fw-semibold" style="font-size: 0.72rem;">Belum QC</span>
-                                <i class="fas fa-clipboard-list opacity-50"></i>
-                            </div>
-                            <h3 class="fw-bold mb-0 mt-2">{{ $pendingQc }}</h3>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-6 col-md-3">
-                    <div class="card border-0 shadow-sm bg-gradient bg-success text-white h-100 transition-hover">
-                        <div class="card-body p-3 d-flex flex-column justify-content-between">
-                            <div class="d-flex align-items-center justify-content-between">
-                                <span class="small opacity-75 text-uppercase fw-semibold" style="font-size: 0.72rem;">Layak Jual</span>
-                                <i class="fas fa-check-circle opacity-50"></i>
-                            </div>
-                            <h3 class="fw-bold mb-0 mt-2">{{ $goodCount }}</h3>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-6 col-md-3">
-                    <div class="card border-0 shadow-sm bg-gradient bg-danger text-white h-100 transition-hover">
-                        <div class="card-body p-3 d-flex flex-column justify-content-between">
-                            <div class="d-flex align-items-center justify-content-between">
-                                <span class="small opacity-75 text-uppercase fw-semibold" style="font-size: 0.72rem;">Rusak / Cacat</span>
-                                <i class="fas fa-times-circle opacity-50"></i>
-                            </div>
-                            <h3 class="fw-bold mb-0 mt-2">{{ $defectiveCount }}</h3>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-12 col-lg-4">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-body p-3 d-flex flex-column justify-content-between">
-                    <h6 class="fw-bold text-dark mb-2" style="font-size: 0.85rem;"><i class="fas fa-chart-pie text-info me-2"></i>Alasan Retur Terbanyak</h6>
-                    <div class="d-flex align-items-center justify-content-center" style="height: 100px; position: relative;">
-                        @if($reasonsStats->isEmpty())
-                            <span class="small text-muted">Belum ada data alasan retur.</span>
-                        @else
-                            <canvas id="reasonsDonutChart"></canvas>
-                        @endif
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+
 
     {{-- Filter Card --}}
     <div class="card border-0 shadow-sm mb-3">
