@@ -106,7 +106,7 @@
                                             </div>
                                             @if ($order->returnOrder && $order->returnOrder->reason)
                                                 <div class="col-md-12 text-dark small mt-1">
-                                                    <span class="text-muted">Alasan Pengembalian:</span> <strong>{{ $order->returnOrder->reason }}</strong>
+                                                    <span class="text-muted">Alasan Pengembalian:</span> <strong>{{ $order->returnOrder->formatted_reason }}</strong>
                                                 </div>
                                             @elseif ($order->cancel_reason)
                                                 <div class="col-md-12 text-dark small mt-1">
@@ -612,7 +612,7 @@
                                     <div class="col-12">
                                         <div class="p-2.5 border rounded bg-light">
                                             <small class="text-muted d-block text-uppercase fw-semibold mb-1" style="font-size: 0.68rem;">Alasan Retur</small>
-                                            <span class="text-dark">{{ $order->returnOrder->reason ?? '-' }}</span>
+                                            <span class="text-dark">{{ $order->returnOrder->formatted_reason ?? '-' }}</span>
                                         </div>
                                     </div>
                                 @else

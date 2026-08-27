@@ -59,4 +59,25 @@ class ReturnOrder extends Model
     {
         return $this->belongsTo(Order::class, 'replacement_order_id');
     }
+
+    public function getFormattedReasonAttribute()
+    {
+        $reasonMap = [
+            'DIFFERENT_DESCRIPTION' => 'Produk tidak sesuai deskripsi/foto',
+            'WRONG_ITEM' => 'Produk yang dikirim salah/tidak sesuai pesanan',
+            'DAMAGED_ITEM' => 'Produk rusak/cacat',
+            'PHYSICAL_DAMAGE' => 'Kerusakan fisik produk',
+            'EMPTY_PACKAGE' => 'Paket kosong/kurang barang',
+            'MUTUAL_AGREE' => 'Kesepakatan bersama pembeli & penjual',
+            'CHANGE_OF_MIND' => 'Pembeli berubah pikiran',
+            'SP_DIFFERENT_DESCRIPTION' => 'Produk tidak sesuai deskripsi/foto',
+            'SP_WRONG_ITEM' => 'Produk yang dikirim salah/tidak sesuai pesanan',
+            'SP_DAMAGED_ITEM' => 'Produk rusak/cacat',
+            'SP_EMPTY_PACKAGE' => 'Paket kosong/kurang barang',
+            'RET_EXPIRED' => 'Pengembalian kedaluwarsa',
+        ];
+
+        $key = strtoupper($this->reason ?? '');
+        return $reasonMap[$key] ?? $this->reason ?? 'Tidak ada alasan';
+    }
 }

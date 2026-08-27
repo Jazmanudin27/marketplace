@@ -577,7 +577,7 @@
                                     
                                     <div class="small text-muted text-center mt-2 p-2 rounded bg-light border border-light-subtle" style="font-size: 0.75rem; max-width: 220px; line-height: 1.4;">
                                         <i class="fas fa-quote-left text-muted me-1 small"></i>
-                                        <span>{{ $ret->reason ?? 'Tidak ada alasan' }}</span>
+                                        <span>{{ $ret->formatted_reason }}</span>
                                         <i class="fas fa-quote-right text-muted ms-1 small"></i>
                                     </div>
                                     

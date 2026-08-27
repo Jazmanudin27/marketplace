@@ -487,7 +487,7 @@
                                 <div class="col-12">
                                     <div class="p-2 border rounded bg-light">
                                         <small class="text-muted d-block text-uppercase fw-semibold mb-1" style="font-size: 0.65rem;">Alasan Retur</small>
-                                        <span class="text-dark">{{ $order->returnOrder->reason ?? '-' }}</span>
+                                        <span class="text-dark">{{ $order->returnOrder->formatted_reason ?? '-' }}</span>
                                     </div>
                                 </div>
                             @else
