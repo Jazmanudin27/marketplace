@@ -2542,6 +2542,7 @@ class ReportController extends Controller
         $grandOtherFee = 0;
         $grandMarketplaceFee = 0;
         $grandNetReleased = 0;
+        $grandTotalRefund = 0;
 
         while ($current <= $last) {
             $dt = date('Y-m-d', $current);
@@ -2596,9 +2597,12 @@ class ReportController extends Controller
                 $onOrdersGet = $onQuery->get();
                 $onOmset = (float) $onOrdersGet->sum('total_amount');
                 $onNetReleased = 0.0;
+                $onRefund = 0.0;
                 foreach ($onOrdersGet as $o) {
                     $iQty = $o->items->sum('quantity');
                     $onQty += ($iQty > 0 ? $iQty : 1);
+
+                    $onRefund += (float)$o->refund_amount;
 
                     $details = $o->fee_breakdown_details;
                     $onPlatformFee += abs($details['platform_fee'] ?? $o->fee_platform_amount ?? 0);
@@ -2629,6 +2633,7 @@ class ReportController extends Controller
                     'omset_online' => $onOmset,
                     'total_qty' => $tQty,
                     'total_omset' => $tOmset,
+                    'refund' => $onRefund,
                     'fee_platform' => $onPlatformFee,
                     'fee_free_shipping' => $onFreeShippingFee,
                     'fee_service' => $onServiceFee,
@@ -2639,6 +2644,7 @@ class ReportController extends Controller
                 ];
                 $grandTotalQty += $tQty;
                 $grandTotalOmset += $tOmset;
+                $grandTotalRefund += $onRefund;
                 $grandPlatformFee += $onPlatformFee;
                 $grandFreeShippingFee += $onFreeShippingFee;
                 $grandServiceFee += $onServiceFee;
@@ -2652,7 +2658,7 @@ class ReportController extends Controller
         }
 
         return compact(
-            'dates', 'grandTotalQty', 'grandTotalOmset',
+            'dates', 'grandTotalQty', 'grandTotalOmset', 'grandTotalRefund',
             'grandPlatformFee', 'grandFreeShippingFee', 'grandServiceFee',
             'grandPromoFee', 'grandOtherFee', 'grandMarketplaceFee', 'grandNetReleased'
         );
