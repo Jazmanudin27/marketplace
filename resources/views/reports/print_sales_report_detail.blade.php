@@ -84,10 +84,10 @@
             <thead>
                 <tr>
                     <th style="width: 25px;">No.</th>
-                    <th>Tanggal Order</th>
-                    <th>Tanggal Dilepas</th>
+                    <th style="width: 7%;">Tanggal Order</th>
+                    <th style="width: 7%;">Tanggal Dilepas</th>
                     <th>No. Pesanan / Invoice</th>
-                    <th>Channel / Toko</th>
+                    <th style="width: 12%;">Channel / Toko</th>
                     <th>Ringkasan Produk</th>
                     <th class="text-center">Qty</th>
                     <th class="text-end">Omset Kotor</th>
