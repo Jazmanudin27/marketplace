@@ -700,6 +700,8 @@ Route::middleware('auth')->group(function () {
                     'app_key'     => config('services.tiktok.app_key'),
                     'timestamp'   => time(),
                     'shop_cipher' => $shopCipher,
+                    'sort_field'  => 'create_time',
+                    'sort_order'  => 'DESC',
                     'page_size'   => 50,
                 ];
                 
