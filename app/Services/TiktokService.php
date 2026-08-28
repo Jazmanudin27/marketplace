@@ -369,6 +369,59 @@ class TiktokService
     }
 
     /**
+     * Mendapatkan daftar penarikan dana (withdrawals & settlements) TikTok Finance
+     */
+    public function getWithdrawalTransactions(
+        string $accessToken,
+        string $shopCipher,
+        int $startTime,
+        int $endTime,
+        string $pageToken = ''
+    ): array {
+        $path = '/finance/202309/withdrawals';
+
+        $queryParams = [
+            'app_key'        => $this->appKey,
+            'timestamp'      => time(),
+            'shop_cipher'    => $shopCipher,
+            'sort_field'     => 'create_time',
+            'sort_order'     => 'DESC',
+            'page_size'      => 50,
+            'types'          => 'WITHDRAW,SETTLE,TRANSFER,REVERSE',
+            'create_time_ge' => $startTime,
+            'create_time_lt' => $endTime,
+        ];
+
+        if ($pageToken) {
+            $queryParams['page_token'] = $pageToken;
+        }
+
+        $sign = $this->generateSignature($path, $queryParams);
+        $queryParams['sign']         = $sign;
+        $queryParams['access_token'] = $accessToken;
+
+        $response = Http::timeout(20)->withHeaders([
+            'x-tts-access-token' => $accessToken,
+        ])->get($this->baseUrl . $path . '?' . http_build_query($queryParams));
+
+        $data = $response->json();
+
+        Log::info("TikTok getWithdrawalTransactions raw response for shop_cipher={$shopCipher}: " . json_encode($data));
+
+        if (isset($data['code']) && $data['code'] !== 0) {
+            throw new \RuntimeException('TikTok Finance Withdrawals API Error: ' . ($data['message'] ?? 'Unknown Error') . ' | Raw: ' . json_encode($data));
+        }
+
+        $result = $data['data'] ?? [];
+
+        // Standarisasi pagination
+        $result['next_page_token'] = $result['next_page_token'] ?? ($result['page_token'] ?? '');
+        $result['more']            = !empty($result['next_page_token']);
+
+        return $result;
+    }
+
+    /**
      * Mendapatkan daftar produk dari TikTok Shop
      */
     public function getProductSearch(string $accessToken, string $shopCipher, string $pageToken = '')

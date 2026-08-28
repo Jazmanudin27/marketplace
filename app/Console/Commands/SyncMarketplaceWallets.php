@@ -114,104 +114,171 @@ class SyncMarketplaceWallets extends Command
                     $chunkSize = 30 * 24 * 3600;
                     $currentStart = $startTimestamp;
                     
-                    // Kumpulkan semua transaksi mentah dari semua chunk
-                    $allRawTxs = [];
-                    
+                    // 1. Kumpulkan data statement untuk detail deskripsi
+                    $statementsMap = [];
                     while ($currentStart < $endTimestamp) {
                         $currentEnd = min($currentStart + $chunkSize - 1, $endTimestamp);
                         
-                        $res = $this->tiktokService->getFinanceTransactions(
-                            $accessToken,
-                            $shopCipher,
-                            $currentStart,
-                            $currentEnd
-                        );
-                        
-                        $rawList = $res['statement_list'] ?? $res['statements'] ?? [];
-                        foreach ($rawList as $tx) {
-                            $txId = $tx['id'] ?? $tx['payment_id'] ?? null;
-                            if (!$txId) continue;
-                            $allRawTxs[] = $tx;
+                        try {
+                            $res = $this->tiktokService->getFinanceTransactions(
+                                $accessToken,
+                                $shopCipher,
+                                $currentStart,
+                                $currentEnd
+                            );
+                            
+                            $rawList = $res['statement_list'] ?? $res['statements'] ?? [];
+                            foreach ($rawList as $tx) {
+                                $paymentId = $tx['payment_id'] ?? null;
+                                if ($paymentId) {
+                                    $statementsMap[$paymentId] = $tx;
+                                }
+                            }
+                        } catch (\Throwable $e) {
+                            Log::warning("Failed to fetch statements for TikTok store {$store->store_name} in range {$currentStart}-{$currentEnd}: " . $e->getMessage());
                         }
                         
                         $currentStart = $currentEnd + 1;
                     }
                     
-                    // Urutkan dari terlama ke terbaru untuk menghitung running balance secara berurutan
-                    usort($allRawTxs, function($a, $b) {
-                        $ta = $a['statement_time'] ?? $a['payment_time'] ?? 0;
-                        $tb = $b['statement_time'] ?? $b['payment_time'] ?? 0;
-                        return $ta <=> $tb;
+                    // 2. Kumpulkan data penarikan & settlement (WITHDRAW, SETTLE, TRANSFER, REVERSE)
+                    $allWithdrawals = [];
+                    $pageToken = '';
+                    $consecutiveExisting = 0;
+                    $maxConsecutive = 5;
+                    
+                    do {
+                        $res = $this->tiktokService->getWithdrawalTransactions(
+                            $accessToken,
+                            $shopCipher,
+                            0, // Filter tanggal diabaikan API, kita paginasikan sampai ketemu data lama
+                            0,
+                            $pageToken
+                        );
+                        
+                        $wList = $res['withdrawals'] ?? [];
+                        if (empty($wList)) {
+                            break;
+                        }
+                        
+                        foreach ($wList as $w) {
+                            $allWithdrawals[] = $w;
+                            
+                            // Cek apakah data penarikan ini sudah tersimpan di database
+                            $exists = MarketplaceWalletTransaction::where('store_id', $store->id)
+                                ->where('transaction_id', $w['id'])
+                                ->exists();
+                                
+                            if ($exists) {
+                                $consecutiveExisting++;
+                            } else {
+                                $consecutiveExisting = 0; // reset
+                            }
+                        }
+                        
+                        // Jika sudah ada 5 transaksi berurutan yang sudah tersimpan, stop tarik halaman sebelumnya
+                        if ($consecutiveExisting >= $maxConsecutive) {
+                            break;
+                        }
+                        
+                        $pageToken = $res['next_page_token'] ?? '';
+                    } while ($pageToken);
+                    
+                    // 3. Urutkan dari terlama ke terbaru agar saldo berjalan dihitung berurutan
+                    usort($allWithdrawals, function($a, $b) {
+                        return $a['create_time'] <=> $b['create_time'];
                     });
                     
-                    // Tentukan saldo awal
+                    // Tentukan saldo awal sebelum transaksi tertua yang ditarik ini
                     $runningSum = 0.0;
-                    if (!empty($allRawTxs)) {
-                        $firstTx   = reset($allRawTxs);
-                        $firstTime = $firstTx['statement_time'] ?? $firstTx['payment_time'] ?? time();
-                        $firstDate = date('Y-m-d H:i:s', is_numeric($firstTime) ? (strlen((string)$firstTime) > 10 ? (int)($firstTime / 1000) : $firstTime) : strtotime($firstTime));
+                    if (!empty($allWithdrawals)) {
+                        $firstTx   = reset($allWithdrawals);
+                        $firstTime = $firstTx['create_time'];
+                        $firstDate = date('Y-m-d H:i:s', $firstTime);
                         $prevBal   = MarketplaceWalletTransaction::where('store_id', $store->id)
                             ->where('transaction_date', '<', $firstDate)
                             ->orderBy('transaction_date', 'desc')
+                            ->orderBy('id', 'desc')
                             ->value('current_balance');
                         $runningSum = (float) ($prevBal ?? 0.0);
                     }
                     
-                    foreach ($allRawTxs as $tx) {
-                        $txId   = $tx['id'] ?? $tx['payment_id'] ?? null;
-                        $status = $tx['payment_status'] ?? $tx['status'] ?? '—';
+                    // 4. Simpan transaksi ke database dan hitung saldo berjalan
+                    foreach ($allWithdrawals as $w) {
+                        $wId      = $w['id'];
+                        $wType    = $w['type'] ?? '';
+                        $wAmount  = abs((float) ($w['amount'] ?? 0));
+                        $wStatus  = $w['status'] ?? '—';
+                        $txTime   = (int) $w['create_time'];
+                        $txDate   = date('Y-m-d H:i:s', $txTime);
                         
-                        // Gunakan statement_time sebagai tanggal utama (konsisten dengan Seller Center)
-                        $timeRaw = $tx['statement_time'] ?? $tx['payment_time'] ?? time();
-                        if (!is_numeric($timeRaw)) {
-                            $timeRaw = strtotime($timeRaw);
-                        } elseif (strlen((string)$timeRaw) > 10) {
-                            $timeRaw = (int)($timeRaw / 1000);
+                        // Mapping tipe transaksi & arah
+                        $type = $wType;
+                        $direction = 'in';
+                        $desc = '';
+                        
+                        if ($wType === 'SETTLE') {
+                            $type = 'Earnings';
+                            $direction = 'in';
+                            $runningSum += $wAmount;
+                            
+                            // Coba perkaya deskripsi dengan detail statement
+                            $desc = 'Earnings (Dana Bersih Settlement) | Status: ' . $wStatus;
+                            if (isset($statementsMap[$wId])) {
+                                $stmt    = $statementsMap[$wId];
+                                $revenue = (float) ($stmt['revenue_amount'] ?? 0);
+                                $fee     = (float) ($stmt['fee_amount'] ?? 0);
+                                $adj     = (float) ($stmt['adjustment_amount'] ?? 0);
+                                
+                                if ($revenue != 0)  $desc .= ' | Revenue: Rp ' . number_format(abs($revenue), 0, ',', '.');
+                                if ($fee != 0)      $desc .= ' | Fee: Rp ' . number_format(abs($fee), 0, ',', '.');
+                                if ($adj != 0)      $desc .= ' | Adj: Rp ' . number_format(abs($adj), 0, ',', '.');
+                            }
+                        } elseif ($wType === 'WITHDRAW') {
+                            $type = 'Penarikan Dana';
+                            $direction = 'out';
+                            $runningSum -= $wAmount;
+                            $desc = 'Transfer Dana Bersih ke Rekening Bank | Status: ' . $wStatus;
+                        } elseif ($wType === 'TRANSFER') {
+                            $type = 'Transfer';
+                            $direction = 'out';
+                            $runningSum -= $wAmount;
+                            $desc = 'Transfer Saldo TikTok Shop | Status: ' . $wStatus;
+                        } elseif ($wType === 'REVERSE') {
+                            $type = 'Penyesuaian';
+                            $direction = 'in';
+                            $runningSum += $wAmount;
+                            $desc = 'Reversal (Penarikan Dana Gagal/Retur) | Status: ' . $wStatus;
+                        } else {
+                            $direction = 'in';
+                            $runningSum += $wAmount;
+                            $desc = 'Transaksi Lain-lain (' . $wType . ') | Status: ' . $wStatus;
                         }
-                        $txDate = date('Y-m-d H:i:s', $timeRaw);
                         
-                        // settlement_amount = net earnings yang diterima (= "Earnings" di Excel/Seller Center)
-                        // Ini SELALU positif/masuk (IN) — dana bersih setelah fee & adj yang diterima di akun TikTok
-                        $settlement = (float) ($tx['settlement_amount'] ?? 0);
-                        $revenue    = (float) ($tx['revenue_amount'] ?? 0);
-                        $fee        = (float) ($tx['fee_amount'] ?? 0);
-                        $adj        = (float) ($tx['adjustment_amount'] ?? 0);
-                        
-                        // Hapus entri lama dengan format berbeda untuk statement_id ini
+                        // Hapus entri lama dengan format split agar tidak duplikat
                         MarketplaceWalletTransaction::where('store_id', $store->id)
-                            ->where(function($q) use ($txId) {
-                                $q->where('transaction_id', $txId)
-                                  ->orWhere('transaction_id', $txId . '-REV')
-                                  ->orWhere('transaction_id', $txId . '-FEE')
-                                  ->orWhere('transaction_id', $txId . '-ADJ')
-                                  ->orWhere('transaction_id', $txId . '-OUT');
+                            ->where(function($q) use ($wId) {
+                                $q->where('transaction_id', $wId)
+                                  ->orWhere('transaction_id', $wId . '-REV')
+                                  ->orWhere('transaction_id', $wId . '-FEE')
+                                  ->orWhere('transaction_id', $wId . '-ADJ')
+                                  ->orWhere('transaction_id', $wId . '-OUT');
                             })
                             ->delete();
-                        
-                        // Bangun deskripsi rinci
-                        $desc = 'Earnings (Dana Bersih Settlement) | Status: ' . $status;
-                        if ($revenue != 0)  $desc .= ' | Revenue: Rp ' . number_format(abs($revenue), 0, ',', '.');
-                        if ($fee != 0)      $desc .= ' | Fee: Rp ' . number_format(abs($fee), 0, ',', '.');
-                        if ($adj != 0)      $desc .= ' | Adj: Rp ' . number_format(abs($adj), 0, ',', '.');
-                        
-                        if ($settlement != 0) {
-                            // settlement_amount = Earnings = masuk (IN), selalu positif
-                            $runningSum += abs($settlement);
                             
-                            MarketplaceWalletTransaction::updateOrCreate([
-                                'store_id'       => $store->id,
-                                'transaction_id' => $txId,
-                            ], [
-                                'tenant_id'        => $store->tenant_id,
-                                'transaction_date' => $txDate,
-                                'type'             => 'Earnings',
-                                'description'      => $desc,
-                                'amount'           => abs($settlement),
-                                'direction'        => 'in',
-                                'current_balance'  => $runningSum,
-                                'raw_data'         => $tx,
-                            ]);
-                        }
+                        MarketplaceWalletTransaction::updateOrCreate([
+                            'store_id'       => $store->id,
+                            'transaction_id' => $wId,
+                        ], [
+                            'tenant_id'        => $store->tenant_id,
+                            'transaction_date' => $txDate,
+                            'type'             => $type,
+                            'description'      => $desc,
+                            'amount'           => $wAmount,
+                            'direction'        => $direction,
+                            'current_balance'  => $runningSum,
+                            'raw_data'         => $w,
+                        ]);
                     }
                 }
                 

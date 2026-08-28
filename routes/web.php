@@ -694,73 +694,53 @@ Route::middleware('auth')->group(function () {
                 $accessToken = $store->getValidAccessToken();
                 $shopCipher = $store->shop_cipher;
                 
-                $tests = [
-                    'types_string' => [
-                        'types' => 'WITHDRAW',
-                    ],
-                    'types_comma' => [
-                        'types' => 'WITHDRAW,SETTLE,TRANSFER,REVERSE',
-                    ],
-                    'types_array' => [
-                        'types' => ['WITHDRAW'],
-                    ],
-                    'types_array_multiple' => [
-                        'types' => ['WITHDRAW', 'SETTLE', 'TRANSFER', 'REVERSE'],
-                    ],
-                ];
-                
-                $results = [];
                 $path = '/finance/202309/withdrawals';
                 
-                foreach ($tests as $testKey => $extraParams) {
-                    $queryParams = [
-                        'app_key'     => config('services.tiktok.app_key'),
-                        'timestamp'   => time(),
-                        'shop_cipher' => $shopCipher,
-                        'sort_field'  => 'create_time',
-                        'sort_order'  => 'DESC',
-                        'page_size'   => 50,
-                    ];
-                    
-                    $queryParams = array_merge($queryParams, $extraParams);
-                    
-                    // generate signature
-                    $params = $queryParams;
-                    unset($params['sign'], $params['access_token']);
-                    ksort($params);
-                    
-                    // TikTok's signature concatenates key & values. For array type:
-                    $str = '';
-                    foreach ($params as $k => $v) {
-                        if (is_array($v)) {
-                            // If it's an array, let's see how signature generation handles it.
-                            // Standard TikTok signature generator might concatenate it or we might need to serialize it.
-                            // Let's just stringify it for signature if it's array.
-                            $str .= $k . implode(',', $v);
-                        } else {
-                            $str .= $k . $v;
-                        }
-                    }
-                    
-                    $appSecret = config('services.tiktok.app_secret');
-                    $baseString = $appSecret . $path . $str . $appSecret;
-                    $sign = hash_hmac('sha256', $baseString, $appSecret);
-                    
-                    $queryParams['sign'] = $sign;
-                    $queryParams['access_token'] = $accessToken;
-                    
-                    // If it is array, Laravel Http client will format it as types[]=WITHDRAW
-                    $response = \Illuminate\Support\Facades\Http::timeout(20)->withHeaders([
-                        'x-tts-access-token' => $accessToken,
-                    ])->get('https://open-api.tiktokglobalshop.com' . $path . '?' . http_build_query($queryParams));
-                    
-                    $results[$testKey] = [
-                        'status' => $response->status(),
-                        'body' => $response->json()
-                    ];
-                }
+                // Let's filter withdrawals in the last 7 days
+                $startTime = now()->subDays(7)->timestamp;
+                $endTime = now()->timestamp;
                 
-                return response()->json($results);
+                $queryParams = [
+                    'app_key'        => config('services.tiktok.app_key'),
+                    'timestamp'      => time(),
+                    'shop_cipher'    => $shopCipher,
+                    'sort_field'     => 'create_time',
+                    'sort_order'     => 'DESC',
+                    'page_size'      => 50,
+                    'types'          => 'WITHDRAW,SETTLE,TRANSFER,REVERSE',
+                    'create_time_ge' => $startTime,
+                    'create_time_lt' => $endTime,
+                ];
+                
+                // generate signature
+                $params = $queryParams;
+                unset($params['sign'], $params['access_token']);
+                ksort($params);
+                $str = '';
+                foreach ($params as $k => $v) {
+                    $str .= $k . $v;
+                }
+                $appSecret = config('services.tiktok.app_secret');
+                $baseString = $appSecret . $path . $str . $appSecret;
+                $sign = hash_hmac('sha256', $baseString, $appSecret);
+                
+                $queryParams['sign'] = $sign;
+                $queryParams['access_token'] = $accessToken;
+                
+                $response = \Illuminate\Support\Facades\Http::timeout(20)->withHeaders([
+                    'x-tts-access-token' => $accessToken,
+                ])->get('https://open-api.tiktokglobalshop.com' . $path . '?' . http_build_query($queryParams));
+                
+                return response()->json([
+                    'status' => $response->status(),
+                    'body' => $response->json(),
+                    'params_tested' => [
+                        'ge' => $startTime,
+                        'lt' => $endTime,
+                        'ge_formatted' => date('Y-m-d H:i:s', $startTime),
+                        'lt_formatted' => date('Y-m-d H:i:s', $endTime),
+                    ]
+                ]);
             } catch (\Throwable $e) {
                 return "Error: " . $e->getMessage();
             }

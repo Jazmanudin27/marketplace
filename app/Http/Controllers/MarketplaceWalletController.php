@@ -76,30 +76,19 @@ class MarketplaceWalletController extends Controller
                             'error_message'    => $success ? null : 'Gagal memuat saldo dari API Shopee'
                         ];
                     } elseif ($store->channel->code === 'tiktok') {
-                        // Untuk TikTok, kita hitung langsung dari total transaksi yang sukses ditarik ke database dalam 15 hari terakhir (dengan batas waktu hari penuh agar sinkron dengan mutasi)
-                        $in = MarketplaceWalletTransaction::where('store_id', $store->id)
-                            ->whereBetween('transaction_date', [
-                                now()->subDays(15)->format('Y-m-d') . ' 00:00:00',
-                                now()->format('Y-m-d') . ' 23:59:59'
-                            ])
-                            ->where('direction', 'in')
-                            ->sum('amount');
-
-                        $out = MarketplaceWalletTransaction::where('store_id', $store->id)
-                            ->whereBetween('transaction_date', [
-                                now()->subDays(15)->format('Y-m-d') . ' 00:00:00',
-                                now()->format('Y-m-d') . ' 23:59:59'
-                            ])
-                            ->where('direction', 'out')
-                            ->sum('amount');
-
-                        $totalSettled = $in - $out;
-
+                        // Ambil saldo TikTok dari current_balance transaksi terakhir di database
+                        $latestTx = MarketplaceWalletTransaction::where('store_id', $store->id)
+                            ->orderBy('transaction_date', 'desc')
+                            ->orderBy('id', 'desc')
+                            ->first();
+                            
+                        $balance = $latestTx ? (float) $latestTx->current_balance : 0.0;
+                        
                         return [
                             'success'          => true,
-                            'current_balance'  => (float) $totalSettled,
-                            'withdraw_balance' => (float) $totalSettled,
-                            'is_estimated'     => true,
+                            'current_balance'  => $balance,
+                            'withdraw_balance' => $balance,
+                            'is_estimated'     => false,
                             'error_message'    => null
                         ];
                     }
