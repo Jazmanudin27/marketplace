@@ -19,11 +19,23 @@
                 <p class="text-muted mb-0 small">Dicatat pada {{ $supplierPayable->created_at->format('d M Y H:i') }}</p>
             </div>
         </div>
-        @if($supplierPayable->status !== 'paid')
-        <button class="btn btn-success px-4 rounded-2" data-bs-toggle="modal" data-bs-target="#bayarModal">
-            <i class="bi bi-cash-coin me-2"></i>Ajukan Pembayaran
-        </button>
-        @endif
+        <div class="d-flex gap-2 flex-wrap">
+            @if($supplierPayable->status !== 'paid')
+            <button class="btn btn-success px-4 rounded-2" data-bs-toggle="modal" data-bs-target="#bayarModal">
+                <i class="bi bi-cash-coin me-2"></i>Ajukan Pembayaran
+            </button>
+            @endif
+            @if (auth()->user()->isSuperAdmin() || auth()->user()->role === 'admin' || auth()->user()->can('supplier-payables.approve'))
+                <form action="{{ route('supplier_payables.destroy', $supplierPayable) }}" method="POST"
+                    class="confirm-delete d-inline m-0">
+                    @csrf
+                    @method('DELETE')
+                    <button type="submit" class="btn btn-danger px-4 rounded-2">
+                        <i class="bi bi-trash me-2"></i>Hapus Hutang
+                    </button>
+                </form>
+            @endif
+        </div>
     </div>
 
     {{-- Alerts --}}
@@ -648,6 +660,14 @@ document.addEventListener('DOMContentLoaded', function () {
     if (modalEl) new bootstrap.Modal(modalEl).show();
 });
 @endif
+
+// Confirm delete
+$(document).ready(function() {
+    $(document).on('submit', '.confirm-delete', function(e) {
+        const msg = $(this).data('message') || 'Apakah Anda yakin?';
+        if (!confirm(msg)) e.preventDefault();
+    });
+});
 </script>
 
 @endsection

@@ -190,4 +190,37 @@ class SupplierPayableController extends Controller
 
         return redirect()->route('supplier_payables.show', $supplierPayable)->with('success', $msg);
     }
+
+    /* ------------------------------------------------------------------ */
+    /*  Destroy – Hapus Hutang Supplier                                    */
+    /* ------------------------------------------------------------------ */
+
+    public function destroy(SupplierPayable $supplierPayable)
+    {
+        abort_unless($supplierPayable->tenant_id === Auth::user()->tenant_id, 403);
+
+        $isAdmin = Auth::user()->isSuperAdmin()
+            || Auth::user()->role === 'admin'
+            || Auth::user()->can('supplier-payables.approve');
+
+        if (!$isAdmin) {
+            return back()->with('error', 'Hanya Administrator atau Owner yang dapat menghapus data Hutang Supplier.');
+        }
+
+        DB::transaction(function () use ($supplierPayable) {
+            // Hapus pengeluaran (Expense) yang terkait dengan pembayaran jika ada
+            foreach ($supplierPayable->payments as $payment) {
+                if ($payment->expense_id) {
+                    Expense::where('id', $payment->expense_id)->delete();
+                }
+                $payment->delete();
+            }
+
+            // Hapus Hutang itu sendiri
+            $supplierPayable->delete();
+        });
+
+        return redirect()->route('supplier_payables.index')
+            ->with('success', '✅ Data Hutang Supplier berhasil dihapus beserta seluruh riwayat pembayarannya.');
+    }
 }

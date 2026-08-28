@@ -190,9 +190,22 @@
                                             <span class="badge {{ $badgeClass }}">{{ $p->status_label }}</span>
                                         </td>
                                         <td class="text-center">
-                                            <a href="{{ route('supplier_payables.show', $p) }}" class="btn btn-primary btn-sm px-3" title="Detail">
-                                                <i class="fas fa-eye"></i> Detail
-                                            </a>
+                                            <div class="d-flex gap-1 justify-content-center flex-wrap">
+                                                <a href="{{ route('supplier_payables.show', $p) }}" class="btn btn-primary btn-sm px-3" title="Detail">
+                                                    <i class="fas fa-eye"></i> Detail
+                                                </a>
+                                                @if (auth()->user()->isSuperAdmin() || auth()->user()->role === 'admin' || auth()->user()->can('supplier-payables.approve'))
+                                                    <form action="{{ route('supplier_payables.destroy', $p) }}" method="POST"
+                                                        class="confirm-delete d-inline"
+                                                        data-message="Apakah Anda yakin ingin menghapus data hutang ini beserta seluruh riwayat pembayarannya?">
+                                                        @csrf
+                                                        @method('DELETE')
+                                                        <button type="submit" class="btn btn-danger btn-sm" title="Hapus">
+                                                            <i class="fas fa-trash"></i>
+                                                        </button>
+                                                    </form>
+                                                @endif
+                                            </div>
                                         </td>
                                     </tr>
                                 @empty
@@ -223,6 +236,12 @@
                 $('#filterSupplier').select2({
                     theme: 'bootstrap-5',
                     width: '100%'
+                });
+
+                // Confirm delete
+                $(document).on('submit', '.confirm-delete', function(e) {
+                    const msg = $(this).data('message') || 'Apakah Anda yakin?';
+                    if (!confirm(msg)) e.preventDefault();
                 });
             });
         </script>

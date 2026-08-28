@@ -532,6 +532,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/supplier-payables/{supplierPayable}/pay', [SupplierPayableController::class, 'storePayment'])->name('supplier_payables.pay');
         Route::post('/supplier-payables/{supplierPayable}/payments/{payment}/approve', [SupplierPayableController::class, 'approvePayment'])->name('supplier_payables.approve');
         Route::post('/supplier-payables/{supplierPayable}/payments/{payment}/reject', [SupplierPayableController::class, 'rejectPayment'])->name('supplier_payables.reject');
+        Route::delete('/supplier-payables/{supplierPayable}', [SupplierPayableController::class, 'destroy'])->name('supplier_payables.destroy');
 
         // ── BARANG JADI KONSINYASI SUPPLIER ───────────────────────────────────
         Route::get('/supplier-consignments', [SupplierConsignmentController::class, 'index'])->name('supplier_consignments.index');
