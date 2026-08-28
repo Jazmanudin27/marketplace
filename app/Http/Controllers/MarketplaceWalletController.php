@@ -3,12 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Models\Store;
+use App\Models\MarketplaceWalletTransaction;
 use App\Services\ShopeeService;
 use App\Services\TiktokService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Artisan;
 
 class MarketplaceWalletController extends Controller
 {
@@ -106,101 +108,49 @@ class MarketplaceWalletController extends Controller
         
         $dateFrom = $request->input('date_from', now()->subDays(15)->format('Y-m-d'));
         $dateTo = $request->input('date_to', now()->format('Y-m-d'));
-        
-        $startTimestamp = strtotime($dateFrom . ' 00:00:00');
-        $endTimestamp = strtotime($dateTo . ' 23:59:59');
+
+        $txs = MarketplaceWalletTransaction::where('store_id', $store->id)
+            ->whereBetween('transaction_date', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59'])
+            ->orderBy('transaction_date', 'desc')
+            ->get();
 
         $mutasiList = [];
-        $error = null;
-
-        try {
-            $accessToken = $store->getValidAccessToken();
-
-            if ($store->channel->code === 'shopee') {
-                $shopId = (int) $store->marketplace_store_id;
-                
-                // Shopee API membatasi rentang kueri per request maksimal 15 hari
-                $chunkSize = 15 * 24 * 3600; 
-                $currentStart = $startTimestamp;
-                
-                while ($currentStart < $endTimestamp) {
-                    $currentEnd = min($currentStart + $chunkSize - 1, $endTimestamp);
-                    
-                    $res = $this->shopeeService->getWalletTransactionList(
-                        $accessToken,
-                        $shopId,
-                        1,
-                        100,
-                        $currentStart,
-                        $currentEnd
-                    );
-                    
-                    $rawList = $res['transaction_list'] ?? [];
-                    foreach ($rawList as $tx) {
-                        $amount = (float) ($tx['amount'] ?? 0);
-                        $mutasiList[] = [
-                            'id'              => $tx['transaction_id'] ?? '—',
-                            'date'            => isset($tx['create_time']) ? date('Y-m-d H:i:s', $tx['create_time']) : '—',
-                            'type'            => $this->mapShopeeTxType($tx['wallet_type'] ?? ''),
-                            'description'     => $tx['description'] ?? '—',
-                            'amount'          => $amount,
-                            'direction'       => $amount >= 0 ? 'in' : 'out',
-                            'current_balance' => (float) ($tx['current_balance'] ?? 0),
-                        ];
-                    }
-                    
-                    $currentStart = $currentEnd + 1;
-                }
-            } elseif ($store->channel->code === 'tiktok') {
-                $shopCipher = $store->shop_cipher ?? '';
-                
-                // TikTok API membatasi rentang kueri per request maksimal 30 hari
-                $chunkSize = 30 * 24 * 3600;
-                $currentStart = $startTimestamp;
-                
-                while ($currentStart < $endTimestamp) {
-                    $currentEnd = min($currentStart + $chunkSize - 1, $endTimestamp);
-                    
-                    $res = $this->tiktokService->getFinanceTransactions(
-                        $accessToken,
-                        $shopCipher,
-                        $currentStart,
-                        $currentEnd
-                    );
-                    
-                    $rawList = $res['payment_list'] ?? $res['payments'] ?? [];
-                    foreach ($rawList as $tx) {
-                        $amount = (float) ($tx['amount']['value'] ?? $tx['amount'] ?? 0);
-                        $status = $tx['status'] ?? $tx['payment_status'] ?? '—';
-                        $txType = $tx['payment_type'] ?? $tx['type'] ?? 'SETTLEMENT';
-                        
-                        $mutasiList[] = [
-                            'id'              => $tx['id'] ?? $tx['payment_id'] ?? '—',
-                            'date'            => isset($tx['create_time']) ? date('Y-m-d H:i:s', $tx['create_time']) : '—',
-                            'type'            => $txType,
-                            'description'     => 'Status: ' . $status . (!empty($tx['order_id']) ? ' | Order ID: ' . $tx['order_id'] : ''),
-                            'amount'          => $amount,
-                            'direction'       => 'in',
-                            'current_balance' => null,
-                        ];
-                    }
-                    
-                    $currentStart = $currentEnd + 1;
-                }
-            }
-        } catch (\Throwable $e) {
-            Log::error("Failed to fetch wallet transactions for store {$store->store_name}", [
-                'message' => $e->getMessage()
-            ]);
-            $error = $e->getMessage();
+        foreach ($txs as $tx) {
+            $mutasiList[] = [
+                'id'              => $tx->transaction_id,
+                'date'            => $tx->transaction_date->format('Y-m-d H:i:s'),
+                'type'            => $tx->type,
+                'description'     => $tx->description,
+                'amount'          => $tx->amount,
+                'direction'       => $tx->direction,
+                'current_balance' => $tx->current_balance,
+            ];
         }
 
-        // Sort mutasi by date descending
-        usort($mutasiList, function($a, $b) {
-            return strcmp($b['date'], $a['date']);
-        });
+        $error = null;
 
         return view('finance.marketplace_wallets.mutasi', compact('store', 'mutasiList', 'dateFrom', 'dateTo', 'error'));
+    }
+
+    public function sync(Request $request, Store $store)
+    {
+        abort_unless($store->tenant_id === Auth::user()->tenant_id, 403);
+        
+        $days = (int) $request->input('days', 45);
+
+        try {
+            Artisan::call('marketplace:sync-wallets', [
+                '--store_id' => $store->id,
+                '--days'     => $days
+            ]);
+
+            return back()->with('success', '✅ Sinkronisasi data mutasi dompet toko ' . $store->store_name . ' berhasil diselesaikan.');
+        } catch (\Throwable $e) {
+            Log::error("Manual sync failed for store {$store->store_name}", [
+                'message' => $e->getMessage()
+            ]);
+            return back()->with('error', '❌ Gagal melakukan sinkronisasi: ' . $e->getMessage());
+        }
     }
 
     private function mapShopeeTxType(string $type): string

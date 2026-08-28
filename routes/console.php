@@ -37,3 +37,7 @@ Schedule::command('ads:evaluate-rules')->hourly()->withoutOverlapping();
 // Sinkronisasi beda stok marketplace otomatis setiap 15 menit (KILAT & TANPA PENUMPUKAN RAM)
 Schedule::command('stock:sync --filter=diff')->everyFifteenMinutes()->withoutOverlapping(30);
 
+// Sinkronisasi saldo & mutasi dompet marketplace otomatis setiap jam
+Schedule::command('marketplace:sync-wallets --days=15')->hourly()->withoutOverlapping();
+
+

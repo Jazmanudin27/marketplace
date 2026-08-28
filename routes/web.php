@@ -680,6 +680,7 @@ Route::middleware('auth')->group(function () {
     Route::middleware('permission:view-financial-reports|manage-finance')->group(function () {
         Route::get('/finance/marketplace-wallets', [MarketplaceWalletController::class, 'index'])->name('finance.marketplace_wallets.index');
         Route::get('/finance/marketplace-wallets/{store}/mutasi', [MarketplaceWalletController::class, 'mutasi'])->name('finance.marketplace_wallets.mutasi');
+        Route::get('/finance/marketplace-wallets/{store}/sync', [MarketplaceWalletController::class, 'sync'])->name('finance.marketplace_wallets.sync');
     });
 
     // Manajemen Transaksi Keuangan

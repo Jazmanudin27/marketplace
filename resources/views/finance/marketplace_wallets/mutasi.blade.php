@@ -49,14 +49,16 @@
                 </div>
             </div>
 
-            {{-- Error Alert --}}
-            @if($error)
-                <div class="alert alert-danger alert-dismissible fade show mb-3" role="alert">
-                    <i class="fas fa-exclamation-triangle me-2"></i>
-                    Gagal menarik data mutasi dari API: <strong>{{ $error }}</strong>. Pastikan token integrasi valid.
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-            @endif
+            {{-- Alert Messages --}}
+            @foreach(['success','error','info'] as $type)
+                @if(session($type))
+                    <div class="alert alert-{{ $type === 'error' ? 'danger' : ($type === 'info' ? 'info' : 'success') }} alert-dismissible fade show mb-3 rounded-3" role="alert">
+                        <i class="fas fa-{{ $type === 'error' ? 'exclamation-triangle' : ($type === 'info' ? 'info-circle' : 'check-circle') }} me-2"></i>
+                        {!! session($type) !!}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                @endif
+            @endforeach
 
             {{-- ── Tabel Utama (Styled like Users Page Table) ──────────────────────── --}}
             <div class="card border shadow-sm">
@@ -70,9 +72,14 @@
                             Platform: <span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-25 rounded-pill small fw-semibold px-2 py-0.5">{{ strtoupper($store->channel->code) }}</span> | ID Toko: {{ $store->marketplace_store_id }}
                         </p>
                     </div>
-                    <a href="{{ route('finance.marketplace_wallets.index') }}" class="btn btn-outline-secondary btn-sm px-3 rounded-2">
-                        <i class="fas fa-arrow-left me-1"></i> Kembali
-                    </a>
+                    <div class="d-flex gap-2">
+                        <a href="{{ route('finance.marketplace_wallets.sync', [$store, 'days' => 60]) }}" class="btn btn-success btn-sm px-3 rounded-2" onclick="return confirm('Tarik data mutasi terbaru dari marketplace? Proses ini mungkin memakan waktu beberapa detik.')">
+                            <i class="fas fa-sync-alt me-1"></i> Tarik Data Baru
+                        </a>
+                        <a href="{{ route('finance.marketplace_wallets.index') }}" class="btn btn-outline-secondary btn-sm px-3 rounded-2">
+                            <i class="fas fa-arrow-left me-1"></i> Kembali
+                        </a>
+                    </div>
                 </div>
 
                 <div class="card-body p-3">
