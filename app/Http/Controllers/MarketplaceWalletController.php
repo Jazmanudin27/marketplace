@@ -47,34 +47,44 @@ class MarketplaceWalletController extends Controller
                     
                     if ($store->channel->code === 'shopee') {
                         $shopId = (int) $store->marketplace_store_id;
-                        $res = $this->shopeeService->getWalletBalance($accessToken, $shopId);
+                        $apiBalance = 0;
+                        $success = true;
                         
-                        return [
-                            'success'          => true,
-                            'current_balance'  => (float) ($res['current_balance'] ?? 0),
-                            'withdraw_balance' => (float) ($res['withdraw_balance'] ?? 0),
-                            'error_message'    => null
-                        ];
-                    } elseif ($store->channel->code === 'tiktok') {
-                        $shopCipher = $store->shop_cipher ?? '';
-                        $startTime = now()->subDays(30)->timestamp;
-                        $endTime = now()->timestamp;
+                        try {
+                            $res = $this->shopeeService->getWalletBalance($accessToken, $shopId);
+                            $apiBalance = (float) ($res['current_balance'] ?? 0);
+                        } catch (\Throwable $e) {
+                            Log::warning("Shopee API wallet balance failed for {$store->store_name}, falling back to DB: " . $e->getMessage());
+                            $success = false;
+                        }
                         
-                        $res = $this->tiktokService->getFinanceTransactions($accessToken, $shopCipher, $startTime, $endTime);
-                        $transactions = $res['payment_list'] ?? $res['payments'] ?? [];
-                        
-                        $totalSettled = 0;
-                        foreach ($transactions as $tx) {
-                            $status = strtoupper($tx['status'] ?? $tx['payment_status'] ?? '');
-                            if ($status === 'PAID' || $status === 'SETTLED' || $status === 'SUCCESS' || $status === 'COMPLETED') {
-                                $totalSettled += (float) ($tx['amount']['value'] ?? $tx['amount'] ?? 0);
+                        // Jika API mengembalikan 0 atau gagal, coba ambil saldo akhir dari transaksi terakhir di DB
+                        if ($apiBalance <= 0) {
+                            $latestTx = MarketplaceWalletTransaction::where('store_id', $store->id)
+                                ->orderBy('transaction_date', 'desc')
+                                ->first();
+                            if ($latestTx) {
+                                $apiBalance = (float) $latestTx->current_balance;
+                                $success = true; // Kita berhasil mendapatkan data historis lokal
                             }
                         }
+                        
+                        return [
+                            'success'          => $success,
+                            'current_balance'  => $apiBalance,
+                            'withdraw_balance' => $apiBalance,
+                            'error_message'    => $success ? null : 'Gagal memuat saldo dari API Shopee'
+                        ];
+                    } elseif ($store->channel->code === 'tiktok') {
+                        // Untuk TikTok, kita hitung langsung dari total transaksi yang sukses ditarik ke database dalam 30 hari terakhir
+                        $totalSettled = MarketplaceWalletTransaction::where('store_id', $store->id)
+                            ->where('transaction_date', '>=', now()->subDays(30))
+                            ->sum('amount');
 
                         return [
                             'success'          => true,
-                            'current_balance'  => $totalSettled, // Estimasi dana cair 30 hari terakhir
-                            'withdraw_balance' => $totalSettled,
+                            'current_balance'  => (float) $totalSettled, // Estimasi dana cair 30 hari terakhir dari DB
+                            'withdraw_balance' => (float) $totalSettled,
                             'is_estimated'     => true,
                             'error_message'    => null
                         ];
