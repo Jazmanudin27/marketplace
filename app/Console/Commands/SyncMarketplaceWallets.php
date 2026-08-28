@@ -110,6 +110,18 @@ class SyncMarketplaceWallets extends Command
                 } elseif ($store->channel->code === 'tiktok') {
                     $shopCipher = $store->shop_cipher ?? '';
                     
+                    // Hapus semua transaksi lama berbasis statement (dimulai dengan angka 7 atau suffix split)
+                    // Ini dilakukan agar tidak terjadi duplikasi dengan transaksi penarikan baru (dimulai dengan angka 3)
+                    MarketplaceWalletTransaction::where('store_id', $store->id)
+                        ->where(function($q) {
+                            $q->where('transaction_id', 'like', '7%')
+                              ->orWhere('transaction_id', 'like', '%-REV')
+                              ->orWhere('transaction_id', 'like', '%-FEE')
+                              ->orWhere('transaction_id', 'like', '%-ADJ')
+                              ->orWhere('transaction_id', 'like', '%-OUT');
+                        })
+                        ->delete();
+
                     // TikTok membatasi 30 hari rentang query per request
                     $chunkSize = 30 * 24 * 3600;
                     $currentStart = $startTimestamp;
