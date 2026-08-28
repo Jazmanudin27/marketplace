@@ -64,7 +64,7 @@
                                 <div class="bg-light border rounded-3 p-3 mb-3 mt-auto">
                                     @if($balance['success'])
                                         <span class="text-muted d-block small mb-1" style="font-size: 0.72rem;">
-                                            {{ !empty($balance['is_estimated']) ? 'ESTIMASI DANA CAIR (7 HARI)' : 'SALDO DOMPET BERJALAN' }}
+                                            {{ !empty($balance['is_estimated']) ? 'ESTIMASI DANA CAIR (15 HARI)' : 'SALDO DOMPET BERJALAN' }}
                                         </span>
                                         <h4 class="fw-bold mb-1 text-dark font-monospace">
                                             Rp {{ number_format($balance['current_balance'], 0, ',', '.') }}
