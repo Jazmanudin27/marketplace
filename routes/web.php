@@ -21,6 +21,7 @@ use App\Http\Controllers\ShopeeController;
 use App\Http\Controllers\TiktokController;
 use App\Http\Controllers\LazadaController;
 use App\Http\Controllers\Hrd\PayrollController;
+use App\Http\Controllers\MarketplaceWalletController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\WebhookController;
 use App\Http\Controllers\Employee\EmployeeAuthController;
@@ -673,6 +674,12 @@ Route::middleware('auth')->group(function () {
         Route::get('/reports/reseller-receivables', [ReportController::class, 'resellerReceivablesReport'])->name('reports.reseller_receivables');
         Route::get('/reports/inventory-turnover', [ReportController::class, 'inventoryTurnoverReport'])->name('reports.inventory_turnover');
         Route::get('/reports/product-margins', [ReportController::class, 'productMarginsReport'])->name('reports.product_margins');
+    });
+
+    // Dashboard Saldo & Mutasi Marketplace
+    Route::middleware('permission:view-financial-reports|manage-finance')->group(function () {
+        Route::get('/finance/marketplace-wallets', [MarketplaceWalletController::class, 'index'])->name('finance.marketplace_wallets.index');
+        Route::get('/finance/marketplace-wallets/{store}/mutasi', [MarketplaceWalletController::class, 'mutasi'])->name('finance.marketplace_wallets.mutasi');
     });
 
     // Manajemen Transaksi Keuangan

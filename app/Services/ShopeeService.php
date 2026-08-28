@@ -1373,4 +1373,115 @@ class ShopeeService
         }
     }
 
+    /**
+     * Ambil saldo dompet toko Shopee.
+     * Endpoint: GET /api/v2/payment/get_wallet_balance
+     *
+     * @param string $accessToken
+     * @param int $shopId
+     * @return array ['current_balance' => float, 'withdraw_balance' => float]
+     */
+    public function getWalletBalance(string $accessToken, int $shopId): array
+    {
+        $path = '/api/v2/payment/get_wallet_balance';
+        $timestamp = time();
+        $sign = $this->signShopRequest($path, $timestamp, $accessToken, $shopId);
+
+        $queryParams = [
+            'partner_id'   => $this->partnerId,
+            'timestamp'    => $timestamp,
+            'sign'         => $sign,
+            'access_token' => $accessToken,
+            'shop_id'      => $shopId,
+        ];
+
+        try {
+            $response = Http::timeout(20)->get($this->baseUrl . $path, $queryParams);
+
+            if ($response->failed()) {
+                Log::error('[Shopee Wallet] API getWalletBalance failed', [
+                    'status' => $response->status(),
+                    'body' => $response->body()
+                ]);
+                return [];
+            }
+
+            $data = $response->json();
+            if (($data['error'] ?? '') !== '' && ($data['error'] ?? 'OK') !== 'OK') {
+                Log::warning('[Shopee Wallet] API getWalletBalance error response', ['data' => $data]);
+                return [];
+            }
+
+            return $data['response'] ?? [];
+        } catch (\Exception $e) {
+            Log::error('[Shopee Wallet] Exception during getWalletBalance API call', ['message' => $e->getMessage()]);
+            return [];
+        }
+    }
+
+    /**
+     * Ambil riwayat mutasi dompet toko Shopee.
+     * Endpoint: GET /api/v2/payment/get_wallet_transaction_list
+     *
+     * @param string $accessToken
+     * @param int $shopId
+     * @param int $pageNo
+     * @param int $pageSize
+     * @param int|null $dateFrom
+     * @param int|null $dateTo
+     * @return array ['transaction_list' => array, 'more' => bool]
+     */
+    public function getWalletTransactionList(
+        string $accessToken,
+        int $shopId,
+        int $pageNo = 1,
+        int $pageSize = 50,
+        ?int $dateFrom = null,
+        ?int $dateTo = null
+    ): array {
+        $path = '/api/v2/payment/get_wallet_transaction_list';
+        $timestamp = time();
+        $sign = $this->signShopRequest($path, $timestamp, $accessToken, $shopId);
+
+        $queryParams = [
+            'partner_id'   => $this->partnerId,
+            'timestamp'    => $timestamp,
+            'sign'         => $sign,
+            'access_token' => $accessToken,
+            'shop_id'      => $shopId,
+            'page_no'      => $pageNo,
+            'page_size'    => $pageSize,
+        ];
+
+        if ($dateFrom) {
+            $queryParams['create_time_from'] = $dateFrom;
+        }
+        if ($dateTo) {
+            $queryParams['create_time_to'] = $dateTo;
+        }
+
+        try {
+            $response = Http::timeout(30)->get($this->baseUrl . $path, $queryParams);
+
+            if ($response->failed()) {
+                Log::error('[Shopee Wallet] API getWalletTransactionList failed', [
+                    'status' => $response->status(),
+                    'body' => $response->body()
+                ]);
+                return [];
+            }
+
+            $data = $response->json();
+            if (($data['error'] ?? '') !== '' && ($data['error'] ?? 'OK') !== 'OK') {
+                Log::warning('[Shopee Wallet] API getWalletTransactionList error response', ['data' => $data]);
+                return [];
+            }
+
+            return $data['response'] ?? [];
+        } catch (\Exception $e) {
+            Log::error('[Shopee Wallet] Exception during getWalletTransactionList API call', ['message' => $e->getMessage()]);
+            return [];
+        }
+    }
+
 }

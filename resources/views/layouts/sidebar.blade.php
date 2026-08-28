@@ -741,7 +741,8 @@
             $isLaporanKeuanganActive = request()->routeIs('finance.profit_loss*')
                 || request()->routeIs('profit.index*')
                 || request()->routeIs('profit.margin*')
-                || request()->routeIs('reports.product_margins*');
+                || request()->routeIs('reports.product_margins*')
+                || request()->routeIs('finance.marketplace_wallets*');
         @endphp
         @if(auth()->user()->isSuperAdmin() || auth()->user()->hasAnyPermission(['view-financial-reports', 'finance.profit_loss', 'profit.index', 'profit.margin', 'reports.product_margins']))
             <div>
@@ -763,6 +764,10 @@
                         @if(auth()->user()->isSuperAdmin() || auth()->user()->can('profit.index') || auth()->user()->can('view-financial-reports'))
                             <a href="{{ route('profit.index') }}"
                                 class="nav-link py-1 {{ request()->routeIs('profit.index') ? 'active text-white' : 'text-secondary' }}">Profit Pesanan</a>
+                        @endif
+                        @if(auth()->user()->isSuperAdmin() || auth()->user()->hasAnyPermission(['view-financial-reports', 'manage-finance']))
+                            <a href="{{ route('finance.marketplace_wallets.index') }}"
+                                class="nav-link py-1 {{ request()->routeIs('finance.marketplace_wallets.*') ? 'active text-white' : 'text-secondary' }}">Saldo Marketplace</a>
                         @endif
                         @if(auth()->user()->isSuperAdmin() || auth()->user()->can('profit.margin') || auth()->user()->can('view-financial-reports'))
                             <a href="{{ route('profit.margin') }}"
