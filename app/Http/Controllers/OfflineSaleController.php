@@ -369,7 +369,7 @@ class OfflineSaleController extends Controller
                 }
             }
 
-            // 2. Tambahkan saldo ke Bank Account jika ada yang cocok
+            // 2. Tambahkan saldo ke Bank Account jika ada yang cocok (Hanya dari pembayaran riil)
             $paymentDest = $request->payment_destination;
             $bank = \App\Models\BankAccount::where('tenant_id', $tenantId)
                 ->where(function($q) use ($paymentDest) {
@@ -377,20 +377,23 @@ class OfflineSaleController extends Controller
                       ->orWhere('id', $paymentDest);
                 })->first();
 
-            if ($bank) {
-                $bank->increment('current_balance', $offlineSale->grand_total);
+            $actualPayment = min($offlineSale->paid_amount, $offlineSale->grand_total);
+            if ($bank && $actualPayment > 0) {
+                $bank->increment('current_balance', $actualPayment);
             }
 
-            // 3. Catat Pemasukan (Income) di Keuangan
-            \App\Models\Income::create([
-                'tenant_id'           => $tenantId,
-                'title'               => "Penjualan Offline POS #{$offlineSale->sale_number}",
-                'category'            => 'services',
-                'payment_destination' => $paymentDest,
-                'amount'              => $offlineSale->grand_total,
-                'income_date'         => now(),
-                'description'         => "Pemasukan otomatis dari Penjualan Offline POS #{$offlineSale->sale_number} (Pembeli: " . ($offlineSale->buyer_name ?: 'Umum') . ")",
-            ]);
+            // 3. Catat Pemasukan (Income) di Keuangan jika ada pembayaran riil
+            if ($actualPayment > 0) {
+                \App\Models\Income::create([
+                    'tenant_id'           => $tenantId,
+                    'title'               => "Penjualan Offline POS #{$offlineSale->sale_number}",
+                    'category'            => 'services',
+                    'payment_destination' => $paymentDest,
+                    'amount'              => $actualPayment,
+                    'income_date'         => now(),
+                    'description'         => "Pemasukan otomatis dari Penjualan Offline POS #{$offlineSale->sale_number} (Pembeli: " . ($offlineSale->buyer_name ?: 'Umum') . ")",
+                ]);
+            }
 
             // 4. Update status penjualan & kas tujuan
             $offlineSale->update([
@@ -401,7 +404,7 @@ class OfflineSaleController extends Controller
             ]);
         });
 
-        return back()->with('success', '✅ Transaksi disetujui! Stok telah dikurangi & uang dimasukkan ke Kas/Bank.');
+        return back()->with('success', '✅ Transaksi disetujui! Stok telah dikurangi & pembayaran (jika ada) telah dimasukkan ke Kas/Bank.');
     }
 
     public function processReturn(Request $request, OfflineSale $offlineSale)
