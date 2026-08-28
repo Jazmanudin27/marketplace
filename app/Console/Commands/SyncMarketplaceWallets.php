@@ -16,7 +16,7 @@ class SyncMarketplaceWallets extends Command
      *
      * @var string
      */
-    protected $signature = 'marketplace:sync-wallets {--store_id=} {--days=15}';
+    protected $signature = 'marketplace:sync-wallets {--store_id=} {--days=90}';
 
     /**
      * The console command description.
@@ -149,52 +149,59 @@ class SyncMarketplaceWallets extends Command
                         $txId = $tx['id'] ?? $tx['payment_id'] ?? null;
                         $status = $tx['payment_status'] ?? $tx['status'] ?? '—';
                         
-                        $timeRaw = $tx['payment_time'] ?? $tx['statement_time'] ?? time();
+                        // Gunakan statement_time (tanggal settlement) sebagai acuan utama tanggal mutasi
+                        // payment_time = tanggal transfer ke bank (bisa berbeda 1-2 hari dari statement_time)
+                        $timeRaw = $tx['statement_time'] ?? $tx['payment_time'] ?? time();
                         if (is_numeric($timeRaw)) {
                             if (strlen((string)$timeRaw) > 10) {
                                 $timeRaw = (int)($timeRaw / 1000);
                             }
-                            $transactionDate = date('Y-m-d H:i:s', $timeRaw);
                         } else {
-                            $transactionDate = date('Y-m-d H:i:s', strtotime($timeRaw));
+                            $timeRaw = strtotime($timeRaw);
                         }
-                        
+                        // Beri offset detik agar 4 baris split tampil berurutan di tabel mutasi:
+                        // REV (+0s), FEE (+1s), ADJ (+2s), OUT/Penarikan (+3s)
+                        $baseDateRev = date('Y-m-d H:i:s', $timeRaw + 0);
+                        $baseDateFee = date('Y-m-d H:i:s', $timeRaw + 1);
+                        $baseDateAdj = date('Y-m-d H:i:s', $timeRaw + 2);
+                        $baseDateOut = date('Y-m-d H:i:s', $timeRaw + 3);
+
                         // 1. Revenue (uang masuk dari penjualan ke dompet TikTok)
                         $revenue = (float) ($tx['revenue_amount'] ?? 0);
                         if ($revenue != 0) {
                             $splitTxs[] = [
                                 'transaction_id'   => $txId . '-REV',
-                                'transaction_date' => $transactionDate,
+                                'transaction_date' => $baseDateRev,
                                 'type'             => 'Pelepasan Dana',
-                                'description'      => 'Pelepasan Dana Penjualan Kotor (Revenue) | Status: ' . $status . ' | Statement ID: ' . $txId,
+                                'description'      => 'Pelepasan Dana Penjualan Kotor | Status: ' . $status,
                                 'amount'           => abs($revenue),
                                 'direction'        => $revenue >= 0 ? 'in' : 'out',
                                 'raw_data'         => $tx,
                             ];
                         }
-                        
+
                         // 2. Fee (potongan biaya layanan TikTok)
                         $fee = (float) ($tx['fee_amount'] ?? 0);
                         if ($fee != 0) {
                             $splitTxs[] = [
                                 'transaction_id'   => $txId . '-FEE',
-                                'transaction_date' => $transactionDate,
+                                'transaction_date' => $baseDateFee,
                                 'type'             => 'Biaya Layanan',
-                                'description'      => 'Potongan Biaya Admin / Komisi TikTok Shop | Statement ID: ' . $txId,
+                                'description'      => 'Biaya Admin / Komisi TikTok Shop',
                                 'amount'           => abs($fee),
                                 'direction'        => $fee < 0 ? 'out' : 'in',
                                 'raw_data'         => $tx,
                             ];
                         }
-                        
+
                         // 3. Adjustment (penyesuaian)
                         $adj = (float) ($tx['adjustment_amount'] ?? 0);
                         if ($adj != 0) {
                             $splitTxs[] = [
                                 'transaction_id'   => $txId . '-ADJ',
-                                'transaction_date' => $transactionDate,
+                                'transaction_date' => $baseDateAdj,
                                 'type'             => 'Penyesuaian',
-                                'description'      => 'Penyesuaian Saldo oleh TikTok Shop | Statement ID: ' . $txId,
+                                'description'      => 'Penyesuaian Saldo oleh TikTok Shop',
                                 'amount'           => abs($adj),
                                 'direction'        => $adj >= 0 ? 'in' : 'out',
                                 'raw_data'         => $tx,
@@ -202,17 +209,15 @@ class SyncMarketplaceWallets extends Command
                         }
 
                         // 4. Penarikan Dana = settlement_amount (net yang ditransfer ke rekening bank)
-                        // settlement_amount = revenue_amount + fee_amount + adjustment_amount
-                        // Ini adalah uang yang benar-benar keluar dari dompet TikTok ke rekening bank
                         $settlement = (float) ($tx['settlement_amount'] ?? 0);
                         if ($settlement != 0) {
                             $splitTxs[] = [
                                 'transaction_id'   => $txId . '-OUT',
-                                'transaction_date' => $transactionDate,
+                                'transaction_date' => $baseDateOut,
                                 'type'             => 'Penarikan Dana',
-                                'description'      => 'Transfer Dana Bersih ke Rekening Bank | Status: ' . ($tx['payment_status'] ?? $status) . ' | Statement ID: ' . $txId,
+                                'description'      => 'Transfer Dana Bersih ke Rekening Bank | Status: ' . ($tx['payment_status'] ?? $status),
                                 'amount'           => abs($settlement),
-                                'direction'        => 'out',  // selalu keluar — ditransfer ke bank
+                                'direction'        => 'out',
                                 'raw_data'         => $tx,
                             ];
                         }

@@ -160,7 +160,7 @@ class MarketplaceWalletController extends Controller
     {
         abort_unless($store->tenant_id === Auth::user()->tenant_id, 403);
         
-        $days = (int) $request->input('days', 45);
+        $days = (int) $request->input('days', 90);
 
         try {
             Artisan::call('marketplace:sync-wallets', [
