@@ -151,8 +151,8 @@ class SyncMarketplaceWallets extends Command
                         $res = $this->tiktokService->getWithdrawalTransactions(
                             $accessToken,
                             $shopCipher,
-                            0, // Filter tanggal diabaikan API, kita paginasikan sampai ketemu data lama
-                            0,
+                            $startTimestamp,
+                            $endTimestamp,
                             $pageToken
                         );
                         
