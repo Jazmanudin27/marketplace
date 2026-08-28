@@ -324,40 +324,35 @@ class TiktokService
         int $endTime,
         string $pageToken = ''
     ): array {
-        // TikTok Finance Search API — mengembalikan semua transaksi keuangan
-        // termasuk pesanan yang sudah dilepas (status = RELEASE)
-        $path = '/finance/202309/payments/search';
-
-        $body = [
-            'create_time_ge' => $startTime,
-            'create_time_lt' => $endTime,
-        ];
-        $bodyJson = json_encode($body);
+        // TikTok Finance Payments API
+        $path = '/finance/202309/payments';
 
         $queryParams = [
-            'app_key'    => $this->appKey,
-            'timestamp'  => time(),
-            'shop_cipher'=> $shopCipher,
-            'page_size'  => 50,
+            'app_key'        => $this->appKey,
+            'timestamp'      => time(),
+            'shop_cipher'    => $shopCipher,
+            'create_time_ge' => $startTime,
+            'create_time_lt' => $endTime,
+            'page_size'      => 50,
         ];
 
         if ($pageToken) {
             $queryParams['page_token'] = $pageToken;
         }
 
-        $sign = $this->generateSignature($path, $queryParams, $bodyJson);
+        // generate signature for GET (body is empty/null, so we do not pass bodyJson to generateSignature)
+        $sign = $this->generateSignature($path, $queryParams);
         $queryParams['sign']         = $sign;
         $queryParams['access_token'] = $accessToken;
 
         $response = Http::timeout(20)->withHeaders([
             'x-tts-access-token' => $accessToken,
-            'Content-Type'       => 'application/json',
-        ])->post($this->baseUrl . $path . '?' . http_build_query($queryParams), $body);
+        ])->get($this->baseUrl . $path, $queryParams);
 
         $data = $response->json();
 
         if (isset($data['code']) && $data['code'] !== 0) {
-            throw new \RuntimeException('TikTok Finance API Error: ' . ($data['message'] ?? 'Unknown Error'));
+            throw new \RuntimeException('TikTok Finance API Error: ' . ($data['message'] ?? 'Unknown Error') . ' | Raw: ' . json_encode($data));
         }
 
         $result = $data['data'] ?? [];
