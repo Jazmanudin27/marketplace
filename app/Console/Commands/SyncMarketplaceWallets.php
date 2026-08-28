@@ -159,7 +159,7 @@ class SyncMarketplaceWallets extends Command
                             $transactionDate = date('Y-m-d H:i:s', strtotime($timeRaw));
                         }
                         
-                        // 1. Revenue
+                        // 1. Revenue (uang masuk dari penjualan ke dompet TikTok)
                         $revenue = (float) ($tx['revenue_amount'] ?? 0);
                         if ($revenue != 0) {
                             $splitTxs[] = [
@@ -173,7 +173,7 @@ class SyncMarketplaceWallets extends Command
                             ];
                         }
                         
-                        // 2. Fee
+                        // 2. Fee (potongan biaya layanan TikTok)
                         $fee = (float) ($tx['fee_amount'] ?? 0);
                         if ($fee != 0) {
                             $splitTxs[] = [
@@ -187,7 +187,7 @@ class SyncMarketplaceWallets extends Command
                             ];
                         }
                         
-                        // 3. Adjustment
+                        // 3. Adjustment (penyesuaian)
                         $adj = (float) ($tx['adjustment_amount'] ?? 0);
                         if ($adj != 0) {
                             $splitTxs[] = [
@@ -197,6 +197,22 @@ class SyncMarketplaceWallets extends Command
                                 'description'      => 'Penyesuaian Saldo oleh TikTok Shop | Statement ID: ' . $txId,
                                 'amount'           => abs($adj),
                                 'direction'        => $adj >= 0 ? 'in' : 'out',
+                                'raw_data'         => $tx,
+                            ];
+                        }
+
+                        // 4. Penarikan Dana = settlement_amount (net yang ditransfer ke rekening bank)
+                        // settlement_amount = revenue_amount + fee_amount + adjustment_amount
+                        // Ini adalah uang yang benar-benar keluar dari dompet TikTok ke rekening bank
+                        $settlement = (float) ($tx['settlement_amount'] ?? 0);
+                        if ($settlement != 0) {
+                            $splitTxs[] = [
+                                'transaction_id'   => $txId . '-OUT',
+                                'transaction_date' => $transactionDate,
+                                'type'             => 'Penarikan Dana',
+                                'description'      => 'Transfer Dana Bersih ke Rekening Bank | Status: ' . ($tx['payment_status'] ?? $status) . ' | Statement ID: ' . $txId,
+                                'amount'           => abs($settlement),
+                                'direction'        => 'out',  // selalu keluar — ditransfer ke bank
                                 'raw_data'         => $tx,
                             ];
                         }
