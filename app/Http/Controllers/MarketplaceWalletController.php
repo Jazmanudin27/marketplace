@@ -76,9 +76,12 @@ class MarketplaceWalletController extends Controller
                             'error_message'    => $success ? null : 'Gagal memuat saldo dari API Shopee'
                         ];
                     } elseif ($store->channel->code === 'tiktok') {
-                        // Untuk TikTok, kita hitung langsung dari total transaksi yang sukses ditarik ke database dalam 15 hari terakhir
+                        // Untuk TikTok, kita hitung langsung dari total transaksi yang sukses ditarik ke database dalam 15 hari terakhir (dengan batas waktu hari penuh agar sinkron dengan mutasi)
                         $totalSettled = MarketplaceWalletTransaction::where('store_id', $store->id)
-                            ->where('transaction_date', '>=', now()->subDays(15))
+                            ->whereBetween('transaction_date', [
+                                now()->subDays(15)->format('Y-m-d') . ' 00:00:00',
+                                now()->format('Y-m-d') . ' 23:59:59'
+                            ])
                             ->sum('amount');
 
                         return [
