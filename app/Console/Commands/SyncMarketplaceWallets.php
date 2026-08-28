@@ -292,6 +292,25 @@ class SyncMarketplaceWallets extends Command
                             'raw_data'         => $w,
                         ]);
                     }
+
+                    // 5. Rekalkulasi ulang SEMUA saldo berjalan TikTok di DB dari transaksi paling awal
+                    // Ini untuk membersihkan ketidaksesuaian saldo akibat data lama/salah hitung sebelumnya
+                    $allTxInDb = MarketplaceWalletTransaction::where('store_id', $store->id)
+                        ->orderBy('transaction_date', 'asc')
+                        ->orderBy('id', 'asc')
+                        ->get();
+                        
+                    $dbRunningSum = 0.0;
+                    foreach ($allTxInDb as $txInDb) {
+                        if ($txInDb->direction === 'in') {
+                            $dbRunningSum += (float) $txInDb->amount;
+                        } else {
+                            $dbRunningSum -= (float) $txInDb->amount;
+                        }
+                        
+                        $txInDb->current_balance = $dbRunningSum;
+                        $txInDb->save();
+                    }
                 }
                 
                 $this->info("✓ Store {$store->store_name} synced successfully.");
