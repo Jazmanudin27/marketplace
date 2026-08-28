@@ -333,8 +333,12 @@ class TiktokService
             'shop_cipher'    => $shopCipher,
             'create_time_ge' => $startTime,
             'create_time_lt' => $endTime,
+            'createTimeGe'   => $startTime,
+            'createTimeLt'   => $endTime,
             'sort_field'     => 'create_time',
             'sort_order'     => 'DESC',
+            'sortField'      => 'create_time',
+            'sortOrder'      => 'DESC',
             'page_size'      => 50,
         ];
 
@@ -349,7 +353,7 @@ class TiktokService
 
         $response = Http::timeout(20)->withHeaders([
             'x-tts-access-token' => $accessToken,
-        ])->get($this->baseUrl . $path, $queryParams);
+        ])->get($this->baseUrl . $path . '?' . http_build_query($queryParams));
 
         $data = $response->json();
 
