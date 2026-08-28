@@ -694,37 +694,46 @@ Route::middleware('auth')->group(function () {
                 $accessToken = $store->getValidAccessToken();
                 $shopCipher = $store->shop_cipher;
                 
-                $path = '/finance/202309/payments';
-                
-                $queryParams = [
-                    'app_key'     => config('services.tiktok.app_key'),
-                    'timestamp'   => time(),
-                    'shop_cipher' => $shopCipher,
-                    'sort_field'  => 'create_time',
-                    'sort_order'  => 'DESC',
-                    'page_size'   => 50,
+                $endpoints = [
+                    '202309_payments' => '/finance/202309/payments',
+                    '202309_withdrawals' => '/finance/202309/withdrawals',
                 ];
                 
-                // generate signature
-                $params = $queryParams;
-                unset($params['sign'], $params['access_token']);
-                ksort($params);
-                $str = '';
-                foreach ($params as $k => $v) {
-                    $str .= $k . $v;
+                $results = [];
+                
+                foreach ($endpoints as $key => $path) {
+                    $queryParams = [
+                        'app_key'     => config('services.tiktok.app_key'),
+                        'timestamp'   => time(),
+                        'shop_cipher' => $shopCipher,
+                        'sort_field'  => 'create_time',
+                        'sort_order'  => 'DESC',
+                        'page_size'   => 50,
+                    ];
+                    
+                    // generate signature
+                    $params = $queryParams;
+                    unset($params['sign'], $params['access_token']);
+                    ksort($params);
+                    $str = '';
+                    foreach ($params as $k => $v) {
+                        $str .= $k . $v;
+                    }
+                    $appSecret = config('services.tiktok.app_secret');
+                    $baseString = $appSecret . $path . $str . $appSecret;
+                    $sign = hash_hmac('sha256', $baseString, $appSecret);
+                    
+                    $queryParams['sign'] = $sign;
+                    $queryParams['access_token'] = $accessToken;
+                    
+                    $response = \Illuminate\Support\Facades\Http::timeout(20)->withHeaders([
+                        'x-tts-access-token' => $accessToken,
+                    ])->get('https://open-api.tiktokglobalshop.com' . $path . '?' . http_build_query($queryParams));
+                    
+                    $results[$key] = $response->json();
                 }
-                $appSecret = config('services.tiktok.app_secret');
-                $baseString = $appSecret . $path . $str . $appSecret;
-                $sign = hash_hmac('sha256', $baseString, $appSecret);
                 
-                $queryParams['sign'] = $sign;
-                $queryParams['access_token'] = $accessToken;
-                
-                $response = \Illuminate\Support\Facades\Http::timeout(20)->withHeaders([
-                    'x-tts-access-token' => $accessToken,
-                ])->get('https://open-api.tiktokglobalshop.com' . $path . '?' . http_build_query($queryParams));
-                
-                return response($response->body(), 200, ['Content-Type' => 'application/json']);
+                return response()->json($results);
             } catch (\Throwable $e) {
                 return "Error: " . $e->getMessage();
             }
