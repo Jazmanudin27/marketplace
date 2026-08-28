@@ -681,6 +681,14 @@ Route::middleware('auth')->group(function () {
         Route::get('/finance/marketplace-wallets', [MarketplaceWalletController::class, 'index'])->name('finance.marketplace_wallets.index');
         Route::get('/finance/marketplace-wallets/{store}/mutasi', [MarketplaceWalletController::class, 'mutasi'])->name('finance.marketplace_wallets.mutasi');
         Route::get('/finance/marketplace-wallets/{store}/sync', [MarketplaceWalletController::class, 'sync'])->name('finance.marketplace_wallets.sync');
+        Route::get('/finance/debug-tiktok-log', function() {
+            $logPath = storage_path('logs/laravel.log');
+            if (!file_exists($logPath)) return "Log file not found.";
+            $content = file_get_contents($logPath);
+            preg_match_all('/TikTok getFinanceTransactions raw response.*/', $content, $matches);
+            if (empty($matches[0])) return "No TikTok raw response logs found.";
+            return response(implode("\n\n", array_slice($matches[0], -20)), 200, ['Content-Type' => 'text/plain']);
+        });
     });
 
     // Manajemen Transaksi Keuangan
