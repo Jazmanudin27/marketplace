@@ -118,54 +118,74 @@ class MarketplaceWalletController extends Controller
 
             if ($store->channel->code === 'shopee') {
                 $shopId = (int) $store->marketplace_store_id;
-                $res = $this->shopeeService->getWalletTransactionList(
-                    $accessToken,
-                    $shopId,
-                    1,
-                    100,
-                    $startTimestamp,
-                    $endTimestamp
-                );
                 
-                $rawList = $res['transaction_list'] ?? [];
+                // Shopee API membatasi rentang kueri per request maksimal 15 hari
+                $chunkSize = 15 * 24 * 3600; 
+                $currentStart = $startTimestamp;
                 
-                foreach ($rawList as $tx) {
-                    $amount = (float) ($tx['amount'] ?? 0);
-                    $mutasiList[] = [
-                        'id'              => $tx['transaction_id'] ?? '—',
-                        'date'            => isset($tx['create_time']) ? date('Y-m-d H:i:s', $tx['create_time']) : '—',
-                        'type'            => $this->mapShopeeTxType($tx['wallet_type'] ?? ''),
-                        'description'     => $tx['description'] ?? '—',
-                        'amount'          => $amount,
-                        'direction'       => $amount >= 0 ? 'in' : 'out',
-                        'current_balance' => (float) ($tx['current_balance'] ?? 0),
-                    ];
+                while ($currentStart < $endTimestamp) {
+                    $currentEnd = min($currentStart + $chunkSize - 1, $endTimestamp);
+                    
+                    $res = $this->shopeeService->getWalletTransactionList(
+                        $accessToken,
+                        $shopId,
+                        1,
+                        100,
+                        $currentStart,
+                        $currentEnd
+                    );
+                    
+                    $rawList = $res['transaction_list'] ?? [];
+                    foreach ($rawList as $tx) {
+                        $amount = (float) ($tx['amount'] ?? 0);
+                        $mutasiList[] = [
+                            'id'              => $tx['transaction_id'] ?? '—',
+                            'date'            => isset($tx['create_time']) ? date('Y-m-d H:i:s', $tx['create_time']) : '—',
+                            'type'            => $this->mapShopeeTxType($tx['wallet_type'] ?? ''),
+                            'description'     => $tx['description'] ?? '—',
+                            'amount'          => $amount,
+                            'direction'       => $amount >= 0 ? 'in' : 'out',
+                            'current_balance' => (float) ($tx['current_balance'] ?? 0),
+                        ];
+                    }
+                    
+                    $currentStart = $currentEnd + 1;
                 }
             } elseif ($store->channel->code === 'tiktok') {
                 $shopCipher = $store->shop_cipher ?? '';
-                $res = $this->tiktokService->getFinanceTransactions(
-                    $accessToken,
-                    $shopCipher,
-                    $startTimestamp,
-                    $endTimestamp
-                );
                 
-                $rawList = $res['payment_list'] ?? $res['payments'] ?? [];
+                // TikTok API membatasi rentang kueri per request maksimal 30 hari
+                $chunkSize = 30 * 24 * 3600;
+                $currentStart = $startTimestamp;
                 
-                foreach ($rawList as $tx) {
-                    $amount = (float) ($tx['amount']['value'] ?? $tx['amount'] ?? 0);
-                    $status = $tx['status'] ?? $tx['payment_status'] ?? '—';
-                    $txType = $tx['payment_type'] ?? $tx['type'] ?? 'SETTLEMENT';
+                while ($currentStart < $endTimestamp) {
+                    $currentEnd = min($currentStart + $chunkSize - 1, $endTimestamp);
                     
-                    $mutasiList[] = [
-                        'id'              => $tx['id'] ?? $tx['payment_id'] ?? '—',
-                        'date'            => isset($tx['create_time']) ? date('Y-m-d H:i:s', $tx['create_time']) : '—',
-                        'type'            => $txType,
-                        'description'     => 'Status: ' . $status . (!empty($tx['order_id']) ? ' | Order ID: ' . $tx['order_id'] : ''),
-                        'amount'          => $amount,
-                        'direction'       => 'in',
-                        'current_balance' => null,
-                    ];
+                    $res = $this->tiktokService->getFinanceTransactions(
+                        $accessToken,
+                        $shopCipher,
+                        $currentStart,
+                        $currentEnd
+                    );
+                    
+                    $rawList = $res['payment_list'] ?? $res['payments'] ?? [];
+                    foreach ($rawList as $tx) {
+                        $amount = (float) ($tx['amount']['value'] ?? $tx['amount'] ?? 0);
+                        $status = $tx['status'] ?? $tx['payment_status'] ?? '—';
+                        $txType = $tx['payment_type'] ?? $tx['type'] ?? 'SETTLEMENT';
+                        
+                        $mutasiList[] = [
+                            'id'              => $tx['id'] ?? $tx['payment_id'] ?? '—',
+                            'date'            => isset($tx['create_time']) ? date('Y-m-d H:i:s', $tx['create_time']) : '—',
+                            'type'            => $txType,
+                            'description'     => 'Status: ' . $status . (!empty($tx['order_id']) ? ' | Order ID: ' . $tx['order_id'] : ''),
+                            'amount'          => $amount,
+                            'direction'       => 'in',
+                            'current_balance' => null,
+                        ];
+                    }
+                    
+                    $currentStart = $currentEnd + 1;
                 }
             }
         } catch (\Throwable $e) {
