@@ -333,12 +333,8 @@ class TiktokService
             'shop_cipher'    => $shopCipher,
             'create_time_ge' => $startTime,
             'create_time_lt' => $endTime,
-            'createTimeGe'   => $startTime,
-            'createTimeLt'   => $endTime,
             'sort_field'     => 'create_time',
             'sort_order'     => 'DESC',
-            'sortField'      => 'create_time',
-            'sortOrder'      => 'DESC',
             'page_size'      => 50,
         ];
 
@@ -356,6 +352,8 @@ class TiktokService
         ])->get($this->baseUrl . $path . '?' . http_build_query($queryParams));
 
         $data = $response->json();
+
+        Log::info("TikTok getFinanceTransactions raw response for shop_cipher={$shopCipher}: " . json_encode($data));
 
         if (isset($data['code']) && $data['code'] !== 0) {
             throw new \RuntimeException('TikTok Finance API Error: ' . ($data['message'] ?? 'Unknown Error') . ' | Raw: ' . json_encode($data));
