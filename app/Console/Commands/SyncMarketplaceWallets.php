@@ -126,19 +126,38 @@ class SyncMarketplaceWallets extends Command
                         
                         $rawList = $res['payment_list'] ?? $res['payments'] ?? [];
                         foreach ($rawList as $tx) {
-                            $txId = $tx['id'] ?? $tx['payment_id'] ?? null;
+                            $txId = $tx['payment_id'] ?? $tx['id'] ?? null;
                             if (!$txId) continue;
                             
-                            $amount = (float) ($tx['amount']['value'] ?? $tx['amount'] ?? 0);
+                            $amount = 0.0;
+                            if (isset($tx['amount'])) {
+                                if (is_array($tx['amount'])) {
+                                    $amount = (float) ($tx['amount']['value'] ?? 0);
+                                } else {
+                                    $amount = (float) $tx['amount'];
+                                }
+                            }
+                            
                             $status = $tx['status'] ?? $tx['payment_status'] ?? '—';
                             $txType = $tx['payment_type'] ?? $tx['type'] ?? 'SETTLEMENT';
                             
+                            // Handling timestamp yang fleksibel (detik / milidetik / tanggal terformat)
+                            $timeRaw = $tx['payment_time'] ?? $tx['create_time'] ?? $tx['payout_time'] ?? time();
+                            if (is_numeric($timeRaw)) {
+                                if (strlen((string)$timeRaw) > 10) {
+                                    $timeRaw = (int)($timeRaw / 1000);
+                                }
+                                $transactionDate = date('Y-m-d H:i:s', $timeRaw);
+                            } else {
+                                $transactionDate = date('Y-m-d H:i:s', strtotime($timeRaw));
+                            }
+
                             MarketplaceWalletTransaction::updateOrCreate([
                                 'store_id'       => $store->id,
                                 'transaction_id' => $txId,
                             ], [
                                 'tenant_id'        => $store->tenant_id,
-                                'transaction_date' => date('Y-m-d H:i:s', $tx['create_time']),
+                                'transaction_date' => $transactionDate,
                                 'type'             => $txType,
                                 'description'      => 'Status: ' . $status . (!empty($tx['order_id']) ? ' | Order ID: ' . $tx['order_id'] : ''),
                                 'amount'           => abs($amount),
