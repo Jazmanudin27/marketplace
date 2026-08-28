@@ -333,6 +333,8 @@ class TiktokService
             'shop_cipher'    => $shopCipher,
             'create_time_ge' => $startTime,
             'create_time_lt' => $endTime,
+            'sort_field'     => 'create_time',
+            'sort_order'     => 'DESC',
             'page_size'      => 50,
         ];
 
