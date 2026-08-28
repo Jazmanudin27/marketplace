@@ -55,7 +55,7 @@ class MarketplaceWalletController extends Controller
                         ];
                     } elseif ($store->channel->code === 'tiktok') {
                         $shopCipher = $store->shop_cipher ?? '';
-                        $startTime = now()->subDays(7)->timestamp;
+                        $startTime = now()->subDays(30)->timestamp;
                         $endTime = now()->timestamp;
                         
                         $res = $this->tiktokService->getFinanceTransactions($accessToken, $shopCipher, $startTime, $endTime);
@@ -63,14 +63,15 @@ class MarketplaceWalletController extends Controller
                         
                         $totalSettled = 0;
                         foreach ($transactions as $tx) {
-                            if (($tx['status'] ?? '') === 'SETTLED' || ($tx['payment_status'] ?? '') === 'SETTLED') {
+                            $status = strtoupper($tx['status'] ?? $tx['payment_status'] ?? '');
+                            if ($status === 'PAID' || $status === 'SETTLED' || $status === 'SUCCESS' || $status === 'COMPLETED') {
                                 $totalSettled += (float) ($tx['amount']['value'] ?? $tx['amount'] ?? 0);
                             }
                         }
 
                         return [
                             'success'          => true,
-                            'current_balance'  => $totalSettled, // Estimasi dana cair 7 hari terakhir
+                            'current_balance'  => $totalSettled, // Estimasi dana cair 30 hari terakhir
                             'withdraw_balance' => $totalSettled,
                             'is_estimated'     => true,
                             'error_message'    => null
