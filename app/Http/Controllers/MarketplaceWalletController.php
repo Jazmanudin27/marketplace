@@ -139,46 +139,16 @@ class MarketplaceWalletController extends Controller
             ->get();
 
         $mutasiList = [];
-        if ($store->channel->code === 'tiktok') {
-            $runningSum = 0;
-            // Urutkan dari terlama ke terbaru untuk menghitung akumulasi saldo berjalan
-            $reversedTxs = $txs->reverse();
-            $tempBalances = [];
-            
-            foreach ($reversedTxs as $tx) {
-                $amount = $tx->amount;
-                if ($tx->direction === 'in') {
-                    $runningSum += $amount;
-                } else {
-                    $runningSum -= $amount;
-                }
-                $tempBalances[$tx->id] = $runningSum;
-            }
-            
-            // Masukkan kembali ke mutasiList dengan urutan desending semula
-            foreach ($txs as $tx) {
-                $mutasiList[] = [
-                    'id'              => $tx->transaction_id,
-                    'date'            => $tx->transaction_date->format('Y-m-d H:i:s'),
-                    'type'            => $tx->type,
-                    'description'     => $tx->description,
-                    'amount'          => $tx->amount,
-                    'direction'       => $tx->direction,
-                    'current_balance' => $tempBalances[$tx->id] ?? 0,
-                ];
-            }
-        } else {
-            foreach ($txs as $tx) {
-                $mutasiList[] = [
-                    'id'              => $tx->transaction_id,
-                    'date'            => $tx->transaction_date->format('Y-m-d H:i:s'),
-                    'type'            => $tx->type,
-                    'description'     => $tx->description,
-                    'amount'          => $tx->amount,
-                    'direction'       => $tx->direction,
-                    'current_balance' => $tx->current_balance,
-                ];
-            }
+        foreach ($txs as $tx) {
+            $mutasiList[] = [
+                'id'              => $tx->transaction_id,
+                'date'            => $tx->transaction_date->format('Y-m-d H:i:s'),
+                'type'            => $tx->type,
+                'description'     => $tx->description,
+                'amount'          => $tx->amount,
+                'direction'       => $tx->direction,
+                'current_balance' => $tx->current_balance,
+            ];
         }
 
         $error = null;

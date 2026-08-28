@@ -114,6 +114,9 @@ class SyncMarketplaceWallets extends Command
                     $chunkSize = 30 * 24 * 3600;
                     $currentStart = $startTimestamp;
                     
+                    // Kumpulkan semua transaksi mentah dari semua chunk terlebih dahulu
+                    $allRawTxs = [];
+                    
                     while ($currentStart < $endTimestamp) {
                         $currentEnd = min($currentStart + $chunkSize - 1, $endTimestamp);
                         
@@ -133,76 +136,108 @@ class SyncMarketplaceWallets extends Command
                             MarketplaceWalletTransaction::where('store_id', $store->id)
                                 ->where('transaction_id', $txId)
                                 ->delete();
-                            
-                            $status = $tx['payment_status'] ?? $tx['status'] ?? '—';
-                            
-                            // Handling timestamp yang fleksibel (detik / milidetik / tanggal terformat)
-                            $timeRaw = $tx['payment_time'] ?? $tx['statement_time'] ?? time();
-                            if (is_numeric($timeRaw)) {
-                                if (strlen((string)$timeRaw) > 10) {
-                                    $timeRaw = (int)($timeRaw / 1000);
-                                }
-                                $transactionDate = date('Y-m-d H:i:s', $timeRaw);
-                            } else {
-                                $transactionDate = date('Y-m-d H:i:s', strtotime($timeRaw));
-                            }
-
-                            // 1. Catat Revenue (Pendapatan Penjualan Kotor) sebagai UANG MASUK (in)
-                            $revenue = (float) ($tx['revenue_amount'] ?? 0);
-                            if ($revenue != 0) {
-                                MarketplaceWalletTransaction::updateOrCreate([
-                                    'store_id'       => $store->id,
-                                    'transaction_id' => $txId . '-REV',
-                                ], [
-                                    'tenant_id'        => $store->tenant_id,
-                                    'transaction_date' => $transactionDate,
-                                    'type'             => 'Pelepasan Dana',
-                                    'description'      => 'Pelepasan Dana Penjualan Kotor (Revenue) | Status: ' . $status . ' | Statement ID: ' . $txId,
-                                    'amount'           => abs($revenue),
-                                    'direction'        => $revenue >= 0 ? 'in' : 'out',
-                                    'current_balance'  => null,
-                                    'raw_data'         => $tx,
-                                ]);
-                            }
-
-                            // 2. Catat Fee (Biaya Layanan/Komisi) sebagai UANG KELUAR (out)
-                            $fee = (float) ($tx['fee_amount'] ?? 0);
-                            if ($fee != 0) {
-                                MarketplaceWalletTransaction::updateOrCreate([
-                                    'store_id'       => $store->id,
-                                    'transaction_id' => $txId . '-FEE',
-                                ], [
-                                    'tenant_id'        => $store->tenant_id,
-                                    'transaction_date' => $transactionDate,
-                                    'type'             => 'Biaya Layanan',
-                                    'description'      => 'Potongan Biaya Admin / Komisi TikTok Shop | Statement ID: ' . $txId,
-                                    'amount'           => abs($fee),
-                                    'direction'        => $fee < 0 ? 'out' : 'in',
-                                    'current_balance'  => null,
-                                    'raw_data'         => $tx,
-                                ]);
-                            }
-
-                            // 3. Catat Adjustment (Penyesuaian) jika ada
-                            $adj = (float) ($tx['adjustment_amount'] ?? 0);
-                            if ($adj != 0) {
-                                MarketplaceWalletTransaction::updateOrCreate([
-                                    'store_id'       => $store->id,
-                                    'transaction_id' => $txId . '-ADJ',
-                                ], [
-                                    'tenant_id'        => $store->tenant_id,
-                                    'transaction_date' => $transactionDate,
-                                    'type'             => 'Penyesuaian',
-                                    'description'      => 'Penyesuaian Saldo oleh TikTok Shop | Statement ID: ' . $txId,
-                                    'amount'           => abs($adj),
-                                    'direction'        => $adj >= 0 ? 'in' : 'out',
-                                    'current_balance'  => null,
-                                    'raw_data'         => $tx,
-                                ]);
-                            }
+                                
+                            $allRawTxs[] = $tx;
                         }
                         
                         $currentStart = $currentEnd + 1;
+                    }
+                    
+                    // Bangun list transaksi split (Revenue, Fee, Adjustment)
+                    $splitTxs = [];
+                    foreach ($allRawTxs as $tx) {
+                        $txId = $tx['id'] ?? $tx['payment_id'] ?? null;
+                        $status = $tx['payment_status'] ?? $tx['status'] ?? '—';
+                        
+                        $timeRaw = $tx['payment_time'] ?? $tx['statement_time'] ?? time();
+                        if (is_numeric($timeRaw)) {
+                            if (strlen((string)$timeRaw) > 10) {
+                                $timeRaw = (int)($timeRaw / 1000);
+                            }
+                            $transactionDate = date('Y-m-d H:i:s', $timeRaw);
+                        } else {
+                            $transactionDate = date('Y-m-d H:i:s', strtotime($timeRaw));
+                        }
+                        
+                        // 1. Revenue
+                        $revenue = (float) ($tx['revenue_amount'] ?? 0);
+                        if ($revenue != 0) {
+                            $splitTxs[] = [
+                                'transaction_id'   => $txId . '-REV',
+                                'transaction_date' => $transactionDate,
+                                'type'             => 'Pelepasan Dana',
+                                'description'      => 'Pelepasan Dana Penjualan Kotor (Revenue) | Status: ' . $status . ' | Statement ID: ' . $txId,
+                                'amount'           => abs($revenue),
+                                'direction'        => $revenue >= 0 ? 'in' : 'out',
+                                'raw_data'         => $tx,
+                            ];
+                        }
+                        
+                        // 2. Fee
+                        $fee = (float) ($tx['fee_amount'] ?? 0);
+                        if ($fee != 0) {
+                            $splitTxs[] = [
+                                'transaction_id'   => $txId . '-FEE',
+                                'transaction_date' => $transactionDate,
+                                'type'             => 'Biaya Layanan',
+                                'description'      => 'Potongan Biaya Admin / Komisi TikTok Shop | Statement ID: ' . $txId,
+                                'amount'           => abs($fee),
+                                'direction'        => $fee < 0 ? 'out' : 'in',
+                                'raw_data'         => $tx,
+                            ];
+                        }
+                        
+                        // 3. Adjustment
+                        $adj = (float) ($tx['adjustment_amount'] ?? 0);
+                        if ($adj != 0) {
+                            $splitTxs[] = [
+                                'transaction_id'   => $txId . '-ADJ',
+                                'transaction_date' => $transactionDate,
+                                'type'             => 'Penyesuaian',
+                                'description'      => 'Penyesuaian Saldo oleh TikTok Shop | Statement ID: ' . $txId,
+                                'amount'           => abs($adj),
+                                'direction'        => $adj >= 0 ? 'in' : 'out',
+                                'raw_data'         => $tx,
+                            ];
+                        }
+                    }
+                    
+                    // Urutkan transaksi split berdasarkan tanggal ASCENDING agar saldo berjalan dihitung berurutan
+                    usort($splitTxs, function($a, $b) {
+                        return strcmp($a['transaction_date'], $b['transaction_date']);
+                    });
+                    
+                    // Tentukan saldo awal sebelum transaksi tertua yang ditarik ini
+                    $runningSum = 0.0;
+                    if (!empty($splitTxs)) {
+                        $oldestDate = $splitTxs[0]['transaction_date'];
+                        $runningSum = (float) MarketplaceWalletTransaction::where('store_id', $store->id)
+                            ->where('transaction_date', '<', $oldestDate)
+                            ->orderBy('transaction_date', 'desc')
+                            ->value('current_balance') ?? 0.0;
+                    }
+                    
+                    // Simpan transaksi dan update running balance di database
+                    foreach ($splitTxs as $txData) {
+                        if ($txData['direction'] === 'in') {
+                            $runningSum += $txData['amount'];
+                        } else {
+                            $runningSum -= $txData['amount'];
+                        }
+                        
+                        MarketplaceWalletTransaction::updateOrCreate([
+                            'store_id'       => $store->id,
+                            'transaction_id' => $txData['transaction_id'],
+                        ], [
+                            'tenant_id'        => $store->tenant_id,
+                            'transaction_date' => $txData['transaction_date'],
+                            'type'             => $txData['type'],
+                            'description'      => $txData['description'],
+                            'amount'           => $txData['amount'],
+                            'direction'        => $txData['direction'],
+                            'current_balance'  => $runningSum,
+                            'raw_data'         => $txData['raw_data'],
+                        ]);
                     }
                 }
                 
