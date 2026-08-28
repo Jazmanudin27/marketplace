@@ -681,66 +681,6 @@ Route::middleware('auth')->group(function () {
         Route::get('/finance/marketplace-wallets', [MarketplaceWalletController::class, 'index'])->name('finance.marketplace_wallets.index');
         Route::get('/finance/marketplace-wallets/{store}/mutasi', [MarketplaceWalletController::class, 'mutasi'])->name('finance.marketplace_wallets.mutasi');
         Route::get('/finance/marketplace-wallets/{store}/sync', [MarketplaceWalletController::class, 'sync'])->name('finance.marketplace_wallets.sync');
-        Route::get('/finance/debug-tiktok-log', function() {
-            $logPath = storage_path('logs/laravel.log');
-            if (!file_exists($logPath)) return "Log file not found.";
-            $content = file_get_contents($logPath);
-            preg_match_all('/TikTok getFinanceTransactions raw response.*/', $content, $matches);
-            if (empty($matches[0])) return "No TikTok raw response logs found.";
-            return response(implode("\n\n", array_slice($matches[0], -20)), 200, ['Content-Type' => 'text/plain']);
-        });
-        Route::get('/finance/debug-tiktok-statements', function() {
-            $store = \App\Models\Store::whereHas('channel', function ($q) {
-                $q->where('code', 'tiktok');
-            })->where(function($q) {
-                $q->whereNotNull('refresh_token')->orWhereNotNull('access_token');
-            })->first();
-
-            if (!$store) return "No connected TikTok store found in production database.";
-
-            try {
-                $accessToken = $store->getValidAccessToken();
-                $shopCipher = $store->shop_cipher;
-                
-                $path = '/finance/202309/statements';
-                $startTime = now()->subDays(60)->timestamp;
-                $endTime = now()->timestamp;
-                
-                $queryParams = [
-                    'app_key'           => config('services.tiktok.app_key'),
-                    'timestamp'         => time(),
-                    'shop_cipher'       => $shopCipher,
-                    'statement_time_ge' => $startTime,
-                    'statement_time_lt' => $endTime,
-                    'sort_field'        => 'statement_time',
-                    'sort_order'        => 'DESC',
-                    'page_size'         => 50,
-                ];
-                
-                // generate signature
-                $params = $queryParams;
-                unset($params['sign'], $params['access_token']);
-                ksort($params);
-                $str = '';
-                foreach ($params as $k => $v) {
-                    $str .= $k . $v;
-                }
-                $appSecret = config('services.tiktok.app_secret');
-                $baseString = $appSecret . $path . $str . $appSecret;
-                $sign = hash_hmac('sha256', $baseString, $appSecret);
-                
-                $queryParams['sign'] = $sign;
-                $queryParams['access_token'] = $accessToken;
-                
-                $response = \Illuminate\Support\Facades\Http::timeout(20)->withHeaders([
-                    'x-tts-access-token' => $accessToken,
-                ])->get('https://open-api.tiktokglobalshop.com' . $path . '?' . http_build_query($queryParams));
-                
-                return response($response->body(), 200, ['Content-Type' => 'application/json']);
-            } catch (\Throwable $e) {
-                return "Error: " . $e->getMessage();
-            }
-        });
     });
 
     // Manajemen Transaksi Keuangan

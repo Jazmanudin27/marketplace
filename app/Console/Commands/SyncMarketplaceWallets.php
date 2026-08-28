@@ -124,25 +124,17 @@ class SyncMarketplaceWallets extends Command
                             $currentEnd
                         );
                         
-                        $rawList = $res['payment_list'] ?? $res['payments'] ?? [];
+                        $rawList = $res['statement_list'] ?? $res['statements'] ?? [];
                         foreach ($rawList as $tx) {
-                            $txId = $tx['payment_id'] ?? $tx['id'] ?? null;
+                            $txId = $tx['id'] ?? $tx['payment_id'] ?? null;
                             if (!$txId) continue;
                             
-                            $amount = 0.0;
-                            if (isset($tx['amount'])) {
-                                if (is_array($tx['amount'])) {
-                                    $amount = (float) ($tx['amount']['value'] ?? 0);
-                                } else {
-                                    $amount = (float) $tx['amount'];
-                                }
-                            }
-                            
-                            $status = $tx['status'] ?? $tx['payment_status'] ?? '—';
-                            $txType = $tx['payment_type'] ?? $tx['type'] ?? 'SETTLEMENT';
+                            $amount = (float) ($tx['settlement_amount'] ?? 0);
+                            $status = $tx['payment_status'] ?? $tx['status'] ?? '—';
+                            $txType = 'SETTLEMENT';
                             
                             // Handling timestamp yang fleksibel (detik / milidetik / tanggal terformat)
-                            $timeRaw = $tx['payment_time'] ?? $tx['create_time'] ?? $tx['payout_time'] ?? time();
+                            $timeRaw = $tx['payment_time'] ?? $tx['statement_time'] ?? time();
                             if (is_numeric($timeRaw)) {
                                 if (strlen((string)$timeRaw) > 10) {
                                     $timeRaw = (int)($timeRaw / 1000);
@@ -152,6 +144,18 @@ class SyncMarketplaceWallets extends Command
                                 $transactionDate = date('Y-m-d H:i:s', strtotime($timeRaw));
                             }
 
+                            // Build a descriptive details string
+                            $description = 'Status: ' . $status;
+                            if (isset($tx['revenue_amount'])) {
+                                $description .= ' | Revenue: Rp ' . number_format((float)$tx['revenue_amount'], 0, ',', '.');
+                            }
+                            if (isset($tx['fee_amount'])) {
+                                $description .= ' | Fee: Rp ' . number_format((float)$tx['fee_amount'], 0, ',', '.');
+                            }
+                            if (isset($tx['adjustment_amount']) && (float)$tx['adjustment_amount'] != 0) {
+                                $description .= ' | Adjustment: Rp ' . number_format((float)$tx['adjustment_amount'], 0, ',', '.');
+                            }
+
                             MarketplaceWalletTransaction::updateOrCreate([
                                 'store_id'       => $store->id,
                                 'transaction_id' => $txId,
@@ -159,9 +163,9 @@ class SyncMarketplaceWallets extends Command
                                 'tenant_id'        => $store->tenant_id,
                                 'transaction_date' => $transactionDate,
                                 'type'             => $txType,
-                                'description'      => 'Status: ' . $status . (!empty($tx['order_id']) ? ' | Order ID: ' . $tx['order_id'] : ''),
+                                'description'      => $description,
                                 'amount'           => abs($amount),
-                                'direction'        => 'in',
+                                'direction'        => $amount >= 0 ? 'in' : 'out',
                                 'current_balance'  => null,
                                 'raw_data'         => $tx,
                             ]);

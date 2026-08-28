@@ -324,18 +324,18 @@ class TiktokService
         int $endTime,
         string $pageToken = ''
     ): array {
-        // TikTok Finance Payments API
-        $path = '/finance/202309/payments';
+        // TikTok Finance Statements API
+        $path = '/finance/202309/statements';
 
         $queryParams = [
-            'app_key'        => $this->appKey,
-            'timestamp'      => time(),
-            'shop_cipher'    => $shopCipher,
-            'create_time_ge' => $startTime,
-            'create_time_lt' => $endTime,
-            'sort_field'     => 'create_time',
-            'sort_order'     => 'DESC',
-            'page_size'      => 50,
+            'app_key'           => $this->appKey,
+            'timestamp'         => time(),
+            'shop_cipher'       => $shopCipher,
+            'statement_time_ge' => $startTime,
+            'statement_time_lt' => $endTime,
+            'sort_field'        => 'statement_time',
+            'sort_order'        => 'DESC',
+            'page_size'         => 50,
         ];
 
         if ($pageToken) {
