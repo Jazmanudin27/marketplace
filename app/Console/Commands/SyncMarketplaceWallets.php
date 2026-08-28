@@ -129,9 +129,12 @@ class SyncMarketplaceWallets extends Command
                             $txId = $tx['id'] ?? $tx['payment_id'] ?? null;
                             if (!$txId) continue;
                             
-                            $amount = (float) ($tx['settlement_amount'] ?? 0);
+                            // Hapus entri format lama tanpa akhiran jika ada
+                            MarketplaceWalletTransaction::where('store_id', $store->id)
+                                ->where('transaction_id', $txId)
+                                ->delete();
+                            
                             $status = $tx['payment_status'] ?? $tx['status'] ?? '—';
-                            $txType = 'SETTLEMENT';
                             
                             // Handling timestamp yang fleksibel (detik / milidetik / tanggal terformat)
                             $timeRaw = $tx['payment_time'] ?? $tx['statement_time'] ?? time();
@@ -144,31 +147,59 @@ class SyncMarketplaceWallets extends Command
                                 $transactionDate = date('Y-m-d H:i:s', strtotime($timeRaw));
                             }
 
-                            // Build a descriptive details string
-                            $description = 'Status: ' . $status;
-                            if (isset($tx['revenue_amount'])) {
-                                $description .= ' | Revenue: Rp ' . number_format((float)$tx['revenue_amount'], 0, ',', '.');
-                            }
-                            if (isset($tx['fee_amount'])) {
-                                $description .= ' | Fee: Rp ' . number_format((float)$tx['fee_amount'], 0, ',', '.');
-                            }
-                            if (isset($tx['adjustment_amount']) && (float)$tx['adjustment_amount'] != 0) {
-                                $description .= ' | Adjustment: Rp ' . number_format((float)$tx['adjustment_amount'], 0, ',', '.');
+                            // 1. Catat Revenue (Pendapatan Penjualan Kotor) sebagai UANG MASUK (in)
+                            $revenue = (float) ($tx['revenue_amount'] ?? 0);
+                            if ($revenue != 0) {
+                                MarketplaceWalletTransaction::updateOrCreate([
+                                    'store_id'       => $store->id,
+                                    'transaction_id' => $txId . '-REV',
+                                ], [
+                                    'tenant_id'        => $store->tenant_id,
+                                    'transaction_date' => $transactionDate,
+                                    'type'             => 'Pelepasan Dana',
+                                    'description'      => 'Pelepasan Dana Penjualan Kotor (Revenue) | Status: ' . $status . ' | Statement ID: ' . $txId,
+                                    'amount'           => abs($revenue),
+                                    'direction'        => $revenue >= 0 ? 'in' : 'out',
+                                    'current_balance'  => null,
+                                    'raw_data'         => $tx,
+                                ]);
                             }
 
-                            MarketplaceWalletTransaction::updateOrCreate([
-                                'store_id'       => $store->id,
-                                'transaction_id' => $txId,
-                            ], [
-                                'tenant_id'        => $store->tenant_id,
-                                'transaction_date' => $transactionDate,
-                                'type'             => $txType,
-                                'description'      => $description,
-                                'amount'           => abs($amount),
-                                'direction'        => $amount >= 0 ? 'in' : 'out',
-                                'current_balance'  => null,
-                                'raw_data'         => $tx,
-                            ]);
+                            // 2. Catat Fee (Biaya Layanan/Komisi) sebagai UANG KELUAR (out)
+                            $fee = (float) ($tx['fee_amount'] ?? 0);
+                            if ($fee != 0) {
+                                MarketplaceWalletTransaction::updateOrCreate([
+                                    'store_id'       => $store->id,
+                                    'transaction_id' => $txId . '-FEE',
+                                ], [
+                                    'tenant_id'        => $store->tenant_id,
+                                    'transaction_date' => $transactionDate,
+                                    'type'             => 'Biaya Layanan',
+                                    'description'      => 'Potongan Biaya Admin / Komisi TikTok Shop | Statement ID: ' . $txId,
+                                    'amount'           => abs($fee),
+                                    'direction'        => $fee < 0 ? 'out' : 'in',
+                                    'current_balance'  => null,
+                                    'raw_data'         => $tx,
+                                ]);
+                            }
+
+                            // 3. Catat Adjustment (Penyesuaian) jika ada
+                            $adj = (float) ($tx['adjustment_amount'] ?? 0);
+                            if ($adj != 0) {
+                                MarketplaceWalletTransaction::updateOrCreate([
+                                    'store_id'       => $store->id,
+                                    'transaction_id' => $txId . '-ADJ',
+                                ], [
+                                    'tenant_id'        => $store->tenant_id,
+                                    'transaction_date' => $transactionDate,
+                                    'type'             => 'Penyesuaian',
+                                    'description'      => 'Penyesuaian Saldo oleh TikTok Shop | Statement ID: ' . $txId,
+                                    'amount'           => abs($adj),
+                                    'direction'        => $adj >= 0 ? 'in' : 'out',
+                                    'current_balance'  => null,
+                                    'raw_data'         => $tx,
+                                ]);
+                            }
                         }
                         
                         $currentStart = $currentEnd + 1;

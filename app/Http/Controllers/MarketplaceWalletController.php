@@ -77,16 +77,27 @@ class MarketplaceWalletController extends Controller
                         ];
                     } elseif ($store->channel->code === 'tiktok') {
                         // Untuk TikTok, kita hitung langsung dari total transaksi yang sukses ditarik ke database dalam 15 hari terakhir (dengan batas waktu hari penuh agar sinkron dengan mutasi)
-                        $totalSettled = MarketplaceWalletTransaction::where('store_id', $store->id)
+                        $in = MarketplaceWalletTransaction::where('store_id', $store->id)
                             ->whereBetween('transaction_date', [
                                 now()->subDays(15)->format('Y-m-d') . ' 00:00:00',
                                 now()->format('Y-m-d') . ' 23:59:59'
                             ])
+                            ->where('direction', 'in')
                             ->sum('amount');
+
+                        $out = MarketplaceWalletTransaction::where('store_id', $store->id)
+                            ->whereBetween('transaction_date', [
+                                now()->subDays(15)->format('Y-m-d') . ' 00:00:00',
+                                now()->format('Y-m-d') . ' 23:59:59'
+                            ])
+                            ->where('direction', 'out')
+                            ->sum('amount');
+
+                        $totalSettled = $in - $out;
 
                         return [
                             'success'          => true,
-                            'current_balance'  => (float) $totalSettled, // Estimasi dana cair 30 hari terakhir dari DB
+                            'current_balance'  => (float) $totalSettled,
                             'withdraw_balance' => (float) $totalSettled,
                             'is_estimated'     => true,
                             'error_message'    => null
