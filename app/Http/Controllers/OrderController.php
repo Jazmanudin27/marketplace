@@ -991,21 +991,39 @@ class OrderController extends Controller
             return back()->with('error', 'Anda belum mengintegrasikan toko.');
         }
 
-        // Tarik pesanan 14 hari terakhir sebagai default (Shopee max limit adalah 15 hari)
-        $timeTo = time();
-        $timeFrom = strtotime('-14 days', $timeTo);
+        // Tarik pesanan 30 hari terakhir dengan membaginya menjadi 2 chunk
+        // agar tetap mematuhi batas maksimal 15 hari dari API Shopee.
+        $timeTo1 = time();
+        $timeFrom1 = strtotime('-15 days', $timeTo1);
 
-        foreach ($stores as $store) {
-            if ($store->channel->code === 'shopee') {
-                \App\Jobs\PullOrdersFromShopee::dispatch($store, $timeFrom, $timeTo);
-            } elseif (in_array($store->channel->code, ['tiktok', 'tokopedia'])) {
-                \App\Jobs\PullOrdersFromTiktok::dispatch($store, $timeFrom, $timeTo);
-            } elseif ($store->channel->code === 'lazada') {
-                \App\Jobs\PullOrdersFromLazada::dispatch($store, $timeFrom, $timeTo);
+        $timeTo2 = $timeFrom1 - 1;
+        $timeFrom2 = strtotime('-30 days', $timeTo1);
+
+        try {
+            foreach ($stores as $store) {
+                if ($store->channel->code === 'shopee') {
+                    // Sinkronisasi chunk pertama (Hari 1-15) secara instan
+                    dispatch_sync(new \App\Jobs\PullOrdersFromShopee($store, $timeFrom1, $timeTo1));
+                    // Sinkronisasi chunk kedua (Hari 16-30) secara instan
+                    dispatch_sync(new \App\Jobs\PullOrdersFromShopee($store, $timeFrom2, $timeTo2));
+                } elseif (in_array($store->channel->code, ['tiktok', 'tokopedia'])) {
+                    // Sinkronisasi chunk pertama (Hari 1-15) secara instan
+                    dispatch_sync(new \App\Jobs\PullOrdersFromTiktok($store, $timeFrom1, $timeTo1));
+                    // Sinkronisasi chunk kedua (Hari 16-30) secara instan
+                    dispatch_sync(new \App\Jobs\PullOrdersFromTiktok($store, $timeFrom2, $timeTo2));
+                } elseif ($store->channel->code === 'lazada') {
+                    // Sinkronisasi chunk pertama (Hari 1-15) secara instan
+                    dispatch_sync(new \App\Jobs\PullOrdersFromLazada($store, $timeFrom1, $timeTo1));
+                    // Sinkronisasi chunk kedua (Hari 16-30) secara instan
+                    dispatch_sync(new \App\Jobs\PullOrdersFromLazada($store, $timeFrom2, $timeTo2));
+                }
             }
-        }
 
-        return back()->with('success', 'Perintah tarik pesanan telah dikirim. Pesanan akan segera muncul dalam beberapa saat.');
+            return back()->with('success', 'Berhasil menyinkronkan data pesanan 30 hari terakhir dari marketplace!');
+        } catch (\Exception $e) {
+            Log::error('[OrderSync] Gagal melakukan sinkronisasi instan: ' . $e->getMessage());
+            return back()->with('error', 'Gagal melakukan sinkronisasi pesanan: ' . $e->getMessage());
+        }
     }
 
 
