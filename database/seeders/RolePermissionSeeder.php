@@ -37,7 +37,13 @@ class RolePermissionSeeder extends Seeder
     /** Permission modul Dashboard */
     private function dashboardPermissions(): array
     {
-        return ['dashboard.index'];
+        return [
+            'dashboard.index',
+            'dashboard.marketing',
+            'dashboard.finance',
+            'dashboard.production_purchase',
+            'dashboard.warehouse',
+        ];
     }
 
     /** Permission modul Master Data */
@@ -142,6 +148,7 @@ class RolePermissionSeeder extends Seeder
             'chats.show',
             'chats.reply',
             'chats.sync',
+            'offline-sales.approve',
         ];
     }
 
@@ -313,6 +320,21 @@ class RolePermissionSeeder extends Seeder
             'product-recipes.edit',
             'product-recipes.destroy',
             'reports.production_hpp',
+            'spks.view_hpp',
+            'spks.edit_costs',
+        ];
+    }
+
+    /** Permission modul Titipan Barang Konsinyasi */
+    private function consignmentPermissions(): array
+    {
+        return [
+            'supplier-consignments.index',
+            'supplier-consignments.create',
+            'supplier-consignments.edit',
+            'supplier-consignments.destroy',
+            'supplier-consignments.stock_card',
+            'supplier-consignments.settlement',
         ];
     }
 
@@ -388,6 +410,8 @@ class RolePermissionSeeder extends Seeder
             'approve-attendance-correction',
             'approve-attendance-corrections',
             'print-attendance-report',
+            'marketing.ads.index',
+            'marketing.teams.index',
         ];
     }
 
@@ -411,6 +435,7 @@ class RolePermissionSeeder extends Seeder
             $this->productionPermissions(),
             $this->userManagementSafePermissions(), // tanpa destroy users/roles
             $this->tenantSettingsPermissions(),
+            $this->consignmentPermissions(),
             $this->legacyPermissions(), // All legacy permissions
         ));
     }
@@ -418,27 +443,20 @@ class RolePermissionSeeder extends Seeder
     /** Permission Admin Gudang */
     private function adminGudangPermissions(): array
     {
-        return array_unique(array_merge(
-            $this->dashboardPermissions(),
-            $this->productPermissions(),
-            $this->storePermissions(),
-            $this->orderPermissions(),
-            $this->inventoryPermissions(),
-            $this->warehouseReportPermissions(),
-            $this->hrdViewOnlyPermissions(), // hanya lihat presensi
+        return [
+            'dashboard.index',
+            'inventory.index',
+            'inventory.ledger',
+            'inventory.adjust',
+            'stock-opnames.index',
+            'stock-opnames.create',
+            'fulfillment.index',
+            'fulfillment.scan',
+            'fulfillment.complete',
             // Warehouse legacy permissions
-            [
-                'manage-products',
-                'manage-incoming-goods',
-                'manage-orders',
-                'manage-fulfillment',
-                'manage-returns',
-                'manage-offline-sales',
-                'manage-chats',
-                'manage-inventory',
-                'view-warehouse-reports',
-            ]
-        ));
+            'manage-inventory',
+            'manage-fulfillment',
+        ];
     }
 
     /** Permission Admin Keuangan */
@@ -519,55 +537,37 @@ class RolePermissionSeeder extends Seeder
     /** Permission Admin Penjualan */
     private function adminPenjualanPermissions(): array
     {
-        return array_unique(array_merge(
-            $this->dashboardPermissions(),
-            // Pesanan online & offline — akses penuh
-            $this->orderPermissions(),
-            [
-                'offline-sales.index',
-                'offline-sales.create',
-                'offline-sales.edit',
-                'offline-sales.destroy',
-                'offline-sales.print',
-            ],
-            // Pelanggan — akses penuh
-            [
-                'customers.index',
-                'customers.create',
-                'customers.edit',
-                'customers.destroy',
-            ],
-            // Produk & Toko — lihat saja (tidak bisa ubah harga/stok)
-            [
-                'products.index',
-                'products.show',
-            ],
-            $this->storePermissions(),   // kelola toko/channel
-            // Voucher
-            [
-                'vouchers.index',
-                'vouchers.create',
-                'vouchers.edit',
-                'vouchers.destroy',
-            ],
-            // Inventory — lihat saja
-            [
-                'inventory.index',
-                'inventory.ledger',
-            ],
-            // Laporan penjualan
-            [
-                'reports.sales',
-                'reports.export',
-            ],
+        return [
+            'dashboard.index',
+            'spks.index',
+            'spks.show',
+            'spks.create',
+            'spks.edit',
+            'spks.destroy',
+            'spks.view_hpp',
+            'spks.edit_costs',
+            'product-recipes.index',
+            'product-recipes.create',
+            'product-recipes.edit',
+            'product-recipes.destroy',
+            'offline-sales.index',
+            'offline-sales.show',
+            'offline-sales.create',
+            'offline-sales.edit',
+            'offline-sales.destroy',
+            'offline-sales.approve',
+            'offline-sales.complete',
+            'offline-sales.cancel',
+            'offline-sales.print',
+            'vouchers.index',
+            'vouchers.create',
+            'vouchers.edit',
+            'vouchers.destroy',
+            'marketing.ads.index',
+            'marketing.teams.index',
             // Sales/Order legacy permissions
-            [
-                'manage-orders',
-                'manage-offline-sales',
-                'manage-stores',
-                'manage-customers',
-            ]
-        ));
+            'manage-offline-sales',
+        ];
     }
 
     // =========================================================================
@@ -597,6 +597,7 @@ class RolePermissionSeeder extends Seeder
             $this->userManagementSafePermissions(),
             $this->tenantSettingsPermissions(),
             $this->superAdminOnlyPermissions(),
+            $this->consignmentPermissions(),
             $this->legacyPermissions()
         ));
 

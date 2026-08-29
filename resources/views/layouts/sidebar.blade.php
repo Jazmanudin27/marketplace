@@ -506,7 +506,7 @@
 
                         @if (auth()->user()->isSuperAdmin() ||
                                 auth()->user()->role === 'admin' ||
-                                auth()->user()->hasAnyPermission(['view-financial-reports', 'manage-finance']))
+                                auth()->user()->hasAnyPermission(['view-financial-reports', 'manage-finance', 'marketing.ads.index']))
                             <a href="{{ route('marketing.ads.index') }}"
                                 class="nav-link py-1 {{ request()->routeIs('marketing.ads.*') ? 'active text-white' : 'text-secondary' }}">Dashboard
                                 Keputusan</a>
@@ -514,7 +514,7 @@
                         
                         @if (auth()->user()->isSuperAdmin() ||
                                 auth()->user()->role === 'admin' ||
-                                auth()->user()->hasAnyPermission(['view-financial-reports', 'manage-finance', 'view-warehouse-reports']))
+                                auth()->user()->hasAnyPermission(['view-financial-reports', 'manage-finance', 'view-warehouse-reports', 'marketing.teams.index']))
                             <a href="{{ Route::has('marketing.teams.index') ? route('marketing.teams.index') : url('/marketing/teams') }}"
                                 class="nav-link py-1 {{ request()->routeIs('marketing.teams.*') ? 'active text-white' : 'text-secondary' }}">
                                 Target Komisi
