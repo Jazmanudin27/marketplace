@@ -186,18 +186,67 @@ class FulfillmentController extends Controller
             $order->update(['packing_status' => 'packing']);
         }
 
-        $items = $order->items->map(function ($item) {
-            $sku = $item->sku ?? ($item->masterProduct->sku ?? ($item->marketplaceProduct->marketplace_sku ?? ''));
-            $name = $item->product_name ?? ($item->masterProduct->name ?? 'Produk Tanpa Nama');
-            $image = $item->product_image ?? ($item->masterProduct->image_url ?? ($item->marketplaceProduct->image_url ?? ''));
-            return [
-                'id' => $item->id,
-                'sku' => $sku,
-                'name' => $name,
-                'image' => $image,
-                'quantity' => $item->quantity,
-            ];
-        });
+        $items = [];
+        foreach ($order->items as $item) {
+            $masterProduct = $item->masterProduct;
+            if ($masterProduct && $masterProduct->is_bundle) {
+                // Ambil komponen bundle
+                $components = $masterProduct->components;
+                
+                // Jika relasi components kosong di DB, cek apakah ada ProductRecipe (BOM)
+                if ($components->isEmpty() && $masterProduct->activeRecipe && $masterProduct->activeRecipe->items) {
+                    foreach ($masterProduct->activeRecipe->items as $recipeItem) {
+                        $compProduct = $recipeItem->ingredientProduct ?? \App\Models\MasterProduct::find($recipeItem->ingredient_master_product_id ?? $recipeItem->component_id);
+                        if ($compProduct) {
+                            $qty = (int) ($recipeItem->quantity ?? 1);
+                            $items[] = [
+                                'id' => $item->id . '-' . $compProduct->id, // custom unique key
+                                'sku' => $compProduct->sku,
+                                'name' => '[Setelan Component] ' . $compProduct->name . ' (From ' . $masterProduct->name . ')',
+                                'image' => $compProduct->image_url ?: '/images/placeholder.png',
+                                'quantity' => $item->quantity * $qty,
+                            ];
+                        }
+                    }
+                } else {
+                    foreach ($components as $comp) {
+                        $qty = (int) ($comp->pivot->quantity ?? 1);
+                        $items[] = [
+                            'id' => $item->id . '-' . $comp->id, // custom unique key
+                            'sku' => $comp->sku,
+                            'name' => '[Setelan Component] ' . $comp->name . ' (From ' . $masterProduct->name . ')',
+                            'image' => $comp->image_url ?: '/images/placeholder.png',
+                            'quantity' => $item->quantity * $qty,
+                        ];
+                    }
+                }
+                
+                // Jika bundle tidak memiliki komponen sama sekali, fallback ke parent
+                if (empty($items)) {
+                    $sku = $item->sku ?? ($masterProduct->sku ?? ($item->marketplaceProduct->marketplace_sku ?? ''));
+                    $name = $item->product_name ?? ($masterProduct->name ?? 'Produk Tanpa Nama');
+                    $image = $item->product_image ?? ($masterProduct->image_url ?? ($item->marketplaceProduct->image_url ?? ''));
+                    $items[] = [
+                        'id' => $item->id,
+                        'sku' => $sku,
+                        'name' => $name,
+                        'image' => $image,
+                        'quantity' => $item->quantity,
+                    ];
+                }
+            } else {
+                $sku = $item->sku ?? ($masterProduct->sku ?? ($item->marketplaceProduct->marketplace_sku ?? ''));
+                $name = $item->product_name ?? ($masterProduct->name ?? 'Produk Tanpa Nama');
+                $image = $item->product_image ?? ($masterProduct->image_url ?? ($item->marketplaceProduct->image_url ?? ''));
+                $items[] = [
+                    'id' => $item->id,
+                    'sku' => $sku,
+                    'name' => $name,
+                    'image' => $image,
+                    'quantity' => $item->quantity,
+                ];
+            }
+        }
 
         return response()->json([
             'success' => true,

@@ -314,12 +314,16 @@
                 if (!activeOrder) return;
 
                 let matchedItem = null;
-                // Cari item dengan SKU yang cocok
-                activeOrder.items.forEach(item => {
+                // Cari item dengan SKU yang cocok (utamakan yang belum selesai di-scan)
+                for (let i = 0; i < activeOrder.items.length; i++) {
+                    const item = activeOrder.items[i];
                     if (item.sku && item.sku.toLowerCase() === barcode.toLowerCase()) {
                         matchedItem = item;
+                        if (scanCounts[item.id] < item.quantity) {
+                            break; // Stop pada item pertama yang belum lengkap scan-nya
+                        }
                     }
-                });
+                }
 
                 if (matchedItem) {
                     const itemId = matchedItem.id;
