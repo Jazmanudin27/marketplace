@@ -6,28 +6,16 @@
 <div class="container-fluid px-4 py-4 bg-light">
     
     <!-- Header Section -->
-    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
-        <div>
-            <span class="badge bg-primary bg-opacity-10 text-primary px-3 py-1 rounded-pill fw-semibold mb-1">
-                <i class="bi bi-bullseye me-1"></i> MODUL MARKETING
-            </span>
-            <h3 class="fw-bold text-dark mb-1">Target & Tim Marketing</h3>
-            <p class="text-secondary small mb-1">
-                Kelola alokasi toko marketplace, target penjualan Qty, dan insentif komisi rupiah per-Qty.
-            </p>
-            <div class="text-primary small">
-                <i class="bi bi-info-circle me-1"></i>Realisasi dihitung khusus pesanan <strong>Selesai / Dilepas (Completed)</strong> berdasarkan <strong>Tanggal Diterima (`completed_at`)</strong>. Pesanan Retur/Refund & Batal otomatis dikecualikan.
-            </div>
-        </div>
-        <div class="d-flex gap-2">
-            <button type="button" class="btn btn-outline-danger rounded-pill px-3 py-2 fw-semibold shadow-sm d-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#excludeProductsModal">
-                <i class="bi bi-slash-circle fs-6"></i>
-                <span>Pengecualian Komisi</span>
-            </button>
-            <button type="button" class="btn btn-primary rounded-pill px-3 py-2 fw-semibold shadow-sm d-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#createTeamModal">
-                <i class="bi bi-plus-lg fs-6"></i>
-                <span>Tambah Tim Baru</span>
-            </button>
+    <div class="mb-4">
+        <span class="badge bg-primary bg-opacity-10 text-primary px-3 py-1 rounded-pill fw-semibold mb-1">
+            <i class="bi bi-bullseye me-1"></i> MODUL MARKETING
+        </span>
+        <h3 class="fw-bold text-dark mb-1">Target & Tim Marketing</h3>
+        <p class="text-secondary small mb-1">
+            Kelola alokasi toko marketplace, target penjualan Qty, dan insentif komisi rupiah per-Qty.
+        </p>
+        <div class="text-primary small">
+            <i class="bi bi-info-circle me-1"></i>Realisasi dihitung khusus pesanan <strong>Selesai / Dilepas (Completed)</strong> berdasarkan <strong>Tanggal Diterima (`completed_at`)</strong>. Pesanan Retur/Refund & Batal otomatis dikecualikan.
         </div>
     </div>
 
@@ -99,6 +87,26 @@
                     </div>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <!-- Filter Header & Quick Actions -->
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2 mt-4">
+        <div class="d-flex align-items-center gap-2">
+            <div class="bg-primary bg-opacity-10 text-primary rounded-circle p-2 d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
+                <i class="bi bi-funnel-fill small"></i>
+            </div>
+            <h5 class="fw-bold text-dark mb-0" style="font-size: 1.05rem;">Filter Periode</h5>
+        </div>
+        <div class="d-flex gap-2">
+            <button type="button" class="btn btn-outline-danger btn-sm rounded-pill px-3 py-2 fw-semibold shadow-sm d-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#excludeProductsModal" style="font-size: 0.8rem;">
+                <i class="bi bi-slash-circle fs-6"></i>
+                <span>Pengecualian Komisi</span>
+            </button>
+            <button type="button" class="btn btn-primary btn-sm rounded-pill px-3 py-2 fw-semibold shadow-sm d-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#createTeamModal" style="font-size: 0.8rem;">
+                <i class="bi bi-plus-lg fs-6"></i>
+                <span>Tambah Tim Baru</span>
+            </button>
         </div>
     </div>
 
