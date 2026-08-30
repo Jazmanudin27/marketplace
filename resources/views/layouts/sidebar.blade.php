@@ -591,7 +591,7 @@
                 || request()->routeIs('reports.store_sales*')
                 || request()->routeIs('reports.reseller_receivables*');
         @endphp
-        @if(auth()->user()->isSuperAdmin() || auth()->user()->hasAnyPermission(['reports.sales', 'reports.store_sales', 'reports.reseller_receivables', 'view-financial-reports', 'view-warehouse-reports']))
+        @if(auth()->user()->isSuperAdmin() || in_array(auth()->user()->role, ['admin', 'owner']) || auth()->user()->hasAnyPermission(['reports.sales', 'reports.store_sales', 'reports.reseller_receivables', 'view-financial-reports', 'view-warehouse-reports']))
             <div>
                 <a class="nav-link d-flex align-items-center justify-content-between text-dark {{ $isLaporanMarketingActive ? '' : 'collapsed' }}"
                     data-bs-toggle="collapse" data-bs-target="#collapseLaporanMarketing" role="button"
@@ -634,7 +634,7 @@
                 || request()->routeIs('reports.master_product*')
                 || request()->routeIs('marketplace_products.print_report*');
         @endphp
-        @if(auth()->user()->isSuperAdmin() || auth()->user()->hasAnyPermission(['reports.summary', 'reports.stock', 'reports.ledger', 'reports.inventory_turnover', 'reports.production_hpp', 'reports.master_product', 'marketplace-products.index', 'view-warehouse-reports']))
+        @if(auth()->user()->isSuperAdmin() || in_array(auth()->user()->role, ['admin', 'owner']) || auth()->user()->hasAnyPermission(['reports.summary', 'reports.stock', 'reports.ledger', 'reports.inventory_turnover', 'reports.production_hpp', 'reports.master_product', 'marketplace-products.index', 'view-warehouse-reports']))
             <div>
                 <a class="nav-link d-flex align-items-center justify-content-between text-dark {{ $isLaporanGudangActive ? '' : 'collapsed' }}"
                     data-bs-toggle="collapse" data-bs-target="#collapseLaporanGudang" role="button"
@@ -695,7 +695,7 @@
                 || request()->routeIs('pembelian.stock_card*')
                 || request()->routeIs('pembelian.print_stock_card*');
         @endphp
-        @if(auth()->user()->isSuperAdmin() || auth()->user()->hasAnyPermission(['purchase-orders.report', 'pembelian.stock_report', 'pembelian.report_mutation', 'pembelian.report_summary', 'pembelian.stock_card']))
+        @if(auth()->user()->isSuperAdmin() || in_array(auth()->user()->role, ['admin', 'owner']) || auth()->user()->hasAnyPermission(['purchase-orders.report', 'pembelian.stock_report', 'pembelian.report_mutation', 'pembelian.report_summary', 'pembelian.stock_card']))
             <div>
                 <a class="nav-link d-flex align-items-center justify-content-between text-dark {{ $isLaporanPembelianActive ? '' : 'collapsed' }}"
                     data-bs-toggle="collapse" data-bs-target="#collapseLaporanPembelian" role="button"
@@ -744,7 +744,7 @@
                 || request()->routeIs('reports.product_margins*')
                 || request()->routeIs('finance.marketplace_wallets*');
         @endphp
-        @if(auth()->user()->isSuperAdmin() || auth()->user()->hasAnyPermission(['view-financial-reports', 'finance.profit_loss', 'profit.index', 'profit.margin', 'reports.product_margins']))
+        @if(auth()->user()->isSuperAdmin() || in_array(auth()->user()->role, ['admin', 'owner']) || auth()->user()->hasAnyPermission(['view-financial-reports', 'finance.profit_loss', 'profit.index', 'profit.margin', 'reports.product_margins']))
             <div>
                 <a class="nav-link d-flex align-items-center justify-content-between text-dark {{ $isLaporanKeuanganActive ? '' : 'collapsed' }}"
                     data-bs-toggle="collapse" data-bs-target="#collapseLaporanKeuangan" role="button"
@@ -765,7 +765,7 @@
                             <a href="{{ route('profit.index') }}"
                                 class="nav-link py-1 {{ request()->routeIs('profit.index') ? 'active text-white' : 'text-secondary' }}">Profit Pesanan</a>
                         @endif
-                        @if(auth()->user()->isSuperAdmin() || auth()->user()->hasAnyPermission(['view-financial-reports', 'manage-finance']))
+                        @if(auth()->user()->isSuperAdmin() || in_array(auth()->user()->role, ['admin', 'owner']) || auth()->user()->hasAnyPermission(['view-financial-reports', 'manage-finance']))
                             <a href="{{ route('finance.marketplace_wallets.index') }}"
                                 class="nav-link py-1 {{ request()->routeIs('finance.marketplace_wallets.*') ? 'active text-white' : 'text-secondary' }}">Saldo Marketplace</a>
                         @endif
