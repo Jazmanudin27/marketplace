@@ -31,6 +31,77 @@
         </div>
     </div>
 
+    <!-- Simple KPI Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="card border-0 rounded-3 shadow-sm bg-white p-3 h-100">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <span class="text-secondary small fw-medium d-block mb-1">Tim Marketing</span>
+                        <h4 class="fw-bold text-dark mb-0">{{ number_format($totalTeams) }} <span class="fs-6 fw-normal text-muted">Tim</span></h4>
+                        <span class="badge bg-success bg-opacity-10 text-success mt-2 fw-medium rounded-pill px-2 py-1">
+                            <i class="bi bi-check-circle me-1"></i>{{ number_format($activeTeams) }} Aktif
+                        </span>
+                    </div>
+                    <div class="bg-primary bg-opacity-10 text-primary rounded-3 p-3 d-flex align-items-center justify-content-center">
+                        <i class="bi bi-people fs-4"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="card border-0 rounded-3 shadow-sm bg-white p-3 h-100">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <span class="text-secondary small fw-medium d-block mb-1">Toko Terhubung</span>
+                        <h4 class="fw-bold text-dark mb-0">{{ number_format($totalStoresLinked) }} <span class="fs-6 fw-normal text-muted">Toko</span></h4>
+                        <span class="text-muted small mt-2 d-block">
+                            Dari total {{ $stores->count() }} toko ERP
+                        </span>
+                    </div>
+                    <div class="bg-info bg-opacity-10 text-info rounded-3 p-3 d-flex align-items-center justify-content-center">
+                        <i class="bi bi-shop fs-4"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="card border-0 rounded-3 shadow-sm bg-white p-3 h-100">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <span class="text-secondary small fw-medium d-block mb-1">Target Qty (Aktif)</span>
+                        <h4 class="fw-bold text-dark mb-0">{{ number_format($totalTargetQty) }} <span class="fs-6 fw-normal text-muted">Qty</span></h4>
+                        <span class="text-success small mt-2 d-block fw-semibold">
+                            Realisasi: {{ number_format($totalActualQty) }} Qty
+                        </span>
+                    </div>
+                    <div class="bg-warning bg-opacity-10 text-warning rounded-3 p-3 d-flex align-items-center justify-content-center">
+                        <i class="bi bi-crosshair fs-4"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="card border-0 rounded-3 shadow-sm bg-white p-3 h-100">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <span class="text-secondary small fw-medium d-block mb-1">Insentif Realisasi</span>
+                        <h4 class="fw-bold text-success mb-0">Rp {{ number_format($totalEarnedReward, 0, ',', '.') }}</h4>
+                        <span class="text-muted small mt-2 d-block">
+                            (Actual Qty × Rp/Qty)
+                        </span>
+                    </div>
+                    <div class="bg-success bg-opacity-10 text-success rounded-3 p-3 d-flex align-items-center justify-content-center">
+                        <i class="bi bi-wallet2 fs-4"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Filter Card Bar -->
     <div class="card border-0 rounded-3 shadow-sm bg-white mb-4">
         <div class="card-body p-3">
@@ -156,77 +227,6 @@
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
     @endif
-
-    <!-- Simple KPI Cards -->
-    <div class="row g-3 mb-4">
-        <div class="col-12 col-sm-6 col-xl-3">
-            <div class="card border-0 rounded-3 shadow-sm bg-white p-3 h-100">
-                <div class="d-flex align-items-center justify-content-between">
-                    <div>
-                        <span class="text-secondary small fw-medium d-block mb-1">Tim Marketing</span>
-                        <h4 class="fw-bold text-dark mb-0">{{ number_format($totalTeams) }} <span class="fs-6 fw-normal text-muted">Tim</span></h4>
-                        <span class="badge bg-success bg-opacity-10 text-success mt-2 fw-medium rounded-pill px-2 py-1">
-                            <i class="bi bi-check-circle me-1"></i>{{ number_format($activeTeams) }} Aktif
-                        </span>
-                    </div>
-                    <div class="bg-primary bg-opacity-10 text-primary rounded-3 p-3 d-flex align-items-center justify-content-center">
-                        <i class="bi bi-people fs-4"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-12 col-sm-6 col-xl-3">
-            <div class="card border-0 rounded-3 shadow-sm bg-white p-3 h-100">
-                <div class="d-flex align-items-center justify-content-between">
-                    <div>
-                        <span class="text-secondary small fw-medium d-block mb-1">Toko Terhubung</span>
-                        <h4 class="fw-bold text-dark mb-0">{{ number_format($totalStoresLinked) }} <span class="fs-6 fw-normal text-muted">Toko</span></h4>
-                        <span class="text-muted small mt-2 d-block">
-                            Dari total {{ $stores->count() }} toko ERP
-                        </span>
-                    </div>
-                    <div class="bg-info bg-opacity-10 text-info rounded-3 p-3 d-flex align-items-center justify-content-center">
-                        <i class="bi bi-shop fs-4"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-12 col-sm-6 col-xl-3">
-            <div class="card border-0 rounded-3 shadow-sm bg-white p-3 h-100">
-                <div class="d-flex align-items-center justify-content-between">
-                    <div>
-                        <span class="text-secondary small fw-medium d-block mb-1">Target Qty (Aktif)</span>
-                        <h4 class="fw-bold text-dark mb-0">{{ number_format($totalTargetQty) }} <span class="fs-6 fw-normal text-muted">Qty</span></h4>
-                        <span class="text-success small mt-2 d-block fw-semibold">
-                            Realisasi: {{ number_format($totalActualQty) }} Qty
-                        </span>
-                    </div>
-                    <div class="bg-warning bg-opacity-10 text-warning rounded-3 p-3 d-flex align-items-center justify-content-center">
-                        <i class="bi bi-crosshair fs-4"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-12 col-sm-6 col-xl-3">
-            <div class="card border-0 rounded-3 shadow-sm bg-white p-3 h-100">
-                <div class="d-flex align-items-center justify-content-between">
-                    <div>
-                        <span class="text-secondary small fw-medium d-block mb-1">Insentif Realisasi</span>
-                        <h4 class="fw-bold text-success mb-0">Rp {{ number_format($totalEarnedReward, 0, ',', '.') }}</h4>
-                        <span class="text-muted small mt-2 d-block">
-                            (Actual Qty × Rp/Qty)
-                        </span>
-                    </div>
-                    <div class="bg-success bg-opacity-10 text-success rounded-3 p-3 d-flex align-items-center justify-content-center">
-                        <i class="bi bi-wallet2 fs-4"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
 
     <!-- Main List Card (No Scroll) -->
     <div class="card border-0 rounded-3 shadow-sm bg-white">

@@ -503,14 +503,6 @@
                                 Offline</a>
                         @endcan
 {{-- Inbox Chat disembunyikan sementara --}}
-
-                        @if (auth()->user()->isSuperAdmin() ||
-                                auth()->user()->role === 'admin' ||
-                                auth()->user()->hasAnyPermission(['view-financial-reports', 'manage-finance', 'marketing.ads.index']))
-                            <a href="{{ route('marketing.ads.index') }}"
-                                class="nav-link py-1 {{ request()->routeIs('marketing.ads.*') ? 'active text-white' : 'text-secondary' }}">Dashboard
-                                Keputusan</a>
-                        @endif
                         
                         @if (auth()->user()->isSuperAdmin() ||
                                 auth()->user()->role === 'admin' ||

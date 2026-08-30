@@ -7,6 +7,7 @@ use App\Models\Customer;
 use App\Models\OfflineSale;
 use App\Models\BankAccount;
 use App\Models\Income;
+use App\Models\Order;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -180,28 +181,41 @@ class CustomerController extends Controller
             $q->orderByDesc('order_date');
         }, 'orders.items']);
 
-        $totalSpent = $customer->orders->sum('net_amount');
-        $averageOrderValue = $customer->orders->count() > 0 ? $totalSpent / $customer->orders->count() : 0;
-
         $tenantId = $customer->tenant_id;
-        $receivableSales = OfflineSale::where('tenant_id', $tenantId)
+
+        // Fetch all POS Offline Sales for this customer
+        $offlineSales = OfflineSale::where('tenant_id', $tenantId)
             ->where('customer_id', $customer->id)
-            ->where('status', '!=', OfflineSale::STATUS_CANCELLED)
-            ->where(function ($q) {
-                $q->where('payment_method', 'piutang')
-                  ->orWhereRaw('grand_total > paid_amount');
-            })
             ->orderByDesc('sold_at')
             ->get();
 
-        $totalReceivable = (float) $receivableSales->sum(fn($s) => max(0, $s->grand_total - $s->paid_amount));
+        // Calculate accurate aggregate LTV metrics (excluding cancelled transactions)
+        $totalSpentOnline = $customer->orders->where('order_status', '!=', Order::STATUS_CANCELLED)->sum('net_amount');
+        $totalSpentOffline = $offlineSales->where('status', '!=', OfflineSale::STATUS_CANCELLED)->sum('grand_total');
+        $totalSpent = (float) ($totalSpentOnline + $totalSpentOffline);
+
+        $totalOrdersOnline = $customer->orders->where('order_status', '!=', Order::STATUS_CANCELLED)->count();
+        $totalOrdersOffline = $offlineSales->where('status', '!=', OfflineSale::STATUS_CANCELLED)->count();
+        $totalOrdersCount = $totalOrdersOnline + $totalOrdersOffline;
+
+        $averageOrderValue = $totalOrdersCount > 0 ? $totalSpent / $totalOrdersCount : 0;
+
+        // Fetch only unpaid/receivable POS Offline Sales for the receivable pane
+        $receivableSales = $offlineSales->filter(function ($s) {
+            return $s->status !== OfflineSale::STATUS_CANCELLED && ($s->payment_method === 'piutang' || (float)$s->grand_total > (float)$s->paid_amount);
+        });
+
+        $totalReceivable = (float) $receivableSales->sum(fn($s) => max(0, (float)$s->grand_total - (float)$s->paid_amount));
 
         $bankAccounts = BankAccount::where('tenant_id', $tenantId)
             ->where('is_active', true)
             ->orderBy('bank_name')
             ->get();
 
-        return view('master.customers.show', compact('customer', 'totalSpent', 'averageOrderValue', 'receivableSales', 'totalReceivable', 'bankAccounts'));
+        return view('master.customers.show', compact(
+            'customer', 'totalSpent', 'averageOrderValue', 'receivableSales', 
+            'totalReceivable', 'bankAccounts', 'offlineSales', 'totalOrdersCount'
+        ));
     }
 
     public function update(Request $request, Customer $customer)
