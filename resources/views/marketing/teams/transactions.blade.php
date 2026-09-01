@@ -9,12 +9,9 @@
     <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
         <div>
             @php
-                $backParams = [
-                    'month' => request('month'),
-                    'year' => request('year'),
-                    'date_from' => request('date_from'),
-                    'date_to' => request('date_to')
-                ];
+                $backParams = [];
+                if (request()->filled('month')) $backParams['month'] = request('month');
+                if (request()->filled('year')) $backParams['year'] = request('year');
             @endphp
             <a href="{{ route('marketing.teams.index', $backParams) }}" class="btn btn-outline-secondary btn-sm rounded-pill px-3 mb-2 fw-medium">
                 <i class="bi bi-arrow-left me-1"></i> Kembali ke Target Komisi
@@ -33,17 +30,10 @@
                     Komisi: Rp {{ number_format($rewardPerQty, 0, ',', '.') }} / Qty
                 </span>
                 
-                @if(request()->filled('month') || request()->filled('year'))
-                    <span class="badge bg-info bg-opacity-10 text-info rounded-pill px-2.5 py-1 small fw-semibold">
-                        <i class="bi bi-calendar3 me-1"></i>
-                        Filter Periode: {{ request('month') ? date('F', mktime(0,0,0,request('month'),1)) : '—' }} {{ request('year') ?? '' }}
-                    </span>
-                @else
-                    <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 rounded-pill px-2.5 py-1 small fw-semibold">
-                        <i class="bi bi-lock-fill me-1"></i>
-                        Periode Dana Cair: {{ \Carbon\Carbon::parse($dateFrom)->format('d M Y') }} s/d {{ \Carbon\Carbon::parse($dateTo)->format('d M Y') }}
-                    </span>
-                @endif
+                <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 rounded-pill px-2.5 py-1 small fw-semibold">
+                    <i class="bi bi-lock-fill me-1"></i>
+                    Periode Dana Cair: {{ \Carbon\Carbon::parse($dateFrom)->format('d M Y') }} s/d {{ \Carbon\Carbon::parse($dateTo)->format('d M Y') }}
+                </span>
             </div>
         </div>
     </div>

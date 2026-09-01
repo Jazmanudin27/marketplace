@@ -116,9 +116,9 @@
             <form id="filterForm" action="{{ route('marketing.teams.index') }}" method="GET" class="row g-2 align-items-end">
 
                 <!-- Filter Bulan & Tahun (Opsional) -->
-                <div class="col-12 col-md-4">
+                <div class="col-12 col-md-6 col-lg-5">
                     <label class="form-label small fw-bold text-dark mb-1">
-                        <i class="bi bi-calendar3 me-1 text-primary"></i>Filter Bulan & Tahun
+                        <i class="bi bi-calendar3 me-1 text-primary"></i>Filter Periode Target (Bulan & Tahun)
                         <span class="text-muted fw-normal">(opsional)</span>
                     </label>
                     <div class="row g-1">
@@ -134,7 +134,7 @@
                         </div>
                         <div class="col-5">
                             <select id="filterYear" name="year" class="form-select form-select-sm">
-                                <option value="">-- Tahun --</option>
+                                <option value="">-- Semua Tahun --</option>
                                 @foreach($availableYears as $yr)
                                     <option value="{{ $yr }}" {{ request('year') == $yr ? 'selected' : '' }}>
                                         {{ $yr }}
@@ -143,42 +143,14 @@
                             </select>
                         </div>
                     </div>
-                    <div class="form-text text-muted" style="font-size:0.72rem;">
-                        <i class="bi bi-info-circle me-1"></i>Jika dipilih, range tanggal di kanan otomatis dikosongkan.
-                    </div>
-                </div>
-
-                <!-- Filter Range Tanggal Orderan Diterima -->
-                <div class="col-12 col-md-5">
-                    <label class="form-label small fw-bold text-dark mb-1">
-                        <i class="bi bi-calendar-range me-1 text-primary"></i>Range Tanggal Diterima
-                        @if(!request()->filled('month') && !request()->filled('year'))
-                            <span class="badge bg-success bg-opacity-10 text-success rounded-pill px-2 fw-normal" style="font-size:0.68rem;">
-                                <i class="bi bi-check-circle me-1"></i>Aktif
-                            </span>
-                        @endif
-                    </label>
-                    <div class="row g-1">
-                        <div class="col-6">
-                            <input type="date" id="filterDateFrom" name="date_from" class="form-control form-select-sm"
-                                value="{{ request('date_from', $dateFrom) }}" placeholder="Dari Tanggal">
-                        </div>
-                        <div class="col-6">
-                            <input type="date" id="filterDateTo" name="date_to" class="form-control form-select-sm"
-                                value="{{ request('date_to', $dateTo) }}" placeholder="Sampai Tanggal">
-                        </div>
-                    </div>
-                    <div class="form-text text-muted" style="font-size:0.72rem;">
-                        <i class="bi bi-info-circle me-1"></i>Jika diubah, pilihan Bulan & Tahun di kiri otomatis dikosongkan.
-                    </div>
                 </div>
 
                 <!-- Tombol Action -->
-                <div class="col-12 col-md-3 text-end d-flex gap-2 justify-content-end">
+                <div class="col-12 col-md-6 col-lg-7 text-md-end d-flex gap-2 justify-content-md-end">
                     <button type="submit" class="btn btn-primary btn-sm rounded-pill px-3 fw-semibold">
                         <i class="bi bi-search me-1"></i> Terapkan Filter
                     </button>
-                    @if(request()->hasAny(['month', 'year', 'date_from', 'date_to', 'search']))
+                    @if(request()->hasAny(['month', 'year', 'search']))
                         <a href="{{ route('marketing.teams.index') }}" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
                             <i class="bi bi-arrow-counterclockwise me-1"></i> Reset
                         </a>
@@ -188,23 +160,18 @@
 
             {{-- Info Mode Filter Aktif --}}
             <div class="mt-2 pt-2 border-top d-flex align-items-center gap-2 flex-wrap">
-                <small class="text-muted fw-medium">Mode Filter Aktif:</small>
+                <small class="text-muted fw-medium">Status Acuan Realisasi:</small>
                 @if($hasExplicitMonthYear)
                     <span class="badge bg-primary bg-opacity-10 text-primary rounded-pill px-2.5 py-1" style="font-size:0.75rem;">
                         <i class="bi bi-calendar3 me-1"></i>
-                        Filter Bulan & Tahun:
-                        {{ request('month') ? date('F', mktime(0,0,0,request('month'),1)) : '—' }}
-                        {{ request('year') ?? '' }}
-                    </span>
-                @elseif($hasExplicitDateRange)
-                    <span class="badge bg-success bg-opacity-10 text-success rounded-pill px-2.5 py-1" style="font-size:0.75rem;">
-                        <i class="bi bi-calendar-range me-1"></i>
-                        Filter Range Tanggal: {{ \Carbon\Carbon::parse($dateFrom)->format('d M Y') }} s/d {{ \Carbon\Carbon::parse($dateTo)->format('d M Y') }}
+                        Filter Periode:
+                        {{ request('month') ? date('F', mktime(0,0,0,request('month'),1)) : 'Semua Bulan' }}
+                        {{ request('year') ? request('year') : '' }}
                     </span>
                 @else
-                    <span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25 rounded-pill px-2.5 py-1" style="font-size:0.75rem;">
+                    <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 rounded-pill px-2.5 py-1" style="font-size:0.75rem;">
                         <i class="bi bi-lock-fill me-1"></i>
-                        Periode Tanggal Dana Cair Terkunci (Sesuai Acuan Masing-Masing Tim)
+                        Tanggal Dana Cair Terkunci Otomatis Sesuai Pengaturan Masing-Masing Tim
                     </span>
                 @endif
             </div>
@@ -245,10 +212,12 @@
                 <span>Daftar Tim & Target</span>
             </h6>
             <form action="{{ route('marketing.teams.index') }}" method="GET" class="d-flex gap-2">
-                <input type="hidden" name="month" value="{{ $reqMonth }}">
-                <input type="hidden" name="year" value="{{ $reqYear }}">
-                <input type="hidden" name="date_from" value="{{ $dateFrom }}">
-                <input type="hidden" name="date_to" value="{{ $dateTo }}">
+                @if(request()->filled('month'))
+                    <input type="hidden" name="month" value="{{ request('month') }}">
+                @endif
+                @if(request()->filled('year'))
+                    <input type="hidden" name="year" value="{{ request('year') }}">
+                @endif
                 <div class="input-group input-group-sm rounded-pill border">
                     <span class="input-group-text bg-white border-0 ps-3 text-muted"><i class="bi bi-search"></i></span>
                     <input type="text" name="search" class="form-control border-0 shadow-none ps-1" placeholder="Cari tim..." value="{{ request('search') }}">
@@ -764,34 +733,6 @@
 @push('scripts')
 <script>
 (function () {
-    const selMonth    = document.getElementById('filterMonth');
-    const selYear     = document.getElementById('filterYear');
-    const inputFrom   = document.getElementById('filterDateFrom');
-    const inputTo     = document.getElementById('filterDateTo');
-
-    if (!selMonth || !selYear || !inputFrom || !inputTo) return;
-
-    // Saat user mengubah Bulan atau Tahun → kosongkan date range
-    function onMonthYearChange() {
-        if (selMonth.value !== '' || selYear.value !== '') {
-            inputFrom.value = '';
-            inputTo.value   = '';
-        }
-    }
-
-    // Saat user mengubah date range → kosongkan Bulan & Tahun
-    function onDateRangeChange() {
-        if (inputFrom.value !== '' || inputTo.value !== '') {
-            selMonth.value = '';
-            selYear.value  = '';
-        }
-    }
-
-    selMonth.addEventListener('change', onMonthYearChange);
-    selYear.addEventListener('change', onMonthYearChange);
-    inputFrom.addEventListener('change', onDateRangeChange);
-    inputTo.addEventListener('change', onDateRangeChange);
-
     // Helper untuk sinkronisasi tanggal otomatis berdasarkan bulan & tahun yang dipilih
     function updateDateRangeForMonth(month, year, dateFromInput, dateToInput) {
         if (!month || !year) return;

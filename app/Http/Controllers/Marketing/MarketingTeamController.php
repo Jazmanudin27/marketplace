@@ -34,53 +34,33 @@ class MarketingTeamController extends Controller
         $availableYears = array_values(array_unique(array_filter(array_merge([$currentYear], $teamYears, $orderYears))));
         rsort($availableYears);
 
-        // Deteksi mode filter yang digunakan user:
-        // - Jika user memilih Bulan & Tahun → mode bulan/tahun
-        // - Jika user memilih Range Tanggal manual di filter bar → mode range tanggal
-        // - Jika tidak ada filter eksplisit di URL → mode default (masing-masing tim menggunakan tanggal terkunci miliknya)
+        // Deteksi filter Bulan & Tahun (opsional untuk menyaring tim berdasarkan periode targetnya)
         $hasExplicitMonthYear = $request->filled('month') || $request->filled('year');
-        $hasExplicitDateRange = $request->filled('date_from') && $request->filled('date_to');
+        $reqMonth = $request->filled('month') ? (int) $request->month : null;
+        $reqYear  = $request->filled('year') ? (int) $request->year : null;
 
-        $reqMonth = $request->filled('month') ? (int) $request->month : (int) date('n');
-        $reqYear  = $request->filled('year') ? (int) $request->year : $currentYear;
-        $dateFrom = $request->filled('date_from') ? $request->date_from : date('Y-m-01');
-        $dateTo   = $request->filled('date_to') ? $request->date_to : date('Y-m-d');
-
-        // Query teams
+        // Query teams — jika filter bulan/tahun dipilih, filter tim yang period_month & period_year sesuai
         $teams = MarketingTeam::forTenant($tenantId)
             ->with(['stores.channel'])
             ->when($request->filled('search'), function ($q) use ($request) {
                 $q->where('name', 'like', '%' . $request->search . '%')
                   ->orWhere('description', 'like', '%' . $request->search . '%');
             })
-            ->when($hasExplicitMonthYear, function ($q) use ($reqMonth, $reqYear) {
-                // Tampilkan hanya tim yang target bulan & tahunnya sesuai filter
-                $q->where('period_month', $reqMonth)
-                  ->where('period_year', $reqYear);
+            ->when($reqMonth, function ($q) use ($reqMonth) {
+                $q->where('period_month', $reqMonth);
+            })
+            ->when($reqYear, function ($q) use ($reqYear) {
+                $q->where('period_year', $reqYear);
             })
             ->orderBy('id', 'desc')
             ->get();
 
-        // Hitung nilai dinamis aktual per tim berdasarkan filter
+        // Hitung nilai aktual per tim berdasarkan tanggal dana cair terkunci yang tersimpan di DB
         foreach ($teams as $team) {
-            if ($hasExplicitMonthYear) {
-                // Mode Bulan & Tahun eksplisit
-                $team->custom_actual_qty   = $team->calculateActualQty($reqMonth, $reqYear);
-                $team->custom_actual_omset = $team->calculateActualOmset($reqMonth, $reqYear);
-            } elseif ($hasExplicitDateRange) {
-                // Mode Range Tanggal eksplisit dari top bar
-                $team->custom_actual_qty   = $team->calculateActualQty(null, null, $dateFrom, $dateTo);
-                $team->custom_actual_omset = $team->calculateActualOmset(null, null, $dateFrom, $dateTo);
-            } else {
-                // Default: menggunakan tanggal acuan dana cair yang terkunci pada tim masing-masing
-                $team->custom_actual_qty   = $team->actual_qty;
-                $team->custom_actual_omset = $team->actual_omset;
-            }
-
-            $team->custom_total_reward = $team->custom_actual_qty * $team->reward_per_qty;
-            $team->custom_progress_percent = $team->target_qty > 0
-                ? min(100.0, round(($team->custom_actual_qty / $team->target_qty) * 100, 1))
-                : 0.0;
+            $team->custom_actual_qty   = $team->actual_qty;
+            $team->custom_actual_omset = $team->actual_omset;
+            $team->custom_total_reward = $team->total_reward;
+            $team->custom_progress_percent = $team->qty_progress_percent;
         }
 
         // Ambil daftar seluruh Toko milik tenant
@@ -117,12 +97,9 @@ class MarketingTeamController extends Controller
             'totalEarnedReward',
             'reqMonth',
             'reqYear',
-            'dateFrom',
-            'dateTo',
             'availableYears',
             'masterProducts',
-            'hasExplicitMonthYear',
-            'hasExplicitDateRange'
+            'hasExplicitMonthYear'
         ));
     }
 
