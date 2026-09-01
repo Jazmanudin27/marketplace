@@ -35,24 +35,25 @@ class MarketingTeamController extends Controller
         rsort($availableYears);
 
         // Deteksi mode filter yang digunakan user:
-        // Mode filter:
-        // - Jika user memilih Bulan & Tahun → mode bulan/tahun (tim & realisasi difilter per bulan)
-        // - Jika tidak → mode Range Tanggal (default: awal bulan s/d hari ini)
-        $useMonthYear = $request->filled('month') || $request->filled('year');
+        // - Jika user memilih Bulan & Tahun → mode bulan/tahun
+        // - Jika user memilih Range Tanggal manual di filter bar → mode range tanggal
+        // - Jika tidak ada filter eksplisit di URL → mode default (masing-masing tim menggunakan tanggal terkunci miliknya)
+        $hasExplicitMonthYear = $request->filled('month') || $request->filled('year');
+        $hasExplicitDateRange = $request->filled('date_from') && $request->filled('date_to');
 
         $reqMonth = $request->filled('month') ? (int) $request->month : (int) date('n');
         $reqYear  = $request->filled('year') ? (int) $request->year : $currentYear;
         $dateFrom = $request->filled('date_from') ? $request->date_from : date('Y-m-01');
         $dateTo   = $request->filled('date_to') ? $request->date_to : date('Y-m-d');
 
-        // Query teams — jika mode bulan/tahun, filter hanya tim dengan period_month & period_year sesuai
+        // Query teams
         $teams = MarketingTeam::forTenant($tenantId)
             ->with(['stores.channel'])
             ->when($request->filled('search'), function ($q) use ($request) {
                 $q->where('name', 'like', '%' . $request->search . '%')
                   ->orWhere('description', 'like', '%' . $request->search . '%');
             })
-            ->when($useMonthYear, function ($q) use ($reqMonth, $reqYear) {
+            ->when($hasExplicitMonthYear, function ($q) use ($reqMonth, $reqYear) {
                 // Tampilkan hanya tim yang target bulan & tahunnya sesuai filter
                 $q->where('period_month', $reqMonth)
                   ->where('period_year', $reqYear);
@@ -62,14 +63,18 @@ class MarketingTeamController extends Controller
 
         // Hitung nilai dinamis aktual per tim berdasarkan filter
         foreach ($teams as $team) {
-            if ($useMonthYear) {
-                // Mode Bulan & Tahun
+            if ($hasExplicitMonthYear) {
+                // Mode Bulan & Tahun eksplisit
                 $team->custom_actual_qty   = $team->calculateActualQty($reqMonth, $reqYear);
                 $team->custom_actual_omset = $team->calculateActualOmset($reqMonth, $reqYear);
-            } else {
-                // Mode Range Tanggal (default: dari awal bulan ini s/d hari ini)
+            } elseif ($hasExplicitDateRange) {
+                // Mode Range Tanggal eksplisit dari top bar
                 $team->custom_actual_qty   = $team->calculateActualQty(null, null, $dateFrom, $dateTo);
                 $team->custom_actual_omset = $team->calculateActualOmset(null, null, $dateFrom, $dateTo);
+            } else {
+                // Default: menggunakan tanggal acuan dana cair yang terkunci pada tim masing-masing
+                $team->custom_actual_qty   = $team->actual_qty;
+                $team->custom_actual_omset = $team->actual_omset;
             }
 
             $team->custom_total_reward = $team->custom_actual_qty * $team->reward_per_qty;
@@ -115,7 +120,9 @@ class MarketingTeamController extends Controller
             'dateFrom',
             'dateTo',
             'availableYears',
-            'masterProducts'
+            'masterProducts',
+            'hasExplicitMonthYear',
+            'hasExplicitDateRange'
         ));
     }
 
@@ -131,12 +138,26 @@ class MarketingTeamController extends Controller
             'target_omset' => 'nullable|numeric|min:0',
             'period_month' => 'nullable|integer|between:1,12',
             'period_year' => 'nullable|integer|min:2020|max:2099',
+            'date_from' => 'nullable|date',
+            'date_to' => 'nullable|date|after_or_equal:date_from',
             'store_ids' => 'nullable|array',
             'store_ids.*' => 'exists:stores,id',
             'description' => 'nullable|string',
         ]);
 
         $tenantId = Auth::user()->tenant_id;
+
+        $pMonth = $request->period_month ?? (int) date('n');
+        $pYear  = $request->period_year ?? (int) date('Y');
+
+        $dateFrom = $request->date_from;
+        $dateTo   = $request->date_to;
+
+        // Auto-generate date_from & date_to jika user tidak mengisi manual
+        if (empty($dateFrom) || empty($dateTo)) {
+            $dateFrom = sprintf('%04d-%02d-01', $pYear, $pMonth);
+            $dateTo   = date('Y-m-t', strtotime($dateFrom));
+        }
 
         $team = MarketingTeam::create([
             'tenant_id' => $tenantId,
@@ -146,8 +167,10 @@ class MarketingTeamController extends Controller
             'target_qty' => $request->target_qty ?? 0,
             'reward_per_qty' => $request->reward_per_qty ?? 0,
             'target_omset' => $request->target_omset ?? 0,
-            'period_month' => $request->period_month ?? date('n'),
-            'period_year' => $request->period_year ?? date('Y'),
+            'period_month' => $pMonth,
+            'period_year' => $pYear,
+            'date_from' => $dateFrom,
+            'date_to' => $dateTo,
             'is_active' => $request->has('is_active') ? (bool) $request->is_active : true,
         ]);
 
@@ -156,7 +179,7 @@ class MarketingTeamController extends Controller
         }
 
         return redirect()->route('marketing.teams.index')
-            ->with('success', "Tim Marketing '{$team->name}' & Target berhasil dibuat!");
+            ->with('success', "Tim Marketing '{$team->name}' & Target berhasil dibuat dengan acuan tanggal {$team->period_label}!");
     }
 
     /**
@@ -173,10 +196,23 @@ class MarketingTeamController extends Controller
             'target_omset' => 'nullable|numeric|min:0',
             'period_month' => 'nullable|integer|between:1,12',
             'period_year' => 'nullable|integer|min:2020|max:2099',
+            'date_from' => 'nullable|date',
+            'date_to' => 'nullable|date|after_or_equal:date_from',
             'store_ids' => 'nullable|array',
             'store_ids.*' => 'exists:stores,id',
             'description' => 'nullable|string',
         ]);
+
+        $pMonth = $request->period_month ?? $marketingTeam->period_month ?? (int) date('n');
+        $pYear  = $request->period_year ?? $marketingTeam->period_year ?? (int) date('Y');
+
+        $dateFrom = $request->date_from;
+        $dateTo   = $request->date_to;
+
+        if (empty($dateFrom) || empty($dateTo)) {
+            $dateFrom = sprintf('%04d-%02d-01', $pYear, $pMonth);
+            $dateTo   = date('Y-m-t', strtotime($dateFrom));
+        }
 
         $marketingTeam->update([
             'name' => $request->name,
@@ -185,8 +221,10 @@ class MarketingTeamController extends Controller
             'target_qty' => $request->target_qty ?? 0,
             'reward_per_qty' => $request->reward_per_qty ?? 0,
             'target_omset' => $request->target_omset ?? 0,
-            'period_month' => $request->period_month ?? $marketingTeam->period_month,
-            'period_year' => $request->period_year ?? $marketingTeam->period_year,
+            'period_month' => $pMonth,
+            'period_year' => $pYear,
+            'date_from' => $dateFrom,
+            'date_to' => $dateTo,
             'is_active' => $request->has('is_active') ? (bool) $request->is_active : false,
         ]);
 
@@ -240,6 +278,10 @@ class MarketingTeamController extends Controller
             $totalQty = 0;
             $totalOmset = 0.0;
             $totalEarnedReward = 0.0;
+            $reqMonth = null;
+            $reqYear  = null;
+            $dateFrom = null;
+            $dateTo   = null;
         } else {
             $validStatuses = [
                 'COMPLETED', 'RELEASED', 'COMPLETED_ESCROW', 'SELESAI', 'DELIVERED', 'FINISHED',
@@ -250,18 +292,40 @@ class MarketingTeamController extends Controller
                 'cancelled', 'canceled', 'batal', 'returned', 'refunded'
             ];
 
-            // Resolve filters
-            $reqMonth = $request->filled('month') ? (int) $request->month : null;
-            $reqYear  = $request->filled('year') ? (int) $request->year : null;
-            $dateFrom = $request->filled('date_from') ? $request->date_from : null;
-            $dateTo   = $request->filled('date_to') ? $request->date_to : null;
+            // Resolve filters:
+            // Prioritas:
+            // 1. Parameter eksplisit di request (date_from & date_to)
+            // 2. Parameter eksplisit di request (month & year)
+            // 3. Tanggal acuan tersimpan di data tim ($marketingTeam->date_from & date_to)
+            // 4. Bulan & Tahun tim / default bulan ini
+            $hasReqDateRange = $request->filled('date_from') && $request->filled('date_to');
+            $hasReqMonthYear = $request->filled('month') || $request->filled('year');
 
-            if (!$reqMonth && !$reqYear && !$dateFrom && !$dateTo) {
+            if ($hasReqDateRange) {
+                $dateFrom = $request->date_from;
+                $dateTo   = $request->date_to;
+                $reqMonth = null;
+                $reqYear  = null;
+                $useMonthYear = false;
+            } elseif ($hasReqMonthYear) {
+                $reqMonth = $request->filled('month') ? (int) $request->month : null;
+                $reqYear  = $request->filled('year') ? (int) $request->year : null;
+                $dateFrom = null;
+                $dateTo   = null;
+                $useMonthYear = true;
+            } elseif ($marketingTeam->date_from && $marketingTeam->date_to) {
+                $dateFrom = $marketingTeam->date_from instanceof \Carbon\Carbon ? $marketingTeam->date_from->format('Y-m-d') : (string) $marketingTeam->date_from;
+                $dateTo   = $marketingTeam->date_to instanceof \Carbon\Carbon ? $marketingTeam->date_to->format('Y-m-d') : (string) $marketingTeam->date_to;
+                $reqMonth = null;
+                $reqYear  = null;
+                $useMonthYear = false;
+            } else {
                 $dateFrom = date('Y-m-01');
                 $dateTo   = date('Y-m-d');
+                $reqMonth = null;
+                $reqYear  = null;
+                $useMonthYear = false;
             }
-
-            $useMonthYear = ($reqMonth || $reqYear);
 
             // Base query for orders
             $query = \App\Models\Order::whereIn('store_id', $storeIds)

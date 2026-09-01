@@ -187,23 +187,24 @@
             </form>
 
             {{-- Info Mode Filter Aktif --}}
-            @php
-                $isMonthYearMode = request()->filled('month') || request()->filled('year');
-                $isDateRangeMode = !$isMonthYearMode;
-            @endphp
             <div class="mt-2 pt-2 border-top d-flex align-items-center gap-2 flex-wrap">
                 <small class="text-muted fw-medium">Mode Filter Aktif:</small>
-                @if($isMonthYearMode)
-                    <span class="badge bg-primary bg-opacity-10 text-primary rounded-pill px-2 py-1" style="font-size:0.72rem;">
+                @if($hasExplicitMonthYear)
+                    <span class="badge bg-primary bg-opacity-10 text-primary rounded-pill px-2.5 py-1" style="font-size:0.75rem;">
                         <i class="bi bi-calendar3 me-1"></i>
-                        Bulan & Tahun:
+                        Filter Bulan & Tahun:
                         {{ request('month') ? date('F', mktime(0,0,0,request('month'),1)) : '—' }}
                         {{ request('year') ?? '' }}
                     </span>
-                @else
-                    <span class="badge bg-success bg-opacity-10 text-success rounded-pill px-2 py-1" style="font-size:0.72rem;">
+                @elseif($hasExplicitDateRange)
+                    <span class="badge bg-success bg-opacity-10 text-success rounded-pill px-2.5 py-1" style="font-size:0.75rem;">
                         <i class="bi bi-calendar-range me-1"></i>
-                        Range Tanggal: {{ \Carbon\Carbon::parse($dateFrom)->format('d M Y') }} s/d {{ \Carbon\Carbon::parse($dateTo)->format('d M Y') }}
+                        Filter Range Tanggal: {{ \Carbon\Carbon::parse($dateFrom)->format('d M Y') }} s/d {{ \Carbon\Carbon::parse($dateTo)->format('d M Y') }}
+                    </span>
+                @else
+                    <span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25 rounded-pill px-2.5 py-1" style="font-size:0.75rem;">
+                        <i class="bi bi-lock-fill me-1"></i>
+                        Periode Tanggal Dana Cair Terkunci (Sesuai Acuan Masing-Masing Tim)
                     </span>
                 @endif
             </div>
@@ -278,12 +279,25 @@
                     <tr>
                         <td class="ps-4 text-muted fw-medium">{{ $index + 1 }}</td>
                         <td class="py-3">
-                            <div class="d-flex align-items-center gap-2 mb-1">
-                                <a href="{{ route('marketing.teams.transactions', [$team->id, 'month' => request('month'), 'year' => request('year'), 'date_from' => request('date_from'), 'date_to' => request('date_to')]) }}" class="fw-bold text-primary text-decoration-none hover-underline">
+                            <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
+                                @php
+                                    $transParams = [];
+                                    if (request()->filled('month') || request()->filled('year')) {
+                                        $transParams['month'] = request('month');
+                                        $transParams['year']  = request('year');
+                                    } elseif (request()->filled('date_from') && request()->filled('date_to')) {
+                                        $transParams['date_from'] = request('date_from');
+                                        $transParams['date_to']   = request('date_to');
+                                    } elseif ($team->date_from && $team->date_to) {
+                                        $transParams['date_from'] = $team->date_from instanceof \Carbon\Carbon ? $team->date_from->format('Y-m-d') : (string)$team->date_from;
+                                        $transParams['date_to']   = $team->date_to instanceof \Carbon\Carbon ? $team->date_to->format('Y-m-d') : (string)$team->date_to;
+                                    }
+                                @endphp
+                                <a href="{{ route('marketing.teams.transactions', array_merge([$team->id], $transParams)) }}" class="fw-bold text-primary text-decoration-none hover-underline">
                                     {{ $team->name }}
                                 </a>
-                                <span class="badge bg-light text-dark border rounded-pill px-2 py-1 small fw-normal">
-                                    {{ $team->period_month ? date('F', mktime(0, 0, 0, $team->period_month, 1)) : 'All' }} {{ $team->period_year ?? '' }}
+                                <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 rounded-pill px-2.5 py-1 small fw-semibold" title="Acuan Periode Dana Cair Terkunci">
+                                    <i class="bi bi-lock-fill me-1"></i>{{ $team->period_label }}
                                 </span>
                             </div>
                             
@@ -428,10 +442,12 @@
                                             </div>
 
                                             <div class="col-12 col-md-6">
-                                                <label class="form-label fw-semibold small text-dark">Periode Target Bawaan</label>
+                                                <label class="form-label fw-semibold small text-dark">
+                                                    <i class="bi bi-calendar3 text-primary me-1"></i>Bulan & Tahun Bawaan
+                                                </label>
                                                 <div class="row g-2">
                                                     <div class="col-7">
-                                                        <select name="period_month" class="form-select">
+                                                        <select name="period_month" id="edit_month_{{ $team->id }}" class="form-select period-month-select" data-target-id="{{ $team->id }}">
                                                             @for($m = 1; $m <= 12; $m++)
                                                                 <option value="{{ $m }}" {{ old('period_month', $team->period_month) == $m ? 'selected' : '' }}>
                                                                     {{ date('F', mktime(0, 0, 0, $m, 1)) }}
@@ -440,8 +456,30 @@
                                                         </select>
                                                     </div>
                                                     <div class="col-5">
-                                                        <input type="number" name="period_year" class="form-control" value="{{ old('period_year', $team->period_year ?? date('Y')) }}" placeholder="Tahun">
+                                                        <input type="number" name="period_year" id="edit_year_{{ $team->id }}" class="form-control period-year-input" data-target-id="{{ $team->id }}" value="{{ old('period_year', $team->period_year ?? date('Y')) }}" placeholder="Tahun">
                                                     </div>
+                                                </div>
+                                                <div class="form-text text-muted" style="font-size:0.72rem;">
+                                                    Memilih bulan/tahun otomatis menyesuaikan tanggal cair di samping.
+                                                </div>
+                                            </div>
+
+                                            <div class="col-12 col-md-6">
+                                                <label class="form-label fw-semibold small text-dark">
+                                                    <i class="bi bi-lock-fill text-success me-1"></i>Tanggal Dana Cair (Dari - Sampai) <span class="text-danger">*</span>
+                                                </label>
+                                                <div class="row g-2">
+                                                    <div class="col-6">
+                                                        <input type="date" name="date_from" id="edit_date_from_{{ $team->id }}" class="form-control"
+                                                            value="{{ old('date_from', $team->date_from ? ($team->date_from instanceof \Carbon\Carbon ? $team->date_from->format('Y-m-d') : (string)$team->date_from) : '') }}" required>
+                                                    </div>
+                                                    <div class="col-6">
+                                                        <input type="date" name="date_to" id="edit_date_to_{{ $team->id }}" class="form-control"
+                                                            value="{{ old('date_to', $team->date_to ? ($team->date_to instanceof \Carbon\Carbon ? $team->date_to->format('Y-m-d') : (string)$team->date_to) : '') }}" required>
+                                                    </div>
+                                                </div>
+                                                <div class="form-text text-muted" style="font-size:0.72rem;">
+                                                    <i class="bi bi-info-circle me-1"></i>Acuan terkunci tanggal pencairan (<code>completed_at</code>) pesanan tim.
                                                 </div>
                                             </div>
 
@@ -549,10 +587,12 @@
                         </div>
 
                         <div class="col-12 col-md-6">
-                            <label class="form-label fw-semibold small text-dark">Periode Target Bawaan</label>
+                            <label class="form-label fw-semibold small text-dark">
+                                <i class="bi bi-calendar3 text-primary me-1"></i>Bulan & Tahun Bawaan
+                            </label>
                             <div class="row g-2">
                                 <div class="col-7">
-                                    <select name="period_month" class="form-select">
+                                    <select name="period_month" id="create_period_month" class="form-select">
                                         @for($m = 1; $m <= 12; $m++)
                                             <option value="{{ $m }}" {{ old('period_month', date('n')) == $m ? 'selected' : '' }}>
                                                 {{ date('F', mktime(0, 0, 0, $m, 1)) }}
@@ -561,8 +601,28 @@
                                     </select>
                                 </div>
                                 <div class="col-5">
-                                    <input type="number" name="period_year" class="form-control" value="{{ old('period_year', date('Y')) }}" placeholder="Tahun">
+                                    <input type="number" name="period_year" id="create_period_year" class="form-control" value="{{ old('period_year', date('Y')) }}" placeholder="Tahun">
                                 </div>
+                            </div>
+                            <div class="form-text text-muted" style="font-size:0.72rem;">
+                                Memilih bulan/tahun otomatis menyesuaikan tanggal cair di samping.
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-semibold small text-dark">
+                                <i class="bi bi-lock-fill text-success me-1"></i>Tanggal Dana Cair (Dari - Sampai) <span class="text-danger">*</span>
+                            </label>
+                            <div class="row g-2">
+                                <div class="col-6">
+                                    <input type="date" name="date_from" id="create_date_from" class="form-control" value="{{ old('date_from', date('Y-m-01')) }}" required>
+                                </div>
+                                <div class="col-6">
+                                    <input type="date" name="date_to" id="create_date_to" class="form-control" value="{{ old('date_to', date('Y-m-t')) }}" required>
+                                </div>
+                            </div>
+                            <div class="form-text text-muted" style="font-size:0.72rem;">
+                                <i class="bi bi-info-circle me-1"></i>Acuan terkunci tanggal pencairan (<code>completed_at</code>) pesanan tim.
                             </div>
                         </div>
 
@@ -731,6 +791,56 @@
     selYear.addEventListener('change', onMonthYearChange);
     inputFrom.addEventListener('change', onDateRangeChange);
     inputTo.addEventListener('change', onDateRangeChange);
+
+    // Helper untuk sinkronisasi tanggal otomatis berdasarkan bulan & tahun yang dipilih
+    function updateDateRangeForMonth(month, year, dateFromInput, dateToInput) {
+        if (!month || !year) return;
+        const m = parseInt(month, 10);
+        const y = parseInt(year, 10);
+        if (isNaN(m) || isNaN(y) || m < 1 || m > 12) return;
+
+        const pad = (n) => (n < 10 ? '0' + n : '' + n);
+        const firstDay = `${y}-${pad(m)}-01`;
+        const lastDateObj = new Date(y, m, 0);
+        const lastDay = `${y}-${pad(m)}-${pad(lastDateObj.getDate())}`;
+
+        if (dateFromInput) dateFromInput.value = firstDay;
+        if (dateToInput) dateToInput.value = lastDay;
+    }
+
+    // Modal Create auto-sync
+    const createMonth    = document.getElementById('create_period_month');
+    const createYear     = document.getElementById('create_period_year');
+    const createDateFrom = document.getElementById('create_date_from');
+    const createDateTo   = document.getElementById('create_date_to');
+
+    if (createMonth && createYear) {
+        createMonth.addEventListener('change', function () {
+            updateDateRangeForMonth(createMonth.value, createYear.value, createDateFrom, createDateTo);
+        });
+        createYear.addEventListener('input', function () {
+            updateDateRangeForMonth(createMonth.value, createYear.value, createDateFrom, createDateTo);
+        });
+    }
+
+    // Modal Edit auto-sync (per modal)
+    document.querySelectorAll('.period-month-select').forEach(function (select) {
+        const teamId = select.getAttribute('data-target-id');
+        const yearInput     = document.getElementById('edit_year_' + teamId);
+        const dateFromInput = document.getElementById('edit_date_from_' + teamId);
+        const dateToInput   = document.getElementById('edit_date_to_' + teamId);
+
+        select.addEventListener('change', function () {
+            if (yearInput) {
+                updateDateRangeForMonth(select.value, yearInput.value, dateFromInput, dateToInput);
+            }
+        });
+        if (yearInput) {
+            yearInput.addEventListener('input', function () {
+                updateDateRangeForMonth(select.value, yearInput.value, dateFromInput, dateToInput);
+            });
+        }
+    });
 
     // Search filter untuk produk di modal
     const searchInput = document.getElementById('modalProductSearch');

@@ -20,6 +20,8 @@ class MarketingTeam extends Model
         'target_omset',
         'period_month',
         'period_year',
+        'date_from',
+        'date_to',
         'is_active',
     ];
 
@@ -29,6 +31,8 @@ class MarketingTeam extends Model
         'target_omset' => 'float',
         'period_month' => 'integer',
         'period_year' => 'integer',
+        'date_from' => 'date',
+        'date_to' => 'date',
         'is_active' => 'boolean',
     ];
 
@@ -75,13 +79,23 @@ class MarketingTeam extends Model
             ->whereNotIn('order_status', $invalidStatuses)
             ->with(['items.masterProduct', 'items.marketplaceProduct.masterProduct', 'returnOrder.items']);
 
-        if ($dateFrom && $dateTo) {
-            $from = $dateFrom . ' 00:00:00';
-            $to = $dateTo . ' 23:59:59';
+        // Prioritas rentang tanggal:
+        // 1. Parameter eksplisit $dateFrom & $dateTo
+        // 2. Tanggal acuan tersimpan di data tim ($this->date_from & $this->date_to)
+        // 3. Parameter $month & $year
+        // 4. Bulan & Tahun tersimpan di data tim
+        $effectiveDateFrom = $dateFrom ?? ($this->date_from ? ($this->date_from instanceof \Carbon\Carbon ? $this->date_from->format('Y-m-d') : (string)$this->date_from) : null);
+        $effectiveDateTo   = $dateTo ?? ($this->date_to ? ($this->date_to instanceof \Carbon\Carbon ? $this->date_to->format('Y-m-d') : (string)$this->date_to) : null);
+        $effectiveMonth    = $month ?? $this->period_month;
+        $effectiveYear     = $year ?? $this->period_year;
+
+        if ($effectiveDateFrom && $effectiveDateTo) {
+            $from = $effectiveDateFrom . ' 00:00:00';
+            $to   = $effectiveDateTo . ' 23:59:59';
             $query->whereBetween(DB::raw('COALESCE(completed_at, updated_at, order_date)'), [$from, $to]);
-        } elseif ($month && $year) {
-            $query->whereYear(DB::raw('COALESCE(completed_at, updated_at, order_date)'), $year)
-                  ->whereMonth(DB::raw('COALESCE(completed_at, updated_at, order_date)'), $month);
+        } elseif ($effectiveMonth && $effectiveYear) {
+            $query->whereYear(DB::raw('COALESCE(completed_at, updated_at, order_date)'), $effectiveYear)
+                  ->whereMonth(DB::raw('COALESCE(completed_at, updated_at, order_date)'), $effectiveMonth);
         }
 
         $orders = $query->get();
@@ -123,7 +137,7 @@ class MarketingTeam extends Model
 
     public function getActualQtyAttribute(): int
     {
-        return $this->calculateActualQty($this->period_month, $this->period_year);
+        return $this->calculateActualQty();
     }
 
     /**
@@ -149,13 +163,18 @@ class MarketingTeam extends Model
             ->whereIn('order_status', $validStatuses)
             ->whereNotIn('order_status', $invalidStatuses);
 
-        if ($dateFrom && $dateTo) {
-            $from = $dateFrom . ' 00:00:00';
-            $to = $dateTo . ' 23:59:59';
+        $effectiveDateFrom = $dateFrom ?? ($this->date_from ? ($this->date_from instanceof \Carbon\Carbon ? $this->date_from->format('Y-m-d') : (string)$this->date_from) : null);
+        $effectiveDateTo   = $dateTo ?? ($this->date_to ? ($this->date_to instanceof \Carbon\Carbon ? $this->date_to->format('Y-m-d') : (string)$this->date_to) : null);
+        $effectiveMonth    = $month ?? $this->period_month;
+        $effectiveYear     = $year ?? $this->period_year;
+
+        if ($effectiveDateFrom && $effectiveDateTo) {
+            $from = $effectiveDateFrom . ' 00:00:00';
+            $to   = $effectiveDateTo . ' 23:59:59';
             $query->whereBetween(DB::raw('COALESCE(completed_at, updated_at, order_date)'), [$from, $to]);
-        } elseif ($month && $year) {
-            $query->whereYear(DB::raw('COALESCE(completed_at, updated_at, order_date)'), $year)
-                  ->whereMonth(DB::raw('COALESCE(completed_at, updated_at, order_date)'), $month);
+        } elseif ($effectiveMonth && $effectiveYear) {
+            $query->whereYear(DB::raw('COALESCE(completed_at, updated_at, order_date)'), $effectiveYear)
+                  ->whereMonth(DB::raw('COALESCE(completed_at, updated_at, order_date)'), $effectiveMonth);
         }
 
         $orders = $query->get();
@@ -171,7 +190,26 @@ class MarketingTeam extends Model
 
     public function getActualOmsetAttribute(): float
     {
-        return $this->calculateActualOmset($this->period_month, $this->period_year);
+        return $this->calculateActualOmset();
+    }
+
+    /**
+     * Label Periode Target Tim
+     */
+    public function getPeriodLabelAttribute(): string
+    {
+        if ($this->date_from && $this->date_to) {
+            $from = \Carbon\Carbon::parse($this->date_from)->translatedFormat('d M Y');
+            $to   = \Carbon\Carbon::parse($this->date_to)->translatedFormat('d M Y');
+            return "{$from} – {$to}";
+        }
+
+        if ($this->period_month && $this->period_year) {
+            $monthName = \Carbon\Carbon::create($this->period_year, $this->period_month, 1)->translatedFormat('F');
+            return "{$monthName} {$this->period_year}";
+        }
+
+        return 'Semua Periode';
     }
 
     /**

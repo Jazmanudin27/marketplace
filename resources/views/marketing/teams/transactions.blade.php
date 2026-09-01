@@ -25,7 +25,7 @@
             </h3>
             
             <p class="text-secondary small mb-1">
-                Daftar pesanan dari toko marketplace terhubung yang masuk dalam perhitungan realisasi target & komisi.
+                Daftar pesanan dari toko marketplace terhubung yang masuk dalam perhitungan realisasi target & komisi berdasarkan tanggal <strong>Dana Cair / Selesai (<code>completed_at</code>)</strong>.
             </p>
 
             <div class="d-flex align-items-center gap-2 mt-2 flex-wrap">
@@ -36,12 +36,12 @@
                 @if(request()->filled('month') || request()->filled('year'))
                     <span class="badge bg-info bg-opacity-10 text-info rounded-pill px-2.5 py-1 small fw-semibold">
                         <i class="bi bi-calendar3 me-1"></i>
-                        Periode: {{ request('month') ? date('F', mktime(0,0,0,request('month'),1)) : '—' }} {{ request('year') ?? '' }}
+                        Filter Periode: {{ request('month') ? date('F', mktime(0,0,0,request('month'),1)) : '—' }} {{ request('year') ?? '' }}
                     </span>
                 @else
-                    <span class="badge bg-success bg-opacity-10 text-success rounded-pill px-2.5 py-1 small fw-semibold">
-                        <i class="bi bi-calendar-range me-1"></i>
-                        Range: {{ \Carbon\Carbon::parse($dateFrom)->format('d M Y') }} s/d {{ \Carbon\Carbon::parse($dateTo)->format('d M Y') }}
+                    <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 rounded-pill px-2.5 py-1 small fw-semibold">
+                        <i class="bi bi-lock-fill me-1"></i>
+                        Periode Dana Cair: {{ \Carbon\Carbon::parse($dateFrom)->format('d M Y') }} s/d {{ \Carbon\Carbon::parse($dateTo)->format('d M Y') }}
                     </span>
                 @endif
             </div>
