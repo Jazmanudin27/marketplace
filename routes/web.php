@@ -672,7 +672,7 @@ Route::middleware('auth')->group(function () {
     // =========================================================================
 
     // Laporan Profit & Laba Rugi
-    Route::middleware('permission:view-financial-reports')->group(function () {
+    Route::middleware('permission:view-financial-reports|manage-finance')->group(function () {
         Route::get('/profit', [ProfitController::class, 'index'])->name('profit.index');
         Route::get('/profit/margin', [ProfitController::class, 'marginReport'])->name('profit.margin');
         Route::get('/finance/profit-loss', [FinancialReportController::class, 'profitLoss'])->name('finance.profit_loss');
@@ -682,8 +682,10 @@ Route::middleware('auth')->group(function () {
         Route::get('/reports/reseller-receivables', [ReportController::class, 'resellerReceivablesReport'])->name('reports.reseller_receivables');
         Route::get('/reports/inventory-turnover', [ReportController::class, 'inventoryTurnoverReport'])->name('reports.inventory_turnover');
         Route::get('/reports/product-margins', [ReportController::class, 'productMarginsReport'])->name('reports.product_margins');
+    });
 
-        // Laporan Mutasi Kas & Keuangan (Masuk & Keluar)
+    // Laporan Mutasi Kas & Keuangan (Masuk & Keluar)
+    Route::middleware('permission:view-financial-reports|manage-finance|finance.mutations.index')->group(function () {
         Route::get('/finance/mutations', [FinancialReportController::class, 'mutationsReport'])->name('finance.mutations.index');
         Route::get('/finance/mutations/print', [FinancialReportController::class, 'printMutationsReport'])->name('finance.mutations.print');
         Route::get('/finance/mutations/export', [FinancialReportController::class, 'exportMutationsReport'])->name('finance.mutations.export');

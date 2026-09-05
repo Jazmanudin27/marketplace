@@ -239,7 +239,7 @@ class PermissionRegistry
                 'finance.marketplace_wallets.index' => 'Saldo Marketplace',
                 'profit.margin'                     => 'Margin Produk Aktual',
                 'reports.product_margins'           => 'Margin Master Produk',
-                'finance.mutations.index'           => 'Mutasi Kas & Keuangan',
+                'finance.mutations.index'           => 'Mutasi Kas & Keuangan (Masuk & Keluar)',
             ],
             'Toko Marketplace & Chat' => [
                 'stores.index'                   => 'Lihat Toko Marketplace (Kelola Toko)',

@@ -277,6 +277,8 @@ class RolePermissionSeeder extends Seeder
             'reports.store_sales',
             'reports.reseller_receivables',
             'reports.inventory_turnover',
+            'finance.marketplace_wallets.index',
+            'finance.mutations.index',
         ];
     }
 
