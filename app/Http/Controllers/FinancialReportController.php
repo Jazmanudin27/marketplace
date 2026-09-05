@@ -314,15 +314,6 @@ class FinancialReportController extends Controller
         }
         $beginningBalance -= (float) $prevExpensesQuery->sum('amount');
 
-        // Online Sales before $dateFrom (into kas_besar)
-        if ($account === 'all' || $account === 'kas_besar') {
-            $prevOnlineSales = (float) Order::where('tenant_id', $tenantId)
-                ->whereNotIn('order_status', ['CANCELLED'])
-                ->where('order_date', '<', $dateFrom . ' 00:00:00')
-                ->sum('net_amount');
-            $beginningBalance += $prevOnlineSales;
-        }
-
         // Offline Sales before $dateFrom
         $prevOfflineQuery = OfflineSale::where('tenant_id', $tenantId)
             ->where('status', OfflineSale::STATUS_COMPLETED)
@@ -513,41 +504,7 @@ class FinancialReportController extends Controller
             }
         }
 
-        // D. Online Marketplace Sales
-        if (($sourceType === 'all' || $sourceType === 'online_sale') && ($account === 'all' || $account === 'kas_besar')) {
-            $ordersQuery = Order::with('store.channel')
-                ->where('tenant_id', $tenantId)
-                ->whereNotIn('order_status', ['CANCELLED'])
-                ->whereBetween('order_date', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59']);
-
-            if ($search) {
-                $ordersQuery->where(function($q) use ($search) {
-                    $q->where('order_marketplace_id', 'like', "%{$search}%")
-                      ->orWhere('invoice_number', 'like', "%{$search}%")
-                      ->orWhere('buyer_name', 'like', "%{$search}%");
-                });
-            }
-
-            foreach ($ordersQuery->get() as $ord) {
-                $net = (float) ($ord->net_amount > 0 ? $ord->net_amount : $ord->total_amount);
-                $storeName = $ord->store->store_name ?? 'Marketplace';
-                $transactions->push([
-                    'datetime'       => $ord->order_date ? \Carbon\Carbon::parse($ord->order_date)->toDateTimeString() : \Carbon\Carbon::parse($ord->created_at)->toDateTimeString(),
-                    'date_formatted' => $ord->order_date ? \Carbon\Carbon::parse($ord->order_date)->format('d/m/Y H:i') : \Carbon\Carbon::parse($ord->created_at)->format('d/m/Y H:i'),
-                    'reference'      => $ord->order_marketplace_id ?: $ord->invoice_number,
-                    'type'           => 'online_sale',
-                    'type_label'     => 'Penjualan ' . ($ord->store->channel->name ?? 'Marketplace'),
-                    'type_badge'     => 'bg-primary',
-                    'category_label' => 'Pencairan Penjualan',
-                    'account_label'  => 'Kas Besar (Bank Marketplace)',
-                    'description'    => 'Pesanan ' . ($ord->store->channel->name ?? 'Marketplace') . ' (' . $storeName . ') - ' . ($ord->buyer_name ?: 'Pelanggan'),
-                    'inflow'         => $net,
-                    'outflow'        => 0.0,
-                ]);
-            }
-        }
-
-        // E. Offline POS Sales
+        // D. Offline POS Sales
         if ($sourceType === 'all' || $sourceType === 'offline_sale') {
             $offlineQuery = OfflineSale::where('tenant_id', $tenantId)
                 ->where('status', OfflineSale::STATUS_COMPLETED)
