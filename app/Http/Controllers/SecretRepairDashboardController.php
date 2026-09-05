@@ -197,20 +197,29 @@ class SecretRepairDashboardController extends Controller
                     @chmod($gitDir . '/FETCH_HEAD', 0664);
                     @touch($gitDir . '/FETCH_HEAD');
 
-                    // Jalankan git pull
-                    $homeDir  = '/var/www';
-                    $gitOutput = shell_exec(
-                        'HOME=' . escapeshellarg($homeDir) .
-                        ' GIT_DIR=' . escapeshellarg($gitDir) .
-                        ' GIT_WORK_TREE=' . escapeshellarg($basePath) .
-                        ' git -C ' . escapeshellarg($basePath) . ' pull 2>&1'
-                    );
+                    $homeDir   = '/var/www';
+                    $envPrefix = 'HOME=' . escapeshellarg($homeDir) . ' GIT_DIR=' . escapeshellarg($gitDir) . ' GIT_WORK_TREE=' . escapeshellarg($basePath);
 
-                    // Fallback: coba dengan env HOME=/root
+                    // Jalankan git pull
+                    $gitOutput = shell_exec("{$envPrefix} git -C " . escapeshellarg($basePath) . " pull 2>&1");
+
+                    // Jika ada konflik/file lokal terubah di server (would be overwritten by merge)
+                    if ($gitOutput && (str_contains($gitOutput, 'overwritten by merge') || str_contains($gitOutput, 'Please commit your changes or stash them') || str_contains($gitOutput, 'Aborting'))) {
+                        $stashOut = shell_exec("{$envPrefix} git -C " . escapeshellarg($basePath) . " stash 2>&1");
+                        $pullRetry = shell_exec("{$envPrefix} git -C " . escapeshellarg($basePath) . " pull 2>&1");
+                        $gitOutput = "⚠️ Mendeteksi perubahan lokal di server. Auto-stash dijalankan:\n" . ($stashOut ?: '-') . "\n\n🔄 Hasil Git Pull Ulang:\n" . ($pullRetry ?: '-');
+                    }
+
+                    // Fallback: coba dengan env HOME=/root jika permission denied
                     if (empty($gitOutput) || str_contains($gitOutput, 'Permission denied')) {
                         $gitOutput = shell_exec(
                             'HOME=/root git -C ' . escapeshellarg($basePath) . ' pull 2>&1'
                         );
+                        if ($gitOutput && (str_contains($gitOutput, 'overwritten by merge') || str_contains($gitOutput, 'Please commit your changes or stash them'))) {
+                            $stashOut = shell_exec('HOME=/root git -C ' . escapeshellarg($basePath) . ' stash 2>&1');
+                            $pullRetry = shell_exec('HOME=/root git -C ' . escapeshellarg($basePath) . ' pull 2>&1');
+                            $gitOutput = "⚠️ Auto-stash dijalankan:\n" . ($stashOut ?: '-') . "\n\n🔄 Hasil Git Pull:\n" . ($pullRetry ?: '-');
+                        }
                     }
 
                     $output = "🔄 Git Pull (user: {$webUser}):\n" . ($gitOutput ?: '(tidak ada output)');
