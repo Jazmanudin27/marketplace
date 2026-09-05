@@ -80,6 +80,17 @@ class SecretRepairDashboardController extends Controller
             ->get()
             ->count();
 
+        // 💻 Server & Terminal Metadata (Termius Style)
+        $serverUser = trim(shell_exec('whoami 2>&1') ?: 'www-data');
+        $serverHost = gethostname() ?: 'erp.aspartech.com';
+        $projectDir = basename(base_path());
+        $basePath   = base_path();
+        $phpVersion = PHP_VERSION;
+        $gitBranch  = trim(shell_exec('git -C ' . escapeshellarg($basePath) . ' rev-parse --abbrev-ref HEAD 2>&1') ?: 'main');
+        if (str_contains($gitBranch, 'fatal') || empty($gitBranch)) {
+            $gitBranch = 'main';
+        }
+
         return view('secret_repair_dashboard', compact(
             'ordersCount',
             'apiOrdersCount',
@@ -103,7 +114,13 @@ class SecretRepairDashboardController extends Controller
             'shopeeMissingFees',
             'shopeeMissingItems',
             'manualTotalOrders',
-            'duplicateOrdersCount'
+            'duplicateOrdersCount',
+            'serverUser',
+            'serverHost',
+            'projectDir',
+            'basePath',
+            'phpVersion',
+            'gitBranch'
         ));
     }
 
@@ -115,6 +132,87 @@ class SecretRepairDashboardController extends Controller
 
         try {
             switch ($action) {
+                case 'execute_raw_command':
+                    $cmd = trim($request->input('command', ''));
+                    if (empty($cmd)) {
+                        return response()->json([
+                            'success'  => true,
+                            'output'   => '',
+                            'duration' => '0s'
+                        ]);
+                    }
+
+                    if ($cmd === 'clear' || $cmd === 'cls') {
+                        return response()->json([
+                            'success'  => true,
+                            'clear'    => true,
+                            'output'   => '',
+                            'duration' => '0s'
+                        ]);
+                    }
+
+                    if ($cmd === 'help') {
+                        $helpText = "📋 Termius Web Terminal - Panduan Perintah Cepat:\n" .
+                            "──────────────────────────────────────────────────────────────────\n" .
+                            "• Git Management:\n" .
+                            "    git status                                  : Cek status & perubahan file\n" .
+                            "    git pull                                    : Tarik pembaruan kode terbaru\n" .
+                            "    git stash && git pull                       : Amankan file lokal & tarik update\n" .
+                            "    git reset --hard HEAD && git pull           : Force pull timpa semua perubahan lokal\n" .
+                            "    git checkout -- <file>                      : Kembalikan file tertentu ke versi git\n" .
+                            "    git diff --stat                             : Ringkasan perbedaan file yang berubah\n" .
+                            "    git log -n 5 --oneline                      : Lihat 5 commit riwayat terakhir\n\n" .
+                            "• Laravel Artisan:\n" .
+                            "    php artisan optimize:clear                  : Bersihkan seluruh cache aplikasi\n" .
+                            "    php artisan optimize                        : Rebuild cache config, route, view\n" .
+                            "    php artisan migrate --force                 : Terapkan migrasi database production\n" .
+                            "    php artisan route:list                      : Daftar route yang terdaftar\n\n" .
+                            "• Sistem Server & Utility:\n" .
+                            "    ls -la                                      : Daftar file di direktori project\n" .
+                            "    pwd                                         : Lokasi direktori kerja saat ini\n" .
+                            "    whoami                                      : User server yang sedang aktif\n" .
+                            "    tail -n 30 storage/logs/laravel.log         : Baca 30 baris error log terbaru\n" .
+                            "    free -m && df -h                            : Pantau penggunaan RAM & Disk\n" .
+                            "    clear                                       : Bersihkan tampilan layar terminal\n";
+
+                        return response()->json([
+                            'success'  => true,
+                            'command'  => $cmd,
+                            'output'   => $helpText,
+                            'duration' => '0s'
+                        ]);
+                    }
+
+                    $basePath = base_path();
+                    $gitDir   = $basePath . '/.git';
+                    $webUser  = trim(shell_exec('whoami 2>&1') ?: 'www-data');
+                    $homeDir  = '/var/www';
+
+                    // Environment prefix for git
+                    $envPrefix = 'HOME=' . escapeshellarg($homeDir) . ' GIT_DIR=' . escapeshellarg($gitDir) . ' GIT_WORK_TREE=' . escapeshellarg($basePath);
+
+                    if (str_starts_with(strtoupper(PHP_OS), 'WIN')) {
+                        $fullCmd = "cd /d " . escapeshellarg($basePath) . " && " . $cmd . " 2>&1";
+                    } else {
+                        $fullCmd = "cd " . escapeshellarg($basePath) . " && " . $envPrefix . " " . $cmd . " 2>&1";
+                    }
+
+                    $cmdOutput = shell_exec($fullCmd);
+                    if ($cmdOutput === null || $cmdOutput === '') {
+                        $cmdOutput = "(perintah selesai dijalankan tanpa output)";
+                    }
+
+                    $duration = round(microtime(true) - $startTime, 2);
+                    return response()->json([
+                        'success'  => true,
+                        'action'   => 'execute_raw_command',
+                        'command'  => $cmd,
+                        'output'   => $cmdOutput,
+                        'duration' => $duration . 's',
+                        'user'     => $webUser,
+                        'cwd'      => $basePath
+                    ]);
+
                 case 'fix_missing_items':
                     $output = $this->executeFixMissingItems();
                     break;

@@ -61,40 +61,221 @@
             border-color: #cbd5e1;
         }
 
-        .terminal-container {
-            background: #0f172a;
+        /* ════════════════════════════════════════════════════════════════
+           TERMIUS WEB TERMINAL STYLING
+           ════════════════════════════════════════════════════════════════ */
+        .termius-container {
+            background: #0d1117;
             border-radius: 0.85rem;
             overflow: hidden;
-            box-shadow: 0 10px 30px rgba(15, 23, 42, 0.15);
-            border: 1px solid #334155;
+            box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.5), 0 0 0 1px #30363d;
+            border: 1px solid #30363d;
+            display: flex;
+            flex-direction: column;
+            transition: all 0.25s ease;
         }
 
-        .terminal-header {
-            background: #1e293b;
-            padding: 0.75rem 1.25rem;
-            border-bottom: 1px solid #334155;
+        .termius-container.fullscreen-mode {
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            z-index: 99999 !important;
+            border-radius: 0 !important;
+            margin: 0 !important;
+            border: none !important;
+        }
+
+        .termius-topbar {
+            background: #161b22;
+            padding: 0.65rem 1.25rem;
+            border-bottom: 1px solid #30363d;
             display: flex;
             align-items: center;
             justify-content: space-between;
+            gap: 1rem;
+            flex-wrap: wrap;
         }
 
-        .terminal-body {
+        .termius-dots {
+            display: flex;
+            gap: 7px;
+            align-items: center;
+        }
+
+        .termius-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+            cursor: pointer;
+            transition: transform 0.15s ease;
+        }
+        .termius-dot:hover { transform: scale(1.2); }
+        .termius-dot.dot-red { background: #ff5f56; border: 1px solid #e0443e; }
+        .termius-dot.dot-yellow { background: #ffbd2e; border: 1px solid #dea123; }
+        .termius-dot.dot-green { background: #27c93f; border: 1px solid #1aab29; }
+
+        .termius-tab {
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-bottom: none;
+            padding: 0.35rem 0.9rem;
+            border-radius: 0.5rem 0.5rem 0 0;
+            color: #c9d1d9;
             font-family: 'JetBrains Mono', monospace;
-            font-size: 0.82rem;
+            font-size: 0.78rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 500;
+        }
+
+        .termius-pulse {
+            width: 8px;
+            height: 8px;
+            background: #238636;
+            border-radius: 50%;
+            display: inline-block;
+            box-shadow: 0 0 0 rgba(35, 134, 54, 0.4);
+            animation: termiusPulse 2s infinite;
+        }
+
+        @keyframes termiusPulse {
+            0% { box-shadow: 0 0 0 0 rgba(35, 134, 54, 0.7); }
+            70% { box-shadow: 0 0 0 6px rgba(35, 134, 54, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(35, 134, 54, 0); }
+        }
+
+        .termius-snippets-bar {
+            background: #111620;
+            padding: 0.5rem 1rem;
+            border-bottom: 1px solid #21262d;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            overflow-x: auto;
+            white-space: nowrap;
+        }
+
+        .termius-snippets-bar::-webkit-scrollbar {
+            height: 4px;
+        }
+        .termius-snippets-bar::-webkit-scrollbar-thumb {
+            background: #30363d;
+            border-radius: 4px;
+        }
+
+        .termius-snippet-btn {
+            background: #1c2128;
+            color: #8b949e;
+            border: 1px solid #30363d;
+            border-radius: 0.4rem;
+            padding: 0.22rem 0.6rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.72rem;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            white-space: nowrap;
+        }
+
+        .termius-snippet-btn:hover {
+            background: #2d333b;
+            color: #58a6ff;
+            border-color: #58a6ff;
+            transform: translateY(-1px);
+        }
+
+        .termius-snippet-btn.btn-highlight {
+            border-color: #0ea5e9;
             color: #38bdf8;
+            background: rgba(14, 165, 233, 0.1);
+        }
+        .termius-snippet-btn.btn-highlight:hover {
+            background: #0ea5e9;
+            color: #ffffff;
+        }
+
+        .termius-body {
+            font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+            font-size: 0.82rem;
+            color: #c9d1d9;
+            background: #0d1117;
             padding: 1.25rem;
-            min-height: 280px;
-            max-height: 480px;
+            height: 380px;
             overflow-y: auto;
             white-space: pre-wrap;
             line-height: 1.6;
+            flex-grow: 1;
         }
 
-        .log-timestamp { color: #94a3b8; }
-        .log-success { color: #4ade80; }
-        .log-warning { color: #facc15; }
-        .log-error { color: #f87171; }
-        .log-info { color: #38bdf8; }
+        .termius-container.fullscreen-mode .termius-body {
+            height: calc(100vh - 170px) !important;
+        }
+
+        .termius-body::-webkit-scrollbar {
+            width: 8px;
+        }
+        .termius-body::-webkit-scrollbar-track {
+            background: #0d1117;
+        }
+        .termius-body::-webkit-scrollbar-thumb {
+            background: #30363d;
+            border-radius: 4px;
+        }
+
+        .termius-input-bar {
+            background: #161b22;
+            padding: 0.6rem 1rem;
+            border-top: 1px solid #30363d;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+        }
+
+        .termius-prompt-label {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 1px;
+            user-select: none;
+        }
+        .t-user { color: #3fb950; font-weight: 700; }
+        .t-at   { color: #8b949e; }
+        .t-host { color: #58a6ff; font-weight: 700; }
+        .t-colon{ color: #8b949e; }
+        .t-path { color: #d2a8ff; font-weight: 600; }
+        .t-sym  { color: #f0883e; font-weight: 700; margin-left: 3px; }
+
+        .termius-cmd-input {
+            flex-grow: 1;
+            background: #0d1117;
+            border: 1px solid #30363d;
+            color: #f0f6fc;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.82rem;
+            padding: 0.4rem 0.75rem;
+            border-radius: 0.4rem;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .termius-cmd-input:focus {
+            border-color: #58a6ff;
+            box-shadow: 0 0 0 2px rgba(88, 166, 255, 0.25);
+        }
+
+        .log-timestamp { color: #8b949e; }
+        .log-success { color: #3fb950; }
+        .log-warning { color: #d29922; }
+        .log-error   { color: #f85149; }
+        .log-info    { color: #58a6ff; }
+        .log-cmd     { color: #bc8cff; font-weight: 600; }
 
         .btn-custom {
             font-weight: 600;
@@ -915,28 +1096,130 @@
 
         </div>
 
-        <!-- 🖥️ SECTION 5: Terminal Log Output Window -->
-        <div class="terminal-container mb-4">
-            <div class="terminal-header">
+        <!-- 🖥️ SECTION 5: Termius-Style Web Terminal CLI -->
+        <div class="d-flex align-items-center justify-content-between mb-3 mt-2">
+            <div class="d-flex align-items-center gap-2">
+                <h5 class="fw-bold text-dark mb-0">
+                    <i class="fas fa-terminal text-primary me-2"></i>Termius Web Terminal & Remote CLI
+                </h5>
+                <span class="badge bg-dark text-white rounded-pill px-2.5 py-0.5 small" style="font-size: 0.7rem; letter-spacing: 0.05em;">
+                    LIVE INTERACTIVE SHELL
+                </span>
+            </div>
+            <div class="d-flex align-items-center gap-2 text-secondary small">
+                <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2.5 py-1">
+                    <i class="fas fa-circle me-1" style="font-size:0.55rem;"></i> SSH Active: {{ $serverUser ?? 'www-data' }}
+                </span>
+                <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle rounded-pill px-2.5 py-1">
+                    <i class="fas fa-code-branch me-1"></i> {{ $gitBranch ?? 'main' }}
+                </span>
+            </div>
+        </div>
+
+        <div class="termius-container mb-4" id="termiusContainer">
+            <!-- Termius Topbar -->
+            <div class="termius-topbar">
                 <div class="d-flex align-items-center gap-3">
-                    <div class="d-flex gap-1.5">
-                        <div style="width:11px; height:11px; border-radius:50%; background:#ef4444;"></div>
-                        <div style="width:11px; height:11px; border-radius:50%; background:#f59e0b;"></div>
-                        <div style="width:11px; height:11px; border-radius:50%; background:#10b981;"></div>
+                    <!-- Traffic Lights -->
+                    <div class="termius-dots">
+                        <span class="termius-dot dot-red" title="Clear Console (Ctrl+L)" onclick="clearConsoleLogs()"></span>
+                        <span class="termius-dot dot-yellow" title="Reset Command Prompt" onclick="resetTermiusPrompt()"></span>
+                        <span class="termius-dot dot-green" title="Toggle Fullscreen" onclick="toggleTermiusFullscreen()"></span>
                     </div>
-                    <span class="text-white font-monospace small"><i class="fas fa-terminal me-1.5 text-info"></i>Console Output Output Logs</span>
+
+                    <!-- Active Tab -->
+                    <div class="termius-tab">
+                        <span class="termius-pulse"></span>
+                        <i class="fas fa-server text-info" style="font-size:0.75rem;"></i>
+                        <span>{{ $serverUser ?? 'www-data' }}@{{ $serverHost ?? 'erp.aspartech.com' }}:~/{{ $projectDir ?? 'marketplace' }}</span>
+                    </div>
                 </div>
-                <div class="d-flex gap-2">
-                    <button type="button" class="btn btn-sm btn-dark text-white border-secondary py-1 px-2.5" style="font-size: 0.75rem;" onclick="copyConsoleLogs()">
-                        <i class="fas fa-copy me-1"></i> Salin Log
+
+                <!-- Action Controls -->
+                <div class="d-flex align-items-center gap-2">
+                    <button type="button" class="btn btn-sm btn-outline-secondary text-white py-1 px-2.5" style="font-size: 0.75rem; border-color:#30363d;" onclick="copyConsoleLogs()" title="Salin semua log terminal">
+                        <i class="fas fa-copy me-1"></i> Copy
                     </button>
-                    <button type="button" class="btn btn-sm btn-dark text-danger border-secondary py-1 px-2.5" style="font-size: 0.75rem;" onclick="clearConsoleLogs()">
-                        <i class="fas fa-trash me-1"></i> Bersihkan Log
+                    <button type="button" class="btn btn-sm btn-outline-danger py-1 px-2.5" style="font-size: 0.75rem; border-color:#30363d;" onclick="clearConsoleLogs()" title="Bersihkan tampilan (Ctrl+L)">
+                        <i class="fas fa-trash me-1"></i> Clear
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-info py-1 px-2.5" style="font-size: 0.75rem; border-color:#30363d;" onclick="toggleTermiusFullscreen()" id="btnFullscreenTermius" title="Layar Penuh (Fullscreen)">
+                        <i class="fas fa-expand me-1"></i> <span id="fullscreenText">Fullscreen</span>
                     </button>
                 </div>
             </div>
-            <div class="terminal-body" id="consoleOutput">
-<span class="log-timestamp">[{{ date('H:i:s') }}]</span> <span class="log-info">Ready! Silakan klik salah satu tombol di atas untuk menjalankan perbaikan data / sync API.</span>
+
+            <!-- Quick Snippets Bar (Termius Style) -->
+            <div class="termius-snippets-bar">
+                <span class="text-secondary small fw-bold me-1" style="font-size:0.7rem; letter-spacing:0.04em;">
+                    <i class="fas fa-bolt text-warning me-1"></i>SNIPPETS:
+                </span>
+                <button type="button" class="termius-snippet-btn btn-highlight" onclick="quickRunSnippet('git pull')" title="Tarik update terbaru dari GitHub">
+                    <i class="fab fa-git-alt"></i> git pull
+                </button>
+                <button type="button" class="termius-snippet-btn" onclick="quickRunSnippet('git stash && git pull')" title="Simpan sisa edit lokal lalu pull">
+                    <i class="fas fa-archive"></i> git stash && pull
+                </button>
+                <button type="button" class="termius-snippet-btn" onclick="quickRunSnippet('git reset --hard HEAD && git pull')" title="Force pull timpa semua perubahan lokal di server">
+                    <i class="fas fa-history text-danger"></i> git reset & pull
+                </button>
+                <button type="button" class="termius-snippet-btn" onclick="quickRunSnippet('git status')" title="Cek status file yang diubah">
+                    <i class="fas fa-info-circle"></i> git status
+                </button>
+                <button type="button" class="termius-snippet-btn" onclick="quickRunSnippet('git diff --stat')" title="Ringkasan perbedaan file">
+                    <i class="fas fa-code-compare"></i> git diff
+                </button>
+                <button type="button" class="termius-snippet-btn" onclick="quickRunSnippet('php artisan optimize:clear')" title="Clear all Laravel caches">
+                    <i class="fas fa-broom text-warning"></i> artisan optimize:clear
+                </button>
+                <button type="button" class="termius-snippet-btn" onclick="quickRunSnippet('php artisan optimize')" title="Rebuild caches">
+                    <i class="fas fa-bolt text-purple"></i> artisan optimize
+                </button>
+                <button type="button" class="termius-snippet-btn" onclick="quickRunSnippet('php artisan migrate --force')" title="Run database migrations">
+                    <i class="fas fa-database text-success"></i> artisan migrate
+                </button>
+                <button type="button" class="termius-snippet-btn" onclick="quickRunSnippet('tail -n 35 storage/logs/laravel.log')" title="Baca 35 baris log Laravel terakhir">
+                    <i class="fas fa-file-lines text-info"></i> tail laravel.log
+                </button>
+                <button type="button" class="termius-snippet-btn" onclick="quickRunSnippet('ls -la')" title="List files">
+                    <i class="fas fa-folder-open"></i> ls -la
+                </button>
+                <button type="button" class="termius-snippet-btn" onclick="quickRunSnippet('whoami && pwd')" title="Cek user dan working directory">
+                    <i class="fas fa-user-shield"></i> whoami & pwd
+                </button>
+                <button type="button" class="termius-snippet-btn" onclick="quickRunSnippet('free -m && df -h')" title="Cek RAM dan sisa penyimpanan Disk">
+                    <i class="fas fa-microchip"></i> RAM & Disk
+                </button>
+                <button type="button" class="termius-snippet-btn" onclick="quickRunSnippet('help')" title="Panduan perintah bantuan">
+                    <i class="fas fa-circle-question"></i> help
+                </button>
+            </div>
+
+            <!-- Terminal Output Display Body -->
+            <div class="termius-body" id="consoleOutput">
+<span class="log-info" style="color: #58a6ff; font-weight: bold;">
+ ████████╗███████╗██████╗ ███╗   ███╗██╗██╗   ██╗███████╗
+ ╚══██╔══╝██╔════╝██╔══██╗████╗ ████║██║██║   ██║██╔════╝
+    ██║   █████╗  ██████╔╝██╔████╔██║██║██║   ██║███████╗
+    ██║   ██╔══╝  ██╔══██╗██║╚██╔╝██║██║██║   ██║╚════██║
+    ██║   ███████╗██║  ██║██║ ╚═╝ ██║██║╚██████╔╝███████║
+    ╚═╝   ╚══════╝╚═╝  ╚═╝╚═╝     ╚═╝╚═╝ ╚═════╝ ╚══════╝
+</span>
+<span class="log-success fw-bold">Connected:</span> <span class="text-white">{{ $serverUser ?? 'www-data' }}@{{ $serverHost ?? 'erp.aspartech.com' }}:~/{{ $projectDir ?? 'marketplace' }}</span>
+<span class="log-timestamp">PHP: {{ $phpVersion ?? PHP_VERSION }} | Branch: ({{ $gitBranch ?? 'main' }}) | Terminal: Interactive SSH CLI</span>
+<span class="log-timestamp">────────────────────────────────────────────────────────────────────────────────</span>
+<span class="log-info">💡 Ketik perintah bash/git/artisan di baris input bawah lalu tekan <kbd style="background:#21262d; color:#fff; border:1px solid #30363d;">Enter</kbd>, atau klik tombol <strong>Snippets</strong> di atas.</span>
+            </div>
+
+            <!-- Termius Command Input Prompt Bar -->
+            <div class="termius-input-bar">
+                <div class="termius-prompt-label">
+                    <span class="t-user">{{ $serverUser ?? 'www-data' }}</span><span class="t-at">@</span><span class="t-host">erp</span><span class="t-colon">:</span><span class="t-path">~/{{ $projectDir ?? 'marketplace' }}</span><span class="t-sym">$</span>
+                </div>
+                <input type="text" id="termiusInput" class="termius-cmd-input" placeholder="Ketik perintah (misal: git status, git pull, ls -la, php artisan)..." autocomplete="off" spellcheck="false">
+                <button type="button" class="btn btn-sm btn-primary px-3 rounded-2 fw-semibold" id="btnRunTermius" onclick="submitTermiusCommand()">
+                    <i class="fas fa-play me-1" style="font-size:0.7rem;"></i> Run ↵
+                </button>
             </div>
         </div>
 
@@ -945,14 +1228,21 @@
     <!-- Script AJAX Handler -->
     <script>
         const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+        const termiusUser = @json($serverUser ?? 'www-data');
+        const termiusDir  = @json($projectDir ?? 'marketplace');
+
+        // Command History Navigation (Termius feature)
+        let commandHistory = JSON.parse(localStorage.getItem('termius_cmd_history') || '[]');
+        let historyIndex = -1;
 
         function appendLog(text, type = 'info') {
             const consoleOutput = document.getElementById('consoleOutput');
             const now = new Date().toLocaleTimeString('id-ID');
             let colorClass = 'log-info';
             if (type === 'success') colorClass = 'log-success';
-            if (type === 'error') colorClass = 'log-error';
+            if (type === 'error')   colorClass = 'log-error';
             if (type === 'warning') colorClass = 'log-warning';
+            if (type === 'cmd')     colorClass = 'log-cmd';
 
             const logLine = document.createElement('div');
             logLine.innerHTML = `<span class="log-timestamp">[${now}]</span> <span class="${colorClass}">${escapeHtml(text)}</span>`;
@@ -967,15 +1257,198 @@
         }
 
         function clearConsoleLogs() {
-            document.getElementById('consoleOutput').innerHTML = '<span class="log-timestamp">[' + new Date().toLocaleTimeString('id-ID') + ']</span> <span class="log-info">Log dibersihkan. Sedia menerima instruksi baru.</span>';
+            document.getElementById('consoleOutput').innerHTML = 
+                '<span class="log-timestamp">[' + new Date().toLocaleTimeString('id-ID') + ']</span> ' +
+                '<span class="log-info">Terminal dibersihkan. Siap menerima perintah baru.</span>';
         }
 
         function copyConsoleLogs() {
             const logsText = document.getElementById('consoleOutput').innerText;
             navigator.clipboard.writeText(logsText).then(() => {
-                alert('Log berhasil disalin ke clipboard!');
+                alert('Seluruh output terminal berhasil disalin ke clipboard!');
             });
         }
+
+        function resetTermiusPrompt() {
+            const input = document.getElementById('termiusInput');
+            if (input) {
+                input.value = '';
+                input.focus();
+            }
+        }
+
+        // Fullscreen Toggle (Termius Desktop View)
+        function toggleTermiusFullscreen() {
+            const container = document.getElementById('termiusContainer');
+            const fsText = document.getElementById('fullscreenText');
+            const isFullscreen = container.classList.toggle('fullscreen-mode');
+
+            if (isFullscreen) {
+                fsText.textContent = 'Exit (ESC)';
+                document.body.style.overflow = 'hidden';
+            } else {
+                fsText.textContent = 'Fullscreen';
+                document.body.style.overflow = '';
+            }
+            document.getElementById('termiusInput').focus();
+        }
+
+        // Handle Escape to exit Fullscreen
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                const container = document.getElementById('termiusContainer');
+                if (container && container.classList.contains('fullscreen-mode')) {
+                    toggleTermiusFullscreen();
+                }
+            }
+        });
+
+        // Quick Snippets Handler
+        function quickRunSnippet(command) {
+            const input = document.getElementById('termiusInput');
+            input.value = command;
+            submitTermiusCommand();
+        }
+
+        // Submit Terminal Command
+        function submitTermiusCommand() {
+            const input = document.getElementById('termiusInput');
+            const cmd = input.value.trim();
+            if (!cmd) return;
+
+            // Save to history
+            if (commandHistory[commandHistory.length - 1] !== cmd) {
+                commandHistory.push(cmd);
+                if (commandHistory.length > 50) commandHistory.shift();
+                try { localStorage.setItem('termius_cmd_history', JSON.stringify(commandHistory)); } catch(e){}
+            }
+            historyIndex = commandHistory.length;
+
+            input.value = '';
+            executeRawCommand(cmd);
+        }
+
+        // Execute Raw Command via AJAX
+        function executeRawCommand(cmd) {
+            const consoleOutput = document.getElementById('consoleOutput');
+            const runBtn = document.getElementById('btnRunTermius');
+            const input  = document.getElementById('termiusInput');
+
+            // Print prompt command line
+            const promptLine = document.createElement('div');
+            promptLine.className = 'mt-2 mb-1';
+            promptLine.innerHTML = `
+                <span class="t-user">${escapeHtml(termiusUser)}</span><span class="t-at">@</span><span class="t-host">erp</span><span class="t-colon">:</span><span class="t-path">~/${escapeHtml(termiusDir)}</span><span class="t-sym">$</span>
+                <span class="log-cmd text-white fw-bold ms-1">${escapeHtml(cmd)}</span>
+            `;
+            consoleOutput.appendChild(promptLine);
+
+            // Print running indicator
+            const runningLine = document.createElement('div');
+            runningLine.id = 'termiusRunningSpinner';
+            runningLine.className = 'text-warning small py-1';
+            runningLine.innerHTML = `<i class="fas fa-spinner fa-spin me-1.5"></i> Menjalankan perintah di server...`;
+            consoleOutput.appendChild(runningLine);
+            consoleOutput.scrollTop = consoleOutput.scrollHeight;
+
+            input.disabled = true;
+            runBtn.disabled = true;
+
+            fetch('{{ route("secret_repair.run") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken,
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({
+                    action: 'execute_raw_command',
+                    command: cmd
+                })
+            })
+            .then(async response => {
+                const isJson = response.headers.get('content-type')?.includes('application/json');
+                const data = isJson ? await response.json() : null;
+
+                if (!response.ok) {
+                    const text = !isJson ? await response.text() : '';
+                    const errorMsg = data?.message || data?.error || (text ? 'Server HTTP ' + response.status + ' Error' : 'Response error');
+                    throw new Error(errorMsg);
+                }
+                return data;
+            })
+            .then(data => {
+                const spinner = document.getElementById('termiusRunningSpinner');
+                if (spinner) spinner.remove();
+
+                input.disabled = false;
+                runBtn.disabled = false;
+                input.focus();
+
+                if (data.clear) {
+                    clearConsoleLogs();
+                    return;
+                }
+
+                const outLine = document.createElement('div');
+                outLine.className = 'mb-2 text-light';
+                outLine.style.whiteSpace = 'pre-wrap';
+                outLine.textContent = data.output || '(perintah selesai tanpa output)';
+                consoleOutput.appendChild(outLine);
+
+                const durLine = document.createElement('div');
+                durLine.className = 'text-secondary small mb-2';
+                durLine.innerHTML = `<i class="fas fa-check-circle text-success me-1"></i> Selesai dalam <span class="text-white font-monospace">${data.duration || '0s'}</span>`;
+                consoleOutput.appendChild(durLine);
+
+                consoleOutput.scrollTop = consoleOutput.scrollHeight;
+            })
+            .catch(err => {
+                const spinner = document.getElementById('termiusRunningSpinner');
+                if (spinner) spinner.remove();
+
+                input.disabled = false;
+                runBtn.disabled = false;
+                input.focus();
+
+                const errLine = document.createElement('div');
+                errLine.className = 'log-error mb-2';
+                errLine.innerHTML = `❌ Error: ${escapeHtml(err.message)}`;
+                consoleOutput.appendChild(errLine);
+                consoleOutput.scrollTop = consoleOutput.scrollHeight;
+            });
+        }
+
+        // Terminal Keyboard Handler (Enter, Arrow Up, Arrow Down, Ctrl+L)
+        document.getElementById('termiusInput').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                submitTermiusCommand();
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                if (commandHistory.length > 0 && historyIndex > 0) {
+                    historyIndex--;
+                    this.value = commandHistory[historyIndex];
+                } else if (historyIndex === 0 && commandHistory.length > 0) {
+                    this.value = commandHistory[0];
+                }
+            } else if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                if (historyIndex < commandHistory.length - 1) {
+                    historyIndex++;
+                    this.value = commandHistory[historyIndex];
+                } else {
+                    historyIndex = commandHistory.length;
+                    this.value = '';
+                }
+            } else if (e.ctrlKey && e.key.toLowerCase() === 'l') {
+                e.preventDefault();
+                clearConsoleLogs();
+            } else if (e.ctrlKey && e.key.toLowerCase() === 'c') {
+                e.preventDefault();
+                this.value = '';
+            }
+        });
 
         function triggerRepair(actionName, btnElement) {
             const originalText = btnElement.innerHTML;
