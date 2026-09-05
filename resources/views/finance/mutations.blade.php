@@ -55,21 +55,11 @@
                         <input type="text" name="search" value="{{ $search }}" class="form-control form-control-sm" placeholder="No. ref / keterangan...">
                     </div>
                 </div>
-                <div class="d-flex justify-content-between align-items-center mt-3 pt-2 border-top flex-wrap gap-2">
+                <div class="d-flex justify-content-between align-items-center mt-3 pt-2 border-top">
                     <div class="text-muted small">
                         <i class="bi bi-info-circle me-1 text-primary"></i> Menampilkan mutasi untuk: <strong>{{ $selectedAccountLabel }}</strong>
                     </div>
-                    <div class="d-flex gap-2 flex-wrap">
-                        @can('finance.incomes.create')
-                        <button type="button" class="btn btn-sm btn-success fw-semibold" data-bs-toggle="modal" data-bs-target="#addIncomeModal">
-                            <i class="bi bi-plus-circle me-1"></i> Input Pemasukan
-                        </button>
-                        @endcan
-                        @can('finance.expenses.create')
-                        <button type="button" class="btn btn-sm btn-danger fw-semibold" data-bs-toggle="modal" data-bs-target="#addExpenseModal">
-                            <i class="bi bi-dash-circle me-1"></i> Input Pengeluaran
-                        </button>
-                        @endcan
+                    <div class="d-flex gap-2">
                         <a href="{{ route('finance.mutations.index') }}" class="btn btn-sm btn-outline-secondary">
                             <i class="bi bi-arrow-counterclockwise me-1"></i> Reset
                         </a>
