@@ -25,9 +25,14 @@ class OrderItem extends Model
         'total_price',
         'cost_price',
         'hpp_subtotal',
+        'is_substituted',
+        'original_sku',
+        'original_product_name',
+        'substitution_note',
     ];
 
     protected $casts = [
+        'is_substituted'    => 'boolean',
         'price'             => 'decimal:2',
         'original_price'    => 'decimal:2',
         'seller_discount'   => 'decimal:2',

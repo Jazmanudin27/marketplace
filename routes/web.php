@@ -463,6 +463,8 @@ Route::middleware('auth')->group(function () {
             ->name('fulfillment.order_details')
             ->where('identifier', '.*');
         Route::post('/fulfillment/order/{order}/complete', [FulfillmentController::class, 'completePack'])->name('fulfillment.complete_pack');
+        Route::get('/fulfillment/products/search', [FulfillmentController::class, 'searchProducts'])->name('fulfillment.products.search');
+        Route::post('/fulfillment/order-item/{orderItem}/substitute', [FulfillmentController::class, 'substituteItem'])->name('fulfillment.item.substitute');
         Route::post('/fulfillment/batch-verify', [FulfillmentController::class, 'batchVerify'])->name('fulfillment.batch_verify');
         Route::post('/fulfillment/batch-ship', [FulfillmentController::class, 'batchShip'])->name('fulfillment.batch_ship');
     });

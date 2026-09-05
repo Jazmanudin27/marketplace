@@ -347,11 +347,19 @@
                                                         <span class="badge bg-danger-subtle text-danger border border-danger-subtle small me-1" style="font-size:0.6rem; padding: 1px 4px;">Pre-Order</span>
                                                     @endif
                                                     <span class="text-dark fw-semibold d-block" style="font-size: 0.72rem; line-height: 1.3;">{{ $item->product_name }}</span>
+                                                    @if ($item->is_substituted)
+                                                        <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle small me-1" style="font-size:0.65rem; padding: 1px 5px;">
+                                                            <i class="bi bi-arrow-left-right me-1"></i>Substitusi dari: {{ $item->original_sku ?: $item->original_product_name }}
+                                                        </span>
+                                                    @endif
                                                     @if ($item->sku_name)
                                                         <span class="text-muted d-block mt-0.5" style="font-size: 0.65rem;">Variasi: {{ $item->sku_name }}</span>
                                                     @endif
                                                     @if ($displaySku)
                                                         <span class="text-muted d-block mt-0.5" style="font-size: 0.65rem;">Kode Variasi: {{ $displaySku }}</span>
+                                                    @endif
+                                                    @if ($item->is_substituted && $item->substitution_note)
+                                                        <span class="text-secondary d-block fst-italic mt-0.5" style="font-size: 0.65rem;"><i class="bi bi-info-circle me-1"></i>Alasan: {{ $item->substitution_note }}</span>
                                                     @endif
                                                 </div>
                                             </div>

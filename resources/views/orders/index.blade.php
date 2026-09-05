@@ -1090,11 +1090,14 @@
                                             @if ($order->items->isNotEmpty())
                                                 <div class="mt-1 d-flex flex-column gap-1">
                                                     @foreach ($order->items as $orderItem)
-                                                        <span class="sku-tag">
+                                                        <span class="sku-tag {{ $orderItem->is_substituted ? 'border-warning' : '' }}" @if($orderItem->is_substituted) title="Substitusi dari {{ $orderItem->original_sku ?: 'SKU sebelumnya' }}" @endif>
                                                             <i class="fas fa-tag me-1 opacity-50"></i>
                                                             {{ $orderItem->sku ?? ($orderItem->masterProduct->sku ?? '-') }}
                                                             <span
                                                                 style="color:#aaa;">&times;{{ $orderItem->quantity }}</span>
+                                                            @if ($orderItem->is_substituted)
+                                                                <span class="badge bg-warning text-dark ms-1" style="font-size: 0.6rem; padding: 1px 3px;">Tukar</span>
+                                                            @endif
                                                         </span>
                                                     @endforeach
                                                 </div>

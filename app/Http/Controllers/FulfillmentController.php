@@ -3,8 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Models\Order;
+use App\Models\OrderItem;
+use App\Models\MasterProduct;
+use App\Models\StockMovement;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class FulfillmentController extends Controller
@@ -233,6 +237,7 @@ class FulfillmentController extends Controller
                             $items[] = [
                                 'id' => $item->id . '-' . $compProduct->id, // custom unique key
                                 'sku' => $compProduct->sku,
+                                'barcode' => $compProduct->barcode ?? null,
                                 'name' => '[Setelan Component] ' . $compProduct->name . ' (From ' . $masterProduct->name . ')',
                                 'image' => $compProduct->image_url ?: '/images/placeholder.png',
                                 'quantity' => $item->quantity * $qty,
@@ -245,6 +250,7 @@ class FulfillmentController extends Controller
                         $items[] = [
                             'id' => $item->id . '-' . $comp->id, // custom unique key
                             'sku' => $comp->sku,
+                            'barcode' => $comp->barcode ?? null,
                             'name' => '[Setelan Component] ' . $comp->name . ' (From ' . $masterProduct->name . ')',
                             'image' => $comp->image_url ?: '/images/placeholder.png',
                             'quantity' => $item->quantity * $qty,
@@ -260,9 +266,14 @@ class FulfillmentController extends Controller
                     $items[] = [
                         'id' => $item->id,
                         'sku' => $sku,
+                        'barcode' => $masterProduct->barcode ?? null,
                         'name' => $name,
                         'image' => $image,
                         'quantity' => $item->quantity,
+                        'is_substituted' => (bool) $item->is_substituted,
+                        'original_sku' => $item->original_sku,
+                        'original_product_name' => $item->original_product_name,
+                        'substitution_note' => $item->substitution_note,
                     ];
                 }
             } else {
@@ -272,9 +283,14 @@ class FulfillmentController extends Controller
                 $items[] = [
                     'id' => $item->id,
                     'sku' => $sku,
+                    'barcode' => $masterProduct->barcode ?? null,
                     'name' => $name,
                     'image' => $image,
                     'quantity' => $item->quantity,
+                    'is_substituted' => (bool) $item->is_substituted,
+                    'original_sku' => $item->original_sku,
+                    'original_product_name' => $item->original_product_name,
+                    'substitution_note' => $item->substitution_note,
                 ];
             }
         }
@@ -466,6 +482,137 @@ class FulfillmentController extends Controller
             'success' => true,
             'shipped' => $shipped,
             'message' => $message
+        ]);
+    }
+
+    /**
+     * Cari produk MasterProduct untuk kebutuhan penukaran / substitusi SKU di layar scanner
+     */
+    public function searchProducts(Request $request)
+    {
+        $tenantId = Auth::user()->tenant_id;
+        $q = trim((string) $request->get('q', ''));
+
+        if (strlen($q) < 1) {
+            return response()->json([]);
+        }
+
+        $products = MasterProduct::where('tenant_id', $tenantId)
+            ->where(function ($query) use ($q) {
+                $query->where('sku', 'LIKE', "%{$q}%")
+                      ->orWhere('name', 'LIKE', "%{$q}%")
+                      ->orWhere('barcode', 'LIKE', "%{$q}%");
+            })
+            ->select('id', 'sku', 'name', 'stock', 'image_url', 'cost_price')
+            ->orderBy('name')
+            ->limit(15)
+            ->get();
+
+        return response()->json($products);
+    }
+
+    /**
+     * Tukar / Substitusi SKU Item Pesanan (karena stok asli kosong, ganti varian atas kesepakatan pembeli)
+     */
+    public function substituteItem(Request $request, $orderItemId)
+    {
+        $tenantId = Auth::user()->tenant_id;
+
+        $request->validate([
+            'new_master_product_id' => 'required|integer',
+            'reason'                => 'nullable|string|max:255',
+        ]);
+
+        $item = OrderItem::with('order')->findOrFail($orderItemId);
+        $order = $item->order;
+
+        if ($order->tenant_id !== $tenantId) {
+            return response()->json(['success' => false, 'message' => 'Akses ditolak.'], 403);
+        }
+
+        if (in_array($order->order_status, [Order::STATUS_CANCELLED, Order::STATUS_COMPLETED])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Pesanan yang sudah dibatalkan atau selesai tidak dapat disubstitusi.'
+            ], 400);
+        }
+
+        $newMasterProduct = MasterProduct::where('tenant_id', $tenantId)
+            ->findOrFail($request->new_master_product_id);
+
+        $oldMasterProductId = $item->master_product_id;
+        $oldMasterProduct   = $oldMasterProductId ? MasterProduct::find($oldMasterProductId) : null;
+        $oldSku             = $item->sku;
+        $oldName            = $item->product_name;
+        $reason             = $request->input('reason', 'Kesepakatan Chat Pembeli');
+
+        DB::transaction(function () use ($item, $order, $oldMasterProduct, $newMasterProduct, $oldSku, $oldName, $reason) {
+            // 1. Cek apakah item ini sudah pernah tercatat mutasi keluar (stock deduction)
+            $wasDeducted = false;
+            if ($oldMasterProduct) {
+                $wasDeducted = StockMovement::where('master_product_id', $oldMasterProduct->id)
+                    ->where('reference', 'LIKE', '%' . $order->order_marketplace_id . '%')
+                    ->where('type', 'out')
+                    ->exists();
+            }
+
+            // 2. Sesuaikan mutasi stok jika sudah pernah dipotong sebelumnya
+            if ($wasDeducted && $oldMasterProduct) {
+                // Kembalikan stok produk lama (IN)
+                $oldMasterProduct->recordStockMovement(
+                    $item->quantity,
+                    'in',
+                    'Substitusi Barang (Batal): ' . $order->invoice_number . ' (' . $order->order_marketplace_id . ') -> diganti ' . $newMasterProduct->sku
+                );
+
+                // Potong stok produk baru (OUT)
+                $newMasterProduct->recordStockMovement(
+                    $item->quantity,
+                    'out',
+                    'Substitusi Barang (Kirim): ' . $order->invoice_number . ' (' . $order->order_marketplace_id . ') -> ganti dari ' . ($oldMasterProduct->sku ?: $oldSku)
+                );
+            }
+
+            // 3. Update OrderItem
+            $item->update([
+                'is_substituted'        => true,
+                'original_sku'          => $item->original_sku ?: ($item->seller_sku ?: $oldSku),
+                'original_product_name' => $item->original_product_name ?: $oldName,
+                'substitution_note'     => $reason,
+                'master_product_id'     => $newMasterProduct->id,
+                'sku'                   => $newMasterProduct->sku,
+                'seller_sku'            => $newMasterProduct->sku,
+                'product_name'          => $newMasterProduct->name,
+                'product_image'         => $newMasterProduct->image_url ?: $item->product_image,
+                'cost_price'            => $newMasterProduct->cost_price ?: $item->cost_price,
+                'hpp_subtotal'          => ($newMasterProduct->cost_price ?: ($item->cost_price ?? 0)) * $item->quantity,
+            ]);
+
+            // 4. Catat catatan audit di order
+            $auditNote = "[Substitusi " . now()->format('d/m/Y H:i') . "] Item '{$oldSku}' diganti menjadi '{$newMasterProduct->sku}'. Alasan: {$reason}";
+            $order->update([
+                'seller_note' => trim(($order->seller_note ? $order->seller_note . "\n" : '') . $auditNote)
+            ]);
+        });
+
+        // Kembalikan data item yang sudah terupdate
+        $item->refresh();
+
+        return response()->json([
+            'success' => true,
+            'message' => "Item '{$oldSku}' sukses diganti ke '{$newMasterProduct->sku}'.",
+            'item' => [
+                'id'                    => $item->id,
+                'sku'                   => $item->sku,
+                'barcode'               => $newMasterProduct->barcode ?? null,
+                'name'                  => $item->product_name,
+                'image'                 => $item->product_image ?: ($newMasterProduct->image_url ?: '/images/placeholder.png'),
+                'quantity'              => $item->quantity,
+                'is_substituted'        => true,
+                'original_sku'          => $item->original_sku,
+                'original_product_name' => $item->original_product_name,
+                'substitution_note'     => $item->substitution_note,
+            ]
         ]);
     }
 
