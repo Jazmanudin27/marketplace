@@ -20,14 +20,17 @@
                     <div class="col-12 col-md-2">
                         <label class="form-label form-label-sm fw-semibold mb-1 text-muted small">Akun Kas / Bank</label>
                         <select name="account" class="form-select form-select-sm">
-                            <option value="all" {{ $account === 'all' ? 'selected' : '' }}>Semua Akun Kas / Bank</option>
-                            <option value="kas_besar" {{ $account === 'kas_besar' ? 'selected' : '' }}>Kas Besar (Main Cash)</option>
-                            <option value="kas_kecil" {{ $account === 'kas_kecil' ? 'selected' : '' }}>Kas Kecil (Petty Cash)</option>
-                            @foreach($bankAccounts as $bank)
-                                <option value="{{ $bank->id }}" {{ (string)$account === (string)$bank->id ? 'selected' : '' }}>
-                                    {{ $bank->bank_name }} - {{ $bank->account_number }} ({{ $bank->account_name }})
-                                </option>
-                            @endforeach
+                            <option value="all" {{ $account === 'all' ? 'selected' : '' }}>Semua Akun Kas / Bank (Master)</option>
+                            @if(isset($bankAccounts) && $bankAccounts->isNotEmpty())
+                                @foreach($bankAccounts as $bank)
+                                    <option value="{{ $bank->bank_name }}" {{ strcasecmp((string)$account, (string)$bank->bank_name) === 0 || (string)$account === (string)$bank->id ? 'selected' : '' }}>
+                                        {{ $bank->bank_name }} {{ $bank->account_number ? '('.$bank->account_number.')' : '' }} {{ $bank->account_name ? '- '.$bank->account_name : '' }}
+                                    </option>
+                                @endforeach
+                            @else
+                                <option value="kas_besar" {{ $account === 'kas_besar' ? 'selected' : '' }}>Kas Besar</option>
+                                <option value="kas_kecil" {{ $account === 'kas_kecil' ? 'selected' : '' }}>Kas Kecil</option>
+                            @endif
                         </select>
                     </div>
                     <div class="col-12 col-md-2">

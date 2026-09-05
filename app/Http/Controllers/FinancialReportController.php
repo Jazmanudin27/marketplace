@@ -266,83 +266,124 @@ class FinancialReportController extends Controller
         $sourceType = $request->get('source_type', 'all');
         $search   = trim($request->get('search', ''));
 
-        // Load active bank accounts
-        $bankAccounts = \App\Models\BankAccount::where('tenant_id', $tenantId)->where('is_active', true)->get();
+        // Load active bank accounts from master database
+        $bankAccounts = \App\Models\BankAccount::where('tenant_id', $tenantId)->where('is_active', true)->orderBy('bank_name')->get();
 
-        $selectedAccountLabel = 'Semua Akun (Kas & Bank)';
-        if ($account === 'kas_besar') {
-            $selectedAccountLabel = 'Kas Besar (Main Cash)';
-        } elseif ($account === 'kas_kecil') {
-            $selectedAccountLabel = 'Kas Kecil (Petty Cash)';
-        } elseif (is_numeric($account)) {
-            $foundBank = $bankAccounts->firstWhere('id', (int) $account);
-            if ($foundBank) {
-                $selectedAccountLabel = $foundBank->bank_name . ' - ' . $foundBank->account_number . ' (' . $foundBank->account_name . ')';
+        $resolveAccountLabel = function ($val) use ($bankAccounts) {
+            if (!$val || $val === 'all') {
+                return 'Semua Akun Kas / Bank';
             }
-        }
+
+            $bank = $bankAccounts->first(function ($b) use ($val) {
+                return strcasecmp((string)$b->bank_name, (string)$val) === 0 || (string)$b->id === (string)$val;
+            });
+
+            if ($bank) {
+                $lbl = $bank->bank_name;
+                if ($bank->account_number) {
+                    $lbl .= ' (' . $bank->account_number . ')';
+                }
+                if ($bank->account_name) {
+                    $lbl .= ' - ' . $bank->account_name;
+                }
+                return $lbl;
+            }
+
+            if ($val === 'kas_kecil') return 'Kas Kecil';
+            if ($val === 'kas_besar') return 'Kas Besar';
+
+            return ucwords(str_replace('_', ' ', $val));
+        };
+
+        $selectedAccountLabel = $account === 'all' ? 'Semua Akun Kas / Bank' : $resolveAccountLabel($account);
+
+        $matchedBank = $bankAccounts->first(function ($b) use ($account) {
+            return strcasecmp((string)$b->bank_name, (string)$account) === 0 || (string)$b->id === (string)$account;
+        });
+
+        $accountFilterApply = function ($query, $column) use ($account, $matchedBank) {
+            if ($account === 'all') {
+                return;
+            }
+            $query->where(function ($q) use ($account, $matchedBank, $column) {
+                $q->where($column, $account);
+                if ($matchedBank) {
+                    $q->orWhere($column, $matchedBank->bank_name)
+                      ->orWhere($column, (string)$matchedBank->id);
+                }
+            });
+        };
+
+        $accountMatches = function ($recordVal) use ($account, $matchedBank) {
+            if ($account === 'all') {
+                return true;
+            }
+            if (strcasecmp((string)$recordVal, (string)$account) === 0) {
+                return true;
+            }
+            if ($matchedBank) {
+                if (strcasecmp((string)$recordVal, (string)$matchedBank->bank_name) === 0) {
+                    return true;
+                }
+                if ((string)$recordVal === (string)$matchedBank->id) {
+                    return true;
+                }
+            }
+            return false;
+        };
 
         // 1. Calculate Beginning Balance (Saldo Awal) before $dateFrom
         $beginningBalance = 0.0;
 
         // Incomes before $dateFrom
         $prevIncomesQuery = Income::where('tenant_id', $tenantId)->where('income_date', '<', $dateFrom);
-        if ($account !== 'all') {
-            $prevIncomesQuery->where(function($q) use ($account, $bankAccounts) {
-                $q->where('payment_destination', $account);
-                if (is_numeric($account)) {
-                    $b = $bankAccounts->firstWhere('id', (int) $account);
-                    if ($b) {
-                        $q->orWhere('payment_destination', $b->bank_name);
-                    }
-                }
-            });
-        }
+        $accountFilterApply($prevIncomesQuery, 'payment_destination');
         $beginningBalance += (float) $prevIncomesQuery->sum('amount');
 
         // Expenses before $dateFrom
         $prevExpensesQuery = Expense::where('tenant_id', $tenantId)->where('expense_date', '<', $dateFrom);
-        if ($account !== 'all') {
-            $prevExpensesQuery->where(function($q) use ($account, $bankAccounts) {
-                $q->where('payment_source', $account);
-                if (is_numeric($account)) {
-                    $b = $bankAccounts->firstWhere('id', (int) $account);
-                    if ($b) {
-                        $q->orWhere('payment_source', $b->bank_name);
-                    }
-                }
-            });
-        }
+        $accountFilterApply($prevExpensesQuery, 'payment_source');
         $beginningBalance -= (float) $prevExpensesQuery->sum('amount');
+
+        // Fund Transfers before $dateFrom
+        $prevTransfers = FundTransfer::where('tenant_id', $tenantId)->where('transfer_date', '<', $dateFrom)->get();
+        foreach ($prevTransfers as $pt) {
+            $amt = (float) $pt->amount;
+            if ($account !== 'all') {
+                if ($accountMatches($pt->destination)) {
+                    $beginningBalance += $amt;
+                }
+                if ($accountMatches($pt->source)) {
+                    $beginningBalance -= $amt;
+                }
+            }
+        }
 
         // Offline Sales before $dateFrom
         $prevOfflineQuery = OfflineSale::where('tenant_id', $tenantId)
             ->where('status', OfflineSale::STATUS_COMPLETED)
             ->where('sold_at', '<', $dateFrom . ' 00:00:00');
-        if ($account === 'kas_kecil') {
-            $prevOfflineQuery->where('payment_method', 'tunai');
-            $beginningBalance += (float) $prevOfflineQuery->sum('grand_total');
-        } elseif ($account === 'kas_besar') {
-            $prevOfflineQuery->whereIn('payment_method', ['transfer', 'qris', 'kartu']);
-            $beginningBalance += (float) $prevOfflineQuery->sum('grand_total');
-        } elseif ($account === 'all') {
-            $beginningBalance += (float) $prevOfflineQuery->sum('grand_total');
-        }
 
-        // Fund Transfers before $dateFrom
-        $prevTransfers = FundTransfer::where('tenant_id', $tenantId)->where('transfer_date', '<', $dateFrom)->get();
-        foreach ($prevTransfers as $pt) {
-            $src = $pt->source;
-            $dst = $pt->destination;
-            $amt = (float) $pt->amount;
-            if ($account !== 'all') {
-                if ($dst === $account) {
-                    $beginningBalance += $amt;
+        if ($account !== 'all') {
+            $prevOfflineQuery->where(function ($q) use ($account, $matchedBank) {
+                $q->where('payment_destination', $account);
+                if ($matchedBank) {
+                    $q->orWhere('payment_destination', $matchedBank->bank_name)
+                      ->orWhere('payment_destination', (string)$matchedBank->id);
                 }
-                if ($src === $account) {
-                    $beginningBalance -= $amt;
+                if ($account === 'kas_kecil' || ($matchedBank && stripos($matchedBank->bank_name, 'kas') !== false)) {
+                    $q->orWhere(function ($sub) {
+                        $sub->whereNull('payment_destination')->where('payment_method', 'tunai');
+                    });
                 }
-            }
+                if ($account === 'kas_besar') {
+                    $q->orWhere(function ($sub) {
+                        $sub->whereNull('payment_destination')->whereIn('payment_method', ['transfer', 'qris', 'kartu']);
+                    });
+                }
+            });
         }
+        $beginningBalance += (float) $prevOfflineQuery->sum('grand_total');
 
         // 2. Fetch Transactions within period
         $transactions = collect();
@@ -352,18 +393,10 @@ class FinancialReportController extends Controller
             $incomesQuery = Income::where('tenant_id', $tenantId)
                 ->whereBetween('income_date', [$dateFrom, $dateTo]);
             
-            if ($account !== 'all') {
-                $incomesQuery->where(function($q) use ($account, $bankAccounts) {
-                    $q->where('payment_destination', $account);
-                    if (is_numeric($account)) {
-                        $b = $bankAccounts->firstWhere('id', (int) $account);
-                        if ($b) $q->orWhere('payment_destination', $b->bank_name);
-                    }
-                });
-            }
+            $accountFilterApply($incomesQuery, 'payment_destination');
 
             if ($search) {
-                $incomesQuery->where(function($q) use ($search) {
+                $incomesQuery->where(function ($q) use ($search) {
                     $q->where('title', 'like', "%{$search}%")
                       ->orWhere('description', 'like', "%{$search}%")
                       ->orWhere('category', 'like', "%{$search}%");
@@ -379,7 +412,7 @@ class FinancialReportController extends Controller
                     'type_label'     => 'Pemasukan Lain',
                     'type_badge'     => 'bg-success',
                     'category_label' => $inc->category_label,
-                    'account_label'  => $inc->payment_destination_label,
+                    'account_label'  => $resolveAccountLabel($inc->payment_destination),
                     'description'    => $inc->title . ($inc->description ? ' (' . $inc->description . ')' : ''),
                     'inflow'         => (float) $inc->amount,
                     'outflow'        => 0.0,
@@ -393,18 +426,10 @@ class FinancialReportController extends Controller
                 ->where('tenant_id', $tenantId)
                 ->whereBetween('expense_date', [$dateFrom, $dateTo]);
 
-            if ($account !== 'all') {
-                $expensesQuery->where(function($q) use ($account, $bankAccounts) {
-                    $q->where('payment_source', $account);
-                    if (is_numeric($account)) {
-                        $b = $bankAccounts->firstWhere('id', (int) $account);
-                        if ($b) $q->orWhere('payment_source', $b->bank_name);
-                    }
-                });
-            }
+            $accountFilterApply($expensesQuery, 'payment_source');
 
             if ($search) {
-                $expensesQuery->where(function($q) use ($search) {
+                $expensesQuery->where(function ($q) use ($search) {
                     $q->where('title', 'like', "%{$search}%")
                       ->orWhere('description', 'like', "%{$search}%")
                       ->orWhere('category', 'like', "%{$search}%");
@@ -427,7 +452,7 @@ class FinancialReportController extends Controller
                     'type_label'     => 'Pengeluaran',
                     'type_badge'     => 'bg-danger',
                     'category_label' => $exp->category_label,
-                    'account_label'  => $exp->payment_source_label,
+                    'account_label'  => $resolveAccountLabel($exp->payment_source),
                     'description'    => $desc,
                     'inflow'         => 0.0,
                     'outflow'        => (float) $exp->amount,
@@ -441,8 +466,12 @@ class FinancialReportController extends Controller
                 ->whereBetween('transfer_date', [$dateFrom, $dateTo]);
 
             if ($account !== 'all') {
-                $transfersQuery->where(function($q) use ($account) {
-                    $q->where('source', $account)->orWhere('destination', $account);
+                $transfersQuery->where(function ($q) use ($accountFilterApply) {
+                    $q->where(function ($sub) use ($accountFilterApply) {
+                        $accountFilterApply($sub, 'source');
+                    })->orWhere(function ($sub) use ($accountFilterApply) {
+                        $accountFilterApply($sub, 'destination');
+                    });
                 });
             }
 
@@ -451,8 +480,8 @@ class FinancialReportController extends Controller
             }
 
             foreach ($transfersQuery->get() as $tr) {
-                $srcLabel = $tr->source_label;
-                $dstLabel = $tr->destination_label;
+                $srcLabel = $resolveAccountLabel($tr->source);
+                $dstLabel = $resolveAccountLabel($tr->destination);
                 $amt = (float) $tr->amount;
 
                 if ($account === 'all') {
@@ -470,7 +499,7 @@ class FinancialReportController extends Controller
                         'outflow'        => 0.0,
                     ]);
                 } else {
-                    if ($tr->source === $account) {
+                    if ($accountMatches($tr->source)) {
                         $transactions->push([
                             'datetime'       => \Carbon\Carbon::parse($tr->transfer_date)->startOfDay()->toDateTimeString(),
                             'date_formatted' => \Carbon\Carbon::parse($tr->transfer_date)->format('d/m/Y'),
@@ -485,7 +514,7 @@ class FinancialReportController extends Controller
                             'outflow'        => $amt,
                         ]);
                     }
-                    if ($tr->destination === $account) {
+                    if ($accountMatches($tr->destination)) {
                         $transactions->push([
                             'datetime'       => \Carbon\Carbon::parse($tr->transfer_date)->startOfDay()->toDateTimeString(),
                             'date_formatted' => \Carbon\Carbon::parse($tr->transfer_date)->format('d/m/Y'),
@@ -510,23 +539,35 @@ class FinancialReportController extends Controller
                 ->where('status', OfflineSale::STATUS_COMPLETED)
                 ->whereBetween('sold_at', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59']);
 
-            if ($account === 'kas_kecil') {
-                $offlineQuery->where('payment_method', 'tunai');
-            } elseif ($account === 'kas_besar') {
-                $offlineQuery->whereIn('payment_method', ['transfer', 'qris', 'kartu']);
-            } elseif ($account !== 'all') {
-                $offlineQuery->whereRaw('1 = 0');
+            if ($account !== 'all') {
+                $offlineQuery->where(function ($q) use ($account, $matchedBank) {
+                    $q->where('payment_destination', $account);
+                    if ($matchedBank) {
+                        $q->orWhere('payment_destination', $matchedBank->bank_name)
+                          ->orWhere('payment_destination', (string)$matchedBank->id);
+                    }
+                    if ($account === 'kas_kecil' || ($matchedBank && stripos($matchedBank->bank_name, 'kas') !== false)) {
+                        $q->orWhere(function ($sub) {
+                            $sub->whereNull('payment_destination')->where('payment_method', 'tunai');
+                        });
+                    }
+                    if ($account === 'kas_besar') {
+                        $q->orWhere(function ($sub) {
+                            $sub->whereNull('payment_destination')->whereIn('payment_method', ['transfer', 'qris', 'kartu']);
+                        });
+                    }
+                });
             }
 
             if ($search) {
-                $offlineQuery->where(function($q) use ($search) {
+                $offlineQuery->where(function ($q) use ($search) {
                     $q->where('sale_number', 'like', "%{$search}%")
                       ->orWhere('customer_name', 'like', "%{$search}%");
                 });
             }
 
             foreach ($offlineQuery->get() as $sale) {
-                $accLabel = $sale->payment_method === 'tunai' ? 'Kas Kecil (Petty Cash)' : 'Kas Besar (Non-Tunai POS)';
+                $accLabel = $sale->payment_destination ? $resolveAccountLabel($sale->payment_destination) : ($sale->payment_method === 'tunai' ? 'Kas Tunai' : 'Non-Tunai (' . strtoupper($sale->payment_method ?? 'POS') . ')');
                 $transactions->push([
                     'datetime'       => $sale->sold_at ? \Carbon\Carbon::parse($sale->sold_at)->toDateTimeString() : \Carbon\Carbon::parse($sale->created_at)->toDateTimeString(),
                     'date_formatted' => $sale->sold_at ? \Carbon\Carbon::parse($sale->sold_at)->format('d/m/Y H:i') : \Carbon\Carbon::parse($sale->created_at)->format('d/m/Y H:i'),
