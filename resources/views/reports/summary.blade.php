@@ -12,24 +12,6 @@
                 <div class="card-body">
                     <form action="{{ route('reports.summary.print') }}" method="GET" target="_blank">
                         <div class="mb-3">
-                            <label class="form-label form-label-sm fw-semibold">Kategori</label>
-                            <select name="category_id" class="form-select form-select-sm">
-                                <option value="">Semua Kategori</option>
-                                @foreach ($categories as $category)
-                                    <option value="{{ $category->id }}">{{ $category->name }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label form-label-sm fw-semibold">Merk</label>
-                            <select name="brand_id" class="form-select form-select-sm">
-                                <option value="">Semua Merk</option>
-                                @foreach ($brands as $brand)
-                                    <option value="{{ $brand->id }}">{{ $brand->name }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div class="mb-3">
                             <label class="form-label form-label-sm fw-semibold">Jenis Produk</label>
                             <select name="is_bundle" class="form-select form-select-sm">
                                 <option value="">Semua Jenis (Single & BUNDLE)</option>
