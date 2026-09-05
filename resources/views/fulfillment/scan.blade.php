@@ -5,10 +5,16 @@
 @push('styles')
 <style>
     .item-verification-card {
+        border-radius: 12px;
+        overflow: hidden;
+        border: 1px solid #e2e8f0;
+        background: #ffffff;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
         transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease, background 0.2s ease;
     }
     .item-verification-card:hover {
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05) !important;
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06) !important;
+        border-color: #cbd5e1;
     }
     .item-verification-card.is-scanned {
         animation: pulseScan 0.4s ease;
@@ -17,6 +23,18 @@
         0% { transform: scale(1); }
         50% { transform: scale(1.015); }
         100% { transform: scale(1); }
+    }
+    .btn-open-substitute {
+        transition: all 0.2s ease;
+        font-size: 0.75rem !important;
+        letter-spacing: 0.2px;
+    }
+    .btn-open-substitute:hover {
+        background-color: #fef3c7 !important;
+        border-color: #f59e0b !important;
+        color: #92400e !important;
+        transform: translateY(-1px);
+        box-shadow: 0 2px 6px rgba(245, 158, 11, 0.2) !important;
     }
     #modalSubstituteItem .modal-content {
         background-color: #f8fafc;
@@ -167,11 +185,13 @@
                         <!-- Items rows will be inserted here dynamically -->
                     </div>
 
-                    <!-- Tombol Konfirmasi Manual -->
-                    <div class="mt-4 border-top pt-3 d-flex justify-content-end gap-2">
-                        <button type="button" class="btn btn-outline-secondary btn-sm" id="btn-reset">Batal / Reset</button>
-                        <button type="button" class="btn btn-primary btn-sm d-none fw-semibold" id="btn-submit-verification">
-                            <i class="fas fa-check-circle"></i> Konfirmasi Kemas
+                    <!-- Tombol Konfirmasi Manual & Status Bar -->
+                    <div class="mt-4 border-top pt-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                        <button type="button" class="btn btn-outline-secondary px-3 py-2 fw-semibold" id="btn-reset">
+                            <i class="fas fa-redo-alt me-1"></i> Batal / Reset Order
+                        </button>
+                        <button type="button" class="btn btn-success px-4 py-2 fs-6 fw-bold d-none shadow-sm" id="btn-submit-verification">
+                            <i class="fas fa-check-double me-1.5"></i> Selesai & Konfirmasi Kemas
                         </button>
                     </div>
                 </div>
@@ -573,12 +593,11 @@
 
                     const itemRow = document.createElement('div');
                     itemRow.id = `item-row-${item.id}`;
-                    itemRow.className = 'card item-verification-card border p-3 rounded-3 shadow-2xs position-relative overflow-hidden bg-white mb-2';
-                    itemRow.style.transition = 'all 0.25s ease';
+                    itemRow.className = 'card item-verification-card border rounded-3 position-relative bg-white mb-3 shadow-2xs';
 
                     const imageHtml = item.image ?
-                        `<img src="${item.image}" alt="${escapeHtml(item.name)}" class="rounded-3 border flex-shrink-0" style="width: 62px; height: 62px; object-fit: cover;">` :
-                        `<div class="rounded-3 border bg-light d-flex align-items-center justify-content-center text-muted flex-shrink-0" style="width: 62px; height: 62px;"><i class="fas fa-image fs-4 opacity-50"></i></div>`;
+                        `<img src="${item.image}" alt="${escapeHtml(item.name)}" class="rounded-3 border flex-shrink-0" style="width: 64px; height: 64px; object-fit: cover;">` :
+                        `<div class="rounded-3 border bg-light d-flex align-items-center justify-content-center text-muted flex-shrink-0" style="width: 64px; height: 64px;"><i class="fas fa-image fs-4 opacity-50"></i></div>`;
 
                     const barcodePill = item.barcode ?
                         `<span class="badge bg-light text-secondary border font-monospace py-1 px-2" style="font-size: 0.72rem;" title="Barcode Produk">
@@ -586,52 +605,61 @@
                          </span>` : '';
 
                     const substituteBadge = item.is_substituted ?
-                        `<span class="badge rounded-pill bg-warning-subtle text-warning-emphasis border border-warning-subtle py-1 px-2.5" style="font-size: 0.72rem;" title="Alasan: ${escapeHtml(item.substitution_note || '')}">
-                            <i class="fas fa-arrow-left-right me-1 text-warning"></i>Diganti dari: <strong>${escapeHtml(item.original_sku || '-')}</strong>
+                        `<span class="badge bg-warning bg-opacity-20 text-dark border border-warning py-1 px-2.5" style="font-size: 0.75rem;" title="Alasan: ${escapeHtml(item.substitution_note || '')}">
+                            <i class="fas fa-arrow-left-right text-warning me-1"></i>Diganti dari: <strong>${escapeHtml(item.original_sku || '-')}</strong>
                          </span>` : '';
 
                     const canSubstitute = order.packing_status !== 'verified' && !String(item.id).includes('-');
                     const substituteBtn = canSubstitute ?
-                        `<button type="button" class="btn btn-sm btn-outline-warning text-dark border-warning-subtle rounded-pill py-0.5 px-2.5 btn-open-substitute ms-auto shadow-2xs" 
+                        `<button type="button" class="btn btn-sm btn-outline-warning text-dark border-warning bg-white rounded-pill px-3 py-1 shadow-2xs btn-open-substitute fw-semibold" 
                             data-id="${item.id}" 
                             data-sku="${escapeHtml(item.sku || '')}" 
                             data-name="${escapeHtml(item.name || '')}" 
                             data-qty="${item.quantity}"
-                            data-image="${escapeHtml(item.image || '')}"
-                            style="font-size: 0.72rem; font-weight: 600;">
-                            <i class="fas fa-exchange-alt text-warning me-1"></i>Tukar SKU
+                            data-image="${escapeHtml(item.image || '')}">
+                            <i class="fas fa-exchange-alt text-warning me-1.5"></i>Tukar / Ganti Varian
                          </button>` : '';
 
                     itemRow.innerHTML = `
                         <!-- Left Status Stripe -->
-                        <div id="stripe-${item.id}" class="position-absolute top-0 bottom-0 start-0" style="width: 4px; background: #cbd5e1; transition: background 0.25s ease;"></div>
+                        <div id="stripe-${item.id}" class="position-absolute top-0 bottom-0 start-0" style="width: 5px; background: #cbd5e1; transition: background 0.25s ease;"></div>
                         
-                        <div class="d-flex align-items-center gap-3 ps-1">
+                        <!-- Top Row: Thumbnail + Product Details + Counter Box -->
+                        <div class="p-3 d-flex align-items-center gap-3 ps-3">
                             ${imageHtml}
                             <div class="flex-grow-1 min-w-0">
-                                <div class="fw-bold text-dark text-truncate mb-1" style="font-size: 0.92rem;" title="${escapeHtml(item.name)}">${escapeHtml(item.name)}</div>
-                                <div class="d-flex align-items-center flex-wrap gap-1.5 mb-2">
-                                    <span class="badge bg-light text-dark border font-monospace py-1 px-2" style="font-size: 0.75rem;">
-                                        <i class="fas fa-tag me-1 text-muted"></i>${escapeHtml(item.sku || '-')}
+                                <div class="fw-bold text-dark mb-1 text-wrap" style="font-size: 0.95rem; line-height: 1.35;" title="${escapeHtml(item.name)}">${escapeHtml(item.name)}</div>
+                                <div class="d-flex align-items-center flex-wrap gap-1.5">
+                                    <span class="badge bg-light text-dark border font-monospace py-1 px-2.5" style="font-size: 0.75rem;">
+                                        <i class="fas fa-tag me-1 text-muted"></i>SKU: <strong>${escapeHtml(item.sku || '-')}</strong>
                                     </span>
                                     ${barcodePill}
                                     ${substituteBadge}
-                                    ${substituteBtn}
-                                </div>
-                                <div class="progress rounded-pill bg-light" style="height: 5px;">
-                                    <div class="progress-bar rounded-pill bg-primary" id="progress-bar-${item.id}" role="progressbar" style="width: 0%; transition: width 0.3s ease;"></div>
                                 </div>
                             </div>
                             
                             <!-- Quantitative Counter Box -->
-                            <div class="item-qty-box text-center px-3 py-2 rounded-3 border flex-shrink-0" id="qty-box-${item.id}" style="min-width: 95px; background: #f8fafc; transition: all 0.25s ease;">
+                            <div class="item-qty-box text-center px-3 py-2 rounded-3 border flex-shrink-0" id="qty-box-${item.id}" style="min-width: 110px; background: #f8fafc; transition: all 0.25s ease;">
                                 <div class="d-flex align-items-baseline justify-content-center">
-                                    <span class="fs-4 fw-bold font-monospace text-secondary" id="scan-qty-${item.id}">0</span>
+                                    <span class="fs-3 fw-bold font-monospace text-secondary" id="scan-qty-${item.id}">0</span>
                                     <span class="fs-6 fw-semibold text-muted ms-1"> / ${item.quantity}</span>
                                 </div>
                                 <div class="small fw-semibold mt-0.5 text-uppercase" id="scan-badge-${item.id}" style="font-size: 0.65rem; letter-spacing: 0.5px; color: #64748b;">
                                     <i class="fas fa-barcode me-1"></i>Scan SKU
                                 </div>
+                            </div>
+                        </div>
+
+                        <!-- Bottom Action & Progress Toolbar -->
+                        <div class="border-top bg-light bg-opacity-50 px-3 py-2 d-flex justify-content-between align-items-center gap-3">
+                            <div class="d-flex align-items-center gap-2 flex-grow-1" style="max-width: 320px;">
+                                <div class="progress flex-grow-1 rounded-pill bg-secondary bg-opacity-15" style="height: 7px;">
+                                    <div class="progress-bar rounded-pill bg-primary" id="progress-bar-${item.id}" role="progressbar" style="width: 0%; transition: width 0.3s ease;"></div>
+                                </div>
+                                <span class="font-monospace text-muted fw-bold flex-shrink-0" id="progress-text-${item.id}" style="font-size: 0.72rem;">0%</span>
+                            </div>
+                            <div class="flex-shrink-0">
+                                ${substituteBtn}
                             </div>
                         </div>
                     `;
@@ -708,16 +736,18 @@
             function updateItemUI(item) {
                 const current = scanCounts[item.id];
                 const target = item.quantity;
-                const percentage = Math.min(100, (current / target) * 100);
+                const percentage = Math.round(Math.min(100, (current / target) * 100));
 
                 const textQty = document.getElementById(`scan-qty-${item.id}`);
                 const bar = document.getElementById(`progress-bar-${item.id}`);
+                const textProgress = document.getElementById(`progress-text-${item.id}`);
                 const row = document.getElementById(`item-row-${item.id}`);
                 const stripe = document.getElementById(`stripe-${item.id}`);
                 const qtyBox = document.getElementById(`qty-box-${item.id}`);
                 const badge = document.getElementById(`scan-badge-${item.id}`);
 
                 if (textQty) textQty.innerText = current;
+                if (textProgress) textProgress.innerText = `${percentage}%`;
 
                 if (current >= target) {
                     // Lengkap / Completed
@@ -727,7 +757,7 @@
                     }
                     if (row) {
                         row.style.borderColor = '#86efac';
-                        row.style.background = '#f0fdf4';
+                        row.style.background = '#ffffff';
                     }
                     if (stripe) stripe.style.background = '#10b981';
                     if (qtyBox) {
@@ -735,10 +765,13 @@
                         qtyBox.style.borderColor = '#a7f3d0';
                     }
                     if (textQty) {
-                        textQty.className = 'fs-4 fw-bold font-monospace text-success';
+                        textQty.className = 'fs-3 fw-bold font-monospace text-success';
                     }
                     if (badge) {
                         badge.innerHTML = '<span class="text-success fw-bold"><i class="fas fa-check-circle me-1"></i>LENGKAP</span>';
+                    }
+                    if (textProgress) {
+                        textProgress.className = 'font-monospace text-success fw-bold flex-shrink-0';
                     }
                 } else if (current > 0) {
                     // In Progress
@@ -748,7 +781,7 @@
                     }
                     if (row) {
                         row.style.borderColor = '#93c5fd';
-                        row.style.background = '#f8faff';
+                        row.style.background = '#ffffff';
                     }
                     if (stripe) stripe.style.background = '#3b82f6';
                     if (qtyBox) {
@@ -756,10 +789,13 @@
                         qtyBox.style.borderColor = '#bfdbfe';
                     }
                     if (textQty) {
-                        textQty.className = 'fs-4 fw-bold font-monospace text-primary';
+                        textQty.className = 'fs-3 fw-bold font-monospace text-primary';
                     }
                     if (badge) {
                         badge.innerHTML = `<span class="text-primary fw-bold"><i class="fas fa-spinner fa-spin me-1"></i>${current}/${target}</span>`;
+                    }
+                    if (textProgress) {
+                        textProgress.className = 'font-monospace text-primary fw-bold flex-shrink-0';
                     }
                 } else {
                     // Pending
@@ -777,10 +813,13 @@
                         qtyBox.style.borderColor = '#e2e8f0';
                     }
                     if (textQty) {
-                        textQty.className = 'fs-4 fw-bold font-monospace text-secondary';
+                        textQty.className = 'fs-3 fw-bold font-monospace text-secondary';
                     }
                     if (badge) {
                         badge.innerHTML = '<span class="text-secondary"><i class="fas fa-barcode me-1"></i>Scan SKU</span>';
+                    }
+                    if (textProgress) {
+                        textProgress.className = 'font-monospace text-muted fw-bold flex-shrink-0';
                     }
                 }
                 updateCompletionProgress();
