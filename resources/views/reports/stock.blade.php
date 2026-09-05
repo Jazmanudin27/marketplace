@@ -12,24 +12,6 @@
                 <div class="card-body">
                     <form action="{{ route('reports.stock.print') }}" method="GET" target="_blank" id="stockFilterForm">
                         <div class="mb-3">
-                            <label class="form-label form-label-sm fw-semibold">Kategori</label>
-                            <select name="category_id" class="form-select form-select-sm">
-                                <option value="">Semua Kategori</option>
-                                @foreach ($categories as $category)
-                                    <option value="{{ $category->id }}" {{ request('category_id') == $category->id ? 'selected' : '' }}>{{ $category->name }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label form-label-sm fw-semibold">Merk</label>
-                            <select name="brand_id" class="form-select form-select-sm">
-                                <option value="">Semua Merk</option>
-                                @foreach ($brands as $brand)
-                                    <option value="{{ $brand->id }}" {{ request('brand_id') == $brand->id ? 'selected' : '' }}>{{ $brand->name }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div class="mb-3">
                             <label class="form-label form-label-sm fw-semibold">Toko / Marketplace</label>
                             <select name="store_id" class="form-select form-select-sm">
                                 <option value="">Semua Toko Marketplace</option>
