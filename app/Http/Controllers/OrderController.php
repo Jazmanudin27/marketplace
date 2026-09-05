@@ -426,19 +426,24 @@ class OrderController extends Controller
                 $shopCipher  = $store->shop_cipher ?: $store->marketplace_store_id;
 
                 try {
-                    $tiktokService->shipOrder(
+                    $shipRes = $tiktokService->shipOrder(
                         $accessToken,
                         $shopCipher,
                         $order->order_marketplace_id,
-                        $handoverMethod
+                        $handoverMethod,
+                        $order->package_id
                     );
+
+                    if (!empty($shipRes['package_id']) && empty($order->package_id)) {
+                        $order->package_id = $shipRes['package_id'];
+                    }
                 } catch (\Exception $e) {
                     // Cek jika error dari TikTok karena status pesanan sudah dikirim / dikemas di TikTok
                     $errStr = strtolower($e->getMessage());
                     if (str_contains($errStr, 'already') || str_contains($errStr, 'status') || str_contains($errStr, 'invalid')) {
                         try {
                             $detailData = $tiktokService->getOrderDetail($accessToken, $shopCipher, [$order->order_marketplace_id]);
-                            $tOrders = $detailData['order_list'] ?? [];
+                            $tOrders = $detailData['orders'] ?? $detailData['order_list'] ?? [];
                             if (!empty($tOrders[0]['status']) && in_array($tOrders[0]['status'], ['AWAITING_COLLECTION', 'IN_TRANSIT', 'DELIVERED', 'COMPLETED'])) {
                                 // Pesanan memang sudah siap dikirim / dikemas di TikTok!
                             } else {
@@ -457,7 +462,7 @@ class OrderController extends Controller
                 // Langsung coba tarik nomor resi dari TikTok setelah ship sukses
                 try {
                     $detailData = $tiktokService->getOrderDetail($accessToken, $shopCipher, [$order->order_marketplace_id]);
-                    $tOrders = $detailData['order_list'] ?? [];
+                    $tOrders = $detailData['orders'] ?? $detailData['order_list'] ?? [];
                     if (!empty($tOrders[0])) {
                         $tOrder = $tOrders[0];
                         $tNo = $tOrder['tracking_number'] ?? $tOrder['tracking_no'] ?? $tOrder['express_tracking_number'] ?? null;
@@ -469,6 +474,9 @@ class OrderController extends Controller
                         }
                         if ($tNo) {
                             $order->tracking_number = $tNo;
+                        }
+                        if (!empty($tOrder['packages'][0]['id']) && empty($order->package_id)) {
+                            $order->package_id = (string) $tOrder['packages'][0]['id'];
                         }
                     }
                 } catch (\Exception $e) {}

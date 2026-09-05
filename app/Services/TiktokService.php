@@ -271,7 +271,13 @@ class TiktokService
 
         $result = $data['data'] ?? [];
 
-        // Standarisasi response order_list agar kompatibel dengan pemanggil (PullOrdersFromTiktok)
+        // Standarisasi response order_list dan orders agar kompatibel dengan seluruh pemanggil (PullOrdersFromTiktok, Controllers, dll)
+        if (isset($result['orders']) && !isset($result['order_list'])) {
+            $result['order_list'] = $result['orders'];
+        } elseif (isset($result['order_list']) && !isset($result['orders'])) {
+            $result['orders'] = $result['order_list'];
+        }
+
         return $result;
     }
 
@@ -594,26 +600,97 @@ class TiktokService
     }
 
     /**
-     * Memproses pengiriman pesanan (Request Pickup / Drop-off)
+     * Membuat paket pengiriman untuk pesanan di TikTok Shop jika belum ada paket (API v202309)
      */
-    public function shipOrder(string $accessToken, string $shopCipher, string $orderId, string $handoverMethod = 'DROP_OFF')
+    public function createPackage(string $accessToken, string $shopCipher, string $orderId): array
     {
-        // Ambil ID paket (package_id) dari detail pesanan jika tersedia
-        $packageId = null;
-        try {
-            $orderData = $this->getOrderDetail($accessToken, $shopCipher, [$orderId]);
-            $orders = $orderData['order_list'] ?? [];
-            if (!empty($orders[0]['packages'][0]['id'])) {
-                $packageId = (string) $orders[0]['packages'][0]['id'];
-            }
-        } catch (\Exception $e) {}
+        $path = '/fulfillment/202309/packages';
+        $queryParams = [
+            'app_key' => $this->appKey,
+            'timestamp' => time(),
+            'shop_cipher' => $shopCipher,
+        ];
+        $body = [
+            'order_id' => $orderId,
+        ];
 
-        $packageObj = ['handover_method' => $handoverMethod];
-        if ($packageId) {
-            $packageObj['id'] = $packageId;
+        $bodyJson = json_encode($body);
+        $queryParams['sign'] = $this->generateSignature($path, $queryParams, $bodyJson);
+        $queryParams['access_token'] = $accessToken;
+
+        $response = Http::timeout(15)->withHeaders([
+            'x-tts-access-token' => $accessToken,
+            'Content-Type' => 'application/json',
+        ])->post($this->baseUrl . $path . '?' . http_build_query($queryParams), $body);
+
+        $data = $response->json();
+        if (isset($data['code']) && $data['code'] !== 0) {
+            throw new \RuntimeException('TikTok API Error: ' . ($data['message'] ?? 'Unknown Error'));
         }
 
+        return $data['data'] ?? [];
+    }
+
+    /**
+     * Memproses pengiriman pesanan (Request Pickup / Drop-off)
+     */
+    public function shipOrder(string $accessToken, string $shopCipher, string $orderId, string $handoverMethod = 'DROP_OFF', ?string $packageId = null)
+    {
+        // 1. Ambil ID paket (package_id) dari detail pesanan jika belum tersedia
+        if (empty($packageId)) {
+            try {
+                $orderData = $this->getOrderDetail($accessToken, $shopCipher, [$orderId]);
+                $orders = $orderData['orders'] ?? $orderData['order_list'] ?? [];
+                if (!empty($orders[0])) {
+                    $firstOrder = $orders[0];
+                    if (!empty($firstOrder['packages'])) {
+                        foreach ($firstOrder['packages'] as $pkg) {
+                            $pId = $pkg['id'] ?? $pkg['package_id'] ?? null;
+                            if (!empty($pId)) {
+                                $packageId = (string) $pId;
+                                break;
+                            }
+                        }
+                    }
+                    if (empty($packageId)) {
+                        $packageId = (string) ($firstOrder['package_id'] ?? '');
+                    }
+                }
+            } catch (\Exception $e) {
+                Log::warning("[TikTokService] Gagal fetch detail untuk package_id pesanan {$orderId}: " . $e->getMessage());
+            }
+        }
+
+        // 2. Jika masih kosong, coba buat paket baru melalui createPackage API
+        if (empty($packageId)) {
+            try {
+                $pkgData = $this->createPackage($accessToken, $shopCipher, $orderId);
+                $packageId = (string) ($pkgData['package_id'] ?? $pkgData['id'] ?? ($pkgData['packages'][0]['id'] ?? ''));
+            } catch (\Exception $e) {
+                Log::warning("[TikTokService] Gagal createPackage otomatis untuk order {$orderId}: " . $e->getMessage());
+            }
+        }
+
+        // 3. Validasi packageId: TikTok Shop Open API v202309 mewajibkan package_id untuk ship
+        if (empty($packageId)) {
+            throw new \RuntimeException("TikTok API Error: ID Paket (package_id) untuk pesanan {$orderId} belum tersedia dari TikTok. Pastikan pesanan siap diproses di TikTok Seller Center.");
+        }
+
+        $packageObj = [
+            'id' => (string) $packageId,
+            'handover_method' => $handoverMethod,
+        ];
+
+        // 4. Daftar endpoint shipping TikTok Shop
         $endpoints = [
+            // Endpoint canonical per package (v202309)
+            [
+                'path' => '/fulfillment/202309/packages/' . $packageId . '/ship',
+                'body' => [
+                    'handover_method' => $handoverMethod,
+                ],
+            ],
+            // Endpoint via order_id
             [
                 'path' => '/fulfillment/202309/orders/' . $orderId . '/ship',
                 'body' => [
@@ -621,12 +698,14 @@ class TiktokService
                     'handover_method' => $handoverMethod,
                 ],
             ],
+            // Endpoint batch packages
             [
                 'path' => '/fulfillment/202309/packages/ship',
                 'body' => [
                     'packages' => [$packageObj],
                 ],
             ],
+            // Endpoint alternatif order/ship
             [
                 'path' => '/fulfillment/202309/orders/ship',
                 'body' => [
@@ -634,6 +713,7 @@ class TiktokService
                     'packages' => [$packageObj],
                 ],
             ],
+            // Endpoint logistics
             [
                 'path' => '/logistics/202309/orders/' . $orderId . '/ship',
                 'body' => [
@@ -660,7 +740,7 @@ class TiktokService
             $queryParams['sign'] = $sign;
             $queryParams['access_token'] = $accessToken;
 
-            $response = Http::withHeaders([
+            $response = Http::timeout(20)->withHeaders([
                 'x-tts-access-token' => $accessToken,
                 'Content-Type' => 'application/json',
             ])->post($this->baseUrl . $path . '?' . http_build_query($queryParams), $body);
@@ -668,13 +748,33 @@ class TiktokService
             $data = $response->json();
 
             if (isset($data['code']) && $data['code'] === 0) {
-                return $data;
+                return [
+                    'code' => 0,
+                    'package_id' => $packageId,
+                    'data' => $data['data'] ?? [],
+                ];
             }
 
             $msg = $data['message'] ?? 'Unknown Error';
             $code = $data['code'] ?? -1;
+            $lowerMsg = strtolower($msg);
 
-            if (str_contains(strtolower($msg), 'invalid path') || $code === 105001) {
+            // Toleransi jika status pesanan di TikTok sudah dikirim / sedang diproses kurir
+            if (
+                str_contains($lowerMsg, 'already') ||
+                str_contains($lowerMsg, 'not awaiting shipment') ||
+                str_contains($lowerMsg, 'does not allow this operation') ||
+                str_contains($lowerMsg, 'cannot be shipped')
+            ) {
+                return [
+                    'code' => 0,
+                    'package_id' => $packageId,
+                    'already_shipped' => true,
+                    'message' => $msg,
+                ];
+            }
+
+            if (str_contains($lowerMsg, 'invalid path') || $code === 105001) {
                 $lastException = new \RuntimeException('TikTok API Error: ' . $msg);
                 continue;
             }
@@ -688,13 +788,15 @@ class TiktokService
     /**
      * Mengambil dokumen pengiriman (PDF / HTML Resi)
      */
-    public function getShippingDocument(string $accessToken, string $shopCipher, string $orderId)
+    public function getShippingDocument(string $accessToken, string $shopCipher, string $orderId, ?string $packageId = null)
     {
-        $paths = [
-            '/fulfillment/202309/orders/' . $orderId . '/documents',
-            '/logistics/202309/orders/' . $orderId . '/documents',
-            '/fulfillment/202309/documents',
-        ];
+        $paths = [];
+        if (!empty($packageId)) {
+            $paths[] = '/fulfillment/202309/packages/' . $packageId . '/shipping_documents';
+        }
+        $paths[] = '/fulfillment/202309/orders/' . $orderId . '/documents';
+        $paths[] = '/logistics/202309/orders/' . $orderId . '/documents';
+        $paths[] = '/fulfillment/202309/documents';
 
         $lastException = null;
 
@@ -714,7 +816,7 @@ class TiktokService
             $queryParams['sign'] = $sign;
             $queryParams['access_token'] = $accessToken;
 
-            $response = Http::withHeaders([
+            $response = Http::timeout(15)->withHeaders([
                 'x-tts-access-token' => $accessToken,
             ])->get($this->baseUrl . $path, $queryParams);
 

@@ -8,9 +8,9 @@
         <div class="col-md-5">
             <div class="card border shadow-sm mb-4">
                 <div class="card-body">
-                    <h5 class="card-title fw-bold text-dark mb-3"><i class="fas fa-barcode"></i> Langkah 1: Scan Invoice</h5>
+                    <h5 class="card-title fw-bold text-dark mb-3"><i class="fas fa-barcode"></i> Langkah 1: Scan Resi / Invoice</h5>
                     <div class="mt-3">
-                        <label for="invoice-scan-input" class="form-label fw-bold">Nomor Invoice / Kode Pesanan</label>
+                        <label for="invoice-scan-input" class="form-label fw-bold">Nomor Resi / Invoice / Order ID</label>
                         <div class="input-group">
                             <span class="input-group-text bg-light border-secondary border-opacity-25 text-secondary">
                                 <i class="fas fa-file-invoice"></i>
@@ -20,7 +20,7 @@
                                 placeholder="Scan resi/invoice di sini..." autofocus autocomplete="off">
                         </div>
                         <div class="form-text text-muted mt-2 small">
-                            Arahkan scanner atau ketik nomor invoice, lalu tekan <strong>Enter</strong>.
+                            Arahkan scanner atau ketik nomor resi/invoice, lalu tekan <strong>Enter</strong>.
                         </div>
                     </div>
                 </div>
@@ -73,7 +73,7 @@
             <div class="card border border-dashed text-center py-5 px-4" id="empty-state">
                 <div class="card-body">
                     <i class="fas fa-truck-loading text-muted opacity-25 mb-4" style="font-size: 4rem;"></i>
-                    <h3 class="h5 fw-bold text-secondary">Silakan Scan Nomor Invoice</h3>
+                    <h3 class="h5 fw-bold text-secondary">Silakan Scan Nomor Resi / Invoice</h3>
                     <p class="text-muted mx-auto mt-2 small" style="max-width: 380px;">
                         Scan kode resi pengiriman atau invoice marketplace untuk memuat detail pesanan dan memulai verifikasi
                         produk.
@@ -251,10 +251,11 @@
                 productScanSection.classList.remove('d-none');
 
                 // Populate metadata
-                document.getElementById('order-invoice-title').innerText = "Invoice: " + order.invoice_number;
+                const resiBadge = order.tracking_number ? ` <span class="badge bg-secondary ms-2 fw-normal" style="font-size: 0.8rem;"><i class="fas fa-shipping-fast me-1"></i>Resi: ${order.tracking_number}</span>` : '';
+                document.getElementById('order-invoice-title').innerHTML = "Invoice: " + order.invoice_number + resiBadge;
                 document.getElementById('order-store-name').innerText = order.store_name;
                 document.getElementById('order-buyer-name').innerText = order.buyer_name;
-                document.getElementById('order-courier-name').innerText = order.courier;
+                document.getElementById('order-courier-name').innerText = order.courier + (order.tracking_number ? ` (${order.tracking_number})` : '');
 
                 const badge = document.getElementById('order-channel-badge');
                 badge.innerText = order.channel_name.toUpperCase();

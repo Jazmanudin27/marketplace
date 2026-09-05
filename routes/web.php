@@ -459,7 +459,9 @@ Route::middleware('auth')->group(function () {
             return redirect()->route('orders.index');
         })->name('fulfillment.index');
         Route::get('/fulfillment/scan', [FulfillmentController::class, 'scanPage'])->name('fulfillment.scan_page');
-        Route::get('/fulfillment/order/{identifier}', [FulfillmentController::class, 'getOrderDetails'])->name('fulfillment.order_details');
+        Route::get('/fulfillment/order/{identifier}', [FulfillmentController::class, 'getOrderDetails'])
+            ->name('fulfillment.order_details')
+            ->where('identifier', '.*');
         Route::post('/fulfillment/order/{order}/complete', [FulfillmentController::class, 'completePack'])->name('fulfillment.complete_pack');
         Route::post('/fulfillment/batch-verify', [FulfillmentController::class, 'batchVerify'])->name('fulfillment.batch_verify');
         Route::post('/fulfillment/batch-ship', [FulfillmentController::class, 'batchShip'])->name('fulfillment.batch_ship');

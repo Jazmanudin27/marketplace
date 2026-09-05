@@ -256,9 +256,9 @@
                                                 $mpTooltip .= "{$ch} ({$st}): " . number_format($mp->stock) . "\n";
                                             }
                                         @endphp
-                                        <span
-                                            class="badge bg-info text-white px-2.5 py-1.5 small fw-extrabold shadow-sm"
-                                            title="{{ trim($mpTooltip) }}" style="cursor: pointer; background-color: #0284c7 !important;">
+                                        <span class="badge bg-info text-white px-2.5 py-1.5 small fw-extrabold shadow-sm"
+                                            title="{{ trim($mpTooltip) }}"
+                                            style="cursor: pointer; background-color: #0284c7 !important;">
                                             <i class="fas fa-store me-1"></i>{{ number_format($stokMp) }} MP
                                         </span>
                                         <div class="text-muted mt-1" style="font-size:.7rem">

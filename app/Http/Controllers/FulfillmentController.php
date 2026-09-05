@@ -152,18 +152,41 @@ class FulfillmentController extends Controller
      */
     public function getOrderDetails($identifier)
     {
+        $cleanIdentifier = trim($identifier);
+
+        if (empty($cleanIdentifier)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Silakan masukkan nomor resi atau invoice pesanan.'
+            ], 400);
+        }
+
         $order = Order::with(['items.masterProduct', 'items.marketplaceProduct', 'store.channel'])
             ->where('tenant_id', Auth::user()->tenant_id)
-            ->where(function ($q) use ($identifier) {
-                $q->where('invoice_number', $identifier)
-                  ->orWhere('order_marketplace_id', $identifier);
+            ->where(function ($q) use ($cleanIdentifier) {
+                $q->where('invoice_number', $cleanIdentifier)
+                  ->orWhere('order_marketplace_id', $cleanIdentifier)
+                  ->orWhere('tracking_number', $cleanIdentifier)
+                  ->orWhere('package_id', $cleanIdentifier);
             })
             ->first();
+
+        // Fallback jika scanner atau sistem memiliki perbedaan spasi/karakter tersembunyi
+        if (!$order) {
+            $order = Order::with(['items.masterProduct', 'items.marketplaceProduct', 'store.channel'])
+                ->where('tenant_id', Auth::user()->tenant_id)
+                ->where(function ($q) use ($cleanIdentifier) {
+                    $q->where('tracking_number', 'like', "%{$cleanIdentifier}%")
+                      ->orWhere('invoice_number', 'like', "%{$cleanIdentifier}%")
+                      ->orWhere('order_marketplace_id', 'like', "%{$cleanIdentifier}%");
+                })
+                ->first();
+        }
 
         if (!$order) {
             return response()->json([
                 'success' => false, 
-                'message' => "Pesanan dengan nomor/invoice '{$identifier}' tidak ditemukan."
+                'message' => "Pesanan dengan nomor invoice / resi '{$cleanIdentifier}' tidak ditemukan."
             ], 404);
         }
 
@@ -175,10 +198,18 @@ class FulfillmentController extends Controller
         }
 
         if (!$order->is_printed) {
-            return response()->json([
-                'success' => false,
-                'message' => "Pesanan '{$identifier}' BELUM DICETAK RESINYA! Silakan cetak resi terlebih dahulu sebelum dikemas."
-            ], 400);
+            // Jika discan menggunakan nomor resi atau sudah memiliki resi ekspedisi, tandai sudah tercetak
+            if (!empty($order->tracking_number)) {
+                $order->update([
+                    'is_printed' => true,
+                    'printed_at' => now(),
+                ]);
+            } else {
+                return response()->json([
+                    'success' => false,
+                    'message' => "Pesanan '{$cleanIdentifier}' BELUM DICETAK RESINYA! Silakan cetak resi terlebih dahulu sebelum dikemas."
+                ], 400);
+            }
         }
 
         // Set status packing ke 'packing' secara otomatis jika sebelumnya 'pending'
@@ -253,6 +284,7 @@ class FulfillmentController extends Controller
             'order' => [
                 'id' => $order->id,
                 'invoice_number' => $order->invoice_number ?? $order->order_marketplace_id,
+                'tracking_number' => $order->tracking_number ?? null,
                 'buyer_name' => $order->buyer_name ?? '-',
                 'courier' => $order->courier ?? '-',
                 'store_name' => $order->store->store_name,
@@ -340,12 +372,44 @@ class FulfillmentController extends Controller
                     $message = "Kemas sukses! Pesanan berhasil dikirim ke Shopee.";
                 } elseif (in_array(strtolower($store->channel->code ?? ''), ['tiktok', 'tokopedia'])) {
                     $tiktokService = app(\App\Services\TiktokService::class);
-                    $tiktokService->shipOrder(
-                        $store->getValidAccessToken(),
-                        $store->shop_cipher ?: $store->marketplace_store_id,
+                    $accessToken = $store->getValidAccessToken();
+                    $shopCipher  = $store->shop_cipher ?: $store->marketplace_store_id;
+
+                    $shipRes = $tiktokService->shipOrder(
+                        $accessToken,
+                        $shopCipher,
                         $order->order_marketplace_id,
-                        $handoverMethod
+                        $handoverMethod,
+                        $order->package_id
                     );
+
+                    if (!empty($shipRes['package_id']) && empty($order->package_id)) {
+                        $order->package_id = $shipRes['package_id'];
+                    }
+
+                    // Ambil nomor resi TikTok & perbarui package_id jika belum lengkap
+                    try {
+                        $detailData = $tiktokService->getOrderDetail($accessToken, $shopCipher, [$order->order_marketplace_id]);
+                        $tOrders = $detailData['orders'] ?? $detailData['order_list'] ?? [];
+                        if (!empty($tOrders[0])) {
+                            $tOrder = $tOrders[0];
+                            $tNo = $tOrder['tracking_number'] ?? $tOrder['tracking_no'] ?? $tOrder['express_tracking_number'] ?? null;
+                            if (empty($tNo) && !empty($tOrder['packages'])) {
+                                foreach ($tOrder['packages'] as $pkg) {
+                                    $tNo = $pkg['tracking_number'] ?? $pkg['tracking_no'] ?? $pkg['express_tracking_number'] ?? null;
+                                    if (!empty($tNo)) break;
+                                }
+                            }
+                            if ($tNo) {
+                                $order->tracking_number = $tNo;
+                            }
+                            if (!empty($tOrder['packages'][0]['id']) && empty($order->package_id)) {
+                                $order->package_id = (string) $tOrder['packages'][0]['id'];
+                            }
+                        }
+                    } catch (\Exception $e) {
+                        Log::warning("[Fulfillment] Gagal menarik tracking number TikTok: " . $e->getMessage());
+                    }
 
                     $order->order_status = Order::STATUS_SHIPPED;
                     $order->save();

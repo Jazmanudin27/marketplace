@@ -1258,9 +1258,6 @@
                                     {{-- Aksi --}}
                                     <td style="text-align:center;">
                                         <div class="d-flex flex-column align-items-center gap-1">
-                                            <a href="{{ route('orders.show', $order) }}" class="btn-tbl btn-tbl-blue">
-                                                <i class="fas fa-eye"></i> Detail
-                                            </a>
                                             @if (!in_array($orderStatusUp, ['UNPAID', 'PENDING', 'CANCELLED', 'BATAL', 'IN_CANCEL']))
                                                 <a href="{{ route('orders.print', $order->id) }}" target="_blank" class="btn-tbl btn-tbl-outline" title="Cetak Resi / Label Pengiriman">
                                                     <i class="fas fa-print"></i> Cetak Resi
@@ -1271,13 +1268,15 @@
                                                     style="background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0; padding:4px 8px;">
                                                     <i class="fas fa-check-circle me-1"></i>Sudah Kirim
                                                 </span>
-                                            @elseif ($orderStatusUp !== 'CANCELLED')
+                                            @elseif (!in_array($orderStatusUp, ['CANCELLED', 'BATAL', 'IN_CANCEL']))
                                                 <button type="button"
                                                     class="btn-tbl btn-tbl-primary btn-ship-single-order"
                                                     data-order-id="{{ $order->id }}"
                                                     title="Kirim Pesanan ke Marketplace">
                                                     <i class="fas fa-paper-plane"></i> Kirim
                                                 </button>
+                                            @else
+                                                <span class="text-muted small">—</span>
                                             @endif
                                         </div>
                                     </td>
