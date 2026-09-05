@@ -31,6 +31,58 @@
                 @endif
             @endforeach
 
+            {{-- KPI Summary Cards --}}
+            <div class="row g-3 mb-4">
+                <div class="col-12 col-md-4">
+                    <div class="card border rounded shadow-sm bg-white h-100 border-start border-primary border-4">
+                        <div class="card-body py-3 px-3 d-flex align-items-center gap-3">
+                            <div class="rounded-circle bg-primary bg-opacity-10 text-primary d-flex align-items-center justify-content-center flex-shrink-0" style="width: 48px; height: 48px;">
+                                <i class="fas fa-wallet fs-5"></i>
+                            </div>
+                            <div class="min-width-0">
+                                <div class="text-muted small fw-semibold">Total Saldo Dompet (Sudah Cair)</div>
+                                <div class="fw-bold fs-5 text-dark font-monospace mt-0.5">
+                                    Rp {{ number_format($totalWalletBalance, 0, ',', '.') }}
+                                </div>
+                                <small class="text-muted" style="font-size: 0.72rem;">Saldo siap tarik dari seluruh toko</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-12 col-md-4">
+                    <div class="card border rounded shadow-sm bg-white h-100 border-start border-warning border-4">
+                        <div class="card-body py-3 px-3 d-flex align-items-center gap-3">
+                            <div class="rounded-circle bg-warning bg-opacity-10 text-warning d-flex align-items-center justify-content-center flex-shrink-0" style="width: 48px; height: 48px;">
+                                <i class="fas fa-clock fs-5"></i>
+                            </div>
+                            <div class="min-width-0">
+                                <div class="text-warning-emphasis small fw-semibold">Total Saldo Pending (Belum Cair)</div>
+                                <div class="fw-bold fs-5 text-warning font-monospace mt-0.5">
+                                    Rp {{ number_format($totalPendingBalance, 0, ',', '.') }}
+                                </div>
+                                <small class="text-muted" style="font-size: 0.72rem;">{{ $totalPendingCount }} pesanan menunggu pencairan escrow</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-12 col-md-4">
+                    <div class="card border rounded shadow-sm bg-white h-100 border-start border-success border-4">
+                        <div class="card-body py-3 px-3 d-flex align-items-center gap-3">
+                            <div class="rounded-circle bg-success bg-opacity-10 text-success d-flex align-items-center justify-content-center flex-shrink-0" style="width: 48px; height: 48px;">
+                                <i class="fas fa-coins fs-5"></i>
+                            </div>
+                            <div class="min-width-0">
+                                <div class="text-success small fw-semibold">Estimasi Total Dana Marketplace</div>
+                                <div class="fw-bold fs-5 text-success font-monospace mt-0.5">
+                                    Rp {{ number_format($totalWalletBalance + $totalPendingBalance, 0, ',', '.') }}
+                                </div>
+                                <small class="text-muted" style="font-size: 0.72rem;">Akumulasi Saldo Dompet + Saldo Pending</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             {{-- Card Grid --}}
             <div class="row g-3">
                 @forelse($storeBalances as $sb)
@@ -63,41 +115,84 @@
                                 {{-- Balance Area --}}
                                 <div class="bg-light border rounded-3 p-3 mb-3 mt-auto">
                                     @if($balance['success'])
-                                        <span class="text-muted d-block small mb-1" style="font-size: 0.72rem;">
-                                            {{ !empty($balance['is_estimated']) ? 'ESTIMASI DANA CAIR (15 HARI)' : 'SALDO DOMPET BERJALAN' }}
-                                        </span>
-                                        <h4 class="fw-bold mb-1 text-dark font-monospace">
+                                        {{-- Saldo Dompet (Sudah Cair) --}}
+                                        <div class="d-flex justify-content-between align-items-center mb-1">
+                                            <span class="text-muted small fw-semibold" style="font-size: 0.72rem;">
+                                                SALDO DOMPET (SUDAH CAIR)
+                                            </span>
+                                            <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 rounded-pill px-2 py-0.5 small" style="font-size: 0.68rem;">
+                                                Siap Tarik
+                                            </span>
+                                        </div>
+                                        <h4 class="fw-bold mb-2 text-dark font-monospace">
                                             Rp {{ number_format($balance['current_balance'], 0, ',', '.') }}
                                         </h4>
-                                        @if(!$isShopee)
-                                            <small class="text-muted d-block" style="font-size: 0.68rem;">
-                                                <i class="fas fa-info-circle text-info"></i> Estimasi total dana cair transaksi.
-                                            </small>
-                                        @else
-                                            <div class="d-flex justify-content-between border-top pt-2 mt-2 text-secondary small" style="font-size: 0.75rem;">
-                                                <span>Dapat Ditarik:</span>
-                                                <strong class="text-success font-monospace">Rp {{ number_format($balance['withdraw_balance'], 0, ',', '.') }}</strong>
+
+                                        {{-- Saldo Pending (Belum Cair) --}}
+                                        <div class="border-top pt-2 mt-2">
+                                            <div class="d-flex justify-content-between align-items-center text-secondary small" style="font-size: 0.78rem;">
+                                                <span class="text-dark fw-semibold">
+                                                    <i class="fas fa-hourglass-half me-1 text-warning"></i> Saldo Pending:
+                                                </span>
+                                                <strong class="text-warning-emphasis font-monospace fs-6">
+                                                    Rp {{ number_format($balance['pending_balance'], 0, ',', '.') }}
+                                                </strong>
                                             </div>
-                                        @endif
+                                            <div class="d-flex justify-content-between align-items-center mt-1 text-muted" style="font-size: 0.72rem;">
+                                                <span>Dana pesanan belum cair:</span>
+                                                <span class="badge bg-warning bg-opacity-25 text-dark rounded-pill px-2 py-0.5 fw-semibold" style="font-size: 0.68rem;">
+                                                    {{ $balance['pending_count'] }} Pesanan
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        {{-- Total Estimasi Dana Toko --}}
+                                        <div class="d-flex justify-content-between align-items-center border-top pt-2 mt-2 text-secondary small" style="font-size: 0.78rem;">
+                                            <span class="fw-bold text-dark">Estimasi Total Dana:</span>
+                                            <strong class="text-primary font-monospace fs-6">
+                                                Rp {{ number_format($balance['total_estimated'], 0, ',', '.') }}
+                                            </strong>
+                                        </div>
                                     @else
                                         <div class="text-danger small py-1" style="font-size: 0.75rem;">
                                             <i class="fas fa-exclamation-circle me-1"></i>
-                                            Gagal mengambil saldo: <br>
+                                            Gagal mengambil saldo API: <br>
                                             <span class="fw-semibold text-break">{{ Str::limit($balance['error_message'], 60) }}</span>
+                                        </div>
+                                        {{-- Tetap tampilkan Saldo Pending dari database ERP --}}
+                                        <div class="border-top pt-2 mt-2">
+                                            <div class="d-flex justify-content-between align-items-center text-secondary small" style="font-size: 0.78rem;">
+                                                <span class="text-dark fw-semibold">
+                                                    <i class="fas fa-hourglass-half me-1 text-warning"></i> Saldo Pending:
+                                                </span>
+                                                <strong class="text-warning-emphasis font-monospace fs-6">
+                                                    Rp {{ number_format($balance['pending_balance'], 0, ',', '.') }}
+                                                </strong>
+                                            </div>
+                                            <div class="text-muted small mt-1" style="font-size: 0.72rem;">
+                                                {{ $balance['pending_count'] }} pesanan aktif berjalan di ERP
+                                            </div>
                                         </div>
                                     @endif
                                 </div>
 
-                                {{-- Action Button --}}
-                                @if($store->status === 'connected')
-                                    <a href="{{ route('finance.marketplace_wallets.mutasi', $store) }}" class="btn btn-primary btn-sm w-100 rounded-2 py-2 fw-semibold">
-                                        <i class="fas fa-history me-1.5"></i> Lihat Mutasi Dompet
-                                    </a>
-                                @else
-                                    <button class="btn btn-secondary btn-sm w-100 rounded-2 py-2 fw-semibold" disabled>
-                                        <i class="fas fa-plug me-1.5"></i> Offline
-                                    </button>
-                                @endif
+                                {{-- Action Buttons --}}
+                                <div class="d-flex gap-2">
+                                    @if($store->status === 'connected')
+                                        <a href="{{ route('finance.marketplace_wallets.mutasi', $store) }}" class="btn btn-primary btn-sm flex-fill rounded-2 py-2 fw-semibold">
+                                            <i class="fas fa-history me-1.5"></i> Lihat Mutasi Dompet
+                                        </a>
+                                    @else
+                                        <button class="btn btn-secondary btn-sm flex-fill rounded-2 py-2 fw-semibold" disabled>
+                                            <i class="fas fa-plug me-1.5"></i> Offline
+                                        </button>
+                                    @endif
+                                    @if(($balance['pending_count'] ?? 0) > 0)
+                                        <a href="{{ route('orders.index', ['store_id' => $store->id]) }}" class="btn btn-outline-warning btn-sm rounded-2 py-2 px-2.5 fw-semibold text-dark" title="Lihat {{ $balance['pending_count'] }} Pesanan Toko Ini">
+                                            <i class="fas fa-box-open text-warning me-1"></i>{{ $balance['pending_count'] }}
+                                        </a>
+                                    @endif
+                                </div>
                             </div>
                         </div>
                     </div>

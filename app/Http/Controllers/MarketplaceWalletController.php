@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Store;
+use App\Models\Order;
 use App\Models\MarketplaceWalletTransaction;
 use App\Services\ShopeeService;
 use App\Services\TiktokService;
@@ -36,6 +37,9 @@ class MarketplaceWalletController extends Controller
             ->get();
 
         $storeBalances = [];
+        $totalWalletBalance = 0.0;
+        $totalPendingBalance = 0.0;
+        $totalPendingCount = 0;
 
         foreach ($stores as $store) {
             $cacheKey = "store_wallet_balance_{$store->id}";
@@ -106,13 +110,52 @@ class MarketplaceWalletController extends Controller
                 }
             });
 
+            // Hitung Saldo Pending (Pesanan aktif/berjalan yang dananya belum dilepas/reconciled)
+            $pendingOrders = Order::where('store_id', $store->id)
+                ->whereNotIn('order_status', [
+                    'CANCELLED', 'BATAL', 'CANCELED', 'UNPAID', 'PENDING_PAYMENT', 'IN_CANCEL',
+                    'RETURNED', 'REFUNDED', 'RETURN', 'REFUND', 'RETURN_APPROVED', 'RETURN_COMPLETED'
+                ])
+                ->where(function ($q) {
+                    // Pesanan aktif yang belum selesai/settled (90 hari terakhir)
+                    $q->whereNotIn('order_status', ['COMPLETED', 'SELESAI', 'FINISHED'])
+                      ->where('order_date', '>=', now()->subDays(90))
+                      // ATAU pesanan selesai/delivered tetapi belum berstatus RECONCILED dalam 45 hari terakhir
+                      ->orWhere(function ($sub) {
+                          $sub->whereIn('order_status', ['COMPLETED', 'SELESAI', 'FINISHED', 'DELIVERED'])
+                              ->where(function ($rq) {
+                                  $rq->whereNull('recon_status')->orWhere('recon_status', '!=', 'RECONCILED');
+                              })
+                              ->where('order_date', '>=', now()->subDays(45));
+                      });
+                })
+                ->get(['id', 'total_amount', 'marketplace_fee', 'net_amount', 'financial_breakdown', 'recon_status']);
+
+            $pendingBalance = (float) $pendingOrders->sum(function ($ord) {
+                return max(0.0, (float) $ord->net_amount);
+            });
+            $pendingCount = $pendingOrders->count();
+
+            $balanceData['pending_balance'] = $pendingBalance;
+            $balanceData['pending_count']   = $pendingCount;
+            $balanceData['total_estimated'] = ((float) ($balanceData['current_balance'] ?? 0)) + $pendingBalance;
+
+            $totalWalletBalance += (float) ($balanceData['current_balance'] ?? 0);
+            $totalPendingBalance += $pendingBalance;
+            $totalPendingCount += $pendingCount;
+
             $storeBalances[] = [
                 'store'    => $store,
                 'balance'  => $balanceData,
             ];
         }
 
-        return view('finance.marketplace_wallets.index', compact('storeBalances'));
+        return view('finance.marketplace_wallets.index', compact(
+            'storeBalances',
+            'totalWalletBalance',
+            'totalPendingBalance',
+            'totalPendingCount'
+        ));
     }
 
     public function mutasi(Request $request, Store $store)
