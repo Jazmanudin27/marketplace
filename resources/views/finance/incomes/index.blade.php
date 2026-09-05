@@ -63,10 +63,16 @@
                         <label class="form-label form-label-sm fw-semibold mb-1 text-muted">Kategori</label>
                         <select name="category" class="form-select form-select-sm">
                             <option value="">Semua Kategori</option>
-                            <option value="investment" {{ $category === 'investment' ? 'selected' : '' }}>Investasi / Modal</option>
-                            <option value="refund" {{ $category === 'refund' ? 'selected' : '' }}>Refund / Pengembalian</option>
-                            <option value="services" {{ $category === 'services' ? 'selected' : '' }}>Jasa / Layanan</option>
-                            <option value="other" {{ $category === 'other' ? 'selected' : '' }}>Lain-lain</option>
+                            @if(isset($categories) && $categories->isNotEmpty())
+                                @foreach($categories as $cat)
+                                    <option value="{{ $cat->code }}" {{ $category === $cat->code ? 'selected' : '' }}>{{ $cat->name }}</option>
+                                @endforeach
+                            @else
+                                <option value="investment" {{ $category === 'investment' ? 'selected' : '' }}>Investasi / Modal</option>
+                                <option value="refund" {{ $category === 'refund' ? 'selected' : '' }}>Refund / Pengembalian</option>
+                                <option value="services" {{ $category === 'services' ? 'selected' : '' }}>Jasa / Layanan</option>
+                                <option value="other" {{ $category === 'other' ? 'selected' : '' }}>Lain-lain</option>
+                            @endif
                         </select>
                     </div>
                     <div class="col-6 col-md-2">
@@ -108,9 +114,14 @@
         <div class="card-body">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <h5 class="fw-bold mb-0 text-dark"><i class="fas fa-arrow-up text-primary me-2"></i>Daftar Pemasukan Lain-Lain</h5>
-                <button class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#addIncomeModal">
-                    <i class="fas fa-plus me-1"></i> Tambah Pemasukan
-                </button>
+                <div class="d-flex gap-2">
+                    <a href="{{ route('finance-categories.index', ['type' => 'income']) }}" class="btn btn-sm btn-outline-success">
+                        <i class="fas fa-tags me-1"></i> Kelola Kategori
+                    </a>
+                    <button class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#addIncomeModal">
+                        <i class="fas fa-plus me-1"></i> Tambah Pemasukan
+                    </button>
+                </div>
             </div>
             <div class="table-responsive">
                 <table class="table table-striped table-hover border align-middle mb-0">
@@ -206,10 +217,16 @@
                         <div class="col-md-6">
                             <label class="form-label fw-semibold small">Kategori</label>
                             <select name="category" class="form-select form-select-sm" required>
-                                <option value="investment">Investasi / Modal</option>
-                                <option value="refund">Refund / Pengembalian</option>
-                                <option value="services">Jasa / Layanan</option>
-                                <option value="other">Lain-lain</option>
+                                @if(isset($categories) && $categories->isNotEmpty())
+                                    @foreach($categories as $cat)
+                                        <option value="{{ $cat->code }}">{{ $cat->name }}</option>
+                                    @endforeach
+                                @else
+                                    <option value="investment">Investasi / Modal</option>
+                                    <option value="refund">Refund / Pengembalian</option>
+                                    <option value="services">Jasa / Layanan</option>
+                                    <option value="other">Lain-lain</option>
+                                @endif
                             </select>
                         </div>
                         <div class="col-md-6">
@@ -282,18 +299,30 @@
                             <label class="form-label fw-semibold small">Kategori</label>
                             <select name="category" id="edit_category"
                                 class="form-select form-select-sm" required>
-                                <option value="investment">Investasi / Modal</option>
-                                <option value="refund">Refund / Pengembalian</option>
-                                <option value="services">Jasa / Layanan</option>
-                                <option value="other">Lain-lain</option>
+                                @if(isset($categories) && $categories->isNotEmpty())
+                                    @foreach($categories as $cat)
+                                        <option value="{{ $cat->code }}">{{ $cat->name }}</option>
+                                    @endforeach
+                                @else
+                                    <option value="investment">Investasi / Modal</option>
+                                    <option value="refund">Refund / Pengembalian</option>
+                                    <option value="services">Jasa / Layanan</option>
+                                    <option value="other">Lain-lain</option>
+                                @endif
                             </select>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label fw-semibold small">Kas Tujuan</label>
                             <select name="payment_destination" id="edit_payment_destination"
                                 class="form-select form-select-sm" required>
-                                <option value="kas_besar">Kas Besar (Utama)</option>
-                                <option value="kas_kecil">Kas Kecil (Operasional)</option>
+                                @if(isset($bankAccounts) && $bankAccounts->isNotEmpty())
+                                    @foreach($bankAccounts as $bank)
+                                        <option value="{{ $bank->bank_name }}">{{ $bank->bank_name }} {{ $bank->account_number ? '('.$bank->account_number.')' : '' }}</option>
+                                    @endforeach
+                                @else
+                                    <option value="kas_besar">Kas Besar (Utama)</option>
+                                    <option value="kas_kecil">Kas Kecil (Operasional)</option>
+                                @endif
                             </select>
                         </div>
                     </div>

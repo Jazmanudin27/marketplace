@@ -231,6 +231,10 @@ Route::middleware('auth')->group(function () {
     Route::resource('bank-accounts', \App\Http\Controllers\Master\BankAccountController::class)->except(['create', 'show', 'edit']);
     Route::post('bank-accounts/{bankAccount}/toggle', [\App\Http\Controllers\Master\BankAccountController::class, 'toggleStatus'])->name('bank-accounts.toggle');
 
+    // Master Kategori Keuangan (Pengeluaran & Pemasukan)
+    Route::resource('finance-categories', \App\Http\Controllers\Master\FinanceCategoryController::class)->except(['create', 'show', 'edit']);
+    Route::post('finance-categories/{financeCategory}/toggle', [\App\Http\Controllers\Master\FinanceCategoryController::class, 'toggleStatus'])->name('finance-categories.toggle');
+
     // Employees & Production Masters
     Route::middleware('permission:manage-employees')->group(function () {
         Route::resource('tailors', \App\Http\Controllers\Inventory\TailorController::class);

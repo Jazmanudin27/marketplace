@@ -46,7 +46,15 @@ class ExpenseController extends Controller
         $employees = Employee::where('tenant_id', $tenantId)->where('is_active', true)->get();
         $bankAccounts = \App\Models\BankAccount::where('tenant_id', $tenantId)->where('is_active', true)->orderBy('bank_name')->get();
 
-        return view('finance.expenses.index', compact('expenses', 'employees', 'bankAccounts', 'search', 'category', 'paymentSource', 'dateFrom', 'dateTo'));
+        // Auto-seed default categories if empty
+        \App\Models\FinanceCategory::seedDefaultsForTenant($tenantId);
+        $categories = \App\Models\FinanceCategory::where('tenant_id', $tenantId)
+            ->expense()
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get();
+
+        return view('finance.expenses.index', compact('expenses', 'employees', 'bankAccounts', 'categories', 'search', 'category', 'paymentSource', 'dateFrom', 'dateTo'));
     }
 
     public function store(Request $request)
@@ -55,7 +63,7 @@ class ExpenseController extends Controller
 
         $validated = $request->validate([
             'title'          => 'required|string|max:255',
-            'category'       => 'required|string|in:salary,rent,utilities,pembelian_supplier,other',
+            'category'       => 'required|string|max:100',
             'payment_source' => 'required|string|max:100',
             'amount'         => 'required|numeric|min:0',
             'expense_date'   => 'required|date',
@@ -96,7 +104,7 @@ class ExpenseController extends Controller
 
         $validated = $request->validate([
             'title'          => 'required|string|max:255',
-            'category'       => 'required|string|in:salary,rent,utilities,pembelian_supplier,other',
+            'category'       => 'required|string|max:100',
             'payment_source' => 'required|string|max:100',
             'amount'         => 'required|numeric|min:0',
             'expense_date'   => 'required|date',

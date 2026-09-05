@@ -60,11 +60,17 @@
                         <label class="form-label form-label-sm fw-semibold mb-1">Kategori</label>
                         <select name="category" class="form-select form-select-sm">
                             <option value="">Semua Kategori</option>
-                            <option value="salary" {{ $category === 'salary' ? 'selected' : '' }}>Gaji Karyawan</option>
-                            <option value="rent" {{ $category === 'rent' ? 'selected' : '' }}>Sewa Tempat</option>
-                            <option value="utilities" {{ $category === 'utilities' ? 'selected' : '' }}>Utilitas</option>
-                            <option value="pembelian_supplier" {{ $category === 'pembelian_supplier' ? 'selected' : '' }}>Bayar Hutang Supplier</option>
-                            <option value="other" {{ $category === 'other' ? 'selected' : '' }}>Lain-lain</option>
+                            @if(isset($categories) && $categories->isNotEmpty())
+                                @foreach($categories as $cat)
+                                    <option value="{{ $cat->code }}" {{ $category === $cat->code || $category === $cat->name ? 'selected' : '' }}>{{ $cat->name }}</option>
+                                @endforeach
+                            @else
+                                <option value="salary" {{ $category === 'salary' ? 'selected' : '' }}>Gaji Karyawan</option>
+                                <option value="rent" {{ $category === 'rent' ? 'selected' : '' }}>Sewa Tempat</option>
+                                <option value="utilities" {{ $category === 'utilities' ? 'selected' : '' }}>Utilitas</option>
+                                <option value="pembelian_supplier" {{ $category === 'pembelian_supplier' ? 'selected' : '' }}>Bayar Hutang Supplier</option>
+                                <option value="other" {{ $category === 'other' ? 'selected' : '' }}>Lain-lain</option>
+                            @endif
                         </select>
                     </div>
                     <div class="col-6 col-md-2">
@@ -102,9 +108,14 @@
     <div class="card border-0 shadow-sm">
         <div class="card-header bg-danger bg-opacity-10 d-flex justify-content-between align-items-center py-2 px-3">
             <h6 class="fw-bold mb-0 text-dark"><i class="fas fa-arrow-down text-danger me-2"></i>Daftar Pengeluaran & Biaya</h6>
-            <button class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#addExpenseModal">
-                <i class="fas fa-plus me-1"></i> Tambah Pengeluaran
-            </button>
+            <div class="d-flex align-items-center gap-2">
+                <a href="{{ route('finance-categories.index', ['type' => 'expense']) }}" class="btn btn-sm btn-outline-danger" title="Kelola Master Kategori">
+                    <i class="fas fa-tags me-1"></i> Kelola Kategori
+                </a>
+                <button class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#addExpenseModal">
+                    <i class="fas fa-plus me-1"></i> Tambah Pengeluaran
+                </button>
+            </div>
         </div>
         <div class="card-body p-0">
             <div class="table-responsive">
@@ -193,11 +204,17 @@
                         <div class="col-md-6">
                             <label class="form-label fw-semibold small">Kategori</label>
                             <select name="category" class="form-select form-select-sm" required>
-                                <option value="utilities">Utilitas & Operasional</option>
-                                <option value="salary">Gaji Karyawan</option>
-                                <option value="rent">Sewa Tempat</option>
-                                <option value="pembelian_supplier">Bayar Hutang Supplier</option>
-                                <option value="other">Lain-lain</option>
+                                @if(isset($categories) && $categories->isNotEmpty())
+                                    @foreach($categories as $cat)
+                                        <option value="{{ $cat->code }}">{{ $cat->name }}</option>
+                                    @endforeach
+                                @else
+                                    <option value="utilities">Utilitas & Operasional</option>
+                                    <option value="salary">Gaji Karyawan</option>
+                                    <option value="rent">Sewa Tempat</option>
+                                    <option value="pembelian_supplier">Bayar Hutang Supplier</option>
+                                    <option value="other">Lain-lain</option>
+                                @endif
                             </select>
                         </div>
                         <div class="col-md-6">
@@ -267,18 +284,30 @@
                         <div class="col-md-6">
                             <label class="form-label fw-semibold small">Kategori</label>
                             <select name="category" id="edit_category" class="form-select form-select-sm" required>
-                                <option value="utilities">Utilitas & Operasional</option>
-                                <option value="salary">Gaji Karyawan</option>
-                                <option value="rent">Sewa Tempat</option>
-                                <option value="pembelian_supplier">Bayar Hutang Supplier</option>
-                                <option value="other">Lain-lain</option>
+                                @if(isset($categories) && $categories->isNotEmpty())
+                                    @foreach($categories as $cat)
+                                        <option value="{{ $cat->code }}">{{ $cat->name }}</option>
+                                    @endforeach
+                                @else
+                                    <option value="utilities">Utilitas & Operasional</option>
+                                    <option value="salary">Gaji Karyawan</option>
+                                    <option value="rent">Sewa Tempat</option>
+                                    <option value="pembelian_supplier">Bayar Hutang Supplier</option>
+                                    <option value="other">Lain-lain</option>
+                                @endif
                             </select>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label fw-semibold small">Kas Asal</label>
                             <select name="payment_source" id="edit_payment_source" class="form-select form-select-sm" required>
-                                <option value="kas_besar">Kas Besar (Utama)</option>
-                                <option value="kas_kecil">Kas Kecil (Operasional)</option>
+                                @if(isset($bankAccounts) && $bankAccounts->isNotEmpty())
+                                    @foreach($bankAccounts as $bank)
+                                        <option value="{{ $bank->bank_name }}">{{ $bank->bank_name }} {{ $bank->account_number ? '('.$bank->account_number.')' : '' }}</option>
+                                    @endforeach
+                                @else
+                                    <option value="kas_besar">Kas Besar (Utama)</option>
+                                    <option value="kas_kecil">Kas Kecil (Operasional)</option>
+                                @endif
                             </select>
                         </div>
                     </div>

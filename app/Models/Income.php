@@ -26,14 +26,31 @@ class Income extends Model
         return $this->belongsTo(Tenant::class);
     }
 
+    protected static $categoryCache = [];
+
     public function getCategoryLabelAttribute()
     {
-        return [
+        $cacheKey = ($this->tenant_id ?? 0) . '_' . ($this->category ?? '');
+        if (isset(static::$categoryCache[$cacheKey])) {
+            return static::$categoryCache[$cacheKey];
+        }
+
+        $cat = FinanceCategory::where('tenant_id', $this->tenant_id)
+            ->where('code', $this->category)
+            ->first();
+
+        if ($cat) {
+            return static::$categoryCache[$cacheKey] = $cat->name;
+        }
+
+        $defaults = [
             'investment' => 'Investasi / Modal',
-            'refund' => 'Refund / Pengembalian',
-            'services' => 'Jasa / Layanan',
-            'other' => 'Lain-lain',
-        ][$this->category] ?? ucfirst($this->category);
+            'refund'     => 'Refund / Pengembalian',
+            'services'   => 'Jasa / Layanan',
+            'other'      => 'Lain-lain',
+        ];
+
+        return static::$categoryCache[$cacheKey] = $defaults[$this->category] ?? ucwords(str_replace('_', ' ', $this->category));
     }
 
     public function getPaymentDestinationLabelAttribute()

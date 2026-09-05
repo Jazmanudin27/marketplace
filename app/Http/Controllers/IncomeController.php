@@ -44,7 +44,15 @@ class IncomeController extends Controller
         $incomes = $query->orderByDesc('income_date')->paginate(15)->withQueryString();
         $bankAccounts = \App\Models\BankAccount::where('tenant_id', $tenantId)->where('is_active', true)->orderBy('bank_name')->get();
 
-        return view('finance.incomes.index', compact('incomes', 'bankAccounts', 'search', 'category', 'paymentDestination', 'dateFrom', 'dateTo'));
+        // Auto-seed default categories if empty
+        \App\Models\FinanceCategory::seedDefaultsForTenant($tenantId);
+        $categories = \App\Models\FinanceCategory::where('tenant_id', $tenantId)
+            ->income()
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get();
+
+        return view('finance.incomes.index', compact('incomes', 'bankAccounts', 'categories', 'search', 'category', 'paymentDestination', 'dateFrom', 'dateTo'));
     }
 
     public function store(Request $request)
@@ -53,7 +61,7 @@ class IncomeController extends Controller
 
         $validated = $request->validate([
             'title'               => 'required|string|max:255',
-            'category'            => 'required|string|in:investment,refund,services,other',
+            'category'            => 'required|string|max:100',
             'payment_destination' => 'required|string|max:100',
             'amount'              => 'required|numeric|min:0',
             'income_date'         => 'required|date',
@@ -86,7 +94,7 @@ class IncomeController extends Controller
 
         $validated = $request->validate([
             'title'               => 'required|string|max:255',
-            'category'            => 'required|string|in:investment,refund,services,other',
+            'category'            => 'required|string|max:100',
             'payment_destination' => 'required|string|max:100',
             'amount'              => 'required|numeric|min:0',
             'income_date'         => 'required|date',

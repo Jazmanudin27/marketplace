@@ -158,26 +158,37 @@
             <!-- 4. OPERATIONAL EXPENSES -->
             <div class="mb-2">
                 <h6 class="section-title">4. Pengeluaran Operasional (Beban)</h6>
-                <div class="financial-row">
-                    <span class="text-muted">Beban Gaji Karyawan</span>
-                    <span class="text-dark fw-medium">Rp {{ number_format($expensesByCategory['salary'], 0, ',', '.') }}</span>
-                </div>
-                <div class="financial-row">
-                    <span class="text-muted">Beban Sewa & Tempat</span>
-                    <span class="text-dark fw-medium">Rp {{ number_format($expensesByCategory['rent'], 0, ',', '.') }}</span>
-                </div>
-                <div class="financial-row">
-                    <span class="text-muted">Beban Utilitas & Operasional</span>
-                    <span class="text-dark fw-medium">Rp {{ number_format($expensesByCategory['utilities'], 0, ',', '.') }}</span>
-                </div>
-                <div class="financial-row">
-                    <span class="text-muted">Pembayaran Hutang Supplier</span>
-                    <span class="text-dark fw-medium">Rp {{ number_format($expensesByCategory['pembelian_supplier'], 0, ',', '.') }}</span>
-                </div>
-                <div class="financial-row">
-                    <span class="text-muted">Beban Lain-Lain</span>
-                    <span class="text-dark fw-medium">Rp {{ number_format($expensesByCategory['other'], 0, ',', '.') }}</span>
-                </div>
+                @if(isset($expensesCategoryList) && count($expensesCategoryList) > 0)
+                    @foreach($expensesCategoryList as $catCode => $catData)
+                        @if($catData['amount'] > 0 || in_array($catCode, ['salary', 'rent', 'utilities', 'pembelian_supplier', 'other']))
+                        <div class="financial-row">
+                            <span class="text-muted">{{ $catData['name'] }}</span>
+                            <span class="text-dark fw-medium">Rp {{ number_format($catData['amount'], 0, ',', '.') }}</span>
+                        </div>
+                        @endif
+                    @endforeach
+                @else
+                    <div class="financial-row">
+                        <span class="text-muted">Beban Gaji Karyawan</span>
+                        <span class="text-dark fw-medium">Rp {{ number_format($expensesByCategory['salary'] ?? 0, 0, ',', '.') }}</span>
+                    </div>
+                    <div class="financial-row">
+                        <span class="text-muted">Beban Sewa & Tempat</span>
+                        <span class="text-dark fw-medium">Rp {{ number_format($expensesByCategory['rent'] ?? 0, 0, ',', '.') }}</span>
+                    </div>
+                    <div class="financial-row">
+                        <span class="text-muted">Beban Utilitas & Operasional</span>
+                        <span class="text-dark fw-medium">Rp {{ number_format($expensesByCategory['utilities'] ?? 0, 0, ',', '.') }}</span>
+                    </div>
+                    <div class="financial-row">
+                        <span class="text-muted">Pembayaran Hutang Supplier</span>
+                        <span class="text-dark fw-medium">Rp {{ number_format($expensesByCategory['pembelian_supplier'] ?? 0, 0, ',', '.') }}</span>
+                    </div>
+                    <div class="financial-row">
+                        <span class="text-muted">Beban Lain-Lain</span>
+                        <span class="text-dark fw-medium">Rp {{ number_format($expensesByCategory['other'] ?? 0, 0, ',', '.') }}</span>
+                    </div>
+                @endif
                 <div class="financial-row total-row">
                     <span>Total Beban Operasional</span>
                     <span class="text-danger">Rp {{ number_format($totalExpenses, 0, ',', '.') }}</span>

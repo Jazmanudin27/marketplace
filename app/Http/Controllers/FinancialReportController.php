@@ -7,6 +7,7 @@ use App\Models\OfflineSale;
 use App\Models\Expense;
 use App\Models\Income;
 use App\Models\FundTransfer;
+use App\Models\FinanceCategory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -69,13 +70,47 @@ class FinancialReportController extends Controller
             ->whereBetween('expense_date', [$dateFrom, $dateTo])
             ->get();
 
-        $expensesByCategory = [
-            'salary' => (float) $expenses->where('category', 'salary')->sum('amount'),
-            'rent' => (float) $expenses->where('category', 'rent')->sum('amount'),
-            'utilities' => (float) $expenses->where('category', 'utilities')->sum('amount'),
-            'pembelian_supplier' => (float) $expenses->where('category', 'pembelian_supplier')->sum('amount'),
-            'other' => (float) $expenses->where('category', 'other')->sum('amount'),
+        // Load dynamic finance categories
+        $allExpenseCats = FinanceCategory::where('tenant_id', $tenantId)->expense()->get();
+        if ($allExpenseCats->isEmpty()) {
+            FinanceCategory::seedDefaultsForTenant($tenantId);
+            $allExpenseCats = FinanceCategory::where('tenant_id', $tenantId)->expense()->get();
+        }
+
+        $defaultLabels = [
+            'salary'               => 'Gaji Karyawan',
+            'rent'                 => 'Sewa Tempat',
+            'utilities'            => 'Utilitas & Operasional',
+            'pembelian_supplier'   => 'Bayar Hutang Supplier',
+            'other'                => 'Lain-lain',
         ];
+
+        $expensesCategoryList = [];
+        $groupedExpenses = $expenses->groupBy('category');
+
+        foreach ($allExpenseCats as $cat) {
+            $catAmount = (float) ($groupedExpenses[$cat->code] ?? collect())->sum('amount');
+            $expensesCategoryList[$cat->code] = [
+                'name'   => $cat->name,
+                'amount' => $catAmount,
+            ];
+        }
+
+        foreach ($groupedExpenses as $catCode => $group) {
+            if (!isset($expensesCategoryList[$catCode])) {
+                $catName = $defaultLabels[$catCode] ?? ucwords(str_replace('_', ' ', $catCode));
+                $expensesCategoryList[$catCode] = [
+                    'name'   => $catName,
+                    'amount' => (float) $group->sum('amount'),
+                ];
+            }
+        }
+
+        // Backward-compatible array keyed by code
+        $expensesByCategory = [];
+        foreach ($expensesCategoryList as $code => $item) {
+            $expensesByCategory[$code] = $item['amount'];
+        }
 
         $totalExpenses = (float) $expenses->sum('amount');
 
@@ -131,6 +166,7 @@ class FinancialReportController extends Controller
             'totalHpp',
             'grossProfit',
             'expensesByCategory',
+            'expensesCategoryList',
             'totalExpenses',
             'netProfit',
             'profitMargin',

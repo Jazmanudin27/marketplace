@@ -608,13 +608,47 @@ class MobileController extends Controller
             ->whereBetween('expense_date', [$dateFrom, $dateTo])
             ->get();
 
-        $expensesByCategory = [
-            'salary' => (float) $expenses->where('category', 'salary')->sum('amount'),
-            'rent' => (float) $expenses->where('category', 'rent')->sum('amount'),
-            'utilities' => (float) $expenses->where('category', 'utilities')->sum('amount'),
-            'pembelian_supplier' => (float) $expenses->where('category', 'pembelian_supplier')->sum('amount'),
-            'other' => (float) $expenses->where('category', 'other')->sum('amount'),
+        // Load dynamic finance categories
+        $allExpenseCats = \App\Models\FinanceCategory::where('tenant_id', $tenantId)->expense()->get();
+        if ($allExpenseCats->isEmpty()) {
+            \App\Models\FinanceCategory::seedDefaultsForTenant($tenantId);
+            $allExpenseCats = \App\Models\FinanceCategory::where('tenant_id', $tenantId)->expense()->get();
+        }
+
+        $defaultLabels = [
+            'salary'               => 'Beban Gaji Karyawan',
+            'rent'                 => 'Beban Sewa & Tempat',
+            'utilities'            => 'Beban Utilitas & Operasional',
+            'pembelian_supplier'   => 'Pembayaran Hutang Supplier',
+            'other'                => 'Beban Lain-Lain',
         ];
+
+        $expensesCategoryList = [];
+        $groupedExpenses = $expenses->groupBy('category');
+
+        foreach ($allExpenseCats as $cat) {
+            $catAmount = (float) ($groupedExpenses[$cat->code] ?? collect())->sum('amount');
+            $expensesCategoryList[$cat->code] = [
+                'name'   => $cat->name,
+                'amount' => $catAmount,
+            ];
+        }
+
+        foreach ($groupedExpenses as $catCode => $group) {
+            if (!isset($expensesCategoryList[$catCode])) {
+                $catName = $defaultLabels[$catCode] ?? ucwords(str_replace('_', ' ', $catCode));
+                $expensesCategoryList[$catCode] = [
+                    'name'   => $catName,
+                    'amount' => (float) $group->sum('amount'),
+                ];
+            }
+        }
+
+        $expensesByCategory = [];
+        foreach ($expensesCategoryList as $code => $item) {
+            $expensesByCategory[$code] = $item['amount'];
+        }
+
         $totalExpenses = (float) $expenses->sum('amount');
 
         $netProfit = $grossProfit + $totalOtherIncome - $totalExpenses;
@@ -626,7 +660,7 @@ class MobileController extends Controller
             'onlineRevenue', 'onlineHpp',
             'offlineRevenue', 'offlineHpp',
             'totalOtherIncome', 'totalSalesRevenue', 'totalHpp',
-            'grossProfit', 'expensesByCategory', 'totalExpenses',
+            'grossProfit', 'expensesByCategory', 'expensesCategoryList', 'totalExpenses',
             'netProfit', 'profitMargin'
         ));
     }

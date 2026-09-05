@@ -159,31 +159,44 @@
                         <td class="fw-bold px-3 small text-dark"><i class="fas fa-chevron-right me-2 text-warning" style="font-size:0.8rem;"></i>V. PENGELUARAN & BIAYA OPERASIONAL</td>
                         <td></td><td></td>
                     </tr>
-                    <tr>
-                        <td class="ps-4 text-muted small">A. Gaji Karyawan</td>
-                        <td class="text-end font-monospace text-muted small">- Rp {{ number_format($expensesByCategory['salary'], 0, ',', '.') }}</td>
-                        <td class="text-end text-muted small">{{ $totalSalesRevenue > 0 ? round(($expensesByCategory['salary'] / $totalSalesRevenue) * 100, 1) : 0 }}%</td>
-                    </tr>
-                    <tr>
-                        <td class="ps-4 text-muted small">B. Sewa Tempat</td>
-                        <td class="text-end font-monospace text-muted small">- Rp {{ number_format($expensesByCategory['rent'], 0, ',', '.') }}</td>
-                        <td class="text-end text-muted small">{{ $totalSalesRevenue > 0 ? round(($expensesByCategory['rent'] / $totalSalesRevenue) * 100, 1) : 0 }}%</td>
-                    </tr>
-                    <tr>
-                        <td class="ps-4 text-muted small">C. Utilitas & Operasional</td>
-                        <td class="text-end font-monospace text-muted small">- Rp {{ number_format($expensesByCategory['utilities'], 0, ',', '.') }}</td>
-                        <td class="text-end text-muted small">{{ $totalSalesRevenue > 0 ? round(($expensesByCategory['utilities'] / $totalSalesRevenue) * 100, 1) : 0 }}%</td>
-                    </tr>
-                    <tr>
-                        <td class="ps-4 text-muted small">D. Bayar Hutang Supplier</td>
-                        <td class="text-end font-monospace text-muted small">- Rp {{ number_format($expensesByCategory['pembelian_supplier'], 0, ',', '.') }}</td>
-                        <td class="text-end text-muted small">{{ $totalSalesRevenue > 0 ? round(($expensesByCategory['pembelian_supplier'] / $totalSalesRevenue) * 100, 1) : 0 }}%</td>
-                    </tr>
-                    <tr>
-                        <td class="ps-4 text-muted small">E. Lain-lain</td>
-                        <td class="text-end font-monospace text-muted small">- Rp {{ number_format($expensesByCategory['other'], 0, ',', '.') }}</td>
-                        <td class="text-end text-muted small">{{ $totalSalesRevenue > 0 ? round(($expensesByCategory['other'] / $totalSalesRevenue) * 100, 1) : 0 }}%</td>
-                    </tr>
+                    @if(isset($expensesCategoryList) && count($expensesCategoryList) > 0)
+                        @php $letterIdx = 'A'; @endphp
+                        @foreach($expensesCategoryList as $catCode => $catData)
+                            @if($catData['amount'] > 0 || in_array($catCode, ['salary', 'rent', 'utilities', 'pembelian_supplier', 'other']))
+                            <tr>
+                                <td class="ps-4 text-muted small">{{ $letterIdx++ }}. {{ $catData['name'] }}</td>
+                                <td class="text-end font-monospace text-muted small">- Rp {{ number_format($catData['amount'], 0, ',', '.') }}</td>
+                                <td class="text-end text-muted small">{{ $totalSalesRevenue > 0 ? round(($catData['amount'] / $totalSalesRevenue) * 100, 1) : 0 }}%</td>
+                            </tr>
+                            @endif
+                        @endforeach
+                    @else
+                        <tr>
+                            <td class="ps-4 text-muted small">A. Gaji Karyawan</td>
+                            <td class="text-end font-monospace text-muted small">- Rp {{ number_format($expensesByCategory['salary'] ?? 0, 0, ',', '.') }}</td>
+                            <td class="text-end text-muted small">{{ $totalSalesRevenue > 0 ? round((($expensesByCategory['salary'] ?? 0) / $totalSalesRevenue) * 100, 1) : 0 }}%</td>
+                        </tr>
+                        <tr>
+                            <td class="ps-4 text-muted small">B. Sewa Tempat</td>
+                            <td class="text-end font-monospace text-muted small">- Rp {{ number_format($expensesByCategory['rent'] ?? 0, 0, ',', '.') }}</td>
+                            <td class="text-end text-muted small">{{ $totalSalesRevenue > 0 ? round((($expensesByCategory['rent'] ?? 0) / $totalSalesRevenue) * 100, 1) : 0 }}%</td>
+                        </tr>
+                        <tr>
+                            <td class="ps-4 text-muted small">C. Utilitas & Operasional</td>
+                            <td class="text-end font-monospace text-muted small">- Rp {{ number_format($expensesByCategory['utilities'] ?? 0, 0, ',', '.') }}</td>
+                            <td class="text-end text-muted small">{{ $totalSalesRevenue > 0 ? round((($expensesByCategory['utilities'] ?? 0) / $totalSalesRevenue) * 100, 1) : 0 }}%</td>
+                        </tr>
+                        <tr>
+                            <td class="ps-4 text-muted small">D. Bayar Hutang Supplier</td>
+                            <td class="text-end font-monospace text-muted small">- Rp {{ number_format($expensesByCategory['pembelian_supplier'] ?? 0, 0, ',', '.') }}</td>
+                            <td class="text-end text-muted small">{{ $totalSalesRevenue > 0 ? round((($expensesByCategory['pembelian_supplier'] ?? 0) / $totalSalesRevenue) * 100, 1) : 0 }}%</td>
+                        </tr>
+                        <tr>
+                            <td class="ps-4 text-muted small">E. Lain-lain</td>
+                            <td class="text-end font-monospace text-muted small">- Rp {{ number_format($expensesByCategory['other'] ?? 0, 0, ',', '.') }}</td>
+                            <td class="text-end text-muted small">{{ $totalSalesRevenue > 0 ? round((($expensesByCategory['other'] ?? 0) / $totalSalesRevenue) * 100, 1) : 0 }}%</td>
+                        </tr>
+                    @endif
                     <tr class="table-danger">
                         <td class="fw-semibold ps-4 small text-dark">Total Pengeluaran & Biaya Operasional</td>
                         <td class="text-end font-monospace fw-bold text-danger small">- Rp {{ number_format($totalExpenses, 0, ',', '.') }}</td>
