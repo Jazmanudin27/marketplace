@@ -1637,6 +1637,10 @@ class ReportController extends Controller
                     'Biaya Promosi (Rp)',
                     'Biaya Lainnya (Rp)',
                     'Dana Dilepas Net (Rp)',
+                    'HPP (Rp)',
+                    'Margin (Rp)',
+                    '1% Margin (Rp)',
+                    'Margin %',
                     'Status'
                 ]);
 
@@ -1664,9 +1668,37 @@ class ReportController extends Controller
                         (int)$row['promo_fee'],
                         (int)$row['other_fee'],
                         (int)$row['net_released'],
+                        (int)($row['hpp'] ?? 0),
+                        (int)($row['margin_rp'] ?? 0),
+                        (int)round($row['margin_1_pct_rp'] ?? 0),
+                        ($row['margin_pct'] ?? 0) . '%',
                         $row['status']
                     ]);
                 }
+
+                // Summary Row
+                fputcsv($file, [
+                    '',
+                    'TOTAL REKAPITULASI',
+                    '',
+                    '',
+                    '',
+                    '',
+                    '',
+                    $detailData['grandTotalQty'],
+                    (int)$detailData['grandTotalOmset'],
+                    (int)($detailData['grandTotalPlatformFee'] ?? 0),
+                    (int)($detailData['grandTotalFreeShipping'] ?? 0),
+                    (int)($detailData['grandTotalServiceFee'] ?? 0),
+                    (int)($detailData['grandTotalPromoFee'] ?? 0),
+                    (int)($detailData['grandTotalOtherFee'] ?? 0),
+                    (int)($detailData['grandTotalNetReleased'] ?? 0),
+                    (int)($detailData['grandTotalHpp'] ?? 0),
+                    (int)($detailData['grandTotalMarginRp'] ?? 0),
+                    (int)round($detailData['grandTotalMargin1PctRp'] ?? 0),
+                    ($detailData['grandOverallMarginPct'] ?? 0) . '%',
+                    ''
+                ]);
 
                 fclose($file);
             };
@@ -2403,6 +2435,10 @@ class ReportController extends Controller
 
                 $txDate = $s->sold_at ? $s->sold_at->format('Y-m-d H:i') : '—';
 
+                $marginRp = (float)$s->grand_total - (float)$s->hpp_total;
+                $margin1PctRp = $marginRp * 0.01;
+                $marginPct = (float)$s->grand_total > 0 ? round(($marginRp / (float)$s->grand_total) * 100, 2) : 0.0;
+
                 $transactions[] = [
                     'order_date' => $txDate,
                     'released_date' => $txDate,
@@ -2422,8 +2458,9 @@ class ReportController extends Controller
                     'total_fee' => 0,
                     'net_released' => (float)$s->grand_total,
                     'hpp' => (float)$s->hpp_total,
-                    'margin_rp' => (float)$s->grand_total - (float)$s->hpp_total,
-                    'margin_pct' => (float)$s->grand_total > 0 ? round((((float)$s->grand_total - (float)$s->hpp_total) / (float)$s->grand_total) * 100, 2) : 0.0,
+                    'margin_rp' => $marginRp,
+                    'margin_1_pct_rp' => $margin1PctRp,
+                    'margin_pct' => $marginPct,
                     'status' => ucfirst($s->status),
                 ];
             }
@@ -2492,6 +2529,7 @@ class ReportController extends Controller
 
                 $hpp = (float)$o->hpp_total;
                 $marginRp = $netAmt - $hpp;
+                $margin1PctRp = $marginRp * 0.01;
                 $marginPct = $netAmt > 0 ? round(($marginRp / $netAmt) * 100, 2) : 0.0;
 
                 $transactions[] = [
@@ -2515,6 +2553,7 @@ class ReportController extends Controller
                     'net_released' => $netAmt,
                     'hpp' => $hpp,
                     'margin_rp' => $marginRp,
+                    'margin_1_pct_rp' => $margin1PctRp,
                     'margin_pct' => $marginPct,
                     'status' => $o->order_status,
                 ];
@@ -2536,13 +2575,14 @@ class ReportController extends Controller
 
         $grandTotalHpp = array_sum(array_column($transactions, 'hpp'));
         $grandTotalMarginRp = array_sum(array_column($transactions, 'margin_rp'));
+        $grandTotalMargin1PctRp = array_sum(array_column($transactions, 'margin_1_pct_rp'));
         $grandOverallMarginPct = $grandTotalNetReleased > 0 ? round(($grandTotalMarginRp / $grandTotalNetReleased) * 100, 2) : 0.0;
 
         return compact(
             'transactions', 'grandTotalOmset', 'grandTotalQty', 'grandTotalRefund',
             'grandTotalPlatformFee', 'grandTotalFreeShipping', 'grandTotalServiceFee',
             'grandTotalPromoFee', 'grandTotalOtherFee', 'grandTotalTotalFee', 'grandTotalNetReleased',
-            'grandTotalHpp', 'grandTotalMarginRp', 'grandOverallMarginPct'
+            'grandTotalHpp', 'grandTotalMarginRp', 'grandTotalMargin1PctRp', 'grandOverallMarginPct'
         );
     }
 

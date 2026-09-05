@@ -66,6 +66,12 @@
             </div>
         </div>
         <div class="col">
+            <div class="p-2 border rounded text-center" style="background-color: #f8fafc;">
+                <small class="text-muted d-block fw-bold text-info" style="font-size: 9px; letter-spacing: 0.5px;">TOTAL 1% MARGIN (RP)</small>
+                <strong class="text-info font-monospace" style="font-size: 13px;">Rp {{ number_format($grandTotalMargin1PctRp ?? 0, 0, ',', '.') }}</strong>
+            </div>
+        </div>
+        <div class="col">
             <div class="p-2 border rounded text-center bg-primary bg-opacity-10">
                 <small class="text-muted d-block fw-bold" style="font-size: 9px; letter-spacing: 0.5px;">OVERALL MARGIN %</small>
                 <strong class="text-primary font-monospace" style="font-size: 13px;">{{ number_format($grandOverallMarginPct ?? 0, 2, ',', '.') }}%</strong>
@@ -96,6 +102,7 @@
                     <th class="text-end text-success">Dana Dilepas Net</th>
                     <th class="text-end text-secondary">HPP</th>
                     <th class="text-end text-primary">Margin (Rp)</th>
+                    <th class="text-end text-info fw-bold">1% Margin (Rp)</th>
                     <th class="text-center text-primary">Margin %</th>
                     <th class="text-center">Status</th>
                 </tr>
@@ -116,12 +123,13 @@
                         <td class="text-end font-monospace fw-bold text-success">Rp {{ number_format($row['net_released'], 0, ',', '.') }}</td>
                         <td class="text-end font-monospace text-secondary">Rp {{ number_format($row['hpp'] ?? 0, 0, ',', '.') }}</td>
                         <td class="text-end font-monospace fw-bold text-primary">Rp {{ number_format($row['margin_rp'] ?? 0, 0, ',', '.') }}</td>
+                        <td class="text-end font-monospace fw-bold text-info">Rp {{ number_format($row['margin_1_pct_rp'] ?? 0, 0, ',', '.') }}</td>
                         <td class="text-center font-monospace fw-bold text-primary">{{ number_format($row['margin_pct'] ?? 0, 2, ',', '.') }}%</td>
                         <td class="text-center"><span class="badge bg-success">{{ $row['status'] }}</span></td>
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="15" class="text-center py-3 text-muted">Tidak ada data detail transaksi ditemukan.</td>
+                        <td colspan="16" class="text-center py-3 text-muted">Tidak ada data detail transaksi ditemukan.</td>
                     </tr>
                 @endforelse
             </tbody>
@@ -135,6 +143,7 @@
                     <td class="text-end font-monospace text-success fs-6">Rp {{ number_format($grandTotalNetReleased ?? $grandTotalOmset, 0, ',', '.') }}</td>
                     <td class="text-end font-monospace text-secondary">Rp {{ number_format($grandTotalHpp ?? 0, 0, ',', '.') }}</td>
                     <td class="text-end font-monospace text-primary">Rp {{ number_format($grandTotalMarginRp ?? 0, 0, ',', '.') }}</td>
+                    <td class="text-end font-monospace text-info fw-bold">Rp {{ number_format($grandTotalMargin1PctRp ?? 0, 0, ',', '.') }}</td>
                     <td class="text-center font-monospace text-primary">{{ number_format($grandOverallMarginPct ?? 0, 2, ',', '.') }}%</td>
                     <td></td>
                 </tr>
