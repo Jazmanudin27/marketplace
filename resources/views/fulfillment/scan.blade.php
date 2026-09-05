@@ -451,11 +451,6 @@
                             // Suksess
                             alert(data.message);
 
-                            // Cetak label pengiriman otomatis jika autoShip sukses dan return resi cetak
-                            if (data.shipped) {
-                                window.open(`/orders/${activeOrder.id}/print`, '_blank');
-                            }
-
                             resetAll(true); // Reset all and focus to invoice
                         } else {
                             playError();
