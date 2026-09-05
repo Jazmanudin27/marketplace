@@ -55,11 +55,21 @@
                         <input type="text" name="search" value="{{ $search }}" class="form-control form-control-sm" placeholder="No. ref / keterangan...">
                     </div>
                 </div>
-                <div class="d-flex justify-content-between align-items-center mt-3 pt-2 border-top">
+                <div class="d-flex justify-content-between align-items-center mt-3 pt-2 border-top flex-wrap gap-2">
                     <div class="text-muted small">
                         <i class="bi bi-info-circle me-1 text-primary"></i> Menampilkan mutasi untuk: <strong>{{ $selectedAccountLabel }}</strong>
                     </div>
-                    <div class="d-flex gap-2">
+                    <div class="d-flex gap-2 flex-wrap">
+                        @can('finance.incomes.create')
+                        <button type="button" class="btn btn-sm btn-success fw-semibold" data-bs-toggle="modal" data-bs-target="#addIncomeModal">
+                            <i class="bi bi-plus-circle me-1"></i> Input Pemasukan
+                        </button>
+                        @endcan
+                        @can('finance.expenses.create')
+                        <button type="button" class="btn btn-sm btn-danger fw-semibold" data-bs-toggle="modal" data-bs-target="#addExpenseModal">
+                            <i class="bi bi-dash-circle me-1"></i> Input Pengeluaran
+                        </button>
+                        @endcan
                         <a href="{{ route('finance.mutations.index') }}" class="btn btn-sm btn-outline-secondary">
                             <i class="bi bi-arrow-counterclockwise me-1"></i> Reset
                         </a>
@@ -144,7 +154,19 @@
                 <i class="bi bi-journal-text text-primary me-2"></i>
                 Buku Mutasi Kas & Keuangan: {{ \Carbon\Carbon::parse($dateFrom)->format('d M Y') }} s/d {{ \Carbon\Carbon::parse($dateTo)->format('d M Y') }}
             </h6>
-            <span class="badge bg-light text-dark border small">Total {{ $mutations->count() }} Transaksi</span>
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+                @can('finance.incomes.create')
+                <button type="button" class="btn btn-sm btn-success fw-semibold shadow-sm" data-bs-toggle="modal" data-bs-target="#addIncomeModal">
+                    <i class="bi bi-plus-circle me-1"></i> Input Pemasukan
+                </button>
+                @endcan
+                @can('finance.expenses.create')
+                <button type="button" class="btn btn-sm btn-danger fw-semibold shadow-sm" data-bs-toggle="modal" data-bs-target="#addExpenseModal">
+                    <i class="bi bi-dash-circle me-1"></i> Input Pengeluaran
+                </button>
+                @endcan
+                <span class="badge bg-light text-dark border small py-2 px-2">Total {{ $mutations->count() }} Transaksi</span>
+            </div>
         </div>
         <div class="table-responsive">
             <table class="table table-bordered table-hover align-middle mb-0" style="font-size: 0.85rem;">
@@ -209,5 +231,169 @@
             </table>
         </div>
     </div>
+
+    {{-- MODAL INPUT PEMASUKAN --}}
+    @can('finance.incomes.create')
+    <div class="modal fade" id="addIncomeModal" tabindex="-1" aria-labelledby="addIncomeModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <form action="{{ route('finance.incomes.store') }}" method="POST" class="modal-content shadow-lg border-0">
+                @csrf
+                <input type="hidden" name="redirect_to" value="{{ url()->full() }}">
+                <div class="modal-header bg-success text-white py-3">
+                    <h5 class="modal-title fw-bold fs-6 mb-0" id="addIncomeModalLabel">
+                        <i class="bi bi-plus-circle me-2"></i>Input Pemasukan Kas / Bank
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small">Judul / Sumber Pemasukan <span class="text-danger">*</span></label>
+                        <input type="text" name="title" class="form-control form-control-sm" required placeholder="Contoh: Suntikan Modal Pemilik / Pendapatan Lain">
+                    </div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold small">Kategori <span class="text-danger">*</span></label>
+                            <select name="category" class="form-select form-select-sm" required>
+                                @if(isset($incomeCategories) && $incomeCategories->isNotEmpty())
+                                    @foreach($incomeCategories as $cat)
+                                        <option value="{{ $cat->code }}">{{ $cat->name }}</option>
+                                    @endforeach
+                                @else
+                                    <option value="investment">Investasi / Modal</option>
+                                    <option value="refund">Refund / Pengembalian</option>
+                                    <option value="services">Jasa / Layanan</option>
+                                    <option value="other">Lain-lain</option>
+                                @endif
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold small">Kas / Bank Tujuan <span class="text-danger">*</span></label>
+                            <select name="payment_destination" class="form-select form-select-sm" required>
+                                @if(isset($bankAccounts) && $bankAccounts->isNotEmpty())
+                                    @foreach($bankAccounts as $bank)
+                                        <option value="{{ $bank->bank_name }}" {{ strcasecmp((string)$account, (string)$bank->bank_name) === 0 ? 'selected' : '' }}>
+                                            {{ $bank->bank_name }} {{ $bank->account_number ? '('.$bank->account_number.')' : '' }}
+                                        </option>
+                                    @endforeach
+                                @else
+                                    <option value="kas_besar">Kas Besar (Utama)</option>
+                                    <option value="kas_kecil">Kas Kecil (Operasional)</option>
+                                @endif
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold small">Nominal (Rp) <span class="text-danger">*</span></label>
+                            <input type="number" name="amount" min="0" step="any" class="form-control form-control-sm font-monospace" required placeholder="0">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold small">Tanggal <span class="text-danger">*</span></label>
+                            <input type="date" name="income_date" value="{{ date('Y-m-d') }}" class="form-control form-control-sm" required>
+                        </div>
+                    </div>
+                    <div class="mb-0">
+                        <label class="form-label fw-semibold small">Keterangan Tambahan</label>
+                        <textarea name="description" rows="3" class="form-control form-control-sm" placeholder="Catatan tambahan (opsional)..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light py-2">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-sm btn-success px-3">
+                        <i class="bi bi-check-circle me-1"></i> Simpan Pemasukan
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    @endcan
+
+    {{-- MODAL INPUT PENGELUARAN --}}
+    @can('finance.expenses.create')
+    <div class="modal fade" id="addExpenseModal" tabindex="-1" aria-labelledby="addExpenseModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <form action="{{ route('finance.expenses.store') }}" method="POST" class="modal-content shadow-lg border-0">
+                @csrf
+                <input type="hidden" name="redirect_to" value="{{ url()->full() }}">
+                <div class="modal-header bg-danger text-white py-3">
+                    <h5 class="modal-title fw-bold fs-6 mb-0" id="addExpenseModalLabel">
+                        <i class="bi bi-dash-circle me-2"></i>Input Pengeluaran & Biaya
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small">Judul Pengeluaran / Deskripsi Singkat <span class="text-danger">*</span></label>
+                        <input type="text" name="title" class="form-control form-control-sm" required placeholder="Contoh: Bayar Listrik / Biaya Lakban / Operasional">
+                    </div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold small">Kategori <span class="text-danger">*</span></label>
+                            <select name="category" class="form-select form-select-sm" required>
+                                @if(isset($expenseCategories) && $expenseCategories->isNotEmpty())
+                                    @foreach($expenseCategories as $cat)
+                                        <option value="{{ $cat->code }}">{{ $cat->name }}</option>
+                                    @endforeach
+                                @else
+                                    <option value="utilities">Utilitas & Operasional</option>
+                                    <option value="salary">Gaji Karyawan</option>
+                                    <option value="rent">Sewa Tempat</option>
+                                    <option value="pembelian_supplier">Bayar Hutang Supplier</option>
+                                    <option value="other">Lain-lain</option>
+                                @endif
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold small">Kas / Bank Asal <span class="text-danger">*</span></label>
+                            <select name="payment_source" class="form-select form-select-sm" required>
+                                @if(isset($bankAccounts) && $bankAccounts->isNotEmpty())
+                                    @foreach($bankAccounts as $bank)
+                                        <option value="{{ $bank->bank_name }}" {{ strcasecmp((string)$account, (string)$bank->bank_name) === 0 ? 'selected' : '' }}>
+                                            {{ $bank->bank_name }} {{ $bank->account_number ? '('.$bank->account_number.')' : '' }}
+                                        </option>
+                                    @endforeach
+                                @else
+                                    <option value="kas_besar">Kas Besar (Utama)</option>
+                                    <option value="kas_kecil">Kas Kecil (Operasional)</option>
+                                @endif
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold small">Nominal (Rp) <span class="text-danger">*</span></label>
+                            <input type="number" name="amount" min="0" step="any" class="form-control form-control-sm font-monospace" required placeholder="0">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold small">Tanggal <span class="text-danger">*</span></label>
+                            <input type="date" name="expense_date" value="{{ date('Y-m-d') }}" class="form-control form-control-sm" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small">Karyawan (Opsional - Penerima/PJ)</label>
+                        <select name="employee_id" class="form-select form-select-sm">
+                            <option value="">-- Tanpa Hubungan Karyawan --</option>
+                            @if(isset($employees) && $employees->isNotEmpty())
+                                @foreach ($employees as $emp)
+                                    <option value="{{ $emp->id }}">{{ $emp->name }} ({{ $emp->position }})</option>
+                                @endforeach
+                            @endif
+                        </select>
+                    </div>
+                    <div class="mb-0">
+                        <label class="form-label fw-semibold small">Keterangan Tambahan</label>
+                        <textarea name="description" rows="3" class="form-control form-control-sm" placeholder="Catatan tambahan (opsional)..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light py-2">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-sm btn-danger px-3">
+                        <i class="bi bi-check-circle me-1"></i> Simpan Pengeluaran
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    @endcan
 </div>
 @endsection

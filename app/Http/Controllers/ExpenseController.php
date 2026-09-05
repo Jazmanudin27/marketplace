@@ -93,6 +93,10 @@ class ExpenseController extends Controller
             $bank->decrement('current_balance', $expense->amount);
         }
 
+        if ($request->filled('redirect_to')) {
+            return redirect($request->input('redirect_to'))->with('success', 'Pengeluaran berhasil dicatat.');
+        }
+
         return redirect()->route('finance.expenses.index')->with('success', 'Pengeluaran berhasil dicatat.');
     }
 

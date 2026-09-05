@@ -38,6 +38,8 @@
     $isTitipanBarangActive = request()->routeIs('supplier_consignments.*');
 
     $isFinanceActive =
+        request()->routeIs('finance.mutations.*') ||
+        request()->routeIs('finance.marketplace_wallets.*') ||
         request()->routeIs('finance.incomes.*') ||
         request()->routeIs('finance.expenses.*') ||
         request()->routeIs('finance.transfers.*');
@@ -296,6 +298,8 @@
         @if (auth()->user()->isSuperAdmin() ||
                 auth()->user()->role === 'admin' ||
                 auth()->user()->hasAnyPermission([
+                        'finance.mutations.index',
+                        'finance.marketplace_wallets.index',
                         'finance.incomes.index',
                         'finance.expenses.index',
                         'finance.transfers.index',
@@ -312,6 +316,14 @@
                 </a>
                 <div class="collapse {{ $isFinanceActive ? 'show' : '' }}" id="collapseFinance">
                     <div class="nav flex-column ms-3 mt-1 gap-1 border-start ps-2">
+                        @can('finance.mutations.index')
+                            <a href="{{ route('finance.mutations.index') }}"
+                                class="nav-link py-1 {{ request()->routeIs('finance.mutations.*') ? 'active text-white' : 'text-secondary' }}">Mutasi Kas & Keuangan</a>
+                        @endcan
+                        @can('finance.marketplace_wallets.index')
+                            <a href="{{ route('finance.marketplace_wallets.index') }}"
+                                class="nav-link py-1 {{ request()->routeIs('finance.marketplace_wallets.*') ? 'active text-white' : 'text-secondary' }}">Saldo Marketplace</a>
+                        @endcan
                         @can('finance.incomes.index')
                             <a href="{{ route('finance.incomes.index') }}"
                                 class="nav-link py-1 {{ request()->routeIs('finance.incomes.*') ? 'active text-white' : 'text-secondary' }}">Pemasukan
@@ -740,11 +752,9 @@
             $isLaporanKeuanganActive = request()->routeIs('finance.profit_loss*')
                 || request()->routeIs('profit.index*')
                 || request()->routeIs('profit.margin*')
-                || request()->routeIs('reports.product_margins*')
-                || request()->routeIs('finance.marketplace_wallets*')
-                || request()->routeIs('finance.mutations*');
+                || request()->routeIs('reports.product_margins*');
         @endphp
-        @if(auth()->user()->isSuperAdmin() || in_array(auth()->user()->role, ['admin', 'owner']) || auth()->user()->hasAnyPermission(['finance.profit_loss', 'profit.index', 'finance.marketplace_wallets.index', 'profit.margin', 'reports.product_margins', 'finance.mutations.index']))
+        @if(auth()->user()->isSuperAdmin() || in_array(auth()->user()->role, ['admin', 'owner']) || auth()->user()->hasAnyPermission(['finance.profit_loss', 'profit.index', 'profit.margin', 'reports.product_margins']))
             <div>
                 <a class="nav-link d-flex align-items-center justify-content-between text-dark {{ $isLaporanKeuanganActive ? '' : 'collapsed' }}"
                     data-bs-toggle="collapse" data-bs-target="#collapseLaporanKeuangan" role="button"
@@ -765,10 +775,6 @@
                             <a href="{{ route('profit.index') }}"
                                 class="nav-link py-1 {{ request()->routeIs('profit.index') ? 'active text-white' : 'text-secondary' }}">Profit Pesanan</a>
                         @endcan
-                        @can('finance.marketplace_wallets.index')
-                            <a href="{{ route('finance.marketplace_wallets.index') }}"
-                                class="nav-link py-1 {{ request()->routeIs('finance.marketplace_wallets.*') ? 'active text-white' : 'text-secondary' }}">Saldo Marketplace</a>
-                        @endcan
                         @can('profit.margin')
                             <a href="{{ route('profit.margin') }}"
                                 class="nav-link py-1 {{ request()->routeIs('profit.margin') ? 'active text-white' : 'text-secondary' }}">Margin Produk Aktual</a>
@@ -776,10 +782,6 @@
                         @can('reports.product_margins')
                             <a href="{{ route('reports.product_margins') }}"
                                 class="nav-link py-1 {{ request()->routeIs('reports.product_margins') ? 'active text-white' : 'text-secondary' }}">Margin Master Produk</a>
-                        @endcan
-                        @can('finance.mutations.index')
-                            <a href="{{ route('finance.mutations.index') }}"
-                                class="nav-link py-1 {{ request()->routeIs('finance.mutations.*') ? 'active text-white' : 'text-secondary' }}">Mutasi Kas & Keuangan</a>
                         @endcan
                     </div>
                 </div>

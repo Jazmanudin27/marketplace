@@ -535,6 +535,23 @@ class FinancialReportController extends Controller
         // Display in descending order (most recent transaction first)
         $mutations = $mutationsWithBalance->reverse()->values();
 
+        $expenseCategories = FinanceCategory::where('tenant_id', $tenantId)
+            ->expense()
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get();
+
+        $incomeCategories = FinanceCategory::where('tenant_id', $tenantId)
+            ->income()
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get();
+
+        $employees = \App\Models\Employee::where('tenant_id', $tenantId)
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get();
+
         return compact(
             'dateFrom',
             'dateTo',
@@ -549,7 +566,10 @@ class FinancialReportController extends Controller
             'totalOutflow',
             'netCashFlow',
             'endingBalance',
-            'mutations'
+            'mutations',
+            'expenseCategories',
+            'incomeCategories',
+            'employees'
         );
     }
 }

@@ -83,6 +83,10 @@ class IncomeController extends Controller
             $bank->increment('current_balance', $income->amount);
         }
 
+        if ($request->filled('redirect_to')) {
+            return redirect($request->input('redirect_to'))->with('success', 'Pemasukan berhasil dicatat.');
+        }
+
         return redirect()->route('finance.incomes.index')->with('success', 'Pemasukan berhasil dicatat.');
     }
 
