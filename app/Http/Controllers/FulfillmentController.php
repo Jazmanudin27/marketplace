@@ -338,15 +338,37 @@ class FulfillmentController extends Controller
                             $handoverMethod
                         );
                     } catch (\Exception $e) {
-                        if (str_contains($e->getMessage(), 'invalid_access_token') || str_contains($e->getMessage(), 'invalid_acceess_token')) {
+                        $eMsg = strtolower($e->getMessage());
+                        if (
+                            str_contains($eMsg, 'already_shipped') ||
+                            str_contains($eMsg, 'already been shipped') ||
+                            str_contains($eMsg, 'already shipped') ||
+                            str_contains($eMsg, 'shipping_method_already_set')
+                        ) {
+                            Log::info("[Fulfillment] Pesanan Shopee {$order->invoice_number} ({$order->order_marketplace_id}) sudah pernah di-ship di Shopee.");
+                        } elseif (str_contains($eMsg, 'invalid_access_token') || str_contains($eMsg, 'invalid_acceess_token')) {
                             Log::info("[Fulfillment] Access token Shopee tidak valid (expired/revoked), melakukan force refresh token...");
                             $accessToken = $store->getValidAccessToken(true);
-                            $shopeeService->shipOrder(
-                                $accessToken,
-                                (int) $store->marketplace_store_id,
-                                $order->order_marketplace_id,
-                                $handoverMethod
-                            );
+                            try {
+                                $shopeeService->shipOrder(
+                                    $accessToken,
+                                    (int) $store->marketplace_store_id,
+                                    $order->order_marketplace_id,
+                                    $handoverMethod
+                                );
+                            } catch (\Exception $e2) {
+                                $eMsg2 = strtolower($e2->getMessage());
+                                if (
+                                    str_contains($eMsg2, 'already_shipped') ||
+                                    str_contains($eMsg2, 'already been shipped') ||
+                                    str_contains($eMsg2, 'already shipped') ||
+                                    str_contains($eMsg2, 'shipping_method_already_set')
+                                ) {
+                                    Log::info("[Fulfillment] Pesanan Shopee {$order->invoice_number} sudah pernah di-ship (setelah refresh token).");
+                                } else {
+                                    throw $e2;
+                                }
+                            }
                         } else {
                             throw $e;
                         }
@@ -375,16 +397,30 @@ class FulfillmentController extends Controller
                     $accessToken = $store->getValidAccessToken();
                     $shopCipher  = $store->shop_cipher ?: $store->marketplace_store_id;
 
-                    $shipRes = $tiktokService->shipOrder(
-                        $accessToken,
-                        $shopCipher,
-                        $order->order_marketplace_id,
-                        $handoverMethod,
-                        $order->package_id
-                    );
+                    try {
+                        $shipRes = $tiktokService->shipOrder(
+                            $accessToken,
+                            $shopCipher,
+                            $order->order_marketplace_id,
+                            $handoverMethod,
+                            $order->package_id
+                        );
 
-                    if (!empty($shipRes['package_id']) && empty($order->package_id)) {
-                        $order->package_id = $shipRes['package_id'];
+                        if (!empty($shipRes['package_id']) && empty($order->package_id)) {
+                            $order->package_id = $shipRes['package_id'];
+                        }
+                    } catch (\Exception $e) {
+                        $eMsg = strtolower($e->getMessage());
+                        if (
+                            str_contains($eMsg, 'already') ||
+                            str_contains($eMsg, 'not awaiting shipment') ||
+                            str_contains($eMsg, 'does not allow this operation') ||
+                            str_contains($eMsg, 'cannot be shipped')
+                        ) {
+                            Log::info("[Fulfillment] Pesanan TikTok {$order->invoice_number} sudah pernah diatur pengirimannya: " . $e->getMessage());
+                        } else {
+                            throw $e;
+                        }
                     }
 
                     // Ambil nomor resi TikTok & perbarui package_id jika belum lengkap

@@ -360,12 +360,26 @@ class OrderController extends Controller
             try {
                 $accessToken = $store->getValidAccessToken();
                 
-                $shopeeService->shipOrder(
-                    $accessToken,
-                    (int) $store->marketplace_store_id,
-                    $order->order_marketplace_id,
-                    $handoverMethod
-                );
+                try {
+                    $shopeeService->shipOrder(
+                        $accessToken,
+                        (int) $store->marketplace_store_id,
+                        $order->order_marketplace_id,
+                        $handoverMethod
+                    );
+                } catch (\Exception $e) {
+                    $eMsg = strtolower($e->getMessage());
+                    if (
+                        str_contains($eMsg, 'already_shipped') ||
+                        str_contains($eMsg, 'already been shipped') ||
+                        str_contains($eMsg, 'already shipped') ||
+                        str_contains($eMsg, 'shipping_method_already_set')
+                    ) {
+                        Log::info("[Order] Pesanan Shopee {$order->invoice_number} sudah pernah di-ship di Shopee.");
+                    } else {
+                        throw $e;
+                    }
+                }
                 
                 try {
                     $trackRes = $shopeeService->getTrackingNumber(

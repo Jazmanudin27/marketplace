@@ -574,6 +574,23 @@ class ShopeeService
         $data = $response->json();
 
         if (!empty($data['error']) && $data['error'] !== '') {
+            $errCode = strtolower((string)$data['error']);
+            $errMsg = strtolower((string)($data['message'] ?? ''));
+
+            // Toleransi jika paket / pesanan sudah pernah diatur pengirimannya di Shopee
+            if (
+                str_contains($errCode, 'already_shipped') ||
+                str_contains($errMsg, 'already been shipped') ||
+                str_contains($errMsg, 'already shipped') ||
+                str_contains($errCode, 'shipping_method_already_set')
+            ) {
+                Log::info("[Shopee] Pesanan {$orderSn} sudah pernah di-ship di Shopee ({$data['error']}).");
+                return [
+                    'already_shipped' => true,
+                    'message' => $data['message'] ?? 'This parcel has already been shipped.',
+                ];
+            }
+
             throw new \RuntimeException('Shopee API Error [' . $data['error'] . ']: ' . ($data['message'] ?? ''));
         }
 
