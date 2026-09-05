@@ -741,9 +741,10 @@
                 || request()->routeIs('profit.index*')
                 || request()->routeIs('profit.margin*')
                 || request()->routeIs('reports.product_margins*')
-                || request()->routeIs('finance.marketplace_wallets*');
+                || request()->routeIs('finance.marketplace_wallets*')
+                || request()->routeIs('finance.mutations*');
         @endphp
-        @if(auth()->user()->isSuperAdmin() || in_array(auth()->user()->role, ['admin', 'owner']) || auth()->user()->hasAnyPermission(['finance.profit_loss', 'profit.index', 'finance.marketplace_wallets.index', 'profit.margin', 'reports.product_margins']))
+        @if(auth()->user()->isSuperAdmin() || in_array(auth()->user()->role, ['admin', 'owner']) || auth()->user()->hasAnyPermission(['finance.profit_loss', 'profit.index', 'finance.marketplace_wallets.index', 'profit.margin', 'reports.product_margins', 'finance.mutations.index']))
             <div>
                 <a class="nav-link d-flex align-items-center justify-content-between text-dark {{ $isLaporanKeuanganActive ? '' : 'collapsed' }}"
                     data-bs-toggle="collapse" data-bs-target="#collapseLaporanKeuangan" role="button"
@@ -775,6 +776,10 @@
                         @can('reports.product_margins')
                             <a href="{{ route('reports.product_margins') }}"
                                 class="nav-link py-1 {{ request()->routeIs('reports.product_margins') ? 'active text-white' : 'text-secondary' }}">Margin Master Produk</a>
+                        @endcan
+                        @can('finance.mutations.index')
+                            <a href="{{ route('finance.mutations.index') }}"
+                                class="nav-link py-1 {{ request()->routeIs('finance.mutations.*') ? 'active text-white' : 'text-secondary' }}">Mutasi Kas & Keuangan</a>
                         @endcan
                     </div>
                 </div>

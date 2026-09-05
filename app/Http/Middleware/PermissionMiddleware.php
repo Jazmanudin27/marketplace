@@ -38,8 +38,19 @@ class PermissionMiddleware
             }
         }
 
-        // Periksa apakah user memiliki permission yang dibutuhkan
-        if (!$user->hasPermissionTo($permission)) {
+        // Support multiple permissions separated by pipe (|) or comma (,)
+        $permissions = preg_split('/[|,]/', $permission);
+        $hasAccess = false;
+        foreach ($permissions as $perm) {
+            $perm = trim($perm);
+            if (!empty($perm) && $user->hasPermissionTo($perm)) {
+                $hasAccess = true;
+                break;
+            }
+        }
+
+        // Periksa apakah user memiliki salah satu permission yang dibutuhkan
+        if (!$hasAccess) {
             abort(403, 'Akses Ditolak: Anda tidak memiliki izin (' . $permission . ') untuk mengakses halaman ini.');
         }
 

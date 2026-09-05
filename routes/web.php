@@ -682,10 +682,15 @@ Route::middleware('auth')->group(function () {
         Route::get('/reports/reseller-receivables', [ReportController::class, 'resellerReceivablesReport'])->name('reports.reseller_receivables');
         Route::get('/reports/inventory-turnover', [ReportController::class, 'inventoryTurnoverReport'])->name('reports.inventory_turnover');
         Route::get('/reports/product-margins', [ReportController::class, 'productMarginsReport'])->name('reports.product_margins');
+
+        // Laporan Mutasi Kas & Keuangan (Masuk & Keluar)
+        Route::get('/finance/mutations', [FinancialReportController::class, 'mutationsReport'])->name('finance.mutations.index');
+        Route::get('/finance/mutations/print', [FinancialReportController::class, 'printMutationsReport'])->name('finance.mutations.print');
+        Route::get('/finance/mutations/export', [FinancialReportController::class, 'exportMutationsReport'])->name('finance.mutations.export');
     });
 
     // Dashboard Saldo & Mutasi Marketplace
-    Route::middleware('permission:view-financial-reports|manage-finance')->group(function () {
+    Route::middleware('permission:view-financial-reports|manage-finance|finance.marketplace_wallets.index')->group(function () {
         Route::get('/finance/marketplace-wallets', [MarketplaceWalletController::class, 'index'])->name('finance.marketplace_wallets.index');
         Route::get('/finance/marketplace-wallets/{store}/mutasi', [MarketplaceWalletController::class, 'mutasi'])->name('finance.marketplace_wallets.mutasi');
         Route::get('/finance/marketplace-wallets/{store}/sync', [MarketplaceWalletController::class, 'sync'])->name('finance.marketplace_wallets.sync');

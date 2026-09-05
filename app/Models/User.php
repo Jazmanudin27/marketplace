@@ -246,9 +246,17 @@ class User extends Authenticatable
             ],
             'view-financial-reports' => [
                 'profit.index', 'profit.margin', 'finance.profit_loss', 'finance.profit-loss.index', 'reports.product_margins', 'reports.store_sales', 'reports.reseller_receivables', 'reports.inventory_turnover',
-                'finance.marketplace_wallets.index', 'finance.marketplace_wallets.mutasi', 'finance.marketplace_wallets.sync'
+                'finance.marketplace_wallets.index', 'finance.marketplace_wallets.mutasi', 'finance.marketplace_wallets.sync',
+                'finance.mutations.index'
             ],
-            'manage-finance' => ['finance.incomes.index', 'finance.incomes.create', 'finance.incomes.edit', 'finance.incomes.destroy', 'finance.expenses.index', 'finance.expenses.create', 'finance.expenses.edit', 'finance.expenses.destroy', 'finance.transfers.index', 'finance.transfers.create', 'finance.transfers.edit', 'finance.transfers.destroy', 'finance.reconciliation.index'],
+            'manage-finance' => [
+                'finance.incomes.index', 'finance.incomes.create', 'finance.incomes.edit', 'finance.incomes.destroy',
+                'finance.expenses.index', 'finance.expenses.create', 'finance.expenses.edit', 'finance.expenses.destroy',
+                'finance.transfers.index', 'finance.transfers.create', 'finance.transfers.edit', 'finance.transfers.destroy',
+                'finance.reconciliation.index',
+                'finance.marketplace_wallets.index', 'finance.marketplace_wallets.mutasi', 'finance.marketplace_wallets.sync',
+                'finance.mutations.index'
+            ],
             'view-attendance' => ['attendance.index', 'attendance.report'],
             'propose-attendance-correction' => ['attendance-corrections.propose'],
             'approve-attendance-correction' => ['attendance-corrections.approve'],
