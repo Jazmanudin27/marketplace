@@ -465,7 +465,7 @@
             }
 
             // 1. Scan Invoice Nomor / ID
-            invoiceInput.addEventListener('keypress', function(e) {
+            function handleInvoiceSubmit(e) {
                 if (e.key === 'Enter') {
                     e.preventDefault();
                     const val = invoiceInput.value.trim();
@@ -473,10 +473,12 @@
                         loadOrder(val);
                     }
                 }
-            });
+            }
+            invoiceInput.addEventListener('keydown', handleInvoiceSubmit);
+            invoiceInput.addEventListener('keypress', handleInvoiceSubmit);
 
             // 2. Scan SKU / Barcode Barang
-            skuInput.addEventListener('keypress', function(e) {
+            function handleSkuSubmit(e) {
                 if (e.key === 'Enter') {
                     e.preventDefault();
                     const val = skuInput.value.trim();
@@ -484,7 +486,9 @@
                         processSkuScan(val);
                     }
                 }
-            });
+            }
+            skuInput.addEventListener('keydown', handleSkuSubmit);
+            skuInput.addEventListener('keypress', handleSkuSubmit);
 
             btnReset.addEventListener('click', resetAll);
             btnSubmit.addEventListener('click', submitFulfillment);
@@ -674,7 +678,8 @@
 
                 let matchedItem = null;
                 const cleanBarcode = barcode.trim().toLowerCase();
-                // Cari item dengan SKU atau Barcode yang cocok (utamakan yang belum selesai di-scan)
+
+                // 1. Cari item dengan SKU atau Barcode yang cocok (utamakan yang belum selesai di-scan)
                 for (let i = 0; i < activeOrder.items.length; i++) {
                     const item = activeOrder.items[i];
                     const skuMatch = item.sku && item.sku.trim().toLowerCase() === cleanBarcode;
@@ -683,6 +688,34 @@
                         matchedItem = item;
                         if (scanCounts[item.id] < item.quantity) {
                             break; // Stop pada item pertama yang belum lengkap scan-nya
+                        }
+                    }
+                }
+
+                // 2. Fallback: Jika operator scan SKU lama dari item yang sudah disubstitusi
+                if (!matchedItem) {
+                    for (let i = 0; i < activeOrder.items.length; i++) {
+                        const item = activeOrder.items[i];
+                        if (item.original_sku && item.original_sku.trim().toLowerCase() === cleanBarcode) {
+                            playError();
+                            alert(`PERHATIAN: Barang '${item.original_sku}' sudah disubstitusi/diganti ke '${item.sku}'!\nSilakan scan barcode produk pengganti: ${item.sku}`);
+                            skuInput.value = '';
+                            skuInput.focus();
+                            return;
+                        }
+                    }
+                }
+
+                // 3. Fallback: Jika barcode adalah suffix ukuran (misal SKU 'LPJ-M' di-scan 'm')
+                if (!matchedItem) {
+                    for (let i = 0; i < activeOrder.items.length; i++) {
+                        const item = activeOrder.items[i];
+                        const s = (item.sku || '').trim().toLowerCase();
+                        if (s.endsWith('-' + cleanBarcode) || s.endsWith('_' + cleanBarcode) || s.endsWith(' ' + cleanBarcode)) {
+                            matchedItem = item;
+                            if (scanCounts[item.id] < item.quantity) {
+                                break;
+                            }
                         }
                     }
                 }
@@ -981,82 +1014,167 @@
                 bsSubstituteModal.show();
                 setTimeout(() => {
                     subSearchInput.focus();
-                }, 350);
+                }, 150);
             }
 
+            modalEl.addEventListener('shown.bs.modal', function() {
+                subSearchInput.focus();
+                subSearchInput.select();
+            });
+
+            // Pastikan jika operator scan barcode saat modal terbuka, teks masuk ke subSearchInput
+            modalEl.addEventListener('keydown', function(e) {
+                const active = document.activeElement;
+                if (active !== subSearchInput && active !== subReasonCustom && active !== subReasonSelect) {
+                    if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+                        subSearchInput.focus();
+                    }
+                }
+            });
+
             let searchTimeout = null;
-            subSearchInput.addEventListener('input', function() {
+            function executeSubstituteSearch(query, isScan = false) {
                 clearTimeout(searchTimeout);
-                const q = this.value.trim();
-                if (q.length > 0) {
-                    btnClearSubSearch.classList.remove('d-none');
-                } else {
+                const q = (query || '').trim();
+                if (!q) {
                     btnClearSubSearch.classList.add('d-none');
                     subSearchResults.innerHTML = '';
                     subSearchPlaceholder.classList.remove('d-none');
                     return;
                 }
 
-                searchTimeout = setTimeout(() => {
-                    fetch(`/fulfillment/products/search?q=${encodeURIComponent(q)}`)
-                        .then(res => res.json())
-                        .then(data => {
-                            subSearchResults.innerHTML = '';
-                            if (!data || data.length === 0) {
-                                subSearchPlaceholder.classList.add('d-none');
-                                subSearchResults.innerHTML = `
-                                    <div class="card border border-dashed text-center py-4 px-3 text-muted">
-                                        <i class="fas fa-search-minus fs-3 opacity-50 mb-2"></i>
-                                        <div class="fw-semibold text-dark">Tidak ditemukan produk dengan kata kunci "${escapeHtml(q)}"</div>
-                                        <div class="small">Periksa kembali ejaan nama produk, SKU, atau scan barcode lain.</div>
-                                    </div>
-                                `;
-                                return;
-                            }
+                btnClearSubSearch.classList.remove('d-none');
+                subSearchPlaceholder.classList.add('d-none');
+                subSearchResults.innerHTML = `
+                    <div class="card border border-primary border-opacity-25 bg-primary bg-opacity-10 text-center py-4 px-3 text-primary">
+                        <div class="spinner-border spinner-border-sm text-primary mb-2" role="status"></div>
+                        <div class="fw-semibold">Mencari produk "${escapeHtml(q)}"...</div>
+                    </div>
+                `;
 
-                            subSearchPlaceholder.classList.add('d-none');
-                            data.forEach(p => {
-                                const card = document.createElement('div');
-                                card.className = 'card border shadow-2xs rounded-3 p-2.5 substitute-product-item bg-white';
+                fetch(`/fulfillment/products/search?q=${encodeURIComponent(q)}`)
+                    .then(res => res.json())
+                    .then(data => {
+                        subSearchResults.innerHTML = '';
+                        if (!data || data.length === 0) {
+                            playError();
+                            subSearchResults.innerHTML = `
+                                <div class="card border border-danger border-opacity-25 bg-danger bg-opacity-10 text-center py-4 px-3">
+                                    <i class="fas fa-exclamation-triangle text-danger fs-3 mb-2"></i>
+                                    <div class="fw-bold text-dark">Tidak ditemukan produk dengan kata kunci / barcode "${escapeHtml(q)}"</div>
+                                    <div class="small text-muted mt-1">Pastikan barcode atau SKU sudah terdaftar di Master Produk.</div>
+                                </div>
+                            `;
+                            return;
+                        }
 
-                                const imgUrl = p.image_url ? (p.image_url.startsWith('http') ? p.image_url : '/storage/' + p.image_url) : '/images/placeholder.png';
-                                const stockBadge = p.stock > 0 ?
-                                    `<span class="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1 fs-7 fw-semibold"><i class="fas fa-check-circle me-1"></i>Stok Ready: ${p.stock} pcs</span>` :
-                                    `<span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2.5 py-1 fs-7 fw-semibold"><i class="fas fa-times-circle me-1"></i>Stok Habis (0)</span>`;
+                        // Cek apakah ada exact match pada SKU atau Barcode
+                        const cleanQ = q.toLowerCase();
+                        const exactMatch = data.find(p => 
+                            (p.sku && p.sku.trim().toLowerCase() === cleanQ) ||
+                            (p.barcode && p.barcode.trim().toLowerCase() === cleanQ)
+                        );
 
-                                const barcodeTag = p.barcode ?
-                                    `<span class="badge bg-light text-secondary border font-monospace me-1" style="font-size: 0.72rem;"><i class="fas fa-barcode me-1"></i>${escapeHtml(p.barcode)}</span>` : '';
+                        // Jika hasil scan barcode (Enter ditekan) dan ditemukan exact match atau hanya 1 produk:
+                        if (isScan && (exactMatch || data.length === 1)) {
+                            const chosen = exactMatch || data[0];
+                            const chosenImg = chosen.image_url ? (chosen.image_url.startsWith('http') ? chosen.image_url : '/storage/' + chosen.image_url) : '/images/placeholder.png';
+                            playSuccess();
+                            selectSubstituteProduct(chosen, chosenImg);
+                            return;
+                        }
 
-                                card.innerHTML = `
-                                    <div class="d-flex align-items-center justify-content-between gap-3">
-                                        <div class="d-flex align-items-center gap-3 min-w-0">
-                                            <img src="${imgUrl}" class="rounded-3 border flex-shrink-0" style="width: 52px; height: 52px; object-fit: cover;" alt="${escapeHtml(p.name)}">
-                                            <div class="min-w-0">
-                                                <div class="fw-bold text-dark text-truncate mb-1" style="font-size: 0.9rem;">${escapeHtml(p.name)}</div>
-                                                <div class="d-flex align-items-center flex-wrap gap-1">
-                                                    <span class="badge bg-light text-dark border font-monospace" style="font-size: 0.75rem;">
-                                                        SKU: <strong class="text-primary">${escapeHtml(p.sku)}</strong>
-                                                    </span>
-                                                    ${barcodeTag}
-                                                </div>
+                        // Tampilkan hasil pencarian
+                        data.forEach((p, idx) => {
+                            const card = document.createElement('div');
+                            const isFirst = idx === 0;
+                            card.className = `card border ${isFirst ? 'border-primary border-2' : 'border-secondary border-opacity-25'} shadow-2xs rounded-3 p-2.5 substitute-product-item bg-white`;
+                            card.setAttribute('tabindex', '0');
+
+                            const imgUrl = p.image_url ? (p.image_url.startsWith('http') ? p.image_url : '/storage/' + p.image_url) : '/images/placeholder.png';
+                            const stockBadge = p.stock > 0 ?
+                                `<span class="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1 fs-7 fw-semibold"><i class="fas fa-check-circle me-1"></i>Stok: ${p.stock} pcs</span>` :
+                                `<span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2.5 py-1 fs-7 fw-semibold"><i class="fas fa-times-circle me-1"></i>Habis (0)</span>`;
+
+                            const barcodeTag = p.barcode ?
+                                `<span class="badge bg-light text-secondary border font-monospace me-1" style="font-size: 0.72rem;"><i class="fas fa-barcode me-1"></i>${escapeHtml(p.barcode)}</span>` : '';
+
+                            card.innerHTML = `
+                                <div class="d-flex align-items-center justify-content-between gap-3">
+                                    <div class="d-flex align-items-center gap-3 min-w-0">
+                                        <img src="${imgUrl}" class="rounded-3 border flex-shrink-0" style="width: 52px; height: 52px; object-fit: cover;" alt="${escapeHtml(p.name)}">
+                                        <div class="min-w-0">
+                                            <div class="fw-bold text-dark text-truncate mb-1" style="font-size: 0.9rem;">${escapeHtml(p.name)}</div>
+                                            <div class="d-flex align-items-center flex-wrap gap-1">
+                                                <span class="badge bg-light text-dark border font-monospace" style="font-size: 0.75rem;">
+                                                    SKU: <strong class="text-primary">${escapeHtml(p.sku)}</strong>
+                                                </span>
+                                                ${barcodeTag}
                                             </div>
                                         </div>
-                                        <div class="d-flex align-items-center gap-3 flex-shrink-0">
-                                            ${stockBadge}
-                                            <button type="button" class="btn btn-sm ${p.stock > 0 ? 'btn-primary' : 'btn-outline-secondary'} rounded-pill px-3 py-1 fw-semibold text-nowrap">
-                                                <i class="fas fa-check me-1"></i>Pilih
-                                            </button>
-                                        </div>
                                     </div>
-                                `;
+                                    <div class="d-flex align-items-center gap-3 flex-shrink-0">
+                                        ${stockBadge}
+                                        <button type="button" class="btn btn-sm ${p.stock > 0 ? 'btn-primary' : 'btn-outline-secondary'} rounded-pill px-3 py-1 fw-semibold text-nowrap">
+                                            <i class="fas fa-check me-1"></i>Pilih
+                                        </button>
+                                    </div>
+                                </div>
+                            `;
 
-                                card.addEventListener('click', () => selectSubstituteProduct(p, imgUrl));
-                                subSearchResults.appendChild(card);
+                            card.addEventListener('click', () => selectSubstituteProduct(p, imgUrl));
+                            card.addEventListener('keydown', function(ev) {
+                                if (ev.key === 'Enter') {
+                                    ev.preventDefault();
+                                    selectSubstituteProduct(p, imgUrl);
+                                }
                             });
-                        })
-                        .catch(err => console.error(err));
-                }, 200);
+                            subSearchResults.appendChild(card);
+                        });
+                    })
+                    .catch(err => {
+                        console.error(err);
+                        playError();
+                        subSearchResults.innerHTML = `
+                            <div class="card border border-danger p-3 text-center text-danger small">
+                                Gagal memuat pencarian produk. Silakan periksa jaringan server.
+                            </div>
+                        `;
+                    });
+            }
+
+            subSearchInput.addEventListener('input', function() {
+                const q = this.value.trim();
+                clearTimeout(searchTimeout);
+                if (q.length > 0) {
+                    btnClearSubSearch.classList.remove('d-none');
+                    searchTimeout = setTimeout(() => {
+                        executeSubstituteSearch(q, false);
+                    }, 250);
+                } else {
+                    btnClearSubSearch.classList.add('d-none');
+                    subSearchResults.innerHTML = '';
+                    subSearchPlaceholder.classList.remove('d-none');
+                }
             });
+
+            // Tangkap enter saat scan barcode atau ketik di input pencarian modal
+            function handleSubSearchEnter(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const q = subSearchInput.value.trim();
+                    if (q) {
+                        const firstItem = subSearchResults.querySelector('.substitute-product-item');
+                        if (firstItem && subSearchResults.children.length > 0 && !subSearchResults.querySelector('.spinner-border')) {
+                            firstItem.click();
+                        } else {
+                            executeSubstituteSearch(q, true);
+                        }
+                    }
+                }
+            }
+            subSearchInput.addEventListener('keydown', handleSubSearchEnter);
+            subSearchInput.addEventListener('keypress', handleSubSearchEnter);
 
             btnClearSubSearch.addEventListener('click', function() {
                 subSearchInput.value = '';
@@ -1064,17 +1182,6 @@
                 subSearchResults.innerHTML = '';
                 subSearchPlaceholder.classList.remove('d-none');
                 subSearchInput.focus();
-            });
-
-            // Tekan enter saat scan barcode di modal pencarian produk
-            subSearchInput.addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') {
-                    e.preventDefault();
-                    const firstItem = subSearchResults.querySelector('.substitute-product-item');
-                    if (firstItem) {
-                        firstItem.click();
-                    }
-                }
             });
 
             function selectSubstituteProduct(p, imgUrl) {
@@ -1102,6 +1209,11 @@
 
                 const oldSkuText = subOldSku.innerText;
                 subFooterSummary.innerHTML = `Akan menukar: <span class="badge bg-light text-dark border font-monospace">${escapeHtml(oldSkuText)}</span> &rarr; <span class="badge bg-success-subtle text-success border border-success-subtle font-monospace">${escapeHtml(p.sku)}</span> (Stok Gudang: ${p.stock} pcs).`;
+
+                // Fokuskan otomatis ke tombol Konfirmasi agar operator bisa langsung tekan Enter!
+                setTimeout(() => {
+                    btnConfirmSubstitute.focus();
+                }, 100);
             }
 
             btnCancelSelected.addEventListener('click', function() {

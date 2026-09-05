@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\MasterProduct;
+use App\Models\MarketplaceProduct;
 use App\Models\StockMovement;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -497,6 +498,7 @@ class FulfillmentController extends Controller
             return response()->json([]);
         }
 
+        // Prioritaskan exact match SKU dan Barcode di urutan teratas
         $products = MasterProduct::where('tenant_id', $tenantId)
             ->where(function ($query) use ($q) {
                 $query->where('sku', 'LIKE', "%{$q}%")
@@ -504,9 +506,43 @@ class FulfillmentController extends Controller
                       ->orWhere('barcode', 'LIKE', "%{$q}%");
             })
             ->select('id', 'sku', 'barcode', 'name', 'stock', 'image_url', 'cost_price')
-            ->orderBy('name')
-            ->limit(15)
+            ->orderByRaw("
+                CASE 
+                    WHEN UPPER(sku) = UPPER(?) THEN 1
+                    WHEN UPPER(barcode) = UPPER(?) THEN 1
+                    WHEN UPPER(sku) LIKE UPPER(?) THEN 2
+                    WHEN UPPER(barcode) LIKE UPPER(?) THEN 2
+                    WHEN UPPER(name) LIKE UPPER(?) THEN 3
+                    ELSE 4
+                END ASC, name ASC
+            ", [$q, $q, "{$q}%", "{$q}%", "%{$q}%"])
+            ->limit(30)
             ->get();
+
+        // Fallback: jika tidak ditemukan di MasterProduct, coba cari dari MarketplaceProduct yang terhubung
+        if ($products->isEmpty()) {
+            $mpList = MarketplaceProduct::whereHas('store', function ($s) use ($tenantId) {
+                    $s->where('tenant_id', $tenantId);
+                })
+                ->where(function ($query) use ($q) {
+                    $query->where('marketplace_sku', 'LIKE', "%{$q}%")
+                          ->orWhere('name', 'LIKE', "%{$q}%");
+                })
+                ->whereNotNull('master_product_id')
+                ->with('masterProduct')
+                ->limit(10)
+                ->get();
+
+            $fallbackList = collect();
+            foreach ($mpList as $mp) {
+                if ($mp->masterProduct && !$fallbackList->contains('id', $mp->masterProduct->id)) {
+                    $fallbackList->push($mp->masterProduct);
+                }
+            }
+            if ($fallbackList->isNotEmpty()) {
+                $products = $fallbackList;
+            }
+        }
 
         return response()->json($products);
     }
