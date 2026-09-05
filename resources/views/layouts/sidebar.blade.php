@@ -185,20 +185,14 @@
             </a>
         @endcan
 
-        <!-- Target Komisi -->
-        @if (auth()->user()->isSuperAdmin() ||
-                auth()->user()->role === 'admin' ||
-                auth()->user()->hasAnyPermission([
-                        'view-financial-reports',
-                        'manage-finance',
-                        'view-warehouse-reports',
-                    ]))
+        <!-- Target Marketing -->
+        @can('marketing.teams.index')
             <a href="{{ Route::has('marketing.teams.index') ? route('marketing.teams.index') : url('/marketing/teams') }}"
                 class="nav-link d-flex align-items-center gap-2 {{ request()->routeIs('marketing.teams.*') ? 'active text-white' : 'text-dark' }}">
                 <i class="bi bi-people-fill text-warning"></i>
-                <span>Target Komisi</span>
+                <span>Target Marketing</span>
             </a>
-        @endif
+        @endcan
 
 
 
@@ -206,14 +200,23 @@
 
         <!-- 5. DATA MASTER -->
         @if (auth()->user()->isSuperAdmin() ||
-                auth()->user()->role === 'admin' ||
+                in_array(auth()->user()->role, ['admin', 'owner']) ||
                 auth()->user()->hasAnyPermission([
+                        'departments.index',
+                        'inventory-items.index',
                         'categories.index',
                         'brands.index',
                         'suppliers.index',
                         'customers.index',
+                        'bank-accounts.index',
+                        'finance-categories.index',
                         'employees.index',
+                        'tailors.index',
+                        'labor_services.index',
+                        'production-statuses.index',
+                        'production-stages.index',
                         'users.index',
+                        'roles.index',
                         'settings.tenant.edit',
                     ]))
             <div>
@@ -228,15 +231,15 @@
                 </a>
                 <div class="collapse {{ $isMasterDataActive ? 'show' : '' }}" id="collapseMasterData">
                     <div class="nav flex-column ms-3 mt-1 gap-1 border-start ps-2">
-                        @if (auth()->user()->isSuperAdmin() || auth()->user()->role === 'admin')
+                        @can('departments.index')
                             <a href="{{ route('departments.index') }}"
                                 class="nav-link py-1 {{ request()->routeIs('departments.*') ? 'active text-white' : 'text-secondary' }}">Departemen</a>
-                        @endif
-                        @if (auth()->user()->isSuperAdmin() || auth()->user()->role === 'admin' || auth()->user()->can('inventory-items.index'))
+                        @endcan
+                        @can('inventory-items.index')
                             <a href="{{ route('inventory_items.index') }}"
                                 class="nav-link py-1 {{ request()->routeIs('inventory_items.*') && !request()->has('type') ? 'active text-white' : 'text-secondary' }}">Master
                                 Barang</a>
-                        @endif
+                        @endcan
                         @can('categories.index')
                             <a href="{{ route('categories.index') }}"
                                 class="nav-link py-1 {{ request()->routeIs('categories.*') ? 'active text-white' : 'text-secondary' }}">Kategori</a>
@@ -253,14 +256,14 @@
                             <a href="{{ route('customers.index') }}"
                                 class="nav-link py-1 {{ request()->routeIs('customers.*') ? 'active text-white' : 'text-secondary' }}">Pelanggan</a>
                         @endcan
-                        @if(auth()->user()->isSuperAdmin() || auth()->user()->role === 'admin' || auth()->user()->can('suppliers.index'))
+                        @can('bank-accounts.index')
                             <a href="{{ route('bank-accounts.index') }}"
                                 class="nav-link py-1 {{ request()->routeIs('bank-accounts.*') ? 'active text-white' : 'text-secondary' }}">Master Bank / Kas</a>
-                        @endif
-                        @if(auth()->user()->isSuperAdmin() || auth()->user()->role === 'admin' || auth()->user()->can('finance.expenses.index'))
+                        @endcan
+                        @can('finance-categories.index')
                             <a href="{{ route('finance-categories.index') }}"
                                 class="nav-link py-1 {{ request()->routeIs('finance-categories.*') ? 'active text-white' : 'text-secondary' }}">Kategori Biaya & Kas</a>
-                        @endif
+                        @endcan
                         @can('employees.index')
                             <a href="{{ route('employees.index') }}"
                                 class="nav-link py-1 {{ request()->routeIs('employees.*') ? 'active text-white' : 'text-secondary' }}">Karyawan</a>
@@ -331,12 +334,13 @@
 
         <!-- 7. PEMBELIAN -->
         @if (auth()->user()->isSuperAdmin() ||
-                auth()->user()->role === 'admin' ||
+                in_array(auth()->user()->role, ['admin', 'owner']) ||
                 auth()->user()->hasAnyPermission([
                         'purchase-orders.index',
                         'goods-receipts.index',
                         'goods-issues.index',
                         'purchase-returns.index',
+                        'supplier-payables.index',
                     ]))
             <div>
                 <a class="nav-link d-flex align-items-center justify-content-between text-dark {{ $isPembelianActive ? '' : 'collapsed' }}"
@@ -370,15 +374,17 @@
                                 class="nav-link py-1 {{ request()->routeIs('purchase_returns.*') ? 'active text-white' : 'text-secondary' }}">Retur
                                 Pembelian</a>
                         @endcan
-                        @if (auth()->user()->isSuperAdmin() || auth()->user()->role === 'admin' || auth()->user()->can('inventory-items.index'))
+                        @can('inventory-items.index')
                             <a href="{{ route('inventory_items.index') }}"
                                 class="nav-link py-1 {{ request()->routeIs('inventory_items.*') ? 'active text-white' : 'text-secondary' }}">Opname
                                 Master Barang</a>
-                        @endif
-                        <a href="{{ route('supplier_payables.index') }}"
-                            class="nav-link py-1 {{ request()->routeIs('supplier_payables.*') ? 'active text-white' : 'text-secondary' }}">
-                            <i class="bi bi-credit-card-2-back me-1"></i>Hutang Supplier
-                        </a>
+                        @endcan
+                        @can('supplier-payables.index')
+                            <a href="{{ route('supplier_payables.index') }}"
+                                class="nav-link py-1 {{ request()->routeIs('supplier_payables.*') ? 'active text-white' : 'text-secondary' }}">
+                                <i class="bi bi-credit-card-2-back me-1"></i>Hutang Supplier
+                            </a>
+                        @endcan
                     </div>
                 </div>
             </div>
@@ -467,18 +473,12 @@
 
         <!-- 10. MARKETING -->
         @if (auth()->user()->isSuperAdmin() ||
-                auth()->user()->role === 'admin' ||
+                in_array(auth()->user()->role, ['admin', 'owner']) ||
                 auth()->user()->hasAnyPermission([
-                        'orders.index',
-                        'orders.create',
-                        'offline-sales.index',
-                        'returns.index',
-                        'chats.index',
                         'spks.index',
                         'product-recipes.index',
-                        'view-financial-reports',
-                        'manage-finance',
-                        'view-warehouse-reports',
+                        'offline-sales.index',
+                        'marketing.teams.index',
                     ]))
             <div>
                 <a class="nav-link d-flex align-items-center justify-content-between text-dark {{ $isMarketingActive ? '' : 'collapsed' }}"
@@ -509,14 +509,12 @@
                         @endcan
 {{-- Inbox Chat disembunyikan sementara --}}
                         
-                        @if (auth()->user()->isSuperAdmin() ||
-                                auth()->user()->role === 'admin' ||
-                                auth()->user()->hasAnyPermission(['view-financial-reports', 'manage-finance', 'view-warehouse-reports', 'marketing.teams.index']))
+                        @can('marketing.teams.index')
                             <a href="{{ Route::has('marketing.teams.index') ? route('marketing.teams.index') : url('/marketing/teams') }}"
                                 class="nav-link py-1 {{ request()->routeIs('marketing.teams.*') ? 'active text-white' : 'text-secondary' }}">
-                                Target Komisi
+                                Target Marketing
                             </a>
-                        @endif
+                        @endcan
                     </div>
                 </div>
             </div>
@@ -588,7 +586,7 @@
                 || request()->routeIs('reports.store_sales*')
                 || request()->routeIs('reports.reseller_receivables*');
         @endphp
-        @if(auth()->user()->isSuperAdmin() || in_array(auth()->user()->role, ['admin', 'owner']) || auth()->user()->hasAnyPermission(['reports.sales', 'reports.store_sales', 'reports.reseller_receivables', 'view-financial-reports', 'view-warehouse-reports']))
+        @if(auth()->user()->isSuperAdmin() || in_array(auth()->user()->role, ['admin', 'owner']) || auth()->user()->hasAnyPermission(['reports.sales', 'reports.store_sales', 'reports.released_sales', 'reports.reseller_receivables']))
             <div>
                 <a class="nav-link d-flex align-items-center justify-content-between text-dark {{ $isLaporanMarketingActive ? '' : 'collapsed' }}"
                     data-bs-toggle="collapse" data-bs-target="#collapseLaporanMarketing" role="button"
@@ -601,18 +599,22 @@
                 </a>
                 <div class="collapse {{ $isLaporanMarketingActive ? 'show' : '' }}" id="collapseLaporanMarketing">
                     <div class="nav flex-column ms-3 mt-1 gap-1 border-start ps-2">
-                        @if(auth()->user()->isSuperAdmin() || auth()->user()->can('reports.sales') || auth()->user()->can('view-warehouse-reports') || auth()->user()->can('view-financial-reports'))
+                        @can('reports.sales')
                             <a href="{{ route('reports.sales') }}"
                                 class="nav-link py-1 {{ request()->routeIs('reports.sales') ? 'active text-white' : 'text-secondary' }}">Laporan Penjualan</a>
+                        @endcan
+                        @can('reports.store_sales')
                             <a href="{{ route('reports.store_sales') }}"
                                 class="nav-link py-1 {{ request()->routeIs('reports.store_sales*') ? 'active text-white' : 'text-secondary' }}">Rekonsiliasi Omset</a>
+                        @endcan
+                        @can('reports.released_sales')
                             <a href="{{ route('reports.released_sales') }}"
                                 class="nav-link py-1 {{ request()->routeIs('reports.released_sales*') ? 'active text-white' : 'text-secondary' }}">Laporan Penjualan Dilepas</a>
-                        @endif
-                        @if(auth()->user()->isSuperAdmin() || auth()->user()->can('reports.reseller_receivables') || auth()->user()->can('view-financial-reports'))
+                        @endcan
+                        @can('reports.reseller_receivables')
                             <a href="{{ route('reports.reseller_receivables') }}"
                                 class="nav-link py-1 {{ request()->routeIs('reports.reseller_receivables') ? 'active text-white' : 'text-secondary' }}">Saldo & Piutang</a>
-                        @endif
+                        @endcan
                     </div>
                 </div>
             </div>
@@ -631,7 +633,7 @@
                 || request()->routeIs('reports.master_product*')
                 || request()->routeIs('marketplace_products.print_report*');
         @endphp
-        @if(auth()->user()->isSuperAdmin() || in_array(auth()->user()->role, ['admin', 'owner']) || auth()->user()->hasAnyPermission(['reports.summary', 'reports.stock', 'reports.ledger', 'reports.inventory_turnover', 'reports.production_hpp', 'reports.master_product', 'marketplace-products.index', 'view-warehouse-reports']))
+        @if(auth()->user()->isSuperAdmin() || in_array(auth()->user()->role, ['admin', 'owner']) || auth()->user()->hasAnyPermission(['reports.summary', 'reports.stock', 'reports.ledger', 'reports.inventory_turnover', 'reports.production_hpp', 'reports.master_product', 'marketplace-products.index', 'marketplace_products.print_report']))
             <div>
                 <a class="nav-link d-flex align-items-center justify-content-between text-dark {{ $isLaporanGudangActive ? '' : 'collapsed' }}"
                     data-bs-toggle="collapse" data-bs-target="#collapseLaporanGudang" role="button"
@@ -656,10 +658,10 @@
                             <a href="{{ route('reports.ledger') }}"
                                 class="nav-link py-1 {{ request()->routeIs('reports.ledger*') ? 'active text-white' : 'text-secondary' }}">Kartu Stok Jadi</a>
                         @endcan
-                        @if(auth()->user()->isSuperAdmin() || auth()->user()->can('reports.inventory_turnover') || auth()->user()->can('view-financial-reports'))
+                        @can('reports.inventory_turnover')
                             <a href="{{ route('reports.inventory_turnover') }}"
                                 class="nav-link py-1 {{ request()->routeIs('reports.inventory_turnover') ? 'active text-white' : 'text-secondary' }}">Perputaran Stok</a>
-                        @endif
+                        @endcan
                         @can('reports.production_hpp')
                             <a href="{{ route('reports.production_hpp') }}"
                                 class="nav-link py-1 {{ request()->routeIs('reports.production_hpp*') ? 'active text-white' : 'text-secondary' }}">HPP Produksi</a>
@@ -741,7 +743,7 @@
                 || request()->routeIs('reports.product_margins*')
                 || request()->routeIs('finance.marketplace_wallets*');
         @endphp
-        @if(auth()->user()->isSuperAdmin() || in_array(auth()->user()->role, ['admin', 'owner']) || auth()->user()->hasAnyPermission(['view-financial-reports', 'finance.profit_loss', 'profit.index', 'profit.margin', 'reports.product_margins']))
+        @if(auth()->user()->isSuperAdmin() || in_array(auth()->user()->role, ['admin', 'owner']) || auth()->user()->hasAnyPermission(['finance.profit_loss', 'profit.index', 'finance.marketplace_wallets.index', 'profit.margin', 'reports.product_margins']))
             <div>
                 <a class="nav-link d-flex align-items-center justify-content-between text-dark {{ $isLaporanKeuanganActive ? '' : 'collapsed' }}"
                     data-bs-toggle="collapse" data-bs-target="#collapseLaporanKeuangan" role="button"
@@ -754,26 +756,26 @@
                 </a>
                 <div class="collapse {{ $isLaporanKeuanganActive ? 'show' : '' }}" id="collapseLaporanKeuangan">
                     <div class="nav flex-column ms-3 mt-1 gap-1 border-start ps-2">
-                        @if(auth()->user()->isSuperAdmin() || auth()->user()->can('finance.profit_loss') || auth()->user()->can('view-financial-reports'))
+                        @can('finance.profit_loss')
                             <a href="{{ route('finance.profit_loss') }}"
                                 class="nav-link py-1 {{ request()->routeIs('finance.profit_loss') ? 'active text-white' : 'text-secondary' }}">Laba Rugi</a>
-                        @endif
-                        @if(auth()->user()->isSuperAdmin() || auth()->user()->can('profit.index') || auth()->user()->can('view-financial-reports'))
+                        @endcan
+                        @can('profit.index')
                             <a href="{{ route('profit.index') }}"
                                 class="nav-link py-1 {{ request()->routeIs('profit.index') ? 'active text-white' : 'text-secondary' }}">Profit Pesanan</a>
-                        @endif
-                        @if(auth()->user()->isSuperAdmin() || in_array(auth()->user()->role, ['admin', 'owner']) || auth()->user()->hasAnyPermission(['view-financial-reports', 'manage-finance']))
+                        @endcan
+                        @can('finance.marketplace_wallets.index')
                             <a href="{{ route('finance.marketplace_wallets.index') }}"
                                 class="nav-link py-1 {{ request()->routeIs('finance.marketplace_wallets.*') ? 'active text-white' : 'text-secondary' }}">Saldo Marketplace</a>
-                        @endif
-                        @if(auth()->user()->isSuperAdmin() || auth()->user()->can('profit.margin') || auth()->user()->can('view-financial-reports'))
+                        @endcan
+                        @can('profit.margin')
                             <a href="{{ route('profit.margin') }}"
                                 class="nav-link py-1 {{ request()->routeIs('profit.margin') ? 'active text-white' : 'text-secondary' }}">Margin Produk Aktual</a>
-                        @endif
-                        @if(auth()->user()->isSuperAdmin() || auth()->user()->can('reports.product_margins') || auth()->user()->can('view-financial-reports'))
+                        @endcan
+                        @can('reports.product_margins')
                             <a href="{{ route('reports.product_margins') }}"
                                 class="nav-link py-1 {{ request()->routeIs('reports.product_margins') ? 'active text-white' : 'text-secondary' }}">Margin Master Produk</a>
-                        @endif
+                        @endcan
                     </div>
                 </div>
             </div>

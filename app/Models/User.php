@@ -238,8 +238,16 @@ class User extends Authenticatable
                 'purchase-returns.index', 'purchase-returns.create', 'purchase-returns.edit', 'purchase-returns.destroy',
                 'pembelian.stock_report', 'pembelian.report_mutation', 'pembelian.report_summary', 'pembelian.stock_card'
             ],
-            'view-warehouse-reports' => ['reports.summary', 'reports.summary.print', 'reports.stock', 'reports.stock.print', 'reports.ledger', 'reports.ledger.print', 'reports.opname', 'reports.opname.print', 'reports.analytics', 'reports.master_product', 'reports.production_hpp', 'reports.production_hpp.print'],
-            'view-financial-reports' => ['profit.index', 'profit.margin', 'finance.profit-loss.index', 'reports.product_margins', 'reports.store_sales', 'reports.reseller_receivables', 'reports.inventory_turnover'],
+            'view-warehouse-reports' => [
+                'reports.summary', 'reports.summary.print', 'reports.stock', 'reports.stock.print', 'reports.ledger', 'reports.ledger.print', 'reports.opname', 'reports.opname.print', 'reports.analytics', 'reports.master_product', 'reports.production_hpp', 'reports.production_hpp.print',
+                'reports.sales', 'reports.sales.print', 'reports.sales.export',
+                'reports.released_sales', 'reports.released_sales.print', 'reports.released_sales.export',
+                'reports.inventory_turnover'
+            ],
+            'view-financial-reports' => [
+                'profit.index', 'profit.margin', 'finance.profit_loss', 'finance.profit-loss.index', 'reports.product_margins', 'reports.store_sales', 'reports.reseller_receivables', 'reports.inventory_turnover',
+                'finance.marketplace_wallets.index', 'finance.marketplace_wallets.mutasi', 'finance.marketplace_wallets.sync'
+            ],
             'manage-finance' => ['finance.incomes.index', 'finance.incomes.create', 'finance.incomes.edit', 'finance.incomes.destroy', 'finance.expenses.index', 'finance.expenses.create', 'finance.expenses.edit', 'finance.expenses.destroy', 'finance.transfers.index', 'finance.transfers.create', 'finance.transfers.edit', 'finance.transfers.destroy', 'finance.reconciliation.index'],
             'view-attendance' => ['attendance.index', 'attendance.report'],
             'propose-attendance-correction' => ['attendance-corrections.propose'],
