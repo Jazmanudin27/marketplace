@@ -2,6 +2,44 @@
 @section('title', 'Scanner Pemenuhan Pesanan (Pick & Pack)')
 @section('page-title', 'Layar Scanner Gudang')
 
+@push('styles')
+<style>
+    .item-verification-card {
+        transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+    }
+    .item-verification-card:hover {
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05) !important;
+    }
+    .item-verification-card.is-scanned {
+        animation: pulseScan 0.4s ease;
+    }
+    @keyframes pulseScan {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.015); }
+        100% { transform: scale(1); }
+    }
+    #modalSubstituteItem .modal-content {
+        background-color: #f8fafc;
+    }
+    .substitute-product-item {
+        transition: all 0.18s ease-in-out;
+        cursor: pointer;
+    }
+    .substitute-product-item:hover {
+        border-color: #3b82f6 !important;
+        background-color: #eff6ff !important;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 10px rgba(59, 130, 246, 0.08) !important;
+    }
+    .shadow-2xs {
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+    }
+    .fs-7 {
+        font-size: 0.78rem !important;
+    }
+</style>
+@endpush
+
 @section('content')
     <div class="row">
         <!-- Kolom Kiri: Form & Pemindai -->
@@ -110,11 +148,22 @@
                         </div>
                     </div>
 
-                    <h4 class="h6 fw-bold my-3 text-secondary">
-                        <i class="fas fa-list"></i> Daftar Barang yang Harus Diambil & Diverifikasi
-                    </h4>
+                    <div class="d-flex justify-content-between align-items-center mb-3 mt-4">
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="d-flex align-items-center justify-content-center bg-primary bg-opacity-10 text-primary rounded-3" style="width: 34px; height: 34px;">
+                                <i class="fas fa-boxes-packing fs-6"></i>
+                            </div>
+                            <div>
+                                <h6 class="fw-bold text-dark mb-0">Barang yang Harus Diambil & Diverifikasi</h6>
+                                <div class="text-muted" style="font-size: 0.75rem;">Ambil barang fisik di rak & scan barcode sesuai daftar di bawah</div>
+                            </div>
+                        </div>
+                        <div id="items-completion-badge" class="badge rounded-pill bg-light text-secondary border px-3 py-1.5 font-monospace fw-semibold" style="font-size: 0.75rem;">
+                            <span id="items-verified-count">0</span> / <span id="items-total-count">0</span> Lengkap
+                        </div>
+                    </div>
 
-                    <div id="items-list-container">
+                    <div id="items-list-container" class="d-flex flex-column gap-2">
                         <!-- Items rows will be inserted here dynamically -->
                     </div>
 
@@ -130,70 +179,205 @@
         </div>
     </div>
 
-    <!-- Modal Tukar SKU / Substitusi Produk -->
-    <div class="modal fade" id="modalSubstituteItem" tabindex="-1" aria-labelledby="modalSubstituteItemLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content border-0 shadow">
-                <div class="modal-header bg-warning bg-opacity-15 py-3">
-                    <h5 class="modal-title fs-6 fw-bold text-dark" id="modalSubstituteItemLabel">
-                        <i class="fas fa-exchange-alt text-warning me-2"></i>Tukar / Ganti Varian Produk (Substitusi)
-                    </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body p-4">
-                    <div class="alert alert-light border d-flex align-items-center gap-3 mb-3 p-3">
-                        <div class="text-warning fs-3"><i class="fas fa-box-open"></i></div>
-                        <div class="min-w-0">
-                            <div class="small text-muted">Produk Asli Pesanan:</div>
-                            <div class="fw-bold text-dark text-truncate" id="substitute-old-name">-</div>
-                            <div class="small text-secondary font-monospace">SKU: <span id="substitute-old-sku" class="fw-bold">-</span> | Qty: <span id="substitute-old-qty" class="fw-bold">1</span> pcs</div>
+    <!-- Modal Tukar SKU / Substitusi Produk (Full Screen) -->
+    <div class="modal fade" id="modalSubstituteItem" tabindex="-1" aria-labelledby="modalSubstituteItemLabel" aria-hidden="true" data-bs-backdrop="static">
+        <div class="modal-dialog modal-fullscreen">
+            <div class="modal-content border-0 bg-light d-flex flex-column" style="height: 100vh;">
+                <!-- Header -->
+                <div class="modal-header bg-white border-bottom px-4 py-3 align-items-center flex-shrink-0 shadow-2xs">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="d-flex align-items-center justify-content-center bg-warning bg-opacity-15 text-warning rounded-3" style="width: 44px; height: 44px;">
+                            <i class="fas fa-exchange-alt fs-5"></i>
                         </div>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label small fw-bold text-dark">Cari Produk Pengganti (Ketik Nama / SKU / Scan Barcode):</label>
-                        <div class="input-group">
-                            <span class="input-group-text bg-white"><i class="fas fa-search text-muted"></i></span>
-                            <input type="text" class="form-control" id="substitute-search-input" placeholder="Contoh: LPJ-L atau scan barcode..." autocomplete="off">
-                        </div>
-                        <div id="substitute-search-results" class="list-group mt-2 border rounded shadow-sm d-none" style="max-height: 200px; overflow-y: auto;">
-                            <!-- Search results populated dynamically -->
-                        </div>
-                        <div id="substitute-selected-product" class="p-2 mt-2 bg-success bg-opacity-10 border border-success rounded d-none">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <span class="badge bg-success me-1">Dipilih</span>
-                                    <strong class="text-dark" id="substitute-new-name">Nama Produk</strong>
-                                    <div class="small text-muted font-monospace">SKU: <span id="substitute-new-sku"></span> | Stok: <strong id="substitute-new-stock" class="text-success">0</strong> pcs</div>
-                                </div>
-                                <button type="button" class="btn btn-sm btn-link text-danger p-0" id="btn-cancel-selected-product"><i class="fas fa-times"></i></button>
+                        <div>
+                            <div class="d-flex align-items-center gap-2">
+                                <h5 class="modal-title fw-bold text-dark mb-0 fs-5" id="modalSubstituteItemLabel">
+                                    Tukar / Ganti Varian Produk (Substitusi Gudang)
+                                </h5>
+                                <span class="badge bg-warning text-dark px-2.5 py-1" style="font-size: 0.72rem;">
+                                    <i class="fas fa-sync-alt me-1"></i>Mutasi Otomatis
+                                </span>
+                            </div>
+                            <div class="text-muted small mt-0.5" id="substitute-modal-order-subtitle">
+                                Ganti varian produk karena stok kosong/rusak atas kesepakatan pembeli. Mutasi kartu stok akan disesuaikan otomatis.
                             </div>
                         </div>
-                        <input type="hidden" id="substitute-selected-product-id">
-                        <input type="hidden" id="substitute-target-item-id">
                     </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
 
-                    <div class="mb-3">
-                        <label class="form-label small fw-bold text-dark">Alasan Penukaran:</label>
-                        <select class="form-select form-select-sm mb-2" id="substitute-reason-select">
-                            <option value="Persetujuan Chat Pembeli (Stok Asli Habis)">Persetujuan Chat Pembeli (Stok Asli Habis)</option>
-                            <option value="Persetujuan Chat Pembeli (Ganti Ukuran / Warna)">Persetujuan Chat Pembeli (Ganti Ukuran / Warna)</option>
-                            <option value="Barang Rusak / Reject (Ganti Produk)">Barang Rusak / Reject (Ganti Produk)</option>
-                            <option value="custom">Alasan Lainnya (Ketik Manual)...</option>
-                        </select>
-                        <input type="text" class="form-control form-control-sm d-none" id="substitute-reason-custom" placeholder="Tulis alasan penukaran...">
-                    </div>
+                <!-- Body (Scrollable Split-View) -->
+                <div class="modal-body p-4 overflow-y-auto flex-grow-1">
+                    <div class="row g-4 h-100">
+                        <!-- Kolom Kiri: Produk Asli & Alasan (col-lg-5 col-xl-4) -->
+                        <div class="col-12 col-lg-5 col-xl-4 d-flex flex-column gap-3">
+                            <!-- Card Produk Asli -->
+                            <div class="card border-0 shadow-sm rounded-3">
+                                <div class="card-header bg-white border-bottom py-2.5 px-3 d-flex justify-content-between align-items-center">
+                                    <span class="fw-bold text-dark small">
+                                        <i class="fas fa-box-open text-warning me-1"></i> 1. Produk Asli Pesanan
+                                    </span>
+                                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle small px-2 py-0.5" style="font-size: 0.7rem;">
+                                        <i class="fas fa-exclamation-triangle me-1"></i>Stok Gudang Kosong
+                                    </span>
+                                </div>
+                                <div class="card-body p-3">
+                                    <div class="d-flex gap-3 align-items-center">
+                                        <img id="substitute-old-img" src="/images/placeholder.png" class="rounded-3 border bg-light flex-shrink-0" style="width: 68px; height: 68px; object-fit: cover;" alt="Produk Asli">
+                                        <div class="min-w-0">
+                                            <div class="fw-bold text-dark mb-1 text-truncate" id="substitute-old-name" style="font-size: 0.95rem;">-</div>
+                                            <div class="d-flex flex-wrap gap-1 align-items-center">
+                                                <span class="badge bg-light text-secondary border font-monospace" style="font-size: 0.78rem;">
+                                                    SKU: <strong class="text-dark" id="substitute-old-sku">-</strong>
+                                                </span>
+                                                <span class="badge bg-light text-secondary border" style="font-size: 0.78rem;">
+                                                    Qty: <strong class="text-dark" id="substitute-old-qty">1</strong> pcs
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
 
-                    <div class="alert alert-info py-2 px-3 small mb-0" style="font-size: 0.78rem;">
-                        <i class="fas fa-info-circle me-1"></i>
-                        Stok produk pengganti akan otomatis dipotong, dan stok produk lama batal dipotong. Catatan penukaran otomatis tersimpan di riwayat pesanan.
+                            <!-- Card Alasan Penukaran -->
+                            <div class="card border-0 shadow-sm rounded-3">
+                                <div class="card-header bg-white border-bottom py-2.5 px-3">
+                                    <span class="fw-bold text-dark small">
+                                        <i class="fas fa-comment-dots text-primary me-1"></i> 2. Alasan Penukaran
+                                    </span>
+                                </div>
+                                <div class="card-body p-3">
+                                    <label class="form-label small fw-semibold text-muted mb-1">Pilih Alasan Kesepakatan:</label>
+                                    <select class="form-select mb-2" id="substitute-reason-select">
+                                        <option value="Persetujuan Chat Pembeli (Stok Asli Habis)">Persetujuan Chat Pembeli (Stok Asli Habis)</option>
+                                        <option value="Persetujuan Chat Pembeli (Ganti Ukuran / Warna)">Persetujuan Chat Pembeli (Ganti Ukuran / Warna)</option>
+                                        <option value="Barang Rusak / Cacat / Reject di Gudang">Barang Rusak / Cacat / Reject di Gudang</option>
+                                        <option value="custom">Alasan Lainnya (Ketik Manual)...</option>
+                                    </select>
+                                    <input type="text" class="form-control d-none" id="substitute-reason-custom" placeholder="Tulis alasan penukaran...">
+                                </div>
+                            </div>
+
+                            <!-- Card Dampak Sistem & Kartu Stok -->
+                            <div class="card border-0 shadow-sm rounded-3 bg-white">
+                                <div class="card-header bg-white border-bottom py-2.5 px-3">
+                                    <span class="fw-bold text-dark small">
+                                        <i class="fas fa-shield-alt text-success me-1"></i> 3. Dampak Otomatis Sistem
+                                    </span>
+                                </div>
+                                <div class="card-body p-3">
+                                    <div class="d-flex flex-column gap-2 small text-secondary">
+                                        <div class="d-flex align-items-start gap-2">
+                                            <i class="fas fa-check-circle text-success mt-1"></i>
+                                            <span><strong>Kartu Stok Lama:</strong> Pengurangan stok lama otomatis dibatalkan (mutasi kembali <em>IN</em>).</span>
+                                        </div>
+                                        <div class="d-flex align-items-start gap-2">
+                                            <i class="fas fa-check-circle text-success mt-1"></i>
+                                            <span><strong>Kartu Stok Baru:</strong> Stok produk pengganti otomatis dipotong (mutasi keluar <em>OUT</em>).</span>
+                                        </div>
+                                        <div class="d-flex align-items-start gap-2">
+                                            <i class="fas fa-check-circle text-success mt-1"></i>
+                                            <span><strong>Scanner Gudang:</strong> Target barcode pada scanner langsung dialihkan ke SKU baru.</span>
+                                        </div>
+                                        <div class="d-flex align-items-start gap-2">
+                                            <i class="fas fa-check-circle text-success mt-1"></i>
+                                            <span><strong>Audit Trail:</strong> Catatan pergantian otomatis tertera di detail pesanan.</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Kolom Kanan: Cari & Pilih Produk Pengganti (col-lg-7 col-xl-8) -->
+                        <div class="col-12 col-lg-7 col-xl-8 d-flex flex-column">
+                            <div class="card border-0 shadow-sm rounded-3 flex-grow-1 d-flex flex-column" style="min-height: 520px;">
+                                <div class="card-header bg-white border-bottom p-3">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <label for="substitute-search-input" class="form-label fw-bold text-dark mb-0 fs-6">
+                                            <i class="fas fa-search text-primary me-1"></i> Cari & Pilih Produk Pengganti
+                                        </label>
+                                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2.5 py-1" style="font-size: 0.72rem;">
+                                            <i class="fas fa-barcode me-1"></i>Mendukung Barcode Scanner
+                                        </span>
+                                    </div>
+                                    <div class="input-group input-group-lg">
+                                        <span class="input-group-text bg-light border-secondary border-opacity-25 text-muted">
+                                            <i class="fas fa-search"></i>
+                                        </span>
+                                        <input type="text" class="form-control border-secondary border-opacity-25 fs-6" id="substitute-search-input"
+                                            placeholder="Ketik nama produk, SKU (contoh: LPJ-L), atau langsung tembak barcode fisik..." autocomplete="off">
+                                        <button class="btn btn-outline-secondary border-secondary border-opacity-25 d-none" type="button" id="btn-clear-sub-search">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                    <div class="form-text text-muted small mt-1 d-flex justify-content-between">
+                                        <span><i class="fas fa-lightbulb text-warning me-1"></i>Ketik nama/SKU atau scan barcode produk fisik dengan alat scanner.</span>
+                                        <span class="text-secondary font-monospace">Tekan Enter = Pilih item pertama</span>
+                                    </div>
+                                </div>
+
+                                <div class="card-body p-3 d-flex flex-column flex-grow-1 overflow-hidden">
+                                    <!-- Banner Produk Terpilih (Muncul jika sudah memilih produk) -->
+                                    <div id="substitute-selected-product" class="p-3 mb-3 bg-success bg-opacity-10 border border-success border-2 rounded-3 d-none flex-shrink-0">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div class="d-flex align-items-center gap-3">
+                                                <img id="substitute-new-img" src="/images/placeholder.png" class="rounded-3 border bg-white flex-shrink-0" style="width: 58px; height: 58px; object-fit: cover;">
+                                                <div>
+                                                    <div class="d-flex align-items-center gap-2 mb-1">
+                                                        <span class="badge bg-success"><i class="fas fa-check-circle me-1"></i>PRODUK PENGGANTI TERPILIH</span>
+                                                        <span class="badge bg-light text-dark border font-monospace" id="substitute-new-sku-badge">SKU: -</span>
+                                                    </div>
+                                                    <div class="fw-bold text-dark fs-6" id="substitute-new-name">-</div>
+                                                    <div class="small text-muted font-monospace mt-0.5">
+                                                        SKU: <strong class="text-dark" id="substitute-new-sku">-</strong> | Sisa Stok Fisik: <span id="substitute-new-stock" class="fw-bold text-success">0</span> pcs
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <button type="button" class="btn btn-sm btn-outline-danger px-3 py-1.5 rounded-pill" id="btn-cancel-selected-product">
+                                                <i class="fas fa-times me-1"></i> Batal Pilih / Ganti Produk
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <!-- Area Hasil Pencarian Live -->
+                                    <div id="substitute-search-container" class="flex-grow-1 overflow-y-auto pe-1">
+                                        <div id="substitute-search-results" class="d-flex flex-column gap-2">
+                                            <!-- Dynamic result items -->
+                                        </div>
+                                        <div id="substitute-search-placeholder" class="h-100 d-flex flex-column align-items-center justify-content-center text-center p-5 text-muted">
+                                            <div class="bg-light border rounded-circle p-4 mb-3 text-secondary" style="width: 76px; height: 76px; display: flex; align-items: center; justify-content: center;">
+                                                <i class="fas fa-barcode fs-2 opacity-50"></i>
+                                            </div>
+                                            <h6 class="fw-bold text-dark mb-1">Cari Produk atau Scan Barcode</h6>
+                                            <p class="small text-muted mb-0" style="max-width: 360px;">
+                                                Ketik nama produk / varian, SKU pengganti, atau tembakkan scanner ke barcode produk pengganti.
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <input type="hidden" id="substitute-selected-product-id">
+                                    <input type="hidden" id="substitute-target-item-id">
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <div class="modal-footer py-2 bg-light">
-                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Batal</button>
-                    <button type="button" class="btn btn-primary btn-sm fw-semibold" id="btn-confirm-substitute" disabled>
-                        <i class="fas fa-check me-1"></i>Konfirmasi Tukar Produk
-                    </button>
+
+                <!-- Footer (Sticky) -->
+                <div class="modal-footer bg-white border-top px-4 py-3 d-flex justify-content-between align-items-center flex-shrink-0">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="text-muted small" id="substitute-footer-summary">
+                            Silakan pilih produk pengganti di kolom sebelah kanan, lalu klik tombol Konfirmasi.
+                        </span>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <button type="button" class="btn btn-outline-secondary px-4 py-2 fw-semibold" data-bs-dismiss="modal">
+                            <i class="fas fa-times me-1"></i> Batal
+                        </button>
+                        <button type="button" class="btn btn-primary px-4 py-2 fw-semibold" id="btn-confirm-substitute" disabled>
+                            <i class="fas fa-check-circle me-1"></i> Konfirmasi Tukar Produk
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -351,6 +535,35 @@
                 checkVerificationProgress();
             }
 
+            function updateCompletionProgress() {
+                if (!activeOrder || !activeOrder.items) return;
+                let completedCount = 0;
+                activeOrder.items.forEach(it => {
+                    if ((scanCounts[it.id] || 0) >= it.quantity) {
+                        completedCount++;
+                    }
+                });
+                const totalCount = activeOrder.items.length;
+                const verifiedCountEl = document.getElementById('items-verified-count');
+                const totalCountEl = document.getElementById('items-total-count');
+                const badgeEl = document.getElementById('items-completion-badge');
+
+                if (verifiedCountEl && totalCountEl) {
+                    verifiedCountEl.innerText = completedCount;
+                    totalCountEl.innerText = totalCount;
+                }
+
+                if (badgeEl) {
+                    if (completedCount === totalCount && totalCount > 0) {
+                        badgeEl.className = 'badge rounded-pill bg-success text-white px-3 py-1.5 font-monospace fw-semibold';
+                        badgeEl.innerHTML = `<i class="fas fa-check-double me-1"></i>Semua Lengkap (${completedCount}/${totalCount})`;
+                    } else {
+                        badgeEl.className = 'badge rounded-pill bg-light text-secondary border px-3 py-1.5 font-monospace fw-semibold';
+                        badgeEl.innerHTML = `<span id="items-verified-count">${completedCount}</span> / <span id="items-total-count">${totalCount}</span> Lengkap`;
+                    }
+                }
+            }
+
             function renderItemsList(items, order) {
                 itemsList.innerHTML = '';
                 items.forEach(item => {
@@ -360,51 +573,72 @@
 
                     const itemRow = document.createElement('div');
                     itemRow.id = `item-row-${item.id}`;
-                    itemRow.className =
-                        'd-flex align-items-center gap-3 p-3 mb-2 rounded item-verification-row bg-light border';
-                    itemRow.style.transition = 'all 0.2s';
+                    itemRow.className = 'card item-verification-card border p-3 rounded-3 shadow-2xs position-relative overflow-hidden bg-white mb-2';
+                    itemRow.style.transition = 'all 0.25s ease';
 
                     const imageHtml = item.image ?
-                        `<img src="${item.image}" alt="${escapeHtml(item.name)}" class="rounded border" style="width: 55px; height: 55px; object-fit: cover;">` :
-                        `<div class="rounded border bg-light d-flex align-items-center justify-content-center text-muted" style="width: 55px; height: 55px;"><i class="fas fa-image"></i></div>`;
+                        `<img src="${item.image}" alt="${escapeHtml(item.name)}" class="rounded-3 border flex-shrink-0" style="width: 62px; height: 62px; object-fit: cover;">` :
+                        `<div class="rounded-3 border bg-light d-flex align-items-center justify-content-center text-muted flex-shrink-0" style="width: 62px; height: 62px;"><i class="fas fa-image fs-4 opacity-50"></i></div>`;
+
+                    const barcodePill = item.barcode ?
+                        `<span class="badge bg-light text-secondary border font-monospace py-1 px-2" style="font-size: 0.72rem;" title="Barcode Produk">
+                            <i class="fas fa-barcode me-1 text-muted"></i>${escapeHtml(item.barcode)}
+                         </span>` : '';
 
                     const substituteBadge = item.is_substituted ?
-                        `<span class="badge bg-warning bg-opacity-25 text-dark border border-warning ms-1" style="font-size: 0.72rem;" title="Alasan: ${escapeHtml(item.substitution_note || '')}">
-                            <i class="fas fa-exchange-alt me-1 text-warning"></i>Ganti dari: <strong>${escapeHtml(item.original_sku || '-')}</strong>
+                        `<span class="badge rounded-pill bg-warning-subtle text-warning-emphasis border border-warning-subtle py-1 px-2.5" style="font-size: 0.72rem;" title="Alasan: ${escapeHtml(item.substitution_note || '')}">
+                            <i class="fas fa-arrow-left-right me-1 text-warning"></i>Diganti dari: <strong>${escapeHtml(item.original_sku || '-')}</strong>
                          </span>` : '';
 
                     const canSubstitute = order.packing_status !== 'verified' && !String(item.id).includes('-');
                     const substituteBtn = canSubstitute ?
-                        `<button type="button" class="btn btn-sm btn-outline-warning text-dark py-0 px-2 rounded-pill ms-2 text-nowrap btn-open-substitute" 
+                        `<button type="button" class="btn btn-sm btn-outline-warning text-dark border-warning-subtle rounded-pill py-0.5 px-2.5 btn-open-substitute ms-auto shadow-2xs" 
                             data-id="${item.id}" 
                             data-sku="${escapeHtml(item.sku || '')}" 
                             data-name="${escapeHtml(item.name || '')}" 
                             data-qty="${item.quantity}"
-                            style="font-size: 0.72rem;">
-                            <i class="fas fa-exchange-alt me-1 text-warning"></i>Tukar SKU
+                            data-image="${escapeHtml(item.image || '')}"
+                            style="font-size: 0.72rem; font-weight: 600;">
+                            <i class="fas fa-exchange-alt text-warning me-1"></i>Tukar SKU
                          </button>` : '';
 
                     itemRow.innerHTML = `
-                    ${imageHtml}
-                    <div class="flex-grow-1 min-w-0">
-                        <div class="fw-semibold text-dark text-truncate">${escapeHtml(item.name)}</div>
-                        <div class="small text-muted mt-1 d-flex align-items-center flex-wrap gap-1">
-                            <span>SKU: <strong class="text-secondary font-monospace">${escapeHtml(item.sku || '-')}</strong></span>
-                            ${substituteBadge}
-                            ${substituteBtn}
+                        <!-- Left Status Stripe -->
+                        <div id="stripe-${item.id}" class="position-absolute top-0 bottom-0 start-0" style="width: 4px; background: #cbd5e1; transition: background 0.25s ease;"></div>
+                        
+                        <div class="d-flex align-items-center gap-3 ps-1">
+                            ${imageHtml}
+                            <div class="flex-grow-1 min-w-0">
+                                <div class="fw-bold text-dark text-truncate mb-1" style="font-size: 0.92rem;" title="${escapeHtml(item.name)}">${escapeHtml(item.name)}</div>
+                                <div class="d-flex align-items-center flex-wrap gap-1.5 mb-2">
+                                    <span class="badge bg-light text-dark border font-monospace py-1 px-2" style="font-size: 0.75rem;">
+                                        <i class="fas fa-tag me-1 text-muted"></i>${escapeHtml(item.sku || '-')}
+                                    </span>
+                                    ${barcodePill}
+                                    ${substituteBadge}
+                                    ${substituteBtn}
+                                </div>
+                                <div class="progress rounded-pill bg-light" style="height: 5px;">
+                                    <div class="progress-bar rounded-pill bg-primary" id="progress-bar-${item.id}" role="progressbar" style="width: 0%; transition: width 0.3s ease;"></div>
+                                </div>
+                            </div>
+                            
+                            <!-- Quantitative Counter Box -->
+                            <div class="item-qty-box text-center px-3 py-2 rounded-3 border flex-shrink-0" id="qty-box-${item.id}" style="min-width: 95px; background: #f8fafc; transition: all 0.25s ease;">
+                                <div class="d-flex align-items-baseline justify-content-center">
+                                    <span class="fs-4 fw-bold font-monospace text-secondary" id="scan-qty-${item.id}">0</span>
+                                    <span class="fs-6 fw-semibold text-muted ms-1"> / ${item.quantity}</span>
+                                </div>
+                                <div class="small fw-semibold mt-0.5 text-uppercase" id="scan-badge-${item.id}" style="font-size: 0.65rem; letter-spacing: 0.5px; color: #64748b;">
+                                    <i class="fas fa-barcode me-1"></i>Scan SKU
+                                </div>
+                            </div>
                         </div>
-                        <div class="progress mt-2" style="height: 6px;">
-                            <div class="progress-bar bg-primary" id="progress-bar-${item.id}" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
-                        </div>
-                    </div>
-                    <div class="text-end px-2" style="min-width: 80px;">
-                        <span class="fs-4 fw-extrabold text-muted" id="scan-qty-${item.id}">${scanCounts[item.id] || 0}</span>
-                        <span class="fs-6 fw-medium text-muted"> / ${item.quantity}</span>
-                    </div>
-                `;
+                    `;
                     itemsList.appendChild(itemRow);
                     updateItemUI(item);
                 });
+                updateCompletionProgress();
             }
 
             function processSkuScan(barcode) {
@@ -437,15 +671,12 @@
                         // Update UI
                         updateItemUI(matchedItem);
 
-                        // Beri efek highlight hijau lembut sekilas
+                        // Beri efek pulse & highlight hijau lembut
                         const row = document.getElementById(`item-row-${itemId}`);
-                        row.style.background = 'rgba(25, 135, 84, 0.1)';
-                        row.style.borderColor = '#198754';
-                        setTimeout(() => {
-                            row.style.background = '#f8f9fa';
-                            row.style.borderColor = scanCounts[itemId] === matchedItem.quantity ?
-                                '#198754' : '#dee2e6';
-                        }, 400);
+                        if (row) {
+                            row.classList.add('is-scanned');
+                            setTimeout(() => row.classList.remove('is-scanned'), 400);
+                        }
 
                         // Fokus kembali
                         skuInput.value = '';
@@ -462,7 +693,7 @@
                 } else {
                     // SKU tidak cocok sama sekali
                     playError();
-                    skuInput.style.background = 'rgba(220, 53, 69, 0.2)';
+                    skuInput.style.background = 'rgba(220, 53, 69, 0.15)';
                     skuInput.style.borderColor = '#dc3545';
                     setTimeout(() => {
                         skuInput.style.background = '#ffffff';
@@ -477,25 +708,82 @@
             function updateItemUI(item) {
                 const current = scanCounts[item.id];
                 const target = item.quantity;
-                const percentage = (current / target) * 100;
+                const percentage = Math.min(100, (current / target) * 100);
 
                 const textQty = document.getElementById(`scan-qty-${item.id}`);
                 const bar = document.getElementById(`progress-bar-${item.id}`);
                 const row = document.getElementById(`item-row-${item.id}`);
+                const stripe = document.getElementById(`stripe-${item.id}`);
+                const qtyBox = document.getElementById(`qty-box-${item.id}`);
+                const badge = document.getElementById(`scan-badge-${item.id}`);
 
-                textQty.innerText = current;
+                if (textQty) textQty.innerText = current;
 
-                // Warnai angka & bar sesuai progres
-                if (current === target) {
-                    textQty.style.color = '#198754';
-                    bar.style.width = '100%';
-                    bar.style.backgroundColor = '#198754';
-                    row.style.borderColor = '#198754';
+                if (current >= target) {
+                    // Lengkap / Completed
+                    if (bar) {
+                        bar.style.width = '100%';
+                        bar.className = 'progress-bar rounded-pill bg-success';
+                    }
+                    if (row) {
+                        row.style.borderColor = '#86efac';
+                        row.style.background = '#f0fdf4';
+                    }
+                    if (stripe) stripe.style.background = '#10b981';
+                    if (qtyBox) {
+                        qtyBox.style.background = '#ecfdf5';
+                        qtyBox.style.borderColor = '#a7f3d0';
+                    }
+                    if (textQty) {
+                        textQty.className = 'fs-4 fw-bold font-monospace text-success';
+                    }
+                    if (badge) {
+                        badge.innerHTML = '<span class="text-success fw-bold"><i class="fas fa-check-circle me-1"></i>LENGKAP</span>';
+                    }
+                } else if (current > 0) {
+                    // In Progress
+                    if (bar) {
+                        bar.style.width = `${percentage}%`;
+                        bar.className = 'progress-bar rounded-pill bg-primary';
+                    }
+                    if (row) {
+                        row.style.borderColor = '#93c5fd';
+                        row.style.background = '#f8faff';
+                    }
+                    if (stripe) stripe.style.background = '#3b82f6';
+                    if (qtyBox) {
+                        qtyBox.style.background = '#eff6ff';
+                        qtyBox.style.borderColor = '#bfdbfe';
+                    }
+                    if (textQty) {
+                        textQty.className = 'fs-4 fw-bold font-monospace text-primary';
+                    }
+                    if (badge) {
+                        badge.innerHTML = `<span class="text-primary fw-bold"><i class="fas fa-spinner fa-spin me-1"></i>${current}/${target}</span>`;
+                    }
                 } else {
-                    textQty.style.color = '#0d6efd';
-                    bar.style.width = `${percentage}%`;
-                    bar.style.backgroundColor = '#0d6efd';
+                    // Pending
+                    if (bar) {
+                        bar.style.width = '0%';
+                        bar.className = 'progress-bar rounded-pill bg-primary';
+                    }
+                    if (row) {
+                        row.style.borderColor = '#e2e8f0';
+                        row.style.background = '#ffffff';
+                    }
+                    if (stripe) stripe.style.background = '#cbd5e1';
+                    if (qtyBox) {
+                        qtyBox.style.background = '#f8fafc';
+                        qtyBox.style.borderColor = '#e2e8f0';
+                    }
+                    if (textQty) {
+                        textQty.className = 'fs-4 fw-bold font-monospace text-secondary';
+                    }
+                    if (badge) {
+                        badge.innerHTML = '<span class="text-secondary"><i class="fas fa-barcode me-1"></i>Scan SKU</span>';
+                    }
                 }
+                updateCompletionProgress();
             }
 
             function checkVerificationProgress() {
@@ -595,59 +883,78 @@
                     const sku = btn.dataset.sku;
                     const name = btn.dataset.name;
                     const qty = btn.dataset.qty;
-                    openSubstituteModal(id, sku, name, qty);
+                    const image = btn.dataset.image;
+                    openSubstituteModal(id, sku, name, qty, image);
                 }
             });
 
-            // Modal & Elemen Substitusi
+            // Modal & Elemen Substitusi Fullscreen
             const modalEl = document.getElementById('modalSubstituteItem');
             const bsSubstituteModal = new bootstrap.Modal(modalEl);
+            const subModalOrderSubtitle = document.getElementById('substitute-modal-order-subtitle');
+            const subOldImg = document.getElementById('substitute-old-img');
             const subOldName = document.getElementById('substitute-old-name');
             const subOldSku = document.getElementById('substitute-old-sku');
             const subOldQty = document.getElementById('substitute-old-qty');
             const subSearchInput = document.getElementById('substitute-search-input');
+            const btnClearSubSearch = document.getElementById('btn-clear-sub-search');
             const subSearchResults = document.getElementById('substitute-search-results');
+            const subSearchPlaceholder = document.getElementById('substitute-search-placeholder');
             const subSelectedProduct = document.getElementById('substitute-selected-product');
+            const subNewImg = document.getElementById('substitute-new-img');
             const subNewName = document.getElementById('substitute-new-name');
             const subNewSku = document.getElementById('substitute-new-sku');
+            const subNewSkuBadge = document.getElementById('substitute-new-sku-badge');
             const subNewStock = document.getElementById('substitute-new-stock');
             const subTargetItemId = document.getElementById('substitute-target-item-id');
             const subSelectedProductId = document.getElementById('substitute-selected-product-id');
             const btnCancelSelected = document.getElementById('btn-cancel-selected-product');
+            const subFooterSummary = document.getElementById('substitute-footer-summary');
             const subReasonSelect = document.getElementById('substitute-reason-select');
             const subReasonCustom = document.getElementById('substitute-reason-custom');
             const btnConfirmSubstitute = document.getElementById('btn-confirm-substitute');
 
-            function openSubstituteModal(id, sku, name, qty) {
+            function openSubstituteModal(id, sku, name, qty, image) {
                 subTargetItemId.value = id;
                 subOldName.innerText = name;
                 subOldSku.innerText = sku;
                 subOldQty.innerText = qty;
+                if (subOldImg) {
+                    subOldImg.src = image || '/images/placeholder.png';
+                }
+                if (subModalOrderSubtitle && activeOrder) {
+                    subModalOrderSubtitle.innerHTML = `Pesanan: <strong>#${escapeHtml(activeOrder.invoice_number)}</strong> &bull; Pembeli: <strong>${escapeHtml(activeOrder.buyer_name)}</strong> &bull; Toko: <strong>${escapeHtml(activeOrder.store_name)}</strong>`;
+                }
 
                 // Reset modal state
                 subSearchInput.value = '';
+                btnClearSubSearch.classList.add('d-none');
                 subSearchResults.innerHTML = '';
-                subSearchResults.classList.add('d-none');
+                subSearchPlaceholder.classList.remove('d-none');
                 subSelectedProduct.classList.add('d-none');
                 subSelectedProductId.value = '';
                 subReasonSelect.value = 'Persetujuan Chat Pembeli (Stok Asli Habis)';
                 subReasonCustom.classList.add('d-none');
                 subReasonCustom.value = '';
+                subFooterSummary.innerHTML = 'Silakan cari & pilih produk pengganti di kolom sebelah kanan.';
                 btnConfirmSubstitute.disabled = true;
 
                 bsSubstituteModal.show();
                 setTimeout(() => {
                     subSearchInput.focus();
-                }, 400);
+                }, 350);
             }
 
             let searchTimeout = null;
             subSearchInput.addEventListener('input', function() {
                 clearTimeout(searchTimeout);
                 const q = this.value.trim();
-                if (q.length < 1) {
+                if (q.length > 0) {
+                    btnClearSubSearch.classList.remove('d-none');
+                } else {
+                    btnClearSubSearch.classList.add('d-none');
                     subSearchResults.innerHTML = '';
-                    subSearchResults.classList.add('d-none');
+                    subSearchPlaceholder.classList.remove('d-none');
                     return;
                 }
 
@@ -657,53 +964,90 @@
                         .then(data => {
                             subSearchResults.innerHTML = '';
                             if (!data || data.length === 0) {
-                                subSearchResults.innerHTML = `<div class="list-group-item text-muted small text-center py-3">Tidak ada produk cocok dengan "${escapeHtml(q)}"</div>`;
-                                subSearchResults.classList.remove('d-none');
+                                subSearchPlaceholder.classList.add('d-none');
+                                subSearchResults.innerHTML = `
+                                    <div class="card border border-dashed text-center py-4 px-3 text-muted">
+                                        <i class="fas fa-search-minus fs-3 opacity-50 mb-2"></i>
+                                        <div class="fw-semibold text-dark">Tidak ditemukan produk dengan kata kunci "${escapeHtml(q)}"</div>
+                                        <div class="small">Periksa kembali ejaan nama produk, SKU, atau scan barcode lain.</div>
+                                    </div>
+                                `;
                                 return;
                             }
 
+                            subSearchPlaceholder.classList.add('d-none');
                             data.forEach(p => {
-                                const a = document.createElement('a');
-                                a.href = 'javascript:void(0)';
-                                a.className = 'list-group-item list-group-item-action d-flex justify-content-between align-items-center py-2 px-3';
-                                const stockBadge = p.stock > 0 ?
-                                    `<span class="badge bg-success-subtle text-success border border-success">Stok: ${p.stock}</span>` :
-                                    `<span class="badge bg-danger-subtle text-danger border border-danger">Stok: ${p.stock}</span>`;
+                                const card = document.createElement('div');
+                                card.className = 'card border shadow-2xs rounded-3 p-2.5 substitute-product-item bg-white';
 
-                                a.innerHTML = `
-                                    <div class="min-w-0 me-2">
-                                        <div class="fw-semibold text-dark text-truncate small">${escapeHtml(p.name)}</div>
-                                        <div class="font-monospace text-secondary" style="font-size: 0.75rem;">SKU: ${escapeHtml(p.sku)}</div>
-                                    </div>
-                                    <div class="text-end flex-shrink-0">
-                                        ${stockBadge}
+                                const imgUrl = p.image_url ? (p.image_url.startsWith('http') ? p.image_url : '/storage/' + p.image_url) : '/images/placeholder.png';
+                                const stockBadge = p.stock > 0 ?
+                                    `<span class="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1 fs-7 fw-semibold"><i class="fas fa-check-circle me-1"></i>Stok Ready: ${p.stock} pcs</span>` :
+                                    `<span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2.5 py-1 fs-7 fw-semibold"><i class="fas fa-times-circle me-1"></i>Stok Habis (0)</span>`;
+
+                                const barcodeTag = p.barcode ?
+                                    `<span class="badge bg-light text-secondary border font-monospace me-1" style="font-size: 0.72rem;"><i class="fas fa-barcode me-1"></i>${escapeHtml(p.barcode)}</span>` : '';
+
+                                card.innerHTML = `
+                                    <div class="d-flex align-items-center justify-content-between gap-3">
+                                        <div class="d-flex align-items-center gap-3 min-w-0">
+                                            <img src="${imgUrl}" class="rounded-3 border flex-shrink-0" style="width: 52px; height: 52px; object-fit: cover;" alt="${escapeHtml(p.name)}">
+                                            <div class="min-w-0">
+                                                <div class="fw-bold text-dark text-truncate mb-1" style="font-size: 0.9rem;">${escapeHtml(p.name)}</div>
+                                                <div class="d-flex align-items-center flex-wrap gap-1">
+                                                    <span class="badge bg-light text-dark border font-monospace" style="font-size: 0.75rem;">
+                                                        SKU: <strong class="text-primary">${escapeHtml(p.sku)}</strong>
+                                                    </span>
+                                                    ${barcodeTag}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="d-flex align-items-center gap-3 flex-shrink-0">
+                                            ${stockBadge}
+                                            <button type="button" class="btn btn-sm ${p.stock > 0 ? 'btn-primary' : 'btn-outline-secondary'} rounded-pill px-3 py-1 fw-semibold text-nowrap">
+                                                <i class="fas fa-check me-1"></i>Pilih
+                                            </button>
+                                        </div>
                                     </div>
                                 `;
-                                a.addEventListener('click', () => selectSubstituteProduct(p));
-                                subSearchResults.appendChild(a);
+
+                                card.addEventListener('click', () => selectSubstituteProduct(p, imgUrl));
+                                subSearchResults.appendChild(card);
                             });
-                            subSearchResults.classList.remove('d-none');
                         })
                         .catch(err => console.error(err));
-                }, 250);
+                }, 200);
+            });
+
+            btnClearSubSearch.addEventListener('click', function() {
+                subSearchInput.value = '';
+                this.classList.add('d-none');
+                subSearchResults.innerHTML = '';
+                subSearchPlaceholder.classList.remove('d-none');
+                subSearchInput.focus();
             });
 
             // Tekan enter saat scan barcode di modal pencarian produk
             subSearchInput.addEventListener('keypress', function(e) {
                 if (e.key === 'Enter') {
                     e.preventDefault();
-                    const firstItem = subSearchResults.querySelector('.list-group-item-action');
+                    const firstItem = subSearchResults.querySelector('.substitute-product-item');
                     if (firstItem) {
                         firstItem.click();
                     }
                 }
             });
 
-            function selectSubstituteProduct(p) {
+            function selectSubstituteProduct(p, imgUrl) {
                 subSelectedProductId.value = p.id;
                 subNewName.innerText = p.name;
                 subNewSku.innerText = p.sku;
+                subNewSkuBadge.innerText = 'SKU: ' + p.sku;
                 subNewStock.innerText = p.stock;
+                if (subNewImg) {
+                    subNewImg.src = imgUrl || (p.image_url ? (p.image_url.startsWith('http') ? p.image_url : '/storage/' + p.image_url) : '/images/placeholder.png');
+                }
+
                 if (p.stock <= 0) {
                     subNewStock.className = 'text-danger fw-bold';
                 } else {
@@ -711,15 +1055,22 @@
                 }
 
                 subSelectedProduct.classList.remove('d-none');
-                subSearchResults.classList.add('d-none');
+                subSearchResults.innerHTML = '';
+                subSearchPlaceholder.classList.add('d-none');
                 subSearchInput.value = '';
+                btnClearSubSearch.classList.add('d-none');
                 btnConfirmSubstitute.disabled = false;
+
+                const oldSkuText = subOldSku.innerText;
+                subFooterSummary.innerHTML = `Akan menukar: <span class="badge bg-light text-dark border font-monospace">${escapeHtml(oldSkuText)}</span> &rarr; <span class="badge bg-success-subtle text-success border border-success-subtle font-monospace">${escapeHtml(p.sku)}</span> (Stok Gudang: ${p.stock} pcs).`;
             }
 
             btnCancelSelected.addEventListener('click', function() {
                 subSelectedProductId.value = '';
                 subSelectedProduct.classList.add('d-none');
+                subSearchPlaceholder.classList.remove('d-none');
                 btnConfirmSubstitute.disabled = true;
+                subFooterSummary.innerHTML = 'Silakan cari & pilih produk pengganti di kolom sebelah kanan.';
                 subSearchInput.focus();
             });
 
@@ -762,7 +1113,7 @@
                 .then(res => res.json())
                 .then(data => {
                     btnConfirmSubstitute.disabled = false;
-                    btnConfirmSubstitute.innerHTML = `<i class="fas fa-check me-1"></i>Konfirmasi Tukar Produk`;
+                    btnConfirmSubstitute.innerHTML = `<i class="fas fa-check-circle me-1"></i>Konfirmasi Tukar Produk`;
 
                     if (data.success) {
                         bsSubstituteModal.hide();
@@ -799,7 +1150,7 @@
                 .catch(err => {
                     console.error(err);
                     btnConfirmSubstitute.disabled = false;
-                    btnConfirmSubstitute.innerHTML = `<i class="fas fa-check me-1"></i>Konfirmasi Tukar Produk`;
+                    btnConfirmSubstitute.innerHTML = `<i class="fas fa-check-circle me-1"></i>Konfirmasi Tukar Produk`;
                     playError();
                     alert('Terjadi kesalahan jaringan atau server saat menukar item.');
                 });

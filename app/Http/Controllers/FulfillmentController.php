@@ -503,7 +503,7 @@ class FulfillmentController extends Controller
                       ->orWhere('name', 'LIKE', "%{$q}%")
                       ->orWhere('barcode', 'LIKE', "%{$q}%");
             })
-            ->select('id', 'sku', 'name', 'stock', 'image_url', 'cost_price')
+            ->select('id', 'sku', 'barcode', 'name', 'stock', 'image_url', 'cost_price')
             ->orderBy('name')
             ->limit(15)
             ->get();
