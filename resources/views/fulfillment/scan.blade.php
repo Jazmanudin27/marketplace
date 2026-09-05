@@ -1263,6 +1263,7 @@
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
+                        'Accept': 'application/json',
                         'X-CSRF-TOKEN': '{{ csrf_token() }}'
                     },
                     body: JSON.stringify({
@@ -1270,12 +1271,19 @@
                         reason: reason
                     })
                 })
-                .then(res => res.json())
+                .then(async res => {
+                    const data = await res.json().catch(() => null);
+                    if (!res.ok) {
+                        const errMsg = (data && data.message) ? data.message : `Terjadi kesalahan server (${res.status} ${res.statusText})`;
+                        throw new Error(errMsg);
+                    }
+                    return data;
+                })
                 .then(data => {
                     btnConfirmSubstitute.disabled = false;
                     btnConfirmSubstitute.innerHTML = `<i class="fas fa-check-circle me-1"></i>Konfirmasi Tukar Produk`;
 
-                    if (data.success) {
+                    if (data && data.success) {
                         bsSubstituteModal.hide();
                         playSuccess();
 
@@ -1304,7 +1312,7 @@
                         skuInput.focus();
                     } else {
                         playError();
-                        alert(data.message || 'Gagal menukar item pesanan.');
+                        alert((data && data.message) ? data.message : 'Gagal menukar item pesanan.');
                     }
                 })
                 .catch(err => {
@@ -1312,7 +1320,7 @@
                     btnConfirmSubstitute.disabled = false;
                     btnConfirmSubstitute.innerHTML = `<i class="fas fa-check-circle me-1"></i>Konfirmasi Tukar Produk`;
                     playError();
-                    alert('Terjadi kesalahan jaringan atau server saat menukar item.');
+                    alert(err.message || 'Terjadi kesalahan jaringan atau server saat menukar item.');
                 });
             });
 

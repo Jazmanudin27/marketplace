@@ -603,106 +603,160 @@ class FulfillmentController extends Controller
     /**
      * Tukar / Substitusi SKU Item Pesanan (karena stok asli kosong, ganti varian atas kesepakatan pembeli)
      */
-    public function substituteItem(Request $request, $orderItemId)
+    public function substituteItem(Request $request, $orderItem)
     {
-        $tenantId = Auth::user()->tenant_id;
+        try {
+            $tenantId = Auth::user()->tenant_id;
 
-        $request->validate([
-            'new_master_product_id' => 'required|integer',
-            'reason'                => 'nullable|string|max:255',
-        ]);
+            $request->validate([
+                'new_master_product_id' => 'required',
+                'reason'                => 'nullable|string|max:255',
+            ]);
 
-        $item = OrderItem::with('order')->findOrFail($orderItemId);
-        $order = $item->order;
+            $item = ($orderItem instanceof OrderItem) 
+                ? $orderItem->load('order') 
+                : OrderItem::with('order')->findOrFail($orderItem);
 
-        if ($order->tenant_id !== $tenantId) {
-            return response()->json(['success' => false, 'message' => 'Akses ditolak.'], 403);
-        }
+            $order = $item->order;
 
-        if (in_array($order->order_status, [Order::STATUS_CANCELLED, Order::STATUS_COMPLETED])) {
+            if (!$order || $order->tenant_id !== $tenantId) {
+                return response()->json(['success' => false, 'message' => 'Akses ditolak.'], 403);
+            }
+
+            if (in_array($order->order_status, [Order::STATUS_CANCELLED, Order::STATUS_COMPLETED])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Pesanan yang sudah dibatalkan atau selesai tidak dapat disubstitusi.'
+                ], 400);
+            }
+
+            $newMasterProduct = MasterProduct::where('tenant_id', $tenantId)
+                ->findOrFail($request->new_master_product_id);
+
+            // 1. Pastikan kolom substitusi ada di tabel order_items (jika migrasi belum sempat dijalankan di server)
+            if (!Schema::hasColumn('order_items', 'is_substituted')) {
+                try {
+                    Schema::table('order_items', function ($table) {
+                        if (!Schema::hasColumn('order_items', 'is_substituted')) {
+                            $table->boolean('is_substituted')->default(false)->after('quantity');
+                        }
+                        if (!Schema::hasColumn('order_items', 'original_sku')) {
+                            $table->string('original_sku', 100)->nullable()->after('is_substituted');
+                        }
+                        if (!Schema::hasColumn('order_items', 'original_product_name')) {
+                            $table->string('original_product_name', 255)->nullable()->after('original_sku');
+                        }
+                        if (!Schema::hasColumn('order_items', 'substitution_note')) {
+                            $table->text('substitution_note')->nullable()->after('original_product_name');
+                        }
+                    });
+                } catch (\Throwable $migEx) {
+                    Log::warning("Gagal auto-migrate order_items: " . $migEx->getMessage());
+                }
+            }
+
+            $oldMasterProductId = $item->master_product_id;
+            $oldMasterProduct   = $oldMasterProductId ? MasterProduct::find($oldMasterProductId) : null;
+            $oldSku             = $item->sku ?: ($oldMasterProduct ? $oldMasterProduct->sku : '');
+            $oldName            = $item->product_name ?: ($oldMasterProduct ? $oldMasterProduct->name : '');
+            $reason             = $request->input('reason', 'Kesepakatan Chat Pembeli');
+
+            DB::transaction(function () use ($item, $order, $oldMasterProduct, $newMasterProduct, $oldSku, $oldName, $reason) {
+                // 2. Cek apakah item ini sudah pernah tercatat mutasi keluar (stock deduction)
+                $wasDeducted = false;
+                if ($oldMasterProduct) {
+                    $wasDeducted = StockMovement::where('master_product_id', $oldMasterProduct->id)
+                        ->where('reference', 'LIKE', '%' . ($order->order_marketplace_id ?: $order->invoice_number) . '%')
+                        ->where('type', 'out')
+                        ->exists();
+                }
+
+                // 3. Sesuaikan mutasi stok jika sudah pernah dipotong sebelumnya
+                if ($wasDeducted && $oldMasterProduct) {
+                    try {
+                        // Kembalikan stok produk lama (IN)
+                        $oldMasterProduct->recordStockMovement(
+                            $item->quantity,
+                            'in',
+                            'Substitusi Barang (Batal): ' . $order->invoice_number . ' -> diganti ' . $newMasterProduct->sku
+                        );
+
+                        // Potong stok produk baru (OUT)
+                        $newMasterProduct->recordStockMovement(
+                            $item->quantity,
+                            'out',
+                            'Substitusi Barang (Kirim): ' . $order->invoice_number . ' -> ganti dari ' . ($oldMasterProduct->sku ?: $oldSku)
+                        );
+                    } catch (\Throwable $stockEx) {
+                        Log::warning("Gagal mutasi stok otomatis saat substitusi: " . $stockEx->getMessage());
+                    }
+                }
+
+                // 4. Siapkan data update OrderItem secara aman
+                $updateData = [
+                    'master_product_id'     => $newMasterProduct->id,
+                    'sku'                   => $newMasterProduct->sku,
+                    'product_name'          => $newMasterProduct->name,
+                    'product_image'         => $newMasterProduct->image_url ?: $item->product_image,
+                ];
+
+                if (Schema::hasColumn('order_items', 'seller_sku')) {
+                    $updateData['seller_sku'] = $newMasterProduct->sku;
+                }
+
+                if (Schema::hasColumn('order_items', 'is_substituted')) {
+                    $updateData['is_substituted']        = true;
+                    $updateData['original_sku']          = $item->original_sku ?: ($item->seller_sku ?? $oldSku);
+                    $updateData['original_product_name'] = $item->original_product_name ?: $oldName;
+                    $updateData['substitution_note']     = $reason;
+                }
+
+                if (Schema::hasColumn('order_items', 'cost_price')) {
+                    $updateData['cost_price']   = $newMasterProduct->cost_price ?: ($item->cost_price ?? 0);
+                    $updateData['hpp_subtotal'] = ($newMasterProduct->cost_price ?: ($item->cost_price ?? 0)) * $item->quantity;
+                }
+
+                $item->update($updateData);
+
+                // 5. Catat catatan audit di order jika kolom seller_note tersedia
+                if ($order && Schema::hasColumn('orders', 'seller_note')) {
+                    $auditNote = "[Substitusi " . now()->format('d/m/Y H:i') . "] Item '{$oldSku}' diganti menjadi '{$newMasterProduct->sku}'. Alasan: {$reason}";
+                    $order->update([
+                        'seller_note' => trim(($order->seller_note ? $order->seller_note . "\n" : '') . $auditNote)
+                    ]);
+                }
+            });
+
+            // Kembalikan data item yang sudah terupdate
+            $item->refresh();
+
+            $hasBarcode = Schema::hasColumn('master_products', 'barcode');
+
+            return response()->json([
+                'success' => true,
+                'message' => "Item '{$oldSku}' sukses diganti ke '{$newMasterProduct->sku}'.",
+                'item' => [
+                    'id'                    => $item->id,
+                    'sku'                   => $item->sku,
+                    'barcode'               => $hasBarcode ? ($newMasterProduct->barcode ?? null) : null,
+                    'name'                  => $item->product_name,
+                    'image'                 => $item->product_image ?: ($newMasterProduct->image_url ?: '/images/placeholder.png'),
+                    'quantity'              => $item->quantity,
+                    'is_substituted'        => (bool) ($item->is_substituted ?? true),
+                    'original_sku'          => $item->original_sku ?? $oldSku,
+                    'original_product_name' => $item->original_product_name ?? $oldName,
+                    'substitution_note'     => $item->substitution_note ?? $reason,
+                ]
+            ]);
+        } catch (\Throwable $e) {
+            Log::error("Fulfillment substituteItem error: " . $e->getMessage(), [
+                'trace' => $e->getTraceAsString()
+            ]);
             return response()->json([
                 'success' => false,
-                'message' => 'Pesanan yang sudah dibatalkan atau selesai tidak dapat disubstitusi.'
-            ], 400);
+                'message' => 'Gagal menukar item: ' . $e->getMessage()
+            ], 500);
         }
-
-        $newMasterProduct = MasterProduct::where('tenant_id', $tenantId)
-            ->findOrFail($request->new_master_product_id);
-
-        $oldMasterProductId = $item->master_product_id;
-        $oldMasterProduct   = $oldMasterProductId ? MasterProduct::find($oldMasterProductId) : null;
-        $oldSku             = $item->sku;
-        $oldName            = $item->product_name;
-        $reason             = $request->input('reason', 'Kesepakatan Chat Pembeli');
-
-        DB::transaction(function () use ($item, $order, $oldMasterProduct, $newMasterProduct, $oldSku, $oldName, $reason) {
-            // 1. Cek apakah item ini sudah pernah tercatat mutasi keluar (stock deduction)
-            $wasDeducted = false;
-            if ($oldMasterProduct) {
-                $wasDeducted = StockMovement::where('master_product_id', $oldMasterProduct->id)
-                    ->where('reference', 'LIKE', '%' . $order->order_marketplace_id . '%')
-                    ->where('type', 'out')
-                    ->exists();
-            }
-
-            // 2. Sesuaikan mutasi stok jika sudah pernah dipotong sebelumnya
-            if ($wasDeducted && $oldMasterProduct) {
-                // Kembalikan stok produk lama (IN)
-                $oldMasterProduct->recordStockMovement(
-                    $item->quantity,
-                    'in',
-                    'Substitusi Barang (Batal): ' . $order->invoice_number . ' (' . $order->order_marketplace_id . ') -> diganti ' . $newMasterProduct->sku
-                );
-
-                // Potong stok produk baru (OUT)
-                $newMasterProduct->recordStockMovement(
-                    $item->quantity,
-                    'out',
-                    'Substitusi Barang (Kirim): ' . $order->invoice_number . ' (' . $order->order_marketplace_id . ') -> ganti dari ' . ($oldMasterProduct->sku ?: $oldSku)
-                );
-            }
-
-            // 3. Update OrderItem
-            $item->update([
-                'is_substituted'        => true,
-                'original_sku'          => $item->original_sku ?: ($item->seller_sku ?: $oldSku),
-                'original_product_name' => $item->original_product_name ?: $oldName,
-                'substitution_note'     => $reason,
-                'master_product_id'     => $newMasterProduct->id,
-                'sku'                   => $newMasterProduct->sku,
-                'seller_sku'            => $newMasterProduct->sku,
-                'product_name'          => $newMasterProduct->name,
-                'product_image'         => $newMasterProduct->image_url ?: $item->product_image,
-                'cost_price'            => $newMasterProduct->cost_price ?: $item->cost_price,
-                'hpp_subtotal'          => ($newMasterProduct->cost_price ?: ($item->cost_price ?? 0)) * $item->quantity,
-            ]);
-
-            // 4. Catat catatan audit di order
-            $auditNote = "[Substitusi " . now()->format('d/m/Y H:i') . "] Item '{$oldSku}' diganti menjadi '{$newMasterProduct->sku}'. Alasan: {$reason}";
-            $order->update([
-                'seller_note' => trim(($order->seller_note ? $order->seller_note . "\n" : '') . $auditNote)
-            ]);
-        });
-
-        // Kembalikan data item yang sudah terupdate
-        $item->refresh();
-
-        return response()->json([
-            'success' => true,
-            'message' => "Item '{$oldSku}' sukses diganti ke '{$newMasterProduct->sku}'.",
-            'item' => [
-                'id'                    => $item->id,
-                'sku'                   => $item->sku,
-                'barcode'               => $newMasterProduct->barcode ?? null,
-                'name'                  => $item->product_name,
-                'image'                 => $item->product_image ?: ($newMasterProduct->image_url ?: '/images/placeholder.png'),
-                'quantity'              => $item->quantity,
-                'is_substituted'        => true,
-                'original_sku'          => $item->original_sku,
-                'original_product_name' => $item->original_product_name,
-                'substitution_note'     => $item->substitution_note,
-            ]
-        ]);
     }
 
     /**
