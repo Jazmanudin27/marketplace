@@ -176,23 +176,16 @@
                                     @endif
                                 </div>
 
-                                {{-- Action Buttons --}}
-                                <div class="d-flex gap-2">
-                                    @if($store->status === 'connected')
-                                        <a href="{{ route('finance.marketplace_wallets.mutasi', $store) }}" class="btn btn-primary btn-sm flex-fill rounded-2 py-2 fw-semibold">
-                                            <i class="fas fa-history me-1.5"></i> Lihat Mutasi Dompet
-                                        </a>
-                                    @else
-                                        <button class="btn btn-secondary btn-sm flex-fill rounded-2 py-2 fw-semibold" disabled>
-                                            <i class="fas fa-plug me-1.5"></i> Offline
-                                        </button>
-                                    @endif
-                                    @if(($balance['pending_count'] ?? 0) > 0)
-                                        <a href="{{ route('orders.index', ['store_id' => $store->id]) }}" class="btn btn-outline-warning btn-sm rounded-2 py-2 px-2.5 fw-semibold text-dark" title="Lihat {{ $balance['pending_count'] }} Pesanan Toko Ini">
-                                            <i class="fas fa-box-open text-warning me-1"></i>{{ $balance['pending_count'] }}
-                                        </a>
-                                    @endif
-                                </div>
+                                {{-- Action Button --}}
+                                @if($store->status === 'connected')
+                                    <a href="{{ route('finance.marketplace_wallets.mutasi', $store) }}" class="btn btn-primary btn-sm w-100 rounded-2 py-2 fw-semibold">
+                                        <i class="fas fa-history me-1.5"></i> Lihat Mutasi Dompet
+                                    </a>
+                                @else
+                                    <button class="btn btn-secondary btn-sm w-100 rounded-2 py-2 fw-semibold" disabled>
+                                        <i class="fas fa-plug me-1.5"></i> Offline
+                                    </button>
+                                @endif
                             </div>
                         </div>
                     </div>
