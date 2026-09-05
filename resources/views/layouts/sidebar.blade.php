@@ -324,16 +324,6 @@
                             <a href="{{ route('finance.marketplace_wallets.index') }}"
                                 class="nav-link py-1 {{ request()->routeIs('finance.marketplace_wallets.*') ? 'active text-white' : 'text-secondary' }}">Saldo Marketplace</a>
                         @endcan
-                        @can('finance.incomes.index')
-                            <a href="{{ route('finance.incomes.index') }}"
-                                class="nav-link py-1 {{ request()->routeIs('finance.incomes.*') ? 'active text-white' : 'text-secondary' }}">Pemasukan
-                                Lain</a>
-                        @endcan
-                        @can('finance.expenses.index')
-                            <a href="{{ route('finance.expenses.index') }}"
-                                class="nav-link py-1 {{ request()->routeIs('finance.expenses.*') ? 'active text-white' : 'text-secondary' }}">Pengeluaran
-                                & Biaya</a>
-                        @endcan
                         @can('finance.transfers.index')
                             <a href="{{ route('finance.transfers.index') }}"
                                 class="nav-link py-1 {{ request()->routeIs('finance.transfers.*') ? 'active text-white' : 'text-secondary' }}">Transfer
