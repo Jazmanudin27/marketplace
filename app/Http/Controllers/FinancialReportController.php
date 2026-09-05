@@ -359,32 +359,6 @@ class FinancialReportController extends Controller
             }
         }
 
-        // Offline Sales before $dateFrom
-        $prevOfflineQuery = OfflineSale::where('tenant_id', $tenantId)
-            ->where('status', OfflineSale::STATUS_COMPLETED)
-            ->where('sold_at', '<', $dateFrom . ' 00:00:00');
-
-        if ($account !== 'all') {
-            $prevOfflineQuery->where(function ($q) use ($account, $matchedBank) {
-                $q->where('payment_destination', $account);
-                if ($matchedBank) {
-                    $q->orWhere('payment_destination', $matchedBank->bank_name)
-                      ->orWhere('payment_destination', (string)$matchedBank->id);
-                }
-                if ($account === 'kas_kecil' || ($matchedBank && stripos($matchedBank->bank_name, 'kas') !== false)) {
-                    $q->orWhere(function ($sub) {
-                        $sub->whereNull('payment_destination')->where('payment_method', 'tunai');
-                    });
-                }
-                if ($account === 'kas_besar') {
-                    $q->orWhere(function ($sub) {
-                        $sub->whereNull('payment_destination')->whereIn('payment_method', ['transfer', 'qris', 'kartu']);
-                    });
-                }
-            });
-        }
-        $beginningBalance += (float) $prevOfflineQuery->sum('grand_total');
-
         // 2. Fetch Transactions within period
         $transactions = collect();
 
@@ -530,57 +504,6 @@ class FinancialReportController extends Controller
                         ]);
                     }
                 }
-            }
-        }
-
-        // D. Offline POS Sales
-        if ($sourceType === 'all' || $sourceType === 'offline_sale') {
-            $offlineQuery = OfflineSale::where('tenant_id', $tenantId)
-                ->where('status', OfflineSale::STATUS_COMPLETED)
-                ->whereBetween('sold_at', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59']);
-
-            if ($account !== 'all') {
-                $offlineQuery->where(function ($q) use ($account, $matchedBank) {
-                    $q->where('payment_destination', $account);
-                    if ($matchedBank) {
-                        $q->orWhere('payment_destination', $matchedBank->bank_name)
-                          ->orWhere('payment_destination', (string)$matchedBank->id);
-                    }
-                    if ($account === 'kas_kecil' || ($matchedBank && stripos($matchedBank->bank_name, 'kas') !== false)) {
-                        $q->orWhere(function ($sub) {
-                            $sub->whereNull('payment_destination')->where('payment_method', 'tunai');
-                        });
-                    }
-                    if ($account === 'kas_besar') {
-                        $q->orWhere(function ($sub) {
-                            $sub->whereNull('payment_destination')->whereIn('payment_method', ['transfer', 'qris', 'kartu']);
-                        });
-                    }
-                });
-            }
-
-            if ($search) {
-                $offlineQuery->where(function ($q) use ($search) {
-                    $q->where('sale_number', 'like', "%{$search}%")
-                      ->orWhere('customer_name', 'like', "%{$search}%");
-                });
-            }
-
-            foreach ($offlineQuery->get() as $sale) {
-                $accLabel = $sale->payment_destination ? $resolveAccountLabel($sale->payment_destination) : ($sale->payment_method === 'tunai' ? 'Kas Tunai' : 'Non-Tunai (' . strtoupper($sale->payment_method ?? 'POS') . ')');
-                $transactions->push([
-                    'datetime'       => $sale->sold_at ? \Carbon\Carbon::parse($sale->sold_at)->toDateTimeString() : \Carbon\Carbon::parse($sale->created_at)->toDateTimeString(),
-                    'date_formatted' => $sale->sold_at ? \Carbon\Carbon::parse($sale->sold_at)->format('d/m/Y H:i') : \Carbon\Carbon::parse($sale->created_at)->format('d/m/Y H:i'),
-                    'reference'      => $sale->sale_number,
-                    'type'           => 'offline_sale',
-                    'type_label'     => 'Penjualan POS',
-                    'type_badge'     => 'bg-info text-dark',
-                    'category_label' => 'Penjualan Offline',
-                    'account_label'  => $accLabel,
-                    'description'    => 'Nota POS (' . strtoupper($sale->payment_method ?? 'TUNAI') . ') - ' . ($sale->customer_name ?: 'Pelanggan Walk-in'),
-                    'inflow'         => (float) $sale->grand_total,
-                    'outflow'        => 0.0,
-                ]);
             }
         }
 

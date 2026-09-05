@@ -48,7 +48,6 @@
                             <option value="income" {{ $sourceType === 'income' ? 'selected' : '' }}>Pemasukan Lain</option>
                             <option value="expense" {{ $sourceType === 'expense' ? 'selected' : '' }}>Pengeluaran Operasional</option>
                             <option value="transfer" {{ $sourceType === 'transfer' ? 'selected' : '' }}>Transfer Antar Kas</option>
-                            <option value="offline_sale" {{ $sourceType === 'offline_sale' ? 'selected' : '' }}>Penjualan POS</option>
                         </select>
                     </div>
                     <div class="col-12 col-md-2">
