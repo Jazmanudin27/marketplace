@@ -11,6 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 
 class FulfillmentController extends Controller
 {
@@ -491,60 +492,112 @@ class FulfillmentController extends Controller
      */
     public function searchProducts(Request $request)
     {
-        $tenantId = Auth::user()->tenant_id;
-        $q = trim((string) $request->get('q', ''));
+        try {
+            $tenantId = Auth::user()->tenant_id;
+            $q = trim((string) $request->get('q', ''));
 
-        if (strlen($q) < 1) {
-            return response()->json([]);
-        }
+            if (strlen($q) < 1) {
+                return response()->json([]);
+            }
 
-        // Prioritaskan exact match SKU dan Barcode di urutan teratas
-        $products = MasterProduct::where('tenant_id', $tenantId)
-            ->where(function ($query) use ($q) {
-                $query->where('sku', 'LIKE', "%{$q}%")
-                      ->orWhere('name', 'LIKE', "%{$q}%")
-                      ->orWhere('barcode', 'LIKE', "%{$q}%");
-            })
-            ->select('id', 'sku', 'barcode', 'name', 'stock', 'image_url', 'cost_price')
-            ->orderByRaw("
-                CASE 
-                    WHEN UPPER(sku) = UPPER(?) THEN 1
-                    WHEN UPPER(barcode) = UPPER(?) THEN 1
-                    WHEN UPPER(sku) LIKE UPPER(?) THEN 2
-                    WHEN UPPER(barcode) LIKE UPPER(?) THEN 2
-                    WHEN UPPER(name) LIKE UPPER(?) THEN 3
-                    ELSE 4
-                END ASC, name ASC
-            ", [$q, $q, "{$q}%", "{$q}%", "%{$q}%"])
-            ->limit(30)
-            ->get();
+            $hasBarcode = Schema::hasColumn('master_products', 'barcode');
 
-        // Fallback: jika tidak ditemukan di MasterProduct, coba cari dari MarketplaceProduct yang terhubung
-        if ($products->isEmpty()) {
-            $mpList = MarketplaceProduct::whereHas('store', function ($s) use ($tenantId) {
-                    $s->where('tenant_id', $tenantId);
-                })
-                ->where(function ($query) use ($q) {
-                    $query->where('marketplace_sku', 'LIKE', "%{$q}%")
-                          ->orWhere('name', 'LIKE', "%{$q}%");
-                })
-                ->whereNotNull('master_product_id')
-                ->with('masterProduct')
-                ->limit(10)
-                ->get();
+            $query = MasterProduct::where('tenant_id', $tenantId)
+                ->where(function ($sub) use ($q, $hasBarcode) {
+                    $sub->where('sku', 'LIKE', "%{$q}%")
+                        ->orWhere('name', 'LIKE', "%{$q}%");
+                    if ($hasBarcode) {
+                        $sub->orWhere('barcode', 'LIKE', "%{$q}%");
+                    }
+                });
 
-            $fallbackList = collect();
-            foreach ($mpList as $mp) {
-                if ($mp->masterProduct && !$fallbackList->contains('id', $mp->masterProduct->id)) {
-                    $fallbackList->push($mp->masterProduct);
+            // Urutkan prioritas exact match SKU
+            if ($hasBarcode) {
+                $query->orderByRaw("
+                    CASE 
+                        WHEN UPPER(sku) = UPPER(?) THEN 1
+                        WHEN UPPER(barcode) = UPPER(?) THEN 1
+                        WHEN UPPER(sku) LIKE UPPER(?) THEN 2
+                        WHEN UPPER(name) LIKE UPPER(?) THEN 3
+                        ELSE 4
+                    END ASC, name ASC
+                ", [$q, $q, "{$q}%", "%{$q}%"]);
+            } else {
+                $query->orderByRaw("
+                    CASE 
+                        WHEN UPPER(sku) = UPPER(?) THEN 1
+                        WHEN UPPER(sku) LIKE UPPER(?) THEN 2
+                        WHEN UPPER(name) LIKE UPPER(?) THEN 3
+                        ELSE 4
+                    END ASC, name ASC
+                ", [$q, "{$q}%", "%{$q}%"]);
+            }
+
+            $selectCols = ['id', 'sku', 'name', 'stock', 'image_url', 'cost_price'];
+            if ($hasBarcode) {
+                $selectCols[] = 'barcode';
+            }
+
+            $products = $query->select($selectCols)->limit(30)->get();
+
+            $formatted = $products->map(function ($p) use ($hasBarcode) {
+                return [
+                    'id'         => $p->id,
+                    'sku'        => $p->sku,
+                    'barcode'    => $hasBarcode ? ($p->barcode ?? null) : null,
+                    'name'       => $p->name,
+                    'stock'      => $p->stock,
+                    'image_url'  => $p->image_url,
+                    'cost_price' => $p->cost_price,
+                ];
+            });
+
+            // Fallback: jika tidak ditemukan di MasterProduct, coba cari dari MarketplaceProduct yang terhubung
+            if ($formatted->isEmpty()) {
+                $mpList = MarketplaceProduct::whereHas('store', function ($s) use ($tenantId) {
+                        $s->where('tenant_id', $tenantId);
+                    })
+                    ->where(function ($query) use ($q) {
+                        $query->where('marketplace_sku', 'LIKE', "%{$q}%")
+                              ->orWhere('name', 'LIKE', "%{$q}%");
+                    })
+                    ->whereNotNull('master_product_id')
+                    ->with('masterProduct')
+                    ->limit(15)
+                    ->get();
+
+                $seen = [];
+                $fallback = [];
+                foreach ($mpList as $mp) {
+                    if ($mp->masterProduct && !isset($seen[$mp->masterProduct->id])) {
+                        $seen[$mp->masterProduct->id] = true;
+                        $prod = $mp->masterProduct;
+                        $fallback[] = [
+                            'id'         => $prod->id,
+                            'sku'        => $prod->sku,
+                            'barcode'    => $hasBarcode ? ($prod->barcode ?? null) : null,
+                            'name'       => $prod->name,
+                            'stock'      => $prod->stock,
+                            'image_url'  => $prod->image_url,
+                            'cost_price' => $prod->cost_price,
+                        ];
+                    }
+                }
+                if (!empty($fallback)) {
+                    return response()->json($fallback);
                 }
             }
-            if ($fallbackList->isNotEmpty()) {
-                $products = $fallbackList;
-            }
-        }
 
-        return response()->json($products);
+            return response()->json($formatted);
+        } catch (\Throwable $e) {
+            Log::error("Fulfillment searchProducts error: " . $e->getMessage(), [
+                'trace' => $e->getTraceAsString()
+            ]);
+            return response()->json([
+                'error'   => true,
+                'message' => 'Gagal memuat produk: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     /**

@@ -1053,7 +1053,16 @@
                 `;
 
                 fetch(`/fulfillment/products/search?q=${encodeURIComponent(q)}`)
-                    .then(res => res.json())
+                    .then(res => {
+                        if (!res.ok) {
+                            return res.json().then(errData => {
+                                throw new Error(errData.message || `Server error (${res.status})`);
+                            }).catch(() => {
+                                throw new Error(`Server error (${res.status})`);
+                            });
+                        }
+                        return res.json();
+                    })
                     .then(data => {
                         subSearchResults.innerHTML = '';
                         if (!data || data.length === 0) {
@@ -1136,8 +1145,8 @@
                         console.error(err);
                         playError();
                         subSearchResults.innerHTML = `
-                            <div class="card border border-danger p-3 text-center text-danger small">
-                                Gagal memuat pencarian produk. Silakan periksa jaringan server.
+                            <div class="card border border-danger border-opacity-50 bg-danger bg-opacity-10 p-3 text-center text-danger small">
+                                <i class="fas fa-exclamation-circle me-1"></i> ${escapeHtml(err.message || 'Gagal memuat pencarian produk. Silakan periksa jaringan server.')}
                             </div>
                         `;
                     });
