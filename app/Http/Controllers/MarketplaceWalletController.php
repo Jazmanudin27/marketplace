@@ -41,6 +41,8 @@ class MarketplaceWalletController extends Controller
             foreach ($stores as $s) {
                 Cache::forget("store_wallet_balance_{$s->id}");
                 Cache::forget("store_pending_balance_{$s->id}");
+                Cache::forget("store_shopee_fee_ratio_{$s->id}");
+                Cache::forget("store_tiktok_fee_ratio_{$s->id}");
             }
         }
 
@@ -56,6 +58,8 @@ class MarketplaceWalletController extends Controller
             if ($request->boolean('refresh') || $request->has('refresh')) {
                 Cache::forget($walletCacheKey);
                 Cache::forget($pendingCacheKey);
+                Cache::forget("store_shopee_fee_ratio_{$store->id}");
+                Cache::forget("store_tiktok_fee_ratio_{$store->id}");
             }
             
             // 1. Saldo Dompet (Dapat Ditarik) diambil langsung dari API
@@ -288,25 +292,43 @@ class MarketplaceWalletController extends Controller
 
                     $activeSns = [];
 
+                    // Hitung rasio fee toko dari database lokal pesanan selesai terakhir toko ini
+                    $feeRatio = Cache::remember("store_shopee_fee_ratio_{$store->id}", now()->addHours(6), function () use ($store) {
+                        $completed = Order::where('store_id', $store->id)
+                            ->whereIn('order_status', ['COMPLETED', 'SELESAI'])
+                            ->where('total_amount', '>', 0)
+                            ->where('marketplace_fee', '>', 0)
+                            ->orderBy('id', 'desc')
+                            ->limit(100)
+                            ->get(['total_amount', 'marketplace_fee']);
+
+                        if ($completed->isNotEmpty() && (float)$completed->sum('total_amount') > 0) {
+                            $ratio = (float)$completed->sum('marketplace_fee') / (float)$completed->sum('total_amount');
+                            if ($ratio >= 0.05 && $ratio <= 0.40) {
+                                return $ratio;
+                            }
+                        }
+                        return 0.2295; // Default estimasi potongan biaya Shopee Star/Xtra (~22.95%)
+                    });
+
                     // Shopee membatasi rentang get_order_list maksimal < 15 hari per request.
-                    // Buat 3 jendela waktu agar mencakup hingga 45 hari tanpa melanggar batas Shopee API:
+                    // Buat 2 jendela waktu (30 hari terakhir) agar mencakup 1 bulan penuh tanpa melanggar batas Shopee API:
                     $ranges = [
                         ['from' => now()->subDays(15)->timestamp, 'to' => now()->timestamp],
                         ['from' => now()->subDays(30)->timestamp, 'to' => now()->subDays(15)->timestamp - 1],
-                        ['from' => now()->subDays(45)->timestamp, 'to' => now()->subDays(30)->timestamp - 1],
                     ];
 
                     // Status resmi Shopee yang dananya tertahan di Escrow ("Akan Dilepas"):
-                    // 1. READY_TO_SHIP   : Pesanan baru dibayar pembeli, siap diproses/dikirim (Komponen TERBESAR toko aktif!)
+                    // 1. READY_TO_SHIP   : Pesanan baru dibayar pembeli, siap diproses/dikirim
                     // 2. PROCESSED       : Pesanan sedang dikemas / pengiriman telah diatur
                     // 3. SHIPPED         : Pesanan sedang dalam perjalanan kurir
                     // 4. TO_CONFIRM_RECEIVE: Pesanan telah tiba, menunggu konfirmasi pembeli / masa garansi Shopee
-                    // 5. IN_CANCEL       : Pesanan dalam proses pengajuan pembatalan (dana belum dilepas)
-                    $statusesToFetch = ['READY_TO_SHIP', 'PROCESSED', 'SHIPPED', 'TO_CONFIRM_RECEIVE', 'IN_CANCEL'];
+                    // CATATAN: IN_CANCEL & TO_RETURN TIDAK dimasukkan karena dananya dibekukan/dalam proses pembatalan
+                    $statusesToFetch = ['READY_TO_SHIP', 'PROCESSED', 'SHIPPED', 'TO_CONFIRM_RECEIVE'];
 
                     foreach ($statusesToFetch as $status) {
-                        // READY_TO_SHIP, PROCESSED, dan IN_CANCEL selalu dalam 15 hari terakhir (Shopee auto-cancel jika > 4 hari)
-                        $targetRanges = in_array($status, ['READY_TO_SHIP', 'PROCESSED', 'IN_CANCEL'])
+                        // READY_TO_SHIP & PROCESSED selalu dalam 15 hari terakhir (Shopee auto-cancel jika > 4 hari)
+                        $targetRanges = in_array($status, ['READY_TO_SHIP', 'PROCESSED'])
                             ? [$ranges[0]]
                             : $ranges;
 
@@ -389,8 +411,8 @@ class MarketplaceWalletController extends Controller
                                 foreach ($detailRes['order_list'] ?? [] as $sOrder) {
                                     $rawStatus = strtoupper((string)($sOrder['order_status'] ?? ''));
 
-                                    // Abaikan jika order ternyata sudah selesai / batal di Shopee
-                                    if (in_array($rawStatus, ['COMPLETED', 'SELESAI', 'CANCELLED', 'BATAL', 'REFUNDED'])) {
+                                    // Abaikan jika order ternyata sudah selesai, batal, atau dalam proses retur/batal di Shopee
+                                    if (in_array($rawStatus, ['COMPLETED', 'SELESAI', 'CANCELLED', 'BATAL', 'REFUNDED', 'IN_CANCEL', 'TO_RETURN', 'RETURNED'])) {
                                         if (!empty($sOrder['order_sn'])) {
                                             Order::where('store_id', $store->id)
                                                 ->where('order_marketplace_id', $sOrder['order_sn'])
@@ -401,30 +423,31 @@ class MarketplaceWalletController extends Controller
 
                                     $escrow = (float) ($sOrder['escrow_amount'] ?? 0);
 
-                                    // Jika escrow_amount bernilai 0 (karena pesanan baru READY_TO_SHIP / belum selesai),
-                                    // hitung nilai pesanan dari subtotal produk atau total_amount
+                                    // Jika escrow_amount bernilai 0 (karena pesanan baru READY_TO_SHIP & PROCESSED belum selesai),
+                                    // Seller Center Shopee menampilkan ESTIMASI DANA BERSIH (setelah dipotong biaya admin & layanan Shopee)!
                                     if ($escrow <= 0) {
-                                        $itemSubtotal = 0.0;
-                                        if (!empty($sOrder['item_list'])) {
-                                            foreach ($sOrder['item_list'] as $item) {
-                                                $price = (float) ($item['model_discounted_price'] ?? $item['model_original_price'] ?? 0);
-                                                $qty   = (int) ($item['model_quantity_purchased'] ?? 1);
-                                                $itemSubtotal += ($price * $qty);
-                                            }
-                                        }
+                                        $localOrd = Order::where('store_id', $store->id)
+                                            ->where('order_marketplace_id', $sOrder['order_sn'])
+                                            ->first();
 
-                                        if ($itemSubtotal > 0) {
-                                            $escrow = $itemSubtotal;
-                                        } elseif (!empty($sOrder['total_amount']) && (float)$sOrder['total_amount'] > 0) {
-                                            $escrow = (float) $sOrder['total_amount'];
+                                        if ($localOrd && (float)$localOrd->net_amount > 0 && (float)$localOrd->net_amount < (float)$localOrd->total_amount) {
+                                            $escrow = (float) $localOrd->net_amount;
                                         } else {
-                                            // Cek di database lokal jika pernah tersimpan net_amount
-                                            $localOrd = Order::where('store_id', $store->id)
-                                                ->where('order_marketplace_id', $sOrder['order_sn'])
-                                                ->first();
-                                            if ($localOrd && (float)$localOrd->net_amount > 0) {
-                                                $escrow = (float) $localOrd->net_amount;
+                                            $gross = 0.0;
+                                            if (!empty($sOrder['item_list'])) {
+                                                foreach ($sOrder['item_list'] as $item) {
+                                                    $price = (float) ($item['model_discounted_price'] ?? $item['model_original_price'] ?? 0);
+                                                    $qty   = (int) ($item['model_quantity_purchased'] ?? 1);
+                                                    $gross += ($price * $qty);
+                                                }
                                             }
+
+                                            if ($gross <= 0 && !empty($sOrder['total_amount'])) {
+                                                $gross = (float) $sOrder['total_amount'];
+                                            }
+
+                                            // Estimasi dana bersih = Nilai kotor produk dipotong persentase estimasi biaya Shopee toko ini
+                                            $escrow = max(0.0, round($gross * (1.0 - $feeRatio)));
                                         }
                                     }
 
@@ -456,6 +479,25 @@ class MarketplaceWalletController extends Controller
                     if (!empty($shopCipher)) {
                         $timeFrom = now()->subDays(30)->timestamp;
                         $timeTo   = now()->timestamp;
+
+                        // Hitung rasio fee toko dari database lokal pesanan selesai TikTok
+                        $tiktokFeeRatio = Cache::remember("store_tiktok_fee_ratio_{$store->id}", now()->addHours(6), function () use ($store) {
+                            $completed = Order::where('store_id', $store->id)
+                                ->whereIn('order_status', ['COMPLETED', 'DELIVERED'])
+                                ->where('total_amount', '>', 0)
+                                ->where('marketplace_fee', '>', 0)
+                                ->orderBy('id', 'desc')
+                                ->limit(100)
+                                ->get(['total_amount', 'marketplace_fee']);
+
+                            if ($completed->isNotEmpty() && (float)$completed->sum('total_amount') > 0) {
+                                $ratio = (float)$completed->sum('marketplace_fee') / (float)$completed->sum('total_amount');
+                                if ($ratio >= 0.05 && $ratio <= 0.35) {
+                                    return $ratio;
+                                }
+                            }
+                            return 0.12;
+                        });
 
                         $cursor = '';
                         $hasMore = true;
@@ -509,10 +551,24 @@ class MarketplaceWalletController extends Controller
                                             continue;
                                         }
 
+                                        $orderIdStr = (string)($tOrder['id'] ?? $tOrder['order_id'] ?? '');
                                         $payment = $tOrder['payment'] ?? $tOrder['payment_info'] ?? [];
-                                        $subtotal = (float) ($payment['subtotal_after_seller_discounts'] ?? $payment['total_amount'] ?? $payment['original_total_product_price'] ?? 0);
+                                        $escrow = (float) ($payment['settlement_amount'] ?? $payment['escrow_amount'] ?? 0);
 
-                                        $tiktokPending += $subtotal;
+                                        if ($escrow <= 0) {
+                                            $localOrd = Order::where('store_id', $store->id)
+                                                ->where('order_marketplace_id', $orderIdStr)
+                                                ->first();
+
+                                            if ($localOrd && (float)$localOrd->net_amount > 0 && (float)$localOrd->net_amount < (float)$localOrd->total_amount) {
+                                                $escrow = (float) $localOrd->net_amount;
+                                            } else {
+                                                $gross = (float) ($payment['subtotal_after_seller_discounts'] ?? $payment['total_amount'] ?? $payment['original_total_product_price'] ?? 0);
+                                                $escrow = max(0.0, round($gross * (1.0 - $tiktokFeeRatio)));
+                                            }
+                                        }
+
+                                        $tiktokPending += $escrow;
                                         $tiktokCount++;
                                     }
                                 } catch (\Throwable $e) {
