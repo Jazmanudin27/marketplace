@@ -350,6 +350,59 @@ class ShopeeService
         return $data['response'] ?? [];
     }
 
+    /**
+     * Ambil rincian escrow/penghasilan secara batch untuk banyak pesanan sekaligus
+     * Endpoint: POST /api/v2/payment/get_escrow_detail_batch
+     */
+    public function getEscrowDetailBatch(string $accessToken, int $shopId, array $orderSnList): array
+    {
+        if (empty($orderSnList)) {
+            return [];
+        }
+
+        $path = '/api/v2/payment/get_escrow_detail_batch';
+        $timestamp = time();
+        $sign = $this->signShopRequest($path, $timestamp, $accessToken, $shopId);
+
+        $queryParams = [
+            'partner_id'   => $this->partnerId,
+            'timestamp'    => $timestamp,
+            'sign'         => $sign,
+            'access_token' => $accessToken,
+            'shop_id'      => $shopId,
+        ];
+
+        try {
+            // Percobaan 1: HTTP POST JSON body sesuai spesifikasi Shopee Open API v2 Payment
+            $response = Http::timeout(25)->asJson()->post(
+                $this->baseUrl . $path . '?' . http_build_query($queryParams),
+                ['order_sn_list' => array_values($orderSnList)]
+            );
+
+            if ($response->successful()) {
+                $data = $response->json();
+                if (empty($data['error'])) {
+                    return $data['response']['order_income'] ?? $data['response']['escrow_list'] ?? $data['response'] ?? [];
+                }
+            }
+
+            // Percobaan 2: HTTP GET query params fallback
+            $getParams = array_merge($queryParams, ['order_sn_list' => implode(',', $orderSnList)]);
+            $getRes = Http::timeout(25)->get($this->baseUrl . $path, $getParams);
+            if ($getRes->successful()) {
+                $data = $getRes->json();
+                if (empty($data['error'])) {
+                    return $data['response']['order_income'] ?? $data['response']['escrow_list'] ?? $data['response'] ?? [];
+                }
+            }
+
+            return [];
+        } catch (\Throwable $e) {
+            Log::warning("[Shopee] getEscrowDetailBatch error: " . $e->getMessage());
+            return [];
+        }
+    }
+
     public function updateStock(string $accessToken, int $shopId, int $itemId, int $stock, ?string $variantId = null): array
     {
         $modelId = $variantId ? (int) $variantId : 0;

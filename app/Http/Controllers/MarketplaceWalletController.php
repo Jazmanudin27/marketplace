@@ -52,14 +52,22 @@ class MarketplaceWalletController extends Controller
         $totalPendingCount = 0;
 
         foreach ($stores as $store) {
-            $walletCacheKey  = "store_wallet_balance_{$store->id}";
-            $pendingCacheKey = "store_pending_balance_{$store->id}";
+            $walletCacheKey  = "store_wallet_balance_v3_{$store->id}";
+            $pendingCacheKey = "store_pending_balance_v3_{$store->id}";
             
             if ($request->boolean('refresh') || $request->has('refresh')) {
+                Cache::forget("store_wallet_balance_{$store->id}");
+                Cache::forget("store_pending_balance_{$store->id}");
+                Cache::forget("store_wallet_balance_v2_{$store->id}");
+                Cache::forget("store_pending_balance_v2_{$store->id}");
                 Cache::forget($walletCacheKey);
                 Cache::forget($pendingCacheKey);
                 Cache::forget("store_shopee_fee_ratio_{$store->id}");
                 Cache::forget("store_tiktok_fee_ratio_{$store->id}");
+                Cache::forget("store_shopee_fee_ratio_v2_{$store->id}");
+                Cache::forget("store_tiktok_fee_ratio_v2_{$store->id}");
+                Cache::forget("store_shopee_fee_ratio_v3_{$store->id}");
+                Cache::forget("store_tiktok_fee_ratio_v3_{$store->id}");
             }
             
             // 1. Saldo Dompet (Dapat Ditarik) diambil langsung dari API
@@ -293,22 +301,48 @@ class MarketplaceWalletController extends Controller
                     $activeSns = [];
 
                     // Hitung rasio fee toko dari database lokal pesanan selesai terakhir toko ini
-                    $feeRatio = Cache::remember("store_shopee_fee_ratio_{$store->id}", now()->addHours(6), function () use ($store) {
-                        $completed = Order::where('store_id', $store->id)
+                    $feeRatio = Cache::remember("store_shopee_fee_ratio_v3_{$store->id}", now()->addHours(6), function () use ($store) {
+                        // Cek dari pesanan selesai yang memiliki data rincian finansial resmi dari API
+                        $completedWithBreakdown = Order::where('store_id', $store->id)
                             ->whereIn('order_status', ['COMPLETED', 'SELESAI'])
                             ->where('total_amount', '>', 0)
-                            ->where('marketplace_fee', '>', 0)
+                            ->whereNotNull('financial_breakdown')
                             ->orderBy('id', 'desc')
-                            ->limit(100)
-                            ->get(['total_amount', 'marketplace_fee']);
+                            ->limit(50)
+                            ->get();
 
-                        if ($completed->isNotEmpty() && (float)$completed->sum('total_amount') > 0) {
-                            $ratio = (float)$completed->sum('marketplace_fee') / (float)$completed->sum('total_amount');
-                            if ($ratio >= 0.05 && $ratio <= 0.40) {
-                                return $ratio;
+                        $totalGross = 0.0;
+                        $totalDeductions = 0.0;
+
+                        foreach ($completedWithBreakdown as $ord) {
+                            $gross = (float) $ord->total_amount;
+                            if ($gross <= 0) continue;
+
+                            $fb = $ord->financial_breakdown;
+                            if (is_string($fb)) $fb = json_decode($fb, true) ?? [];
+
+                            $escrowAmt = (float) ($fb['escrow_amount_after_adjustment'] ?? $fb['escrow_amount'] ?? 0);
+                            if ($escrowAmt > 0 && $gross > $escrowAmt) {
+                                $totalGross += $gross;
+                                $totalDeductions += ($gross - $escrowAmt);
+                            } else {
+                                $totFee = abs($ord->fee_breakdown_details['total_fee'] ?? 0);
+                                if ($totFee > 0 && $totFee < $gross) {
+                                    $totalGross += $gross;
+                                    $totalDeductions += $totFee;
+                                }
                             }
                         }
-                        return 0.2295; // Default estimasi potongan biaya Shopee Star/Xtra (~22.95%)
+
+                        if ($totalGross > 0) {
+                            $realRatio = $totalDeductions / $totalGross;
+                            if ($realRatio >= 0.18 && $realRatio <= 0.35) {
+                                return round($realRatio, 4);
+                            }
+                        }
+
+                        // Default persentase potongan biaya resmi Shopee Star/Star+ Fashion (~23.0%)
+                        return 0.2300;
                     });
 
                     // Shopee membatasi rentang get_order_list maksimal < 15 hari per request.
@@ -360,7 +394,6 @@ class MarketplaceWalletController extends Controller
                                     $hasMore = !empty($res['more']);
                                     $cursor  = (string)($res['next_cursor'] ?? '');
                                 } catch (\Throwable $e) {
-                                    // Lewati jika salah satu status tidak didukung query param
                                     Log::warning("Shopee getOrderList {$status} notice for {$store->store_name}: " . $e->getMessage());
                                     break;
                                 }
@@ -403,6 +436,40 @@ class MarketplaceWalletController extends Controller
                     $totalEscrow = 0.0;
                     $validPendingCount = 0;
 
+                    // Ambil detail escrow resmi Shopee secara batch untuk pesanan aktif
+                    $batchEscrowMap = [];
+                    if (!empty($activeSns)) {
+                        $escrowChunks = array_chunk($activeSns, 20);
+                        foreach ($escrowChunks as $echunk) {
+                            try {
+                                $batchList = $this->shopeeService->getEscrowDetailBatch($accessToken, $shopId, $echunk);
+                                if (is_array($batchList)) {
+                                    if (isset($batchList['order_income']) && is_array($batchList['order_income'])) {
+                                        $batchList = $batchList['order_income'];
+                                    }
+                                    foreach ($batchList as $item) {
+                                        if (!is_array($item)) continue;
+                                        $sn = $item['order_sn'] ?? ($item['order_income']['order_sn'] ?? null);
+                                        if (!$sn) continue;
+
+                                        $amt = (float)(
+                                            $item['escrow_amount_after_adjustment'] 
+                                            ?? $item['escrow_amount'] 
+                                            ?? $item['order_income']['escrow_amount_after_adjustment'] 
+                                            ?? $item['order_income']['escrow_amount'] 
+                                            ?? 0
+                                        );
+                                        if ($amt > 0) {
+                                            $batchEscrowMap[$sn] = $amt;
+                                        }
+                                    }
+                                }
+                            } catch (\Throwable $e) {
+                                Log::warning("Shopee getEscrowDetailBatch error for {$store->store_name}: " . $e->getMessage());
+                            }
+                        }
+                    }
+
                     if (!empty($activeSns)) {
                         $chunks = array_chunk($activeSns, 50);
                         foreach ($chunks as $chunk) {
@@ -421,52 +488,80 @@ class MarketplaceWalletController extends Controller
                                         continue;
                                     }
 
-                                    $escrow = (float) ($sOrder['escrow_amount'] ?? 0);
+                                    $sn = (string)($sOrder['order_sn'] ?? '');
+                                    $escrow = 0.0;
 
-                                    // Jika escrow_amount bernilai 0 (karena pesanan baru READY_TO_SHIP & PROCESSED belum selesai),
-                                    // Seller Center Shopee menampilkan ESTIMASI DANA BERSIH (setelah dipotong biaya admin & layanan Shopee)!
-                                    if ($escrow <= 0) {
-                                        $localOrd = Order::where('store_id', $store->id)
-                                            ->where('order_marketplace_id', $sOrder['order_sn'])
-                                            ->first();
+                                    // 1. Prioritas Utama: Nilai escrow resmi dari getEscrowDetailBatch API
+                                    if (!empty($sn) && isset($batchEscrowMap[$sn]) && $batchEscrowMap[$sn] > 0) {
+                                        $escrow = (float) $batchEscrowMap[$sn];
+                                    }
 
-                                        if ($localOrd && (float)$localOrd->net_amount > 0 && (float)$localOrd->net_amount < (float)$localOrd->total_amount) {
-                                            $escrow = (float) $localOrd->net_amount;
-                                        } else {
-                                            $gross = 0.0;
-                                            if (!empty($sOrder['item_list'])) {
-                                                foreach ($sOrder['item_list'] as $item) {
-                                                    $price = (float) ($item['model_discounted_price'] ?? $item['model_original_price'] ?? 0);
-                                                    $qty   = (int) ($item['model_quantity_purchased'] ?? 1);
-                                                    $gross += ($price * $qty);
-                                                }
-                                            }
+                                    // 2. Prioritas Kedua: Nilai escrow dari getOrderDetail (jika tersedia)
+                                    if ($escrow <= 0 && !empty($sOrder['escrow_amount']) && (float)$sOrder['escrow_amount'] > 0) {
+                                        $escrow = (float) $sOrder['escrow_amount'];
+                                    }
 
-                                            if ($gross <= 0 && !empty($sOrder['total_amount'])) {
-                                                $gross = (float) $sOrder['total_amount'];
-                                            }
+                                    // 3. Prioritas Ketiga: Nilai escrow resmi yang tersimpan di DB lokal pada financial_breakdown
+                                    $localOrd = !empty($sn) ? Order::where('store_id', $store->id)
+                                        ->where('order_marketplace_id', $sn)
+                                        ->first() : null;
 
-                                            // Estimasi dana bersih = Nilai kotor produk dipotong persentase estimasi biaya Shopee toko ini
-                                            $escrow = max(0.0, round($gross * (1.0 - $feeRatio)));
+                                    if ($escrow <= 0 && $localOrd && !empty($localOrd->financial_breakdown)) {
+                                        $fb = $localOrd->financial_breakdown;
+                                        if (is_string($fb)) {
+                                            $fb = json_decode($fb, true) ?? [];
                                         }
+                                        if (is_array($fb)) {
+                                            $officialEsc = (float)($fb['escrow_amount_after_adjustment'] ?? $fb['escrow_amount'] ?? 0);
+                                            if ($officialEsc > 0) {
+                                                $escrow = $officialEsc;
+                                            }
+                                        }
+                                    }
+
+                                    // 4. Prioritas Keempat: Jika pesanan baru (READY_TO_SHIP & PROCESSED) yang belum selesai/belum ada escrow di API,
+                                    // Seller Center Shopee menampilkan estimasi dana bersih = Nilai omset kotor dipotong estimasi biaya resmi Shopee (~23.0%)
+                                    if ($escrow <= 0) {
+                                        $gross = 0.0;
+                                        if (!empty($sOrder['item_list'])) {
+                                            foreach ($sOrder['item_list'] as $item) {
+                                                $price = (float) ($item['model_discounted_price'] ?? $item['model_original_price'] ?? 0);
+                                                $qty   = (int) ($item['model_quantity_purchased'] ?? 1);
+                                                $gross += ($price * $qty);
+                                            }
+                                        }
+
+                                        if ($gross <= 0 && !empty($sOrder['total_amount'])) {
+                                            $gross = (float) $sOrder['total_amount'];
+                                        }
+
+                                        if ($gross <= 0 && $localOrd && (float)$localOrd->total_amount > 0) {
+                                            $gross = (float)$localOrd->total_amount;
+                                        }
+
+                                        $escrow = max(0.0, round($gross * (1.0 - $feeRatio)));
                                     }
 
                                     $totalEscrow += $escrow;
                                     $validPendingCount++;
 
                                     // Sinkronkan status pesanan dan nilai net_amount ke DB lokal
-                                    if (!empty($sOrder['order_sn'])) {
+                                    if (!empty($sn)) {
                                         $saveStatus = in_array($rawStatus, ['PROCESSED', 'READY_TO_SHIP']) ? 'READY_TO_SHIP' : $rawStatus;
+                                        $updateData = ['order_status' => $saveStatus];
+                                        if ($escrow > 0) {
+                                            $updateData['net_amount'] = $escrow;
+                                            if ($localOrd && (float)$localOrd->total_amount > $escrow) {
+                                                $updateData['marketplace_fee'] = (float)$localOrd->total_amount - $escrow;
+                                            }
+                                        }
                                         Order::where('store_id', $store->id)
-                                            ->where('order_marketplace_id', $sOrder['order_sn'])
-                                            ->update([
-                                                'order_status' => $saveStatus,
-                                                'net_amount'   => $escrow,
-                                            ]);
+                                            ->where('order_marketplace_id', $sn)
+                                            ->update($updateData);
                                     }
                                 }
                             } catch (\Throwable $e) {
-                                Log::warning("Shopee getOrderDetail batch failed: " . $e->getMessage());
+                                Log::warning("Shopee getOrderDetail chunk notice for {$store->store_name}: " . $e->getMessage());
                             }
                         }
                     }
@@ -481,22 +576,46 @@ class MarketplaceWalletController extends Controller
                         $timeTo   = now()->timestamp;
 
                         // Hitung rasio fee toko dari database lokal pesanan selesai TikTok
-                        $tiktokFeeRatio = Cache::remember("store_tiktok_fee_ratio_{$store->id}", now()->addHours(6), function () use ($store) {
-                            $completed = Order::where('store_id', $store->id)
+                        $tiktokFeeRatio = Cache::remember("store_tiktok_fee_ratio_v3_{$store->id}", now()->addHours(6), function () use ($store) {
+                            $completedWithBreakdown = Order::where('store_id', $store->id)
                                 ->whereIn('order_status', ['COMPLETED', 'DELIVERED'])
                                 ->where('total_amount', '>', 0)
-                                ->where('marketplace_fee', '>', 0)
+                                ->whereNotNull('financial_breakdown')
                                 ->orderBy('id', 'desc')
-                                ->limit(100)
-                                ->get(['total_amount', 'marketplace_fee']);
+                                ->limit(50)
+                                ->get();
 
-                            if ($completed->isNotEmpty() && (float)$completed->sum('total_amount') > 0) {
-                                $ratio = (float)$completed->sum('marketplace_fee') / (float)$completed->sum('total_amount');
-                                if ($ratio >= 0.05 && $ratio <= 0.35) {
-                                    return $ratio;
+                            $totalGross = 0.0;
+                            $totalDeductions = 0.0;
+
+                            foreach ($completedWithBreakdown as $ord) {
+                                $gross = (float) $ord->total_amount;
+                                if ($gross <= 0) continue;
+
+                                $fb = $ord->financial_breakdown;
+                                if (is_string($fb)) $fb = json_decode($fb, true) ?? [];
+
+                                $escrowAmt = (float) ($fb['settlement_amount'] ?? $fb['escrow_amount'] ?? 0);
+                                if ($escrowAmt > 0 && $gross > $escrowAmt) {
+                                    $totalGross += $gross;
+                                    $totalDeductions += ($gross - $escrowAmt);
+                                } else {
+                                    $totFee = abs($ord->fee_breakdown_details['total_fee'] ?? 0);
+                                    if ($totFee > 0 && $totFee < $gross) {
+                                        $totalGross += $gross;
+                                        $totalDeductions += $totFee;
+                                    }
                                 }
                             }
-                            return 0.12;
+
+                            if ($totalGross > 0) {
+                                $realRatio = $totalDeductions / $totalGross;
+                                if ($realRatio >= 0.08 && $realRatio <= 0.30) {
+                                    return round($realRatio, 4);
+                                }
+                            }
+
+                            return 0.1350; // Default estimasi potongan biaya TikTok Shop (~13.5%)
                         });
 
                         $cursor = '';
@@ -560,10 +679,22 @@ class MarketplaceWalletController extends Controller
                                                 ->where('order_marketplace_id', $orderIdStr)
                                                 ->first();
 
-                                            if ($localOrd && (float)$localOrd->net_amount > 0 && (float)$localOrd->net_amount < (float)$localOrd->total_amount) {
-                                                $escrow = (float) $localOrd->net_amount;
-                                            } else {
+                                            $hasOfficial = false;
+                                            if ($localOrd && !empty($localOrd->financial_breakdown)) {
+                                                $fb = $localOrd->financial_breakdown;
+                                                if (is_string($fb)) $fb = json_decode($fb, true) ?? [];
+                                                $officialSettlement = (float) ($fb['settlement_amount'] ?? $fb['escrow_amount'] ?? 0);
+                                                if ($officialSettlement > 0) {
+                                                    $escrow = $officialSettlement;
+                                                    $hasOfficial = true;
+                                                }
+                                            }
+
+                                            if (!$hasOfficial) {
                                                 $gross = (float) ($payment['subtotal_after_seller_discounts'] ?? $payment['total_amount'] ?? $payment['original_total_product_price'] ?? 0);
+                                                if ($gross <= 0 && $localOrd && (float)$localOrd->total_amount > 0) {
+                                                    $gross = (float)$localOrd->total_amount;
+                                                }
                                                 $escrow = max(0.0, round($gross * (1.0 - $tiktokFeeRatio)));
                                             }
                                         }
