@@ -172,6 +172,9 @@
                                             <div class="d-flex justify-content-between align-items-center text-secondary small" style="font-size: 0.78rem;">
                                                 <span class="text-dark fw-semibold">
                                                     <i class="fas fa-hourglass-half me-1 text-warning"></i> Saldo Tertahan (Akan Dilepas):
+                                                    @if(!empty($balance['is_live_pending']))
+                                                        <span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25 rounded-pill px-1.5 py-0.5 ms-1" style="font-size: 0.62rem;" title="Data pesanan pending diambil langsung secara real-time dari API marketplace">Live API</span>
+                                                    @endif
                                                 </span>
                                                 <strong class="text-warning-emphasis font-monospace fs-6">
                                                     Rp {{ number_format($balance['pending_balance'], 0, ',', '.') }}

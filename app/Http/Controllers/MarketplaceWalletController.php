@@ -49,10 +49,16 @@ class MarketplaceWalletController extends Controller
         $totalPendingCount = 0;
 
         foreach ($stores as $store) {
-            $cacheKey = "store_wallet_balance_{$store->id}";
+            $walletCacheKey  = "store_wallet_balance_{$store->id}";
+            $pendingCacheKey = "store_pending_balance_{$store->id}";
             
-            // Cache selama 2 menit
-            $balanceData = Cache::remember($cacheKey, now()->addMinutes(2), function () use ($store) {
+            if ($request->boolean('refresh')) {
+                Cache::forget($walletCacheKey);
+                Cache::forget($pendingCacheKey);
+            }
+            
+            // 1. Saldo Dompet (Dapat Ditarik) diambil langsung dari API
+            $balanceData = Cache::remember($walletCacheKey, now()->addMinutes(2), function () use ($store) {
                 try {
                     $accessToken = $store->getValidAccessToken();
                     
@@ -62,7 +68,7 @@ class MarketplaceWalletController extends Controller
                         $withdrawBalance = null;
                         $apiSuccess = false;
                         
-                        // 1. Coba ambil dari Shopee API get_wallet_balance
+                        // 1. Coba ambil dari Shopee API get_wallet_balance (Live Real-Time)
                         try {
                             $res = $this->shopeeService->getWalletBalance($accessToken, $shopId);
                             if (is_array($res) && (isset($res['current_balance']) || isset($res['withdraw_balance']))) {
@@ -74,7 +80,7 @@ class MarketplaceWalletController extends Controller
                             Log::warning("Shopee API getWalletBalance failed for {$store->store_name}: " . $e->getMessage());
                         }
 
-                        // 2. Jika get_wallet_balance tidak mengembalikan data, coba dari transaksi dompet terbaru (get_wallet_transaction_list)
+                        // 2. Fallback mutasi dompet jika get_wallet_balance kosong
                         if (!$apiSuccess) {
                             try {
                                 $dateFrom = now()->subDays(15)->startOfDay()->timestamp;
@@ -86,7 +92,6 @@ class MarketplaceWalletController extends Controller
                                     $withdrawBalance = $currentBalance;
                                     $apiSuccess = true;
 
-                                    // Simpan transaksi terakhir ke DB agar sinkron
                                     $latestRaw = $txList[0];
                                     if (!empty($latestRaw['transaction_id'])) {
                                         $amt = (float) ($latestRaw['amount'] ?? 0);
@@ -176,119 +181,24 @@ class MarketplaceWalletController extends Controller
                 }
             });
 
-            // Hitung Saldo Pending (Estimasi Penghasilan Belum Selesai / Akan Dilepas di marketplace)
-            // Di Shopee Seller Center ("Akan Dilepas") & TikTok ("To Settle"), dana pending HANYA berasal dari
-            // pesanan yang AKTIF dan BELUM SELESAI (READY_TO_SHIP, PROCESSED, SHIPPED, DELIVERED).
-            // Pesanan COMPLETED / SELESAI sudah masuk ke Saldo Penjual / mutasi dompet (tidak boleh dihitung dobel).
-            // Pesanan CANCELLED, UNPAID, RETURNED tidak menghasilkan saldo.
-            $pendingOrdersQuery = Order::where('store_id', $store->id)
-                ->whereIn('order_status', [
-                    'READY_TO_SHIP', 'PROCESSED', 'RETRY_SHIP', 'TO_RETRY_LOGISTICS',
-                    'SHIPPED', 'TO_CONFIRM_RECEIVE', 'IN_TRANSIT', 'DELIVERED',
-                    'AWAITING_SHIPMENT', 'AWAITING_COLLECTION'
-                ])
-                ->whereNotIn('order_status', [
-                    'COMPLETED', 'SELESAI', 'FINISHED',
-                    'CANCELLED', 'BATAL', 'CANCELED', 'IN_CANCEL',
-                    'UNPAID', 'PENDING_PAYMENT',
-                    'RETURNED', 'REFUNDED', 'RETURN', 'REFUND', 'RETURN_APPROVED', 'RETURN_COMPLETED', 'RETUR'
-                ])
-                ->where('order_date', '>=', now()->subDays(30));
-
-            // Jika user menekan tombol Refresh Saldo Real-Time, cek dan perbarui status pesanan pending terkini langsung dari API
-            if ($request->boolean('refresh')) {
-                try {
-                    $pendingOrdersToSync = (clone $pendingOrdersQuery)->limit(50)->get();
-                    if ($pendingOrdersToSync->isNotEmpty()) {
-                        $orderMarketplaceIds = $pendingOrdersToSync->pluck('order_marketplace_id')->filter()->values()->all();
-
-                        if ($store->channel->code === 'shopee') {
-                            $accessToken = $store->getValidAccessToken();
-                            $res = $this->shopeeService->getOrderDetail($accessToken, (int) $store->marketplace_store_id, $orderMarketplaceIds);
-                            $shopeeOrders = $res['order_list'] ?? [];
-                            foreach ($shopeeOrders as $sOrder) {
-                                $sn = $sOrder['order_sn'] ?? null;
-                                if (!$sn) continue;
-                                $statusRaw = strtoupper((string)($sOrder['order_status'] ?? ''));
-                                $shopeeStatusMap = [
-                                    'UNPAID'             => 'UNPAID',
-                                    'READY_TO_SHIP'      => 'READY_TO_SHIP',
-                                    'PROCESSED'          => 'READY_TO_SHIP',
-                                    'RETRY_SHIP'         => 'READY_TO_SHIP',
-                                    'TO_RETRY_LOGISTICS' => 'READY_TO_SHIP',
-                                    'SHIPPED'            => 'SHIPPED',
-                                    'TO_CONFIRM_RECEIVE' => 'SHIPPED',
-                                    'DELIVERED'          => 'DELIVERED',
-                                    'COMPLETED'          => 'COMPLETED',
-                                    'CANCELLED'          => 'CANCELLED',
-                                    'IN_CANCEL'          => 'CANCELLED',
-                                ];
-                                $newStatus = $shopeeStatusMap[$statusRaw] ?? $statusRaw;
-                                $updateData = ['order_status' => $newStatus];
-                                if (isset($sOrder['escrow_amount']) && (float)$sOrder['escrow_amount'] > 0) {
-                                    $updateData['net_amount'] = (float)$sOrder['escrow_amount'];
-                                }
-                                Order::where('store_id', $store->id)->where('order_marketplace_id', $sn)->update($updateData);
-                            }
-                        } elseif ($store->channel->code === 'tiktok') {
-                            $shopCipher = $store->shop_cipher ?? '';
-                            if (!empty($shopCipher)) {
-                                $accessToken = $store->getValidAccessToken();
-                                $res = $this->tiktokService->getOrderDetail($accessToken, $shopCipher, $orderMarketplaceIds);
-                                $tiktokOrders = $res['order_list'] ?? [];
-                                foreach ($tiktokOrders as $tOrder) {
-                                    $oId = $tOrder['id'] ?? null;
-                                    if (!$oId) continue;
-                                    $statusRaw = strtoupper((string)($tOrder['status'] ?? $tOrder['order_status'] ?? ''));
-                                    $tiktokStatusMap = [
-                                        'UNPAID'              => 'UNPAID',
-                                        '100'                 => 'UNPAID',
-                                        'AWAITING_SHIPMENT'   => 'READY_TO_SHIP',
-                                        '111'                 => 'READY_TO_SHIP',
-                                        'AWAITING_COLLECTION' => 'READY_TO_SHIP',
-                                        '112'                 => 'READY_TO_SHIP',
-                                        'IN_TRANSIT'          => 'SHIPPED',
-                                        '121'                 => 'SHIPPED',
-                                        'DELIVERED'           => 'DELIVERED',
-                                        '122'                 => 'DELIVERED',
-                                        'COMPLETED'           => 'COMPLETED',
-                                        '130'                 => 'COMPLETED',
-                                        'CANCELLED'           => 'CANCELLED',
-                                        '140'                 => 'CANCELLED',
-                                    ];
-                                    $newStatus = $tiktokStatusMap[$statusRaw] ?? $statusRaw;
-                                    Order::where('store_id', $store->id)->where('order_marketplace_id', $oId)->update(['order_status' => $newStatus]);
-                                }
-                            }
-                        }
-                    }
-                } catch (\Throwable $e) {
-                    Log::warning("Real-time pending orders sync failed for {$store->store_name}: " . $e->getMessage());
-                }
-            }
-
-            // Ambil daftar pesanan pending terkini setelah sinkronisasi
-            $pendingOrders = (clone $pendingOrdersQuery)->get([
-                'id', 'store_id', 'order_marketplace_id', 'order_status',
-                'total_amount', 'marketplace_fee', 'net_amount',
-                'financial_breakdown', 'recon_status', 'order_date'
-            ]);
-
-            $pendingBalance = (float) $pendingOrders->sum(function ($ord) {
-                return max(0.0, (float) $ord->net_amount);
+            // 2. Saldo Pending (Akan Dilepas) diambil LANGSUNG REAL-TIME dari API Shopee & TikTok
+            $pendingData = Cache::remember($pendingCacheKey, now()->addMinutes(2), function () use ($store) {
+                return $this->getLivePendingFromApi($store);
             });
-            $pendingCount = $pendingOrders->count();
 
             // Saldo dompet riil yang siap ditarik
-            $readyBalance = (float) ($balanceData['withdraw_balance'] ?? $balanceData['current_balance'] ?? 0);
+            $readyBalance   = (float) ($balanceData['withdraw_balance'] ?? $balanceData['current_balance'] ?? 0);
+            $pendingBalance = (float) ($pendingData['pending_balance'] ?? 0);
+            $pendingCount   = (int)   ($pendingData['pending_count'] ?? 0);
 
             $balanceData['pending_balance'] = $pendingBalance;
             $balanceData['pending_count']   = $pendingCount;
             $balanceData['total_estimated'] = $readyBalance + $pendingBalance;
+            $balanceData['is_live_pending'] = $pendingData['is_live_api'] ?? false;
 
-            $totalWalletBalance += $readyBalance;
+            $totalWalletBalance  += $readyBalance;
             $totalPendingBalance += $pendingBalance;
-            $totalPendingCount += $pendingCount;
+            $totalPendingCount   += $pendingCount;
 
             $storeBalances[] = [
                 'store'    => $store,
@@ -348,6 +258,7 @@ class MarketplaceWalletController extends Controller
 
             // Hapus cache saldo agar saldo langsung terupdate di dashboard
             Cache::forget("store_wallet_balance_{$store->id}");
+            Cache::forget("store_pending_balance_{$store->id}");
 
             return back()->with('success', '✅ Sinkronisasi data mutasi dompet toko ' . $store->store_name . ' berhasil diselesaikan.');
         } catch (\Throwable $e) {
@@ -356,6 +267,230 @@ class MarketplaceWalletController extends Controller
             ]);
             return back()->with('error', '❌ Gagal melakukan sinkronisasi: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Ambil data pesanan pending (Akan Dilepas / To Settle) LANGSUNG dari API Marketplace
+     */
+    protected function getLivePendingFromApi(Store $store): array
+    {
+        $pendingBalance = 0.0;
+        $pendingCount   = 0;
+        $apiSuccess     = false;
+
+        try {
+            if ($store->status === 'connected') {
+                $accessToken = $store->getValidAccessToken();
+
+                if ($store->channel->code === 'shopee') {
+                    $shopId = (int) $store->marketplace_store_id;
+
+                    // Shopee Open API v2 membatasi get_order_list time_to - time_from < 15 hari.
+                    // Buat 2 jendela waktu (14 hari terakhir dan 15-28 hari lalu) agar mencakup 1 bulan penuh tanpa melanggar batas API.
+                    $ranges = [
+                        ['from' => now()->subDays(14)->timestamp, 'to' => now()->timestamp],
+                        ['from' => now()->subDays(28)->timestamp, 'to' => now()->subDays(14)->timestamp - 1],
+                    ];
+
+                    $activeSns = [];
+                    $statusesToFetch = ['PROCESSED', 'SHIPPED'];
+
+                    foreach ($statusesToFetch as $status) {
+                        foreach ($ranges as $range) {
+                            $cursor  = '';
+                            $hasMore = true;
+                            $page    = 0;
+
+                            while ($hasMore && $page < 10) {
+                                $page++;
+                                try {
+                                    $res = $this->shopeeService->getOrderList(
+                                        $accessToken,
+                                        $shopId,
+                                        $range['from'],
+                                        $range['to'],
+                                        'create_time',
+                                        $cursor,
+                                        50,
+                                        $status
+                                    );
+
+                                    foreach ($res['order_list'] ?? [] as $o) {
+                                        if (!empty($o['order_sn'])) {
+                                            $activeSns[] = $o['order_sn'];
+                                        }
+                                    }
+
+                                    $hasMore = !empty($res['more']);
+                                    $cursor  = (string)($res['next_cursor'] ?? '');
+                                } catch (\Throwable $e) {
+                                    Log::warning("Shopee getOrderList {$status} failed for {$store->store_name}: " . $e->getMessage());
+                                    break;
+                                }
+                            }
+                        }
+                    }
+
+                    $activeSns = array_values(array_unique($activeSns));
+                    $totalEscrow = 0.0;
+                    $validPendingCount = 0;
+
+                    if (!empty($activeSns)) {
+                        $chunks = array_chunk($activeSns, 50);
+                        foreach ($chunks as $chunk) {
+                            try {
+                                $detailRes = $this->shopeeService->getOrderDetail($accessToken, $shopId, $chunk);
+                                foreach ($detailRes['order_list'] ?? [] as $sOrder) {
+                                    $rawStatus = strtoupper((string)($sOrder['order_status'] ?? ''));
+
+                                    // Abaikan jika order ternyata sudah selesai / batal di Shopee
+                                    if (in_array($rawStatus, ['COMPLETED', 'SELESAI', 'CANCELLED', 'BATAL', 'IN_CANCEL', 'TO_RETURN'])) {
+                                        if (!empty($sOrder['order_sn'])) {
+                                            Order::where('store_id', $store->id)
+                                                ->where('order_marketplace_id', $sOrder['order_sn'])
+                                                ->update(['order_status' => $rawStatus]);
+                                        }
+                                        continue;
+                                    }
+
+                                    $escrow = (float) ($sOrder['escrow_amount'] ?? 0);
+                                    if ($escrow <= 0) {
+                                        $escrow = (float) ($sOrder['total_amount'] ?? 0);
+                                    }
+                                    $totalEscrow += $escrow;
+                                    $validPendingCount++;
+
+                                    // Sinkronkan status pesanan dan nilai net_amount ke DB lokal
+                                    if (!empty($sOrder['order_sn'])) {
+                                        Order::where('store_id', $store->id)
+                                            ->where('order_marketplace_id', $sOrder['order_sn'])
+                                            ->update([
+                                                'order_status' => $rawStatus === 'PROCESSED' ? 'READY_TO_SHIP' : $rawStatus,
+                                                'net_amount'   => $escrow,
+                                            ]);
+                                    }
+                                }
+                            } catch (\Throwable $e) {
+                                Log::warning("Shopee getOrderDetail batch failed: " . $e->getMessage());
+                            }
+                        }
+                    }
+
+                    $pendingBalance = $totalEscrow;
+                    $pendingCount   = $validPendingCount;
+                    $apiSuccess     = true;
+                } elseif ($store->channel->code === 'tiktok') {
+                    $shopCipher = $store->shop_cipher ?? '';
+                    if (!empty($shopCipher)) {
+                        $timeFrom = now()->subDays(30)->timestamp;
+                        $timeTo   = now()->timestamp;
+
+                        $cursor = '';
+                        $hasMore = true;
+                        $page = 0;
+                        $activeOrderIds = [];
+
+                        while ($hasMore && $page < 10) {
+                            $page++;
+                            try {
+                                $res = $this->tiktokService->getOrderList($accessToken, $shopCipher, $timeFrom, $timeTo, $cursor);
+                                $orders = $res['orders'] ?? $res['order_list'] ?? [];
+
+                                foreach ($orders as $to) {
+                                    $status = strtoupper((string)($to['status'] ?? $to['order_status'] ?? ''));
+                                    // Pesanan aktif TikTok yang belum selesai / to settle
+                                    if (in_array($status, [
+                                        'AWAITING_SHIPMENT', '111',
+                                        'AWAITING_COLLECTION', '112',
+                                        'IN_TRANSIT', '121',
+                                        'DELIVERED', '122'
+                                    ])) {
+                                        $id = $to['id'] ?? $to['order_id'] ?? null;
+                                        if ($id) {
+                                            $activeOrderIds[] = $id;
+                                        }
+                                    }
+                                }
+
+                                $hasMore = !empty($res['more']);
+                                $cursor  = (string)($res['next_cursor'] ?? '');
+                            } catch (\Throwable $e) {
+                                Log::warning("TikTok getOrderList failed for {$store->store_name}: " . $e->getMessage());
+                                break;
+                            }
+                        }
+
+                        $activeOrderIds = array_values(array_unique($activeOrderIds));
+                        $tiktokPending = 0.0;
+                        $tiktokCount   = 0;
+
+                        if (!empty($activeOrderIds)) {
+                            $chunks = array_chunk($activeOrderIds, 50);
+                            foreach ($chunks as $chunk) {
+                                try {
+                                    $detailRes = $this->tiktokService->getOrderDetail($accessToken, $shopCipher, $chunk);
+                                    $orders = $detailRes['orders'] ?? $detailRes['order_list'] ?? [];
+
+                                    foreach ($orders as $tOrder) {
+                                        $status = strtoupper((string)($tOrder['status'] ?? $tOrder['order_status'] ?? ''));
+                                        if (in_array($status, ['COMPLETED', 'CANCELLED', 'RETURNED'])) {
+                                            continue;
+                                        }
+
+                                        $payment = $tOrder['payment'] ?? $tOrder['payment_info'] ?? [];
+                                        $subtotal = (float) ($payment['subtotal_after_seller_discounts'] ?? $payment['total_amount'] ?? $payment['original_total_product_price'] ?? 0);
+
+                                        $tiktokPending += $subtotal;
+                                        $tiktokCount++;
+                                    }
+                                } catch (\Throwable $e) {
+                                    Log::warning("TikTok getOrderDetail failed for {$store->store_name}: " . $e->getMessage());
+                                }
+                            }
+                        }
+
+                        $pendingBalance = $tiktokPending;
+                        $pendingCount   = $tiktokCount;
+                        $apiSuccess     = true;
+                    }
+                }
+            }
+        } catch (\Throwable $e) {
+            Log::warning("Live pending API fetch error for {$store->store_name}: " . $e->getMessage());
+        }
+
+        // Fallback ke database jika API gagal terkoneksi
+        if (!$apiSuccess) {
+            $pendingOrders = Order::where('store_id', $store->id)
+                ->whereIn('order_status', [
+                    'READY_TO_SHIP', 'PROCESSED', 'RETRY_SHIP', 'TO_RETRY_LOGISTICS',
+                    'SHIPPED', 'TO_CONFIRM_RECEIVE', 'IN_TRANSIT', 'DELIVERED',
+                    'AWAITING_SHIPMENT', 'AWAITING_COLLECTION'
+                ])
+                ->whereNotIn('order_status', [
+                    'COMPLETED', 'SELESAI', 'FINISHED',
+                    'CANCELLED', 'BATAL', 'CANCELED', 'IN_CANCEL',
+                    'UNPAID', 'PENDING_PAYMENT',
+                    'RETURNED', 'REFUNDED', 'RETURN', 'REFUND', 'RETURN_APPROVED', 'RETURN_COMPLETED', 'RETUR'
+                ])
+                ->where('order_date', '>=', now()->subDays(30))
+                ->get([
+                    'id', 'store_id', 'order_marketplace_id', 'order_status',
+                    'total_amount', 'marketplace_fee', 'net_amount',
+                    'financial_breakdown', 'recon_status', 'order_date'
+                ]);
+
+            $pendingBalance = (float) $pendingOrders->sum(function ($ord) {
+                return max(0.0, (float) $ord->net_amount);
+            });
+            $pendingCount = $pendingOrders->count();
+        }
+
+        return [
+            'pending_balance' => $pendingBalance,
+            'pending_count'   => $pendingCount,
+            'is_live_api'     => $apiSuccess,
+        ];
     }
 
     private function mapShopeeTxType(string $type): string
