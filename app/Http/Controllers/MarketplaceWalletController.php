@@ -40,6 +40,7 @@ class MarketplaceWalletController extends Controller
         if ($request->boolean('refresh') || $request->has('refresh')) {
             foreach ($stores as $s) {
                 Cache::forget("store_wallet_balance_{$s->id}");
+                Cache::forget("store_pending_balance_{$s->id}");
             }
         }
 
@@ -52,7 +53,7 @@ class MarketplaceWalletController extends Controller
             $walletCacheKey  = "store_wallet_balance_{$store->id}";
             $pendingCacheKey = "store_pending_balance_{$store->id}";
             
-            if ($request->boolean('refresh')) {
+            if ($request->boolean('refresh') || $request->has('refresh')) {
                 Cache::forget($walletCacheKey);
                 Cache::forget($pendingCacheKey);
             }
@@ -285,18 +286,31 @@ class MarketplaceWalletController extends Controller
                 if ($store->channel->code === 'shopee') {
                     $shopId = (int) $store->marketplace_store_id;
 
-                    // Shopee Open API v2 membatasi get_order_list time_to - time_from < 15 hari.
-                    // Buat 2 jendela waktu (14 hari terakhir dan 15-28 hari lalu) agar mencakup 1 bulan penuh tanpa melanggar batas API.
+                    $activeSns = [];
+
+                    // Shopee membatasi rentang get_order_list maksimal < 15 hari per request.
+                    // Buat 3 jendela waktu agar mencakup hingga 45 hari tanpa melanggar batas Shopee API:
                     $ranges = [
-                        ['from' => now()->subDays(14)->timestamp, 'to' => now()->timestamp],
-                        ['from' => now()->subDays(28)->timestamp, 'to' => now()->subDays(14)->timestamp - 1],
+                        ['from' => now()->subDays(15)->timestamp, 'to' => now()->timestamp],
+                        ['from' => now()->subDays(30)->timestamp, 'to' => now()->subDays(15)->timestamp - 1],
+                        ['from' => now()->subDays(45)->timestamp, 'to' => now()->subDays(30)->timestamp - 1],
                     ];
 
-                    $activeSns = [];
-                    $statusesToFetch = ['PROCESSED', 'SHIPPED'];
+                    // Status resmi Shopee yang dananya tertahan di Escrow ("Akan Dilepas"):
+                    // 1. READY_TO_SHIP   : Pesanan baru dibayar pembeli, siap diproses/dikirim (Komponen TERBESAR toko aktif!)
+                    // 2. PROCESSED       : Pesanan sedang dikemas / pengiriman telah diatur
+                    // 3. SHIPPED         : Pesanan sedang dalam perjalanan kurir
+                    // 4. TO_CONFIRM_RECEIVE: Pesanan telah tiba, menunggu konfirmasi pembeli / masa garansi Shopee
+                    // 5. IN_CANCEL       : Pesanan dalam proses pengajuan pembatalan (dana belum dilepas)
+                    $statusesToFetch = ['READY_TO_SHIP', 'PROCESSED', 'SHIPPED', 'TO_CONFIRM_RECEIVE', 'IN_CANCEL'];
 
                     foreach ($statusesToFetch as $status) {
-                        foreach ($ranges as $range) {
+                        // READY_TO_SHIP, PROCESSED, dan IN_CANCEL selalu dalam 15 hari terakhir (Shopee auto-cancel jika > 4 hari)
+                        $targetRanges = in_array($status, ['READY_TO_SHIP', 'PROCESSED', 'IN_CANCEL'])
+                            ? [$ranges[0]]
+                            : $ranges;
+
+                        foreach ($targetRanges as $range) {
                             $cursor  = '';
                             $hasMore = true;
                             $page    = 0;
@@ -324,11 +338,43 @@ class MarketplaceWalletController extends Controller
                                     $hasMore = !empty($res['more']);
                                     $cursor  = (string)($res['next_cursor'] ?? '');
                                 } catch (\Throwable $e) {
-                                    Log::warning("Shopee getOrderList {$status} failed for {$store->store_name}: " . $e->getMessage());
+                                    // Lewati jika salah satu status tidak didukung query param
+                                    Log::warning("Shopee getOrderList {$status} notice for {$store->store_name}: " . $e->getMessage());
                                     break;
                                 }
                             }
                         }
+                    }
+
+                    // Scan tambahan berdasarkan update_time 15 hari terakhir (menangkap semua pesanan aktif yang statusnya baru diperbarui)
+                    try {
+                        foreach (['READY_TO_SHIP', 'PROCESSED', 'SHIPPED'] as $status) {
+                            $cursor  = '';
+                            $hasMore = true;
+                            $page    = 0;
+                            while ($hasMore && $page < 10) {
+                                $page++;
+                                $res = $this->shopeeService->getOrderList(
+                                    $accessToken,
+                                    $shopId,
+                                    $ranges[0]['from'],
+                                    $ranges[0]['to'],
+                                    'update_time',
+                                    $cursor,
+                                    50,
+                                    $status
+                                );
+                                foreach ($res['order_list'] ?? [] as $o) {
+                                    if (!empty($o['order_sn'])) {
+                                        $activeSns[] = $o['order_sn'];
+                                    }
+                                }
+                                $hasMore = !empty($res['more']);
+                                $cursor  = (string)($res['next_cursor'] ?? '');
+                            }
+                        }
+                    } catch (\Throwable $e) {
+                        Log::warning("Shopee update_time scan notice for {$store->store_name}: " . $e->getMessage());
                     }
 
                     $activeSns = array_values(array_unique($activeSns));
@@ -344,7 +390,7 @@ class MarketplaceWalletController extends Controller
                                     $rawStatus = strtoupper((string)($sOrder['order_status'] ?? ''));
 
                                     // Abaikan jika order ternyata sudah selesai / batal di Shopee
-                                    if (in_array($rawStatus, ['COMPLETED', 'SELESAI', 'CANCELLED', 'BATAL', 'IN_CANCEL', 'TO_RETURN'])) {
+                                    if (in_array($rawStatus, ['COMPLETED', 'SELESAI', 'CANCELLED', 'BATAL', 'REFUNDED'])) {
                                         if (!empty($sOrder['order_sn'])) {
                                             Order::where('store_id', $store->id)
                                                 ->where('order_marketplace_id', $sOrder['order_sn'])
@@ -354,18 +400,44 @@ class MarketplaceWalletController extends Controller
                                     }
 
                                     $escrow = (float) ($sOrder['escrow_amount'] ?? 0);
+
+                                    // Jika escrow_amount bernilai 0 (karena pesanan baru READY_TO_SHIP / belum selesai),
+                                    // hitung nilai pesanan dari subtotal produk atau total_amount
                                     if ($escrow <= 0) {
-                                        $escrow = (float) ($sOrder['total_amount'] ?? 0);
+                                        $itemSubtotal = 0.0;
+                                        if (!empty($sOrder['item_list'])) {
+                                            foreach ($sOrder['item_list'] as $item) {
+                                                $price = (float) ($item['model_discounted_price'] ?? $item['model_original_price'] ?? 0);
+                                                $qty   = (int) ($item['model_quantity_purchased'] ?? 1);
+                                                $itemSubtotal += ($price * $qty);
+                                            }
+                                        }
+
+                                        if ($itemSubtotal > 0) {
+                                            $escrow = $itemSubtotal;
+                                        } elseif (!empty($sOrder['total_amount']) && (float)$sOrder['total_amount'] > 0) {
+                                            $escrow = (float) $sOrder['total_amount'];
+                                        } else {
+                                            // Cek di database lokal jika pernah tersimpan net_amount
+                                            $localOrd = Order::where('store_id', $store->id)
+                                                ->where('order_marketplace_id', $sOrder['order_sn'])
+                                                ->first();
+                                            if ($localOrd && (float)$localOrd->net_amount > 0) {
+                                                $escrow = (float) $localOrd->net_amount;
+                                            }
+                                        }
                                     }
+
                                     $totalEscrow += $escrow;
                                     $validPendingCount++;
 
                                     // Sinkronkan status pesanan dan nilai net_amount ke DB lokal
                                     if (!empty($sOrder['order_sn'])) {
+                                        $saveStatus = in_array($rawStatus, ['PROCESSED', 'READY_TO_SHIP']) ? 'READY_TO_SHIP' : $rawStatus;
                                         Order::where('store_id', $store->id)
                                             ->where('order_marketplace_id', $sOrder['order_sn'])
                                             ->update([
-                                                'order_status' => $rawStatus === 'PROCESSED' ? 'READY_TO_SHIP' : $rawStatus,
+                                                'order_status' => $saveStatus,
                                                 'net_amount'   => $escrow,
                                             ]);
                                     }
