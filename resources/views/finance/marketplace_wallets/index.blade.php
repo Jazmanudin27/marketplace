@@ -8,7 +8,7 @@
         <div class="col-md-12">
             {{-- Header/Title Card --}}
             <div class="card border shadow-sm mb-4">
-                <div class="card-header bg-light d-flex justify-content-between align-items-center py-2.5 px-3 border-bottom">
+                <div class="card-header bg-light d-flex justify-content-between align-items-center py-2.5 px-3 border-bottom flex-wrap gap-2">
                     <div>
                         <h6 class="m-0 fw-bold text-primary">
                             <i class="fas fa-wallet me-2"></i>Saldo Dompet Marketplace
@@ -16,6 +16,11 @@
                         <p class="text-muted mb-0 small mt-1">
                             Pantau saldo berjalan dan mutasi dana dari toko Shopee & TikTok yang terintegrasi secara real-time.
                         </p>
+                    </div>
+                    <div>
+                        <a href="{{ route('finance.marketplace_wallets.index', ['refresh' => 1]) }}" class="btn btn-outline-primary btn-sm rounded-2 fw-semibold" title="Ambil ulang saldo real-time langsung dari API Shopee & TikTok">
+                            <i class="fas fa-sync-alt me-1"></i> Refresh Saldo Real-Time
+                        </a>
                     </div>
                 </div>
             </div>
@@ -115,18 +120,24 @@
                                 {{-- Balance Area --}}
                                 <div class="bg-light border rounded-3 p-3 mb-3 mt-auto">
                                     @if($balance['success'])
-                                        {{-- Saldo Dompet (Sudah Cair) --}}
+                                        {{-- Saldo Dompet (Siap Tarik) --}}
                                         <div class="d-flex justify-content-between align-items-center mb-1">
-                                            <span class="text-muted small fw-semibold" style="font-size: 0.72rem;">
-                                                SALDO DOMPET (SUDAH CAIR)
+                                            <span class="text-muted small fw-semibold" style="font-size: 0.72rem; letter-spacing: 0.03em;">
+                                                SALDO DAPAT DITARIK
                                             </span>
                                             <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 rounded-pill px-2 py-0.5 small" style="font-size: 0.68rem;">
                                                 Siap Tarik
                                             </span>
                                         </div>
-                                        <h4 class="fw-bold mb-2 text-dark font-monospace">
-                                            Rp {{ number_format($balance['current_balance'], 0, ',', '.') }}
+                                        <h4 class="fw-bold mb-1 text-dark font-monospace">
+                                            Rp {{ number_format($balance['withdraw_balance'] ?? $balance['current_balance'], 0, ',', '.') }}
                                         </h4>
+                                        @if(($balance['current_balance'] ?? 0) != ($balance['withdraw_balance'] ?? 0))
+                                            <div class="d-flex justify-content-between text-secondary small mb-1" style="font-size: 0.73rem;">
+                                                <span>Total Saldo Akun:</span>
+                                                <strong class="font-monospace text-dark">Rp {{ number_format($balance['current_balance'], 0, ',', '.') }}</strong>
+                                            </div>
+                                        @endif
 
                                         {{-- Saldo Pending (Belum Cair) --}}
                                         <div class="border-top pt-2 mt-2">
@@ -178,9 +189,14 @@
 
                                 {{-- Action Button --}}
                                 @if($store->status === 'connected')
-                                    <a href="{{ route('finance.marketplace_wallets.mutasi', $store) }}" class="btn btn-primary btn-sm w-100 rounded-2 py-2 fw-semibold">
-                                        <i class="fas fa-history me-1.5"></i> Lihat Mutasi Dompet
-                                    </a>
+                                    <div class="d-flex gap-2">
+                                        <a href="{{ route('finance.marketplace_wallets.mutasi', $store) }}" class="btn btn-primary btn-sm flex-grow-1 rounded-2 py-2 fw-semibold">
+                                            <i class="fas fa-history me-1.5"></i> Lihat Mutasi Dompet
+                                        </a>
+                                        <a href="{{ route('finance.marketplace_wallets.sync', [$store, 'days' => 60]) }}" class="btn btn-outline-secondary btn-sm px-2.5 rounded-2 py-2" title="Tarik data mutasi & sinkronkan saldo toko ini" onclick="return confirm('Tarik data mutasi terbaru dari toko {{ $store->store_name }}?')">
+                                            <i class="fas fa-sync-alt"></i>
+                                        </a>
+                                    </div>
                                 @else
                                     <button class="btn btn-secondary btn-sm w-100 rounded-2 py-2 fw-semibold" disabled>
                                         <i class="fas fa-plug me-1.5"></i> Offline
