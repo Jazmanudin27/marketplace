@@ -271,7 +271,7 @@ class MarketplaceWalletController extends Controller
             $pendingOrders = (clone $pendingOrdersQuery)->get([
                 'id', 'store_id', 'order_marketplace_id', 'order_status',
                 'total_amount', 'marketplace_fee', 'net_amount',
-                'financial_breakdown', 'refund_amount', 'recon_status', 'order_date'
+                'financial_breakdown', 'recon_status', 'order_date'
             ]);
 
             $pendingBalance = (float) $pendingOrders->sum(function ($ord) {
