@@ -176,26 +176,103 @@ class MarketplaceWalletController extends Controller
                 }
             });
 
-            // Hitung Saldo Pending (Pesanan aktif/berjalan yang dananya belum dilepas/reconciled)
-            $pendingOrders = Order::where('store_id', $store->id)
-                ->whereNotIn('order_status', [
-                    'CANCELLED', 'BATAL', 'CANCELED', 'UNPAID', 'PENDING_PAYMENT', 'IN_CANCEL',
-                    'RETURNED', 'REFUNDED', 'RETURN', 'REFUND', 'RETURN_APPROVED', 'RETURN_COMPLETED'
+            // Hitung Saldo Pending (Estimasi Penghasilan Belum Selesai / Akan Dilepas di marketplace)
+            // Di Shopee Seller Center ("Akan Dilepas") & TikTok ("To Settle"), dana pending HANYA berasal dari
+            // pesanan yang AKTIF dan BELUM SELESAI (READY_TO_SHIP, PROCESSED, SHIPPED, DELIVERED).
+            // Pesanan COMPLETED / SELESAI sudah masuk ke Saldo Penjual / mutasi dompet (tidak boleh dihitung dobel).
+            // Pesanan CANCELLED, UNPAID, RETURNED tidak menghasilkan saldo.
+            $pendingOrdersQuery = Order::where('store_id', $store->id)
+                ->whereIn('order_status', [
+                    'READY_TO_SHIP', 'PROCESSED', 'RETRY_SHIP', 'TO_RETRY_LOGISTICS',
+                    'SHIPPED', 'TO_CONFIRM_RECEIVE', 'IN_TRANSIT', 'DELIVERED',
+                    'AWAITING_SHIPMENT', 'AWAITING_COLLECTION'
                 ])
-                ->where(function ($q) {
-                    // Pesanan aktif yang belum selesai/settled (90 hari terakhir)
-                    $q->whereNotIn('order_status', ['COMPLETED', 'SELESAI', 'FINISHED'])
-                      ->where('order_date', '>=', now()->subDays(90))
-                      // ATAU pesanan selesai/delivered tetapi belum berstatus RECONCILED dalam 45 hari terakhir
-                      ->orWhere(function ($sub) {
-                          $sub->whereIn('order_status', ['COMPLETED', 'SELESAI', 'FINISHED', 'DELIVERED'])
-                              ->where(function ($rq) {
-                                  $rq->whereNull('recon_status')->orWhere('recon_status', '!=', 'RECONCILED');
-                              })
-                              ->where('order_date', '>=', now()->subDays(45));
-                      });
-                })
-                ->get(['id', 'total_amount', 'marketplace_fee', 'net_amount', 'financial_breakdown', 'recon_status']);
+                ->whereNotIn('order_status', [
+                    'COMPLETED', 'SELESAI', 'FINISHED',
+                    'CANCELLED', 'BATAL', 'CANCELED', 'IN_CANCEL',
+                    'UNPAID', 'PENDING_PAYMENT',
+                    'RETURNED', 'REFUNDED', 'RETURN', 'REFUND', 'RETURN_APPROVED', 'RETURN_COMPLETED', 'RETUR'
+                ])
+                ->where('order_date', '>=', now()->subDays(30));
+
+            // Jika user menekan tombol Refresh Saldo Real-Time, cek dan perbarui status pesanan pending terkini langsung dari API
+            if ($request->boolean('refresh')) {
+                try {
+                    $pendingOrdersToSync = (clone $pendingOrdersQuery)->limit(50)->get();
+                    if ($pendingOrdersToSync->isNotEmpty()) {
+                        $orderMarketplaceIds = $pendingOrdersToSync->pluck('order_marketplace_id')->filter()->values()->all();
+
+                        if ($store->channel->code === 'shopee') {
+                            $accessToken = $store->getValidAccessToken();
+                            $res = $this->shopeeService->getOrderDetail($accessToken, (int) $store->marketplace_store_id, $orderMarketplaceIds);
+                            $shopeeOrders = $res['order_list'] ?? [];
+                            foreach ($shopeeOrders as $sOrder) {
+                                $sn = $sOrder['order_sn'] ?? null;
+                                if (!$sn) continue;
+                                $statusRaw = strtoupper((string)($sOrder['order_status'] ?? ''));
+                                $shopeeStatusMap = [
+                                    'UNPAID'             => 'UNPAID',
+                                    'READY_TO_SHIP'      => 'READY_TO_SHIP',
+                                    'PROCESSED'          => 'READY_TO_SHIP',
+                                    'RETRY_SHIP'         => 'READY_TO_SHIP',
+                                    'TO_RETRY_LOGISTICS' => 'READY_TO_SHIP',
+                                    'SHIPPED'            => 'SHIPPED',
+                                    'TO_CONFIRM_RECEIVE' => 'SHIPPED',
+                                    'DELIVERED'          => 'DELIVERED',
+                                    'COMPLETED'          => 'COMPLETED',
+                                    'CANCELLED'          => 'CANCELLED',
+                                    'IN_CANCEL'          => 'CANCELLED',
+                                ];
+                                $newStatus = $shopeeStatusMap[$statusRaw] ?? $statusRaw;
+                                $updateData = ['order_status' => $newStatus];
+                                if (isset($sOrder['escrow_amount']) && (float)$sOrder['escrow_amount'] > 0) {
+                                    $updateData['net_amount'] = (float)$sOrder['escrow_amount'];
+                                }
+                                Order::where('store_id', $store->id)->where('order_marketplace_id', $sn)->update($updateData);
+                            }
+                        } elseif ($store->channel->code === 'tiktok') {
+                            $shopCipher = $store->shop_cipher ?? '';
+                            if (!empty($shopCipher)) {
+                                $accessToken = $store->getValidAccessToken();
+                                $res = $this->tiktokService->getOrderDetail($accessToken, $shopCipher, $orderMarketplaceIds);
+                                $tiktokOrders = $res['order_list'] ?? [];
+                                foreach ($tiktokOrders as $tOrder) {
+                                    $oId = $tOrder['id'] ?? null;
+                                    if (!$oId) continue;
+                                    $statusRaw = strtoupper((string)($tOrder['status'] ?? $tOrder['order_status'] ?? ''));
+                                    $tiktokStatusMap = [
+                                        'UNPAID'              => 'UNPAID',
+                                        '100'                 => 'UNPAID',
+                                        'AWAITING_SHIPMENT'   => 'READY_TO_SHIP',
+                                        '111'                 => 'READY_TO_SHIP',
+                                        'AWAITING_COLLECTION' => 'READY_TO_SHIP',
+                                        '112'                 => 'READY_TO_SHIP',
+                                        'IN_TRANSIT'          => 'SHIPPED',
+                                        '121'                 => 'SHIPPED',
+                                        'DELIVERED'           => 'DELIVERED',
+                                        '122'                 => 'DELIVERED',
+                                        'COMPLETED'           => 'COMPLETED',
+                                        '130'                 => 'COMPLETED',
+                                        'CANCELLED'           => 'CANCELLED',
+                                        '140'                 => 'CANCELLED',
+                                    ];
+                                    $newStatus = $tiktokStatusMap[$statusRaw] ?? $statusRaw;
+                                    Order::where('store_id', $store->id)->where('order_marketplace_id', $oId)->update(['order_status' => $newStatus]);
+                                }
+                            }
+                        }
+                    }
+                } catch (\Throwable $e) {
+                    Log::warning("Real-time pending orders sync failed for {$store->store_name}: " . $e->getMessage());
+                }
+            }
+
+            // Ambil daftar pesanan pending terkini setelah sinkronisasi
+            $pendingOrders = (clone $pendingOrdersQuery)->get([
+                'id', 'store_id', 'order_marketplace_id', 'order_status',
+                'total_amount', 'marketplace_fee', 'net_amount',
+                'financial_breakdown', 'refund_amount', 'recon_status', 'order_date'
+            ]);
 
             $pendingBalance = (float) $pendingOrders->sum(function ($ord) {
                 return max(0.0, (float) $ord->net_amount);

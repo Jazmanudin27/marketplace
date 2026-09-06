@@ -45,11 +45,11 @@
                                 <i class="fas fa-wallet fs-5"></i>
                             </div>
                             <div class="min-width-0">
-                                <div class="text-muted small fw-semibold">Total Saldo Dompet (Sudah Cair)</div>
+                                <div class="text-muted small fw-semibold">Total Saldo Siap Ditarik</div>
                                 <div class="fw-bold fs-5 text-dark font-monospace mt-0.5">
                                     Rp {{ number_format($totalWalletBalance, 0, ',', '.') }}
                                 </div>
-                                <small class="text-muted" style="font-size: 0.72rem;">Saldo siap tarik dari seluruh toko</small>
+                                <small class="text-muted" style="font-size: 0.72rem;">Saldo dapat ditarik dari seluruh toko</small>
                             </div>
                         </div>
                     </div>
@@ -61,11 +61,11 @@
                                 <i class="fas fa-clock fs-5"></i>
                             </div>
                             <div class="min-width-0">
-                                <div class="text-warning-emphasis small fw-semibold">Total Saldo Pending (Belum Cair)</div>
+                                <div class="text-warning-emphasis small fw-semibold">Total Saldo Tertahan (Akan Dilepas)</div>
                                 <div class="fw-bold fs-5 text-warning font-monospace mt-0.5">
                                     Rp {{ number_format($totalPendingBalance, 0, ',', '.') }}
                                 </div>
-                                <small class="text-muted" style="font-size: 0.72rem;">{{ $totalPendingCount }} pesanan menunggu pencairan escrow</small>
+                                <small class="text-muted" style="font-size: 0.72rem;">{{ $totalPendingCount }} pesanan aktif belum selesai / to settle</small>
                             </div>
                         </div>
                     </div>
@@ -81,42 +81,70 @@
                                 <div class="fw-bold fs-5 text-success font-monospace mt-0.5">
                                     Rp {{ number_format($totalWalletBalance + $totalPendingBalance, 0, ',', '.') }}
                                 </div>
-                                <small class="text-muted" style="font-size: 0.72rem;">Akumulasi Saldo Dompet + Saldo Pending</small>
+                                <small class="text-muted" style="font-size: 0.72rem;">Akumulasi Saldo Dompet + Saldo Tertahan</small>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            {{-- Card Grid --}}
+            {{-- Grid Kartu Saldo Per Toko --}}
             <div class="row g-3">
                 @forelse($storeBalances as $sb)
                     @php
                         $store = $sb['store'];
                         $balance = $sb['balance'];
-                        $isShopee = $store->channel->code === 'shopee';
                     @endphp
-                    <div class="col-md-6 col-lg-4">
-                        <div class="card border shadow-sm rounded-3 h-100">
-                            {{-- Mini Card Header styled like Users page --}}
-                            <div class="card-header bg-light d-flex justify-content-between align-items-center py-2 px-3 border-bottom">
-                                <span class="badge {{ $isShopee ? 'bg-warning bg-opacity-10 text-warning-emphasis border border-warning border-opacity-25' : 'bg-dark bg-opacity-10 text-dark border border-dark border-opacity-25' }} px-2 py-1 rounded-pill small fw-semibold">
-                                    @if($isShopee)
-                                        <i class="fas fa-shopping-cart me-1 text-orange"></i> Shopee
+                    <div class="col-12 col-md-6 col-lg-4">
+                        <div class="card border rounded-3 shadow-sm h-100 hover-shadow transition-all bg-white">
+                            {{-- Card Header: Info Toko --}}
+                            <div class="card-header bg-white border-bottom py-3 px-3 d-flex justify-content-between align-items-center">
+                                <div class="d-flex align-items-center gap-2.5 min-width-0">
+                                    @if($store->channel->code === 'shopee')
+                                        <div class="channel-icon-badge bg-orange-subtle text-orange rounded-circle p-2 d-flex align-items-center justify-content-center" style="width: 38px; height: 38px;">
+                                            <i class="fas fa-shopping-bag fs-5"></i>
+                                        </div>
+                                    @elseif($store->channel->code === 'tiktok')
+                                        <div class="channel-icon-badge bg-dark-subtle text-dark rounded-circle p-2 d-flex align-items-center justify-content-center" style="width: 38px; height: 38px;">
+                                            <i class="fab fa-tiktok fs-5"></i>
+                                        </div>
                                     @else
-                                        <i class="fab fa-tiktok me-1 text-dark"></i> TikTok
+                                        <div class="channel-icon-badge bg-primary-subtle text-primary rounded-circle p-2 d-flex align-items-center justify-content-center" style="width: 38px; height: 38px;">
+                                            <i class="fas fa-store fs-5"></i>
+                                        </div>
                                     @endif
-                                </span>
-                                <span class="badge bg-{{ $store->status === 'connected' ? 'success' : 'danger' }} bg-opacity-10 text-{{ $store->status === 'connected' ? 'success' : 'danger' }} border border-{{ $store->status === 'connected' ? 'success' : 'danger' }} border-opacity-25 rounded-pill small">
-                                    {{ $store->status === 'connected' ? 'Terhubung' : 'Terputus' }}
-                                </span>
+
+                                    <div class="min-width-0">
+                                        <h6 class="mb-0 fw-bold text-dark text-truncate" title="{{ $store->store_name }}">
+                                            {{ $store->store_name }}
+                                        </h6>
+                                        <div class="d-flex align-items-center gap-1.5 mt-0.5">
+                                            <span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-25 rounded-pill small fw-semibold" style="font-size: 0.68rem;">
+                                                {{ strtoupper($store->channel->code) }}
+                                            </span>
+                                            <span class="text-muted small" style="font-size: 0.72rem;">
+                                                #{{ $store->marketplace_store_id }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {{-- Status Indicator --}}
+                                <div>
+                                    @if($store->status === 'connected')
+                                        <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 rounded-pill px-2 py-1 small fw-semibold" style="font-size: 0.7rem;">
+                                            <i class="fas fa-circle me-1" style="font-size: 0.5rem;"></i> Aktif
+                                        </span>
+                                    @else
+                                        <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 rounded-pill px-2 py-1 small fw-semibold" style="font-size: 0.7rem;">
+                                            <i class="fas fa-circle me-1" style="font-size: 0.5rem;"></i> Terputus
+                                        </span>
+                                    @endif
+                                </div>
                             </div>
 
                             {{-- Card Body --}}
                             <div class="card-body p-3 d-flex flex-column">
-                                <h6 class="fw-bold text-dark mb-1">{{ $store->store_name }}</h6>
-                                <p class="text-muted font-monospace small mb-3">ID: {{ $store->marketplace_store_id }}</p>
-
                                 {{-- Balance Area --}}
                                 <div class="bg-light border rounded-3 p-3 mb-3 mt-auto">
                                     @if($balance['success'])
@@ -139,18 +167,18 @@
                                             </div>
                                         @endif
 
-                                        {{-- Saldo Pending (Belum Cair) --}}
+                                        {{-- Saldo Pending (Akan Dilepas) --}}
                                         <div class="border-top pt-2 mt-2">
                                             <div class="d-flex justify-content-between align-items-center text-secondary small" style="font-size: 0.78rem;">
                                                 <span class="text-dark fw-semibold">
-                                                    <i class="fas fa-hourglass-half me-1 text-warning"></i> Saldo Pending:
+                                                    <i class="fas fa-hourglass-half me-1 text-warning"></i> Saldo Tertahan (Akan Dilepas):
                                                 </span>
                                                 <strong class="text-warning-emphasis font-monospace fs-6">
                                                     Rp {{ number_format($balance['pending_balance'], 0, ',', '.') }}
                                                 </strong>
                                             </div>
                                             <div class="d-flex justify-content-between align-items-center mt-1 text-muted" style="font-size: 0.72rem;">
-                                                <span>Dana pesanan belum cair:</span>
+                                                <span>Pesanan dalam proses/kirim:</span>
                                                 <span class="badge bg-warning bg-opacity-25 text-dark rounded-pill px-2 py-0.5 fw-semibold" style="font-size: 0.68rem;">
                                                     {{ $balance['pending_count'] }} Pesanan
                                                 </span>
