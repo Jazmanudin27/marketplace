@@ -1063,96 +1063,124 @@ class SpkController extends Controller
                                 // Clean old extras for this item and rebuild
                                 SpkItemExtra::where('spk_item_id', $spkItem->id)->delete();
 
-                                // Pemotong
-                                $pemotong = trim($pRow['pemotong'] ?? '');
-                                if ($pemotong !== '') {
-                                    $this->processAutoSaveVendor($tenantId, $pemotong, 'Pemotong');
-                                }
-                                $qtyPotong = (int) ($pRow['qty_potong'] ?? 0);
-                                $tarifPotong = floatval($pRow['tarif_potong'] ?? 0);
-                                if ($pemotong !== '' || $qtyPotong > 0) {
-                                    $sub = $qtyPotong * $tarifPotong;
-                                    SpkItemExtra::create([
-                                        'spk_item_id' => $spkItem->id,
-                                        'keterangan'  => "Ongkos Potong: {$pemotong} ({$qtyPotong} pcs" . ($tarifPotong > 0 ? " @ Rp " . number_format($tarifPotong) : "") . ")",
-                                        'nominal'     => $sub,
-                                    ]);
-                                }
+                                $laborTotal = 0;
 
-                                // Penjahit
-                                $penjahit = trim($pRow['penjahit'] ?? '');
-                                if ($penjahit !== '') {
-                                    $this->processAutoSaveVendor($tenantId, $penjahit, 'Penjahit');
-                                }
-                                $qtyJahit = (int) ($pRow['qty_jahit'] ?? 0);
-                                $tarifJahit = floatval($pRow['tarif_jahit'] ?? 0);
-                                if ($penjahit !== '' || $qtyJahit > 0) {
-                                    $sub = $qtyJahit * $tarifJahit;
-                                    SpkItemExtra::create([
-                                        'spk_item_id' => $spkItem->id,
-                                        'keterangan'  => "Ongkos Jahit: {$penjahit} ({$qtyJahit} pcs" . ($tarifJahit > 0 ? " @ Rp " . number_format($tarifJahit) : "") . ")",
-                                        'nominal'     => $sub,
-                                    ]);
-                                }
+                                // 1. Handle Direct Biaya Produksi per unit (if provided)
+                                $rawBp = $pRow['biaya_produksi'] ?? null;
+                                if ($rawBp !== null && $rawBp !== '') {
+                                    if (is_string($rawBp)) {
+                                        $rawBp = str_replace(['.', ','], '', $rawBp);
+                                    }
+                                    $bpUnit = floatval($rawBp);
+                                    $totalBp = $bpUnit * $qtyProd;
+                                    if ($totalBp > 0) {
+                                        $laborTotal += $totalBp;
+                                        SpkItemExtra::create([
+                                            'spk_item_id' => $spkItem->id,
+                                            'keterangan'  => "Biaya Produksi ({$qtyProd} pcs @ Rp " . number_format($bpUnit, 0, ',', '.') . ")",
+                                            'nominal'     => $totalBp,
+                                        ]);
+                                    }
+                                } else {
+                                    // Fallback: Pemotong
+                                    $pemotong = trim($pRow['pemotong'] ?? '');
+                                    if ($pemotong !== '') {
+                                        $this->processAutoSaveVendor($tenantId, $pemotong, 'Pemotong');
+                                    }
+                                    $qtyPotong = (int) ($pRow['qty_potong'] ?? 0);
+                                    $tarifPotong = floatval($pRow['tarif_potong'] ?? 0);
+                                    if ($pemotong !== '' || $qtyPotong > 0) {
+                                        $sub = $qtyPotong * $tarifPotong;
+                                        $laborTotal += $sub;
+                                        SpkItemExtra::create([
+                                            'spk_item_id' => $spkItem->id,
+                                            'keterangan'  => "Ongkos Potong: {$pemotong} ({$qtyPotong} pcs" . ($tarifPotong > 0 ? " @ Rp " . number_format($tarifPotong) : "") . ")",
+                                            'nominal'     => $sub,
+                                        ]);
+                                    }
 
-                                // Vendor Kancing
-                                $vendorKancing = trim($pRow['vendor_kancing'] ?? '');
-                                if ($vendorKancing !== '') {
-                                    $this->processAutoSaveVendor($tenantId, $vendorKancing, 'Vendor Kancing');
-                                }
-                                $qtyKancing = (int) ($pRow['qty_kancing'] ?? 0);
-                                $tarifKancing = floatval($pRow['tarif_kancing'] ?? 0);
-                                if ($vendorKancing !== '' || $qtyKancing > 0) {
-                                    $sub = $qtyKancing * $tarifKancing;
-                                    SpkItemExtra::create([
-                                        'spk_item_id' => $spkItem->id,
-                                        'keterangan'  => "Ongkos Kancing/LKPK: {$vendorKancing} ({$qtyKancing} pcs" . ($tarifKancing > 0 ? " @ Rp " . number_format($tarifKancing) : "") . ")",
-                                        'nominal'     => $sub,
-                                    ]);
-                                }
+                                    // Penjahit
+                                    $penjahit = trim($pRow['penjahit'] ?? '');
+                                    if ($penjahit !== '') {
+                                        $this->processAutoSaveVendor($tenantId, $penjahit, 'Penjahit');
+                                    }
+                                    $qtyJahit = (int) ($pRow['qty_jahit'] ?? 0);
+                                    $tarifJahit = floatval($pRow['tarif_jahit'] ?? 0);
+                                    if ($penjahit !== '' || $qtyJahit > 0) {
+                                        $sub = $qtyJahit * $tarifJahit;
+                                        $laborTotal += $sub;
+                                        SpkItemExtra::create([
+                                            'spk_item_id' => $spkItem->id,
+                                            'keterangan'  => "Ongkos Jahit: {$penjahit} ({$qtyJahit} pcs" . ($tarifJahit > 0 ? " @ Rp " . number_format($tarifJahit) : "") . ")",
+                                            'nominal'     => $sub,
+                                        ]);
+                                    }
 
-                                // Petugas QC
-                                $petugasQc = trim($pRow['petugas_qc'] ?? '');
-                                if ($petugasQc !== '') {
-                                    $this->processAutoSaveVendor($tenantId, $petugasQc, 'Petugas QC');
-                                }
-                                $qcLolos = (int) ($pRow['qc_lolos'] ?? 0);
-                                $qcReject = (int) ($pRow['qc_reject'] ?? 0);
-                                $tarifQc = floatval($pRow['tarif_qc'] ?? 0);
-                                if ($petugasQc !== '' || $qcLolos > 0 || $qcReject > 0) {
-                                    $sub = $qcLolos * $tarifQc;
-                                    SpkItemExtra::create([
-                                        'spk_item_id' => $spkItem->id,
-                                        'keterangan'  => "Ongkos QC: {$petugasQc} (Lolos: {$qcLolos} pcs, Reject: {$qcReject} pcs" . ($tarifQc > 0 ? " @ Rp " . number_format($tarifQc) : "") . ")",
-                                        'nominal'     => $sub,
-                                    ]);
-                                }
+                                    // Vendor Kancing
+                                    $vendorKancing = trim($pRow['vendor_kancing'] ?? '');
+                                    if ($vendorKancing !== '') {
+                                        $this->processAutoSaveVendor($tenantId, $vendorKancing, 'Vendor Kancing');
+                                    }
+                                    $qtyKancing = (int) ($pRow['qty_kancing'] ?? 0);
+                                    $tarifKancing = floatval($pRow['tarif_kancing'] ?? 0);
+                                    if ($vendorKancing !== '' || $qtyKancing > 0) {
+                                        $sub = $qtyKancing * $tarifKancing;
+                                        $laborTotal += $sub;
+                                        SpkItemExtra::create([
+                                            'spk_item_id' => $spkItem->id,
+                                            'keterangan'  => "Ongkos Kancing/LKPK: {$vendorKancing} ({$qtyKancing} pcs" . ($tarifKancing > 0 ? " @ Rp " . number_format($tarifKancing) : "") . ")",
+                                            'nominal'     => $sub,
+                                        ]);
+                                    }
 
-                                // Finishing
-                                $petugasFinishing = trim($pRow['petugas_finishing'] ?? '');
-                                if ($petugasFinishing !== '') {
-                                    $this->processAutoSaveVendor($tenantId, $petugasFinishing, 'Finishing');
-                                }
-                                $qtyFinishing = (int) ($pRow['qty_finishing'] ?? 0);
-                                $qtyFgood = (int) ($pRow['qty_fgood'] ?? 0);
-                                $tarifFinishing = floatval($pRow['tarif_finishing'] ?? 0);
-                                if ($petugasFinishing !== '' || $qtyFinishing > 0 || $qtyFgood > 0) {
-                                    $sub = $qtyFinishing * $tarifFinishing;
-                                    SpkItemExtra::create([
-                                        'spk_item_id' => $spkItem->id,
-                                        'keterangan'  => "Ongkos Finishing: {$petugasFinishing} ({$qtyFinishing} pcs, F.Good: {$qtyFgood} pcs" . ($tarifFinishing > 0 ? " @ Rp " . number_format($tarifFinishing) : "") . ")",
-                                        'nominal'     => $sub,
-                                    ]);
-                                }
+                                    // Petugas QC
+                                    $petugasQc = trim($pRow['petugas_qc'] ?? '');
+                                    if ($petugasQc !== '') {
+                                        $this->processAutoSaveVendor($tenantId, $petugasQc, 'Petugas QC');
+                                    }
+                                    $qcLolos = (int) ($pRow['qc_lolos'] ?? 0);
+                                    $qcReject = (int) ($pRow['qc_reject'] ?? 0);
+                                    $tarifQc = floatval($pRow['tarif_qc'] ?? 0);
+                                    if ($petugasQc !== '' || $qcLolos > 0 || $qcReject > 0) {
+                                        $sub = $qcLolos * $tarifQc;
+                                        $laborTotal += $sub;
+                                        SpkItemExtra::create([
+                                            'spk_item_id' => $spkItem->id,
+                                            'keterangan'  => "Ongkos QC: {$petugasQc} (Lolos: {$qcLolos} pcs, Reject: {$qcReject} pcs" . ($tarifQc > 0 ? " @ Rp " . number_format($tarifQc) : "") . ")",
+                                            'nominal'     => $sub,
+                                        ]);
+                                    }
 
-                                // Bahan List
-                                $bahanList = $pRow['bahan'] ?? [];
-                                if (!empty($bahanList) && is_array($bahanList)) {
-                                    $totalHpp = $this->processAutoSaveBahanAndRecipe($tenantId, $namaProduk, $skuProduk, $qtyProd, $bahanList, $spkItem);
-                                    if ($totalHpp > 0) {
-                                        $spkItem->update(['hpp' => $totalHpp]);
+                                    // Finishing
+                                    $petugasFinishing = trim($pRow['petugas_finishing'] ?? '');
+                                    if ($petugasFinishing !== '') {
+                                        $this->processAutoSaveVendor($tenantId, $petugasFinishing, 'Finishing');
+                                    }
+                                    $qtyFinishing = (int) ($pRow['qty_finishing'] ?? 0);
+                                    $qtyFgood = (int) ($pRow['qty_fgood'] ?? 0);
+                                    $tarifFinishing = floatval($pRow['tarif_finishing'] ?? 0);
+                                    if ($petugasFinishing !== '' || $qtyFinishing > 0 || $qtyFgood > 0) {
+                                        $sub = $qtyFinishing * $tarifFinishing;
+                                        $laborTotal += $sub;
+                                        SpkItemExtra::create([
+                                            'spk_item_id' => $spkItem->id,
+                                            'keterangan'  => "Ongkos Finishing: {$petugasFinishing} ({$qtyFinishing} pcs, F.Good: {$qtyFgood} pcs" . ($tarifFinishing > 0 ? " @ Rp " . number_format($tarifFinishing) : "") . ")",
+                                            'nominal'     => $sub,
+                                        ]);
                                     }
                                 }
+
+                                // Bahan List & Recipe
+                                $bahanList = $pRow['bahan'] ?? [];
+                                $totalMaterialCost = 0;
+                                if (!empty($bahanList) && is_array($bahanList)) {
+                                    $totalMaterialCost = $this->processAutoSaveBahanAndRecipe($tenantId, $namaProduk, $skuProduk, $qtyProd, $bahanList, $spkItem);
+                                }
+
+                                // 2. Calculate & update accurate HPP per unit = (Total Bahan + Total Biaya Produksi) / Qty
+                                $totalItemCost = $totalMaterialCost + $laborTotal;
+                                $hppPerUnit = $qtyProd > 0 ? round($totalItemCost / $qtyProd, 2) : 0;
+                                $spkItem->update(['hpp' => $hppPerUnit]);
                         } // end foreach prodList
                     }
                 }

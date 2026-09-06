@@ -351,7 +351,7 @@
     <div class="spk-page-header">
         <div>
             <h4>📋 Detail &amp; Edit SPK #{{ $spk->no_spk }}</h4>
-            <p>Kelola data rincian produksi, bahan, tim operasional, dan status SPK.</p>
+            <p>Kelola data rincian produksi, bahan, dan status SPK.</p>
         </div>
         <div class="d-flex gap-2 align-items-center">
             <a href="{{ route('spks.index') }}" class="btn btn-sm btn-outline-secondary fw-semibold">
@@ -704,17 +704,41 @@
                         </div>
                     </div>
 
+                    @php
+                        $initGrandMaterial = 0;
+                        $initGrandLabor = 0;
+                        $initGrandQty = 0;
+                        foreach($spk->items as $it) {
+                            $initGrandQty += (int)$it->quantity;
+                            $itMat = 0;
+                            $itLabor = 0;
+                            foreach($it->extras as $ex) {
+                                $nom = (float)$ex->nominal;
+                                if (str_contains($ex->keterangan, 'Bahan:')) {
+                                    $itMat += $nom;
+                                } else {
+                                    $itLabor += $nom;
+                                }
+                            }
+                            $initGrandMaterial += $itMat;
+                            $initGrandLabor += $itLabor;
+                        }
+                        $initGrandHpp = $initGrandMaterial + $initGrandLabor;
+                        $initAvgHpp = $initGrandQty > 0 ? round($initGrandHpp / $initGrandQty) : 0;
+                    @endphp
+
                     {{-- Tabel Produk & Variasi Ukuran --}}
                     <div class="table-responsive rounded-3 border bg-white mb-3">
                         <table class="table table-sm product-table-custom align-middle mb-0">
                             <thead>
                                 <tr>
-                                    <th style="width: 25%;">SKU PRODUK / VARIAN</th>
-                                    <th style="width: 25%;">NAMA PRODUK</th>
-                                    <th style="width: 15%;">UKURAN</th>
-                                    <th style="width: 12%;">QTY PRODUKSI</th>
-                                    <th style="width: 15%;">PAKAI BAHAN / REKAP</th>
-                                    <th style="width: 18%;">TAHAP OPERASIONAL &amp; TIM</th>
+                                    <th style="width: 22%;">SKU PRODUK / VARIAN</th>
+                                    <th style="width: 22%;">NAMA PRODUK</th>
+                                    <th style="width: 8%;" class="text-center">UKURAN</th>
+                                    <th style="width: 8%;" class="text-center">QTY</th>
+                                    <th style="width: 14%;" class="text-center">PAKAI BAHAN / REKAP</th>
+                                    <th style="width: 13%;" class="text-center">BIAYA PRODUKSI (RP)</th>
+                                    <th style="width: 13%;" class="text-center">ESTIMASI HPP</th>
                                     <th style="width: 36px;"></th>
                                 </tr>
                             </thead>
@@ -787,6 +811,21 @@
                                         }
 
                                         $totalMaterialCost = array_sum(array_column($materials, 'subtotal'));
+                                        $itemQty = max(1, (int)$item->quantity);
+                                        $biayaProduksiPerUnit = $itemQty > 0 ? ($laborCost / $itemQty) : 0;
+                                        $materialCostPerUnit = $itemQty > 0 ? ($totalMaterialCost / $itemQty) : 0;
+
+                                        if ($item->hpp > 0) {
+                                            $hppPerUnit = (float)$item->hpp;
+                                            $totalHpp = $hppPerUnit * $itemQty;
+                                            if ($biayaProduksiPerUnit == 0 && $hppPerUnit > $materialCostPerUnit) {
+                                                $biayaProduksiPerUnit = max(0, $hppPerUnit - $materialCostPerUnit);
+                                                $laborCost = $biayaProduksiPerUnit * $itemQty;
+                                            }
+                                        } else {
+                                            $hppPerUnit = $materialCostPerUnit + $biayaProduksiPerUnit;
+                                            $totalHpp = $totalMaterialCost + $laborCost;
+                                        }
                                     @endphp
 
                                     <tr id="product-row-{{ $rIdx }}-{{ $pIdx }}" data-r-idx="{{ $rIdx }}" data-p-idx="{{ $pIdx }}">
@@ -823,17 +862,7 @@
                                                     </div>
                                                 @endforeach
                                             </div>
-                                            <button type="button" class="btn btn-sm {{ count($materials) > 0 ? 'btn-success-subtle text-success border border-success-subtle' : 'btn-outline-secondary' }} btn-bahan-trigger btn-open-bahan-modal"
-                                                data-r-idx="{{ $rIdx }}" data-p-idx="{{ $pIdx }}">
-                                                @if(count($materials) > 0)
-                                                    📦 {{ count($materials) }} Bahan (Rp {{ number_format($totalMaterialCost, 0, ',', '.') }})
-                                                @else
-                                                    📦 Atur Bahan <span class="badge bg-secondary rounded-pill ms-1">0</span>
-                                                @endif
-                                            </button>
-                                        </td>
-                                        <td>
-                                            <div class="hidden-tahap-container-{{ $rIdx }}-{{ $pIdx }}">
+                                            <div class="hidden-tahap-container-{{ $rIdx }}-{{ $pIdx }}" style="display:none;">
                                                 <input type="hidden" class="h-pemotong" name="rincian[{{ $rIdx }}][produk][{{ $pIdx }}][pemotong]" value="{{ $pemotongVal }}">
                                                 <input type="hidden" class="h-qty-potong" name="rincian[{{ $rIdx }}][produk][{{ $pIdx }}][qty_potong]" value="{{ $qtyPotongVal }}">
                                                 <input type="hidden" class="h-tarif-potong" name="rincian[{{ $rIdx }}][produk][{{ $pIdx }}][tarif_potong]" value="{{ $tarifPotongVal }}">
@@ -855,14 +884,38 @@
                                                 <input type="hidden" class="h-tarif-finishing" name="rincian[{{ $rIdx }}][produk][{{ $pIdx }}][tarif_finishing]" value="{{ $tarifFinishingVal }}">
                                                 <input type="hidden" class="h-qty-fgood" name="rincian[{{ $rIdx }}][produk][{{ $pIdx }}][qty_fgood]" value="{{ $qtyFgoodVal }}">
                                             </div>
-                                            <button type="button" class="btn btn-sm {{ ($penjahitVal || $pemotongVal || $laborCost > 0) ? 'btn-primary-subtle text-primary border border-primary-subtle' : 'btn-outline-primary' }} btn-tahap-trigger btn-open-tahap-modal"
+                                            <button type="button" class="btn btn-sm {{ count($materials) > 0 ? 'btn-success-subtle text-success border border-success-subtle' : 'btn-outline-secondary' }} btn-bahan-trigger btn-open-bahan-modal"
                                                 data-r-idx="{{ $rIdx }}" data-p-idx="{{ $pIdx }}">
-                                                @if($penjahitVal || $pemotongVal || $laborCost > 0)
-                                                    ✂️ {{ $penjahitVal ?: ($pemotongVal ? 'Potong: ' . $pemotongVal : 'Jasa SPK') }} (Rp {{ number_format($laborCost, 0, ',', '.') }})
+                                                @if(count($materials) > 0)
+                                                    📦 {{ count($materials) }} Bahan (Rp {{ number_format($totalMaterialCost, 0, ',', '.') }})
                                                 @else
-                                                    ✂️ Atur Tahap
+                                                    📦 Atur Bahan <span class="badge bg-secondary rounded-pill ms-1">0</span>
                                                 @endif
                                             </button>
+                                        </td>
+                                        <td>
+                                            <div class="input-group input-group-sm">
+                                                <span class="input-group-text px-1.5 py-0 bg-light text-muted" style="font-size: 11px;">Rp</span>
+                                                <input type="text" 
+                                                       name="rincian[{{ $rIdx }}][produk][{{ $pIdx }}][biaya_produksi]" 
+                                                       class="form-control form-control-sm text-end fw-bold row-biaya-produksi numeric-dot-format" 
+                                                       placeholder="0" 
+                                                       value="{{ $biayaProduksiPerUnit > 0 ? number_format($biayaProduksiPerUnit, 0, ',', '.') : '' }}"
+                                                       autocomplete="off">
+                                            </div>
+                                            <div class="small text-muted text-end mt-1 row-biaya-produksi-total" style="font-size: 10px;">
+                                                Total: Rp {{ number_format($laborCost, 0, ',', '.') }}
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="p-1.5 rounded bg-light border text-end row-hpp-box" style="min-width: 100px;">
+                                                <div class="fw-extrabold text-success row-hpp-per-unit" style="font-size: 12px;">
+                                                    Rp {{ number_format($hppPerUnit, 0, ',', '.') }} <small class="text-muted fw-normal" style="font-size: 9px;">/pcs</small>
+                                                </div>
+                                                <div class="text-muted row-hpp-total" style="font-size: 9.5px;">
+                                                    Total: Rp {{ number_format($totalHpp, 0, ',', '.') }}
+                                                </div>
+                                            </div>
                                         </td>
                                     </tr>
                                 @endforeach
@@ -872,6 +925,31 @@
                             <button type="button" class="btn btn-sm btn-success fw-bold px-3 py-1 text-uppercase rounded-3" onclick="addNewProductRow({{ $rIdx }})">
                                 <i class="fas fa-plus-circle me-1"></i> + Tambah Produk / Varian Baru
                             </button>
+                        </div>
+                        {{-- Ringkasan Akumulasi Biaya & HPP SPK --}}
+                        <div class="p-3 border-top" style="background: #f8fafc;">
+                            <div class="row g-2 text-center align-items-center">
+                                <div class="col-md-2 col-6 border-end">
+                                    <span class="d-block text-muted text-uppercase fw-bold" style="font-size: 10px; letter-spacing:.5px;">TOTAL QTY</span>
+                                    <span class="fw-extrabold fs-6 text-dark" id="spkSummaryTotalQty">{{ number_format($initGrandQty, 0, ',', '.') }} pcs</span>
+                                </div>
+                                <div class="col-md-2 col-6 border-end">
+                                    <span class="d-block text-muted text-uppercase fw-bold" style="font-size: 10px; letter-spacing:.5px;">TOTAL BIAYA BAHAN</span>
+                                    <span class="fw-bold fs-6 text-primary" id="spkSummaryTotalBahan">Rp {{ number_format($initGrandMaterial, 0, ',', '.') }}</span>
+                                </div>
+                                <div class="col-md-3 col-6 border-end">
+                                    <span class="d-block text-muted text-uppercase fw-bold" style="font-size: 10px; letter-spacing:.5px;">TOTAL BIAYA PRODUKSI</span>
+                                    <span class="fw-bold fs-6 text-warning-emphasis" id="spkSummaryTotalBiayaProduksi">Rp {{ number_format($initGrandLabor, 0, ',', '.') }}</span>
+                                </div>
+                                <div class="col-md-3 col-6 border-end">
+                                    <span class="d-block text-muted text-uppercase fw-bold" style="font-size: 10px; letter-spacing:.5px;">GRAND TOTAL HPP (BIAYA)</span>
+                                    <span class="fw-extrabold fs-5 text-success" id="spkSummaryGrandTotalHpp">Rp {{ number_format($initGrandHpp, 0, ',', '.') }}</span>
+                                </div>
+                                <div class="col-md-2 col-12">
+                                    <span class="d-block text-muted text-uppercase fw-bold" style="font-size: 10px; letter-spacing:.5px;">RATA-RATA HPP / PCS</span>
+                                    <span class="fw-extrabold fs-6 text-dark" id="spkSummaryAvgHpp">Rp {{ number_format($initAvgHpp, 0, ',', '.') }} / pcs</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -1409,13 +1487,7 @@
             </td>
             <td class="text-center">
                 <div class="hidden-bahan-container-${rIdx}-${pIdx}"></div>
-                <button type="button" class="btn btn-sm btn-outline-secondary btn-bahan-trigger btn-open-bahan-modal" 
-                        data-r-idx="${rIdx}" data-p-idx="${pIdx}">
-                    📦 Atur Bahan
-                </button>
-            </td>
-            <td class="text-center">
-                <div class="hidden-op-inputs">
+                <div class="hidden-op-inputs" style="display:none;">
                     <input type="hidden" class="h-pemotong" name="rincian[${rIdx}][produk][${pIdx}][pemotong]" value="">
                     <input type="hidden" class="h-qty-potong" name="rincian[${rIdx}][produk][${pIdx}][qty_potong]" value="0">
                     <input type="hidden" class="h-tarif-potong" name="rincian[${rIdx}][produk][${pIdx}][tarif_potong]" value="0">
@@ -1426,10 +1498,34 @@
                     <input type="hidden" class="h-qty-kancing" name="rincian[${rIdx}][produk][${pIdx}][qty_kancing]" value="0">
                     <input type="hidden" class="h-tarif-kancing" name="rincian[${rIdx}][produk][${pIdx}][tarif_kancing]" value="0">
                 </div>
-                <button type="button" class="btn btn-sm btn-outline-primary btn-tahap-trigger btn-open-tahap-modal" 
+                <button type="button" class="btn btn-sm btn-outline-secondary btn-bahan-trigger btn-open-bahan-modal" 
                         data-r-idx="${rIdx}" data-p-idx="${pIdx}">
-                    ✂️ Atur Tahap
+                    📦 Atur Bahan
                 </button>
+            </td>
+            <td>
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text px-1.5 py-0 bg-light text-muted" style="font-size: 11px;">Rp</span>
+                    <input type="text" 
+                           name="rincian[${rIdx}][produk][${pIdx}][biaya_produksi]" 
+                           class="form-control form-control-sm text-end fw-bold row-biaya-produksi numeric-dot-format" 
+                           placeholder="0" 
+                           value=""
+                           autocomplete="off">
+                </div>
+                <div class="small text-muted text-end mt-1 row-biaya-produksi-total" style="font-size: 10px;">
+                    Total: Rp 0
+                </div>
+            </td>
+            <td>
+                <div class="p-1.5 rounded bg-light border text-end row-hpp-box" style="min-width: 100px;">
+                    <div class="fw-extrabold text-success row-hpp-per-unit" style="font-size: 12px;">
+                        Rp 0 <small class="text-muted fw-normal" style="font-size: 9px;">/pcs</small>
+                    </div>
+                    <div class="text-muted row-hpp-total" style="font-size: 9.5px;">
+                        Total: Rp 0
+                    </div>
+                </div>
             </td>
             <td class="text-center">
                 <button type="button" class="btn btn-sm btn-link text-danger p-0" onclick="removeProductRow('${rIdx}-${pIdx}')" title="Hapus Varian">
@@ -1439,12 +1535,18 @@
         `;
 
         tbody.appendChild(tr);
+        if (window.recalculateRowHpp) {
+            window.recalculateRowHpp(tr);
+        }
     }
 
     function removeProductRow(rowId) {
         const row = document.getElementById(`prod-row-${rowId}`);
         if (row) {
             row.remove();
+            if (window.recalculateSpkGrandSummary) {
+                window.recalculateSpkGrandSummary();
+            }
         }
     }
 
@@ -1832,6 +1934,88 @@
             return parseFloat(val.toString().replace(/\./g, '')) || 0;
         }
 
+        // Live HPP & Biaya Produksi calculation per row
+        window.recalculateRowHpp = function(tr) {
+            if (!tr) return;
+            const qtyInput = tr.querySelector('.row-qty-produksi');
+            const qty = Math.max(1, parseFloat(qtyInput ? qtyInput.value : 1) || 1);
+
+            let totalMaterial = 0;
+            tr.querySelectorAll('[name*="[bahan]"][name*="[subtotal]"]').forEach(subInput => {
+                totalMaterial += parseFloat(subInput.value) || 0;
+            });
+
+            const bpInput = tr.querySelector('.row-biaya-produksi');
+            const bpUnit = bpInput ? cleanNumberFromDots(bpInput.value) : 0;
+            const totalBp = bpUnit * qty;
+
+            const bpTotalDisplay = tr.querySelector('.row-biaya-produksi-total');
+            if (bpTotalDisplay) {
+                bpTotalDisplay.textContent = 'Total: ' + formatRupiah(totalBp);
+            }
+
+            const totalHpp = totalMaterial + totalBp;
+            const hppPerUnit = Math.round(totalHpp / qty);
+
+            const hppPerUnitDisplay = tr.querySelector('.row-hpp-per-unit');
+            if (hppPerUnitDisplay) {
+                hppPerUnitDisplay.innerHTML = `${formatRupiah(hppPerUnit)} <small class="text-muted fw-normal" style="font-size: 9px;">/pcs</small>`;
+            }
+
+            const hppTotalDisplay = tr.querySelector('.row-hpp-total');
+            if (hppTotalDisplay) {
+                hppTotalDisplay.textContent = 'Total: ' + formatRupiah(totalHpp);
+            }
+
+            if (window.recalculateSpkGrandSummary) {
+                window.recalculateSpkGrandSummary();
+            }
+        };
+
+        // Live Grand Summary calculation across all rows
+        window.recalculateSpkGrandSummary = function() {
+            let grandQty = 0;
+            let grandMaterial = 0;
+            let grandLabor = 0;
+            let grandHpp = 0;
+
+            document.querySelectorAll('.product-table-custom tbody tr').forEach(tr => {
+                const qtyInput = tr.querySelector('.row-qty-produksi');
+                const qty = Math.max(1, parseFloat(qtyInput ? qtyInput.value : 1) || 1);
+                grandQty += qty;
+
+                let matCost = 0;
+                tr.querySelectorAll('[name*="[bahan]"][name*="[subtotal]"]').forEach(subInput => {
+                    matCost += parseFloat(subInput.value) || 0;
+                });
+                grandMaterial += matCost;
+
+                const bpInput = tr.querySelector('.row-biaya-produksi');
+                const bpUnit = bpInput ? cleanNumberFromDots(bpInput.value) : 0;
+                const laborCost = bpUnit * qty;
+                grandLabor += laborCost;
+
+                grandHpp += (matCost + laborCost);
+            });
+
+            const avgHpp = grandQty > 0 ? Math.round(grandHpp / grandQty) : 0;
+
+            const elQty = document.getElementById('spkSummaryTotalQty');
+            if (elQty) elQty.textContent = grandQty.toLocaleString('id-ID') + ' pcs';
+
+            const elMat = document.getElementById('spkSummaryTotalBahan');
+            if (elMat) elMat.textContent = formatRupiah(grandMaterial);
+
+            const elLabor = document.getElementById('spkSummaryTotalBiayaProduksi');
+            if (elLabor) elLabor.textContent = formatRupiah(grandLabor);
+
+            const elHpp = document.getElementById('spkSummaryGrandTotalHpp');
+            if (elHpp) elHpp.textContent = formatRupiah(grandHpp);
+
+            const elAvg = document.getElementById('spkSummaryAvgHpp');
+            if (elAvg) elAvg.textContent = formatRupiah(avgHpp) + ' / pcs';
+        };
+
         // Auto-format numeric inputs with dots on typing
         document.addEventListener('input', function(e) {
             if (e.target.classList.contains('numeric-dot-format')) {
@@ -1986,6 +2170,10 @@
                     btn.className = 'btn btn-sm btn-outline-secondary btn-bahan-trigger btn-open-bahan-modal';
                     btn.innerHTML = `📦 Atur Bahan <span class="badge bg-secondary rounded-pill ms-1">0</span>`;
                 }
+            }
+
+            if (window.recalculateRowHpp) {
+                window.recalculateRowHpp(productTr);
             }
         }
 
@@ -2254,13 +2442,7 @@
                         </td>
                         <td>
                             <div class="hidden-bahan-container-${rIdx}-${nextPIdx}"></div>
-                            <button type="button" class="btn btn-sm btn-outline-secondary btn-bahan-trigger btn-open-bahan-modal"
-                                data-r-idx="${rIdx}" data-p-idx="${nextPIdx}">
-                                📦 Atur Bahan <span class="badge bg-secondary rounded-pill ms-1">0</span>
-                            </button>
-                        </td>
-                        <td>
-                            <div class="hidden-tahap-container-${rIdx}-${nextPIdx}">
+                            <div class="hidden-tahap-container-${rIdx}-${nextPIdx}" style="display:none;">
                                 <input type="hidden" class="h-pemotong" name="rincian[${rIdx}][produk][${nextPIdx}][pemotong]" value="">
                                 <input type="hidden" class="h-qty-potong" name="rincian[${rIdx}][produk][${nextPIdx}][qty_potong]" value="1">
                                 <input type="hidden" class="h-tarif-potong" name="rincian[${rIdx}][produk][${nextPIdx}][tarif_potong]" value="0">
@@ -2279,10 +2461,34 @@
                                 <input type="hidden" class="h-tarif-finishing" name="rincian[${rIdx}][produk][${nextPIdx}][tarif_finishing]" value="0">
                                 <input type="hidden" class="h-qty-fgood" name="rincian[${rIdx}][produk][${nextPIdx}][qty_fgood]" value="0">
                             </div>
-                            <button type="button" class="btn btn-sm btn-outline-primary btn-tahap-trigger btn-open-tahap-modal"
+                            <button type="button" class="btn btn-sm btn-outline-secondary btn-bahan-trigger btn-open-bahan-modal"
                                 data-r-idx="${rIdx}" data-p-idx="${nextPIdx}">
-                                ✂️ Atur Tahap
+                                📦 Atur Bahan <span class="badge bg-secondary rounded-pill ms-1">0</span>
                             </button>
+                        </td>
+                        <td>
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text px-1.5 py-0 bg-light text-muted" style="font-size: 11px;">Rp</span>
+                                <input type="text" 
+                                       name="rincian[${rIdx}][produk][${nextPIdx}][biaya_produksi]" 
+                                       class="form-control form-control-sm text-end fw-bold row-biaya-produksi numeric-dot-format" 
+                                       placeholder="0" 
+                                       value=""
+                                       autocomplete="off">
+                            </div>
+                            <div class="small text-muted text-end mt-1 row-biaya-produksi-total" style="font-size: 10px;">
+                                Total: Rp 0
+                            </div>
+                        </td>
+                        <td>
+                            <div class="p-1.5 rounded bg-light border text-end row-hpp-box" style="min-width: 100px;">
+                                <div class="fw-extrabold text-success row-hpp-per-unit" style="font-size: 12px;">
+                                    Rp 0 <small class="text-muted fw-normal" style="font-size: 9px;">/pcs</small>
+                                </div>
+                                <div class="text-muted row-hpp-total" style="font-size: 9.5px;">
+                                    Total: Rp 0
+                                </div>
+                            </div>
                         </td>
                         <td style="width: 36px;" class="text-center">
                             <button type="button" class="btn btn-sm btn-outline-danger border-0 btn-remove-product-row" title="Hapus Varian">
@@ -2291,6 +2497,9 @@
                         </td>
                     `;
                     tbody.appendChild(newRow);
+                    if (window.recalculateRowHpp) {
+                        window.recalculateRowHpp(newRow);
+                    }
                 }
             }
 
@@ -2301,10 +2510,33 @@
                     const tbody = tr.closest('tbody');
                     if (tbody.querySelectorAll('tr').length > 1) {
                         tr.remove();
+                        if (window.recalculateSpkGrandSummary) {
+                            window.recalculateSpkGrandSummary();
+                        }
                     } else {
                         alert('Minimal 1 varian produk harus ada dalam SPK.');
                     }
                 }
+            }
+        });
+
+        // Event delegation for live calculation on quantity / biaya produksi change
+        const rincianContainerEl = document.getElementById('rincianContainer');
+        if (rincianContainerEl) {
+            rincianContainerEl.addEventListener('input', function(e) {
+                if (e.target.classList.contains('row-qty-produksi') || e.target.classList.contains('row-biaya-produksi')) {
+                    const tr = e.target.closest('tr');
+                    if (tr && window.recalculateRowHpp) {
+                        window.recalculateRowHpp(tr);
+                    }
+                }
+            });
+        }
+
+        // Initialize row HPP and summary on page load
+        document.querySelectorAll('.product-table-custom tbody tr').forEach(tr => {
+            if (window.recalculateRowHpp) {
+                window.recalculateRowHpp(tr);
             }
         });
 
