@@ -12,165 +12,165 @@
             </div>
         @endif
 
-        {{-- HEADER SECTION WITH KPI CARDS --}}
-        <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+        {{-- HEADER SECTION --}}
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
             <div>
-                <h3 class="fw-extrabold text-dark mb-1 tracking-tight" style="font-size: 1.6rem;">
-                    <i class="fas fa-industry me-2 text-primary"></i>Marketing &amp; Pengiriman
-                </h3>
-                <p class="text-muted small mb-0">Pantau seluruh antrian pesanan SPK, bagikan link pelacakan pelanggan, dan
-                    atur prioritas Urgent.</p>
+                <h4 class="fw-bold text-dark mb-1 d-flex align-items-center gap-2">
+                    <i class="fas fa-industry text-primary fs-5"></i>
+                    <span>Marketing &amp; Pengiriman</span>
+                </h4>
+                <p class="text-secondary small mb-0">
+                    Pantau seluruh antrian pesanan SPK, bagikan link pelacakan pelanggan, dan atur prioritas Urgent.
+                </p>
             </div>
             @can('spks.create')
-                <div class="d-flex gap-2">
+                <div>
                     <a href="{{ route('spks.create') }}"
-                        class="btn btn-primary fw-bold px-3.5 py-2.5 rounded-3 shadow-sm d-inline-flex align-items-center gap-2 hover-elevate">
-                        <i class="fas fa-plus-circle fs-6"></i>
+                        class="btn btn-primary px-3 py-2 rounded-2 fw-semibold shadow-sm d-inline-flex align-items-center gap-2">
+                        <i class="fas fa-plus"></i>
                         <span>Buat SPK Baru</span>
                     </a>
                 </div>
             @endcan
         </div>
 
-        {{-- KPI STATS SUMMARY CARDS --}}
+        {{-- KPI STATS SUMMARY CARDS (BOOTSTRAP 5 CLEAN & ELEGANT) --}}
         <div class="row g-3 mb-4">
-            {{-- Total Produksi --}}
+            {{-- Total Antrian Produksi --}}
             <div class="col-12 col-sm-6 col-xl-4">
-                <div
-                    class="card border-0 rounded-4 shadow-sm bg-white overflow-hidden h-100 position-relative border-start border-4 border-primary">
-                    <div class="card-body p-3.5 d-flex align-items-center justify-content-between">
-                        <div>
-                            <span class="text-muted fw-bold small text-uppercase tracking-wider d-block mb-1">Total Antrian
-                                Produksi</span>
-                            <h3 class="fw-extrabold text-dark mb-0">
-                                {{ number_format($stats['total_produksi'] ?? $spks->total()) }} <span
-                                    class="fs-6 fw-normal text-muted">Grup</span></h3>
+                <div class="card border border-light-subtle shadow-sm rounded-3 bg-white h-100">
+                    <div class="card-body p-3">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <span class="text-muted small fw-semibold text-uppercase tracking-wider">Total Antrian Produksi</span>
+                            <div class="rounded-2 bg-primary bg-opacity-10 text-primary d-flex align-items-center justify-content-center"
+                                style="width: 38px; height: 38px;">
+                                <i class="fas fa-boxes-stacked fs-6"></i>
+                            </div>
                         </div>
-                        <div class="rounded-circle bg-primary bg-opacity-10 text-primary p-3 d-flex align-items-center justify-content-center"
-                            style="width: 52px; height: 52px;">
-                            <i class="fas fa-boxes-stacked fs-4"></i>
+                        <div class="d-flex align-items-baseline">
+                            <h3 class="fw-bold text-dark mb-0 me-2">{{ number_format($stats['total_produksi'] ?? $spks->total()) }}</h3>
+                            <span class="text-secondary small fw-medium">Grup</span>
                         </div>
                     </div>
                 </div>
             </div>
 
-            {{-- Urgent Jobs --}}
+            {{-- Pesanan Urgent --}}
+            @php $urgentCount = (int)($stats['total_urgent'] ?? 0); @endphp
             <div class="col-12 col-sm-6 col-xl-4">
-                <div
-                    class="card border-0 rounded-4 shadow-sm bg-white overflow-hidden h-100 position-relative border-start border-4 border-warning">
-                    <div class="card-body p-3.5 d-flex align-items-center justify-content-between">
-                        <div>
-                            <span class="text-muted fw-bold small text-uppercase tracking-wider d-block mb-1">Pesanan
-                                Urgent</span>
-                            <h3 class="fw-extrabold text-dark mb-0 text-danger">
-                                {{ number_format($stats['total_urgent'] ?? 0) }}
-                                <span class="fs-6 fw-normal text-muted">SPK</span>
-                            </h3>
+                <div class="card border border-light-subtle shadow-sm rounded-3 bg-white h-100">
+                    <div class="card-body p-3">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <span class="text-muted small fw-semibold text-uppercase tracking-wider">Pesanan Urgent</span>
+                            <div class="rounded-2 {{ $urgentCount > 0 ? 'bg-danger bg-opacity-10 text-danger' : 'bg-warning bg-opacity-10 text-warning' }} d-flex align-items-center justify-content-center"
+                                style="width: 38px; height: 38px;">
+                                <i class="fas fa-bolt fs-6"></i>
+                            </div>
                         </div>
-                        <div class="rounded-circle bg-warning bg-opacity-15 text-warning p-3 d-flex align-items-center justify-content-center"
-                            style="width: 52px; height: 52px;">
-                            <i class="fas fa-bolt fs-4 text-warning"></i>
+                        <div class="d-flex align-items-baseline justify-content-between">
+                            <div class="d-flex align-items-baseline">
+                                <h3 class="fw-bold {{ $urgentCount > 0 ? 'text-danger' : 'text-dark' }} mb-0 me-2">{{ number_format($urgentCount) }}</h3>
+                                <span class="text-secondary small fw-medium">SPK</span>
+                            </div>
+                            @if($urgentCount > 0)
+                                <span class="badge bg-danger bg-opacity-10 text-danger border border-danger-subtle rounded-pill px-2 py-1 small fw-semibold">
+                                    Prioritas Tinggi
+                                </span>
+                            @endif
                         </div>
                     </div>
                 </div>
             </div>
 
-            {{-- Total Pcs --}}
+            {{-- Total Volume Pcs --}}
             <div class="col-12 col-sm-12 col-xl-4">
-                <div
-                    class="card border-0 rounded-4 shadow-sm bg-white overflow-hidden h-100 position-relative border-start border-4 border-success">
-                    <div class="card-body p-3.5 d-flex align-items-center justify-content-between">
-                        <div>
-                            <span class="text-muted fw-bold small text-uppercase tracking-wider d-block mb-1">Total Volume
-                                Pcs</span>
-                            <h3 class="fw-extrabold text-dark mb-0 text-success">
-                                {{ number_format($stats['total_pcs'] ?? 0) }} <span
-                                    class="fs-6 fw-normal text-muted">Pcs</span></h3>
+                <div class="card border border-light-subtle shadow-sm rounded-3 bg-white h-100">
+                    <div class="card-body p-3">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <span class="text-muted small fw-semibold text-uppercase tracking-wider">Total Volume Pcs</span>
+                            <div class="rounded-2 bg-success bg-opacity-10 text-success d-flex align-items-center justify-content-center"
+                                style="width: 38px; height: 38px;">
+                                <i class="fas fa-shirt fs-6"></i>
+                            </div>
                         </div>
-                        <div class="rounded-circle bg-success bg-opacity-10 text-success p-3 d-flex align-items-center justify-content-center"
-                            style="width: 52px; height: 52px;">
-                            <i class="fas fa-tshirt fs-4"></i>
+                        <div class="d-flex align-items-baseline">
+                            <h3 class="fw-bold text-success mb-0 me-2">{{ number_format($stats['total_pcs'] ?? 0) }}</h3>
+                            <span class="text-secondary small fw-medium">Pcs</span>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        {{-- FILTER & SEARCH BAR CONTAINER (SELECT DROPDOWN FILTER) --}}
-        <div class="card border-0 shadow-sm rounded-4 bg-white mb-4">
+        {{-- FILTER & SEARCH BAR (BOOTSTRAP 5 CLEAN & ELEGANT) --}}
+        <div class="card border border-light-subtle shadow-sm rounded-3 bg-white mb-4">
             <div class="card-body p-3">
                 <form action="{{ route('spks.index') }}" method="GET" class="m-0">
+                    @php
+                        $currStage = request('stage');
+                        $isUrgent = request('urgent') == '1';
+                        $selectedFilter = $isUrgent ? 'urgent' : ($currStage ?: '');
+                        $hasActiveFilter = !empty($selectedFilter) || request()->filled('tipe_spk') || request()->filled('search');
+                    @endphp
                     <div class="row g-2.5 align-items-center">
 
-                        {{-- STAGE & STATUS SELECT DROPDOWN (COL 12 / COL MD 5) --}}
+                        {{-- STAGE & STATUS SELECT DROPDOWN --}}
                         <div class="col-12 col-md-5 col-lg-5">
-                            @php
-                                $currStage = request('stage');
-                                $isUrgent = request('urgent') == '1';
-                                $selectedFilter = $isUrgent ? 'urgent' : ($currStage ?: '');
-                            @endphp
-                            <div class="input-group input-group-sm">
-                                <span class="input-group-text bg-light border-0 text-muted fw-bold ps-3 pe-2">
-                                    <i class="fas fa-filter text-primary"></i>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-light-subtle text-muted">
+                                    <i class="fas fa-filter text-primary small"></i>
                                 </span>
-                                <select name="stage"
-                                    class="form-select form-select-sm border-0 bg-light fw-bold text-dark rounded-end pe-4"
-                                    style="height: 38px; cursor: pointer;" onchange="this.form.submit()">
-                                    <option value="" {{ $selectedFilter === '' ? 'selected' : '' }}>🌐 Semua SPK
-                                        (Semua Status)</option>
-                                    <option value="urgent" {{ $selectedFilter === 'urgent' ? 'selected' : '' }}>⚡ Pesanan
-                                        Urgent</option>
+                                <select name="stage" class="form-select border-light-subtle bg-white text-dark fw-medium"
+                                    style="cursor: pointer;" onchange="this.form.submit()">
+                                    <option value="" {{ $selectedFilter === '' ? 'selected' : '' }}>🌐 Semua SPK (Semua Status)</option>
+                                    <option value="urgent" {{ $selectedFilter === 'urgent' ? 'selected' : '' }}>⚡ Pesanan Urgent</option>
                                     <option value="draft" {{ $selectedFilter === 'draft' ? 'selected' : '' }}>📝 DRAFT (Belum Deal / Menunggu DP)</option>
                                     <option value="desain" {{ $selectedFilter === 'desain' ? 'selected' : '' }}>🎨 Tahap Desain &amp; Mockup</option>
                                     <option value="pesanan_baru" {{ $selectedFilter === 'pesanan_baru' ? 'selected' : '' }}>📋 Pesanan Baru / Perencanaan</option>
-                                    <option value="sampling" {{ $selectedFilter === 'sampling' ? 'selected' : '' }}>⏳
-                                        Antrian &amp; Sampling</option>
-                                    <option value="potong" {{ $selectedFilter === 'potong' ? 'selected' : '' }}>✂️ Tahap
-                                        Pemotongan (Potong)</option>
-                                    <option value="sablon_bordir"
-                                        {{ $selectedFilter === 'sablon_bordir' ? 'selected' : '' }}>🎨 Sablon / Bordir
-                                    </option>
-                                    <option value="jahit" {{ $selectedFilter === 'jahit' ? 'selected' : '' }}>🪡 Tahap
-                                        Jahit</option>
-                                    <option value="lkpk" {{ $selectedFilter === 'lkpk' ? 'selected' : '' }}>💿 Tahap LKPK
-                                        (Kancing)</option>
-                                    <option value="qc" {{ $selectedFilter === 'qc' ? 'selected' : '' }}>🔍 Quality
-                                        Control (QC)</option>
-                                    <option value="packing" {{ $selectedFilter === 'packing' ? 'selected' : '' }}>📦
-                                        Packing / Finishing</option>
-                                    <option value="selesai" {{ $selectedFilter === 'selesai' ? 'selected' : '' }}>✅ Selesai
-                                        (Finished Good)</option>
-                                    <option value="dikirim" {{ $selectedFilter === 'dikirim' ? 'selected' : '' }}>🚀 Telah
-                                        Dikirim (Shipped)</option>
+                                    <option value="sampling" {{ $selectedFilter === 'sampling' ? 'selected' : '' }}>⏳ Antrian &amp; Sampling</option>
+                                    <option value="potong" {{ $selectedFilter === 'potong' ? 'selected' : '' }}>✂️ Tahap Pemotongan (Potong)</option>
+                                    <option value="sablon_bordir" {{ $selectedFilter === 'sablon_bordir' ? 'selected' : '' }}>🎨 Sablon / Bordir</option>
+                                    <option value="jahit" {{ $selectedFilter === 'jahit' ? 'selected' : '' }}>🪡 Tahap Jahit</option>
+                                    <option value="lkpk" {{ $selectedFilter === 'lkpk' ? 'selected' : '' }}>💿 Tahap LKPK (Kancing)</option>
+                                    <option value="qc" {{ $selectedFilter === 'qc' ? 'selected' : '' }}>🔍 Quality Control (QC)</option>
+                                    <option value="packing" {{ $selectedFilter === 'packing' ? 'selected' : '' }}>📦 Packing / Finishing</option>
+                                    <option value="selesai" {{ $selectedFilter === 'selesai' ? 'selected' : '' }}>✅ Selesai (Finished Good)</option>
+                                    <option value="dikirim" {{ $selectedFilter === 'dikirim' ? 'selected' : '' }}>🚀 Telah Dikirim (Shipped)</option>
                                 </select>
                             </div>
                         </div>
 
-                        {{-- TIPE SPK FILTER (COL 12 / COL MD 3) --}}
+                        {{-- TIPE SPK FILTER --}}
                         <div class="col-12 col-md-3 col-lg-3">
-                            <select name="tipe_spk"
-                                class="form-select form-select-sm border-0 bg-light fw-bold text-dark rounded-3"
-                                style="height: 38px; cursor: pointer;" onchange="this.form.submit()">
+                            <select name="tipe_spk" class="form-select border-light-subtle bg-white text-dark fw-medium"
+                                style="cursor: pointer;" onchange="this.form.submit()">
                                 <option value="">🏢 Semua Tipe SPK</option>
-                                <option value="stok_gudang" {{ request('tipe_spk') === 'stok_gudang' ? 'selected' : '' }}>
-                                    🏬 Stok Gudang</option>
-                                <option value="pesanan_pelanggan"
-                                    {{ request('tipe_spk') === 'pesanan_pelanggan' ? 'selected' : '' }}>🛒 Pesanan
-                                    Pelanggan</option>
+                                <option value="stok_gudang" {{ request('tipe_spk') === 'stok_gudang' ? 'selected' : '' }}>🏬 Stok Gudang</option>
+                                <option value="pesanan_pelanggan" {{ request('tipe_spk') === 'pesanan_pelanggan' ? 'selected' : '' }}>🛒 Pesanan Pelanggan</option>
                             </select>
                         </div>
 
-                        {{-- SEARCH BOX (COL 12 / COL MD 4) --}}
-                        <div class="col-12 col-md-4 col-lg-4">
-                            <div class="position-relative">
-                                <i
-                                    class="fas fa-search position-absolute top-50 start-0 translate-middle-y ms-3 text-muted opacity-75"></i>
+                        {{-- SEARCH BOX --}}
+                        <div class="col-12 col-md-{{ $hasActiveFilter ? '3' : '4' }} col-lg-{{ $hasActiveFilter ? '3' : '4' }}">
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-light-subtle text-muted">
+                                    <i class="fas fa-search small"></i>
+                                </span>
                                 <input type="text" name="search"
-                                    class="form-control form-control-sm rounded-3 ps-5 pe-3 py-2 bg-light border-0 shadow-none text-dark w-100"
-                                    style="height: 38px;" placeholder="Cari SPK / Pemesan / Instansi..."
+                                    class="form-control border-light-subtle bg-white text-dark"
+                                    placeholder="Cari SPK / Pemesan / Instansi..."
                                     value="{{ request('search') }}" onchange="this.form.submit()">
                             </div>
                         </div>
+
+                        {{-- RESET FILTER (IF ACTIVE) --}}
+                        @if($hasActiveFilter)
+                            <div class="col-12 col-md-1 col-lg-1 text-md-end">
+                                <a href="{{ route('spks.index') }}" class="btn btn-outline-secondary btn-sm w-100 py-2 rounded-2" title="Reset Filter">
+                                    <i class="fas fa-rotate-left me-1"></i>Reset
+                                </a>
+                            </div>
+                        @endif
 
                     </div>
                 </form>
