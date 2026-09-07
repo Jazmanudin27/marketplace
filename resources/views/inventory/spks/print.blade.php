@@ -110,27 +110,40 @@
         }
 
         .header-left {
-            width: 30%;
+            width: 27%;
             font-size: 9px;
             font-weight: 700;
         }
 
         .header-center {
-            width: 34%;
+            width: 33%;
             text-align: center;
         }
 
         .header-right {
-            width: 26%;
+            width: 25%;
             text-align: right;
             font-size: 9px;
-            padding-right: 16px;
+            padding-right: 8px;
         }
 
         .header-qr {
-            width: 10%;
-            text-align: right;
-            padding-left: 4px;
+            width: 15%;
+            text-align: center;
+            padding-left: 2px;
+        }
+
+        .qr-code-img {
+            width: 72px;
+            height: 72px;
+            display: block;
+            margin: 0 auto;
+            border: 1px solid #cbd5e1;
+            border-radius: 4px;
+            padding: 2px;
+            background: #ffffff;
+            image-rendering: -webkit-optimize-contrast;
+            image-rendering: crisp-edges;
         }
 
         .spk-title-main {
@@ -387,13 +400,13 @@
                                     $spkTrackUrl = route('spks.mobile_scan', $currentSpk->id);
                                 @endphp
                                 <a href="{{ $spkTrackUrl }}" target="_blank" title="Scan / Update Tracking SPK">
-                                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=120x120&data={{ urlencode($spkTrackUrl) }}"
+                                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=0&ecc=M&data={{ urlencode($spkTrackUrl) }}"
                                         alt="QR Tracking SPK"
-                                        style="width: 44px; height: 44px; display:block; margin: 0 auto;">
+                                        class="qr-code-img">
                                 </a>
                                 <div
-                                    style="font-size: 6px; text-align: center; color: #475569; font-weight: 800; margin-top: 1.5px; line-height: 1; letter-spacing: 0.2px;">
-                                    SCAN TRACKING HP
+                                    style="font-size: 6.5px; text-align: center; color: #0f172a; font-weight: 800; margin-top: 1.5px; line-height: 1; letter-spacing: 0.3px;">
+                                    SCAN TRACKING
                                 </div>
                             </td>
                         </tr>
