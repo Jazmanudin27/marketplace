@@ -336,17 +336,17 @@ class FinancialReportController extends Controller
         $beginningBalance = 0.0;
 
         // Incomes before $dateFrom
-        $prevIncomesQuery = Income::where('tenant_id', $tenantId)->where('income_date', '<', $dateFrom);
+        $prevIncomesQuery = Income::where('tenant_id', $tenantId)->whereDate('income_date', '<', $dateFrom);
         $accountFilterApply($prevIncomesQuery, 'payment_destination');
         $beginningBalance += (float) $prevIncomesQuery->sum('amount');
 
         // Expenses before $dateFrom
-        $prevExpensesQuery = Expense::where('tenant_id', $tenantId)->where('expense_date', '<', $dateFrom);
+        $prevExpensesQuery = Expense::where('tenant_id', $tenantId)->whereDate('expense_date', '<', $dateFrom);
         $accountFilterApply($prevExpensesQuery, 'payment_source');
         $beginningBalance -= (float) $prevExpensesQuery->sum('amount');
 
         // Fund Transfers before $dateFrom
-        $prevTransfers = FundTransfer::where('tenant_id', $tenantId)->where('transfer_date', '<', $dateFrom)->get();
+        $prevTransfers = FundTransfer::where('tenant_id', $tenantId)->whereDate('transfer_date', '<', $dateFrom)->get();
         foreach ($prevTransfers as $pt) {
             $amt = (float) $pt->amount;
             if ($account !== 'all') {
@@ -365,7 +365,8 @@ class FinancialReportController extends Controller
         // A. Incomes
         if ($sourceType === 'all' || $sourceType === 'income') {
             $incomesQuery = Income::where('tenant_id', $tenantId)
-                ->whereBetween('income_date', [$dateFrom, $dateTo]);
+                ->whereDate('income_date', '>=', $dateFrom)
+                ->whereDate('income_date', '<=', $dateTo);
             
             $accountFilterApply($incomesQuery, 'payment_destination');
 
@@ -406,7 +407,8 @@ class FinancialReportController extends Controller
         if ($sourceType === 'all' || $sourceType === 'expense') {
             $expensesQuery = Expense::with('employee')
                 ->where('tenant_id', $tenantId)
-                ->whereBetween('expense_date', [$dateFrom, $dateTo]);
+                ->whereDate('expense_date', '>=', $dateFrom)
+                ->whereDate('expense_date', '<=', $dateTo);
 
             $accountFilterApply($expensesQuery, 'payment_source');
 
@@ -454,7 +456,8 @@ class FinancialReportController extends Controller
         // C. Fund Transfers
         if ($sourceType === 'all' || $sourceType === 'transfer') {
             $transfersQuery = FundTransfer::where('tenant_id', $tenantId)
-                ->whereBetween('transfer_date', [$dateFrom, $dateTo]);
+                ->whereDate('transfer_date', '>=', $dateFrom)
+                ->whereDate('transfer_date', '<=', $dateTo);
 
             if ($account !== 'all') {
                 $transfersQuery->where(function ($q) use ($accountFilterApply) {

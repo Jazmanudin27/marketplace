@@ -36,14 +36,49 @@ class MarketplaceWalletController extends Controller
             ->with('channel')
             ->get();
 
-        // Jika user klik Refresh Saldo Real-Time, kosongkan cache semua toko
+        // Jika user klik Refresh Saldo Real-Time, lakukan sinkronisasi live
         if ($request->boolean('refresh') || $request->has('refresh')) {
             foreach ($stores as $s) {
-                Cache::forget("store_wallet_balance_{$s->id}");
-                Cache::forget("store_pending_balance_{$s->id}");
+                Cache::forget("store_wallet_balance_v3_{$s->id}");
+                Cache::forget("store_pending_balance_v3_{$s->id}");
+                Cache::forget("store_wallet_balance_v4_{$s->id}");
+                Cache::forget("store_pending_balance_v4_{$s->id}");
                 Cache::forget("store_shopee_fee_ratio_{$s->id}");
                 Cache::forget("store_tiktok_fee_ratio_{$s->id}");
+                Cache::forget("store_shopee_fee_ratio_v3_{$s->id}");
+                Cache::forget("store_tiktok_fee_ratio_v3_{$s->id}");
+
+                // Jalankan sinkronisasi cepat per toko
+                try {
+                    if ($s->status === 'connected') {
+                        $accessToken = $s->getValidAccessToken();
+                        if ($s->channel->code === 'shopee') {
+                            $shopId = (int) $s->marketplace_store_id;
+                            $res = $this->shopeeService->getWalletBalance($accessToken, $shopId);
+                            if (is_array($res) && (isset($res['current_balance']) || isset($res['withdraw_balance']))) {
+                                $currentBal = (float) ($res['current_balance'] ?? 0);
+                                $withdrawBal = isset($res['withdraw_balance']) ? (float) $res['withdraw_balance'] : $currentBal;
+                                Cache::put("store_wallet_balance_v4_{$s->id}", [
+                                    'success'          => true,
+                                    'current_balance'  => $currentBal,
+                                    'withdraw_balance' => $withdrawBal,
+                                    'error_message'    => null,
+                                ], now()->addMinutes(15));
+                            }
+                        } elseif ($s->channel->code === 'tiktok') {
+                            Artisan::call('marketplace:sync-wallets', [
+                                '--store_id' => $s->id,
+                                '--days'     => 30,
+                            ]);
+                        }
+                    }
+                } catch (\Throwable $e) {
+                    Log::warning("Real-time refresh error for store {$s->store_name}: " . $e->getMessage());
+                }
             }
+
+            return redirect()->route('finance.marketplace_wallets.index')
+                ->with('success', '✅ Saldo real-time dan mutasi dompet berhasil diperbarui dari marketplace.');
         }
 
         $storeBalances = [];
@@ -52,37 +87,34 @@ class MarketplaceWalletController extends Controller
         $totalPendingCount = 0;
 
         foreach ($stores as $store) {
-            $walletCacheKey  = "store_wallet_balance_v3_{$store->id}";
-            $pendingCacheKey = "store_pending_balance_v3_{$store->id}";
+            $walletCacheKey  = "store_wallet_balance_v4_{$store->id}";
+            $pendingCacheKey = "store_pending_balance_v4_{$store->id}";
             
-            if ($request->boolean('refresh') || $request->has('refresh')) {
-                Cache::forget("store_wallet_balance_{$store->id}");
-                Cache::forget("store_pending_balance_{$store->id}");
-                Cache::forget("store_wallet_balance_v2_{$store->id}");
-                Cache::forget("store_pending_balance_v2_{$store->id}");
-                Cache::forget($walletCacheKey);
-                Cache::forget($pendingCacheKey);
-                Cache::forget("store_shopee_fee_ratio_{$store->id}");
-                Cache::forget("store_tiktok_fee_ratio_{$store->id}");
-                Cache::forget("store_shopee_fee_ratio_v2_{$store->id}");
-                Cache::forget("store_tiktok_fee_ratio_v2_{$store->id}");
-                Cache::forget("store_shopee_fee_ratio_v3_{$store->id}");
-                Cache::forget("store_tiktok_fee_ratio_v3_{$store->id}");
-            }
-            
-            // 1. Saldo Dompet (Dapat Ditarik) diambil langsung dari API
-            $balanceData = Cache::remember($walletCacheKey, now()->addMinutes(2), function () use ($store) {
+            // 1. Saldo Dompet (Dapat Ditarik) - Fast Retrieval with Instant DB Fallback
+            $balanceData = Cache::remember($walletCacheKey, now()->addMinutes(15), function () use ($store) {
                 try {
-                    $accessToken = $store->getValidAccessToken();
-                    
-                    if ($store->channel->code === 'shopee') {
-                        $shopId = (int) $store->marketplace_store_id;
-                        $currentBalance  = null;
-                        $withdrawBalance = null;
-                        $apiSuccess = false;
-                        
-                        // 1. Coba ambil dari Shopee API get_wallet_balance (Live Real-Time)
+                    $currentBalance  = null;
+                    $withdrawBalance = null;
+                    $apiSuccess      = false;
+
+                    // A. Prioritas 1: Ambil transaksi dompet terbaru di DB lokal
+                    $latestTx = MarketplaceWalletTransaction::where('store_id', $store->id)
+                        ->whereNotNull('current_balance')
+                        ->orderBy('transaction_date', 'desc')
+                        ->orderBy('id', 'desc')
+                        ->first();
+
+                    if ($latestTx) {
+                        $currentBalance  = (float) $latestTx->current_balance;
+                        $withdrawBalance = $currentBalance;
+                        $apiSuccess      = true;
+                    }
+
+                    // B. Jika belum ada di DB dan Shopee connected, coba 1 call cepat
+                    if (!$apiSuccess && $store->channel->code === 'shopee' && $store->status === 'connected') {
                         try {
+                            $accessToken = $store->getValidAccessToken();
+                            $shopId = (int) $store->marketplace_store_id;
                             $res = $this->shopeeService->getWalletBalance($accessToken, $shopId);
                             if (is_array($res) && (isset($res['current_balance']) || isset($res['withdraw_balance']))) {
                                 $currentBalance  = (float) ($res['current_balance'] ?? 0);
@@ -90,113 +122,30 @@ class MarketplaceWalletController extends Controller
                                 $apiSuccess = true;
                             }
                         } catch (\Throwable $e) {
-                            Log::warning("Shopee API getWalletBalance failed for {$store->store_name}: " . $e->getMessage());
+                            Log::info("Shopee fast getWalletBalance notice for {$store->store_name}: " . $e->getMessage());
                         }
-
-                        // 2. Fallback mutasi dompet jika get_wallet_balance kosong
-                        if (!$apiSuccess) {
-                            try {
-                                $dateFrom = now()->subDays(15)->startOfDay()->timestamp;
-                                $dateTo   = now()->endOfDay()->timestamp;
-                                $txRes = $this->shopeeService->getWalletTransactionList($accessToken, $shopId, 1, 10, $dateFrom, $dateTo);
-                                $txList = $txRes['transaction_list'] ?? [];
-                                if (!empty($txList) && isset($txList[0]['current_balance'])) {
-                                    $currentBalance  = (float) $txList[0]['current_balance'];
-                                    $withdrawBalance = $currentBalance;
-                                    $apiSuccess = true;
-
-                                    $latestRaw = $txList[0];
-                                    if (!empty($latestRaw['transaction_id'])) {
-                                        $amt = (float) ($latestRaw['amount'] ?? 0);
-                                        MarketplaceWalletTransaction::updateOrCreate([
-                                            'store_id'       => $store->id,
-                                            'transaction_id' => $latestRaw['transaction_id'],
-                                        ], [
-                                            'tenant_id'        => $store->tenant_id,
-                                            'transaction_date' => date('Y-m-d H:i:s', $latestRaw['create_time']),
-                                            'type'             => $this->mapShopeeTxType($latestRaw['wallet_type'] ?? ''),
-                                            'description'      => $latestRaw['description'] ?? '—',
-                                            'amount'           => abs($amt),
-                                            'direction'        => $amt >= 0 ? 'in' : 'out',
-                                            'current_balance'  => $currentBalance,
-                                            'raw_data'         => $latestRaw,
-                                        ]);
-                                    }
-                                }
-                            } catch (\Throwable $e) {
-                                Log::warning("Shopee getWalletTransactionList fallback failed for {$store->store_name}: " . $e->getMessage());
-                            }
-                        }
-
-                        // 3. Fallback database HANYA jika API benar-benar gagal terkoneksi (bukan karena saldo 0)
-                        if (!$apiSuccess) {
-                            $latestTx = MarketplaceWalletTransaction::where('store_id', $store->id)
-                                ->orderBy('transaction_date', 'desc')
-                                ->orderBy('id', 'desc')
-                                ->first();
-                            if ($latestTx) {
-                                $currentBalance  = (float) $latestTx->current_balance;
-                                $withdrawBalance = $currentBalance;
-                                $apiSuccess = true;
-                            } else {
-                                $currentBalance  = 0.0;
-                                $withdrawBalance = 0.0;
-                            }
-                        }
-
-                        return [
-                            'success'          => $apiSuccess,
-                            'current_balance'  => $currentBalance ?? 0.0,
-                            'withdraw_balance' => $withdrawBalance ?? $currentBalance ?? 0.0,
-                            'error_message'    => $apiSuccess ? null : 'Gagal memuat saldo dari API Shopee'
-                        ];
-                    } elseif ($store->channel->code === 'tiktok') {
-                        // Jika user meminta refresh, jalankan sync TikTok 30 hari terakhir untuk mendapatkan saldo akurat
-                        if (request()->boolean('refresh')) {
-                            try {
-                                Artisan::call('marketplace:sync-wallets', [
-                                    '--store_id' => $store->id,
-                                    '--days'     => 30,
-                                ]);
-                            } catch (\Throwable $e) {
-                                Log::warning("TikTok sync on refresh failed for {$store->store_name}: " . $e->getMessage());
-                            }
-                        }
-
-                        // Ambil saldo TikTok dari transaksi terakhir di database yang memiliki nilai current_balance
-                        $latestTx = MarketplaceWalletTransaction::where('store_id', $store->id)
-                            ->whereNotNull('current_balance')
-                            ->orderBy('transaction_date', 'desc')
-                            ->orderBy('id', 'desc')
-                            ->first();
-
-                        $balance = $latestTx ? (float) $latestTx->current_balance : 0.0;
-
-                        return [
-                            'success'          => true,
-                            'current_balance'  => $balance,
-                            'withdraw_balance' => $balance,
-                            'is_estimated'     => false,
-                            'error_message'    => null
-                        ];
                     }
+
+                    return [
+                        'success'          => $apiSuccess,
+                        'current_balance'  => $currentBalance ?? 0.0,
+                        'withdraw_balance' => $withdrawBalance ?? $currentBalance ?? 0.0,
+                        'error_message'    => null,
+                    ];
                 } catch (\Throwable $e) {
-                    Log::error("Failed to fetch wallet balance for store {$store->store_name}", [
-                        'message' => $e->getMessage()
-                    ]);
-                    
+                    Log::error("Failed to retrieve wallet balance for {$store->store_name}: " . $e->getMessage());
                     return [
                         'success'          => false,
                         'current_balance'  => 0.0,
                         'withdraw_balance' => 0.0,
-                        'error_message'    => $e->getMessage()
+                        'error_message'    => $e->getMessage(),
                     ];
                 }
             });
 
-            // 2. Saldo Pending (Akan Dilepas) diambil LANGSUNG REAL-TIME dari API Shopee & TikTok
-            $pendingData = Cache::remember($pendingCacheKey, now()->addMinutes(2), function () use ($store) {
-                return $this->getLivePendingFromApi($store);
+            // 2. Saldo Pending (Akan Dilepas / Escrow) - Fast & Accurate DB Calculation
+            $pendingData = Cache::remember($pendingCacheKey, now()->addMinutes(15), function () use ($store) {
+                return $this->calculatePendingBalanceFromDb($store);
             });
 
             // Saldo dompet riil yang siap ditarik
@@ -272,6 +221,10 @@ class MarketplaceWalletController extends Controller
             // Hapus cache saldo agar saldo langsung terupdate di dashboard
             Cache::forget("store_wallet_balance_{$store->id}");
             Cache::forget("store_pending_balance_{$store->id}");
+            Cache::forget("store_wallet_balance_v3_{$store->id}");
+            Cache::forget("store_pending_balance_v3_{$store->id}");
+            Cache::forget("store_wallet_balance_v4_{$store->id}");
+            Cache::forget("store_pending_balance_v4_{$store->id}");
 
             return back()->with('success', '✅ Sinkronisasi data mutasi dompet toko ' . $store->store_name . ' berhasil diselesaikan.');
         } catch (\Throwable $e) {
@@ -280,6 +233,135 @@ class MarketplaceWalletController extends Controller
             ]);
             return back()->with('error', '❌ Gagal melakukan sinkronisasi: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Hitung Saldo Pending (Akan Dilepas / Escrow) secara akurat dan instan dari database
+     */
+    public function calculatePendingBalanceFromDb(Store $store): array
+    {
+        // 1. Rasio estimasi potongan biaya (fee) default per channel jika belum ada rincian resmi
+        $isTiktok = ($store->channel && $store->channel->code === 'tiktok');
+        $feeRatio = $isTiktok ? 0.1350 : 0.2300;
+
+        // Cari rasio potongan biaya riil dari pesanan yang sudah selesai di toko ini
+        $recentCompleted = Order::where('store_id', $store->id)
+            ->whereIn('order_status', ['COMPLETED', 'SELESAI', 'DELIVERED', 'FINISHED'])
+            ->where('total_amount', '>', 0)
+            ->whereNotNull('financial_breakdown')
+            ->orderBy('id', 'desc')
+            ->limit(30)
+            ->get();
+
+        if ($recentCompleted->isNotEmpty()) {
+            $totalGross = 0.0;
+            $totalDeductions = 0.0;
+            foreach ($recentCompleted as $ord) {
+                $gross = (float) $ord->total_amount;
+                $fb = $ord->financial_breakdown;
+                if (is_string($fb)) $fb = json_decode($fb, true) ?? [];
+                
+                $escrowAmt = (float) ($fb['escrow_amount_after_adjustment'] ?? $fb['escrow_amount'] ?? $fb['settlement_amount'] ?? 0);
+                if ($escrowAmt > 0 && $gross > $escrowAmt) {
+                    $totalGross += $gross;
+                    $totalDeductions += ($gross - $escrowAmt);
+                } elseif ($ord->marketplace_fee > 0 && $ord->marketplace_fee < $gross) {
+                    $totalGross += $gross;
+                    $totalDeductions += (float)$ord->marketplace_fee;
+                }
+            }
+            if ($totalGross > 0) {
+                $calcRatio = $totalDeductions / $totalGross;
+                if ($calcRatio >= 0.05 && $calcRatio <= 0.40) {
+                    $feeRatio = $calcRatio;
+                }
+            }
+        }
+
+        // 2. Status pesanan yang dananya masih TERTANGKAP / TERTARIK di Escrow / Pending Settlement:
+        $activeStatuses = [
+            // Shopee
+            'READY_TO_SHIP', 'PROCESSED', 'RETRY_SHIP', 'TO_RETRY_LOGISTICS', 'SHIPPED', 'TO_CONFIRM_RECEIVE',
+            // TikTok
+            'AWAITING_SHIPMENT', '111', 'AWAITING_COLLECTION', '112', 'IN_TRANSIT', '121', 'DELIVERED', '122'
+        ];
+
+        // 3. Status yang TIDAK BOLEH masuk ke pending (sudah selesai / batal / retur / belum bayar)
+        $excludedStatuses = [
+            // Selesai / Dana sudah cair ke dompet
+            'COMPLETED', 'SELESAI', 'FINISHED', 'SETTLED',
+            // Batal
+            'CANCELLED', 'BATAL', 'CANCELED', 'IN_CANCEL', 'CANCEL_REQUEST', '140', '100',
+            // Belum bayar
+            'UNPAID', 'PENDING_PAYMENT',
+            // Retur / Refund
+            'RETURNED', 'REFUNDED', 'RETURN', 'REFUND', 'RETURN_APPROVED', 'RETURN_COMPLETED', 'RETUR', 'RETURNING', 'TO_RETURN'
+        ];
+
+        $pendingOrders = Order::where('store_id', $store->id)
+            ->whereIn('order_status', $activeStatuses)
+            ->whereNotIn('order_status', $excludedStatuses)
+            ->whereDoesntHave('returnOrder', function($q) {
+                $q->whereIn('status', ['approved', 'completed', 'received', 'refunded', 'SELESAI', 'DISETUJUI']);
+            })
+            ->where('order_date', '>=', now()->subDays(60))
+            ->get([
+                'id', 'store_id', 'order_marketplace_id', 'order_status',
+                'total_amount', 'marketplace_fee', 'net_amount',
+                'financial_breakdown', 'recon_status', 'order_date', 'refund_amount'
+            ]);
+
+        $pendingBalance = 0.0;
+        $pendingCount = 0;
+
+        foreach ($pendingOrders as $ord) {
+            $gross = (float) $ord->total_amount;
+            $refund = (float) $ord->refund_amount;
+
+            // Jika pesanan full refund atau kotor 0, abaikan
+            if ($gross <= 0 || ($refund >= $gross && $gross > 0)) {
+                continue;
+            }
+
+            $escrow = 0.0;
+
+            // Prioritas 1: Rincian finansial resmi jika ada
+            if (!empty($ord->financial_breakdown)) {
+                $fb = $ord->financial_breakdown;
+                if (is_string($fb)) $fb = json_decode($fb, true) ?? [];
+                if (is_array($fb)) {
+                    $officialEscrow = (float) ($fb['escrow_amount_after_adjustment'] ?? $fb['escrow_amount'] ?? $fb['settlement_amount'] ?? 0);
+                    if ($officialEscrow > 0) {
+                        $escrow = $officialEscrow;
+                    }
+                }
+            }
+
+            // Prioritas 2: Nilai net_amount jika valid
+            if ($escrow <= 0) {
+                if ((float)$ord->net_amount > 0 && (float)$ord->net_amount < $gross) {
+                    $escrow = (float)$ord->net_amount;
+                } else {
+                    $escrow = max(0.0, round($gross * (1.0 - $feeRatio)));
+                }
+            }
+
+            // Potong partial refund jika ada
+            if ($refund > 0) {
+                $escrow = max(0.0, $escrow - $refund);
+            }
+
+            if ($escrow > 0) {
+                $pendingBalance += $escrow;
+                $pendingCount++;
+            }
+        }
+
+        return [
+            'pending_balance' => round($pendingBalance, 2),
+            'pending_count'   => $pendingCount,
+            'is_live_api'     => false,
+        ];
     }
 
     /**
