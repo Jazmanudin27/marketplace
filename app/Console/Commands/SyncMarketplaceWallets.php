@@ -309,13 +309,30 @@ class SyncMarketplaceWallets extends Command
                     }
 
                     // 5. Rekalkulasi ulang SEMUA saldo berjalan TikTok di DB dari transaksi paling awal
-                    // Ini untuk membersihkan ketidaksesuaian saldo akibat data lama/salah hitung sebelumnya
+                    // Jika saldo berjalan terendah bernilai negatif (karena data sebelum rentang sinkronisasi tidak tercatat di DB),
+                    // sesuaikan saldo awal (base offset) sehingga tidak ada saldo berjalan yang bernilai minus.
                     $allTxInDb = MarketplaceWalletTransaction::where('store_id', $store->id)
                         ->orderBy('transaction_date', 'asc')
                         ->orderBy('id', 'asc')
                         ->get();
                         
-                    $dbRunningSum = 0.0;
+                    $rawRunning = 0.0;
+                    $minRunning = 0.0;
+                    foreach ($allTxInDb as $txInDb) {
+                        if ($txInDb->direction === 'in') {
+                            $rawRunning += (float) $txInDb->amount;
+                        } else {
+                            $rawRunning -= (float) $txInDb->amount;
+                        }
+                        if ($rawRunning < $minRunning) {
+                            $minRunning = $rawRunning;
+                        }
+                    }
+
+                    // Jika ada minus (misal penarikan dana mendahului saldo masuk lama), offset saldo awal
+                    $baseOffset = ($minRunning < 0) ? abs($minRunning) : 0.0;
+                    $dbRunningSum = $baseOffset;
+
                     foreach ($allTxInDb as $txInDb) {
                         if ($txInDb->direction === 'in') {
                             $dbRunningSum += (float) $txInDb->amount;
@@ -323,7 +340,7 @@ class SyncMarketplaceWallets extends Command
                             $dbRunningSum -= (float) $txInDb->amount;
                         }
                         
-                        $txInDb->current_balance = $dbRunningSum;
+                        $txInDb->current_balance = max(0.0, $dbRunningSum);
                         $txInDb->save();
                     }
                 }

@@ -185,6 +185,35 @@ class MarketplaceWalletController extends Controller
         $dateFrom = $request->input('date_from', now()->subDays(15)->format('Y-m-d'));
         $dateTo = $request->input('date_to', now()->format('Y-m-d'));
 
+        // Normalisasi saldo berjalan TikTok jika ada saldo minus akibat data lama sebelum rentang sync
+        if ($store->channel && $store->channel->code === 'tiktok') {
+            $hasNegative = MarketplaceWalletTransaction::where('store_id', $store->id)
+                ->where('current_balance', '<', 0)
+                ->exists();
+
+            if ($hasNegative) {
+                $allTx = MarketplaceWalletTransaction::where('store_id', $store->id)
+                    ->orderBy('transaction_date', 'asc')
+                    ->orderBy('id', 'asc')
+                    ->get();
+
+                $rawSum = 0.0;
+                $minSum = 0.0;
+                foreach ($allTx as $t) {
+                    $rawSum += ($t->direction === 'in') ? (float)$t->amount : -(float)$t->amount;
+                    if ($rawSum < $minSum) $minSum = $rawSum;
+                }
+
+                $offset = ($minSum < 0) ? abs($minSum) : 0.0;
+                $runBal = $offset;
+                foreach ($allTx as $t) {
+                    $runBal += ($t->direction === 'in') ? (float)$t->amount : -(float)$t->amount;
+                    $t->current_balance = max(0.0, $runBal);
+                    $t->save();
+                }
+            }
+        }
+
         $txs = MarketplaceWalletTransaction::where('store_id', $store->id)
             ->whereBetween('transaction_date', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59'])
             ->orderBy('transaction_date', 'desc')
@@ -199,7 +228,7 @@ class MarketplaceWalletController extends Controller
                 'description'     => $tx->description,
                 'amount'          => $tx->amount,
                 'direction'       => $tx->direction,
-                'current_balance' => $tx->current_balance,
+                'current_balance' => $tx->current_balance !== null ? max(0.0, (float)$tx->current_balance) : null,
             ];
         }
 
