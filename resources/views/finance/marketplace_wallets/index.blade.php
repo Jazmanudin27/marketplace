@@ -170,21 +170,23 @@
                                         {{-- Saldo Pending (Akan Dilepas) --}}
                                         <div class="border-top pt-2 mt-2">
                                             <div class="d-flex justify-content-between align-items-center text-secondary small" style="font-size: 0.78rem;">
-                                                <span class="text-dark fw-semibold">
+                                                <a href="{{ route('finance.marketplace_wallets.pending', $store) }}" class="text-dark text-decoration-none fw-semibold hover-primary" title="Klik untuk melihat rincian pesanan yang belum cair">
                                                     <i class="fas fa-hourglass-half me-1 text-warning"></i> Saldo Tertahan (Akan Dilepas):
                                                     @if(!empty($balance['is_live_pending']))
                                                         <span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25 rounded-pill px-1.5 py-0.5 ms-1" style="font-size: 0.62rem;" title="Data pesanan pending diambil langsung secara real-time dari API marketplace">Live API</span>
                                                     @endif
-                                                </span>
-                                                <strong class="text-warning-emphasis font-monospace fs-6">
-                                                    Rp {{ number_format($balance['pending_balance'], 0, ',', '.') }}
-                                                </strong>
+                                                </a>
+                                                <a href="{{ route('finance.marketplace_wallets.pending', $store) }}" class="text-decoration-none">
+                                                    <strong class="text-warning-emphasis font-monospace fs-6">
+                                                        Rp {{ number_format($balance['pending_balance'], 0, ',', '.') }}
+                                                    </strong>
+                                                </a>
                                             </div>
                                             <div class="d-flex justify-content-between align-items-center mt-1 text-muted" style="font-size: 0.72rem;">
                                                 <span>Pesanan dalam proses/kirim:</span>
-                                                <span class="badge bg-warning bg-opacity-25 text-dark rounded-pill px-2 py-0.5 fw-semibold" style="font-size: 0.68rem;">
-                                                    {{ $balance['pending_count'] }} Pesanan
-                                                </span>
+                                                <a href="{{ route('finance.marketplace_wallets.pending', $store) }}" class="badge bg-warning bg-opacity-25 text-dark rounded-pill px-2 py-0.5 fw-semibold text-decoration-none">
+                                                    {{ $balance['pending_count'] }} Pesanan <i class="fas fa-chevron-right ms-0.5 opacity-50" style="font-size: 0.6rem;"></i>
+                                                </a>
                                             </div>
                                         </div>
 
@@ -204,15 +206,20 @@
                                         {{-- Tetap tampilkan Saldo Pending dari database ERP --}}
                                         <div class="border-top pt-2 mt-2">
                                             <div class="d-flex justify-content-between align-items-center text-secondary small" style="font-size: 0.78rem;">
-                                                <span class="text-dark fw-semibold">
+                                                <a href="{{ route('finance.marketplace_wallets.pending', $store) }}" class="text-dark text-decoration-none fw-semibold">
                                                     <i class="fas fa-hourglass-half me-1 text-warning"></i> Saldo Pending:
-                                                </span>
-                                                <strong class="text-warning-emphasis font-monospace fs-6">
-                                                    Rp {{ number_format($balance['pending_balance'], 0, ',', '.') }}
-                                                </strong>
+                                                </a>
+                                                <a href="{{ route('finance.marketplace_wallets.pending', $store) }}" class="text-decoration-none">
+                                                    <strong class="text-warning-emphasis font-monospace fs-6">
+                                                        Rp {{ number_format($balance['pending_balance'], 0, ',', '.') }}
+                                                    </strong>
+                                                </a>
                                             </div>
-                                            <div class="text-muted small mt-1" style="font-size: 0.72rem;">
-                                                {{ $balance['pending_count'] }} pesanan aktif berjalan di ERP
+                                            <div class="d-flex justify-content-between align-items-center mt-1 text-muted" style="font-size: 0.72rem;">
+                                                <span>Pesanan berjalan di ERP:</span>
+                                                <a href="{{ route('finance.marketplace_wallets.pending', $store) }}" class="badge bg-warning bg-opacity-25 text-dark rounded-pill px-2 py-0.5 fw-semibold text-decoration-none">
+                                                    {{ $balance['pending_count'] }} Pesanan <i class="fas fa-chevron-right ms-0.5 opacity-50" style="font-size: 0.6rem;"></i>
+                                                </a>
                                             </div>
                                         </div>
                                     @endif
@@ -220,18 +227,28 @@
 
                                 {{-- Action Button --}}
                                 @if($store->status === 'connected')
-                                    <div class="d-flex gap-2">
-                                        <a href="{{ route('finance.marketplace_wallets.mutasi', $store) }}" class="btn btn-primary btn-sm flex-grow-1 rounded-2 py-2 fw-semibold">
-                                            <i class="fas fa-history me-1.5"></i> Lihat Mutasi Dompet
+                                    <div class="d-flex flex-column gap-2">
+                                        <a href="{{ route('finance.marketplace_wallets.pending', $store) }}" class="btn btn-outline-warning btn-sm rounded-2 py-1.5 fw-semibold text-dark">
+                                            <i class="fas fa-list-ul me-1.5 text-warning"></i> Rincian Saldo Tertahan ({{ $balance['pending_count'] }})
                                         </a>
-                                        <a href="{{ route('finance.marketplace_wallets.sync', [$store, 'days' => 60]) }}" class="btn btn-outline-secondary btn-sm px-2.5 rounded-2 py-2" title="Tarik data mutasi & sinkronkan saldo toko ini" onclick="return confirm('Tarik data mutasi terbaru dari toko {{ $store->store_name }}?')">
-                                            <i class="fas fa-sync-alt"></i>
-                                        </a>
+                                        <div class="d-flex gap-2">
+                                            <a href="{{ route('finance.marketplace_wallets.mutasi', $store) }}" class="btn btn-primary btn-sm flex-grow-1 rounded-2 py-1.5 fw-semibold">
+                                                <i class="fas fa-history me-1.5"></i> Lihat Mutasi Dompet
+                                            </a>
+                                            <a href="{{ route('finance.marketplace_wallets.sync', [$store, 'days' => 60]) }}" class="btn btn-outline-secondary btn-sm px-2.5 rounded-2 py-1.5" title="Tarik data mutasi & sinkronkan saldo toko ini" onclick="return confirm('Tarik data mutasi terbaru dari toko {{ $store->store_name }}?')">
+                                                <i class="fas fa-sync-alt"></i>
+                                            </a>
+                                        </div>
                                     </div>
                                 @else
-                                    <button class="btn btn-secondary btn-sm w-100 rounded-2 py-2 fw-semibold" disabled>
-                                        <i class="fas fa-plug me-1.5"></i> Offline
-                                    </button>
+                                    <div class="d-flex flex-column gap-2">
+                                        <a href="{{ route('finance.marketplace_wallets.pending', $store) }}" class="btn btn-outline-warning btn-sm rounded-2 py-1.5 fw-semibold text-dark">
+                                            <i class="fas fa-list-ul me-1.5 text-warning"></i> Rincian Saldo Tertahan ({{ $balance['pending_count'] }})
+                                        </a>
+                                        <button class="btn btn-secondary btn-sm w-100 rounded-2 py-1.5 fw-semibold" disabled>
+                                            <i class="fas fa-plug me-1.5"></i> Offline
+                                        </button>
+                                    </div>
                                 @endif
                             </div>
                         </div>

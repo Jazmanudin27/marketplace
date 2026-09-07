@@ -130,4 +130,31 @@ class MarketplaceWalletTest extends TestCase
         // Total Estimated = 4.755.000
         $response->assertSee('4.755.000');
     }
+
+    public function test_marketplace_wallet_pending_page_loads_with_breakdown_orders()
+    {
+        Order::create([
+            'tenant_id' => $this->tenant->id,
+            'store_id' => $this->store->id,
+            'order_marketplace_id' => 'SHP-PENDING-DETAIL-01',
+            'order_status' => 'SHIPPED',
+            'buyer_name' => 'Budi Santoso',
+            'courier' => 'J&T Express',
+            'tracking_number' => 'JT123456789',
+            'total_amount' => 250000,
+            'marketplace_fee' => 35000,
+            'net_amount' => 215000,
+            'order_date' => now()->subDay(),
+        ]);
+
+        $response = $this->actingAs($this->user)->get(route('finance.marketplace_wallets.pending', $this->store));
+
+        $response->assertStatus(200);
+        $response->assertSee('Rincian Saldo Tertahan');
+        $response->assertSee('Toko Shopee Official');
+        $response->assertSee('SHP-PENDING-DETAIL-01');
+        $response->assertSee('Budi Santoso');
+        $response->assertSee('215.000');
+    }
 }
+

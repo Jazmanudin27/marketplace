@@ -206,6 +206,186 @@ class MarketplaceWalletController extends Controller
         return view('finance.marketplace_wallets.mutasi', compact('store', 'mutasiList', 'dateFrom', 'dateTo', 'error'));
     }
 
+    public function pending(Request $request, Store $store)
+    {
+        abort_unless($store->tenant_id === Auth::user()->tenant_id, 403);
+
+        $dateFrom = $request->input('date_from', now()->subDays(60)->format('Y-m-d'));
+        $dateTo = $request->input('date_to', now()->format('Y-m-d'));
+        $search = $request->input('search');
+        $statusFilter = $request->input('status');
+
+        $isTiktok = ($store->channel && $store->channel->code === 'tiktok');
+        $feeRatio = $isTiktok ? 0.1350 : 0.2300;
+
+        // Cari rasio potongan biaya riil dari pesanan yang sudah selesai di toko ini
+        $recentCompleted = Order::where('store_id', $store->id)
+            ->whereIn('order_status', ['COMPLETED', 'SELESAI', 'DELIVERED', 'FINISHED'])
+            ->where('total_amount', '>', 0)
+            ->where('order_date', '>=', now()->subDays(60))
+            ->limit(50)
+            ->get(['total_amount', 'marketplace_fee', 'net_amount', 'financial_breakdown']);
+
+        if ($recentCompleted->isNotEmpty()) {
+            $totalGross = 0;
+            $totalDeductions = 0;
+            foreach ($recentCompleted as $ord) {
+                $gross = (float)$ord->total_amount;
+                $escrowAmt = 0;
+                if (!empty($ord->financial_breakdown)) {
+                    $fb = is_string($ord->financial_breakdown) ? json_decode($ord->financial_breakdown, true) : $ord->financial_breakdown;
+                    if (is_array($fb)) {
+                        $escrowAmt = (float)($fb['escrow_amount_after_adjustment'] ?? $fb['escrow_amount'] ?? $fb['settlement_amount'] ?? 0);
+                    }
+                }
+                if ($escrowAmt <= 0 && (float)$ord->net_amount > 0 && (float)$ord->net_amount < $gross) {
+                    $escrowAmt = (float)$ord->net_amount;
+                }
+                if ($escrowAmt > 0 && $gross > $escrowAmt) {
+                    $totalGross += $gross;
+                    $totalDeductions += ($gross - $escrowAmt);
+                } elseif ($ord->marketplace_fee > 0 && $ord->marketplace_fee < $gross) {
+                    $totalGross += $gross;
+                    $totalDeductions += (float)$ord->marketplace_fee;
+                }
+            }
+            if ($totalGross > 0) {
+                $calcRatio = $totalDeductions / $totalGross;
+                if ($calcRatio >= 0.05 && $calcRatio <= 0.40) {
+                    $feeRatio = $calcRatio;
+                }
+            }
+        }
+
+        // Status pesanan yang dananya masih tertahan di Escrow / Pending Settlement
+        $activeStatuses = [
+            'READY_TO_SHIP', 'PROCESSED', 'RETRY_SHIP', 'TO_RETRY_LOGISTICS', 'SHIPPED', 'TO_CONFIRM_RECEIVE',
+            'AWAITING_SHIPMENT', '111', 'AWAITING_COLLECTION', '112', 'IN_TRANSIT', '121', 'DELIVERED', '122'
+        ];
+
+        $excludedStatuses = [
+            'COMPLETED', 'SELESAI', 'FINISHED', 'SETTLED',
+            'CANCELLED', 'BATAL', 'CANCELED', 'IN_CANCEL', 'CANCEL_REQUEST', '140', '100',
+            'UNPAID', 'PENDING_PAYMENT',
+            'RETURNED', 'REFUNDED', 'RETURN', 'REFUND', 'RETURN_APPROVED', 'RETURN_COMPLETED', 'RETUR', 'RETURNING', 'TO_RETURN'
+        ];
+
+        $query = Order::with('returnOrder')
+            ->where('store_id', $store->id)
+            ->whereBetween('order_date', [$dateFrom . ' 00:00:00', $dateTo . ' 23:59:59'])
+            ->whereIn('order_status', $activeStatuses)
+            ->whereNotIn('order_status', $excludedStatuses)
+            ->whereDoesntHave('returnOrder', function($q) {
+                $q->whereIn('status', ['approved', 'completed', 'received', 'refunded', 'SELESAI', 'DISETUJUI']);
+            });
+
+        if (!empty($search)) {
+            $query->where(function($q) use ($search) {
+                $q->where('order_marketplace_id', 'like', "%{$search}%")
+                  ->orWhere('invoice_number', 'like', "%{$search}%")
+                  ->orWhere('buyer_name', 'like', "%{$search}%")
+                  ->orWhere('tracking_number', 'like', "%{$search}%");
+            });
+        }
+
+        if (!empty($statusFilter)) {
+            $query->where('order_status', $statusFilter);
+        }
+
+        $orders = $query->orderBy('order_date', 'desc')->get();
+
+        $pendingList = [];
+        $totalPendingAmount = 0.0;
+        $totalGrossAmount = 0.0;
+        $totalFeeAmount = 0.0;
+
+        foreach ($orders as $ord) {
+            $gross = (float) $ord->total_amount;
+            $refund = (float) $ord->refund_amount;
+
+            if ($gross <= 0 || ($refund >= $gross && $gross > 0)) {
+                continue;
+            }
+
+            $escrow = 0.0;
+            $feeType = 'Estimasi';
+
+            // Prioritas 1: Rincian finansial resmi jika ada
+            if (!empty($ord->financial_breakdown)) {
+                $fb = $ord->financial_breakdown;
+                if (is_string($fb)) $fb = json_decode($fb, true) ?? [];
+                if (is_array($fb)) {
+                    $officialEscrow = (float) ($fb['escrow_amount_after_adjustment'] ?? $fb['escrow_amount'] ?? $fb['settlement_amount'] ?? 0);
+                    if ($officialEscrow > 0) {
+                        $escrow = $officialEscrow;
+                        $feeType = 'Resmi (API)';
+                    }
+                }
+            }
+
+            // Prioritas 2: Nilai net_amount jika valid
+            if ($escrow <= 0) {
+                if ((float)$ord->net_amount > 0 && (float)$ord->net_amount < $gross) {
+                    $escrow = (float)$ord->net_amount;
+                    $feeType = 'Net ERP';
+                } else {
+                    $escrow = max(0.0, round($gross * (1.0 - $feeRatio)));
+                    $feeType = 'Estimasi (' . round($feeRatio * 100, 1) . '%)';
+                }
+            }
+
+            // Potong partial refund jika ada
+            if ($refund > 0) {
+                $escrow = max(0.0, $escrow - $refund);
+            }
+
+            if ($escrow > 0) {
+                $fee = max(0.0, $gross - $escrow - $refund);
+                $totalPendingAmount += $escrow;
+                $totalGrossAmount += $gross;
+                $totalFeeAmount += $fee;
+
+                $pendingList[] = [
+                    'order'               => $ord,
+                    'order_id'            => $ord->id,
+                    'order_marketplace_id'=> $ord->order_marketplace_id ?: $ord->invoice_number,
+                    'invoice_number'      => $ord->invoice_number,
+                    'order_date'          => $ord->order_date ? \Carbon\Carbon::parse($ord->order_date)->format('d/m/Y H:i') : '-',
+                    'order_status'        => $ord->order_status,
+                    'buyer_name'          => $ord->buyer_name ?: 'Pembeli',
+                    'courier'             => $ord->courier ?: '-',
+                    'tracking_number'     => $ord->tracking_number,
+                    'gross'               => $gross,
+                    'fee'                 => $fee,
+                    'fee_type'            => $feeType,
+                    'refund'              => $refund,
+                    'escrow'              => $escrow,
+                ];
+            }
+        }
+
+        // Ambil daftar status unik untuk filter dropdown
+        $availableStatuses = Order::where('store_id', $store->id)
+            ->whereIn('order_status', $activeStatuses)
+            ->whereNotIn('order_status', $excludedStatuses)
+            ->distinct()
+            ->pluck('order_status')
+            ->toArray();
+
+        return view('finance.marketplace_wallets.pending', compact(
+            'store',
+            'pendingList',
+            'dateFrom',
+            'dateTo',
+            'search',
+            'statusFilter',
+            'totalPendingAmount',
+            'totalGrossAmount',
+            'totalFeeAmount',
+            'availableStatuses'
+        ));
+    }
+
     public function sync(Request $request, Store $store)
     {
         abort_unless($store->tenant_id === Auth::user()->tenant_id, 403);
