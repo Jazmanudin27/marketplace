@@ -43,6 +43,8 @@ class MarketplaceWalletController extends Controller
                 Cache::forget("store_pending_balance_v3_{$s->id}");
                 Cache::forget("store_wallet_balance_v4_{$s->id}");
                 Cache::forget("store_pending_balance_v4_{$s->id}");
+                Cache::forget("store_wallet_balance_v5_{$s->id}");
+                Cache::forget("store_pending_balance_v5_{$s->id}");
                 Cache::forget("store_shopee_fee_ratio_{$s->id}");
                 Cache::forget("store_tiktok_fee_ratio_{$s->id}");
                 Cache::forget("store_shopee_fee_ratio_v3_{$s->id}");
@@ -58,7 +60,7 @@ class MarketplaceWalletController extends Controller
                             if (is_array($res) && (isset($res['current_balance']) || isset($res['withdraw_balance']))) {
                                 $currentBal = (float) ($res['current_balance'] ?? 0);
                                 $withdrawBal = isset($res['withdraw_balance']) ? (float) $res['withdraw_balance'] : $currentBal;
-                                Cache::put("store_wallet_balance_v4_{$s->id}", [
+                                Cache::put("store_wallet_balance_v5_{$s->id}", [
                                     'success'          => true,
                                     'current_balance'  => $currentBal,
                                     'withdraw_balance' => $withdrawBal,
@@ -87,8 +89,8 @@ class MarketplaceWalletController extends Controller
         $totalPendingCount = 0;
 
         foreach ($stores as $store) {
-            $walletCacheKey  = "store_wallet_balance_v4_{$store->id}";
-            $pendingCacheKey = "store_pending_balance_v4_{$store->id}";
+            $walletCacheKey  = "store_wallet_balance_v5_{$store->id}";
+            $pendingCacheKey = "store_pending_balance_v5_{$store->id}";
             
             // 1. Saldo Dompet (Dapat Ditarik) - Fast Retrieval with Instant DB Fallback
             $balanceData = Cache::remember($walletCacheKey, now()->addMinutes(15), function () use ($store) {
@@ -215,12 +217,70 @@ class MarketplaceWalletController extends Controller
         $search = $request->input('search');
         $statusFilter = $request->input('status');
 
+        $data = $this->getPendingOrdersData($store, $dateFrom, $dateTo, $search, $statusFilter);
+
+        return view('finance.marketplace_wallets.pending', array_merge([
+            'store'        => $store,
+            'dateFrom'     => $dateFrom,
+            'dateTo'       => $dateTo,
+            'search'       => $search,
+            'statusFilter' => $statusFilter,
+        ], $data));
+    }
+
+    public function sync(Request $request, Store $store)
+    {
+        abort_unless($store->tenant_id === Auth::user()->tenant_id, 403);
+        
+        $days = (int) $request->input('days', 90);
+
+        try {
+            Artisan::call('marketplace:sync-wallets', [
+                '--store_id' => $store->id,
+                '--days'     => $days
+            ]);
+
+            // Hapus cache saldo agar saldo langsung terupdate di dashboard
+            Cache::forget("store_wallet_balance_{$store->id}");
+            Cache::forget("store_pending_balance_{$store->id}");
+            Cache::forget("store_wallet_balance_v3_{$store->id}");
+            Cache::forget("store_pending_balance_v3_{$store->id}");
+            Cache::forget("store_wallet_balance_v4_{$store->id}");
+            Cache::forget("store_pending_balance_v4_{$store->id}");
+            Cache::forget("store_wallet_balance_v5_{$store->id}");
+            Cache::forget("store_pending_balance_v5_{$store->id}");
+
+            return back()->with('success', '✅ Sinkronisasi data mutasi dompet toko ' . $store->store_name . ' berhasil diselesaikan.');
+        } catch (\Throwable $e) {
+            Log::error("Manual sync failed for store {$store->store_name}", [
+                'message' => $e->getMessage()
+            ]);
+            return back()->with('error', '❌ Gagal melakukan sinkronisasi: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Hitung Saldo Pending (Akan Dilepas / Escrow) secara akurat dan instan dari database
+     */
+    public function calculatePendingBalanceFromDb(Store $store): array
+    {
+        return $this->getPendingOrdersData($store);
+    }
+
+    /**
+     * Helper terpusat untuk mengambil dan menghitung pesanan pending tertahan secara konsisten
+     */
+    public function getPendingOrdersData(Store $store, ?string $dateFrom = null, ?string $dateTo = null, ?string $search = null, ?string $statusFilter = null): array
+    {
+        $dateFrom = $dateFrom ?: now()->subDays(60)->format('Y-m-d');
+        $dateTo = $dateTo ?: now()->format('Y-m-d');
+
         $isTiktok = ($store->channel && $store->channel->code === 'tiktok');
         $feeRatio = $isTiktok ? 0.1350 : 0.2300;
 
         // Cari rasio potongan biaya riil dari pesanan yang sudah selesai di toko ini
         $recentCompleted = Order::where('store_id', $store->id)
-            ->whereIn('order_status', ['COMPLETED', 'SELESAI', 'DELIVERED', 'FINISHED'])
+            ->whereIn('order_status', ['COMPLETED', 'SELESAI', 'DELIVERED', 'FINISHED', '122'])
             ->where('total_amount', '>', 0)
             ->where('order_date', '>=', now()->subDays(60))
             ->limit(50)
@@ -372,7 +432,6 @@ class MarketplaceWalletController extends Controller
             }
         }
 
-        // Ambil daftar status unik untuk filter dropdown
         $availableStatuses = Order::where('store_id', $store->id)
             ->whereIn('order_status', $activeStatuses)
             ->whereNotIn('order_status', $excludedStatuses)
@@ -380,178 +439,15 @@ class MarketplaceWalletController extends Controller
             ->pluck('order_status')
             ->toArray();
 
-        return view('finance.marketplace_wallets.pending', compact(
-            'store',
-            'pendingList',
-            'dateFrom',
-            'dateTo',
-            'search',
-            'statusFilter',
-            'totalPendingAmount',
-            'totalGrossAmount',
-            'totalFeeAmount',
-            'availableStatuses'
-        ));
-    }
-
-    public function sync(Request $request, Store $store)
-    {
-        abort_unless($store->tenant_id === Auth::user()->tenant_id, 403);
-        
-        $days = (int) $request->input('days', 90);
-
-        try {
-            Artisan::call('marketplace:sync-wallets', [
-                '--store_id' => $store->id,
-                '--days'     => $days
-            ]);
-
-            // Hapus cache saldo agar saldo langsung terupdate di dashboard
-            Cache::forget("store_wallet_balance_{$store->id}");
-            Cache::forget("store_pending_balance_{$store->id}");
-            Cache::forget("store_wallet_balance_v3_{$store->id}");
-            Cache::forget("store_pending_balance_v3_{$store->id}");
-            Cache::forget("store_wallet_balance_v4_{$store->id}");
-            Cache::forget("store_pending_balance_v4_{$store->id}");
-
-            return back()->with('success', '✅ Sinkronisasi data mutasi dompet toko ' . $store->store_name . ' berhasil diselesaikan.');
-        } catch (\Throwable $e) {
-            Log::error("Manual sync failed for store {$store->store_name}", [
-                'message' => $e->getMessage()
-            ]);
-            return back()->with('error', '❌ Gagal melakukan sinkronisasi: ' . $e->getMessage());
-        }
-    }
-
-    /**
-     * Hitung Saldo Pending (Akan Dilepas / Escrow) secara akurat dan instan dari database
-     */
-    public function calculatePendingBalanceFromDb(Store $store): array
-    {
-        // 1. Rasio estimasi potongan biaya (fee) default per channel jika belum ada rincian resmi
-        $isTiktok = ($store->channel && $store->channel->code === 'tiktok');
-        $feeRatio = $isTiktok ? 0.1350 : 0.2300;
-
-        // Cari rasio potongan biaya riil dari pesanan yang sudah selesai di toko ini
-        $recentCompleted = Order::where('store_id', $store->id)
-            ->whereIn('order_status', ['COMPLETED', 'SELESAI', 'DELIVERED', 'FINISHED'])
-            ->where('total_amount', '>', 0)
-            ->whereNotNull('financial_breakdown')
-            ->orderBy('id', 'desc')
-            ->limit(30)
-            ->get();
-
-        if ($recentCompleted->isNotEmpty()) {
-            $totalGross = 0.0;
-            $totalDeductions = 0.0;
-            foreach ($recentCompleted as $ord) {
-                $gross = (float) $ord->total_amount;
-                $fb = $ord->financial_breakdown;
-                if (is_string($fb)) $fb = json_decode($fb, true) ?? [];
-                
-                $escrowAmt = (float) ($fb['escrow_amount_after_adjustment'] ?? $fb['escrow_amount'] ?? $fb['settlement_amount'] ?? 0);
-                if ($escrowAmt > 0 && $gross > $escrowAmt) {
-                    $totalGross += $gross;
-                    $totalDeductions += ($gross - $escrowAmt);
-                } elseif ($ord->marketplace_fee > 0 && $ord->marketplace_fee < $gross) {
-                    $totalGross += $gross;
-                    $totalDeductions += (float)$ord->marketplace_fee;
-                }
-            }
-            if ($totalGross > 0) {
-                $calcRatio = $totalDeductions / $totalGross;
-                if ($calcRatio >= 0.05 && $calcRatio <= 0.40) {
-                    $feeRatio = $calcRatio;
-                }
-            }
-        }
-
-        // 2. Status pesanan yang sudah dikirim & dananya masih dalam proses pelepasan (Escrow / Pending Settlement):
-        $activeStatuses = [
-            // Shopee: Sedang dalam pengiriman / konfirmasi terima
-            'SHIPPED', 'TO_CONFIRM_RECEIVE', 'RETRY_SHIP', 'TO_RETRY_LOGISTICS',
-            // TikTok: Dalam pengiriman (121) / Telah sampai (122)
-            'IN_TRANSIT', '121', 'DELIVERED', '122'
-        ];
-
-        // 3. Status yang TIDAK BOLEH masuk ke pending (siap dikirim / sudah selesai / batal / retur / belum bayar)
-        $excludedStatuses = [
-            // Siap dikirim (belum dikirim ke ekspedisi)
-            'READY_TO_SHIP', 'PROCESSED', 'AWAITING_SHIPMENT', '111', 'AWAITING_COLLECTION', '112', 'UNPROCESSED',
-            // Selesai / Dana sudah cair ke dompet
-            'COMPLETED', 'SELESAI', 'FINISHED', 'SETTLED',
-            // Batal
-            'CANCELLED', 'BATAL', 'CANCELED', 'IN_CANCEL', 'CANCEL_REQUEST', '140', '100',
-            // Belum bayar
-            'UNPAID', 'PENDING_PAYMENT',
-            // Retur / Refund
-            'RETURNED', 'REFUNDED', 'RETURN', 'REFUND', 'RETURN_APPROVED', 'RETURN_COMPLETED', 'RETUR', 'RETURNING', 'TO_RETURN'
-        ];
-
-        $pendingOrders = Order::with('returnOrder')
-            ->where('store_id', $store->id)
-            ->whereIn('order_status', $activeStatuses)
-            ->whereNotIn('order_status', $excludedStatuses)
-            ->whereDoesntHave('returnOrder', function($q) {
-                $q->whereIn('status', ['approved', 'completed', 'received', 'refunded', 'SELESAI', 'DISETUJUI']);
-            })
-            ->where('order_date', '>=', now()->subDays(60))
-            ->get([
-                'id', 'store_id', 'order_marketplace_id', 'order_status',
-                'total_amount', 'marketplace_fee', 'net_amount',
-                'financial_breakdown', 'recon_status', 'order_date'
-            ]);
-
-        $pendingBalance = 0.0;
-        $pendingCount = 0;
-
-        foreach ($pendingOrders as $ord) {
-            $gross = (float) $ord->total_amount;
-            $refund = (float) $ord->refund_amount;
-
-            // Jika pesanan full refund atau kotor 0, abaikan
-            if ($gross <= 0 || ($refund >= $gross && $gross > 0)) {
-                continue;
-            }
-
-            $escrow = 0.0;
-
-            // Prioritas 1: Rincian finansial resmi jika ada
-            if (!empty($ord->financial_breakdown)) {
-                $fb = $ord->financial_breakdown;
-                if (is_string($fb)) $fb = json_decode($fb, true) ?? [];
-                if (is_array($fb)) {
-                    $officialEscrow = (float) ($fb['escrow_amount_after_adjustment'] ?? $fb['escrow_amount'] ?? $fb['settlement_amount'] ?? 0);
-                    if ($officialEscrow > 0) {
-                        $escrow = $officialEscrow;
-                    }
-                }
-            }
-
-            // Prioritas 2: Nilai net_amount jika valid
-            if ($escrow <= 0) {
-                if ((float)$ord->net_amount > 0 && (float)$ord->net_amount < $gross) {
-                    $escrow = (float)$ord->net_amount;
-                } else {
-                    $escrow = max(0.0, round($gross * (1.0 - $feeRatio)));
-                }
-            }
-
-            // Potong partial refund jika ada
-            if ($refund > 0) {
-                $escrow = max(0.0, $escrow - $refund);
-            }
-
-            if ($escrow > 0) {
-                $pendingBalance += $escrow;
-                $pendingCount++;
-            }
-        }
-
         return [
-            'pending_balance' => round($pendingBalance, 2),
-            'pending_count'   => $pendingCount,
-            'is_live_api'     => false,
+            'pending_balance'    => round($totalPendingAmount, 2),
+            'pending_count'      => count($pendingList),
+            'pendingList'        => $pendingList,
+            'totalPendingAmount' => $totalPendingAmount,
+            'totalGrossAmount'   => $totalGrossAmount,
+            'totalFeeAmount'     => $totalFeeAmount,
+            'availableStatuses'  => $availableStatuses,
+            'is_live_api'        => false,
         ];
     }
 
