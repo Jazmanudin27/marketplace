@@ -298,7 +298,8 @@ class MarketplaceWalletController extends Controller
             'RETURNED', 'REFUNDED', 'RETURN', 'REFUND', 'RETURN_APPROVED', 'RETURN_COMPLETED', 'RETUR', 'RETURNING', 'TO_RETURN'
         ];
 
-        $pendingOrders = Order::where('store_id', $store->id)
+        $pendingOrders = Order::with('returnOrder')
+            ->where('store_id', $store->id)
             ->whereIn('order_status', $activeStatuses)
             ->whereNotIn('order_status', $excludedStatuses)
             ->whereDoesntHave('returnOrder', function($q) {
@@ -308,7 +309,7 @@ class MarketplaceWalletController extends Controller
             ->get([
                 'id', 'store_id', 'order_marketplace_id', 'order_status',
                 'total_amount', 'marketplace_fee', 'net_amount',
-                'financial_breakdown', 'recon_status', 'order_date', 'refund_amount'
+                'financial_breakdown', 'recon_status', 'order_date'
             ]);
 
         $pendingBalance = 0.0;
@@ -826,7 +827,8 @@ class MarketplaceWalletController extends Controller
 
         // Fallback ke database jika API gagal terkoneksi
         if (!$apiSuccess) {
-            $pendingOrders = Order::where('store_id', $store->id)
+            $pendingOrders = Order::with('returnOrder')
+                ->where('store_id', $store->id)
                 ->whereIn('order_status', [
                     'READY_TO_SHIP', 'PROCESSED', 'RETRY_SHIP', 'TO_RETRY_LOGISTICS',
                     'SHIPPED', 'TO_CONFIRM_RECEIVE', 'IN_TRANSIT', 'DELIVERED',
