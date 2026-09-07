@@ -257,16 +257,24 @@ class MarketplaceWalletController extends Controller
             }
         }
 
-        // Status pesanan yang dananya masih tertahan di Escrow / Pending Settlement
+        // Status pesanan yang sudah dikirim & dananya sedang menunggu pelepasan (Escrow / Pending Settlement):
         $activeStatuses = [
-            'READY_TO_SHIP', 'PROCESSED', 'RETRY_SHIP', 'TO_RETRY_LOGISTICS', 'SHIPPED', 'TO_CONFIRM_RECEIVE',
-            'AWAITING_SHIPMENT', '111', 'AWAITING_COLLECTION', '112', 'IN_TRANSIT', '121', 'DELIVERED', '122'
+            // Shopee: Sedang dalam pengiriman / konfirmasi terima
+            'SHIPPED', 'TO_CONFIRM_RECEIVE', 'RETRY_SHIP', 'TO_RETRY_LOGISTICS',
+            // TikTok: Dalam pengiriman (121) / Telah sampai (122)
+            'IN_TRANSIT', '121', 'DELIVERED', '122'
         ];
 
         $excludedStatuses = [
+            // Siap Dikirim / Belum diserahkan ke ekspedisi
+            'READY_TO_SHIP', 'PROCESSED', 'AWAITING_SHIPMENT', '111', 'AWAITING_COLLECTION', '112', 'UNPROCESSED',
+            // Selesai / Dana sudah cair ke dompet
             'COMPLETED', 'SELESAI', 'FINISHED', 'SETTLED',
+            // Batal
             'CANCELLED', 'BATAL', 'CANCELED', 'IN_CANCEL', 'CANCEL_REQUEST', '140', '100',
+            // Belum bayar
             'UNPAID', 'PENDING_PAYMENT',
+            // Retur / Refund
             'RETURNED', 'REFUNDED', 'RETURN', 'REFUND', 'RETURN_APPROVED', 'RETURN_COMPLETED', 'RETUR', 'RETURNING', 'TO_RETURN'
         ];
 
@@ -458,16 +466,18 @@ class MarketplaceWalletController extends Controller
             }
         }
 
-        // 2. Status pesanan yang dananya masih TERTANGKAP / TERTARIK di Escrow / Pending Settlement:
+        // 2. Status pesanan yang sudah dikirim & dananya masih dalam proses pelepasan (Escrow / Pending Settlement):
         $activeStatuses = [
-            // Shopee
-            'READY_TO_SHIP', 'PROCESSED', 'RETRY_SHIP', 'TO_RETRY_LOGISTICS', 'SHIPPED', 'TO_CONFIRM_RECEIVE',
-            // TikTok
-            'AWAITING_SHIPMENT', '111', 'AWAITING_COLLECTION', '112', 'IN_TRANSIT', '121', 'DELIVERED', '122'
+            // Shopee: Sedang dalam pengiriman / konfirmasi terima
+            'SHIPPED', 'TO_CONFIRM_RECEIVE', 'RETRY_SHIP', 'TO_RETRY_LOGISTICS',
+            // TikTok: Dalam pengiriman (121) / Telah sampai (122)
+            'IN_TRANSIT', '121', 'DELIVERED', '122'
         ];
 
-        // 3. Status yang TIDAK BOLEH masuk ke pending (sudah selesai / batal / retur / belum bayar)
+        // 3. Status yang TIDAK BOLEH masuk ke pending (siap dikirim / sudah selesai / batal / retur / belum bayar)
         $excludedStatuses = [
+            // Siap dikirim (belum dikirim ke ekspedisi)
+            'READY_TO_SHIP', 'PROCESSED', 'AWAITING_SHIPMENT', '111', 'AWAITING_COLLECTION', '112', 'UNPROCESSED',
             // Selesai / Dana sudah cair ke dompet
             'COMPLETED', 'SELESAI', 'FINISHED', 'SETTLED',
             // Batal
@@ -615,19 +625,14 @@ class MarketplaceWalletController extends Controller
                         ['from' => now()->subDays(30)->timestamp, 'to' => now()->subDays(15)->timestamp - 1],
                     ];
 
-                    // Status resmi Shopee yang dananya tertahan di Escrow ("Akan Dilepas"):
-                    // 1. READY_TO_SHIP   : Pesanan baru dibayar pembeli, siap diproses/dikirim
-                    // 2. PROCESSED       : Pesanan sedang dikemas / pengiriman telah diatur
-                    // 3. SHIPPED         : Pesanan sedang dalam perjalanan kurir
-                    // 4. TO_CONFIRM_RECEIVE: Pesanan telah tiba, menunggu konfirmasi pembeli / masa garansi Shopee
-                    // CATATAN: IN_CANCEL & TO_RETURN TIDAK dimasukkan karena dananya dibekukan/dalam proses pembatalan
-                    $statusesToFetch = ['READY_TO_SHIP', 'PROCESSED', 'SHIPPED', 'TO_CONFIRM_RECEIVE'];
+                    // Status resmi Shopee yang dananya tertahan di Escrow dan SUDAH DIKIRIM:
+                    // 1. SHIPPED         : Pesanan sedang dalam perjalanan kurir
+                    // 2. TO_CONFIRM_RECEIVE: Pesanan telah tiba, menunggu konfirmasi pembeli / masa garansi Shopee
+                    // CATATAN: READY_TO_SHIP, PROCESSED (belum dikirim), IN_CANCEL, dan TO_RETURN TIDAK dimasukkan
+                    $statusesToFetch = ['SHIPPED', 'TO_CONFIRM_RECEIVE'];
 
                     foreach ($statusesToFetch as $status) {
-                        // READY_TO_SHIP & PROCESSED selalu dalam 15 hari terakhir (Shopee auto-cancel jika > 4 hari)
-                        $targetRanges = in_array($status, ['READY_TO_SHIP', 'PROCESSED'])
-                            ? [$ranges[0]]
-                            : $ranges;
+                        $targetRanges = $ranges;
 
                         foreach ($targetRanges as $range) {
                             $cursor  = '';
@@ -666,7 +671,7 @@ class MarketplaceWalletController extends Controller
 
                     // Scan tambahan berdasarkan update_time 15 hari terakhir (menangkap semua pesanan aktif yang statusnya baru diperbarui)
                     try {
-                        foreach (['READY_TO_SHIP', 'PROCESSED', 'SHIPPED'] as $status) {
+                        foreach (['SHIPPED', 'TO_CONFIRM_RECEIVE'] as $status) {
                             $cursor  = '';
                             $hasMore = true;
                             $page    = 0;
@@ -733,16 +738,20 @@ class MarketplaceWalletController extends Controller
                         }
                     }
 
+                    $totalEscrow = 0.0;
+                    $validPendingCount = 0;
+
                     if (!empty($activeSns)) {
-                $chunks = array_chunk($activeSns, 50);
+                        $chunks = array_chunk($activeSns, 50);
                         foreach ($chunks as $chunk) {
                             try {
                                 $detailRes = $this->shopeeService->getOrderDetail($accessToken, $shopId, $chunk);
                                 foreach ($detailRes['order_list'] ?? [] as $sOrder) {
                                     $rawStatus = strtoupper((string)($sOrder['order_status'] ?? ''));
 
-                                    // Abaikan jika order ternyata sudah selesai, batal, atau dalam proses retur/batal di Shopee
+                                    // Abaikan jika order ternyata belum dikirim (siap kirim), sudah selesai, batal, atau retur
                                     if (in_array($rawStatus, [
+                                        'READY_TO_SHIP', 'PROCESSED', 'UNPROCESSED',
                                         'COMPLETED', 'SELESAI', 'FINISHED',
                                         'CANCELLED', 'BATAL', 'CANCELED', 'IN_CANCEL', 'CANCEL_REQUEST',
                                         'TO_RETURN', 'RETURNED', 'REFUNDED', 'REFUND', 'RETURNING',
@@ -787,8 +796,8 @@ class MarketplaceWalletController extends Controller
                                         }
                                     }
 
-                                    // 4. Prioritas Keempat: Jika pesanan baru (READY_TO_SHIP & PROCESSED) yang belum selesai/belum ada escrow di API,
-                                    // Seller Center Shopee menampilkan estimasi dana bersih = Nilai omset kotor dipotong estimasi biaya resmi Shopee (~23.0%)
+                                    // 4. Prioritas Keempat: Jika pesanan belum ada rincian resmi di API,
+                                    // Seller Center menampilkan estimasi dana bersih = Nilai omset kotor dipotong estimasi biaya resmi
                                     if ($escrow <= 0) {
                                         $gross = 0.0;
                                         if (!empty($sOrder['item_list'])) {
@@ -836,7 +845,7 @@ class MarketplaceWalletController extends Controller
                                     }
                                 }
                             } catch (\Throwable $e) {
-                                Log::warning("Shopee getOrderDetail chunk notice for {$store->store_name}: " . $e->getMessage());
+                                Log::warning("Shopee getOrderDetail error for {$store->store_name}: " . $e->getMessage());
                             }
                         }
                     }
@@ -845,41 +854,41 @@ class MarketplaceWalletController extends Controller
                     $pendingCount   = $validPendingCount;
                     $apiSuccess     = true;
                 } elseif ($store->channel->code === 'tiktok') {
-                    $shopCipher = $store->shop_cipher ?? '';
-                    if (!empty($shopCipher)) {
+                    $shopCipher = $store->shop_cipher;
+                    if ($shopCipher) {
                         $timeFrom = now()->subDays(30)->timestamp;
                         $timeTo   = now()->timestamp;
 
-                        // Hitung rasio fee toko dari database lokal pesanan selesai TikTok
-                        $tiktokFeeRatio = Cache::remember("store_tiktok_fee_ratio_v3_{$store->id}", now()->addHours(6), function () use ($store) {
-                            $completedWithBreakdown = Order::where('store_id', $store->id)
-                                ->whereIn('order_status', ['COMPLETED', 'DELIVERED'])
+                        // Ambil rasio potongan biaya riil TikTok Shop
+                        $tiktokFeeRatio = Cache::remember("store_tiktok_fee_ratio_v4_{$store->id}", now()->addHours(6), function () use ($store) {
+                            $recent = Order::where('store_id', $store->id)
+                                ->whereIn('order_status', ['COMPLETED', 'DELIVERED', 'SELESAI', 'FINISHED', '122'])
+                                ->where('order_date', '>=', now()->subDays(60))
                                 ->where('total_amount', '>', 0)
-                                ->whereNotNull('financial_breakdown')
-                                ->orderBy('id', 'desc')
                                 ->limit(50)
-                                ->get();
+                                ->get(['total_amount', 'marketplace_fee', 'net_amount', 'financial_breakdown']);
 
                             $totalGross = 0.0;
                             $totalDeductions = 0.0;
 
-                            foreach ($completedWithBreakdown as $ord) {
-                                $gross = (float) $ord->total_amount;
-                                if ($gross <= 0) continue;
-
-                                $fb = $ord->financial_breakdown;
-                                if (is_string($fb)) $fb = json_decode($fb, true) ?? [];
-
-                                $escrowAmt = (float) ($fb['settlement_amount'] ?? $fb['escrow_amount'] ?? 0);
-                                if ($escrowAmt > 0 && $gross > $escrowAmt) {
-                                    $totalGross += $gross;
-                                    $totalDeductions += ($gross - $escrowAmt);
-                                } else {
-                                    $totFee = abs($ord->fee_breakdown_details['total_fee'] ?? 0);
-                                    if ($totFee > 0 && $totFee < $gross) {
-                                        $totalGross += $gross;
-                                        $totalDeductions += $totFee;
+                            foreach ($recent as $ord) {
+                                $gross = (float)$ord->total_amount;
+                                $totFee = 0.0;
+                                if (!empty($ord->financial_breakdown)) {
+                                    $fb = is_string($ord->financial_breakdown) ? json_decode($ord->financial_breakdown, true) : $ord->financial_breakdown;
+                                    if (is_array($fb)) {
+                                        $settle = (float)($fb['settlement_amount'] ?? $fb['escrow_amount'] ?? 0);
+                                        if ($settle > 0 && $gross > $settle) {
+                                            $totFee = ($gross - $settle);
+                                        }
                                     }
+                                }
+                                if ($totFee <= 0 && (float)$ord->marketplace_fee > 0 && (float)$ord->marketplace_fee < $gross) {
+                                    $totFee = (float)$ord->marketplace_fee;
+                                }
+                                if ($totFee > 0 && $gross > 0) {
+                                    $totalGross += $gross;
+                                    $totalDeductions += $totFee;
                                 }
                             }
 
@@ -906,13 +915,14 @@ class MarketplaceWalletController extends Controller
 
                                 foreach ($orders as $to) {
                                     $status = strtoupper((string)($to['status'] ?? $to['order_status'] ?? ''));
-                                    // Pesanan aktif TikTok yang belum selesai / to settle (abaikan batal, retur, refund)
+                                    // Pesanan aktif TikTok yang SUDAH DIKIRIM dan sedang berjalan / delivered (abaikan siap dikirim, batal, retur, refund)
                                     if (in_array($status, [
-                                        'AWAITING_SHIPMENT', '111',
-                                        'AWAITING_COLLECTION', '112',
                                         'IN_TRANSIT', '121',
                                         'DELIVERED', '122'
-                                    ]) && !in_array($status, ['CANCELLED', 'CANCELED', 'CANCEL_REQUEST', 'RETURNED', 'REFUNDED', 'RETURNING', '140', '100'])) {
+                                    ]) && !in_array($status, [
+                                        'AWAITING_SHIPMENT', '111', 'AWAITING_COLLECTION', '112',
+                                        'CANCELLED', 'CANCELED', 'CANCEL_REQUEST', 'RETURNED', 'REFUNDED', 'RETURNING', '140', '100'
+                                    ])) {
                                         $id = $to['id'] ?? $to['order_id'] ?? null;
                                         if ($id) {
                                             $activeOrderIds[] = $id;
@@ -942,6 +952,7 @@ class MarketplaceWalletController extends Controller
                                     foreach ($orders as $tOrder) {
                                         $status = strtoupper((string)($tOrder['status'] ?? $tOrder['order_status'] ?? ''));
                                         if (in_array($status, [
+                                            'AWAITING_SHIPMENT', '111', 'AWAITING_COLLECTION', '112',
                                             'COMPLETED', 'SELESAI', 'FINISHED',
                                             'CANCELLED', 'CANCELED', 'IN_CANCEL', 'CANCEL_REQUEST',
                                             'RETURNED', 'REFUNDED', 'RETURNING', 'REFUND',
@@ -1010,11 +1021,11 @@ class MarketplaceWalletController extends Controller
             $pendingOrders = Order::with('returnOrder')
                 ->where('store_id', $store->id)
                 ->whereIn('order_status', [
-                    'READY_TO_SHIP', 'PROCESSED', 'RETRY_SHIP', 'TO_RETRY_LOGISTICS',
                     'SHIPPED', 'TO_CONFIRM_RECEIVE', 'IN_TRANSIT', 'DELIVERED',
-                    'AWAITING_SHIPMENT', 'AWAITING_COLLECTION'
+                    'RETRY_SHIP', 'TO_RETRY_LOGISTICS', '121', '122'
                 ])
                 ->whereNotIn('order_status', [
+                    'READY_TO_SHIP', 'PROCESSED', 'AWAITING_SHIPMENT', 'AWAITING_COLLECTION', '111', '112', 'UNPROCESSED',
                     'COMPLETED', 'SELESAI', 'FINISHED',
                     'CANCELLED', 'BATAL', 'CANCELED', 'IN_CANCEL', 'CANCEL_REQUEST',
                     'UNPAID', 'PENDING_PAYMENT',

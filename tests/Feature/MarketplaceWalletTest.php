@@ -125,10 +125,10 @@ class MarketplaceWalletTest extends TestCase
         $response->assertSee('Toko Shopee Official');
         // Total Wallet Balance = 4.500.000
         $response->assertSee('4.500.000');
-        // Pending Balance = 170.000 + 85.000 = 255.000
-        $response->assertSee('255.000');
-        // Total Estimated = 4.755.000
-        $response->assertSee('4.755.000');
+        // Pending Balance = 170.000 (READY_TO_SHIP 85.000 tidak dimasukkan)
+        $response->assertSee('170.000');
+        // Total Estimated = 4.670.000
+        $response->assertSee('4.670.000');
     }
 
     public function test_marketplace_wallet_pending_page_loads_with_breakdown_orders()
