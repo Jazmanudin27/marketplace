@@ -130,20 +130,25 @@ class OrderController extends Controller
         }
 
         // Filter Process Status (Perlu diproses / Telah diproses)
+        // Setiap pesanan yang sudah di-print, otomatis masuk kategori "Telah diproses" (processed)
         $unprocessedStatuses = ['UNPAID', 'PENDING', 'READY_TO_SHIP', 'TO_SHIP', 'PROCESSED', 'PROCESSING', 'PROSES', 'RETRY_SHIP', 'TO_RETRY_LOGISTICS'];
         $processedStatuses   = ['SHIPPED', 'IN_TRANSIT', 'TO_RECEIVE', 'TO_CONFIRM_RECEIVE', 'COMPLETED', 'FINISHED', 'SELESAI', 'DELIVERED'];
         if ($request->filled('process_status')) {
             if ($request->process_status === 'to_process') {
                 $query->where(function($q) use ($unprocessedStatuses) {
-                    $q->whereIn(\DB::raw('UPPER(order_status)'), $unprocessedStatuses)
-                      ->where(function($q2) {
-                          $q2->whereNull('tracking_number')
-                             ->orWhere('tracking_number', '');
-                      });
+                    $q->where(function ($sub) {
+                        $sub->where('is_printed', false)->orWhereNull('is_printed');
+                    })
+                    ->whereIn(\DB::raw('UPPER(order_status)'), $unprocessedStatuses)
+                    ->where(function($q2) {
+                        $q2->whereNull('tracking_number')
+                           ->orWhere('tracking_number', '');
+                    });
                 });
             } elseif ($request->process_status === 'processed') {
                 $query->where(function($q) use ($processedStatuses) {
-                    $q->whereIn(\DB::raw('UPPER(order_status)'), $processedStatuses)
+                    $q->where('is_printed', true)
+                      ->orWhereIn(\DB::raw('UPPER(order_status)'), $processedStatuses)
                       ->orWhere(function($q2) {
                           $q2->whereNotNull('tracking_number')
                              ->where('tracking_number', '!=', '');
@@ -277,15 +282,19 @@ class OrderController extends Controller
         }
 
         $toProcessQuery = (clone $processBase)->where(function($q) use ($unprocessedStatuses) {
-            $q->whereIn(\DB::raw('UPPER(order_status)'), $unprocessedStatuses)
-              ->where(function($q2) {
-                  $q2->whereNull('tracking_number')
-                     ->orWhere('tracking_number', '');
-              });
+            $q->where(function ($sub) {
+                $sub->where('is_printed', false)->orWhereNull('is_printed');
+            })
+            ->whereIn(\DB::raw('UPPER(order_status)'), $unprocessedStatuses)
+            ->where(function($q2) {
+                $q2->whereNull('tracking_number')
+                   ->orWhere('tracking_number', '');
+            });
         });
 
         $processedQuery = (clone $processBase)->where(function($q) use ($processedStatuses) {
-            $q->whereIn(\DB::raw('UPPER(order_status)'), $processedStatuses)
+            $q->where('is_printed', true)
+              ->orWhereIn(\DB::raw('UPPER(order_status)'), $processedStatuses)
               ->orWhere(function($q2) {
                   $q2->whereNotNull('tracking_number')
                      ->where('tracking_number', '!=', '');
@@ -298,27 +307,21 @@ class OrderController extends Controller
             'processed'    => $processedQuery->count(),
         ];
 
-        // Hitung jumlah print status (Semua, Sudah di Print, Belum di Print)
-        $printCounts = [
-            '__all__'      => (clone $processBase)->count(),
-            'printed'      => (clone $processBase)->where('is_printed', true)->count(),
-            'unprinted'    => (clone $processBase)->where(function ($q) {
-                                  $q->where('is_printed', false)->orWhereNull('is_printed');
-                              })->count(),
-        ];
-
         // Jumlah pesanan "Perlu diproses" untuk banner notifikasi (tanpa filter status/process)
         $toProcessCount = (clone $countBase)->where(function($q) use ($unprocessedStatuses) {
-            $q->whereIn(\DB::raw('UPPER(order_status)'), $unprocessedStatuses)
-              ->where(function($q2) {
-                  $q2->whereNull('tracking_number')
-                     ->orWhere('tracking_number', '');
-              });
+            $q->where(function ($sub) {
+                $sub->where('is_printed', false)->orWhereNull('is_printed');
+            })
+            ->whereIn(\DB::raw('UPPER(order_status)'), $unprocessedStatuses)
+            ->where(function($q2) {
+                $q2->whereNull('tracking_number')
+                   ->orWhere('tracking_number', '');
+            });
         })->count();
 
         return view('orders.index', compact(
             'orders', 'channels', 'stores', 'couriers', 'statuses',
-            'urgentOrders', 'tabCounts', 'processCounts', 'toProcessCount', 'printCounts'
+            'urgentOrders', 'tabCounts', 'processCounts', 'toProcessCount'
         ));
     }
 
