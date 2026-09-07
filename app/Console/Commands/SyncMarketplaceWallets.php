@@ -261,9 +261,24 @@ class SyncMarketplaceWallets extends Command
                             $direction = 'in';
                             $runningSum += $wAmount;
                             $desc = 'Reversal (Penarikan Dana Gagal/Retur) | Status: ' . $wStatus;
+                        } elseif ($wType === 'ADJUSTMENT') {
+                            $type = 'Penyesuaian';
+                            $isNegative = ($w['amount'] ?? 0) < 0 || str_contains(strtolower($wStatus), 'deduct') || str_contains(strtolower($w['reason'] ?? ''), 'penalty');
+                            $direction = $isNegative ? 'out' : 'in';
+                            if ($direction === 'out') {
+                                $runningSum -= $wAmount;
+                            } else {
+                                $runningSum += $wAmount;
+                            }
+                            $desc = 'Penyesuaian Saldo TikTok Shop | Status: ' . $wStatus;
                         } else {
-                            $direction = 'in';
-                            $runningSum += $wAmount;
+                            $isNegative = ($w['amount'] ?? 0) < 0;
+                            $direction = $isNegative ? 'out' : 'in';
+                            if ($direction === 'out') {
+                                $runningSum -= $wAmount;
+                            } else {
+                                $runningSum += $wAmount;
+                            }
                             $desc = 'Transaksi Lain-lain (' . $wType . ') | Status: ' . $wStatus;
                         }
                         

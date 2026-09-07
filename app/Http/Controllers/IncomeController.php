@@ -92,7 +92,8 @@ class IncomeController extends Controller
 
     public function update(Request $request, Income $income)
     {
-        if ($income->tenant_id !== Auth::user()->tenant_id) {
+        $tenantId = Auth::user()->tenant_id;
+        if ($income->tenant_id !== $tenantId) {
             abort(403);
         }
 
@@ -105,18 +106,58 @@ class IncomeController extends Controller
             'description'         => 'nullable|string',
         ]);
 
+        $oldAmount = (float) $income->amount;
+        $oldDest = $income->payment_destination;
+
         $income->update($validated);
+
+        // Adjust BankAccount balances
+        $oldBank = \App\Models\BankAccount::where('tenant_id', $tenantId)
+            ->where(function($q) use ($oldDest) {
+                $q->where('bank_name', $oldDest)->orWhere('id', $oldDest);
+            })->first();
+        if ($oldBank) {
+            $oldBank->decrement('current_balance', $oldAmount);
+        }
+
+        $newBank = \App\Models\BankAccount::where('tenant_id', $tenantId)
+            ->where(function($q) use ($income) {
+                $q->where('bank_name', $income->payment_destination)->orWhere('id', $income->payment_destination);
+            })->first();
+        if ($newBank) {
+            $newBank->increment('current_balance', $income->amount);
+        }
+
+        if ($request->filled('redirect_to')) {
+            return redirect($request->input('redirect_to'))->with('success', 'Pemasukan berhasil diperbarui.');
+        }
 
         return redirect()->route('finance.incomes.index')->with('success', 'Pemasukan berhasil diperbarui.');
     }
 
     public function destroy(Income $income)
     {
-        if ($income->tenant_id !== Auth::user()->tenant_id) {
+        $tenantId = Auth::user()->tenant_id;
+        if ($income->tenant_id !== $tenantId) {
             abort(403);
         }
 
+        $oldAmount = (float) $income->amount;
+        $oldDest = $income->payment_destination;
+
         $income->delete();
+
+        $bank = \App\Models\BankAccount::where('tenant_id', $tenantId)
+            ->where(function($q) use ($oldDest) {
+                $q->where('bank_name', $oldDest)->orWhere('id', $oldDest);
+            })->first();
+        if ($bank) {
+            $bank->decrement('current_balance', $oldAmount);
+        }
+
+        if (request()->filled('redirect_to')) {
+            return redirect(request()->input('redirect_to'))->with('success', 'Pemasukan berhasil dihapus.');
+        }
 
         return redirect()->route('finance.incomes.index')->with('success', 'Pemasukan berhasil dihapus.');
     }

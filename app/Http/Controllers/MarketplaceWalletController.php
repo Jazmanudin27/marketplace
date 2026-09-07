@@ -471,7 +471,7 @@ class MarketplaceWalletController extends Controller
                     }
 
                     if (!empty($activeSns)) {
-                        $chunks = array_chunk($activeSns, 50);
+                $chunks = array_chunk($activeSns, 50);
                         foreach ($chunks as $chunk) {
                             try {
                                 $detailRes = $this->shopeeService->getOrderDetail($accessToken, $shopId, $chunk);
@@ -479,7 +479,12 @@ class MarketplaceWalletController extends Controller
                                     $rawStatus = strtoupper((string)($sOrder['order_status'] ?? ''));
 
                                     // Abaikan jika order ternyata sudah selesai, batal, atau dalam proses retur/batal di Shopee
-                                    if (in_array($rawStatus, ['COMPLETED', 'SELESAI', 'CANCELLED', 'BATAL', 'REFUNDED', 'IN_CANCEL', 'TO_RETURN', 'RETURNED'])) {
+                                    if (in_array($rawStatus, [
+                                        'COMPLETED', 'SELESAI', 'FINISHED',
+                                        'CANCELLED', 'BATAL', 'CANCELED', 'IN_CANCEL', 'CANCEL_REQUEST',
+                                        'TO_RETURN', 'RETURNED', 'REFUNDED', 'REFUND', 'RETURNING',
+                                        'UNPAID', 'PENDING_PAYMENT'
+                                    ])) {
                                         if (!empty($sOrder['order_sn'])) {
                                             Order::where('store_id', $store->id)
                                                 ->where('order_marketplace_id', $sOrder['order_sn'])
@@ -542,8 +547,15 @@ class MarketplaceWalletController extends Controller
                                         $escrow = max(0.0, round($gross * (1.0 - $feeRatio)));
                                     }
 
-                                    $totalEscrow += $escrow;
-                                    $validPendingCount++;
+                                    // Potong refund jika ada retur lokal
+                                    if ($localOrd && $localOrd->refund_amount > 0) {
+                                        $escrow = max(0.0, $escrow - (float)$localOrd->refund_amount);
+                                    }
+
+                                    if ($escrow > 0) {
+                                        $totalEscrow += $escrow;
+                                        $validPendingCount++;
+                                    }
 
                                     // Sinkronkan status pesanan dan nilai net_amount ke DB lokal
                                     if (!empty($sn)) {
@@ -631,13 +643,13 @@ class MarketplaceWalletController extends Controller
 
                                 foreach ($orders as $to) {
                                     $status = strtoupper((string)($to['status'] ?? $to['order_status'] ?? ''));
-                                    // Pesanan aktif TikTok yang belum selesai / to settle
+                                    // Pesanan aktif TikTok yang belum selesai / to settle (abaikan batal, retur, refund)
                                     if (in_array($status, [
                                         'AWAITING_SHIPMENT', '111',
                                         'AWAITING_COLLECTION', '112',
                                         'IN_TRANSIT', '121',
                                         'DELIVERED', '122'
-                                    ])) {
+                                    ]) && !in_array($status, ['CANCELLED', 'CANCELED', 'CANCEL_REQUEST', 'RETURNED', 'REFUNDED', 'RETURNING', '140', '100'])) {
                                         $id = $to['id'] ?? $to['order_id'] ?? null;
                                         if ($id) {
                                             $activeOrderIds[] = $id;
@@ -666,7 +678,12 @@ class MarketplaceWalletController extends Controller
 
                                     foreach ($orders as $tOrder) {
                                         $status = strtoupper((string)($tOrder['status'] ?? $tOrder['order_status'] ?? ''));
-                                        if (in_array($status, ['COMPLETED', 'CANCELLED', 'RETURNED'])) {
+                                        if (in_array($status, [
+                                            'COMPLETED', 'SELESAI', 'FINISHED',
+                                            'CANCELLED', 'CANCELED', 'IN_CANCEL', 'CANCEL_REQUEST',
+                                            'RETURNED', 'REFUNDED', 'RETURNING', 'REFUND',
+                                            'UNPAID', 'PENDING_PAYMENT', 'CLOSED', '140', '100'
+                                        ])) {
                                             continue;
                                         }
 
@@ -674,11 +691,11 @@ class MarketplaceWalletController extends Controller
                                         $payment = $tOrder['payment'] ?? $tOrder['payment_info'] ?? [];
                                         $escrow = (float) ($payment['settlement_amount'] ?? $payment['escrow_amount'] ?? 0);
 
-                                        if ($escrow <= 0) {
-                                            $localOrd = Order::where('store_id', $store->id)
-                                                ->where('order_marketplace_id', $orderIdStr)
-                                                ->first();
+                                        $localOrd = Order::where('store_id', $store->id)
+                                            ->where('order_marketplace_id', $orderIdStr)
+                                            ->first();
 
+                                        if ($escrow <= 0) {
                                             $hasOfficial = false;
                                             if ($localOrd && !empty($localOrd->financial_breakdown)) {
                                                 $fb = $localOrd->financial_breakdown;
@@ -699,8 +716,15 @@ class MarketplaceWalletController extends Controller
                                             }
                                         }
 
-                                        $tiktokPending += $escrow;
-                                        $tiktokCount++;
+                                        // Potong jika ada retur lokal
+                                        if ($localOrd && $localOrd->refund_amount > 0) {
+                                            $escrow = max(0.0, $escrow - (float)$localOrd->refund_amount);
+                                        }
+
+                                        if ($escrow > 0) {
+                                            $tiktokPending += $escrow;
+                                            $tiktokCount++;
+                                        }
                                     }
                                 } catch (\Throwable $e) {
                                     Log::warning("TikTok getOrderDetail failed for {$store->store_name}: " . $e->getMessage());
@@ -728,10 +752,13 @@ class MarketplaceWalletController extends Controller
                 ])
                 ->whereNotIn('order_status', [
                     'COMPLETED', 'SELESAI', 'FINISHED',
-                    'CANCELLED', 'BATAL', 'CANCELED', 'IN_CANCEL',
+                    'CANCELLED', 'BATAL', 'CANCELED', 'IN_CANCEL', 'CANCEL_REQUEST',
                     'UNPAID', 'PENDING_PAYMENT',
-                    'RETURNED', 'REFUNDED', 'RETURN', 'REFUND', 'RETURN_APPROVED', 'RETURN_COMPLETED', 'RETUR'
+                    'RETURNED', 'REFUNDED', 'RETURN', 'REFUND', 'RETURN_APPROVED', 'RETURN_COMPLETED', 'RETUR', 'RETURNING'
                 ])
+                ->whereDoesntHave('returnOrder', function($q) {
+                    $q->whereIn('status', ['approved', 'completed', 'received', 'refunded', 'SELESAI', 'DISETUJUI']);
+                })
                 ->where('order_date', '>=', now()->subDays(30))
                 ->get([
                     'id', 'store_id', 'order_marketplace_id', 'order_status',
@@ -740,7 +767,12 @@ class MarketplaceWalletController extends Controller
                 ]);
 
             $pendingBalance = (float) $pendingOrders->sum(function ($ord) {
-                return max(0.0, (float) $ord->net_amount);
+                $refund = (float) $ord->refund_amount;
+                $net = (float) $ord->net_amount;
+                if ($refund >= (float)$ord->total_amount && (float)$ord->total_amount > 0) {
+                    return 0.0;
+                }
+                return max(0.0, $net - $refund);
             });
             $pendingCount = $pendingOrders->count();
         }

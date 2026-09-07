@@ -379,17 +379,25 @@ class FinancialReportController extends Controller
 
             foreach ($incomesQuery->get() as $inc) {
                 $transactions->push([
-                    'datetime'       => \Carbon\Carbon::parse($inc->income_date)->startOfDay()->toDateTimeString(),
-                    'date_formatted' => \Carbon\Carbon::parse($inc->income_date)->format('d/m/Y'),
-                    'reference'      => 'INC-' . str_pad($inc->id, 5, '0', STR_PAD_LEFT),
-                    'type'           => 'income',
-                    'type_label'     => 'Pemasukan Lain',
-                    'type_badge'     => 'bg-success',
-                    'category_label' => $inc->category_label,
-                    'account_label'  => $resolveAccountLabel($inc->payment_destination),
-                    'description'    => $inc->title . ($inc->description ? ' (' . $inc->description . ')' : ''),
-                    'inflow'         => (float) $inc->amount,
-                    'outflow'        => 0.0,
+                    'id'                       => $inc->id,
+                    'model_type'               => 'income',
+                    'raw_title'                => $inc->title,
+                    'raw_category'             => $inc->category,
+                    'raw_payment_destination'  => $inc->payment_destination,
+                    'raw_amount'               => (float) $inc->amount,
+                    'raw_income_date'          => \Carbon\Carbon::parse($inc->income_date)->format('Y-m-d'),
+                    'raw_description'          => $inc->description ?? '',
+                    'datetime'                 => \Carbon\Carbon::parse($inc->income_date)->startOfDay()->toDateTimeString(),
+                    'date_formatted'           => \Carbon\Carbon::parse($inc->income_date)->format('d/m/Y'),
+                    'reference'                => 'INC-' . str_pad($inc->id, 5, '0', STR_PAD_LEFT),
+                    'type'                     => 'income',
+                    'type_label'               => 'Pemasukan Lain',
+                    'type_badge'               => 'bg-success',
+                    'category_label'           => $inc->category_label,
+                    'account_label'            => $resolveAccountLabel($inc->payment_destination),
+                    'description'              => $inc->title . ($inc->description ? ' (' . $inc->description . ')' : ''),
+                    'inflow'                   => (float) $inc->amount,
+                    'outflow'                  => 0.0,
                 ]);
             }
         }
@@ -419,17 +427,26 @@ class FinancialReportController extends Controller
                     $desc .= ' - ' . $exp->description;
                 }
                 $transactions->push([
-                    'datetime'       => \Carbon\Carbon::parse($exp->expense_date)->startOfDay()->toDateTimeString(),
-                    'date_formatted' => \Carbon\Carbon::parse($exp->expense_date)->format('d/m/Y'),
-                    'reference'      => 'EXP-' . str_pad($exp->id, 5, '0', STR_PAD_LEFT),
-                    'type'           => 'expense',
-                    'type_label'     => 'Pengeluaran',
-                    'type_badge'     => 'bg-danger',
-                    'category_label' => $exp->category_label,
-                    'account_label'  => $resolveAccountLabel($exp->payment_source),
-                    'description'    => $desc,
-                    'inflow'         => 0.0,
-                    'outflow'        => (float) $exp->amount,
+                    'id'                 => $exp->id,
+                    'model_type'         => 'expense',
+                    'raw_title'          => $exp->title,
+                    'raw_category'       => $exp->category,
+                    'raw_payment_source' => $exp->payment_source,
+                    'raw_amount'         => (float) $exp->amount,
+                    'raw_expense_date'   => \Carbon\Carbon::parse($exp->expense_date)->format('Y-m-d'),
+                    'raw_employee_id'    => $exp->employee_id ?? '',
+                    'raw_description'    => $exp->description ?? '',
+                    'datetime'           => \Carbon\Carbon::parse($exp->expense_date)->startOfDay()->toDateTimeString(),
+                    'date_formatted'     => \Carbon\Carbon::parse($exp->expense_date)->format('d/m/Y'),
+                    'reference'          => 'EXP-' . str_pad($exp->id, 5, '0', STR_PAD_LEFT),
+                    'type'               => 'expense',
+                    'type_label'         => 'Pengeluaran',
+                    'type_badge'         => 'bg-danger',
+                    'category_label'     => $exp->category_label,
+                    'account_label'      => $resolveAccountLabel($exp->payment_source),
+                    'description'        => $desc,
+                    'inflow'             => 0.0,
+                    'outflow'            => (float) $exp->amount,
                 ]);
             }
         }
@@ -458,11 +475,21 @@ class FinancialReportController extends Controller
                 $dstLabel = $resolveAccountLabel($tr->destination);
                 $amt = (float) $tr->amount;
 
+                $commonTransferData = [
+                    'id'                 => $tr->id,
+                    'model_type'         => 'transfer',
+                    'raw_source'         => $tr->source,
+                    'raw_destination'    => $tr->destination,
+                    'raw_amount'         => (float) $tr->amount,
+                    'raw_transfer_date'  => \Carbon\Carbon::parse($tr->transfer_date)->format('Y-m-d'),
+                    'raw_description'    => $tr->description ?? '',
+                    'datetime'           => \Carbon\Carbon::parse($tr->transfer_date)->startOfDay()->toDateTimeString(),
+                    'date_formatted'     => \Carbon\Carbon::parse($tr->transfer_date)->format('d/m/Y'),
+                    'reference'          => 'TRF-' . str_pad($tr->id, 5, '0', STR_PAD_LEFT),
+                ];
+
                 if ($account === 'all') {
-                    $transactions->push([
-                        'datetime'       => \Carbon\Carbon::parse($tr->transfer_date)->startOfDay()->toDateTimeString(),
-                        'date_formatted' => \Carbon\Carbon::parse($tr->transfer_date)->format('d/m/Y'),
-                        'reference'      => 'TRF-' . str_pad($tr->id, 5, '0', STR_PAD_LEFT),
+                    $transactions->push(array_merge($commonTransferData, [
                         'type'           => 'transfer',
                         'type_label'     => 'Transfer Antar Kas',
                         'type_badge'     => 'bg-warning text-dark',
@@ -471,13 +498,10 @@ class FinancialReportController extends Controller
                         'description'    => 'Pindah dana dari ' . $srcLabel . ' ke ' . $dstLabel . ($tr->description ? ' (' . $tr->description . ')' : ''),
                         'inflow'         => 0.0,
                         'outflow'        => 0.0,
-                    ]);
+                    ]));
                 } else {
                     if ($accountMatches($tr->source)) {
-                        $transactions->push([
-                            'datetime'       => \Carbon\Carbon::parse($tr->transfer_date)->startOfDay()->toDateTimeString(),
-                            'date_formatted' => \Carbon\Carbon::parse($tr->transfer_date)->format('d/m/Y'),
-                            'reference'      => 'TRF-' . str_pad($tr->id, 5, '0', STR_PAD_LEFT),
+                        $transactions->push(array_merge($commonTransferData, [
                             'type'           => 'transfer_out',
                             'type_label'     => 'Transfer Keluar',
                             'type_badge'     => 'bg-warning text-dark',
@@ -486,13 +510,10 @@ class FinancialReportController extends Controller
                             'description'    => 'Transfer keluar ke ' . $dstLabel . ($tr->description ? ' (' . $tr->description . ')' : ''),
                             'inflow'         => 0.0,
                             'outflow'        => $amt,
-                        ]);
+                        ]));
                     }
                     if ($accountMatches($tr->destination)) {
-                        $transactions->push([
-                            'datetime'       => \Carbon\Carbon::parse($tr->transfer_date)->startOfDay()->toDateTimeString(),
-                            'date_formatted' => \Carbon\Carbon::parse($tr->transfer_date)->format('d/m/Y'),
-                            'reference'      => 'TRF-' . str_pad($tr->id, 5, '0', STR_PAD_LEFT),
+                        $transactions->push(array_merge($commonTransferData, [
                             'type'           => 'transfer_in',
                             'type_label'     => 'Transfer Masuk',
                             'type_badge'     => 'bg-info text-dark',
@@ -501,7 +522,7 @@ class FinancialReportController extends Controller
                             'description'    => 'Transfer masuk dari ' . $srcLabel . ($tr->description ? ' (' . $tr->description . ')' : ''),
                             'inflow'         => $amt,
                             'outflow'        => 0.0,
-                        ]);
+                        ]));
                     }
                 }
             }

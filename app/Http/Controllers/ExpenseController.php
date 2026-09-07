@@ -102,7 +102,8 @@ class ExpenseController extends Controller
 
     public function update(Request $request, Expense $expense)
     {
-        if ($expense->tenant_id !== Auth::user()->tenant_id) {
+        $tenantId = Auth::user()->tenant_id;
+        if ($expense->tenant_id !== $tenantId) {
             abort(403);
         }
 
@@ -117,24 +118,65 @@ class ExpenseController extends Controller
         ]);
 
         if ($request->filled('employee_id')) {
-            $employeeExists = Employee::where('tenant_id', Auth::user()->tenant_id)->where('id', $request->employee_id)->exists();
+            $employeeExists = Employee::where('tenant_id', $tenantId)->where('id', $request->employee_id)->exists();
             if (!$employeeExists) {
                 return back()->withErrors(['employee_id' => 'Karyawan tidak valid untuk perusahaan Anda.']);
             }
         }
 
+        $oldAmount = (float) $expense->amount;
+        $oldSource = $expense->payment_source;
+
         $expense->update($validated);
+
+        // Revert old bank balance
+        $oldBank = \App\Models\BankAccount::where('tenant_id', $tenantId)
+            ->where(function($q) use ($oldSource) {
+                $q->where('bank_name', $oldSource)->orWhere('id', $oldSource);
+            })->first();
+        if ($oldBank) {
+            $oldBank->increment('current_balance', $oldAmount);
+        }
+
+        // Apply new bank balance
+        $newBank = \App\Models\BankAccount::where('tenant_id', $tenantId)
+            ->where(function($q) use ($expense) {
+                $q->where('bank_name', $expense->payment_source)->orWhere('id', $expense->payment_source);
+            })->first();
+        if ($newBank) {
+            $newBank->decrement('current_balance', $expense->amount);
+        }
+
+        if ($request->filled('redirect_to')) {
+            return redirect($request->input('redirect_to'))->with('success', 'Pengeluaran berhasil diperbarui.');
+        }
 
         return redirect()->route('finance.expenses.index')->with('success', 'Pengeluaran berhasil diperbarui.');
     }
 
     public function destroy(Expense $expense)
     {
-        if ($expense->tenant_id !== Auth::user()->tenant_id) {
+        $tenantId = Auth::user()->tenant_id;
+        if ($expense->tenant_id !== $tenantId) {
             abort(403);
         }
 
+        $oldAmount = (float) $expense->amount;
+        $oldSource = $expense->payment_source;
+
         $expense->delete();
+
+        $bank = \App\Models\BankAccount::where('tenant_id', $tenantId)
+            ->where(function($q) use ($oldSource) {
+                $q->where('bank_name', $oldSource)->orWhere('id', $oldSource);
+            })->first();
+        if ($bank) {
+            $bank->increment('current_balance', $oldAmount);
+        }
+
+        if (request()->filled('redirect_to')) {
+            return redirect(request()->input('redirect_to'))->with('success', 'Pengeluaran berhasil dihapus.');
+        }
 
         return redirect()->route('finance.expenses.index')->with('success', 'Pengeluaran berhasil dihapus.');
     }
