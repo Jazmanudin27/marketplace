@@ -112,13 +112,18 @@
 @section('content')
 
     <!-- Top Navigation Actions -->
-    <div class="d-flex justify-content-between align-items-center mb-3">
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
         <a href="{{ url()->previous() == request()->url() ? route('mobile.produksi') : url()->previous() }}" class="btn btn-sm btn-white border shadow-sm rounded-3 px-3 fw-bold text-dark" style="background:#ffffff;">
             <i class="fas fa-arrow-left me-1 text-primary"></i> Kembali
         </a>
-        <a href="{{ route('spks.print', $spk->id) }}" target="_blank" class="btn btn-sm btn-indigo text-white fw-bold rounded-3 px-3 shadow-sm" style="background:linear-gradient(135deg, #4f46e5, #3730a3);">
-            <i class="fas fa-print me-1"></i> Cetak SPK
-        </a>
+        <div class="d-flex gap-1.5">
+            <a href="{{ route('spks.scan_pickup', $spk->id) }}" class="btn btn-sm text-white fw-bold rounded-3 px-3 shadow-sm" style="background:linear-gradient(135deg, #059669, #10b981);">
+                <i class="fas fa-qrcode me-1"></i> Scan Penerimaan
+            </a>
+            <a href="{{ route('spks.print', $spk->id) }}" target="_blank" class="btn btn-sm btn-indigo text-white fw-bold rounded-3 px-3 shadow-sm" style="background:linear-gradient(135deg, #4f46e5, #3730a3);">
+                <i class="fas fa-print me-1"></i> Cetak SPK
+            </a>
+        </div>
     </div>
 
     @if(session('success'))
@@ -304,6 +309,13 @@
         </div>
 
         <div class="p-3">
+            <div class="mb-3">
+                <a href="{{ route('spks.scan_pickup', $spk->id) }}" class="btn w-100 py-2.5 text-white fw-bold shadow-sm rounded-3 d-flex align-items-center justify-content-center gap-2" style="background: linear-gradient(135deg, #059669, #10b981); font-size:0.85rem;">
+                    <i class="fas fa-qrcode fs-5"></i>
+                    <span>Buka Scanner Penerimaan Barang (QR/Barcode)</span>
+                </a>
+            </div>
+
             <div class="table-responsive">
                 <table class="table table-sm table-bordered align-middle mb-0" style="font-size:0.75rem;">
                     <thead class="table-light">

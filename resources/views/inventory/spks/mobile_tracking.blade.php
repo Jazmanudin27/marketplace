@@ -599,11 +599,16 @@
     <div class="container-fluid px-3 pt-3">
 
         <!-- ── BANNER STATUS "Akses Produksi Dibuka!" ── -->
-        <div class="alert-akses-dibuka d-flex justify-content-between align-items-center">
+        <div class="alert-akses-dibuka d-flex justify-content-between align-items-center flex-wrap gap-2">
             <span>Akses Produksi Dibuka!</span>
-            <a href="{{ route('spks.customer_track', $spk->no_produksi ?: $spk->id) }}" target="_blank" class="btn btn-sm bg-white text-dark fw-bold rounded-pill shadow-2xs px-3 text-decoration-none" style="font-size: 12px;">
-                📱 Link Customer
-            </a>
+            <div class="d-flex gap-1.5">
+                <a href="{{ route('spks.scan_pickup', $spk->id) }}" class="btn btn-sm text-white fw-bold rounded-pill shadow-2xs px-3 text-decoration-none" style="font-size: 12px; background: linear-gradient(135deg, #059669, #10b981);">
+                    <i class="fas fa-qrcode me-1"></i> Scan Terima
+                </a>
+                <a href="{{ route('spks.customer_track', $spk->no_produksi ?: $spk->id) }}" target="_blank" class="btn btn-sm bg-white text-dark fw-bold rounded-pill shadow-2xs px-3 text-decoration-none" style="font-size: 12px;">
+                    📱 Link Customer
+                </a>
+            </div>
         </div>
 
         <form id="simpleTrackingForm" action="{{ route('spks.mobile_update_tracking', $spk->id) }}" method="POST" enctype="multipart/form-data">

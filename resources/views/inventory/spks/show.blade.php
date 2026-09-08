@@ -367,6 +367,12 @@
             ]) }}" class="btn btn-sm btn-success fw-bold px-3">
                 ✚ Tambah SPK Baru
             </a>
+            <a href="{{ route('spks.scan_pickup', $spk->id) }}" class="btn btn-sm btn-primary fw-bold px-3 shadow-sm d-inline-flex align-items-center gap-1.5" style="background: linear-gradient(135deg, #2563eb, #1d4ed8);">
+                <i class="fas fa-qrcode"></i> Scan Penerimaan
+            </a>
+            <a href="{{ route('spks.print_labels', $spk->id) }}" target="_blank" class="btn btn-sm btn-dark fw-bold px-3 shadow-sm d-inline-flex align-items-center gap-1.5">
+                <i class="fas fa-tags"></i> Label Kemasan
+            </a>
             <a href="{{ route('spks.customer_track', $spk->no_produksi ?: $spk->id) }}" target="_blank" class="btn btn-sm btn-info text-white fw-bold px-3">
                 📱 Link Customer
             </a>
@@ -957,12 +963,170 @@
             </div>
         </div>
 
+        {{-- ══════════════════════════════════════════════════════════════════
+             SECTION 4: STATUS PENERIMAAN & PENGAMBILAN BARANG (QR / BARCODE)
+        ══════════════════════════════════════════════════════════════════ --}}
+        @php
+            $deskTotalTarget = (int) $spk->items->sum('quantity');
+            $deskTotalDiambil = (int) $spk->items->sum('qty_diambil');
+            $deskTotalSisa = (int) $spk->items->sum('sisa_qty');
+            $deskPct = $deskTotalTarget > 0 ? min(100, round(($deskTotalDiambil / $deskTotalTarget) * 100)) : 0;
+            $deskPickups = \App\Models\SpkItemPickup::whereIn('spk_item_id', $spk->items->pluck('id'))
+                ->with(['item', 'pemberi'])
+                ->orderByDesc('created_at')
+                ->take(15)
+                ->get();
+        @endphp
+        <div class="rincian-card mb-4" style="border-top: 4px solid #10b981;">
+            <div class="rincian-header d-flex justify-content-between align-items-center flex-wrap gap-2" style="background:#f0fdf4;">
+                <span class="text-success fw-bold d-flex align-items-center gap-2">
+                    <i class="fas fa-boxes-packing fs-5"></i> STATUS PENERIMAAN &amp; PENGAMBILAN BARANG (HASIL PRODUKSI)
+                </span>
+                <div class="d-flex gap-2">
+                    <a href="{{ route('spks.print_labels', $spk->id) }}" target="_blank" class="btn btn-sm btn-dark fw-bold px-3">
+                        <i class="fas fa-tags me-1"></i> Cetak Label Stiker Kemasan
+                    </a>
+                    <a href="{{ route('spks.scan_pickup', $spk->id) }}" class="btn btn-sm btn-success fw-bold px-3 shadow-sm d-inline-flex align-items-center gap-1.5" style="background: linear-gradient(135deg, #059669, #10b981);">
+                        <i class="fas fa-qrcode fs-6"></i> Buka Layar Scanner Penerimaan (QR / Barcode)
+                    </a>
+                </div>
+            </div>
+            <div class="rincian-body">
+                <div class="row g-3 align-items-center mb-3">
+                    <div class="col-md-3 col-6">
+                        <div class="p-3 bg-light rounded-3 border text-center">
+                            <span class="text-muted d-block small fw-bold text-uppercase" style="font-size: 10px;">Total Pesanan</span>
+                            <span class="fs-5 fw-black text-dark">{{ $deskTotalTarget }} pcs</span>
+                        </div>
+                    </div>
+                    <div class="col-md-3 col-6">
+                        <div class="p-3 bg-success bg-opacity-10 rounded-3 border border-success-subtle text-center">
+                            <span class="text-success d-block small fw-bold text-uppercase" style="font-size: 10px;">Sudah Diterima / Diambil</span>
+                            <span class="fs-5 fw-black text-success">{{ $deskTotalDiambil }} pcs</span>
+                        </div>
+                    </div>
+                    <div class="col-md-3 col-6">
+                        <div class="p-3 bg-danger bg-opacity-10 rounded-3 border border-danger-subtle text-center">
+                            <span class="text-danger d-block small fw-bold text-uppercase" style="font-size: 10px;">Sisa Belum Diterima</span>
+                            <span class="fs-5 fw-black text-danger">{{ $deskTotalSisa }} pcs</span>
+                        </div>
+                    </div>
+                    <div class="col-md-3 col-6">
+                        <div class="p-3 bg-primary bg-opacity-10 rounded-3 border border-primary-subtle text-center">
+                            <span class="text-primary d-block small fw-bold text-uppercase" style="font-size: 10px;">Progress Penyelesaian</span>
+                            <span class="fs-5 fw-black text-primary">{{ $deskPct }}%</span>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Tabel Rincian per Ukuran --}}
+                <div class="table-responsive rounded-3 border mb-3">
+                    <table class="table table-sm table-hover align-middle mb-0" style="font-size: 12px;">
+                        <thead class="table-light text-uppercase">
+                            <tr>
+                                <th>Item Produk</th>
+                                <th>SKU / Barcode</th>
+                                <th class="text-center" style="width: 12%;">Ukuran</th>
+                                <th class="text-center" style="width: 12%;">Target SPK</th>
+                                <th class="text-center" style="width: 14%;">Sudah Diambil</th>
+                                <th class="text-center" style="width: 14%;">Sisa SPK</th>
+                                <th class="text-center" style="width: 14%;">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($spk->items as $item)
+                                @php
+                                    $itTarget = (int) $item->quantity;
+                                    $itDiambil = (int) $item->qty_diambil;
+                                    $itSisa = (int) $item->sisa_qty;
+                                    $itDone = ($itSisa == 0);
+                                @endphp
+                                <tr class="{{ $itDone ? 'table-success bg-opacity-25' : '' }}">
+                                    <td>
+                                        <strong class="text-dark">{{ $item->nama_produk }}</strong>
+                                    </td>
+                                    <td>
+                                        <code class="text-primary font-monospace">{{ $item->sku ?: ($item->masterProduct->sku ?? '—') }}</code>
+                                        @if($item->masterProduct && $item->masterProduct->barcode)
+                                            <span class="text-muted ms-1">({{ $item->masterProduct->barcode }})</span>
+                                        @endif
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge {{ $itDone ? 'bg-success' : 'bg-dark' }} px-2 py-1 fs-7">
+                                            {{ $item->ukuran ?: 'ALL' }}
+                                        </span>
+                                    </td>
+                                    <td class="text-center fw-bold">{{ $itTarget }} pcs</td>
+                                    <td class="text-center fw-bold text-success">{{ $itDiambil }} pcs</td>
+                                    <td class="text-center fw-bold {{ $itSisa > 0 ? 'text-danger' : 'text-muted' }}">{{ $itSisa }} pcs</td>
+                                    <td class="text-center">
+                                        @if($itDone)
+                                            <span class="badge bg-success px-2 py-1">✅ Lengkap</span>
+                                        @else
+                                            <span class="badge bg-warning text-dark px-2 py-1">⏳ Proses ({{ $itDiambil }}/{{ $itTarget }})</span>
+                                        @endif
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+
+                {{-- Riwayat Pengambilan Terkini --}}
+                @if($deskPickups->isNotEmpty())
+                    <div class="mt-3">
+                        <span class="text-muted fw-bold d-block mb-1 text-uppercase" style="font-size: 11px;">
+                            📜 Riwayat Pengambilan Terakhir:
+                        </span>
+                        <div class="table-responsive rounded border">
+                            <table class="table table-sm table-striped align-middle mb-0" style="font-size: 11px;">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Waktu Ambil</th>
+                                        <th>Item &amp; Ukuran</th>
+                                        <th class="text-center">Jumlah</th>
+                                        <th>Nama Pengambil / Penerima</th>
+                                        <th>Catatan</th>
+                                        <th class="text-center">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($deskPickups as $dp)
+                                        <tr>
+                                            <td class="text-muted">{{ $dp->tanggal_ambil ? $dp->tanggal_ambil->format('d/m/Y H:i') : '-' }}</td>
+                                            <td><strong>{{ $dp->item->nama_produk ?? '' }}</strong> (Size: {{ $dp->item->ukuran ?? '—' }})</td>
+                                            <td class="text-center fw-bold text-success">+{{ $dp->qty_diambil }} pcs</td>
+                                            <td class="text-dark">{{ $dp->nama_pengambil }}</td>
+                                            <td class="text-muted small">{{ $dp->catatan ?: '-' }}</td>
+                                            <td class="text-center">
+                                                <form action="{{ route('spks.pickups.destroy', $dp->id) }}" method="POST" class="d-inline"
+                                                      onsubmit="return confirm('Apakah Anda yakin ingin menghapus/membatalkan catatan pengambilan ini?')">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit" class="btn btn-outline-danger btn-sm py-0 px-2" title="Hapus">
+                                                        <i class="fas fa-trash-alt" style="font-size: 9px;"></i>
+                                                    </button>
+                                                </form>
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                @endif
+            </div>
+        </div>
+
         {{-- ── SUBMIT BAR ── --}}
         <div class="spk-submit-bar">
             <a href="{{ route('spks.index') }}" class="btn btn-sm btn-outline-secondary px-4">Batal</a>
             <button type="button" class="btn btn-sm btn-warning text-dark fw-bold px-3 me-1" data-bs-toggle="modal" data-bs-target="#modalPayLabor">
                 💳 Bayar Ongkos Jasa
             </button>
+            <a href="{{ route('spks.scan_pickup', $spk->id) }}" class="btn btn-sm btn-primary fw-bold px-3 me-1 d-inline-flex align-items-center gap-1.5" style="background: linear-gradient(135deg, #2563eb, #1d4ed8);">
+                <i class="fas fa-qrcode"></i> Scan Penerimaan
+            </a>
             <a href="{{ route('spks.create', [
                 'no_produksi'   => $spk->no_produksi ?: $spk->no_spk,
                 'no_pesanan'    => $spk->no_pesanan,
