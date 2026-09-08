@@ -261,6 +261,7 @@
         display: flex;
         justify-content: flex-end;
         align-items: center;
+        flex-wrap: wrap;
         gap: 10px;
         box-shadow: 0 1px 4px rgba(0,0,0,.05);
     }
@@ -351,57 +352,77 @@
 
     {{-- ── PAGE HEADER ── --}}
     <div class="spk-page-header">
-        <div class="d-flex align-items-center gap-2.5">
-            <a href="{{ route('spks.index') }}" class="btn btn-sm btn-outline-secondary fw-semibold px-2.5" title="Kembali ke Daftar SPK">
-                <i class="fas fa-arrow-left me-1"></i> Kembali
-            </a>
-            <div>
-                <h4 class="d-flex align-items-center gap-2 mb-0">
-                    📋 Detail &amp; Edit SPK #{{ $spk->no_spk }}
-                    @if($spk->is_urgent)
-                        <span class="badge bg-danger text-white px-2 py-0.5 rounded-pill" style="font-size: 10px !important;">
-                            <i class="fas fa-bolt me-1"></i>URGENT
-                        </span>
-                    @endif
-                </h4>
-                <p class="mb-0 text-muted small">Kelola data rincian produksi, bahan, dan status SPK.</p>
+        <div>
+            <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
+                <a href="{{ route('spks.index') }}" class="btn btn-sm btn-outline-secondary fw-semibold">
+                    <i class="fas fa-arrow-left me-1"></i> Kembali
+                </a>
+                <span class="badge {{ $spk->tipe_spk === 'stok_gudang' ? 'bg-info bg-opacity-10 text-info border border-info border-opacity-25' : 'bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25' }} small">
+                    <i class="fas {{ $spk->tipe_spk === 'stok_gudang' ? 'fa-warehouse' : 'fa-shopping-cart' }} me-1"></i>
+                    {{ $spk->tipe_spk === 'stok_gudang' ? 'Produksi Stok Gudang' : 'Pesanan Klien' }}
+                </span>
+                @if($spk->is_urgent)
+                    <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 small fw-bold">
+                        <i class="fas fa-bolt me-1"></i>URGENT
+                    </span>
+                @endif
             </div>
+            <h4>📋 Detail &amp; Edit SPK #{{ $spk->no_spk }}</h4>
+            <p>Kelola data rincian produksi, bahan, dan status SPK.</p>
         </div>
 
-        <div class="d-flex align-items-center flex-wrap gap-2">
-            {{-- 1. Gudang & Penerimaan --}}
-            <a href="{{ route('spks.scan_pickup', $spk->id) }}" class="btn btn-sm btn-primary fw-semibold px-3 shadow-sm d-inline-flex align-items-center gap-1.5">
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+            {{-- Tombol Scan Penerimaan (Aksi Kunci) --}}
+            <a href="{{ route('spks.scan_pickup', $spk->id) }}" class="btn btn-sm btn-primary fw-bold px-3 shadow-sm d-inline-flex align-items-center gap-1.5" style="background: linear-gradient(135deg, #2563eb, #1d4ed8);">
                 <i class="fas fa-qrcode"></i> Scan Penerimaan
             </a>
 
-            {{-- 2. Cetak SPK & Label Kemasan (Button Group) --}}
-            <div class="btn-group btn-group-sm">
-                <a href="{{ route('spks.print', $spk) }}" target="_blank" class="btn btn-outline-secondary fw-semibold px-2.5" title="Cetak Lembar SPK Produksi">
-                    <i class="fas fa-print me-1"></i> Cetak SPK
-                </a>
-                <a href="{{ route('spks.print_labels', $spk->id) }}" target="_blank" class="btn btn-outline-dark fw-semibold px-2.5" title="Cetak Label Stiker Kemasan">
-                    <i class="fas fa-tags me-1"></i> Label Kemasan
-                </a>
-            </div>
-
-            {{-- 3. Customer Tracking & WhatsApp (Button Group) --}}
-            <div class="btn-group btn-group-sm">
-                <a href="{{ route('spks.customer_track', $spk->no_produksi ?: $spk->id) }}" target="_blank" class="btn btn-outline-info fw-semibold px-2.5" title="Buka Link Tracking Customer">
-                    <i class="fas fa-mobile-screen me-1"></i> Link Customer
-                </a>
-                <a href="https://wa.me/?text={{ rawurlencode('Halo ' . ($spk->pemesan ?: 'Customer') . ', berikut link tracking status pengerjaan pesanan Anda: ' . route('spks.customer_track', $spk->no_produksi ?: $spk->id)) }}" target="_blank" class="btn text-white fw-semibold px-2.5" style="background-color: #25d366;" title="Kirim Link Tracking via WhatsApp">
-                    <i class="fab fa-whatsapp me-1"></i> Share WA
-                </a>
-            </div>
-
-            {{-- 4. Opsi Lainnya (Dropdown: Tambah SPK, Bayar Ongkos Jasa, Hapus SPK) --}}
+            {{-- Dropdown Cetak & Label --}}
             <div class="dropdown">
-                <button class="btn btn-sm btn-outline-secondary dropdown-toggle fw-semibold px-2.5" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Menu & Opsi Lainnya">
-                    <i class="fas fa-ellipsis-v me-1"></i> Lainnya
+                <button class="btn btn-sm btn-outline-secondary dropdown-toggle fw-semibold px-3 d-inline-flex align-items-center gap-1.5" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="fas fa-print text-primary"></i> Cetak
                 </button>
-                <ul class="dropdown-menu dropdown-menu-end shadow-sm border" style="font-size: 12px;">
+                <ul class="dropdown-menu dropdown-menu-end shadow-sm">
                     <li>
-                        <a class="dropdown-item py-1.5" href="{{ route('spks.create', [
+                        <a class="dropdown-item py-2 small fw-semibold" href="{{ route('spks.print', $spk) }}" target="_blank">
+                            <i class="fas fa-file-invoice text-primary me-2"></i> Cetak Lembar SPK
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item py-2 small fw-semibold" href="{{ route('spks.print_labels', $spk->id) }}" target="_blank">
+                            <i class="fas fa-tags text-dark me-2"></i> Cetak Label Stiker Kemasan
+                        </a>
+                    </li>
+                </ul>
+            </div>
+
+            {{-- Dropdown Bagikan / Customer Link --}}
+            <div class="dropdown">
+                <button class="btn btn-sm btn-outline-secondary dropdown-toggle fw-semibold px-3 d-inline-flex align-items-center gap-1.5" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="fas fa-share-nodes text-info"></i> Bagikan
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                    <li>
+                        <a class="dropdown-item py-2 small fw-semibold" href="{{ route('spks.customer_track', $spk->no_produksi ?: $spk->id) }}" target="_blank">
+                            <i class="fas fa-mobile-screen text-info me-2"></i> Buka Link Tracking Customer
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item py-2 small fw-semibold text-success" href="https://wa.me/?text={{ rawurlencode('Halo ' . ($spk->pemesan ?: 'Customer') . ', berikut link tracking status pengerjaan pesanan Anda: ' . route('spks.customer_track', $spk->no_produksi ?: $spk->id)) }}" target="_blank">
+                            <i class="fab fa-whatsapp me-2"></i> Kirim Link via WhatsApp
+                        </a>
+                    </li>
+                </ul>
+            </div>
+
+            {{-- Dropdown Opsi Lainnya (Tambah SPK & Hapus) --}}
+            <div class="dropdown">
+                <button class="btn btn-sm btn-outline-secondary dropdown-toggle px-2.5" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Menu Lainnya">
+                    <i class="fas fa-ellipsis-vertical"></i>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                    <li>
+                        <a class="dropdown-item py-2 small fw-semibold text-success" href="{{ route('spks.create', [
                             'no_produksi'   => $spk->no_produksi ?: $spk->no_spk,
                             'no_pesanan'    => $spk->no_pesanan,
                             'pemesan'       => $spk->pemesan,
@@ -409,13 +430,8 @@
                             'instansi'      => $spk->instansi,
                             'order_id'      => $spk->order_id,
                         ]) }}">
-                            <i class="fas fa-plus text-success me-2"></i> Tambah SPK Baru
+                            <i class="fas fa-plus-circle me-2"></i> Tambah SPK Baru
                         </a>
-                    </li>
-                    <li>
-                        <button type="button" class="dropdown-item py-1.5" data-bs-toggle="modal" data-bs-target="#modalPayLabor">
-                            <i class="fas fa-credit-card text-warning me-2"></i> Bayar Ongkos Jasa
-                        </button>
                     </li>
                     <li><hr class="dropdown-divider my-1"></li>
                     <li>
@@ -423,7 +439,7 @@
                             onsubmit="return confirm('Apakah Anda yakin ingin menghapus data SPK ini?')">
                             @csrf
                             @method('DELETE')
-                            <button type="submit" class="dropdown-item text-danger py-1.5">
+                            <button type="submit" class="dropdown-item py-2 small fw-semibold text-danger">
                                 <i class="fas fa-trash-alt me-2"></i> Hapus SPK
                             </button>
                         </form>
@@ -431,7 +447,7 @@
                 </ul>
             </div>
 
-            {{-- 5. Tombol Simpan Utama --}}
+            {{-- Tombol Simpan Perubahan (Aksi Utama Form) --}}
             <button type="submit" form="spkForm" class="btn btn-sm btn-success fw-bold px-3 shadow-sm d-inline-flex align-items-center gap-1.5">
                 <i class="fas fa-save"></i> Simpan Perubahan
             </button>
