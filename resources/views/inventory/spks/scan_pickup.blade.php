@@ -4,425 +4,330 @@
 
 @push('styles')
 <style>
-    body {
-        background-color: #f8fafc !important;
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    /* Subtle highlight pulse on successful scan */
+    .row-scan-pulse {
+        animation: rowPulseGreen 0.8s ease;
     }
-
-    /* Elegant Card Transitions */
-    .card-hover-shadow {
-        transition: box-shadow 0.2s ease, transform 0.2s ease;
-    }
-    .card-hover-shadow:hover {
-        box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08) !important;
-        transform: translateY(-2px);
-    }
-
-    /* Interactive Item Card */
-    .item-card-row {
-        border-left: 4px solid #e2e8f0;
-        transition: all 0.25s ease-in-out;
-    }
-    .item-card-row.is-active-card {
-        border-left-color: #3b82f6;
-    }
-    .item-card-row.is-complete-card {
-        border-left-color: #10b981;
-        background-color: #f0fdf4 !important;
-    }
-
-    /* Pulse animation on successful scan */
-    .pulse-success {
-        animation: pulseGreen 0.6s ease;
-    }
-    @keyframes pulseGreen {
-        0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.6); }
-        50% { transform: scale(1.02); box-shadow: 0 0 0 12px rgba(16, 185, 129, 0); }
-        100% { transform: scale(1); }
-    }
-
-    /* Scanner Viewfinder Box */
-    .scanner-box-drop {
-        border: 2px dashed #cbd5e1;
-        border-radius: 16px;
-        background-color: #ffffff;
-        transition: all 0.2s ease;
-        cursor: pointer;
-    }
-    .scanner-box-drop:hover, .scanner-box-drop.is-focused {
-        border-color: #3b82f6;
-        background-color: #eff6ff;
-    }
-
-    /* Scanner Big Input */
-    .scanner-main-input {
-        font-size: 1.15rem !important;
-        font-weight: 700;
-        letter-spacing: 0.5px;
-    }
-    .scanner-main-input:focus {
-        border-color: #3b82f6 !important;
-        box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15) !important;
-    }
-
-    /* Size Badge Indicator */
-    .badge-size-large {
-        font-size: 1.25rem;
-        font-weight: 800;
-        min-width: 52px;
-        height: 42px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 10px;
-    }
-
-    /* Camera Scanner Box */
-    #reader {
-        width: 100%;
-        max-width: 460px;
-        margin: 0 auto;
-        border-radius: 12px;
-        overflow: hidden;
-    }
-    #reader video {
-        border-radius: 12px;
-    }
-
-    /* Modal Shake on Error */
-    .shake-anim {
-        animation: modalShake 0.4s cubic-bezier(.36,.07,.19,.97) both;
-    }
-    @keyframes modalShake {
-        10%, 90% { transform: translate3d(-2px, 0, 0); }
-        20%, 80% { transform: translate3d(4px, 0, 0); }
-        30%, 50%, 70% { transform: translate3d(-6px, 0, 0); }
-        40%, 60% { transform: translate3d(6px, 0, 0); }
+    @keyframes rowPulseGreen {
+        0% { background-color: rgba(16, 185, 129, 0.35) !important; }
+        100% { background-color: inherit; }
     }
 </style>
 @endpush
 
 @section('content')
-<div class="container-fluid px-3 px-md-4 py-3">
+    <div class="row">
+        <div class="col-md-12">
 
-    <!-- ── 1. TOP HEADER & BREADCRUMB ── -->
-    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
-        <div>
-            <div class="d-flex align-items-center gap-2 mb-1">
-                <a href="{{ route('spks.show', $spk->id) }}" class="btn btn-outline-secondary btn-sm rounded-pill px-3 fw-semibold">
-                    <i class="fas fa-arrow-left me-1"></i> Kembali ke SPK
-                </a>
-                <span class="badge bg-primary-subtle text-primary fw-bold px-3 py-1.5 rounded-pill" style="font-size: 0.75rem;">
-                    {{ $spk->tipe_spk === 'stok_gudang' ? '🏬 Produksi Stok Gudang' : '🛒 Pesanan Klien' }}
-                </span>
-                @if($spk->is_urgent)
-                    <span class="badge bg-danger text-white fw-bold px-2 py-1 rounded-pill"><i class="fas fa-bolt me-1"></i>URGENT</span>
-                @endif
-            </div>
-            <h4 class="fw-bold text-dark mb-0 d-flex align-items-center gap-2 font-monospace">
-                SPK #{{ $spk->no_spk }}
-                @if($spk->no_produksi)
-                    <span class="text-secondary fw-normal fs-6">({{ $spk->no_produksi }})</span>
-                @endif
-            </h4>
-            <div class="text-muted small mt-0.5">
-                Pemesan: <strong class="text-dark">{{ $spk->pemesan ?: 'Internal / Gudang' }}</strong>
-                @if($spk->instansi) &bull; Instansi: <span class="text-dark">{{ $spk->instansi }}</span> @endif
-                @if($spk->deadline) &bull; Target Selesai: <span class="text-danger fw-semibold"><i class="far fa-clock me-1"></i>{{ $spk->deadline->format('d M Y') }}</span> @endif
-            </div>
-        </div>
+            {{-- ── 1. Scanner & Filter Control Card (Gaya Menu User) ───────────── --}}
+            <div class="card border shadow-sm mb-3">
+                <div class="card-body py-3 px-3">
 
-        <div class="d-flex gap-2 align-items-center">
-            <a href="{{ route('spks.print_labels', $spk->id) }}" target="_blank" class="btn btn-dark btn-sm fw-semibold rounded-3 px-3 shadow-sm">
-                <i class="fas fa-tags me-1.5"></i> Cetak Label Stiker
-            </a>
-            <a href="{{ route('spks.print', $spk->id) }}" target="_blank" class="btn btn-outline-primary btn-sm fw-semibold rounded-3 px-3">
-                <i class="fas fa-print me-1.5"></i> Cetak SPK
-            </a>
-        </div>
-    </div>
+                    {{-- SPK Meta Info & Quick Summary --}}
+                    <div class="row g-2 mb-2">
+                        <div class="col-12">
+                            <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                                <div class="d-flex align-items-center gap-2 flex-wrap">
+                                    <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 flex-shrink-0 small fw-bold">
+                                        <i class="fas fa-file-invoice me-1"></i>SPK #{{ $spk->no_spk }}
+                                    </span>
+                                    <span class="badge {{ $spk->tipe_spk === 'stok_gudang' ? 'bg-info bg-opacity-10 text-info border border-info border-opacity-25' : 'bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25' }} small">
+                                        <i class="fas {{ $spk->tipe_spk === 'stok_gudang' ? 'fa-warehouse' : 'fa-shopping-cart' }} me-1"></i>
+                                        {{ $spk->tipe_spk === 'stok_gudang' ? 'Produksi Stok Gudang' : 'Pesanan Klien' }}
+                                    </span>
+                                    @if($spk->is_urgent)
+                                        <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 small fw-bold">
+                                            <i class="fas fa-bolt me-1"></i>URGENT
+                                        </span>
+                                    @endif
+                                    <span class="text-muted small">
+                                        Pemesan: <strong class="text-dark">{{ $spk->pemesan ?: 'Gudang Internal' }}</strong>
+                                        @if($spk->instansi) &bull; Instansi: <span class="text-dark">{{ $spk->instansi }}</span> @endif
+                                        @if($spk->deadline) &bull; Target: <span class="text-danger fw-semibold"><i class="far fa-clock me-1"></i>{{ $spk->deadline->format('d/m/Y') }}</span> @endif
+                                    </span>
+                                </div>
 
-    <!-- ── 2. SUMMARY METRICS ROW (SIMPLE & ELEGAN) ── -->
-    <div class="row g-3 mb-4">
-        <div class="col-6 col-lg-3">
-            <div class="card border-0 shadow-sm rounded-4 p-3 h-100 bg-white card-hover-shadow">
-                <div class="d-flex align-items-center justify-content-between mb-2">
-                    <span class="text-secondary small fw-bold text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.5px;">Target Total</span>
-                    <span class="badge bg-secondary-subtle text-secondary rounded-pill p-1.5"><i class="fas fa-boxes-stacked"></i></span>
-                </div>
-                <div class="d-flex align-items-baseline gap-1">
-                    <h3 class="fw-bold text-dark mb-0" id="stat-total-target">{{ $totalTarget }}</h3>
-                    <span class="text-muted small">pcs</span>
-                </div>
-                <small class="text-muted mt-1 d-block" style="font-size: 0.75rem;">Total seluruh varian di SPK</small>
-            </div>
-        </div>
-
-        <div class="col-6 col-lg-3">
-            <div class="card border-0 shadow-sm rounded-4 p-3 h-100 bg-white card-hover-shadow">
-                <div class="d-flex align-items-center justify-content-between mb-2">
-                    <span class="text-success small fw-bold text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.5px;">Sudah Diterima</span>
-                    <span class="badge bg-success-subtle text-success rounded-pill p-1.5"><i class="fas fa-circle-check"></i></span>
-                </div>
-                <div class="d-flex align-items-baseline gap-1">
-                    <h3 class="fw-bold text-success mb-0" id="stat-total-diambil">{{ $totalDiambil }}</h3>
-                    <span class="text-muted small">pcs</span>
-                </div>
-                <small class="text-success mt-1 d-block fw-semibold" style="font-size: 0.75rem;">
-                    <i class="fas fa-arrow-trend-up me-1"></i>Tercatat masuk gudang
-                </small>
-            </div>
-        </div>
-
-        <div class="col-6 col-lg-3">
-            <div class="card border-0 shadow-sm rounded-4 p-3 h-100 bg-white card-hover-shadow">
-                <div class="d-flex align-items-center justify-content-between mb-2">
-                    <span class="text-danger small fw-bold text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.5px;">Sisa Belum Diambil</span>
-                    <span class="badge bg-danger-subtle text-danger rounded-pill p-1.5"><i class="fas fa-hourglass-half"></i></span>
-                </div>
-                <div class="d-flex align-items-baseline gap-1">
-                    <h3 class="fw-bold text-danger mb-0" id="stat-total-sisa">{{ $totalSisa }}</h3>
-                    <span class="text-muted small">pcs</span>
-                </div>
-                <small class="text-danger mt-1 d-block fw-semibold" style="font-size: 0.75rem;">
-                    Kurang {{ $totalSisa }} pcs untuk selesai
-                </small>
-            </div>
-        </div>
-
-        <div class="col-6 col-lg-3">
-            <div class="card border-0 shadow-sm rounded-4 p-3 h-100 bg-white card-hover-shadow">
-                <div class="d-flex align-items-center justify-content-between mb-2">
-                    <span class="text-primary small fw-bold text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.5px;">Progres Penerimaan</span>
-                    <span class="badge bg-primary-subtle text-primary rounded-pill p-1.5"><i class="fas fa-chart-pie"></i></span>
-                </div>
-                <div class="d-flex align-items-baseline gap-1">
-                    <h3 class="fw-bold text-primary mb-0" id="overall-percent">{{ $percentComplete }}%</h3>
-                    <span class="text-muted small">selesai</span>
-                </div>
-                <div class="progress mt-2" style="height: 6px; border-radius: 4px;">
-                    <div class="progress-bar bg-primary" id="overall-progress-bar" style="width: {{ $percentComplete }}%;"></div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- ── 3. MAIN WORKSPACE: SCANNER (LEFT) & SPK VARIANT CARDS (RIGHT) ── -->
-    <div class="row g-4">
-
-        <!-- LEFT COLUMN: SCANNER INPUT & SETTINGS -->
-        <div class="col-lg-5">
-            <div class="card border-0 shadow-sm rounded-4 mb-4 bg-white">
-                <div class="card-header bg-white border-0 pt-4 px-4 pb-0 d-flex justify-content-between align-items-center">
-                    <div>
-                        <h6 class="fw-bold text-dark mb-0 d-flex align-items-center gap-2">
-                            <i class="fas fa-barcode text-primary"></i> Pemindai Barcode / QR
-                        </h6>
-                        <small class="text-muted">Arahkan scanner hardware atau kamera HP</small>
-                    </div>
-                    <div class="form-check form-switch mb-0">
-                        <input class="form-check-input" type="checkbox" id="sound-toggle" checked style="cursor: pointer;">
-                        <label class="form-check-label small fw-semibold text-muted" for="sound-toggle">
-                            <i class="fas fa-volume-high"></i> Suara
-                        </label>
-                    </div>
-                </div>
-
-                <div class="card-body p-4">
-
-                    <!-- Big Scanner Drop Target Viewfinder -->
-                    <div class="scanner-box-drop p-4 text-center mb-3" id="viewfinder-box">
-                        <div class="rounded-circle bg-primary-subtle text-primary mx-auto mb-2 d-flex align-items-center justify-content-center" style="width: 58px; height: 58px;">
-                            <i class="fas fa-qrcode fs-3"></i>
+                                {{-- Ringkasan Angka --}}
+                                <div class="d-flex align-items-center gap-3 flex-wrap small ms-auto">
+                                    <span class="text-muted">Target: <strong class="text-dark" id="stat-total-target">{{ $totalTarget }}</strong> pcs</span>
+                                    <span class="text-muted">&bull; Diterima: <strong class="text-success" id="stat-total-diambil">{{ $totalDiambil }}</strong> pcs</span>
+                                    <span class="text-muted">&bull; Sisa: <strong class="text-danger" id="stat-total-sisa">{{ $totalSisa }}</strong> pcs</span>
+                                    <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25" id="overall-percent">
+                                        {{ $percentComplete }}% Selesai
+                                    </span>
+                                </div>
+                            </div>
                         </div>
-                        <h6 class="fw-bold text-dark mb-1">Siap Menerima Scan</h6>
-                        <p class="text-muted small mb-0">Tembakkan barcode kemasan produk. Input akan otomatis terisi &amp; diproses seketika.</p>
                     </div>
+                    <hr class="my-2">
 
-                    <!-- Input Group -->
-                    <form id="scan-form" onsubmit="return false;" class="mb-3">
-                        <label for="barcode-input" class="form-label small fw-bold text-secondary mb-1">
-                            Ketik / Tembak Barcode Kemasan:
-                        </label>
-                        <div class="input-group">
-                            <span class="input-group-text bg-light border-2 border-end-0 border-primary text-primary">
-                                <i class="fas fa-keyboard"></i>
-                            </span>
-                            <input type="text" id="barcode-input"
-                                   class="form-control form-control-lg scanner-main-input border-2 border-primary border-start-0"
-                                   placeholder="Scan barcode atau ketik SKU..." autofocus autocomplete="off">
-                            <button class="btn btn-primary fw-bold px-3" type="button" id="btn-submit-scan">
-                                <i class="fas fa-arrow-right"></i>
-                            </button>
+                    {{-- Baris Input Scanner --}}
+                    <form id="scan-form" onsubmit="return false;">
+                        <div class="row g-2 align-items-end">
+
+                            {{-- Input Barcode / SKU Kemasan --}}
+                            <div class="col-md-5">
+                                <label class="form-label form-label-sm fw-semibold mb-1 text-dark">
+                                    <i class="fas fa-barcode text-primary me-1"></i>Scan / Ketik Barcode / SKU Kemasan
+                                </label>
+                                <div class="input-group input-group-sm">
+                                    <input type="text" id="barcode-input" class="form-control form-control-sm font-monospace fw-bold"
+                                        placeholder="Tembak barcode kemasan atau ketik SKU..." autofocus autocomplete="off">
+                                    <button type="button" id="btn-submit-scan" class="btn btn-primary btn-sm px-3">
+                                        <i class="fas fa-arrow-right me-1"></i>Proses
+                                    </button>
+                                </div>
+                            </div>
+
+                            {{-- Qty per Scan --}}
+                            <div class="col-md-2">
+                                <label class="form-label form-label-sm fw-semibold mb-1 text-dark">
+                                    <i class="fas fa-calculator text-muted me-1"></i>Qty / Scan
+                                </label>
+                                <input type="number" id="qty-scan-input" class="form-control form-control-sm text-center fw-bold"
+                                    value="1" min="1" max="100">
+                            </div>
+
+                            {{-- Petugas Penerima --}}
+                            <div class="col-md-3">
+                                <label class="form-label form-label-sm fw-semibold mb-1 text-dark">
+                                    <i class="fas fa-user-check text-muted me-1"></i>Petugas Penerima
+                                </label>
+                                <input type="text" id="nama-pengambil-input" class="form-control form-control-sm"
+                                    value="{{ Auth::user()->name ?? 'Petugas Gudang' }}" placeholder="Nama Penerima">
+                            </div>
+
+                            {{-- Tombol Kamera & Toggle Suara --}}
+                            <div class="col-md-2 d-flex align-items-center justify-content-md-end gap-2">
+                                <button type="button" class="btn btn-outline-secondary btn-sm" id="btn-toggle-camera" title="Gunakan Kamera HP / Webcam">
+                                    <i class="fas fa-camera text-primary me-1"></i><span id="camera-btn-text">Kamera</span>
+                                </button>
+                                <div class="form-check form-switch mb-0">
+                                    <input class="form-check-input" type="checkbox" id="sound-toggle" checked style="cursor: pointer;">
+                                    <label class="form-check-label small fw-semibold text-muted" for="sound-toggle" title="Bunyi Alarm / Suara">
+                                        <i class="fas fa-volume-high"></i>
+                                    </label>
+                                </div>
+                            </div>
                         </div>
                     </form>
 
-                    <!-- Camera Toggle Button -->
-                    <div class="mb-3">
-                        <button type="button" class="btn btn-outline-secondary w-100 py-2 fw-semibold rounded-3 d-flex align-items-center justify-content-center gap-2" id="btn-toggle-camera">
-                            <i class="fas fa-camera text-primary"></i> <span id="camera-btn-text">Nyalakan Kamera HP / Webcam</span>
-                        </button>
+                    {{-- Container Kamera jika diaktifkan --}}
+                    <div id="camera-scanner-container" class="d-none mt-3 p-3 bg-dark rounded border text-center">
+                        <div id="reader" style="max-width: 360px; margin: 0 auto;"></div>
+                        <small class="text-white opacity-75 d-block mt-2">Arahkan kamera tepat ke QR Code atau Barcode kemasan</small>
                     </div>
 
-                    <!-- Camera Viewfinder Box (Hidden by default) -->
-                    <div id="camera-scanner-container" class="d-none mb-3 bg-dark p-2 rounded-3 text-center">
-                        <div id="reader"></div>
-                        <small class="text-white opacity-75 d-block mt-2">Arahkan kamera tepat pada QR Code / Barcode kemasan</small>
-                    </div>
-
-                    <!-- Settings (Receiver & Qty) -->
-                    <div class="p-3 bg-light rounded-3 border mb-3">
-                        <div class="row g-2">
-                            <div class="col-8">
-                                <label class="form-label text-muted small fw-semibold mb-1">Penerima / Pengambil:</label>
-                                <input type="text" id="nama-pengambil-input" class="form-control form-control-sm fw-bold"
-                                       value="{{ Auth::user()->name ?? 'Petugas Gudang' }}" placeholder="Nama Penerima">
-                            </div>
-                            <div class="col-4">
-                                <label class="form-label text-muted small fw-semibold mb-1">Qty per Scan:</label>
-                                <input type="number" id="qty-scan-input" class="form-control form-control-sm text-center fw-bold"
-                                       value="1" min="1" max="100">
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Feedback Alert Banner -->
-                    <div id="live-feedback" class="d-none alert border-0 rounded-3 p-3 mb-0 shadow-sm transition-all"></div>
+                    {{-- Live Alert Feedback Banner --}}
+                    <div id="live-feedback" class="d-none alert py-2 px-3 mt-3 mb-0 small" role="alert"></div>
 
                 </div>
             </div>
-        </div>
 
-        <!-- RIGHT COLUMN: VARIANT / SIZE ITEMS STATUS -->
-        <div class="col-lg-7">
-            <div class="card border-0 shadow-sm rounded-4 mb-4 bg-white">
-                <div class="card-header bg-white border-0 pt-4 px-4 pb-2 d-flex justify-content-between align-items-center">
+            {{-- ── 2. Tabel Utama: Daftar Item & Kuota SPK (Gaya Menu User) ───── --}}
+            <div class="card border shadow-sm mb-3">
+                {{-- Card Header --}}
+                <div class="card-header bg-light d-flex justify-content-between align-items-center py-2.5 px-3 border-bottom">
                     <div>
-                        <h6 class="fw-bold text-dark mb-0 d-flex align-items-center gap-2">
-                            <i class="fas fa-boxes-packing text-primary"></i> Daftar Ukuran &amp; Kuota SPK
+                        <h6 class="m-0 fw-bold text-primary">
+                            <i class="fas fa-boxes-stacked me-2"></i>Daftar Item &amp; Kuota SPK
                         </h6>
-                        <small class="text-muted">Status kuota berkurang otomatis setiap kali kemasan di-scan</small>
+                        <p class="text-muted mb-0 small mt-1">
+                            Monitoring penerimaan hasil produksi per varian ukuran &mdash; <span class="text-primary fw-semibold">SPK #{{ $spk->no_spk }}</span>
+                        </p>
                     </div>
-                    <span class="badge bg-light text-secondary border fw-bold">
-                        {{ $spk->items->count() }} Varian Ukuran
-                    </span>
+                    <div class="d-flex gap-1 flex-wrap">
+                        <a href="{{ route('spks.show', $spk->id) }}" class="btn btn-secondary btn-sm px-3">
+                            <i class="fas fa-arrow-left me-1"></i> Kembali ke SPK
+                        </a>
+                        <a href="{{ route('spks.print_labels', $spk->id) }}" target="_blank" class="btn btn-dark btn-sm px-3">
+                            <i class="fas fa-tags me-1"></i> Cetak Label Stiker
+                        </a>
+                        <a href="{{ route('spks.print', $spk->id) }}" target="_blank" class="btn btn-outline-primary btn-sm px-3">
+                            <i class="fas fa-print me-1"></i> Cetak SPK
+                        </a>
+                    </div>
                 </div>
 
-                <div class="card-body p-4 pt-2">
-                    <div class="row g-3" id="spk-items-container">
-                        @foreach($spk->items as $item)
-                            @php
-                                $itemDiambil = (int) $item->qty_diambil;
-                                $itemSisa = (int) $item->sisa_qty;
-                                $itemTarget = (int) $item->quantity;
-                                $isComplete = ($itemSisa == 0);
-                                $itemPct = $itemTarget > 0 ? min(100, round(($itemDiambil / $itemTarget) * 100)) : 0;
-                            @endphp
+                <div class="card-body p-3">
 
-                            <div class="col-md-6">
-                                <div class="card border shadow-sm rounded-3 p-3 h-100 item-card-row {{ $isComplete ? 'is-complete-card' : 'bg-white' }}"
-                                     id="item-card-{{ $item->id }}" data-item-id="{{ $item->id }}">
-                                    <div class="d-flex justify-content-between align-items-start mb-2">
-                                        <div class="d-flex align-items-center gap-2.5">
-                                            <span class="badge-size-large {{ $isComplete ? 'bg-success text-white' : 'bg-dark text-white' }}"
-                                                  id="item-size-badge-{{ $item->id }}">
+                    {{-- Progres Akumulasi --}}
+                    <div class="d-flex align-items-center justify-content-between mb-1.5 small">
+                        <span class="fw-semibold text-muted">Akumulasi Total Selesai:</span>
+                        <span class="fw-bold text-primary" id="overall-progress-text">
+                            {{ $totalDiambil }} dari {{ $totalTarget }} pcs ({{ $percentComplete }}%)
+                        </span>
+                    </div>
+                    <div class="progress mb-3" style="height: 7px;">
+                        <div class="progress-bar bg-primary" id="overall-progress-bar" style="width: {{ $percentComplete }}%;"></div>
+                    </div>
+
+                    {{-- Tabel Item SPK --}}
+                    <div class="table-responsive rounded border mt-2">
+                        <table class="table table-sm table-bordered table-striped table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="text-center" style="width: 40px;">#</th>
+                                    <th>NAMA PRODUK</th>
+                                    <th class="text-center" style="width: 90px;">UKURAN</th>
+                                    <th>SKU / BARCODE</th>
+                                    <th class="text-center" style="width: 100px;">TARGET</th>
+                                    <th class="text-center" style="width: 110px;">DITERIMA</th>
+                                    <th class="text-center" style="width: 110px;">SISA KUOTA</th>
+                                    <th style="width: 170px;">PROGRES</th>
+                                    <th class="text-center" style="width: 130px;">STATUS</th>
+                                </tr>
+                            </thead>
+                            <tbody id="spk-items-table-body">
+                                @forelse($spk->items as $i => $item)
+                                    @php
+                                        $itemDiambil = (int) $item->qty_diambil;
+                                        $itemSisa = (int) $item->sisa_qty;
+                                        $itemTarget = (int) $item->quantity;
+                                        $isComplete = ($itemSisa == 0);
+                                        $itemPct = $itemTarget > 0 ? min(100, round(($itemDiambil / $itemTarget) * 100)) : 0;
+                                    @endphp
+                                    <tr id="item-row-{{ $item->id }}" class="{{ $isComplete ? 'table-success bg-opacity-25' : '' }}">
+                                        <td class="text-center text-muted small">{{ $i + 1 }}</td>
+                                        <td>
+                                            <strong class="text-dark small">{{ $item->nama_produk }}</strong>
+                                            @if($item->catatan)
+                                                <div class="text-muted" style="font-size: 0.72rem;">{{ $item->catatan }}</div>
+                                            @endif
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="badge bg-dark bg-opacity-10 text-dark border border-dark border-opacity-25 fw-bold px-2 py-1" id="item-size-badge-{{ $item->id }}">
                                                 {{ $item->ukuran ?: 'ALL' }}
                                             </span>
-                                            <div>
-                                                <h6 class="fw-bold text-dark mb-0" style="font-size: 0.95rem;">
-                                                    {{ $item->nama_produk }}
-                                                </h6>
-                                                <small class="text-muted font-monospace d-block" style="font-size: 0.72rem;">
-                                                    SKU: <strong class="text-primary">{{ $item->sku ?: '—' }}</strong>
-                                                    @if($item->masterProduct && $item->masterProduct->barcode)
-                                                        &bull; BC: <span class="text-secondary">{{ $item->masterProduct->barcode }}</span>
-                                                    @endif
-                                                </small>
+                                        </td>
+                                        <td>
+                                            <span class="font-monospace small text-primary fw-semibold">{{ $item->sku ?: '—' }}</span>
+                                            @if($item->masterProduct && $item->masterProduct->barcode)
+                                                <div class="font-monospace text-muted" style="font-size: 0.72rem;">
+                                                    BC: {{ $item->masterProduct->barcode }}
+                                                </div>
+                                            @endif
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-25 fw-bold">
+                                                {{ $itemTarget }} pcs
+                                            </span>
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 fw-bold" id="item-diambil-badge-{{ $item->id }}">
+                                                <span id="item-diambil-{{ $item->id }}">{{ $itemDiambil }}</span> pcs
+                                            </span>
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="badge {{ $isComplete ? 'bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-25' : 'bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25' }} fw-bold" id="item-sisa-badge-{{ $item->id }}">
+                                                <span id="item-sisa-{{ $item->id }}">{{ $itemSisa }}</span> pcs
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-center gap-2">
+                                                <div class="progress flex-grow-1" style="height: 6px;">
+                                                    <div class="progress-bar {{ $isComplete ? 'bg-success' : 'bg-primary' }}"
+                                                        id="item-progress-fill-{{ $item->id }}"
+                                                        style="width: {{ $itemPct }}%;"></div>
+                                                </div>
+                                                <span class="small fw-bold text-muted" id="item-pct-text-{{ $item->id }}">{{ $itemPct }}%</span>
                                             </div>
-                                        </div>
-
-                                        <span class="badge {{ $isComplete ? 'bg-success-subtle text-success' : 'bg-warning-subtle text-warning-emphasis' }} fw-bold px-2.5 py-1 rounded-pill"
-                                              id="item-status-badge-{{ $item->id }}" style="font-size: 0.72rem;">
-                                            {{ $isComplete ? '✅ Lengkap' : '⏳ Sisa ' . $itemSisa }}
-                                        </span>
-                                    </div>
-
-                                    <!-- Counts & Progress -->
-                                    <div class="d-flex justify-content-between align-items-baseline mt-3 mb-1.5" style="font-size: 0.8rem;">
-                                        <span class="text-muted">
-                                            Diterima: <strong class="text-dark fs-6" id="item-diambil-{{ $item->id }}">{{ $itemDiambil }}</strong>
-                                            / <span class="text-secondary">{{ $itemTarget }} pcs</span>
-                                        </span>
-                                        <span class="fw-bold {{ $isComplete ? 'text-success' : 'text-danger' }}">
-                                            Sisa: <strong class="fs-6" id="item-sisa-{{ $item->id }}">{{ $itemSisa }}</strong> pcs
-                                        </span>
-                                    </div>
-
-                                    <div class="progress" style="height: 7px; border-radius: 4px;">
-                                        <div class="progress-bar {{ $isComplete ? 'bg-success' : 'bg-primary' }}"
-                                             id="item-progress-fill-{{ $item->id }}"
-                                             style="width: {{ $itemPct }}%;"></div>
-                                    </div>
-                                </div>
-                            </div>
-                        @endforeach
+                                        </td>
+                                        <td class="text-center">
+                                            @if($isComplete)
+                                                <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25" id="item-status-badge-{{ $item->id }}">
+                                                    <i class="fas fa-check-circle me-1"></i>Lengkap
+                                                </span>
+                                            @else
+                                                <span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25" id="item-status-badge-{{ $item->id }}">
+                                                    <i class="fas fa-hourglass-half me-1"></i>Sisa {{ $itemSisa }}
+                                                </span>
+                                            @endif
+                                        </td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="9" class="text-center text-muted py-4 small">
+                                            <i class="fas fa-boxes-stacked me-2 opacity-50"></i>
+                                            Tidak ada item dalam SPK ini.
+                                        </td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
                     </div>
+
                 </div>
             </div>
 
-            <!-- ── 4. RECENT SCAN LOG TABLE ── -->
-            <div class="card border-0 shadow-sm rounded-4 bg-white">
-                <div class="card-header bg-white border-0 pt-4 px-4 pb-2 d-flex justify-content-between align-items-center">
+            {{-- ── 3. Tabel Riwayat Scan Sesi Ini (Gaya Menu User) ─────────────── --}}
+            <div class="card border shadow-sm">
+                <div class="card-header bg-light d-flex justify-content-between align-items-center py-2.5 px-3 border-bottom">
                     <div>
-                        <h6 class="fw-bold text-dark mb-0 d-flex align-items-center gap-2">
-                            <i class="fas fa-clock-rotate-left text-primary"></i> Riwayat Scan Sesi Ini
+                        <h6 class="m-0 fw-bold text-primary">
+                            <i class="fas fa-history me-2"></i>Riwayat Scan Penerimaan Sesi Ini
                         </h6>
-                        <small class="text-muted">Daftar item yang baru saja diterima &amp; dipotong kuotanya</small>
+                        <p class="text-muted mb-0 small mt-1">
+                            Daftar item kemasan yang baru saja di-scan dan dimasukkan ke stok barang jadi
+                        </p>
                     </div>
-                    <span class="badge bg-secondary-subtle text-secondary fw-semibold rounded-pill px-2.5 py-1" id="scan-counter-badge">
-                        {{ $recentPickups->count() }} Pengambilan
+                    <span class="text-muted small">
+                        Total: <strong class="text-dark" id="scan-counter-badge">{{ $recentPickups->count() }}</strong> catatan
                     </span>
                 </div>
 
-                <div class="card-body p-0">
-                    <div class="table-responsive" style="max-height: 260px;">
-                        <table class="table table-hover align-middle mb-0" style="font-size: 0.82rem;">
-                            <thead class="table-light sticky-top">
+                <div class="card-body p-3">
+                    <div class="table-responsive rounded border mt-1">
+                        <table class="table table-sm table-bordered table-striped table-hover align-middle mb-0">
+                            <thead class="table-light">
                                 <tr>
-                                    <th style="width: 20%;" class="ps-4">Waktu</th>
-                                    <th>Item &amp; Ukuran</th>
-                                    <th class="text-center" style="width: 15%;">Jumlah</th>
-                                    <th style="width: 25%;">Penerima</th>
-                                    <th class="text-center pe-4" style="width: 12%;">Batal</th>
+                                    <th class="text-center" style="width: 40px;">#</th>
+                                    <th style="width: 140px;">WAKTU</th>
+                                    <th>NAMA PRODUK</th>
+                                    <th class="text-center" style="width: 90px;">UKURAN</th>
+                                    <th class="text-center" style="width: 90px;">JUMLAH</th>
+                                    <th>PETUGAS PENERIMA</th>
+                                    <th>CATATAN</th>
+                                    <th class="text-center" style="width: 80px;">AKSI</th>
                                 </tr>
                             </thead>
                             <tbody id="scan-log-tbody">
-                                @forelse($recentPickups as $pickup)
+                                @forelse($recentPickups as $idx => $pickup)
                                     <tr id="pickup-row-{{ $pickup->id }}">
-                                        <td class="text-muted ps-4">
+                                        <td class="text-center text-muted small">{{ $idx + 1 }}</td>
+                                        <td class="small text-muted font-monospace">
                                             {{ $pickup->tanggal_ambil ? $pickup->tanggal_ambil->format('d/m/Y H:i') : '-' }}
                                         </td>
                                         <td>
-                                            <strong class="text-dark">{{ $pickup->item->nama_produk ?? 'Item' }}</strong>
-                                            <span class="badge bg-dark-subtle text-dark border ms-1">{{ $pickup->item->ukuran ?? '—' }}</span>
+                                            <strong class="text-dark small">{{ $pickup->item->nama_produk ?? 'Item' }}</strong>
                                         </td>
-                                        <td class="text-center fw-bold text-success">
-                                            +{{ $pickup->qty_diambil }} pcs
+                                        <td class="text-center">
+                                            <span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-25 small">
+                                                {{ $pickup->item->ukuran ?? '—' }}
+                                            </span>
                                         </td>
-                                        <td class="text-secondary">
+                                        <td class="text-center">
+                                            <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 fw-bold">
+                                                +{{ $pickup->qty_diambil }} pcs
+                                            </span>
+                                        </td>
+                                        <td class="small text-dark">
                                             {{ $pickup->nama_pengambil }}
                                         </td>
-                                        <td class="text-center pe-4">
-                                            <button type="button" class="btn btn-outline-danger btn-sm py-0.5 px-2 rounded-2"
-                                                    onclick="deletePickupRecord({{ $pickup->id }})" title="Hapus / Batalkan">
-                                                <i class="fas fa-trash-alt" style="font-size: 0.7rem;"></i>
+                                        <td class="small text-muted">
+                                            {{ $pickup->catatan ?: '-' }}
+                                        </td>
+                                        <td class="text-center">
+                                            <button type="button" class="btn btn-danger btn-sm"
+                                                onclick="deletePickupRecord({{ $pickup->id }})" title="Hapus / Batalkan">
+                                                <i class="fas fa-trash"></i>
                                             </button>
                                         </td>
                                     </tr>
                                 @empty
                                     <tr id="scan-log-empty-row">
-                                        <td colspan="5" class="text-center text-muted py-4">
-                                            <i class="fas fa-barcode opacity-25 fs-2 d-block mb-1"></i>
+                                        <td colspan="8" class="text-center text-muted py-4 small">
+                                            <i class="fas fa-barcode opacity-50 me-1"></i>
                                             Belum ada barcode yang di-scan pada sesi ini.
                                         </td>
                                     </tr>
@@ -435,39 +340,40 @@
 
         </div>
     </div>
-</div>
 
-<!-- ── MODAL ALERT: BARANG SALAH / KUOTA PENUH (CLEAN BOOTSTRAP 5) ── -->
-<div class="modal fade" id="modalScanAlert" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content rounded-4 border-0 shadow-lg overflow-hidden shake-anim" id="modal-alert-content">
-            <div class="modal-header bg-danger text-white py-3 px-4 border-0" id="modal-alert-header">
-                <h6 class="modal-title fw-bold d-flex align-items-center gap-2" id="modal-alert-title">
-                    <i class="fas fa-triangle-exclamation"></i> BARANG TIDAK SESUAI
-                </h6>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body p-4 text-center">
-                <div class="rounded-circle bg-danger-subtle text-danger mx-auto mb-3 d-flex align-items-center justify-content-center"
-                     id="modal-alert-icon-wrap" style="width: 72px; height: 72px;">
-                    <i class="fas fa-times-circle fa-3x" id="modal-alert-icon"></i>
+    {{-- ── 4. MODAL ALERT: BARANG SALAH / KUOTA PENUH (GAYA MODAL MENU USER) ─ --}}
+    <div class="modal fade" id="modalScanAlert" tabindex="-1" data-bs-backdrop="static">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content overflow-hidden">
+                <div class="modal-header d-flex align-items-center gap-3 p-3 bg-danger bg-opacity-10 border-bottom" id="modal-alert-header">
+                    <div class="bg-danger text-white rounded-3 d-flex align-items-center justify-content-center flex-shrink-0 p-2 fs-5"
+                        id="modal-alert-icon-wrap" style="width: 40px; height: 40px;">
+                        <i class="fas fa-exclamation-triangle" id="modal-alert-icon"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                        <h5 class="modal-title fw-bold fs-6 mb-0 text-dark" id="modal-alert-title">Peringatan Scan!</h5>
+                        <p class="mb-0 text-muted small" id="modal-alert-subtitle">Barang tidak sesuai atau kuota penuh</p>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <h5 class="fw-bold text-dark mb-2" id="modal-alert-msg-primary">Barcode Tidak Terdaftar</h5>
-                <div class="p-3 bg-light rounded-3 text-secondary small mb-3 border text-start" id="modal-alert-msg-detail">
-                    Item ini bukan bagian dari SPK yang sedang diproses.
+                <div class="modal-body p-4">
+                    <div class="text-center mb-3">
+                        <h6 class="fw-bold text-dark fs-5 mb-1" id="modal-alert-msg-primary">Barcode Tidak Terdaftar</h6>
+                        <p class="text-muted small mb-0" id="modal-alert-msg-detail">Item ini bukan bagian dari SPK yang sedang diproses.</p>
+                    </div>
+                    <div class="alert alert-warning bg-warning bg-opacity-10 border border-warning border-opacity-25 py-2 px-3 mb-0 small text-dark">
+                        <i class="fas fa-info-circle me-1 text-warning"></i>
+                        Tekan <strong>[Spasi]</strong> atau klik tombol <strong>Tutup &amp; Scan Ulang</strong> untuk kembali memindai.
+                    </div>
                 </div>
-                <div class="text-muted small">
-                    Tekan <strong>[Spasi]</strong> atau klik tombol di bawah untuk melanjutkan scan.
+                <div class="modal-footer bg-light px-4 py-3 d-flex justify-content-end border-top">
+                    <button type="button" class="btn btn-secondary btn-sm px-4" data-bs-dismiss="modal" id="btn-alert-dismiss">
+                        Tutup &amp; Scan Ulang
+                    </button>
                 </div>
-            </div>
-            <div class="modal-footer bg-light border-0 py-2 px-4 justify-content-center">
-                <button type="button" class="btn btn-danger fw-semibold px-4 rounded-pill" data-bs-dismiss="modal" id="btn-alert-dismiss">
-                    OK, Saya Mengerti
-                </button>
             </div>
         </div>
     </div>
-</div>
 @endsection
 
 @push('scripts')
@@ -478,7 +384,6 @@
         const barcodeInput = document.getElementById('barcode-input');
         const btnSubmitScan = document.getElementById('btn-submit-scan');
         const liveFeedback = document.getElementById('live-feedback');
-        const viewfinderBox = document.getElementById('viewfinder-box');
         const soundToggle = document.getElementById('sound-toggle');
         const qtyScanInput = document.getElementById('qty-scan-input');
         const namaPengambilInput = document.getElementById('nama-pengambil-input');
@@ -489,6 +394,7 @@
         const modalAlertEl = document.getElementById('modalScanAlert');
         const modalAlertObj = new bootstrap.Modal(modalAlertEl);
         const modalAlertTitle = document.getElementById('modal-alert-title');
+        const modalAlertSubtitle = document.getElementById('modal-alert-subtitle');
         const modalAlertMsgPrimary = document.getElementById('modal-alert-msg-primary');
         const modalAlertMsgDetail = document.getElementById('modal-alert-msg-detail');
         const modalAlertHeader = document.getElementById('modal-alert-header');
@@ -550,13 +456,6 @@
             setTimeout(() => playBeep(1046.50, 'triangle', 0.3, 0.25), 330); // C6
         }
 
-        // Viewfinder click autofocus
-        viewfinderBox.addEventListener('click', () => {
-            barcodeInput.focus();
-            viewfinderBox.classList.add('is-focused');
-            setTimeout(() => viewfinderBox.classList.remove('is-focused'), 500);
-        });
-
         // Keydown Enter from Hardware Barcode Gun
         barcodeInput.addEventListener('keydown', function(e) {
             if (e.key === 'Enter') {
@@ -565,13 +464,23 @@
             }
         });
 
-        btnSubmitScan.addEventListener('click', submitScan);
+        btnSubmitScan.addEventListener('click', () => submitScan());
 
+        // Focus kembali ke input saat modal ditutup
         modalAlertEl.addEventListener('hidden.bs.modal', function() {
             barcodeInput.focus();
         });
 
-        // Submit Scan Processing
+        // Shortcut keyboard [Spasi] untuk menutup modal alert
+        document.addEventListener('keydown', function(e) {
+            if (e.code === 'Space' && modalAlertEl.classList.contains('show')) {
+                e.preventDefault();
+                modalAlertObj.hide();
+                barcodeInput.focus();
+            }
+        });
+
+        // Submit Scan Processing via AJAX
         function submitScan(scannedVal = null) {
             if (isProcessing) return;
 
@@ -586,7 +495,7 @@
 
             isProcessing = true;
             btnSubmitScan.disabled = true;
-            btnSubmitScan.innerHTML = `<i class="fas fa-spinner fa-spin"></i>`;
+            btnSubmitScan.innerHTML = `<i class="fas fa-spinner fa-spin me-1"></i>Proses...`;
 
             fetch(`{{ route('spks.process_scan_pickup', $spk->id) }}`, {
                 method: 'POST',
@@ -621,7 +530,7 @@
             .finally(() => {
                 isProcessing = false;
                 btnSubmitScan.disabled = false;
-                btnSubmitScan.innerHTML = `<i class="fas fa-arrow-right"></i>`;
+                btnSubmitScan.innerHTML = `<i class="fas fa-arrow-right me-1"></i>Proses`;
                 barcodeInput.value = '';
                 barcodeInput.focus();
             });
@@ -637,57 +546,71 @@
                 playSuccessChime();
             }
 
-            // Update Item Card DOM
-            const cardEl = document.getElementById(`item-card-${item.id}`);
+            // Update Item Row di Tabel
+            const rowEl = document.getElementById(`item-row-${item.id}`);
             const diambilEl = document.getElementById(`item-diambil-${item.id}`);
             const sisaEl = document.getElementById(`item-sisa-${item.id}`);
+            const sisaBadgeEl = document.getElementById(`item-sisa-badge-${item.id}`);
             const progressFillEl = document.getElementById(`item-progress-fill-${item.id}`);
+            const pctTextEl = document.getElementById(`item-pct-text-${item.id}`);
             const statusBadgeEl = document.getElementById(`item-status-badge-${item.id}`);
-            const sizeBadgeEl = document.getElementById(`item-size-badge-${item.id}`);
 
-            if (cardEl) {
-                diambilEl.innerText = item.qty_diambil;
-                sisaEl.innerText = item.sisa_qty;
+            if (rowEl) {
+                if (diambilEl) diambilEl.innerText = item.qty_diambil;
+                if (sisaEl) sisaEl.innerText = item.sisa_qty;
 
                 const pct = item.quantity > 0 ? Math.min(100, Math.round((item.qty_diambil / item.quantity) * 100)) : 0;
-                progressFillEl.style.width = `${pct}%`;
+                if (progressFillEl) progressFillEl.style.width = `${pct}%`;
+                if (pctTextEl) pctTextEl.innerText = `${pct}%`;
 
                 if (item.is_completed) {
-                    cardEl.classList.remove('bg-white');
-                    cardEl.classList.add('is-complete-card');
-                    progressFillEl.className = 'progress-bar bg-success';
-                    statusBadgeEl.className = 'badge bg-success-subtle text-success fw-bold px-2.5 py-1 rounded-pill';
-                    statusBadgeEl.innerHTML = '✅ Lengkap';
-                    sizeBadgeEl.className = 'badge-size-large bg-success text-white';
+                    rowEl.className = 'table-success bg-opacity-25';
+                    if (progressFillEl) progressFillEl.className = 'progress-bar bg-success';
+                    if (sisaBadgeEl) {
+                        sisaBadgeEl.className = 'badge bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-25 fw-bold';
+                    }
+                    if (statusBadgeEl) {
+                        statusBadgeEl.className = 'badge bg-success bg-opacity-10 text-success border border-success border-opacity-25';
+                        statusBadgeEl.innerHTML = '<i class="fas fa-check-circle me-1"></i>Lengkap';
+                    }
                 } else {
-                    statusBadgeEl.className = 'badge bg-warning-subtle text-warning-emphasis fw-bold px-2.5 py-1 rounded-pill';
-                    statusBadgeEl.innerHTML = `⏳ Sisa ${item.sisa_qty}`;
+                    if (sisaBadgeEl) {
+                        sisaBadgeEl.className = 'badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 fw-bold';
+                    }
+                    if (statusBadgeEl) {
+                        statusBadgeEl.className = 'badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25';
+                        statusBadgeEl.innerHTML = `<i class="fas fa-hourglass-half me-1"></i>Sisa ${item.sisa_qty}`;
+                    }
                 }
 
-                // Green pulse effect
-                cardEl.classList.remove('pulse-success');
-                void cardEl.offsetWidth; // trigger reflow
-                cardEl.classList.add('pulse-success');
+                // Efek visual pulse pada baris yang baru terupdate
+                rowEl.classList.remove('row-scan-pulse');
+                void rowEl.offsetWidth; // trigger reflow
+                rowEl.classList.add('row-scan-pulse');
             }
 
-            // Update Global Stats
+            // Update Total Angka Header & Akumulasi
             document.getElementById('stat-total-diambil').innerText = data.spk_total_diambil;
             document.getElementById('stat-total-sisa').innerText = data.spk_total_sisa;
-            document.getElementById('overall-percent').innerText = `${data.percent_complete}%`;
+            document.getElementById('overall-percent').innerText = `${data.percent_complete}% Selesai`;
             document.getElementById('overall-progress-bar').style.width = `${data.percent_complete}%`;
+            
+            const overallText = document.getElementById('overall-progress-text');
+            if (overallText) {
+                overallText.innerText = `${data.spk_total_diambil} dari ${data.spk_total_target || '{{ $totalTarget }}'} pcs (${data.percent_complete}%)`;
+            }
 
-            // Live Banner
-            liveFeedback.className = 'alert alert-success border-0 rounded-3 p-3 mb-0 shadow-sm d-flex align-items-center gap-2';
+            // Live Banner Feedback
+            liveFeedback.className = 'alert alert-success border-0 py-2 px-3 mt-3 mb-0 small d-flex align-items-center gap-2';
             liveFeedback.innerHTML = `
-                <i class="fas fa-check-circle fs-5 text-success"></i>
-                <div class="small">
-                    <strong>Scan Berhasil!</strong> Menerima ${data.pickup.qty} pcs <strong>${item.nama_produk} (Size: ${item.ukuran})</strong>.
-                    <span class="d-block text-secondary">Sisa kuota: ${item.sisa_qty} pcs.</span>
+                <i class="fas fa-check-circle fs-6 text-success"></i>
+                <div>
+                    <strong>Scan Berhasil:</strong> Menerima ${data.pickup.qty} pcs <strong>${item.nama_produk} (Ukuran: ${item.ukuran || 'ALL'})</strong>. Sisa kuota: ${item.sisa_qty} pcs.
                 </div>
             `;
             liveFeedback.classList.remove('d-none');
 
-            // Add row to log table
+            // Tambahkan baris baru ke Riwayat Scan
             const tbody = document.getElementById('scan-log-tbody');
             const emptyRow = document.getElementById('scan-log-empty-row');
             if (emptyRow) emptyRow.remove();
@@ -696,22 +619,34 @@
             tr.id = `pickup-row-${data.pickup.id}`;
             tr.className = 'table-success bg-opacity-25';
             tr.innerHTML = `
-                <td class="text-muted ps-4">${data.pickup.tanggal}</td>
-                <td>
-                    <strong class="text-dark">${item.nama_produk}</strong>
-                    <span class="badge bg-dark-subtle text-dark border ms-1">${item.ukuran}</span>
+                <td class="text-center text-muted small"><span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25">Baru</span></td>
+                <td class="small text-muted font-monospace">${data.pickup.tanggal}</td>
+                <td><strong class="text-dark small">${item.nama_produk}</strong></td>
+                <td class="text-center">
+                    <span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-25 small">${item.ukuran || '—'}</span>
                 </td>
-                <td class="text-center fw-bold text-success">+${data.pickup.qty} pcs</td>
-                <td class="text-secondary">${data.pickup.nama_pengambil}</td>
-                <td class="text-center pe-4">
-                    <button type="button" class="btn btn-outline-danger btn-sm py-0.5 px-2 rounded-2"
+                <td class="text-center">
+                    <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 fw-bold">+${data.pickup.qty} pcs</span>
+                </td>
+                <td class="small text-dark">${data.pickup.nama_pengambil}</td>
+                <td class="small text-muted">Scan QR / Barcode Kemasan</td>
+                <td class="text-center">
+                    <button type="button" class="btn btn-danger btn-sm"
                             onclick="deletePickupRecord(${data.pickup.id})" title="Hapus / Batalkan">
-                        <i class="fas fa-trash-alt" style="font-size: 0.7rem;"></i>
+                        <i class="fas fa-trash"></i>
                     </button>
                 </td>
             `;
             tbody.insertBefore(tr, tbody.firstChild);
 
+            // Update Counter Badge
+            const counterEl = document.getElementById('scan-counter-badge');
+            if (counterEl) {
+                const currentCount = parseInt(counterEl.innerText) || 0;
+                counterEl.innerText = currentCount + 1;
+            }
+
+            // Jika seluruh SPK selesai
             if (data.all_completed) {
                 Swal.fire({
                     icon: 'success',
@@ -723,43 +658,45 @@
             }
         }
 
-        // Handle Scan Error
+        // Handle Scan Error (Alert Modal & Buzzer)
         function handleScanError(data) {
             playErrorBuzzer();
 
             const isQuota = data.error_type === 'quota_exceeded';
 
-            modalAlertTitle.innerHTML = `<i class="fas fa-triangle-exclamation me-1"></i> ${data.title || 'PERINGATAN SCAN'}`;
+            modalAlertTitle.innerHTML = `<i class="fas fa-triangle-exclamation me-1"></i> ${data.title || 'Peringatan Scan!'}`;
+            modalAlertSubtitle.innerText = isQuota ? 'Kuota pesanan varian ini telah terpenuhi' : 'Barang tidak sesuai atau bukan bagian dari SPK ini';
             modalAlertMsgPrimary.innerText = data.message || 'Barcode tidak sesuai.';
             modalAlertMsgDetail.innerText = data.detail || '';
 
             if (isQuota) {
-                modalAlertHeader.className = 'modal-header bg-warning text-dark py-3 px-4 border-0';
-                modalAlertIconWrap.className = 'rounded-circle bg-warning-subtle text-warning-emphasis mx-auto mb-3 d-flex align-items-center justify-content-center';
-                modalAlertIcon.className = 'fas fa-box-check fa-3x text-warning-emphasis';
-                btnAlertDismiss.className = 'btn btn-warning fw-semibold px-4 rounded-pill text-dark';
+                modalAlertHeader.className = 'modal-header d-flex align-items-center gap-3 p-3 bg-warning bg-opacity-10 border-bottom';
+                modalAlertIconWrap.className = 'bg-warning text-dark rounded-3 d-flex align-items-center justify-content-center flex-shrink-0 p-2 fs-5';
+                modalAlertIcon.className = 'fas fa-boxes-packing';
+                btnAlertDismiss.className = 'btn btn-warning btn-sm px-4 text-dark fw-semibold';
             } else {
-                modalAlertHeader.className = 'modal-header bg-danger text-white py-3 px-4 border-0';
-                modalAlertIconWrap.className = 'rounded-circle bg-danger-subtle text-danger mx-auto mb-3 d-flex align-items-center justify-content-center';
-                modalAlertIcon.className = 'fas fa-times-circle fa-3x text-danger';
-                btnAlertDismiss.className = 'btn btn-danger fw-semibold px-4 rounded-pill';
+                modalAlertHeader.className = 'modal-header d-flex align-items-center gap-3 p-3 bg-danger bg-opacity-10 border-bottom';
+                modalAlertIconWrap.className = 'bg-danger text-white rounded-3 d-flex align-items-center justify-content-center flex-shrink-0 p-2 fs-5';
+                modalAlertIcon.className = 'fas fa-exclamation-triangle';
+                btnAlertDismiss.className = 'btn btn-secondary btn-sm px-4';
             }
 
             modalAlertObj.show();
 
-            liveFeedback.className = 'alert alert-danger border-0 rounded-3 p-3 mb-0 shadow-sm d-flex align-items-center gap-2';
+            // Feedback Banner di bawah form
+            liveFeedback.className = 'alert alert-danger border-0 py-2 px-3 mt-3 mb-0 small d-flex align-items-center gap-2';
             liveFeedback.innerHTML = `
-                <i class="fas fa-circle-exclamation fs-5 text-danger"></i>
-                <div class="small">
-                    <strong>${data.title || 'Error!'}</strong> ${data.message}
+                <i class="fas fa-circle-exclamation fs-6 text-danger"></i>
+                <div>
+                    <strong>${data.title || 'Error!'}:</strong> ${data.message}
                 </div>
             `;
             liveFeedback.classList.remove('d-none');
         }
 
-        // Undo / Delete Pickup Record
+        // Batalkan / Hapus Catatan Penerimaan via AJAX
         window.deletePickupRecord = function(pickupId) {
-            if (!confirm("Batalkan dan hapus catatan penerimaan ini?")) return;
+            if (!confirm("Apakah Anda yakin ingin membatalkan dan menghapus catatan penerimaan ini?")) return;
 
             fetch(`/spks/pickups/${pickupId}`, {
                 method: 'DELETE',
@@ -792,7 +729,7 @@
 
         function startCameraScanner() {
             cameraContainer.classList.remove('d-none');
-            cameraBtnText.innerText = "Matikan Kamera";
+            cameraBtnText.innerText = "Tutup Kamera";
             btnToggleCamera.classList.replace('btn-outline-secondary', 'btn-outline-danger');
 
             html5QrCode = new Html5Qrcode("reader");
@@ -822,13 +759,13 @@
                 html5QrCode.stop().then(() => {
                     html5QrCode.clear();
                     cameraContainer.classList.add('d-none');
-                    cameraBtnText.innerText = "Nyalakan Kamera HP / Webcam";
+                    cameraBtnText.innerText = "Kamera";
                     btnToggleCamera.classList.replace('btn-outline-danger', 'btn-outline-secondary');
                     isCameraActive = false;
                 }).catch(err => console.error("Stop camera error:", err));
             } else {
                 cameraContainer.classList.add('d-none');
-                cameraBtnText.innerText = "Nyalakan Kamera HP / Webcam";
+                cameraBtnText.innerText = "Kamera";
                 btnToggleCamera.classList.replace('btn-outline-danger', 'btn-outline-secondary');
                 isCameraActive = false;
             }
