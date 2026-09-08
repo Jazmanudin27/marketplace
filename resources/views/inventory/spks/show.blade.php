@@ -9,26 +9,6 @@
         font-family: 'Inter', system-ui, sans-serif;
         color: #1a1a2e;
     }
-    .spk-page-header {
-        background: #fff;
-        border: 1px solid #e5e7eb;
-        padding: 14px 20px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        flex-wrap: wrap;
-        gap: 12px;
-        margin-bottom: 20px;
-        border-radius: 12px;
-        box-shadow: 0 1px 6px rgba(0,0,0,.07);
-    }
-    .spk-page-header h4 {
-        font-size: 1.1rem;
-        font-weight: 800;
-        margin: 0;
-        letter-spacing: -.3px;
-    }
-    .spk-page-header p { font-size: 12px; color: #888; margin: 2px 0 0; }
 
     /* Info Banner Row */
     .spk-info-banner {
@@ -350,107 +330,113 @@
         <option value="Topi & Aksesoris"></option>
     </datalist>
 
-    {{-- ── PAGE HEADER ── --}}
-    <div class="spk-page-header">
-        <div>
-            <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
-                <a href="{{ route('spks.index') }}" class="btn btn-sm btn-outline-secondary fw-semibold">
-                    <i class="fas fa-arrow-left me-1"></i> Kembali
-                </a>
-                <span class="badge {{ $spk->tipe_spk === 'stok_gudang' ? 'bg-info bg-opacity-10 text-info border border-info border-opacity-25' : 'bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25' }} small">
-                    <i class="fas {{ $spk->tipe_spk === 'stok_gudang' ? 'fa-warehouse' : 'fa-shopping-cart' }} me-1"></i>
-                    {{ $spk->tipe_spk === 'stok_gudang' ? 'Produksi Stok Gudang' : 'Pesanan Klien' }}
-                </span>
-                @if($spk->is_urgent)
-                    <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 small fw-bold">
-                        <i class="fas fa-bolt me-1"></i>URGENT
-                    </span>
-                @endif
+    {{-- ── PAGE HEADER (PURE BOOTSTRAP 5) ── --}}
+    <div class="card border shadow-sm mb-3">
+        <div class="card-body py-3 px-3">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <div>
+                    <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
+                        <a href="{{ route('spks.index') }}" class="btn btn-sm btn-outline-secondary">
+                            <i class="fas fa-arrow-left me-1"></i> Kembali
+                        </a>
+                        <span class="badge {{ $spk->tipe_spk === 'stok_gudang' ? 'bg-info bg-opacity-10 text-info border border-info border-opacity-25' : 'bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25' }}">
+                            <i class="fas {{ $spk->tipe_spk === 'stok_gudang' ? 'fa-warehouse' : 'fa-shopping-cart' }} me-1"></i>
+                            {{ $spk->tipe_spk === 'stok_gudang' ? 'Produksi Stok Gudang' : 'Pesanan Klien' }}
+                        </span>
+                        @if($spk->is_urgent)
+                            <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 fw-bold">
+                                <i class="fas fa-bolt me-1"></i> URGENT
+                            </span>
+                        @endif
+                    </div>
+                    <h5 class="fw-bold text-dark mb-0">
+                        <i class="fas fa-file-invoice text-primary me-1"></i> Detail &amp; Edit SPK #{{ $spk->no_spk }}
+                    </h5>
+                    <p class="text-muted small mb-0 mt-1">Kelola data rincian produksi, bahan, dan status SPK.</p>
+                </div>
+
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+                    {{-- Tombol Scan Penerimaan (Aksi Kunci) --}}
+                    <a href="{{ route('spks.scan_pickup', $spk->id) }}" class="btn btn-sm btn-primary fw-bold px-3 shadow-sm d-inline-flex align-items-center gap-1">
+                        <i class="fas fa-qrcode"></i> Scan Penerimaan
+                    </a>
+
+                    {{-- Dropdown Cetak & Label --}}
+                    <div class="dropdown">
+                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle px-3 d-inline-flex align-items-center gap-1" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-print text-primary"></i> Cetak
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                            <li>
+                                <a class="dropdown-item py-2 small fw-semibold" href="{{ route('spks.print', $spk) }}" target="_blank">
+                                    <i class="fas fa-file-invoice text-primary me-2"></i> Cetak Lembar SPK
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item py-2 small fw-semibold" href="{{ route('spks.print_labels', $spk->id) }}" target="_blank">
+                                    <i class="fas fa-tags text-dark me-2"></i> Cetak Label Stiker Kemasan
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+
+                    {{-- Dropdown Bagikan / Customer Link --}}
+                    <div class="dropdown">
+                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle px-3 d-inline-flex align-items-center gap-1" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-share-nodes text-info"></i> Bagikan
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                            <li>
+                                <a class="dropdown-item py-2 small fw-semibold" href="{{ route('spks.customer_track', $spk->no_produksi ?: $spk->id) }}" target="_blank">
+                                    <i class="fas fa-mobile-screen text-info me-2"></i> Buka Link Tracking Customer
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item py-2 small fw-semibold text-success" href="https://wa.me/?text={{ rawurlencode('Halo ' . ($spk->pemesan ?: 'Customer') . ', berikut link tracking status pengerjaan pesanan Anda: ' . route('spks.customer_track', $spk->no_produksi ?: $spk->id)) }}" target="_blank">
+                                    <i class="fab fa-whatsapp me-2"></i> Kirim Link via WhatsApp
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+
+                    {{-- Dropdown Opsi Lainnya (Tambah SPK & Hapus) --}}
+                    <div class="dropdown">
+                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle px-2" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Menu Lainnya">
+                            <i class="fas fa-ellipsis-vertical"></i>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                            <li>
+                                <a class="dropdown-item py-2 small fw-semibold text-success" href="{{ route('spks.create', [
+                                    'no_produksi'   => $spk->no_produksi ?: $spk->no_spk,
+                                    'no_pesanan'    => $spk->no_pesanan,
+                                    'pemesan'       => $spk->pemesan,
+                                    'no_hp_pemesan' => $spk->no_hp_pemesan,
+                                    'instansi'      => $spk->instansi,
+                                    'order_id'      => $spk->order_id,
+                                ]) }}">
+                                    <i class="fas fa-plus-circle me-2"></i> Tambah SPK Baru
+                                </a>
+                            </li>
+                            <li><hr class="dropdown-divider my-1"></li>
+                            <li>
+                                <form action="{{ route('spks.destroy', $spk) }}" method="POST" class="m-0"
+                                    onsubmit="return confirm('Apakah Anda yakin ingin menghapus data SPK ini?')">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="dropdown-item py-2 small fw-semibold text-danger">
+                                        <i class="fas fa-trash-alt me-2"></i> Hapus SPK
+                                    </button>
+                                </form>
+                            </li>
+                        </ul>
+                    </div>
+
+                    {{-- Tombol Simpan Perubahan (Aksi Utama Form) --}}
+                    <button type="submit" form="spkForm" class="btn btn-sm btn-success fw-bold px-3 shadow-sm d-inline-flex align-items-center gap-1">
+                        <i class="fas fa-save"></i> Simpan Perubahan
+                    </button>
+                </div>
             </div>
-            <h4>📋 Detail &amp; Edit SPK #{{ $spk->no_spk }}</h4>
-            <p>Kelola data rincian produksi, bahan, dan status SPK.</p>
-        </div>
-
-        <div class="d-flex align-items-center gap-2 flex-wrap">
-            {{-- Tombol Scan Penerimaan (Aksi Kunci) --}}
-            <a href="{{ route('spks.scan_pickup', $spk->id) }}" class="btn btn-sm btn-primary fw-bold px-3 shadow-sm d-inline-flex align-items-center gap-1.5" style="background: linear-gradient(135deg, #2563eb, #1d4ed8);">
-                <i class="fas fa-qrcode"></i> Scan Penerimaan
-            </a>
-
-            {{-- Dropdown Cetak & Label --}}
-            <div class="dropdown">
-                <button class="btn btn-sm btn-outline-secondary dropdown-toggle fw-semibold px-3 d-inline-flex align-items-center gap-1.5" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                    <i class="fas fa-print text-primary"></i> Cetak
-                </button>
-                <ul class="dropdown-menu dropdown-menu-end shadow-sm">
-                    <li>
-                        <a class="dropdown-item py-2 small fw-semibold" href="{{ route('spks.print', $spk) }}" target="_blank">
-                            <i class="fas fa-file-invoice text-primary me-2"></i> Cetak Lembar SPK
-                        </a>
-                    </li>
-                    <li>
-                        <a class="dropdown-item py-2 small fw-semibold" href="{{ route('spks.print_labels', $spk->id) }}" target="_blank">
-                            <i class="fas fa-tags text-dark me-2"></i> Cetak Label Stiker Kemasan
-                        </a>
-                    </li>
-                </ul>
-            </div>
-
-            {{-- Dropdown Bagikan / Customer Link --}}
-            <div class="dropdown">
-                <button class="btn btn-sm btn-outline-secondary dropdown-toggle fw-semibold px-3 d-inline-flex align-items-center gap-1.5" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                    <i class="fas fa-share-nodes text-info"></i> Bagikan
-                </button>
-                <ul class="dropdown-menu dropdown-menu-end shadow-sm">
-                    <li>
-                        <a class="dropdown-item py-2 small fw-semibold" href="{{ route('spks.customer_track', $spk->no_produksi ?: $spk->id) }}" target="_blank">
-                            <i class="fas fa-mobile-screen text-info me-2"></i> Buka Link Tracking Customer
-                        </a>
-                    </li>
-                    <li>
-                        <a class="dropdown-item py-2 small fw-semibold text-success" href="https://wa.me/?text={{ rawurlencode('Halo ' . ($spk->pemesan ?: 'Customer') . ', berikut link tracking status pengerjaan pesanan Anda: ' . route('spks.customer_track', $spk->no_produksi ?: $spk->id)) }}" target="_blank">
-                            <i class="fab fa-whatsapp me-2"></i> Kirim Link via WhatsApp
-                        </a>
-                    </li>
-                </ul>
-            </div>
-
-            {{-- Dropdown Opsi Lainnya (Tambah SPK & Hapus) --}}
-            <div class="dropdown">
-                <button class="btn btn-sm btn-outline-secondary dropdown-toggle px-2.5" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Menu Lainnya">
-                    <i class="fas fa-ellipsis-vertical"></i>
-                </button>
-                <ul class="dropdown-menu dropdown-menu-end shadow-sm">
-                    <li>
-                        <a class="dropdown-item py-2 small fw-semibold text-success" href="{{ route('spks.create', [
-                            'no_produksi'   => $spk->no_produksi ?: $spk->no_spk,
-                            'no_pesanan'    => $spk->no_pesanan,
-                            'pemesan'       => $spk->pemesan,
-                            'no_hp_pemesan' => $spk->no_hp_pemesan,
-                            'instansi'      => $spk->instansi,
-                            'order_id'      => $spk->order_id,
-                        ]) }}">
-                            <i class="fas fa-plus-circle me-2"></i> Tambah SPK Baru
-                        </a>
-                    </li>
-                    <li><hr class="dropdown-divider my-1"></li>
-                    <li>
-                        <form action="{{ route('spks.destroy', $spk) }}" method="POST" class="m-0"
-                            onsubmit="return confirm('Apakah Anda yakin ingin menghapus data SPK ini?')">
-                            @csrf
-                            @method('DELETE')
-                            <button type="submit" class="dropdown-item py-2 small fw-semibold text-danger">
-                                <i class="fas fa-trash-alt me-2"></i> Hapus SPK
-                            </button>
-                        </form>
-                    </li>
-                </ul>
-            </div>
-
-            {{-- Tombol Simpan Perubahan (Aksi Utama Form) --}}
-            <button type="submit" form="spkForm" class="btn btn-sm btn-success fw-bold px-3 shadow-sm d-inline-flex align-items-center gap-1.5">
-                <i class="fas fa-save"></i> Simpan Perubahan
-            </button>
         </div>
     </div>
 
