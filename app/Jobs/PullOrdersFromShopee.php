@@ -98,7 +98,32 @@ class PullOrdersFromShopee implements ShouldQueue
 
                 if (!empty($detailsResponse['order_list'])) {
                     foreach ($detailsResponse['order_list'] as $shopeeOrder) {
-                        $this->saveOrder($shopeeOrder);
+                        $savedOrder = $this->saveOrder($shopeeOrder);
+
+                        // 🚀 PROAKTIF TARIK RESI: Jika order berstatus siap kirim/diproses tapi tracking_number masih kosong,
+                        // langsung panggil getTrackingNumber agar resi seketika masuk ke ERP!
+                        if ($savedOrder && empty($savedOrder->tracking_number)) {
+                            $normStatus = strtoupper($savedOrder->order_status ?? '');
+                            if (in_array($normStatus, ['READY_TO_SHIP', 'PROCESSED', 'SHIPPED', 'TO_SHIP', 'RETRY_SHIP'])) {
+                                try {
+                                    $trackRes = $this->getValidAccessTokenWithRetry(function($token) use ($shopeeService) {
+                                        return $shopeeService->getTrackingNumber(
+                                            $token,
+                                            (int) $this->store->marketplace_store_id,
+                                            $this->orderSn
+                                        );
+                                    });
+                                    $trackingNo = $trackRes['tracking_number'] ?? $trackRes['package_list'][0]['tracking_number'] ?? null;
+                                    if (!empty($trackingNo) && !(str_starts_with($trackingNo, 'PSG') || str_starts_with($trackingNo, 'psg'))) {
+                                        $savedOrder->tracking_number = $trackingNo;
+                                        $savedOrder->save();
+                                        Log::info("[Shopee] Webhook Trigger: Resi {$trackingNo} berhasil ditarik via getTrackingNumber untuk {$this->orderSn}");
+                                    }
+                                } catch (\Throwable $e) {
+                                    Log::warning("[Shopee] Webhook Trigger: getTrackingNumber untuk {$this->orderSn} dilewati: " . $e->getMessage());
+                                }
+                            }
+                        }
                     }
                 }
                 return;
@@ -423,6 +448,8 @@ class PullOrdersFromShopee implements ShouldQueue
         if (!$this->skipStockDeduction) {
             $order->processStockDeduction();
         }
+
+        return $order;
     }
 
     private function resolveShipBeforeDate(array $shopeeOrder): ?string

@@ -34,12 +34,20 @@ class WebhookController extends Controller
             $expected = hash_hmac('sha256', $baseStr, $partnerKey);
 
             if (!hash_equals($expected, $signature)) {
-                Log::warning('[Webhook] Shopee signature mismatch — request ditolak', [
-                    'expected' => $expected,
-                    'received' => $signature,
-                    'url' => $fullUrl,
-                ]);
-                return response()->json(['message' => 'unauthorized'], 401);
+                // Toleransi reverse-proxy SSL (Nginx / Cloudflare): coba validasi dengan skema https jika fullUrl mendeteksi http
+                $altUrl = str_starts_with($fullUrl, 'http://')
+                    ? preg_replace('/^http:/i', 'https:', $fullUrl)
+                    : preg_replace('/^https:/i', 'http:', $fullUrl);
+                $expectedAlt = hash_hmac('sha256', $altUrl . '|' . $rawBody, $partnerKey);
+
+                if (!hash_equals($expectedAlt, $signature)) {
+                    Log::warning('[Webhook] Shopee signature mismatch — request ditolak', [
+                        'expected' => $expected,
+                        'received' => $signature,
+                        'url' => $fullUrl,
+                    ]);
+                    return response()->json(['message' => 'unauthorized'], 401);
+                }
             }
         }
 
@@ -59,15 +67,34 @@ class WebhookController extends Controller
                 if (!$store) {
                     Log::warning("[Webhook] Tidak ada Store dengan marketplace_store_id: {$shopId}");
                 } elseif ($store->status !== 'connected') {
-                    Log::warning("[Webhook] Store {$store->name} tidak berstatus connected (status: {$store->status})");
+                    Log::warning("[Webhook] Store {$store->store_name} tidak berstatus connected (status: {$store->status})");
                 } else {
-                    Log::info("[Webhook] Triggering sync for Store: {$store->name}, Order: {$orderSn} (Event Code: {$data['code']})");
+                    Log::info("[Webhook] Triggering sync for Store: {$store->store_name}, Order: {$orderSn} (Event Code: {$data['code']})");
+
+                    // 1. Jika Event Code 4 (Tracking No Update), Shopee biasanya menyertakan data resi langsung
+                    $trackingNo = $data['data']['tracking_no'] ?? $data['data']['tracking_number'] ?? null;
+                    if (!empty($trackingNo) && !(str_starts_with($trackingNo, 'PSG') || str_starts_with($trackingNo, 'psg'))) {
+                        $existingOrder = Order::where('tenant_id', $store->tenant_id)
+                            ->where('order_marketplace_id', $orderSn)
+                            ->first();
+                        if ($existingOrder) {
+                            $existingOrder->tracking_number = $trackingNo;
+                            $existingOrder->save();
+                            Log::info("[Webhook] Resi {$trackingNo} langsung di-update ke Order {$orderSn} dari payload Code 4");
+                        }
+                    }
 
                     $timeFrom = now()->subDays(3)->timestamp;
                     $timeTo = now()->timestamp;
 
-                    PullOrdersFromShopee::dispatch($store, $timeFrom, $timeTo, false, $orderSn);
-                    Log::info("[Webhook] Job PullOrdersFromShopee dispatched untuk store {$store->name} dengan order_sn {$orderSn}");
+                    // 2. Eksekusi sinkronisasi langsung (dispatchSync) agar realtime tanpa tertunda di antrean queue
+                    try {
+                        PullOrdersFromShopee::dispatchSync($store, $timeFrom, $timeTo, false, $orderSn);
+                        Log::info("[Webhook] Job PullOrdersFromShopee dispatchSync selesai untuk store {$store->store_name} dengan order_sn {$orderSn}");
+                    } catch (\Throwable $e) {
+                        Log::error("[Webhook] Gagal dispatchSync PullOrdersFromShopee: " . $e->getMessage() . " — beralih ke antrean queue");
+                        PullOrdersFromShopee::dispatch($store, $timeFrom, $timeTo, false, $orderSn);
+                    }
                 }
             } else {
                 Log::warning('[Webhook] Shopee code=' . $data['code'] . ' tapi shop_id atau ordersn kosong', $data);
@@ -96,14 +123,20 @@ class WebhookController extends Controller
             $store = Store::where('marketplace_store_id', (string) $shopId)->first();
 
             if ($store && $store->status === 'connected') {
-                Log::info("[Webhook] Triggering sync for TikTok Store: {$store->name}, Type: {$type}, Order: {$orderId}");
+                Log::info("[Webhook] Triggering sync for TikTok Store: {$store->store_name}, Type: {$type}, Order: {$orderId}");
 
                 // Trigger sinkronisasi pesanan dari 1 hari terakhir
                 // untuk memastikan pesanan yang menyebabkan event ini tertarik ke database ERP
                 $timeFrom = now()->subDays(1)->timestamp;
                 $timeTo = now()->timestamp;
 
-                \App\Jobs\PullOrdersFromTiktok::dispatch($store, $timeFrom, $timeTo, false, $orderId);
+                try {
+                    \App\Jobs\PullOrdersFromTiktok::dispatchSync($store, $timeFrom, $timeTo, false, $orderId);
+                    Log::info("[Webhook] Job PullOrdersFromTiktok dispatchSync selesai untuk store {$store->store_name} dengan order_id {$orderId}");
+                } catch (\Throwable $e) {
+                    Log::error("[Webhook] Gagal dispatchSync PullOrdersFromTiktok: " . $e->getMessage() . " — beralih ke antrean queue");
+                    \App\Jobs\PullOrdersFromTiktok::dispatch($store, $timeFrom, $timeTo, false, $orderId);
+                }
             }
         }
 
