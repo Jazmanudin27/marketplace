@@ -362,12 +362,12 @@ class PullOrdersFromShopee implements ShouldQueue
             'shipping_fee' => $shippingFee,
             'discount_amount' => $sellerDiscount,
             'courier' => $shopeeOrder['shipping_carrier'] ?? null,
-            'tracking_number' => (function() use ($shopeeOrder) {
+            'tracking_number' => (function() use ($shopeeOrder, $order) {
                 $tracking = (!empty($shopeeOrder['package_list']) && !empty(current($shopeeOrder['package_list'])['tracking_number'])) ? current($shopeeOrder['package_list'])['tracking_number'] : null;
                 if ($tracking && (str_starts_with($tracking, 'PSG') || str_starts_with($tracking, 'psg'))) {
-                    return null;
+                    $tracking = null;
                 }
-                return $tracking;
+                return !empty($tracking) ? $tracking : ($order?->tracking_number ?? null);
             })(),
             'order_date' => date('Y-m-d H:i:s', $shopeeOrder['create_time'] ?? time()),
             'completed_at' => in_array($erpStatus, ['COMPLETED', 'DELIVERED', 'SELESAI', 'FINISHED']) ? date('Y-m-d H:i:s', $shopeeOrder['update_time'] ?? ($shopeeOrder['create_time'] ?? time())) : null,

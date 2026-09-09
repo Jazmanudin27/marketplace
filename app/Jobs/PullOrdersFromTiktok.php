@@ -404,7 +404,7 @@ class PullOrdersFromTiktok implements ShouldQueue
             'shipping_fee' => $shippingFee,
             'discount_amount' => $discountAmount,
             'courier' => $courier,
-            'tracking_number' => $trackingNumber,
+            'tracking_number' => !empty($trackingNumber) ? $trackingNumber : ($order?->tracking_number ?? null),
             'completed_at' => in_array($erpStatus, ['COMPLETED', 'DELIVERED', 'SELESAI', 'FINISHED']) ? \Carbon\Carbon::createFromTimestamp((function() use ($tiktokOrder, $createTime) {
                 $ts = $tiktokOrder['finish_time'] ?? $tiktokOrder['delivered_time'] ?? $tiktokOrder['complete_time'] ?? $tiktokOrder['delivery_time'] ?? $tiktokOrder['update_time'] ?? $tiktokOrder['paid_time'] ?? $createTime;
                 return (is_numeric($ts) && strlen((string)$ts) >= 13) ? (int)($ts / 1000) : (int)$ts;

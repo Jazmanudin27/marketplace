@@ -9,6 +9,17 @@ Artisan::command('inspire', function () {
 
 use Illuminate\Support\Facades\Schedule;
 
+// Heartbeat monitor scheduler: mencatat waktu eksekusi crontab secara realtime
+Schedule::call(function () {
+    \Illuminate\Support\Facades\Cache::forever('marketplace_cron_last_run', now()->toIso8601String());
+})->everyMinute();
+
+// 🚀 SINKRONISASI RESI & STATUS PESANAN AKTIF SECARA OTOMATIS (SHOPEE & TIKTOK)
+// Menarik nomor resi yang baru dibuat di Seller Center dan update status ke Telah Diproses tanpa klik manual
+Schedule::command('marketplace:sync-tracking --days=14 --limit=200')
+    ->everyFiveMinutes()
+    ->withoutOverlapping(15);
+
 Schedule::command('shopee:refresh-tokens')->everyFifteenMinutes();
 Schedule::command('shopee:sync-orders')->everyFifteenMinutes();
 Schedule::command('shopee:sync-returns')->everyFifteenMinutes();

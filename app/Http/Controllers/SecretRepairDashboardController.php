@@ -91,6 +91,20 @@ class SecretRepairDashboardController extends Controller
             $gitBranch = 'main';
         }
 
+        // ⏱️ Cron & Scheduler Automation Status
+        $cronLastRun     = Cache::get('marketplace_cron_last_run');
+        $trackingLastRun = Cache::get('marketplace_tracking_last_run');
+        $isCronActive    = false;
+        $cronDiffText    = 'Belum pernah berjalan';
+        if ($cronLastRun) {
+            try {
+                $cronTime = \Carbon\Carbon::parse($cronLastRun);
+                $diffMinutes = $cronTime->diffInMinutes(now());
+                $isCronActive = ($diffMinutes <= 15);
+                $cronDiffText = $cronTime->locale('id')->diffForHumans();
+            } catch (\Throwable $e) {}
+        }
+
         return view('secret_repair_dashboard', compact(
             'ordersCount',
             'apiOrdersCount',
@@ -120,7 +134,11 @@ class SecretRepairDashboardController extends Controller
             'projectDir',
             'basePath',
             'phpVersion',
-            'gitBranch'
+            'gitBranch',
+            'cronLastRun',
+            'trackingLastRun',
+            'isCronActive',
+            'cronDiffText'
         ));
     }
 
@@ -370,6 +388,13 @@ class SecretRepairDashboardController extends Controller
 
                 case 'sync_active_tracking_and_status':
                     $output = $this->executeSyncActiveTrackingAndStatus();
+                    break;
+
+                case 'test_cron_scheduler':
+                    Cache::forever('marketplace_cron_last_run', now()->toIso8601String());
+                    Artisan::call('marketplace:sync-tracking', ['--limit' => 100]);
+                    $cmdOut = Artisan::output();
+                    $output = "⏱️ Eksekusi command marketplace:sync-tracking:\n\n" . ($cmdOut ?: 'Sinkronisasi selesai.');
                     break;
 
                 case 'clean_duplicate_orders':

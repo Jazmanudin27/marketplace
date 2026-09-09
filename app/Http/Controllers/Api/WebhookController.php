@@ -55,14 +55,16 @@ class WebhookController extends Controller
 
         Log::info('[Webhook] Shopee payload decoded', ['code' => $data['code'] ?? null, 'shop_id' => $data['shop_id'] ?? null]);
 
-        // Shopee sends order updates with code = 3 (status), code = 4 (tracking/logistics), and code = 29 (return/refund)
-        if (isset($data['code']) && in_array((int)$data['code'], [3, 4, 29])) {
-            $shopId = $data['shop_id'] ?? null;
-            $orderSn = $data['data']['ordersn'] ?? null;
+        // Shopee sends order updates with code = 3 (status), code = 4 (tracking/logistics), code = 15 (cancellation), and code = 29 (return/refund)
+        if (isset($data['code']) && in_array((int)$data['code'], [3, 4, 15, 29])) {
+            $shopId = $data['shop_id'] ?? $data['shopid'] ?? $data['data']['shop_id'] ?? null;
+            $orderSn = $data['data']['ordersn'] ?? $data['data']['order_sn'] ?? null;
 
             if ($shopId && $orderSn) {
                 // Cari toko kita yang memiliki shop_id (marketplace_store_id) ini
-                $store = Store::where('marketplace_store_id', (string) $shopId)->first();
+                $store = Store::where('marketplace_store_id', (string) $shopId)
+                    ->orWhere('marketplace_store_id', (int) $shopId)
+                    ->first();
 
                 if (!$store) {
                     Log::warning("[Webhook] Tidak ada Store dengan marketplace_store_id: {$shopId}");
@@ -116,11 +118,13 @@ class WebhookController extends Controller
         // TikTok Shop API v2 Webhook Payload Structure
         // Usually contains 'type', 'shop_id', 'data'
         $type = $data['type'] ?? null;
-        $shopId = $data['shop_id'] ?? null;
-        $orderId = $data['data']['order_id'] ?? null;
+        $shopId = $data['shop_id'] ?? $data['shop_cipher'] ?? null;
+        $orderId = $data['data']['order_id'] ?? $data['data']['id'] ?? null;
 
         if ($shopId) {
-            $store = Store::where('marketplace_store_id', (string) $shopId)->first();
+            $store = Store::where('marketplace_store_id', (string) $shopId)
+                ->orWhere('shop_cipher', (string) $shopId)
+                ->first();
 
             if ($store && $store->status === 'connected') {
                 Log::info("[Webhook] Triggering sync for TikTok Store: {$store->store_name}, Type: {$type}, Order: {$orderId}");

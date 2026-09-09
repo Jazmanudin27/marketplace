@@ -772,6 +772,67 @@
         <!-- 🛠️ SECTION 3: Tombol Eksekusi Perbaikan Data -->
         <h5 class="fw-bold text-dark mb-3"><i class="fas fa-bolt text-warning me-2"></i>Tombol Perbaikan Data & Command Repair Panel</h5>
 
+        <!-- 🤖 STATUS SINKRONISASI OTOMATIS & WEBHOOK REALTIME -->
+        <div class="card border-0 shadow-sm rounded-3 mb-4 overflow-hidden" style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); color: #f8fafc;">
+            <div class="card-body p-4">
+                <div class="row g-4 align-items-center">
+                    <div class="col-lg-7">
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <span class="badge {{ $isCronActive ? 'bg-success' : 'bg-warning text-dark' }} px-3 py-1 fw-bold" style="font-size: 0.78rem;">
+                                <i class="fas {{ $isCronActive ? 'fa-check-circle' : 'fa-exclamation-triangle' }} me-1"></i>
+                                {{ $isCronActive ? 'SINKRONISASI OTOMATIS AKTIF' : 'CRONTAB SERVER BELUM OTOMATIS' }}
+                            </span>
+                            <span class="text-secondary small">| Latar Belakang (Background Sync)</span>
+                        </div>
+                        <h5 class="fw-bold text-white mb-2">
+                            @if($isCronActive)
+                                🟢 Sistem Otomatis Sinkron Resi & Status Setiap 5 Menit
+                            @else
+                                ⚠️ Pesanan Belum Terupdate Otomatis Karena Crontab Belum Terpasang
+                            @endif
+                        </h5>
+                        <p class="text-light opacity-75 small mb-3" style="font-size: 0.83rem; line-height: 1.5;">
+                            @if($isCronActive)
+                                Cron server aktif dan berjalan normal (Terakhir dieksekusi: <strong>{{ $cronDiffText }}</strong>). Anda <strong>tidak perlu lagi klik tarik resi manual setiap hari</strong>, pesanan yang diproses di Shopee/TikTok akan otomatis ditarik nomor resinya dan berpindah ke <em>Telah Diproses</em>!
+                            @else
+                                Agar ERP otomatis menarik resi dan memindahkan pesanan ke <em>Telah Diproses</em> secara berkala 24 jam tanpa klik manual, pastikan server hosting / cPanel Anda sudah memasang baris <strong>Crontab Laravel</strong> di bawah.
+                            @endif
+                        </p>
+                        
+                        <div class="bg-black bg-opacity-50 p-2.5 rounded-2 border border-secondary border-opacity-25 font-monospace small d-flex align-items-center justify-content-between gap-2">
+                            <code class="text-warning text-break" style="font-size: 0.78rem;">* * * * * cd {{ $basePath }} && php artisan schedule:run &gt;&gt; /dev/null 2&gt;&amp;1</code>
+                            <button type="button" class="btn btn-sm btn-outline-light py-1 px-2.5" onclick="navigator.clipboard.writeText('* * * * * cd {{ $basePath }} && php artisan schedule:run >> /dev/null 2>&1'); alert('Perintah crontab disalin!')" title="Salin Cron">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-5 border-start border-secondary border-opacity-25 ps-lg-4">
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <span class="badge bg-primary px-2.5 py-1 fw-bold" style="font-size: 0.75rem;"><i class="fas fa-bolt me-1"></i>WEBHOOK REALTIME (0 DETIK)</span>
+                        </div>
+                        <p class="text-light opacity-75 small mb-2" style="font-size: 0.8rem; line-height: 1.45;">
+                            Pasang Callback Webhook di Developer Console agar saat Anda klik "Atur Pengiriman" di Shopee/TikTok, data langsung update ke ERP dalam 1 detik:
+                        </p>
+                        <div class="mb-2">
+                            <div class="text-secondary small fw-semibold" style="font-size: 0.72rem;">URL WEBHOOK SHOPEE:</div>
+                            <div class="d-flex align-items-center gap-1">
+                                <input type="text" readonly class="form-control form-control-sm bg-black bg-opacity-40 border-secondary border-opacity-25 text-info font-monospace" style="font-size: 0.74rem;" value="{{ url('/api/webhooks/shopee') }}">
+                                <button type="button" class="btn btn-sm btn-outline-info py-0 px-2" onclick="navigator.clipboard.writeText('{{ url('/api/webhooks/shopee') }}'); alert('URL Webhook Shopee disalin!')"><i class="fas fa-copy"></i></button>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="text-secondary small fw-semibold" style="font-size: 0.72rem;">URL WEBHOOK TIKTOK:</div>
+                            <div class="d-flex align-items-center gap-1">
+                                <input type="text" readonly class="form-control form-control-sm bg-black bg-opacity-40 border-secondary border-opacity-25 text-info font-monospace" style="font-size: 0.74rem;" value="{{ url('/api/webhooks/tiktok') }}">
+                                <button type="button" class="btn btn-sm btn-outline-info py-0 px-2" onclick="navigator.clipboard.writeText('{{ url('/api/webhooks/tiktok') }}'); alert('URL Webhook TikTok disalin!')"><i class="fas fa-copy"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div class="row g-3 mb-4">
 
             <!-- Action 0.0: Tarik Resi & Sync Pesanan Siap Kirim -->
