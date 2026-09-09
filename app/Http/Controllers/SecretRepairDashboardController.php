@@ -368,6 +368,10 @@ class SecretRepairDashboardController extends Controller
                     $output = "🗃️ Artisan Migrate Output:\n" . ($migrateOut ?: 'Nothing to migrate.');
                     break;
 
+                case 'sync_active_tracking_and_status':
+                    $output = $this->executeSyncActiveTrackingAndStatus();
+                    break;
+
                 case 'clean_duplicate_orders':
                     $output = $this->executeCleanDuplicateOrders();
                     break;
@@ -657,6 +661,179 @@ class SecretRepairDashboardController extends Controller
         }
 
         $log[] = "======================================================================";
+        return implode("\n", $log);
+    }
+
+    private function executeSyncActiveTrackingAndStatus()
+    {
+        $tenantId = auth()->user()->tenant_id;
+        $shopeeService = app(ShopeeService::class);
+        $tiktokService = app(TiktokService::class);
+
+        $log = [];
+        $log[] = "======================================================================";
+        $log[] = "⚡ TARIK RESI & STATUS PESANAN SIAP KIRIM (SHOPEE & TIKTOK)";
+        $log[] = "======================================================================";
+
+        $targetStatuses = ['READY_TO_SHIP', 'UNPAID', 'PENDING', 'TO_SHIP', 'PROCESSED', 'PROCESSING', 'PROSES', 'RETRY_SHIP'];
+
+        // Ambil pesanan aktif tenant yang belum selesai/batal
+        $activeOrders = Order::where('tenant_id', $tenantId)
+            ->whereNotNull('order_marketplace_id')
+            ->where(function($q) use ($targetStatuses) {
+                $q->whereIn(\DB::raw('UPPER(order_status)'), $targetStatuses)
+                  ->orWhereNull('tracking_number')
+                  ->orWhere('tracking_number', '');
+            })
+            ->whereNotIn('order_status', ['COMPLETED', 'FINISHED', 'SELESAI', 'CANCELLED', 'BATAL'])
+            ->with(['store.channel'])
+            ->get();
+
+        if ($activeOrders->isEmpty()) {
+            $log[] = "✅ Tidak ada pesanan siap kirim yang tertunda atau belum ada resi.";
+            return implode("\n", $log);
+        }
+
+        $log[] = "🔍 Ditemukan {$activeOrders->count()} pesanan aktif untuk ditarik resi & statusnya...\n";
+
+        $shopeeUpdated = 0;
+        $tiktokUpdated = 0;
+
+        $grouped = $activeOrders->groupBy('store_id');
+
+        foreach ($grouped as $storeId => $orders) {
+            $store = $orders->first()->store;
+            if (!$store || !$store->channel) continue;
+
+            $chCode = strtolower($store->channel->code ?? '');
+
+            // --- SHOPEE ---
+            if ($chCode === 'shopee') {
+                $log[] = "📦 Toko Shopee: {$store->store_name} ({$orders->count()} pesanan)";
+                try {
+                    $accessToken = $store->getValidAccessToken();
+                    $orderSns = $orders->pluck('order_marketplace_id')->filter()->unique()->values()->toArray();
+
+                    $chunks = array_chunk($orderSns, 50);
+                    foreach ($chunks as $chunk) {
+                        $detailRes = $shopeeService->getOrderDetail(
+                            $accessToken,
+                            (int) $store->marketplace_store_id,
+                            $chunk
+                        );
+
+                        $ordersList = $detailRes['order_list'] ?? [];
+                        foreach ($ordersList as $shopeeOrder) {
+                            $sn = $shopeeOrder['order_sn'] ?? null;
+                            if (!$sn) continue;
+
+                            $dbOrd = $orders->firstWhere('order_marketplace_id', $sn);
+                            if (!$dbOrd) continue;
+
+                            $changed = false;
+
+                            // 1. Cek resi dari package_list
+                            $trackingNo = (!empty($shopeeOrder['package_list']) && !empty(current($shopeeOrder['package_list'])['tracking_number'])) 
+                                ? current($shopeeOrder['package_list'])['tracking_number'] 
+                                : null;
+
+                            // 2. Jika resi masih kosong di package_list, panggil getTrackingNumber secara proaktif
+                            if (empty($trackingNo) || str_starts_with($trackingNo, 'PSG') || str_starts_with($trackingNo, 'psg')) {
+                                try {
+                                    $trackRes = $shopeeService->getTrackingNumber(
+                                        $accessToken,
+                                        (int) $store->marketplace_store_id,
+                                        $sn
+                                    );
+                                    $trackingNo = $trackRes['tracking_number'] ?? $trackRes['package_list'][0]['tracking_number'] ?? null;
+                                } catch (\Throwable $e) {
+                                    // Resi belum diterbitkan
+                                }
+                            }
+
+                            if (!empty($trackingNo) && !(str_starts_with($trackingNo, 'PSG') || str_starts_with($trackingNo, 'psg'))) {
+                                if ($dbOrd->tracking_number !== $trackingNo) {
+                                    $dbOrd->tracking_number = $trackingNo;
+                                    $changed = true;
+                                    $log[] = "   -> [RESI] Order #{$sn}: Resi Shopee berhasil ditarik: {$trackingNo}";
+                                }
+                            }
+
+                            $spStatusRaw = strtoupper((string)($shopeeOrder['order_status'] ?? ''));
+                            if (!empty($spStatusRaw) && $spStatusRaw !== strtoupper($dbOrd->order_status)) {
+                                $dbOrd->order_status = $spStatusRaw;
+                                $changed = true;
+                                $log[] = "   -> [STATUS] Order #{$sn}: Status diperbarui => {$spStatusRaw}";
+                            }
+
+                            if ($changed) {
+                                $dbOrd->save();
+                                $shopeeUpdated++;
+                            }
+                        }
+                    }
+                } catch (\Throwable $e) {
+                    $log[] = "   ❌ Error Shopee Toko {$store->store_name}: " . $e->getMessage();
+                }
+            }
+
+            // --- TIKTOK / TOKOPEDIA ---
+            elseif (in_array($chCode, ['tiktok', 'tokopedia'])) {
+                $log[] = "🎵 Toko TikTok: {$store->store_name} ({$orders->count()} pesanan)";
+                try {
+                    $accessToken = $store->getValidAccessToken();
+                    $orderIds = $orders->pluck('order_marketplace_id')->filter()->unique()->values()->toArray();
+
+                    $chunks = array_chunk($orderIds, 50);
+                    foreach ($chunks as $chunk) {
+                        $detailRes = $tiktokService->getOrderDetail(
+                            $accessToken,
+                            $store->shop_cipher,
+                            $chunk
+                        );
+
+                        $ordersList = $detailRes['order_list'] ?? [];
+                        foreach ($ordersList as $ttOrder) {
+                            $oid = (string)($ttOrder['id'] ?? $ttOrder['order_id'] ?? '');
+                            if (!$oid) continue;
+
+                            $dbOrd = $orders->firstWhere('order_marketplace_id', $oid);
+                            if (!$dbOrd) continue;
+
+                            $changed = false;
+                            $trackingNumber = $ttOrder['tracking_number'] ?? $ttOrder['tracking_no'] ?? null;
+                            if (!empty($trackingNumber) && $dbOrd->tracking_number !== $trackingNumber) {
+                                $dbOrd->tracking_number = $trackingNumber;
+                                $changed = true;
+                                $log[] = "   -> [RESI] Order #{$oid}: Resi TikTok berhasil ditarik: {$trackingNumber}";
+                            }
+
+                            $ttStatus = strtoupper((string)($ttOrder['order_status'] ?? $ttOrder['status'] ?? ''));
+                            if (!empty($ttStatus) && $ttStatus !== strtoupper($dbOrd->order_status)) {
+                                $dbOrd->order_status = $ttStatus;
+                                $changed = true;
+                                $log[] = "   -> [STATUS] Order #{$oid}: Status diperbarui => {$ttStatus}";
+                            }
+
+                            if ($changed) {
+                                $dbOrd->save();
+                                $tiktokUpdated++;
+                            }
+                        }
+                    }
+                } catch (\Throwable $e) {
+                    $log[] = "   ❌ Error TikTok Toko {$store->store_name}: " . $e->getMessage();
+                }
+            }
+        }
+
+        $log[] = "\n======================================================================";
+        $log[] = "✨ SELESAI! Berhasil menarik resi & memperbarui:";
+        $log[] = "   • Shopee : {$shopeeUpdated} pesanan";
+        $log[] = "   • TikTok : {$tiktokUpdated} pesanan";
+        $log[] = "👉 Buka menu Manajemen Pesanan untuk melihat pesanan di tab 'Telah Diproses'!";
+        $log[] = "======================================================================";
+
         return implode("\n", $log);
     }
 

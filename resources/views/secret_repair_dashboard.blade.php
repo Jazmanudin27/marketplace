@@ -774,6 +774,24 @@
 
         <div class="row g-3 mb-4">
 
+            <!-- Action 0.0: Tarik Resi & Sync Pesanan Siap Kirim -->
+            <div class="col-lg-4 col-md-6">
+                <div class="card-action border-top border-4 border-warning shadow-sm" style="background: #fffdf5;">
+                    <div>
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <span class="badge bg-warning text-dark fw-bold px-2 py-1" style="font-size: 0.72rem;"><i class="fas fa-barcode me-1"></i>TARIK RESI KILAT</span>
+                            <h6 class="fw-bold text-dark mb-0">Tarik Resi & Status Siap Kirim</h6>
+                        </div>
+                        <p class="text-secondary small mb-3" style="font-size: 0.8rem; line-height: 1.45;">
+                            Tarik nomor resi resmi dan update status pesanan yang sudah diproses di Shopee/TikTok Seller Centre agar langsung berpindah ke <strong>Telah Diproses</strong>.
+                        </p>
+                    </div>
+                    <button type="button" class="btn-custom btn-warning-custom fw-bold py-2" onclick="triggerRepair('sync_active_tracking_and_status', this)">
+                        <i class="fas fa-sync-alt me-1"></i> Tarik Resi & Status Marketplace
+                    </button>
+                </div>
+            </div>
+
             <!-- Action 0: Clean Duplicate Orders -->
             <div class="col-lg-4 col-md-6">
                 <div class="card-action border-top border-4 border-danger">
