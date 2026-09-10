@@ -932,8 +932,7 @@
                         <thead>
                             <tr>
                                 <th style="width:40px; text-align:center;">
-                                    <input type="checkbox" id="check-all" class="form-check-input"
-                                        style="cursor:pointer;">
+                                    <input type="checkbox" id="check-all" class="form-check-input" style="cursor:pointer;">
                                 </th>
                                 <th>PRODUK &amp; PESANAN</th>
                                 <th>PEMBELI</th>
@@ -986,7 +985,7 @@
                                     <td style="text-align:center;">
                                         <input type="checkbox" name="order_ids[]" value="{{ $order->id }}"
                                             class="order-checkbox form-check-input" style="cursor:pointer;"
-                                            data-order-number="{{ $order->invoice_number ?? $order->order_marketplace_id ?? ('#' . $order->id) }}"
+                                            data-order-number="{{ $order->invoice_number ?? ($order->order_marketplace_id ?? '#' . $order->id) }}"
                                             data-tracking="{{ $order->tracking_number ?? '' }}">
                                     </td>
 
@@ -1035,13 +1034,16 @@
                                             @if ($order->items->isNotEmpty())
                                                 <div class="mt-1 d-flex flex-column gap-1">
                                                     @foreach ($order->items as $orderItem)
-                                                        <span class="sku-tag {{ $orderItem->is_substituted ? 'border-warning' : '' }}" @if($orderItem->is_substituted) title="Substitusi dari {{ $orderItem->original_sku ?: 'SKU sebelumnya' }}" @endif>
+                                                        <span
+                                                            class="sku-tag {{ $orderItem->is_substituted ? 'border-warning' : '' }}"
+                                                            @if ($orderItem->is_substituted) title="Substitusi dari {{ $orderItem->original_sku ?: 'SKU sebelumnya' }}" @endif>
                                                             <i class="fas fa-tag me-1 opacity-50"></i>
                                                             {{ $orderItem->sku ?? ($orderItem->masterProduct->sku ?? '-') }}
                                                             <span
                                                                 style="color:#aaa;">&times;{{ $orderItem->quantity }}</span>
                                                             @if ($orderItem->is_substituted)
-                                                                <span class="badge bg-warning text-dark ms-1" style="font-size: 0.6rem; padding: 1px 3px;">Tukar</span>
+                                                                <span class="badge bg-warning text-dark ms-1"
+                                                                    style="font-size: 0.6rem; padding: 1px 3px;">Tukar</span>
                                                             @endif
                                                         </span>
                                                     @endforeach
@@ -1168,7 +1170,7 @@
 
                                             @if ($order->order_status !== 'CANCELLED')
                                                 {{-- Print Badge --}}
-                                                @if ($order->is_printed)
+                                                @if ($order->is_printed && !empty(trim($order->tracking_number ?? '')) && trim($order->tracking_number) !== '-')
                                                     <span class="meta-badge"
                                                         style="background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0;"
                                                         title="{{ $order->printed_at ? 'Print: ' . $order->printed_at->format('d/m/Y H:i') : '' }}">
@@ -1207,7 +1209,8 @@
                                     <td style="text-align:center;">
                                         <div class="d-flex flex-column align-items-center gap-1">
                                             @if (!in_array($orderStatusUp, ['UNPAID', 'PENDING', 'CANCELLED', 'BATAL', 'IN_CANCEL']))
-                                                <a href="{{ route('orders.print', $order->id) }}" target="_blank" class="btn-tbl btn-tbl-outline" title="Cetak Resi / Label Pengiriman">
+                                                <a href="{{ route('orders.print', $order->id) }}" target="_blank"
+                                                    class="btn-tbl btn-tbl-outline" title="Cetak Resi / Label Pengiriman">
                                                     <i class="fas fa-print"></i> Cetak Resi
                                                 </a>
                                             @endif
@@ -1216,14 +1219,15 @@
                                                     style="background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0; padding:4px 8px;">
                                                     <i class="fas fa-check-circle me-1"></i>Sudah Kirim
                                                 </span>
-                                            @elseif (!in_array($orderStatusUp, ['CANCELLED', 'BATAL', 'IN_CANCEL']))
+                                            {{-- Tombol Kirim di-hide sementara sesuai instruksi --}}
+                                            {{-- @elseif (!in_array($orderStatusUp, ['CANCELLED', 'BATAL', 'IN_CANCEL']))
                                                 <button type="button"
                                                     class="btn-tbl btn-tbl-primary btn-ship-single-order"
                                                     data-order-id="{{ $order->id }}"
                                                     title="Kirim Pesanan ke Marketplace">
                                                     <i class="fas fa-paper-plane"></i> Kirim
-                                                </button>
-                                            @else
+                                                </button> --}}
+                                            @elseif (in_array($orderStatusUp, ['UNPAID', 'PENDING', 'CANCELLED', 'BATAL', 'IN_CANCEL']))
                                                 <span class="text-muted small">—</span>
                                             @endif
                                         </div>

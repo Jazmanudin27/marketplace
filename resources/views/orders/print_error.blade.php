@@ -75,6 +75,9 @@
                     <i class="fas fa-info-circle text-warning fs-5 mt-0.5"></i>
                     <div class="small">
                         <strong>Sistem telah mencoba menarik resi secara otomatis</strong> dari API marketplace, namun kurir/marketplace belum meng-<i>generate</i> nomor resi (AWB) untuk pesanan berikut. Harap pastikan pesanan sudah diproses atau lakukan request pickup di Seller Center terlebih dahulu.
+                        <div class="mt-2 pt-2 border-top border-warning border-opacity-25 text-danger fw-semibold d-flex align-items-center gap-1">
+                            <i class="fas fa-ban"></i> Status pesanan <u>TIDAK</u> diubah menjadi sudah dicetak (Tetap <strong>Belum Print</strong>).
+                        </div>
                     </div>
                 </div>
 
@@ -91,6 +94,7 @@
                                 <th>Toko & Channel</th>
                                 <th>Kurir</th>
                                 <th class="text-center">Status Resi</th>
+                                <th class="text-center">Status Cetak</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -114,6 +118,11 @@
                                     <td class="text-center">
                                         <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25">
                                             <i class="fas fa-times-circle me-1"></i>Belum Ada Resi
+                                        </span>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge bg-secondary bg-opacity-10 text-secondary border">
+                                            <i class="fas fa-clock me-1"></i>Belum Print
                                         </span>
                                     </td>
                                 </tr>

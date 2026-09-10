@@ -444,7 +444,7 @@
                                         @endif
                                     </td>
                                     <td class="text-center">
-                                        @if ($order->is_printed)
+                                        @if ($order->is_printed && !empty(trim($order->tracking_number ?? '')) && trim($order->tracking_number) !== '-')
                                             <span class="badge bg-success bg-opacity-15 text-success border border-success border-opacity-25 py-1 px-2.5 rounded-2 fw-semibold" style="font-size:0.72rem;">
                                                 <i class="fas fa-check-circle me-1"></i>Sudah Print
                                             </span>

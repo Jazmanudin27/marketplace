@@ -835,6 +835,11 @@ class OrderController extends Controller
                 $order->tracking_number = $fetched;
                 $order->save();
             } else {
+                $order->update([
+                    'is_printed' => false,
+                    'printed_at' => null,
+                ]);
+
                 return response()->view('orders.print_error', [
                     'ordersWithoutTracking' => collect([$order])
                 ], 422);

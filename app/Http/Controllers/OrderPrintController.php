@@ -50,6 +50,12 @@ class OrderPrintController extends Controller
         });
 
         if ($ordersWithoutTracking->isNotEmpty()) {
+            // Pastikan pesanan tanpa resi berstatus BELUM DICETAK
+            Order::whereIn('id', $ordersWithoutTracking->pluck('id'))->update([
+                'is_printed' => false,
+                'printed_at' => null,
+            ]);
+
             $missingList = $ordersWithoutTracking->map(function ($o) {
                 return $o->invoice_number ?: ($o->order_marketplace_id ?: "#{$o->id}");
             });
