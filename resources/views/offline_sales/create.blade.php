@@ -239,11 +239,11 @@
                         </div>
                     </div>
 
-                    {{-- DETAIL PEMBAYARAN (COL 4) --}}
+                    {{-- RINGKASAN PESANAN (COL 4) --}}
                     <div class="col-lg-4">
                         <div class="card border-0 shadow-sm mb-3">
                             <div class="card-header bg-light py-2 px-3 border-bottom">
-                                <h6 class="fw-bold mb-0 text-dark"><i class="fas fa-receipt me-2 text-success"></i>Detail Pembayaran</h6>
+                                <h6 class="fw-bold mb-0 text-dark"><i class="fas fa-file-invoice-dollar me-2 text-primary"></i>Ringkasan Pesanan</h6>
                             </div>
                             <div class="card-body p-3">
                                 {{-- Subtotal & Diskon Nota --}}
@@ -267,42 +267,29 @@
 
                                 <hr class="my-3">
 
-                                {{-- Metode Pembayaran --}}
-                                <div class="mb-3">
-                                    <label class="form-label form-label-sm text-muted fw-semibold">Metode Pembayaran <span class="text-danger">*</span></label>
-                                    <select name="payment_method" id="payment-method-select" class="form-select form-select-sm select2 fw-semibold text-dark" style="width: 100%;" required>
-                                        @foreach (\App\Models\OfflineSale::PAYMENT_METHODS as $key => $label)
-                                            <option value="{{ $key }}" {{ $key === 'tunai' ? 'selected' : '' }}>
-                                                {{ $label }}
-                                            </option>
-                                        @endforeach
-                                    </select>
-                                </div>
-
-                                <div class="mb-3" id="paid-amount-section">
-                                    <div class="d-flex justify-content-between align-items-center mb-1">
-                                        <label class="form-label form-label-sm text-muted fw-semibold mb-0">Uang Diterima / DP (Rp)</label>
-                                        <span id="payment-status-badge" class="badge bg-secondary" style="font-size: 0.7rem;">Belum Diisi</span>
+                                {{-- Total Tagihan --}}
+                                <div class="p-3 bg-light rounded border mb-3">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <span class="text-muted small fw-semibold">Total Tagihan</span>
+                                        <span class="fw-extrabold fs-5 text-dark font-monospace" id="display-order-grand-total">Rp 0</span>
                                     </div>
-                                    <input type="text" name="paid_amount" id="paid-input" class="form-control form-control-sm fw-bold font-monospace text-dark" value="0" placeholder="0 (Bisa isi DP/Partial)" required>
-                                    <div id="payment-summary-hint" class="small text-muted mt-1" style="font-size: 0.72rem;">
-                                        Bisa diisi lunas atau DP (Transfer, QRIS, Tunai).
+                                    <div class="mt-2 text-muted" style="font-size: 0.72rem;">
+                                        <i class="fas fa-info-circle text-primary me-1"></i> Pembayaran dapat dicicil / dilunasi setelah transaksi tersimpan.
                                     </div>
                                 </div>
 
-                                <div class="mb-3 p-3 text-center rounded bg-primary bg-opacity-10 border border-primary border-opacity-10" id="change-section">
-                                    <div class="text-muted small">Kembalian</div>
-                                    <div class="fw-extrabold fs-4 text-primary font-monospace" id="display-change">Rp 0</div>
-                                </div>
+                                {{-- Hidden default fields for payment --}}
+                                <input type="hidden" name="payment_method" id="payment-method-input" value="piutang">
+                                <input type="hidden" name="paid_amount" id="paid-input" value="0">
 
                                 <div class="mb-3">
-                                    <label class="form-label form-label-sm text-muted">Catatan</label>
-                                    <textarea name="notes" class="form-control form-control-sm" rows="2" placeholder="Tulis catatan transaksi jika ada..."></textarea>
+                                    <label class="form-label form-label-sm text-muted fw-semibold">Catatan Pesanan</label>
+                                    <textarea name="notes" class="form-control form-control-sm" rows="3" placeholder="Tulis catatan transaksi jika ada..."></textarea>
                                 </div>
 
                                 <div class="d-grid mt-4">
                                     <button type="submit" class="btn btn-success btn-sm py-2 fw-semibold" id="btn-submit" disabled>
-                                        <i class="fas fa-check-circle me-2"></i>Selesaikan Transaksi
+                                        <i class="fas fa-save me-2"></i>Simpan Pesanan
                                     </button>
                                 </div>
                             </div>
@@ -569,11 +556,11 @@
 
                 const activePrice = isDropshipCustomer ? resellerPrice : normalPrice;
 
-                // Jika PO Mode OFF dan stok <= 0, tampilkan SweetAlert stok kosong & batalkan
+                // Jika PO Mode OFF dan stok <= 0, tampilkan SweetAlert stok habis & batalkan
                 if (!isPoMode && stock <= 0) {
                     Swal.fire({
                         icon: 'warning',
-                        title: 'Stok Produk Kosong!',
+                        title: 'Stok Produk Habis!',
                         html: `Stok untuk <strong>${name}</strong> saat ini <strong>0 Pcs</strong>.<br><br>Aktifkan switch <strong><i class="fas fa-hammer text-primary"></i> Pre-Order / PO Produksi (SPK)</strong> di atas jika ingin membuat pesanan PO untuk produk ini!`,
                         confirmButtonText: 'Saya Mengerti',
                         confirmButtonColor: '#0d6efd'
@@ -706,29 +693,6 @@
                 recalculate();
             });
 
-            // Input Uang Diterima / DP dengan format pemisah ribuan
-            $('#paid-input').on('input', function() {
-                let formatted = formatNumberInput($(this).val());
-                $(this).val(formatted);
-                recalculate();
-            });
-
-            // Pilih metode pembayaran via Select Option
-            $('#payment-method-select').on('change', function() {
-                const key = $(this).val();
-
-                // Selalu izinkan input diisi (tidak readonly) agar user bisa input DP
-                $('#paid-input').prop('readonly', false);
-
-                if (key === 'transfer' || key === 'qris') {
-                    const currentPaid = unformatNumber($('#paid-input').val());
-                    if (currentPaid === 0 && grandTotal > 0) {
-                        $('#paid-input').val(grandTotal.toLocaleString('id-ID'));
-                    }
-                }
-                recalculate();
-            });
-
             // Clean number formatting before submitting form so Laravel validation passes
             $('#offline-form').on('submit', function() {
                 const discType = $('#global-discount-type').val();
@@ -739,7 +703,6 @@
                     discVal = unformatNumber($('#discount-input').val());
                 }
                 $('#global-discount-value').val(discVal);
-                $('#paid-input').val(unformatNumber($('#paid-input').val()));
             });
 
             // Inisialisasi awal status pilihan pelanggan saat halaman dibuka
@@ -826,38 +789,16 @@
 
                 grandTotal = Math.max(0, subtotal - discountAmount);
 
-                const paid = unformatNumber($('#paid-input').val());
-                const change = Math.max(0, paid - grandTotal);
-                const sisa = Math.max(0, grandTotal - paid);
-
                 $('#display-subtotal').text('Rp ' + Math.round(subtotal).toLocaleString('id-ID'));
                 $('#display-grand-total').text('Rp ' + Math.round(grandTotal).toLocaleString('id-ID'));
-                $('#display-change').text('Rp ' + Math.round(change).toLocaleString('id-ID'));
-
-                // Update status badge & hint Uang Diterima / DP
-                if (grandTotal > 0) {
-                    if (paid >= grandTotal) {
-                        $('#payment-status-badge').removeClass('bg-warning bg-secondary text-dark').addClass('bg-success text-white').text('LUNAS');
-                        $('#payment-summary-hint').text(change > 0 ? 'Pembayaran LUNAS (Kembalian: Rp ' + Math.round(change).toLocaleString('id-ID') + ')' : 'Pembayaran LUNAS.');
-                    } else if (paid > 0) {
-                        $('#payment-status-badge').removeClass('bg-success bg-secondary text-white').addClass('bg-warning text-dark').text('DP / TERBAYAR SEBAGIAN');
-                        $('#payment-summary-hint').html('DP Terbayar: <strong>Rp ' + Math.round(paid).toLocaleString('id-ID') + '</strong> | Sisa Kurang: <strong class="text-danger">Rp ' + Math.round(sisa).toLocaleString('id-ID') + '</strong>');
-                    } else {
-                        $('#payment-status-badge').removeClass('bg-success bg-warning text-dark text-white').addClass('bg-secondary').text('BELUM BAYAR (Rp 0)');
-                        $('#payment-summary-hint').text('Total sisa tagihan: Rp ' + Math.round(grandTotal).toLocaleString('id-ID'));
-                    }
-                } else {
-                    $('#payment-status-badge').removeClass('bg-success bg-warning text-dark text-white').addClass('bg-secondary').text('Belum Diisi');
-                    $('#payment-summary-hint').text('Bisa diisi lunas atau DP (Transfer, QRIS, Tunai).');
-                }
+                $('#display-order-grand-total').text('Rp ' + Math.round(grandTotal).toLocaleString('id-ID'));
 
                 // Validasi submit button
                 let isValid = Object.keys(cartItems).length > 0;
                 const isPo = $('#is-po-switch').is(':checked');
-                const method = $('#payment-method-select').val();
 
-                // Jika belum lunas (DP / Piutang) dan BUKAN pesanan PO, wajib pilih/isi nama pembeli
-                if ((method === 'piutang' || paid < grandTotal) && !isPo) {
+                // Jika bukan pesanan PO, wajib pilih master pelanggan atau isi nama & nomor HP pembeli
+                if (!isPo) {
                     const custVal = $('#customer-select').val();
                     const nameVal = $.trim($('#buyer-name-input').val());
                     const phoneVal = $.trim($('#buyer-phone-input').val());

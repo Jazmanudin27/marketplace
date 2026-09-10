@@ -34,7 +34,7 @@
                     @endif
                     @if ($offlineSale->status !== \App\Models\OfflineSale::STATUS_CANCELLED && !$offlineSale->is_paid)
                         <button type="button" class="btn btn-outline-success btn-sm px-3" data-bs-toggle="modal" data-bs-target="#modalMarkPaidShow">
-                            <i class="fas fa-money-bill-wave me-1"></i> Tandai Lunas
+                            <i class="fas fa-money-bill-wave me-1"></i> Catat Pembayaran / Cicilan
                         </button>
                     @endif
                     @if ($offlineSale->status === \App\Models\OfflineSale::STATUS_COMPLETED)
@@ -291,12 +291,14 @@
                     </div>
                 </div>
 
-                {{-- RIGHT: Ringkasan --}}
+                {{-- RIGHT: Ringkasan Pembayaran & Cicilan --}}
                 <div class="col-lg-4">
                     <div class="card border-0 shadow-sm mb-3">
-                        <div class="card-header bg-light py-2 px-3 border-bottom mb-3">
-                            <h6 class="fw-bold mb-0 text-dark"><i class="fas fa-wallet me-2 text-success"></i>Ringkasan
-                                Pembayaran</h6>
+                        <div class="card-header bg-light py-2 px-3 border-bottom d-flex justify-content-between align-items-center">
+                            <h6 class="fw-bold mb-0 text-dark"><i class="fas fa-wallet me-2 text-success"></i>Ringkasan Pembayaran</h6>
+                            <span class="badge bg-{{ $offlineSale->payment_status_badge }} bg-opacity-10 text-{{ $offlineSale->payment_status_badge }} border border-{{ $offlineSale->payment_status_badge }} border-opacity-10 small fw-bold">
+                                {{ $offlineSale->payment_status_label }}
+                            </span>
                         </div>
                         <div class="card-body p-3">
                             <div class="p-3 border rounded bg-light mb-3">
@@ -322,20 +324,104 @@
                                 </div>
                             </div>
 
-                            <div class="p-3 border rounded bg-light">
-                                <div class="d-flex justify-content-between mb-2">
-                                    <span class="text-muted small">Dibayar</span>
-                                    <span class="font-monospace text-dark small">Rp
-                                        {{ number_format($offlineSale->paid_amount, 0, ',', '.') }}</span>
+                            {{-- Payment Progress & Status --}}
+                            <div class="p-3 border rounded bg-light mb-3">
+                                <div class="d-flex justify-content-between mb-1 small">
+                                    <span class="text-muted">Sudah Dibayar</span>
+                                    <span class="font-monospace text-success fw-bold">Rp {{ number_format($offlineSale->paid_amount, 0, ',', '.') }}</span>
                                 </div>
-                                <div class="d-flex justify-content-between">
-                                    <span class="text-muted small">Kembalian</span>
-                                    <span class="font-monospace text-primary fw-bold small">Rp
-                                        {{ number_format($offlineSale->change_amount, 0, ',', '.') }}</span>
+                                <div class="d-flex justify-content-between mb-2 small">
+                                    <span class="text-muted">Sisa Kekurangan</span>
+                                    <span class="font-monospace text-danger fw-bold fs-6">Rp {{ number_format($offlineSale->remaining_amount, 0, ',', '.') }}</span>
+                                </div>
+                                
+                                <div class="progress mb-2" style="height: 10px;">
+                                    <div class="progress-bar {{ $offlineSale->is_paid ? 'bg-success' : 'bg-warning' }}" 
+                                         role="progressbar" 
+                                         style="width: {{ $offlineSale->payment_percentage }}%;" 
+                                         aria-valuenow="{{ $offlineSale->payment_percentage }}" 
+                                         aria-valuemin="0" 
+                                         aria-valuemax="100">
+                                    </div>
+                                </div>
+                                <div class="d-flex justify-content-between text-muted" style="font-size: 0.7rem;">
+                                    <span>Terbayar {{ $offlineSale->payment_percentage }}%</span>
+                                    <span>{{ $offlineSale->is_paid ? 'Lunas 100%' : 'Belum Lunas' }}</span>
                                 </div>
                             </div>
+
+                            @if ($offlineSale->status !== \App\Models\OfflineSale::STATUS_CANCELLED && !$offlineSale->is_paid)
+                                <div class="d-grid">
+                                    <button type="button" class="btn btn-success btn-sm py-2 fw-bold" data-bs-toggle="modal" data-bs-target="#modalMarkPaidShow">
+                                        <i class="fas fa-plus-circle me-1"></i> Catat Pembayaran / Cicilan
+                                    </button>
+                                </div>
+                            @endif
                         </div>
                     </div>
+                </div>
+            </div>
+
+            {{-- Riwayat Pembayaran Cicilan --}}
+            <div class="card border-0 shadow-sm mt-3">
+                <div class="card-header bg-success bg-opacity-10 py-2 px-3 border-bottom d-flex justify-content-between align-items-center">
+                    <h6 class="fw-bold mb-0 text-success">
+                        <i class="fas fa-history me-2"></i>Riwayat Pembayaran Cicilan
+                    </h6>
+                    <span class="badge bg-success font-monospace">{{ $offlineSale->payments->count() }}x Pembayaran Masuk</span>
+                </div>
+                <div class="card-body p-3">
+                    @if($offlineSale->payments->isEmpty())
+                        <div class="text-center py-4 text-muted">
+                            <i class="fas fa-receipt fa-2x mb-2 text-muted opacity-50"></i>
+                            <p class="mb-0 small">Belum ada catatan cicilan / pembayaran yang masuk.</p>
+                        </div>
+                    @else
+                        <div class="table-responsive rounded border">
+                            <table class="table table-sm table-hover align-middle mb-0" style="font-size: 0.8rem;">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th class="ps-3">NO. PEMBAYARAN</th>
+                                        <th>TANGGAL</th>
+                                        <th class="text-end">NOMINAL</th>
+                                        <th>METODE</th>
+                                        <th>KAS / BANK TUJUAN</th>
+                                        <th>CATATAN</th>
+                                        <th>PETUGAS</th>
+                                        @if(auth()->user()->isAdmin() || auth()->user()->isOwner() || in_array(auth()->user()->role, ['admin', 'owner']))
+                                            <th class="text-center" style="width: 50px;">AKSI</th>
+                                        @endif
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($offlineSale->payments as $pmt)
+                                        <tr>
+                                            <td class="ps-3 font-monospace fw-bold text-dark">{{ $pmt->payment_number }}</td>
+                                            <td>{{ $pmt->payment_date ? $pmt->payment_date->format('d/m/Y') : '-' }}</td>
+                                            <td class="text-end font-monospace fw-bold text-success">Rp {{ number_format($pmt->amount, 0, ',', '.') }}</td>
+                                            <td>
+                                                <span class="badge bg-light text-dark border">{{ $pmt->payment_method_label }}</span>
+                                            </td>
+                                            <td>{{ $pmt->payment_destination ?: '-' }}</td>
+                                            <td><small class="text-muted">{{ $pmt->notes ?: '-' }}</small></td>
+                                            <td><small class="text-dark">{{ $pmt->user->name ?? '-' }}</small></td>
+                                            @if(auth()->user()->isAdmin() || auth()->user()->isOwner() || in_array(auth()->user()->role, ['admin', 'owner']))
+                                                <td class="text-center">
+                                                    <form action="{{ route('offline_sales.payments.destroy', [$offlineSale->id, $pmt->id]) }}" method="POST" onsubmit="return confirm('Yakin ingin menghapus riwayat pembayaran ini? Saldo bank & pemasukan keuangan akan disesuaikan kembali.');" class="d-inline">
+                                                        @csrf
+                                                        @method('DELETE')
+                                                        <button type="submit" class="btn btn-outline-danger btn-sm py-0 px-2" title="Hapus Riwayat Pembayaran">
+                                                            <i class="fas fa-trash-alt"></i>
+                                                        </button>
+                                                    </form>
+                                                </td>
+                                            @endif
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    @endif
                 </div>
             </div>
 
@@ -443,7 +529,7 @@
 </div>
 @endif
 
-{{-- Modal Konfirmasi Pelunasan --}}
+{{-- Modal Catat Pembayaran / Cicilan --}}
 @push('modals')
 @if($offlineSale->status !== \App\Models\OfflineSale::STATUS_CANCELLED && !$offlineSale->is_paid)
 <div class="modal fade" id="modalMarkPaidShow" tabindex="-1" aria-labelledby="modalMarkPaidShowLabel" aria-hidden="true">
@@ -451,35 +537,77 @@
         <div class="modal-content border-0 shadow">
             <div class="modal-header bg-success bg-opacity-10 border-bottom">
                 <h6 class="modal-title fw-bold text-success" id="modalMarkPaidShowLabel">
-                    <i class="fas fa-money-bill-wave me-2"></i>Pelunasan Pembayaran
+                    <i class="fas fa-money-bill-wave me-2"></i>Catat Pembayaran / Cicilan
                 </h6>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <form action="{{ route('offline_sales.mark_paid', $offlineSale->id) }}" method="POST">
+            <form action="{{ route('offline_sales.payments.store', $offlineSale->id) }}" method="POST" id="form-record-payment-show">
                 @csrf
                 <div class="modal-body">
-                    <p class="mb-1 text-dark">Tandai lunas untuk transaksi:</p>
-                    <p class="fw-bold font-monospace text-primary mb-3">{{ $offlineSale->sale_number }}</p>
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="text-muted small">Transaksi: <strong class="font-monospace text-primary">{{ $offlineSale->sale_number }}</strong></span>
+                        <span class="small text-muted">Pembeli: <strong>{{ $offlineSale->buyer_name ?: '(Umum)' }}</strong></span>
+                    </div>
 
                     <div class="p-3 bg-light rounded border mb-3">
                         <div class="d-flex justify-content-between mb-1 small">
-                            <span class="text-muted">Total Transaksi:</span>
+                            <span class="text-muted">Total Tagihan:</span>
                             <strong class="font-monospace text-dark">Rp {{ number_format($offlineSale->grand_total, 0, ',', '.') }}</strong>
                         </div>
                         <div class="d-flex justify-content-between mb-1 small">
                             <span class="text-muted">Sudah Dibayar:</span>
-                            <span class="font-monospace text-secondary">Rp {{ number_format($offlineSale->paid_amount, 0, ',', '.') }}</span>
+                            <span class="font-monospace text-success fw-semibold">Rp {{ number_format($offlineSale->paid_amount, 0, ',', '.') }}</span>
                         </div>
-                        <hr class="my-2">
+                        <hr class="my-1">
                         <div class="d-flex justify-content-between small">
                             <span class="fw-bold text-danger">Sisa Kekurangan:</span>
-                            <strong class="font-monospace text-danger fs-6">Rp {{ number_format(max(0, $offlineSale->grand_total - $offlineSale->paid_amount), 0, ',', '.') }}</strong>
+                            <strong class="font-monospace text-danger fs-6" id="modal-show-remaining-display">Rp {{ number_format($offlineSale->remaining_amount, 0, ',', '.') }}</strong>
+                        </div>
+                    </div>
+
+                    {{-- Nominal Pembayaran / Cicilan --}}
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label for="modal-payment-amount-display" class="form-label fw-semibold small text-dark mb-0">
+                                Nominal Pembayaran / Cicilan <span class="text-danger">*</span>
+                            </label>
+                            <div class="btn-group btn-group-sm">
+                                <button type="button" class="btn btn-outline-secondary py-0 px-2" id="btn-fill-half" style="font-size:0.7rem;">50%</button>
+                                <button type="button" class="btn btn-outline-success py-0 px-2" id="btn-fill-full" style="font-size:0.7rem;">Lunas (Semua)</button>
+                            </div>
+                        </div>
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-text fw-bold">Rp</span>
+                            <input type="text" id="modal-payment-amount-display" class="form-control form-control-sm font-monospace fw-bold fs-6" value="{{ number_format($offlineSale->remaining_amount, 0, ',', '.') }}" required>
+                            <input type="hidden" name="amount" id="modal-payment-amount-raw" value="{{ (float) $offlineSale->remaining_amount }}">
+                        </div>
+                        <div class="form-text text-muted" style="font-size:0.72rem;">
+                            Bisa dicicil nominal berapapun atau langsung dilunasi penuh.
+                        </div>
+                    </div>
+
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-6">
+                            <label for="show_payment_method" class="form-label fw-semibold small text-dark mb-1">
+                                Metode Pembayaran <span class="text-danger">*</span>
+                            </label>
+                            <select name="payment_method" id="show_payment_method" class="form-select form-select-sm" required>
+                                <option value="transfer" selected>Transfer Bank</option>
+                                <option value="tunai">Tunai (Cash)</option>
+                                <option value="qris">QRIS</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="show_payment_date" class="form-label fw-semibold small text-dark mb-1">
+                                Tanggal Bayar <span class="text-danger">*</span>
+                            </label>
+                            <input type="date" name="payment_date" id="show_payment_date" class="form-control form-control-sm" value="{{ date('Y-m-d') }}" required>
                         </div>
                     </div>
 
                     <div class="mb-3">
                         <label for="paid_payment_destination_show" class="form-label fw-semibold small text-dark mb-1">
-                            <i class="fas fa-university me-1 text-primary"></i> Kas / Bank Tujuan Pelunasan <span class="text-danger">*</span>
+                            <i class="fas fa-university me-1 text-primary"></i> Kas / Bank Tujuan Pembayaran <span class="text-danger">*</span>
                         </label>
                         <select name="payment_destination" id="paid_payment_destination_show" class="form-select form-select-sm" required>
                             @if(isset($bankAccounts) && $bankAccounts->isNotEmpty())
@@ -495,14 +623,15 @@
                         </select>
                     </div>
 
-                    <div class="alert alert-info py-2 mb-0 small">
-                        <i class="fas fa-check-circle me-1"></i> Sisa kekurangan akan dicatat sebagai <strong>Lunas</strong> dan dimasukkan ke Kas/Bank pilihan Anda.
+                    <div class="mb-2">
+                        <label for="show_notes" class="form-label fw-semibold small text-dark mb-1">Catatan / Keterangan (Opsional)</label>
+                        <input type="text" name="notes" id="show_notes" class="form-control form-control-sm" placeholder="Contoh: Cicilan ke-1, DP tambahan, pelunasan transfer...">
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Tutup</button>
                     <button type="submit" class="btn btn-success btn-sm px-4">
-                        <i class="fas fa-check-circle me-1"></i> Konfirmasi Pelunasan
+                        <i class="fas fa-check-circle me-1"></i> Simpan Pembayaran
                     </button>
                 </div>
             </form>
@@ -700,6 +829,40 @@ document.addEventListener('DOMContentLoaded', function () {
                 refundBankWrapper.style.display = 'none';
             }
         });
+    }
+
+    // Input nominal cicilan & quick buttons di modal
+    const pmtDisplay = document.getElementById('modal-payment-amount-display');
+    const pmtRaw = document.getElementById('modal-payment-amount-raw');
+    const maxRemaining = {{ (float) $offlineSale->remaining_amount }};
+
+    if (pmtDisplay && pmtRaw) {
+        pmtDisplay.addEventListener('input', function () {
+            let val = this.value.replace(/[^0-9]/g, '');
+            let num = parseInt(val, 10) || 0;
+            if (num > maxRemaining) {
+                num = maxRemaining;
+            }
+            this.value = num > 0 ? num.toLocaleString('id-ID') : '';
+            pmtRaw.value = num;
+        });
+
+        const btnFillFull = document.getElementById('btn-fill-full');
+        if (btnFillFull) {
+            btnFillFull.addEventListener('click', function () {
+                pmtDisplay.value = Math.round(maxRemaining).toLocaleString('id-ID');
+                pmtRaw.value = maxRemaining;
+            });
+        }
+
+        const btnFillHalf = document.getElementById('btn-fill-half');
+        if (btnFillHalf) {
+            btnFillHalf.addEventListener('click', function () {
+                let half = Math.round(maxRemaining / 2);
+                pmtDisplay.value = half.toLocaleString('id-ID');
+                pmtRaw.value = half;
+            });
+        }
     }
 });
 </script>

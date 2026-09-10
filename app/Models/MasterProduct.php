@@ -35,6 +35,7 @@ class MasterProduct extends Model
         'is_bundle',
         'image',
         'status',
+        'is_active',
         'exclude_commission',
     ];
 
@@ -46,6 +47,7 @@ class MasterProduct extends Model
         'safety_stock' => 'integer',
         'is_preorder' => 'boolean',
         'is_bundle' => 'boolean',
+        'is_active' => 'boolean',
         'exclude_commission' => 'boolean',
     ];
 

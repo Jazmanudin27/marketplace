@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\MasterProduct;
 use App\Models\OfflineSale;
 use App\Models\OfflineSaleItem;
+use App\Models\OfflineSalePayment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -108,8 +109,8 @@ class OfflineSaleController extends Controller
             'items.*.master_product_id' => 'required|exists:master_products,id',
             'items.*.quantity'          => 'required|integer|min:1',
             'items.*.unit_price'        => 'required|numeric|min:0',
-            'payment_method'            => 'required|in:tunai,transfer,qris,piutang',
-            'paid_amount'               => 'required|numeric|min:0',
+            'payment_method'            => 'nullable|string|in:tunai,transfer,qris,piutang,reseller_balance',
+            'paid_amount'               => 'nullable|numeric|min:0',
             'discount_amount'           => 'nullable|numeric|min:0',
             'buyer_name'                => 'nullable|string|max:100',
             'buyer_phone'               => 'nullable|string|max:20',
@@ -123,13 +124,12 @@ class OfflineSaleController extends Controller
             'resi_file'                 => 'nullable|file|mimes:jpeg,jpg,png,pdf,webp|max:5120',
         ];
 
-        if ($request->payment_method === 'piutang') {
-            if (!$request->filled('customer_id')) {
+        $paymentMethod = $request->payment_method ?: 'piutang';
+        if (!$request->boolean('is_po') && !$request->filled('customer_id')) {
+            if ($paymentMethod === 'piutang') {
                 $rules['buyer_name']  = 'required|string|max:100';
                 $rules['buyer_phone'] = 'required|string|max:20';
-            }
-        } else {
-            if (!$request->filled('customer_id') && $request->filled('buyer_name')) {
+            } elseif ($request->filled('buyer_name')) {
                 $rules['buyer_phone'] = 'required|string|max:20';
             }
         }
@@ -204,9 +204,18 @@ class OfflineSaleController extends Controller
                 $discountAmount = min($totalAmount, max(0, $globalDiscVal));
             }
 
-            $grandTotal   = max(0, $totalAmount - $discountAmount);
-            $paidAmount   = (float) $request->paid_amount;
-            $changeAmount = max(0, $paidAmount - $grandTotal);
+            $grandTotal    = max(0, $totalAmount - $discountAmount);
+            $paymentMethod = $request->payment_method ?: 'piutang';
+            $paidAmount    = (float) ($request->paid_amount ?? 0);
+            $changeAmount  = max(0, $paidAmount - $grandTotal);
+
+            // Handle reseller balance
+            if ($paymentMethod === 'reseller_balance') {
+                $cust = $request->filled('customer_id') ? \App\Models\Customer::where('tenant_id', $tenantId)->find($request->customer_id) : null;
+                if (!$cust || (float) $cust->balance < $paidAmount) {
+                    abort(422, "Saldo reseller tidak mencukupi. Saldo saat ini: Rp " . number_format($cust ? $cust->balance : 0, 0, ',', '.'));
+                }
+            }
 
             // Auto create customer if cashier filled in general buyer name but no customer_id exists
             $customerId = $request->customer_id;
@@ -252,7 +261,7 @@ class OfflineSaleController extends Controller
                 'buyer_name'      => $request->buyer_name,
                 'buyer_phone'     => $request->buyer_phone,
                 'institution_name'=> $request->institution_name,
-                'payment_method'  => $request->payment_method,
+                'payment_method'  => $paymentMethod,
                 'total_amount'    => $totalAmount,
                 'discount_amount' => $discountAmount,
                 'discount_type'   => $globalDiscType,
@@ -268,6 +277,13 @@ class OfflineSaleController extends Controller
                 'resi_number'       => $request->is_dropship ? $request->resi_number : null,
                 'resi_file'         => $request->is_dropship ? $resiFilePath : null,
             ]);
+
+            if ($paymentMethod === 'reseller_balance' && $paidAmount > 0) {
+                $custToDeduct = $customer ?? ($customerId ? \App\Models\Customer::where('tenant_id', $tenantId)->find($customerId) : null);
+                if ($custToDeduct) {
+                    $custToDeduct->adjustBalance($paidAmount, 'out', "Pembayaran Penjualan Offline #{$sale->sale_number}", Auth::id());
+                }
+            }
 
             foreach ($itemsData as $itemData) {
                 $sale->items()->create($itemData);
@@ -313,7 +329,7 @@ class OfflineSaleController extends Controller
     public function show(OfflineSale $offlineSale)
     {
         abort_unless($offlineSale->tenant_id === Auth::user()->tenant_id, 403);
-        $offlineSale->load('items.masterProduct', 'user', 'customer');
+        $offlineSale->load('items.masterProduct', 'user', 'customer', 'payments.user');
         $bankAccounts = \App\Models\BankAccount::where('tenant_id', Auth::user()->tenant_id)
             ->where('is_active', true)
             ->orderBy('bank_name')
@@ -534,6 +550,129 @@ class OfflineSaleController extends Controller
         return back()->with('success', '✅ Retur sebagian barang berhasil diproses. Stok produk telah dikembalikan!');
     }
 
+    public function recordPayment(Request $request, OfflineSale $offlineSale)
+    {
+        abort_unless($offlineSale->tenant_id === Auth::user()->tenant_id, 403);
+
+        if ($offlineSale->status === OfflineSale::STATUS_CANCELLED) {
+            return back()->with('error', 'Transaksi yang dibatalkan tidak dapat dicatat pembayarannya.');
+        }
+
+        $remainingAmount = $offlineSale->remaining_amount;
+        if ($remainingAmount <= 0) {
+            return back()->with('error', 'Transaksi ini sudah lunas.');
+        }
+
+        $request->validate([
+            'amount'              => 'required|numeric|min:1|max:' . $remainingAmount,
+            'payment_method'      => 'required|string|in:tunai,transfer,qris,piutang,reseller_balance,lainnya',
+            'payment_destination' => 'required|string|max:100',
+            'payment_date'        => 'required|date',
+            'reference_number'    => 'nullable|string|max:100',
+            'notes'               => 'nullable|string|max:500',
+        ], [
+            'amount.required'              => 'Nominal pembayaran wajib diisi.',
+            'amount.min'                   => 'Nominal pembayaran minimal Rp 1.',
+            'amount.max'                   => 'Nominal pembayaran tidak boleh melebihi sisa tagihan (Rp ' . number_format($remainingAmount, 0, ',', '.') . ').',
+            'payment_method.required'      => 'Metode pembayaran wajib dipilih.',
+            'payment_destination.required' => 'Kas / Bank Tujuan wajib dipilih.',
+            'payment_date.required'        => 'Tanggal pembayaran wajib diisi.',
+        ]);
+
+        $tenantId    = Auth::user()->tenant_id;
+        $payAmount   = (float) $request->amount;
+        $paymentDest = $request->payment_destination;
+
+        DB::transaction(function () use ($offlineSale, $request, $tenantId, $payAmount, $paymentDest) {
+            $bank = \App\Models\BankAccount::where('tenant_id', $tenantId)
+                ->where(function($q) use ($paymentDest) {
+                    $q->where('bank_name', $paymentDest)
+                      ->orWhere('id', $paymentDest);
+                })->first();
+
+            if ($bank) {
+                $bank->increment('current_balance', $payAmount);
+            }
+
+            $paymentNumber = OfflineSalePayment::generatePaymentNumber($tenantId);
+
+            $income = \App\Models\Income::create([
+                'tenant_id'           => $tenantId,
+                'title'               => "Pembayaran Cicilan POS #{$offlineSale->sale_number} ({$paymentNumber})",
+                'category'            => 'services',
+                'payment_destination' => $paymentDest,
+                'amount'              => $payAmount,
+                'income_date'         => $request->payment_date,
+                'description'         => "Pembayaran cicilan offline POS #{$offlineSale->sale_number} oleh " . ($offlineSale->buyer_name ?: 'Umum') . ($request->notes ? " - " . $request->notes : ''),
+            ]);
+
+            $offlineSale->payments()->create([
+                'tenant_id'           => $tenantId,
+                'payment_number'      => $paymentNumber,
+                'payment_date'        => $request->payment_date,
+                'amount'              => $payAmount,
+                'payment_method'      => $request->payment_method,
+                'payment_destination' => $paymentDest,
+                'reference_number'    => $request->reference_number,
+                'notes'               => $request->notes,
+                'created_by'          => Auth::id(),
+                'income_id'           => $income ? $income->id : null,
+            ]);
+
+            $newPaid = (float) $offlineSale->paid_amount + $payAmount;
+            $offlineSale->update([
+                'paid_amount'         => $newPaid,
+                'change_amount'       => 0,
+                'payment_destination' => $paymentDest,
+                'payment_method'      => $request->payment_method,
+            ]);
+        });
+
+        $message = $offlineSale->fresh()->is_paid
+            ? '✅ Pembayaran berhasil dicatat dan transaksi dinyatakan LUNAS!'
+            : '✅ Pembayaran cicilan sebesar Rp ' . number_format($payAmount, 0, ',', '.') . ' berhasil dicatat!';
+
+        return back()->with('success', $message);
+    }
+
+    public function destroyPayment(OfflineSale $offlineSale, OfflineSalePayment $payment)
+    {
+        abort_unless($offlineSale->tenant_id === Auth::user()->tenant_id, 403);
+        abort_unless($payment->offline_sale_id === $offlineSale->id, 404);
+        abort_unless(Auth::user()->isAdmin() || Auth::user()->isOwner() || in_array(Auth::user()->role, ['admin', 'owner']), 403);
+
+        $tenantId    = Auth::user()->tenant_id;
+        $payAmount   = (float) $payment->amount;
+        $paymentDest = $payment->payment_destination;
+
+        DB::transaction(function () use ($offlineSale, $payment, $tenantId, $payAmount, $paymentDest) {
+            if ($paymentDest) {
+                $bank = \App\Models\BankAccount::where('tenant_id', $tenantId)
+                    ->where(function($q) use ($paymentDest) {
+                        $q->where('bank_name', $paymentDest)
+                          ->orWhere('id', $paymentDest);
+                    })->first();
+
+                if ($bank && $bank->current_balance >= $payAmount) {
+                    $bank->decrement('current_balance', $payAmount);
+                }
+            }
+
+            if ($payment->income_id) {
+                \App\Models\Income::where('id', $payment->income_id)->where('tenant_id', $tenantId)->delete();
+            }
+
+            $newPaid = max(0, (float) $offlineSale->paid_amount - $payAmount);
+            $offlineSale->update([
+                'paid_amount' => $newPaid,
+            ]);
+
+            $payment->delete();
+        });
+
+        return back()->with('success', '✅ Riwayat pembayaran cicilan berhasil dihapus.');
+    }
+
     public function markPaid(Request $request, OfflineSale $offlineSale)
     {
         abort_unless($offlineSale->tenant_id === Auth::user()->tenant_id, 403);
@@ -546,43 +685,15 @@ class OfflineSaleController extends Controller
             return back()->with('error', 'Transaksi ini sudah berstatus Lunas.');
         }
 
-        $tenantId = Auth::user()->tenant_id;
-        $unpaidAmount = max(0, $offlineSale->grand_total - $offlineSale->paid_amount);
+        $request->merge([
+            'amount'              => $request->amount ?: $offlineSale->remaining_amount,
+            'payment_method'      => $request->payment_method ?: 'tunai',
+            'payment_destination' => $request->payment_destination ?: ($offlineSale->payment_destination ?: 'kas_besar'),
+            'payment_date'        => $request->payment_date ?: now()->toDateString(),
+            'notes'               => $request->notes ?: 'Pelunasan Transaksi',
+        ]);
 
-        DB::transaction(function () use ($offlineSale, $request, $tenantId, $unpaidAmount) {
-            $paymentDest = $request->payment_destination ?: ($offlineSale->payment_destination ?: 'kas_besar');
-
-            // Jika status sudah COMPLETED, catat pemasukan pelunasan & update saldo bank
-            if ($offlineSale->status === OfflineSale::STATUS_COMPLETED && $unpaidAmount > 0) {
-                $bank = \App\Models\BankAccount::where('tenant_id', $tenantId)
-                    ->where(function($q) use ($paymentDest) {
-                        $q->where('bank_name', $paymentDest)
-                          ->orWhere('id', $paymentDest);
-                    })->first();
-
-                if ($bank) {
-                    $bank->increment('current_balance', $unpaidAmount);
-                }
-
-                \App\Models\Income::create([
-                    'tenant_id'           => $tenantId,
-                    'title'               => "Pelunasan Penjualan Offline POS #{$offlineSale->sale_number}",
-                    'category'            => 'services',
-                    'payment_destination' => $paymentDest,
-                    'amount'              => $unpaidAmount,
-                    'income_date'         => now(),
-                    'description'         => "Pelunasan piutang transaksi #{$offlineSale->sale_number} (Pembeli: " . ($offlineSale->buyer_name ?: 'Umum') . ")",
-                ]);
-            }
-
-            $offlineSale->update([
-                'paid_amount'         => $offlineSale->grand_total,
-                'change_amount'       => 0,
-                'payment_destination' => $paymentDest,
-            ]);
-        });
-
-        return back()->with('success', '✅ Pembayaran berhasil dilunasi!');
+        return $this->recordPayment($request, $offlineSale);
     }
 
     public function complete(OfflineSale $offlineSale)

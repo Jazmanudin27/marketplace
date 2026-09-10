@@ -630,6 +630,8 @@ Route::middleware('auth')->group(function () {
         Route::post('/offline-sales', [OfflineSaleController::class, 'store'])->name('offline_sales.store');
         Route::get('/offline-sales/{offlineSale}', [OfflineSaleController::class, 'show'])->name('offline_sales.show');
         Route::post('/offline-sales/{offlineSale}/approve', [OfflineSaleController::class, 'approve'])->name('offline_sales.approve');
+        Route::post('/offline-sales/{offlineSale}/payments', [OfflineSaleController::class, 'recordPayment'])->name('offline_sales.payments.store');
+        Route::delete('/offline-sales/{offlineSale}/payments/{payment}', [OfflineSaleController::class, 'destroyPayment'])->name('offline_sales.payments.destroy');
         Route::post('/offline-sales/{offlineSale}/mark-paid', [OfflineSaleController::class, 'markPaid'])->name('offline_sales.mark_paid');
         Route::post('/offline-sales/{offlineSale}/complete', [OfflineSaleController::class, 'complete'])->name('offline_sales.complete');
         Route::post('/offline-sales/{offlineSale}/cancel', [OfflineSaleController::class, 'cancel'])->name('offline_sales.cancel');

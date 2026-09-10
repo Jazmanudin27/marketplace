@@ -27,6 +27,7 @@ class OfflineSaleCreateTest extends TestCase
 
         $response->assertStatus(200);
         $response->assertSee('Transaksi Penjualan Baru');
-        $response->assertSee('const method = $(\'#payment-method-select\').val();', false);
+        $response->assertSee('Ringkasan Pesanan');
+        $response->assertSee('Simpan Pesanan');
     }
 }

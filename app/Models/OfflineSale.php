@@ -62,6 +62,11 @@ class OfflineSale extends Model
         return $this->hasMany(OfflineSaleItem::class);
     }
 
+    public function payments(): HasMany
+    {
+        return $this->hasMany(OfflineSalePayment::class)->orderBy('payment_date')->orderBy('id');
+    }
+
     public function approvedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'approved_by');
@@ -108,14 +113,30 @@ class OfflineSale extends Model
     }
 
     /**
+     * Sisa tagihan yang belum dibayar.
+     */
+    public function getRemainingAmountAttribute(): float
+    {
+        return max(0, (float) $this->grand_total - (float) $this->paid_amount);
+    }
+
+    /**
+     * Persentase tagihan yang sudah terbayar (0 - 100%).
+     */
+    public function getPaymentPercentageAttribute(): float
+    {
+        if ((float) $this->grand_total <= 0) {
+            return 100.0;
+        }
+        return min(100.0, round(((float) $this->paid_amount / (float) $this->grand_total) * 100, 1));
+    }
+
+    /**
      * Cek apakah pembayaran sudah Lunas.
      */
     public function getIsPaidAttribute(): bool
     {
-        if ($this->payment_method === 'piutang') {
-            return (float) $this->paid_amount >= (float) $this->grand_total && (float) $this->grand_total > 0;
-        }
-        return (float) $this->paid_amount >= (float) $this->grand_total;
+        return (float) $this->paid_amount >= (float) $this->grand_total && (float) $this->grand_total > 0;
     }
 
     public function getPaymentStatusLabelAttribute(): string
@@ -123,7 +144,13 @@ class OfflineSale extends Model
         if ($this->status === self::STATUS_CANCELLED) {
             return 'Dibatalkan';
         }
-        return $this->is_paid ? 'Lunas' : 'Belum Lunas';
+        if ($this->is_paid) {
+            return 'Lunas';
+        }
+        if ((float) $this->paid_amount > 0) {
+            return 'Dicicil';
+        }
+        return 'Belum Bayar';
     }
 
     public function getPaymentStatusBadgeAttribute(): string
@@ -131,7 +158,13 @@ class OfflineSale extends Model
         if ($this->status === self::STATUS_CANCELLED) {
             return 'secondary';
         }
-        return $this->is_paid ? 'success' : 'danger';
+        if ($this->is_paid) {
+            return 'success';
+        }
+        if ((float) $this->paid_amount > 0) {
+            return 'warning';
+        }
+        return 'danger';
     }
 
     /**

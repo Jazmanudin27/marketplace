@@ -69,7 +69,7 @@ class OfflineSaleTest extends TestCase
             'is_active'  => false,
         ]);
 
-        // Out of stock product shouldn't show
+        // Active products with 0 stock are listed for PO (Pre-Order / SPK) feature
         MasterProduct::create([
             'tenant_id'  => $this->tenant->id,
             'sku'        => 'SKU-OFFLINE-OUTOFSTOCK',
@@ -87,7 +87,7 @@ class OfflineSaleTest extends TestCase
         $response->assertViewIs('offline_sales.create');
         $response->assertSee('Produk Offline Test');
         $response->assertDontSee('Produk Inactive');
-        $response->assertDontSee('Produk Kosong');
+        $response->assertSee('Produk Kosong');
     }
 
     public function test_offline_sale_store_creates_sale_and_reduces_stock(): void
@@ -122,7 +122,13 @@ class OfflineSaleTest extends TestCase
             'total_amount'   => 30000,
             'grand_total'    => 30000,
             'paid_amount'    => 30000,
-            'status'         => OfflineSale::STATUS_COMPLETED,
+            'status'         => OfflineSale::STATUS_PENDING_APPROVAL,
+        ]);
+
+        $sale = OfflineSale::where('tenant_id', $this->tenant->id)->first();
+        // Approve sale to reduce stock
+        $this->actingAs($this->user)->post(route('offline_sales.approve', $sale), [
+            'payment_destination' => 'kas_besar',
         ]);
 
         // Check if OfflineSaleItem was created
@@ -198,7 +204,9 @@ class OfflineSaleTest extends TestCase
 
         // 2. Cancel the sale
         $response = $this->actingAs($this->user)
-            ->post(route('offline_sales.cancel', $sale));
+            ->post(route('offline_sales.cancel', $sale), [
+                'cancellation_reason' => 'Customer membatalkan pembelian',
+            ]);
 
         $response->assertRedirect();
         $response->assertSessionHas('success');
@@ -373,4 +381,140 @@ class OfflineSaleTest extends TestCase
         $customer->refresh();
         $this->assertEquals(5000, (float)$customer->balance);
     }
+
+    public function test_offline_sale_store_without_payment_details_defaults_to_piutang(): void
+    {
+        $payload = [
+            'items' => [
+                [
+                    'master_product_id' => $this->masterProduct->id,
+                    'quantity'          => 2,
+                    'unit_price'        => 10000,
+                ]
+            ],
+            'discount_amount'=> 0,
+            'buyer_name'     => 'Pembeli Cicilan Tanpa DP',
+            'buyer_phone'    => '08123456789',
+        ];
+
+        $response = $this->actingAs($this->user)
+            ->post(route('offline_sales.store'), $payload);
+
+        $response->assertRedirect(route('offline_sales.index'));
+
+        $this->assertDatabaseHas('offline_sales', [
+            'tenant_id'      => $this->tenant->id,
+            'buyer_name'     => 'Pembeli Cicilan Tanpa DP',
+            'payment_method' => 'piutang',
+            'paid_amount'    => 0,
+            'grand_total'    => 20000,
+        ]);
+    }
+
+    public function test_offline_sale_can_be_paid_in_installments(): void
+    {
+        $bank = \App\Models\BankAccount::create([
+            'tenant_id'       => $this->tenant->id,
+            'bank_name'       => 'BCA Operasional',
+            'account_number'  => '1234567890',
+            'account_holder'  => 'Toko Kita',
+            'current_balance' => 100000,
+        ]);
+
+        $sale = OfflineSale::create([
+            'tenant_id'       => $this->tenant->id,
+            'user_id'         => $this->user->id,
+            'sale_number'     => 'SL-CICILAN-001',
+            'status'          => OfflineSale::STATUS_COMPLETED,
+            'buyer_name'      => 'Customer Cicilan',
+            'payment_method'  => 'piutang',
+            'total_amount'    => 100000,
+            'grand_total'     => 100000,
+            'paid_amount'     => 0,
+            'change_amount'   => 0,
+            'sold_at'         => now(),
+        ]);
+
+        $this->assertEquals(100000, $sale->remaining_amount);
+        $this->assertEquals('Belum Bayar', $sale->payment_status_label);
+
+        // Cicilan ke-1: 40.000
+        $response1 = $this->actingAs($this->user)
+            ->post(route('offline_sales.payments.store', $sale), [
+                'amount'              => 40000,
+                'payment_method'      => 'transfer',
+                'payment_destination' => 'BCA Operasional',
+                'payment_date'        => now()->toDateString(),
+                'notes'               => 'Cicilan 1 DP',
+            ]);
+
+        $response1->assertRedirect();
+        $response1->assertSessionHas('success');
+
+        $sale->refresh();
+        $this->assertEquals(40000, (float)$sale->paid_amount);
+        $this->assertEquals(60000, (float)$sale->remaining_amount);
+        $this->assertEquals('Dicicil', $sale->payment_status_label);
+
+        $bank->refresh();
+        $this->assertEquals(140000, (float)$bank->current_balance);
+
+        $this->assertDatabaseHas('offline_sale_payments', [
+            'offline_sale_id'     => $sale->id,
+            'amount'              => 40000,
+            'payment_destination' => 'BCA Operasional',
+            'payment_method'      => 'transfer',
+        ]);
+
+        $this->assertDatabaseHas('incomes', [
+            'tenant_id'           => $this->tenant->id,
+            'amount'              => 40000,
+            'payment_destination' => 'BCA Operasional',
+        ]);
+
+        // Cicilan ke-2 (Pelunasan): 60.000
+        $response2 = $this->actingAs($this->user)
+            ->post(route('offline_sales.payments.store', $sale), [
+                'amount'              => 60000,
+                'payment_method'      => 'transfer',
+                'payment_destination' => 'BCA Operasional',
+                'payment_date'        => now()->toDateString(),
+                'notes'               => 'Pelunasan Cicilan 2',
+            ]);
+
+        $response2->assertRedirect();
+        $response2->assertSessionHas('success');
+
+        $sale->refresh();
+        $this->assertEquals(100000, (float)$sale->paid_amount);
+        $this->assertEquals(0, (float)$sale->remaining_amount);
+        $this->assertEquals('Lunas', $sale->payment_status_label);
+        $this->assertTrue($sale->is_paid);
+
+        $bank->refresh();
+        $this->assertEquals(200000, (float)$bank->current_balance);
+
+        // Hapus cicilan ke-2 dan verifikasi rollback
+        $payment2 = $sale->payments()->where('amount', 60000)->first();
+        $this->assertNotNull($payment2);
+
+        $responseDelete = $this->actingAs($this->user)
+            ->delete(route('offline_sales.payments.destroy', [$sale, $payment2]));
+
+        $responseDelete->assertRedirect();
+        $responseDelete->assertSessionHas('success');
+
+        $sale->refresh();
+        $this->assertEquals(40000, (float)$sale->paid_amount);
+        $this->assertEquals(60000, (float)$sale->remaining_amount);
+        $this->assertEquals('Dicicil', $sale->payment_status_label);
+
+        $bank->refresh();
+        $this->assertEquals(140000, (float)$bank->current_balance);
+
+        $this->assertDatabaseMissing('offline_sale_payments', [
+            'id' => $payment2->id,
+        ]);
+    }
 }
+

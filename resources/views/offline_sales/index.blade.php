@@ -215,14 +215,15 @@
                                         @if ($sale->status !== \App\Models\OfflineSale::STATUS_CANCELLED && !$sale->is_paid)
                                             <button type="button"
                                                 class="btn btn-sm btn-outline-success py-0 px-2"
-                                                title="Pelunasan (Tandai Lunas)"
+                                                title="Catat Pembayaran / Cicilan"
                                                 data-bs-toggle="modal"
                                                 data-bs-target="#modalMarkPaid"
                                                 data-id="{{ $sale->id }}"
                                                 data-sale-number="{{ $sale->sale_number }}"
                                                 data-grand-total="Rp {{ number_format($sale->grand_total, 0, ',', '.') }}"
                                                 data-paid-amount="Rp {{ number_format($sale->paid_amount, 0, ',', '.') }}"
-                                                data-unpaid-amount="Rp {{ number_format(max(0, $sale->grand_total - $sale->paid_amount), 0, ',', '.') }}">
+                                                data-unpaid-amount="Rp {{ number_format(max(0, $sale->grand_total - $sale->paid_amount), 0, ',', '.') }}"
+                                                data-unpaid-raw="{{ max(0, (float)$sale->grand_total - (float)$sale->paid_amount) }}">
                                                 <i class="fas fa-money-bill-wave"></i>
                                             </button>
                                         @endif
@@ -365,19 +366,20 @@
 </div>
 
 {{-- Modal Konfirmasi Pelunasan --}}
+{{-- Modal Catat Pembayaran / Cicilan --}}
 <div class="modal fade" id="modalMarkPaid" tabindex="-1" aria-labelledby="modalMarkPaidLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 shadow">
             <div class="modal-header bg-success bg-opacity-10 border-bottom">
                 <h6 class="modal-title fw-bold text-success" id="modalMarkPaidLabel">
-                    <i class="fas fa-money-bill-wave me-2"></i>Pelunasan Pembayaran
+                    <i class="fas fa-money-bill-wave me-2"></i>Catat Pembayaran / Cicilan
                 </h6>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <form id="form-mark-paid" method="POST" class="m-0">
                 @csrf
                 <div class="modal-body">
-                    <p class="mb-1 text-dark">Tandai lunas untuk transaksi:</p>
+                    <p class="mb-1 text-dark">Catat pembayaran untuk transaksi:</p>
                     <p class="fw-bold font-monospace text-primary mb-3" id="modal-paid-sale-number"></p>
 
                     <div class="p-3 bg-light rounded border mb-3">
@@ -396,9 +398,43 @@
                         </div>
                     </div>
 
+                    {{-- Nominal Pembayaran / Cicilan --}}
+                    <div class="mb-3">
+                        <label for="modal-index-paid-amount-display" class="form-label fw-semibold small text-dark mb-1">
+                            Nominal Pembayaran / Cicilan <span class="text-danger">*</span>
+                        </label>
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-text fw-bold">Rp</span>
+                            <input type="text" id="modal-index-paid-amount-display" class="form-control form-control-sm font-monospace fw-bold fs-6" required>
+                            <input type="hidden" name="amount" id="modal-index-paid-amount-raw">
+                        </div>
+                        <div class="form-text text-muted" style="font-size:0.72rem;">
+                            Bisa bayar lunas langsung atau bayar sebagian (dicicil).
+                        </div>
+                    </div>
+
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-6">
+                            <label for="paid_payment_method" class="form-label fw-semibold small text-dark mb-1">
+                                Metode Pembayaran <span class="text-danger">*</span>
+                            </label>
+                            <select name="payment_method" id="paid_payment_method" class="form-select form-select-sm" required>
+                                <option value="transfer" selected>Transfer Bank</option>
+                                <option value="tunai">Tunai (Cash)</option>
+                                <option value="qris">QRIS</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="paid_payment_date" class="form-label fw-semibold small text-dark mb-1">
+                                Tanggal Bayar <span class="text-danger">*</span>
+                            </label>
+                            <input type="date" name="payment_date" id="paid_payment_date" class="form-control form-control-sm" value="{{ date('Y-m-d') }}" required>
+                        </div>
+                    </div>
+
                     <div class="mb-3">
                         <label for="paid_payment_destination" class="form-label fw-semibold small text-dark mb-1">
-                            <i class="fas fa-university me-1 text-primary"></i> Kas / Bank Tujuan Pelunasan <span class="text-danger">*</span>
+                            <i class="fas fa-university me-1 text-primary"></i> Kas / Bank Tujuan Pembayaran <span class="text-danger">*</span>
                         </label>
                         <select name="payment_destination" id="paid_payment_destination" class="form-select form-select-sm" required>
                             @if(isset($bankAccounts) && $bankAccounts->isNotEmpty())
@@ -414,14 +450,15 @@
                         </select>
                     </div>
 
-                    <div class="alert alert-info py-2 mb-0 small">
-                        <i class="fas fa-check-circle me-1"></i> Sisa kekurangan akan dicatat sebagai <strong>Lunas</strong> dan dimasukkan ke Kas/Bank pilihan Anda.
+                    <div class="mb-2">
+                        <label for="paid_notes" class="form-label fw-semibold small text-dark mb-1">Catatan (Opsional)</label>
+                        <input type="text" name="notes" id="paid_notes" class="form-control form-control-sm" placeholder="Contoh: Cicilan 1, Pelunasan...">
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Tutup</button>
                     <button type="submit" class="btn btn-success btn-sm px-4">
-                        <i class="fas fa-check-circle me-1"></i> Konfirmasi Pelunasan
+                        <i class="fas fa-check-circle me-1"></i> Simpan Pembayaran
                     </button>
                 </div>
             </form>
@@ -463,18 +500,42 @@
             }
         });
 
-        // Modal Pelunasan
+        // Modal Catat Pembayaran / Cicilan
         const modalMarkPaid = document.getElementById('modalMarkPaid');
         if (modalMarkPaid) {
+            let currentMaxRemaining = 0;
             modalMarkPaid.addEventListener('show.bs.modal', function (event) {
                 const btn = event.relatedTarget;
                 const id = btn.getAttribute('data-id');
+                const unpaidRaw = parseFloat(btn.getAttribute('data-unpaid-raw')) || 0;
+                currentMaxRemaining = unpaidRaw;
+
                 document.getElementById('modal-paid-sale-number').textContent = btn.getAttribute('data-sale-number');
                 document.getElementById('modal-paid-grand-total').textContent = btn.getAttribute('data-grand-total');
                 document.getElementById('modal-paid-amount').textContent = btn.getAttribute('data-paid-amount');
                 document.getElementById('modal-paid-unpaid-amount').textContent = btn.getAttribute('data-unpaid-amount');
-                document.getElementById('form-mark-paid').action = '/offline-sales/' + id + '/mark-paid';
+                
+                const displayInput = document.getElementById('modal-index-paid-amount-display');
+                const rawInput = document.getElementById('modal-index-paid-amount-raw');
+                displayInput.value = Math.round(unpaidRaw).toLocaleString('id-ID');
+                rawInput.value = unpaidRaw;
+
+                document.getElementById('form-mark-paid').action = '/offline-sales/' + id + '/payments';
             });
+
+            const displayInput = document.getElementById('modal-index-paid-amount-display');
+            const rawInput = document.getElementById('modal-index-paid-amount-raw');
+            if (displayInput && rawInput) {
+                displayInput.addEventListener('input', function () {
+                    let val = this.value.replace(/[^0-9]/g, '');
+                    let num = parseInt(val, 10) || 0;
+                    if (currentMaxRemaining > 0 && num > currentMaxRemaining) {
+                        num = currentMaxRemaining;
+                    }
+                    this.value = num > 0 ? num.toLocaleString('id-ID') : '';
+                    rawInput.value = num;
+                });
+            }
         }
 
         // Loading state saat submit
