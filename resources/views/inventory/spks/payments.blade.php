@@ -402,7 +402,11 @@
                             <datalist id="tailorList">
                                 @if (isset($tailors))
                                     @foreach ($tailors as $t)
-                                        <option value="{{ $t->name }}">{{ $t->name }} ({{ $t->specialization ?? 'Penjahit' }})</option>
+                                        @php
+                                            $tName = is_object($t) ? ($t->name ?? '') : (is_array($t) ? ($t['name'] ?? '') : (string)$t);
+                                            $tCat  = is_object($t) ? ($t->category ?? '') : (is_array($t) ? ($t['category'] ?? '') : '');
+                                        @endphp
+                                        <option value="{{ $tName }}">{{ $tName }}{{ !empty($tCat) ? ' (' . $tCat . ')' : '' }}</option>
                                     @endforeach
                                 @endif
                             </datalist>

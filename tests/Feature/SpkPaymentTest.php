@@ -93,6 +93,23 @@ class SpkPaymentTest extends TestCase
         $response->assertSee('Belum Bayar');
     }
 
+    public function test_spk_show_page_renders_successfully_with_payment_section(): void
+    {
+        \App\Models\Tailor::create([
+            'tenant_id' => $this->tenant->id,
+            'name'      => 'Pak Slamet',
+            'category'  => 'Penjahit',
+            'is_active' => true,
+        ]);
+
+        $response = $this->actingAs($this->user)
+            ->get(route('spks.show', $this->spk));
+
+        $response->assertStatus(200);
+        $response->assertViewIs('inventory.spks.show');
+        $response->assertSee('Pak Slamet');
+    }
+
     public function test_can_record_first_installment_payment_for_spk_production(): void
     {
         $this->assertEquals(500000, $this->spk->total_biaya_produksi);

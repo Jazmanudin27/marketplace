@@ -1815,9 +1815,21 @@
                                             <input type="text" name="recipient_name" class="form-control form-control-sm"
                                                    placeholder="Nama Vendor / Penjahit" list="tailorListShow">
                                             <datalist id="tailorListShow">
-                                                @if (isset($tailors))
+                                                @if (isset($vendorsData) && count($vendorsData) > 0)
+                                                    @foreach ($vendorsData as $v)
+                                                        @php
+                                                            $vName = is_object($v) ? ($v->name ?? '') : (is_array($v) ? ($v['name'] ?? '') : (string)$v);
+                                                            $vCat  = is_object($v) ? ($v->category ?? '') : (is_array($v) ? ($v['category'] ?? '') : '');
+                                                        @endphp
+                                                        <option value="{{ $vName }}">{{ $vName }}{{ !empty($vCat) ? ' (' . $vCat . ')' : '' }}</option>
+                                                    @endforeach
+                                                @elseif (isset($tailors))
                                                     @foreach ($tailors as $t)
-                                                        <option value="{{ $t->name }}">{{ $t->name }} ({{ $t->specialization ?? 'Penjahit' }})</option>
+                                                        @php
+                                                            $tName = is_object($t) ? ($t->name ?? '') : (is_array($t) ? ($t['name'] ?? '') : (string)$t);
+                                                            $tCat  = is_object($t) ? ($t->category ?? '') : (is_array($t) ? ($t['category'] ?? '') : '');
+                                                        @endphp
+                                                        <option value="{{ $tName }}">{{ $tName }}{{ !empty($tCat) ? ' (' . $tCat . ')' : '' }}</option>
                                                     @endforeach
                                                 @endif
                                             </datalist>

@@ -990,7 +990,7 @@ class SpkController extends Controller
 
         return view('inventory.spks.show', compact(
             'spk', 'grouped', 'statusOptions', 'sizesHeader', 'progresMap',
-            'products', 'tailors', 'pemotongList', 'penjahitList', 'vendorKancingList', 'petugasQcList',
+            'products', 'tailors', 'vendorsData', 'pemotongList', 'penjahitList', 'vendorKancingList', 'petugasQcList',
             'laborServices', 'stores', 'existingNoProduksi', 'recipesMap',
             'inventoryItems', 'inventoryItemsMap', 'allMasterProductsList',
             'siblingSpks', 'bankAccounts', 'totalSpkLaborCost', 'totalSpkLaborPaid', 'totalSpkLaborUnpaid',
