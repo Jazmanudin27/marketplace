@@ -600,6 +600,9 @@ Route::middleware('auth')->group(function () {
         Route::get('/spks/{spk}/print-labels', [\App\Http\Controllers\Inventory\SpkController::class, 'printItemLabels'])->name('spks.print_labels');
         Route::post('/spks/{spk}/toggle-urgent', [\App\Http\Controllers\Inventory\SpkController::class, 'toggleUrgent'])->name('spks.toggle_urgent');
         Route::post('/spks/{spk}/pay-labor', [\App\Http\Controllers\Inventory\SpkController::class, 'payLabor'])->name('spks.pay_labor');
+        Route::get('/spks-payments', [\App\Http\Controllers\Inventory\SpkController::class, 'paymentsIndex'])->name('spks.payments.index');
+        Route::post('/spks/{spk}/payments', [\App\Http\Controllers\Inventory\SpkController::class, 'storePayment'])->name('spks.payments.store');
+        Route::delete('/spks/{spk}/payments/{payment}', [\App\Http\Controllers\Inventory\SpkController::class, 'destroyPayment'])->name('spks.payments.destroy');
 
         // Stock Sync Redirect to Laporan Stok
         Route::get('/stock-sync', fn() => redirect()->route('reports.stock'))->name('inventory.stock_sync');

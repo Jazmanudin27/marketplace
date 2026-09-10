@@ -12,6 +12,10 @@ use App\Models\MasterProduct;
 use App\Models\InventoryItem;
 use App\Models\ProductRecipe;
 use App\Models\ProductRecipeItem;
+use App\Models\SpkPayment;
+use App\Models\Expense;
+use App\Models\BankAccount;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -982,13 +986,15 @@ class SpkController extends Controller
             ];
         }
 
+        $spkPayments = $spk->payments()->with(['user', 'bankAccount', 'expense'])->get();
+
         return view('inventory.spks.show', compact(
             'spk', 'grouped', 'statusOptions', 'sizesHeader', 'progresMap',
             'products', 'tailors', 'pemotongList', 'penjahitList', 'vendorKancingList', 'petugasQcList',
             'laborServices', 'stores', 'existingNoProduksi', 'recipesMap',
             'inventoryItems', 'inventoryItemsMap', 'allMasterProductsList',
             'siblingSpks', 'bankAccounts', 'totalSpkLaborCost', 'totalSpkLaborPaid', 'totalSpkLaborUnpaid',
-            'laborBreakdown', 'spkExpenses',
+            'laborBreakdown', 'spkExpenses', 'spkPayments',
             'spkBahanData', 'existingBiayaProduksi', 'existingBiayaTambahan', 'existingKetTambahan'
         ));
     }
@@ -2458,6 +2464,196 @@ class SpkController extends Controller
         }
 
         return redirect()->back()->with('success', "💳 Berhasil mencatat {$createdCount} transaksi pembayaran ongkos jasa vendor (Total: Rp " . number_format($grandTotalPaid, 0, ',', '.') . ") ke Pengeluaran Kas!");
+    }
+
+    /**
+     * Menu & Dashboard Rekap Pembayaran Produksi SPK.
+     */
+    public function paymentsIndex(Request $request)
+    {
+        $tenantId = Auth::user()->tenant_id;
+
+        $query = Spk::with(['items.extras', 'payments.bankAccount', 'penginput'])
+            ->where('tenant_id', $tenantId)
+            ->orderByDesc('tanggal')
+            ->orderByDesc('id');
+
+        if ($request->filled('search')) {
+            $search = trim($request->search);
+            $query->where(function ($q) use ($search) {
+                $q->where('no_spk', 'like', "%{$search}%")
+                  ->orWhere('no_produksi', 'like', "%{$search}%")
+                  ->orWhere('pemesan', 'like', "%{$search}%")
+                  ->orWhere('instansi', 'like', "%{$search}%");
+            });
+        }
+
+        if ($request->filled('date_from')) {
+            $query->whereDate('tanggal', '>=', $request->date_from);
+        }
+
+        if ($request->filled('date_to')) {
+            $query->whereDate('tanggal', '<=', $request->date_to);
+        }
+
+        $allSpks = $query->get();
+
+        // Calculate KPI summaries across all matching SPKs
+        $totalBiayaProduksiAll    = $allSpks->sum('total_biaya_produksi');
+        $totalSudahDibayarAll     = $allSpks->sum('total_paid_production');
+        $totalSisaBelumDibayarAll = $allSpks->sum('remaining_production_cost');
+        $totalSpkCount            = $allSpks->count();
+
+        $countLunas      = $allSpks->where('production_payment_status', 'paid')->count();
+        $countDicicil    = $allSpks->where('production_payment_status', 'partial')->count();
+        $countBelumBayar = $allSpks->where('production_payment_status', 'unpaid')->count();
+
+        // Filter by payment status if requested
+        if ($request->filled('status') && in_array($request->status, ['paid', 'partial', 'unpaid'])) {
+            $statusFilter = $request->status;
+            $allSpks = $allSpks->filter(function ($s) use ($statusFilter) {
+                return $s->production_payment_status === $statusFilter;
+            })->values();
+        }
+
+        // Paginate collection
+        $page = LengthAwarePaginator::resolveCurrentPage();
+        $perPage = 15;
+        $currentPageItems = $allSpks->slice(($page - 1) * $perPage, $perPage)->values();
+        $spks = new LengthAwarePaginator($currentPageItems, $allSpks->count(), $perPage, $page, [
+            'path'  => $request->url(),
+            'query' => $request->query(),
+        ]);
+
+        $bankAccounts = BankAccount::where('tenant_id', $tenantId)->where('is_active', true)->get();
+        $tailors = \App\Models\Tailor::where('tenant_id', $tenantId)->where('is_active', true)->orderBy('name')->get();
+
+        return view('inventory.spks.payments', compact(
+            'spks',
+            'totalBiayaProduksiAll',
+            'totalSudahDibayarAll',
+            'totalSisaBelumDibayarAll',
+            'totalSpkCount',
+            'countLunas',
+            'countDicicil',
+            'countBelumBayar',
+            'bankAccounts',
+            'tailors'
+        ));
+    }
+
+    /**
+     * Catat Cicilan Pembayaran Produksi SPK.
+     */
+    public function storePayment(Request $request, Spk $spk)
+    {
+        $tenantId = Auth::user()->tenant_id;
+        abort_unless($spk->tenant_id === $tenantId, 403);
+
+        $remaining = $spk->remaining_production_cost;
+        if ($remaining <= 0) {
+            return back()->with('error', 'Biaya produksi SPK #' . ($spk->no_produksi ?: $spk->no_spk) . ' sudah lunas!');
+        }
+
+        $request->validate([
+            'amount'          => 'required|numeric|min:1|max:' . $remaining,
+            'payment_date'    => 'required|date',
+            'payment_source'  => 'required|string',
+            'recipient_name'  => 'nullable|string|max:150',
+            'payment_type'    => 'nullable|string|max:50',
+            'notes'           => 'nullable|string|max:500',
+        ], [
+            'amount.required'         => 'Nominal cicilan wajib diisi.',
+            'amount.min'              => 'Nominal cicilan minimal Rp 1.',
+            'amount.max'              => 'Nominal cicilan tidak boleh melebihi sisa tagihan (Rp ' . number_format($remaining, 0, ',', '.') . ').',
+            'payment_date.required'   => 'Tanggal pembayaran wajib diisi.',
+            'payment_source.required' => 'Sumber kas/bank wajib dipilih.',
+        ]);
+
+        $amount = (float) $request->amount;
+        $paymentSource = $request->payment_source;
+        $recipient = trim($request->recipient_name ?: 'Tim Produksi / Vendor');
+        $spkCode = $spk->no_produksi ?: $spk->no_spk;
+
+        DB::transaction(function () use ($spk, $tenantId, $amount, $paymentSource, $recipient, $spkCode, $request) {
+            $bankAccountId = null;
+
+            // 1. Kurangi saldo Bank jika sumber adalah ID BankAccount
+            if (is_numeric($paymentSource)) {
+                $bank = BankAccount::where('tenant_id', $tenantId)->find($paymentSource);
+                if ($bank) {
+                    $bankAccountId = $bank->id;
+                    $bank->decrement('current_balance', $amount);
+                }
+            }
+
+            // 2. Catat Jurnal Pengeluaran (Expense) di Keuangan
+            $expense = Expense::create([
+                'tenant_id'      => $tenantId,
+                'employee_id'    => Auth::user()->employee_id ?? null,
+                'title'          => "Cicilan Biaya Produksi SPK #{$spkCode} ({$recipient})",
+                'category'       => 'salary',
+                'payment_source' => $paymentSource,
+                'amount'         => $amount,
+                'expense_date'   => $request->payment_date,
+                'description'    => "Pembayaran cicilan biaya produksi SPK #{$spkCode} kepada {$recipient}" . ($request->notes ? " - {$request->notes}" : ""),
+            ]);
+
+            // 3. Simpan record SpkPayment
+            $paymentNumber = SpkPayment::generatePaymentNumber($tenantId);
+            $spk->payments()->create([
+                'tenant_id'       => $tenantId,
+                'payment_number'  => $paymentNumber,
+                'payment_date'    => $request->payment_date,
+                'amount'          => $amount,
+                'payment_source'  => $paymentSource,
+                'bank_account_id' => $bankAccountId,
+                'recipient_name'  => $recipient,
+                'payment_type'    => $request->payment_type ?: 'biaya_produksi',
+                'notes'           => $request->notes,
+                'created_by'      => Auth::id(),
+                'expense_id'      => $expense->id,
+            ]);
+        });
+
+        $spkFresh = $spk->fresh();
+        $msg = $spkFresh->remaining_production_cost <= 0
+            ? "✅ Pembayaran cicilan sebesar Rp " . number_format($amount, 0, ',', '.') . " berhasil dicatat dan biaya produksi SPK #{$spkCode} telah LUNAS!"
+            : "✅ Pembayaran cicilan sebesar Rp " . number_format($amount, 0, ',', '.') . " berhasil dicatat untuk SPK #{$spkCode}!";
+
+        return back()->with('success', $msg);
+    }
+
+    /**
+     * Hapus / Rollback Cicilan Pembayaran Produksi SPK.
+     */
+    public function destroyPayment(Spk $spk, SpkPayment $payment)
+    {
+        $tenantId = Auth::user()->tenant_id;
+        abort_unless($spk->tenant_id === $tenantId, 403);
+        abort_unless($payment->spk_id === $spk->id, 404);
+        abort_unless(Auth::user()->isAdmin() || Auth::user()->isOwner() || in_array(Auth::user()->role, ['admin', 'owner']), 403);
+
+        $amount = (float) $payment->amount;
+
+        DB::transaction(function () use ($payment, $tenantId, $amount) {
+            // Revert bank balance if paid via bank
+            if ($payment->bank_account_id) {
+                $bank = BankAccount::where('tenant_id', $tenantId)->find($payment->bank_account_id);
+                if ($bank) {
+                    $bank->increment('current_balance', $amount);
+                }
+            }
+
+            // Delete associated expense
+            if ($payment->expense_id) {
+                Expense::where('tenant_id', $tenantId)->where('id', $payment->expense_id)->delete();
+            }
+
+            $payment->delete();
+        });
+
+        return back()->with('success', "✅ Pembayaran cicilan ({$payment->payment_number}) sebesar Rp " . number_format($amount, 0, ',', '.') . " berhasil dihapus dan saldo telah dikembalikan.");
     }
 
     /**

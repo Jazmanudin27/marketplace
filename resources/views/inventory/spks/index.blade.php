@@ -23,15 +23,20 @@
                     Pantau seluruh antrian pesanan SPK, bagikan link pelacakan pelanggan, dan atur prioritas Urgent.
                 </p>
             </div>
-            @can('spks.create')
-                <div>
+            <div class="d-flex align-items-center gap-2">
+                <a href="{{ route('spks.payments.index') }}"
+                    class="btn btn-warning text-dark px-3 py-2 rounded-2 fw-semibold shadow-sm d-inline-flex align-items-center gap-2">
+                    <i class="fas fa-wallet text-dark"></i>
+                    <span>Pembayaran Produksi</span>
+                </a>
+                @can('spks.create')
                     <a href="{{ route('spks.create') }}"
                         class="btn btn-primary px-3 py-2 rounded-2 fw-semibold shadow-sm d-inline-flex align-items-center gap-2">
                         <i class="fas fa-plus"></i>
                         <span>Buat SPK Baru</span>
                     </a>
-                </div>
-            @endcan
+                @endcan
+            </div>
         </div>
 
         {{-- KPI STATS SUMMARY CARDS (BOOTSTRAP 5 CLEAN & ELEGANT) --}}
@@ -460,6 +465,17 @@
                                             </span>
                                         </div>
                                     </div>
+                                </div>
+                            </div>
+
+                            {{-- PAYMENT STATUS BAR --}}
+                            <div class="d-flex justify-content-between align-items-center bg-light bg-opacity-75 px-2.5 py-1.5 rounded-3 border border-light-subtle mb-2">
+                                <div class="d-flex align-items-center gap-1">
+                                    <i class="fas fa-wallet text-warning" style="font-size: 11px;"></i>
+                                    <span class="text-muted fw-bold" style="font-size: 10.5px;">Ongkos Produksi:</span>
+                                </div>
+                                <div>
+                                    {!! $row->production_payment_status_badge !!}
                                 </div>
                             </div>
 

@@ -497,7 +497,11 @@
 
                         @can('spks.index')
                             <a href="{{ route('spks.index') }}"
-                                class="nav-link py-1 {{ request()->routeIs('spks.*') ? 'active text-white' : 'text-secondary' }}">Surat Perintah Kerja (SPK)</a>
+                                class="nav-link py-1 {{ request()->routeIs('spks.index') || request()->routeIs('spks.create') || request()->routeIs('spks.show') ? 'active text-white' : 'text-secondary' }}">Surat Perintah Kerja (SPK)</a>
+                            <a href="{{ route('spks.payments.index') }}"
+                                class="nav-link py-1 {{ request()->routeIs('spks.payments.*') ? 'active text-white' : 'text-secondary' }}">
+                                <i class="bi bi-cash-coin me-1"></i>Pembayaran Produksi
+                            </a>
                         @endcan
                         @can('product-recipes.index')
                             <a href="{{ route('product_recipes.index') }}"

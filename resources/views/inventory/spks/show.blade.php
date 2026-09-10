@@ -1116,8 +1116,26 @@
                                                        placeholder="0"
                                                        value="{{ number_format($existingBiayaProduksi ?? 0, 0, ',', '.') }}">
                                             </div>
-                                            <div class="small text-muted" style="font-size: 10.5px;">
-                                                💡 Biaya ini dicatat ke ongkos pengerjaan vendor dan dapat dibayarkan melalui menu <em>Bayar Ongkos Jasa</em>.
+                                            <div class="mt-2 p-2 bg-light rounded border">
+                                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                                    <span class="small fw-semibold text-muted" style="font-size: 11px;">Status Pembayaran:</span>
+                                                    {!! $spk->production_payment_status_badge !!}
+                                                </div>
+                                                <div class="d-flex justify-content-between align-items-center mb-1" style="font-size: 11px;">
+                                                    <span class="text-muted">Sudah Dibayar: <strong class="text-success font-monospace">Rp {{ number_format($spk->total_paid_production, 0, ',', '.') }}</strong></span>
+                                                    <span class="text-muted">Sisa: <strong class="text-danger font-monospace">Rp {{ number_format($spk->remaining_production_cost, 0, ',', '.') }}</strong></span>
+                                                </div>
+                                                <div class="progress mb-2" style="height: 5px;">
+                                                    <div class="progress-bar {{ $spk->production_payment_status === 'paid' ? 'bg-success' : 'bg-warning' }}"
+                                                         style="width: {{ $spk->production_payment_percentage }}%;"></div>
+                                                </div>
+                                                <button type="button" class="btn btn-xs btn-warning text-dark fw-bold w-100 py-1"
+                                                        data-bs-toggle="modal" data-bs-target="#modalPayLabor">
+                                                    <i class="fas fa-wallet me-1"></i>Bayar / Catat Cicilan Produksi
+                                                </button>
+                                            </div>
+                                            <div class="small text-muted mt-1" style="font-size: 10px;">
+                                                💡 Biaya ini dicatat ke ongkos pengerjaan vendor dan dapat dibayarkan / dicicil.
                                             </div>
                                         </div>
                                     </div>
@@ -1380,7 +1398,7 @@
                 <a href="{{ route('spks.index') }}" class="btn btn-sm btn-outline-secondary px-4">Batal</a>
                 <button type="button" class="btn btn-sm btn-warning text-dark fw-bold px-3 me-1" data-bs-toggle="modal"
                     data-bs-target="#modalPayLabor">
-                    💳 Bayar Ongkos Jasa
+                    💳 Pembayaran Produksi / Cicilan
                 </button>
                 <a href="{{ route('spks.scan_pickup', $spk->id) }}"
                     class="btn btn-sm btn-primary fw-bold px-3 me-1 d-inline-flex align-items-center gap-1.5"
@@ -1683,229 +1701,358 @@
         </div>
     </div>
 
-    {{-- POPUP MODAL 3: CATAT PEMBAYARAN ONGKOS JASA SPK PER VENDOR --}}
+    {{-- POPUP MODAL 3: PEMBAYARAN PRODUKSI & CICILAN SPK --}}
     <div class="modal fade" id="modalPayLabor" tabindex="-1" aria-labelledby="modalPayLaborLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-centered">
-            <div class="modal-content border-0 shadow">
-                <form action="{{ route('spks.pay_labor', $spk) }}" method="POST">
-                    @csrf
-                    <div class="modal-header bg-warning text-dark py-3 px-4">
-                        <h6 class="modal-title fw-bold d-flex align-items-center gap-1.5" id="modalPayLaborLabel">
-                            💳 Catat Pembayaran Ongkos Jasa Per Vendor SPK (#{{ $spk->no_produksi ?: $spk->no_spk }})
+            <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+                <div class="modal-header bg-warning text-dark py-3 px-4">
+                    <div>
+                        <h6 class="modal-title fw-bold d-flex align-items-center gap-1.5 mb-0" id="modalPayLaborLabel">
+                            💳 Pembayaran Produksi &amp; Cicilan SPK (#{{ $spk->no_produksi ?: $spk->no_spk }})
                         </h6>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        <small class="text-dark opacity-75">Pencatatan cicilan biaya produksi ke vendor / konveksi / penjahit</small>
                     </div>
-                    <div class="modal-body p-4" style="background:#f8fafc;">
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4" style="background:#f8fafc;">
 
-                        {{-- TOP SUMMARY CARDS FOR LABOR COSTS & UNPAID BALANCE --}}
-                        <div class="row g-2 mb-3">
-                            <div class="col-4">
-                                <div class="bg-white p-2.5 rounded-3 border shadow-2xs text-center">
-                                    <span class="text-muted d-block text-uppercase fw-bold"
-                                        style="font-size: 9px; letter-spacing: 0.5px;">Total Ongkos Jasa</span>
-                                    <span class="fw-extrabold text-dark fs-6">Rp
-                                        {{ number_format($totalSpkLaborCost, 0, ',', '.') }}</span>
-                                </div>
-                            </div>
-                            <div class="col-4">
-                                <div class="bg-white p-2.5 rounded-3 border border-success-subtle shadow-2xs text-center"
-                                    style="background-color: #f0fdf4 !important;">
-                                    <span class="text-success d-block text-uppercase fw-bold"
-                                        style="font-size: 9px; letter-spacing: 0.5px;">Sudah Dibayar</span>
-                                    <span class="fw-extrabold text-success fs-6">Rp
-                                        {{ number_format($totalSpkLaborPaid, 0, ',', '.') }}</span>
-                                </div>
-                            </div>
-                            <div class="col-4">
-                                <div class="bg-white p-2.5 rounded-3 border border-warning-subtle shadow-2xs text-center"
-                                    style="background-color: #fffbeb !important;">
-                                    <span class="text-warning-emphasis d-block text-uppercase fw-bold"
-                                        style="font-size: 9px; letter-spacing: 0.5px;">Sisa Belum Dibayar</span>
-                                    <span class="fw-extrabold text-danger fs-6">Rp
-                                        {{ number_format($totalSpkLaborUnpaid, 0, ',', '.') }}</span>
-                                </div>
+                    {{-- TOP SUMMARY CARDS FOR PRODUCTION COSTS & UNPAID BALANCE --}}
+                    <div class="row g-2 mb-3">
+                        <div class="col-4">
+                            <div class="bg-white p-2.5 rounded-3 border shadow-2xs text-center">
+                                <span class="text-muted d-block text-uppercase fw-bold" style="font-size: 9px; letter-spacing: 0.5px;">Target Biaya Produksi</span>
+                                <span class="fw-extrabold text-dark fs-6 font-monospace">Rp {{ number_format($spk->total_biaya_produksi, 0, ',', '.') }}</span>
                             </div>
                         </div>
-
-                        <div class="alert alert-info py-2 px-3 mb-3 border-0 shadow-sm" style="font-size:12px;">
-                            Pilih item ongkos jasa vendor/pekerja yang ingin dibayar. Sistem akan membuat <strong>pencatatan
-                                pengeluaran kas terpisah (per vendor)</strong> dan menyimpan histori transaksi pembayaran.
-                        </div>
-
-                        <div class="row g-3 mb-3">
-                            <div class="col-md-6">
-                                <label class="form-label fw-semibold text-secondary" style="font-size:12px;">SUMBER KAS /
-                                    REKENING PEMBAYARAN</label>
-                                <select name="payment_source" class="form-select form-select-sm" required>
-                                    <option value="kas_kecil">Kas Kecil (Petty Cash)</option>
-                                    <option value="kas_besar" selected>Kas Besar (Main Cash)</option>
-                                    @if (isset($bankAccounts) && count($bankAccounts) > 0)
-                                        <optgroup label="Rekening Bank">
-                                            @foreach ($bankAccounts as $bank)
-                                                <option value="{{ $bank->id }}">{{ $bank->bank_name }} -
-                                                    {{ $bank->account_number }} (a.n {{ $bank->account_name }})</option>
-                                            @endforeach
-                                        </optgroup>
-                                    @endif
-                                </select>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label fw-semibold text-secondary" style="font-size:12px;">TANGGAL
-                                    PEMBAYARAN</label>
-                                <input type="date" name="expense_date" class="form-control form-control-sm"
-                                    value="{{ date('Y-m-d') }}" required>
+                        <div class="col-4">
+                            <div class="bg-white p-2.5 rounded-3 border border-success-subtle shadow-2xs text-center" style="background-color: #f0fdf4 !important;">
+                                <span class="text-success d-block text-uppercase fw-bold" style="font-size: 9px; letter-spacing: 0.5px;">Sudah Dibayar</span>
+                                <span class="fw-extrabold text-success fs-6 font-monospace">Rp {{ number_format($spk->total_paid_production, 0, ',', '.') }}</span>
                             </div>
                         </div>
+                        <div class="col-4">
+                            <div class="bg-white p-2.5 rounded-3 border border-danger-subtle shadow-2xs text-center" style="background-color: #fffbeb !important;">
+                                <span class="text-danger d-block text-uppercase fw-bold" style="font-size: 9px; letter-spacing: 0.5px;">Sisa Tagihan</span>
+                                <span class="fw-extrabold text-danger fs-6 font-monospace">Rp {{ number_format($spk->remaining_production_cost, 0, ',', '.') }}</span>
+                            </div>
+                        </div>
+                    </div>
 
-                        <label class="form-label fw-semibold text-secondary mb-2" style="font-size:12px;">RINCIAN ONGKOS
-                            JASA VENDOR / TIM OPERASIONAL</label>
-                        <div class="table-responsive bg-white rounded border shadow-sm mb-3">
-                            <table class="table table-sm table-hover align-middle mb-0" style="font-size:11.5px;">
+                    {{-- NAV TABS: CICILAN UMUM VS PER RINCIAN JASA --}}
+                    <ul class="nav nav-pills nav-fill mb-3 bg-white p-1 rounded-3 border" id="payModalTab" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active fw-bold py-1.5 px-3" id="tab-installment" data-bs-toggle="pill" data-bs-target="#content-installment" type="button" role="tab">
+                                💰 Catat Cicilan Pembayaran
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link fw-bold py-1.5 px-3" id="tab-breakdown" data-bs-toggle="pill" data-bs-target="#content-breakdown" type="button" role="tab">
+                                📋 Bayar Per Rincian Jasa (Vendor)
+                            </button>
+                        </li>
+                    </ul>
+
+                    <div class="tab-content" id="payModalTabContent">
+                        {{-- TAB 1: CICILAN PEMBAYARAN PRODUKSI --}}
+                        <div class="tab-pane fade show active" id="content-installment" role="tabpanel">
+                            <form action="{{ route('spks.payments.store', $spk) }}" method="POST">
+                                @csrf
+                                <div class="bg-white p-3 rounded-3 border mb-3">
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold text-dark small mb-1">
+                                            Nominal Cicilan Dibayar (Rp) <span class="text-danger">*</span>
+                                        </label>
+                                        <div class="input-group">
+                                            <span class="input-group-text bg-light fw-bold">Rp</span>
+                                            <input type="number" name="amount" id="showModalInputAmount"
+                                                   class="form-control fw-extrabold fs-6 text-end font-monospace"
+                                                   min="1" max="{{ (int) $spk->remaining_production_cost }}"
+                                                   value="{{ (int) $spk->remaining_production_cost }}"
+                                                   step="1" required placeholder="0"
+                                                   {{ $spk->remaining_production_cost <= 0 ? 'disabled' : '' }}>
+                                        </div>
+                                        <div class="d-flex justify-content-between align-items-center mt-1">
+                                            <div class="d-flex gap-1">
+                                                <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-2" id="btnShowQuick50" style="font-size: 11px;" {{ $spk->remaining_production_cost <= 0 ? 'disabled' : '' }}>
+                                                    50%
+                                                </button>
+                                                <button type="button" class="btn btn-xs btn-outline-success py-0 px-2 fw-bold" id="btnShowQuickLunas" style="font-size: 11px;" {{ $spk->remaining_production_cost <= 0 ? 'disabled' : '' }}>
+                                                    Pelunasan (100%)
+                                                </button>
+                                            </div>
+                                            <small class="text-muted" style="font-size: 11px;">Maksimal: Rp {{ number_format($spk->remaining_production_cost, 0, ',', '.') }}</small>
+                                        </div>
+                                    </div>
+
+                                    <div class="row g-2 mb-3">
+                                        <div class="col-md-6">
+                                            <label class="form-label fw-semibold text-dark small mb-1">
+                                                Tanggal Pembayaran <span class="text-danger">*</span>
+                                            </label>
+                                            <input type="date" name="payment_date" class="form-control form-control-sm" value="{{ date('Y-m-d') }}" required>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label fw-semibold text-dark small mb-1">
+                                                Sumber Kas / Bank <span class="text-danger">*</span>
+                                            </label>
+                                            <select name="payment_source" class="form-select form-select-sm" required>
+                                                <option value="kas_besar" selected>Kas Besar (Main Cash)</option>
+                                                <option value="kas_kecil">Kas Kecil (Petty Cash)</option>
+                                                @if (isset($bankAccounts) && count($bankAccounts) > 0)
+                                                    <optgroup label="Rekening Bank">
+                                                        @foreach ($bankAccounts as $bank)
+                                                            <option value="{{ $bank->id }}">{{ $bank->bank_name }} - {{ $bank->account_number }} (a.n {{ $bank->account_name }})</option>
+                                                        @endforeach
+                                                    </optgroup>
+                                                @endif
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div class="row g-2 mb-3">
+                                        <div class="col-md-6">
+                                            <label class="form-label fw-semibold text-dark small mb-1">Penerima / Vendor / Penjahit</label>
+                                            <input type="text" name="recipient_name" class="form-control form-control-sm"
+                                                   placeholder="Nama Vendor / Penjahit" list="tailorListShow">
+                                            <datalist id="tailorListShow">
+                                                @if (isset($tailors))
+                                                    @foreach ($tailors as $t)
+                                                        <option value="{{ $t->name }}">{{ $t->name }} ({{ $t->specialization ?? 'Penjahit' }})</option>
+                                                    @endforeach
+                                                @endif
+                                            </datalist>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label fw-semibold text-dark small mb-1">Jenis Ongkos</label>
+                                            <select name="payment_type" class="form-select form-select-sm">
+                                                <option value="biaya_produksi" selected>Ongkos Jasa Produksi</option>
+                                                <option value="jasa_jahit">Jasa Jahit</option>
+                                                <option value="jasa_potong">Jasa Potong</option>
+                                                <option value="jasa_sablon">Jasa Sablon / Print</option>
+                                                <option value="jasa_finishing">Finishing / Packing</option>
+                                                <option value="tambahan">Biaya Tambahan</option>
+                                                <option value="umum">Lainnya / Umum</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold text-dark small mb-1">Catatan / Keterangan</label>
+                                        <textarea name="notes" class="form-control form-control-sm" rows="2" placeholder="Catatan cicilan (opsional, misal: DP Konveksi 50%)..."></textarea>
+                                    </div>
+
+                                    <div class="text-end">
+                                        <button type="submit" class="btn btn-sm btn-success fw-bold px-4"
+                                                {{ $spk->remaining_production_cost <= 0 ? 'disabled' : '' }}>
+                                            <i class="fas fa-save me-1"></i>Simpan Cicilan Pembayaran
+                                        </button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+
+                        {{-- TAB 2: BAYAR PER RINCIAN JASA VENDOR --}}
+                        <div class="tab-pane fade" id="content-breakdown" role="tabpanel">
+                            <form action="{{ route('spks.pay_labor', $spk) }}" method="POST">
+                                @csrf
+                                <div class="alert alert-info py-2 px-3 mb-3 border-0 shadow-sm" style="font-size:12px;">
+                                    Pilih item ongkos jasa vendor/pekerja yang ingin dibayar. Sistem akan membuat <strong>pencatatan
+                                        pengeluaran kas terpisah (per vendor)</strong> dan menyimpan histori transaksi pembayaran.
+                                </div>
+
+                                <div class="row g-3 mb-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-semibold text-secondary" style="font-size:12px;">SUMBER KAS / REKENING PEMBAYARAN</label>
+                                        <select name="payment_source" class="form-select form-select-sm" required>
+                                            <option value="kas_kecil">Kas Kecil (Petty Cash)</option>
+                                            <option value="kas_besar" selected>Kas Besar (Main Cash)</option>
+                                            @if (isset($bankAccounts) && count($bankAccounts) > 0)
+                                                <optgroup label="Rekening Bank">
+                                                    @foreach ($bankAccounts as $bank)
+                                                        <option value="{{ $bank->id }}">{{ $bank->bank_name }} - {{ $bank->account_number }} (a.n {{ $bank->account_name }})</option>
+                                                    @endforeach
+                                                </optgroup>
+                                            @endif
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-semibold text-secondary" style="font-size:12px;">TANGGAL PEMBAYARAN</label>
+                                        <input type="date" name="expense_date" class="form-control form-control-sm" value="{{ date('Y-m-d') }}" required>
+                                    </div>
+                                </div>
+
+                                <label class="form-label fw-semibold text-secondary mb-2" style="font-size:12px;">RINCIAN ONGKOS JASA VENDOR / TIM OPERASIONAL</label>
+                                <div class="table-responsive bg-white rounded border shadow-sm mb-3">
+                                    <table class="table table-sm table-hover align-middle mb-0" style="font-size:11.5px;">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th style="width: 35px;" class="text-center">
+                                                    <input type="checkbox" id="checkAllPayItems" class="form-check-input">
+                                                </th>
+                                                <th>Rincian Jasa &amp; Vendor</th>
+                                                <th style="width: 18%;">Produk SPK</th>
+                                                <th style="width: 16%;" class="text-end">Total Tarif</th>
+                                                <th style="width: 16%;" class="text-end">Sisa Tagihan</th>
+                                                <th style="width: 24%;" class="text-end">Nominal Dibayar (Rp)</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @forelse($laborBreakdown as $lIdx => $lItem)
+                                                @php
+                                                    $sisaVal = (float) $lItem['sisa_bayar'];
+                                                    $isLunas = $lItem['is_lunas'];
+                                                @endphp
+                                                <tr class="{{ $isLunas ? 'bg-light bg-opacity-50 text-muted' : '' }}">
+                                                    <td class="text-center">
+                                                        <input type="checkbox" name="payments[{{ $lIdx }}][checked_val]"
+                                                            value="1" class="form-check-input pay-item-checkbox"
+                                                            {{ !$isLunas ? 'checked' : '' }} {{ $isLunas ? 'disabled' : '' }}>
+                                                    </td>
+                                                    <td>
+                                                        <input type="hidden" name="payments[{{ $lIdx }}][title]"
+                                                            value="{{ $lItem['keterangan'] }}">
+                                                        <span
+                                                            class="fw-bold {{ $isLunas ? 'text-muted' : 'text-dark' }}">{{ $lItem['keterangan'] }}</span>
+                                                    </td>
+                                                    <td>
+                                                        <span
+                                                            class="badge bg-secondary-subtle text-secondary">{{ $lItem['produk'] }}</span>
+                                                    </td>
+                                                    <td class="text-end fw-semibold">
+                                                        Rp {{ number_format($lItem['nominal'], 0, ',', '.') }}
+                                                    </td>
+                                                    <td class="text-end">
+                                                        @if ($isLunas)
+                                                            <span
+                                                                class="badge bg-success-subtle text-success border border-success-subtle fw-bold">
+                                                                ✅ LUNAS
+                                                            </span>
+                                                        @elseif($lItem['sudah_dibayar'] > 0)
+                                                            <span
+                                                                class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle fw-bold d-block text-end">
+                                                                Sisa: Rp {{ number_format($sisaVal, 0, ',', '.') }}
+                                                            </span>
+                                                        @else
+                                                            <span class="fw-extrabold text-danger">
+                                                                Rp {{ number_format($sisaVal, 0, ',', '.') }}
+                                                            </span>
+                                                        @endif
+                                                    </td>
+                                                    <td class="text-end">
+                                                        <input type="number" name="payments[{{ $lIdx }}][amount]"
+                                                            class="form-control form-control-sm text-end fw-bold pay-item-amount"
+                                                            value="{{ (int) $sisaVal }}" min="1"
+                                                            max="{{ (int) $sisaVal }}" step="1"
+                                                            {{ $isLunas ? 'disabled' : '' }}>
+                                                    </td>
+                                                </tr>
+                                            @empty
+                                                <tr>
+                                                    <td colspan="6" class="text-center text-muted py-3">Belum ada data ongkos
+                                                        jasa yang disetting pada SPK ini.</td>
+                                                </tr>
+                                            @endforelse
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <div class="d-flex justify-content-between align-items-center bg-warning-subtle text-warning-emphasis p-2.5 rounded-3 border border-warning-subtle mb-3">
+                                    <span class="fw-bold small">Total Pembayaran Terpilih:</span>
+                                    <span class="fw-extrabold fs-6" id="displayTotalSelectedPay">Rp 0</span>
+                                </div>
+
+                                <div class="text-end">
+                                    <button type="submit" class="btn btn-sm btn-warning fw-bold px-4 text-dark"
+                                        {{ count($laborBreakdown) == 0 || $totalSpkLaborUnpaid <= 0 ? 'disabled' : '' }}>
+                                        💳 Proses Bayar Per Vendor Terpilih
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    {{-- HISTORI CICILAN PEMBAYARAN PRODUKSI (SPK_PAYMENTS) --}}
+                    <div class="bg-white rounded border p-3 shadow-2xs mt-3">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <h6 class="fw-bold text-dark m-0 d-flex align-items-center gap-1.5" style="font-size: 13px;">
+                                📜 Riwayat Cicilan Pembayaran Produksi
+                            </h6>
+                            <span class="badge bg-primary bg-opacity-10 text-primary border border-primary-subtle fw-bold" style="font-size: 10px;">
+                                {{ count($spkPayments) }} Transaksi Cicilan
+                            </span>
+                        </div>
+                        <div class="table-responsive rounded border">
+                            <table class="table table-sm table-striped table-hover align-middle mb-0" style="font-size: 11px;">
                                 <thead class="table-light">
                                     <tr>
-                                        <th style="width: 35px;" class="text-center">
-                                            <input type="checkbox" id="checkAllPayItems" class="form-check-input">
-                                        </th>
-                                        <th>Rincian Jasa &amp; Vendor</th>
-                                        <th style="width: 18%;">Produk SPK</th>
-                                        <th style="width: 16%;" class="text-end">Total Tarif</th>
-                                        <th style="width: 16%;" class="text-end">Sisa Tagihan</th>
-                                        <th style="width: 24%;" class="text-end">Nominal Dibayar (Rp)</th>
+                                        <th style="width: 14%;">Tanggal &amp; No.</th>
+                                        <th>Penerima / Vendor</th>
+                                        <th style="width: 22%;">Sumber Kas / Bank</th>
+                                        <th>Catatan</th>
+                                        <th style="width: 18%;" class="text-end">Nominal (Rp)</th>
+                                        <th style="width: 40px;" class="text-center">Aksi</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @forelse($laborBreakdown as $lIdx => $lItem)
-                                        @php
-                                            $sisaVal = (float) $lItem['sisa_bayar'];
-                                            $isLunas = $lItem['is_lunas'];
-                                        @endphp
-                                        <tr class="{{ $isLunas ? 'bg-light bg-opacity-50 text-muted' : '' }}">
-                                            <td class="text-center">
-                                                <input type="checkbox" name="payments[{{ $lIdx }}][checked_val]"
-                                                    value="1" class="form-check-input pay-item-checkbox"
-                                                    {{ !$isLunas ? 'checked' : '' }} {{ $isLunas ? 'disabled' : '' }}>
+                                    @forelse($spkPayments as $pPay)
+                                        <tr>
+                                            <td>
+                                                <div class="fw-bold text-dark">{{ $pPay->payment_date ? $pPay->payment_date->format('d/m/Y') : '-' }}</div>
+                                                <small class="text-muted font-monospace" style="font-size: 9.5px;">{{ $pPay->payment_number }}</small>
                                             </td>
                                             <td>
-                                                <input type="hidden" name="payments[{{ $lIdx }}][title]"
-                                                    value="{{ $lItem['keterangan'] }}">
-                                                <span
-                                                    class="fw-bold {{ $isLunas ? 'text-muted' : 'text-dark' }}">{{ $lItem['keterangan'] }}</span>
+                                                <span class="fw-bold text-dark">{{ $pPay->recipient_name ?: 'Tim Produksi' }}</span>
+                                                <small class="text-muted d-block" style="font-size: 9.5px;">{{ ucwords(str_replace('_', ' ', $pPay->payment_type)) }}</small>
                                             </td>
                                             <td>
-                                                <span
-                                                    class="badge bg-secondary-subtle text-secondary">{{ $lItem['produk'] }}</span>
-                                            </td>
-                                            <td class="text-end fw-semibold">
-                                                Rp {{ number_format($lItem['nominal'], 0, ',', '.') }}
-                                            </td>
-                                            <td class="text-end">
-                                                @if ($isLunas)
-                                                    <span
-                                                        class="badge bg-success-subtle text-success border border-success-subtle fw-bold">
-                                                        ✅ LUNAS
-                                                    </span>
-                                                @elseif($lItem['sudah_dibayar'] > 0)
-                                                    <span
-                                                        class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle fw-bold d-block text-end">
-                                                        Sisa: Rp {{ number_format($sisaVal, 0, ',', '.') }}
+                                                @if ($pPay->bankAccount)
+                                                    <span class="badge bg-light text-dark border fw-bold" style="font-size: 10px;">
+                                                        🏦 {{ $pPay->bankAccount->bank_name }} ({{ $pPay->bankAccount->account_number }})
                                                     </span>
                                                 @else
-                                                    <span class="fw-extrabold text-danger">
-                                                        Rp {{ number_format($sisaVal, 0, ',', '.') }}
+                                                    <span class="badge bg-light text-dark border fw-bold" style="font-size: 10px;">
+                                                        💵 {{ strtoupper(str_replace('_', ' ', $pPay->payment_source)) }}
                                                     </span>
                                                 @endif
                                             </td>
-                                            <td class="text-end">
-                                                <input type="number" name="payments[{{ $lIdx }}][amount]"
-                                                    class="form-control form-control-sm text-end fw-bold pay-item-amount"
-                                                    value="{{ (int) $sisaVal }}" min="1"
-                                                    max="{{ (int) $sisaVal }}" step="1"
-                                                    {{ $isLunas ? 'disabled' : '' }}>
+                                            <td>
+                                                <span class="text-muted">{{ $pPay->notes ?: '-' }}</span>
+                                                @if ($pPay->user)
+                                                    <small class="text-secondary d-block" style="font-size: 9px;">Oleh: {{ $pPay->user->name }}</small>
+                                                @endif
+                                            </td>
+                                            <td class="text-end fw-extrabold text-success font-monospace">
+                                                Rp {{ number_format($pPay->amount, 0, ',', '.') }}
+                                            </td>
+                                            <td class="text-center">
+                                                @if (auth()->user()->isAdmin() || auth()->user()->isOwner() || in_array(auth()->user()->role, ['admin', 'owner']))
+                                                    <form action="{{ route('spks.payments.destroy', [$spk, $pPay]) }}" method="POST"
+                                                          onsubmit="return confirm('Hapus cicilan pembayaran Rp {{ number_format($pPay->amount, 0, ',', '.') }} ini? Saldo kas/bank akan dikembalikan.')" class="m-0">
+                                                        @csrf
+                                                        @method('DELETE')
+                                                        <button type="submit" class="btn btn-xs btn-outline-danger p-1" title="Hapus Pembayaran">
+                                                            <i class="fas fa-trash-alt"></i>
+                                                        </button>
+                                                    </form>
+                                                @endif
                                             </td>
                                         </tr>
                                     @empty
                                         <tr>
-                                            <td colspan="6" class="text-center text-muted py-3">Belum ada data ongkos
-                                                jasa yang disetting pada SPK ini. Silakan atur di tombol <strong>✂️ Atur
-                                                    Tahap</strong> terlebih dahulu.</td>
+                                            <td colspan="6" class="text-center text-muted py-3">
+                                                Belum ada riwayat cicilan pembayaran produksi yang dicatat untuk SPK ini.
+                                            </td>
                                         </tr>
                                     @endforelse
                                 </tbody>
                             </table>
                         </div>
-
-                        <div
-                            class="d-flex justify-content-between align-items-center bg-warning-subtle text-warning-emphasis p-3 rounded-3 border border-warning-subtle mb-4">
-                            <span class="fw-bold">Total Pembayaran Terpilih Saat Ini:</span>
-                            <span class="fw-extrabold fs-6" id="displayTotalSelectedPay">Rp 0</span>
-                        </div>
-
-                        {{-- HISTORI PEMBAYARAN ONGKOS JASA TABLE --}}
-                        <div class="bg-white rounded border p-3 shadow-2xs">
-                            <div class="d-flex align-items-center justify-content-between mb-2">
-                                <h6 class="fw-bold text-dark m-0 d-flex align-items-center gap-1.5"
-                                    style="font-size: 13px;">
-                                    📜 Histori Transaksi Pembayaran Ongkos Jasa SPK
-                                </h6>
-                                <span class="badge bg-secondary bg-opacity-10 text-secondary border fw-bold"
-                                    style="font-size: 10px;">
-                                    {{ count($spkExpenses) }} Transaksi Pembayaran
-                                </span>
-                            </div>
-                            <div class="table-responsive rounded border">
-                                <table class="table table-sm table-striped table-hover align-middle mb-0"
-                                    style="font-size: 11px;">
-                                    <thead class="table-dark">
-                                        <tr>
-                                            <th style="width: 15%;">Tanggal</th>
-                                            <th>Rincian Jasa &amp; Vendor</th>
-                                            <th style="width: 25%;">Sumber Kas / Bank</th>
-                                            <th style="width: 22%;" class="text-end">Nominal Dibayar</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        @forelse($spkExpenses as $exp)
-                                            <tr>
-                                                <td class="fw-semibold text-secondary">
-                                                    {{ $exp->expense_date ? $exp->expense_date->format('d M Y') : date('d M Y') }}
-                                                </td>
-                                                <td>
-                                                    <div class="fw-bold text-dark">{{ $exp->title }}</div>
-                                                    <small class="text-muted"
-                                                        style="font-size: 10px;">{{ $exp->description }}</small>
-                                                </td>
-                                                <td>
-                                                    <span class="badge bg-light text-dark border fw-bold">
-                                                        {{ strtoupper(str_replace('_', ' ', $exp->payment_source)) }}
-                                                    </span>
-                                                </td>
-                                                <td class="text-end fw-extrabold text-success">
-                                                    + Rp {{ number_format($exp->amount, 0, ',', '.') }}
-                                                </td>
-                                            </tr>
-                                        @empty
-                                            <tr>
-                                                <td colspan="4" class="text-center text-muted py-3">
-                                                    Belum ada riwayat transaksi pembayaran ongkos jasa yang dicatat untuk
-                                                    SPK ini.
-                                                </td>
-                                            </tr>
-                                        @endforelse
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-
                     </div>
-                    <div class="modal-footer bg-white border-top py-2 px-4 d-flex justify-content-between">
-                        <button type="button" class="btn btn-sm btn-outline-secondary px-3"
-                            data-bs-dismiss="modal">Batal</button>
-                        <button type="submit" class="btn btn-sm btn-warning fw-bold px-4 text-dark"
-                            {{ count($laborBreakdown) == 0 || $totalSpkLaborUnpaid <= 0 ? 'disabled' : '' }}>
-                            💳 Proses &amp; Catat Transaksi Per Vendor
-                        </button>
-                    </div>
-                </form>
+
+                </div>
+                <div class="modal-footer bg-white border-top py-2 px-4">
+                    <button type="button" class="btn btn-sm btn-outline-secondary px-3" data-bs-dismiss="modal">Tutup</button>
+                </div>
             </div>
         </div>
     </div>
@@ -3121,6 +3268,15 @@
             if (modalPayLaborEl) {
                 modalPayLaborEl.addEventListener('shown.bs.modal', calculateTotalPaySelected);
             }
+
+            document.getElementById('btnShowQuick50')?.addEventListener('click', function() {
+                const max = {{ (int) $spk->remaining_production_cost }};
+                if (max > 0) document.getElementById('showModalInputAmount').value = Math.round(max * 0.5);
+            });
+            document.getElementById('btnShowQuickLunas')?.addEventListener('click', function() {
+                const max = {{ (int) $spk->remaining_production_cost }};
+                if (max > 0) document.getElementById('showModalInputAmount').value = max;
+            });
         });
     </script>
 @endpush

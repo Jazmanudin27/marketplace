@@ -199,6 +199,119 @@ class Spk extends Model
         return $this->hasMany(SpkProses::class)->orderBy('urutan');
     }
 
+    public function payments(): HasMany
+    {
+        return $this->hasMany(SpkPayment::class)->orderByDesc('payment_date')->orderByDesc('id');
+    }
+
+    /**
+     * Total target ongkos jasa / biaya produksi SPK (tidak termasuk bahan).
+     */
+    public function getTotalBiayaProduksiAttribute(): float
+    {
+        if ($this->relationLoaded('items')) {
+            $total = 0;
+            foreach ($this->items as $item) {
+                if ($item->relationLoaded('extras')) {
+                    foreach ($item->extras as $extra) {
+                        $nom = (float) $extra->nominal;
+                        $ket = $extra->keterangan ?? '';
+                        if ($nom > 0 && !str_contains($ket, 'Bahan:')) {
+                            $total += $nom;
+                        }
+                    }
+                } else {
+                    $total += (float) $item->extras()
+                        ->where('keterangan', 'not like', '%Bahan:%')
+                        ->sum('nominal');
+                }
+            }
+            return $total;
+        }
+
+        return (float) \App\Models\SpkItemExtra::whereIn(
+            'spk_item_id',
+            $this->items()->pluck('id')
+        )->where('keterangan', 'not like', '%Bahan:%')->sum('nominal');
+    }
+
+    /**
+     * Akumulasi nominal cicilan yang sudah dibayarkan untuk produksi SPK ini.
+     */
+    public function getTotalPaidProductionAttribute(): float
+    {
+        if ($this->relationLoaded('payments')) {
+            return (float) $this->payments->sum('amount');
+        }
+        return (float) $this->payments()->sum('amount');
+    }
+
+    /**
+     * Sisa tagihan biaya produksi yang belum dibayar.
+     */
+    public function getRemainingProductionCostAttribute(): float
+    {
+        return max(0, $this->total_biaya_produksi - $this->total_paid_production);
+    }
+
+    /**
+     * Persentase kelunasan pembayaran produksi (0 - 100%).
+     */
+    public function getProductionPaymentPercentageAttribute(): float
+    {
+        $total = $this->total_biaya_produksi;
+        if ($total <= 0) {
+            return 100.0;
+        }
+        return round(min(100, ($this->total_paid_production / $total) * 100), 1);
+    }
+
+    /**
+     * Status kode kelunasan pembayaran produksi ('none', 'unpaid', 'partial', 'paid').
+     */
+    public function getProductionPaymentStatusAttribute(): string
+    {
+        $target = $this->total_biaya_produksi;
+        $paid = $this->total_paid_production;
+
+        if ($target <= 0) {
+            return 'none';
+        }
+        if ($paid >= $target) {
+            return 'paid';
+        }
+        if ($paid > 0) {
+            return 'partial';
+        }
+        return 'unpaid';
+    }
+
+    /**
+     * Label status kelunasan pembayaran produksi ('Lunas', 'Dicicil', 'Belum Bayar').
+     */
+    public function getProductionPaymentStatusLabelAttribute(): string
+    {
+        return match ($this->production_payment_status) {
+            'paid'    => 'Lunas',
+            'partial' => 'Dicicil',
+            'unpaid'  => 'Belum Bayar',
+            default   => 'Biaya Belum Diset',
+        };
+    }
+
+    /**
+     * HTML Badge untuk status pembayaran produksi.
+     */
+    public function getProductionPaymentStatusBadgeAttribute(): string
+    {
+        return match ($this->production_payment_status) {
+            'paid'    => '<span class="badge bg-success-subtle text-success border border-success-subtle fw-bold"><i class="fas fa-check-circle me-1"></i>Lunas</span>',
+            'partial' => '<span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle fw-bold"><i class="fas fa-clock me-1"></i>Dicicil</span>',
+            'unpaid'  => '<span class="badge bg-danger-subtle text-danger border border-danger-subtle fw-bold"><i class="fas fa-exclamation-circle me-1"></i>Belum Bayar</span>',
+            default   => '<span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle fw-bold">-</span>',
+        };
+    }
+
     public static function generateNoSpk()
     {
         $today = date('Ymd');
