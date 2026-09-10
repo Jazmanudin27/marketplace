@@ -57,6 +57,16 @@ class SyncMarketplaceTracking extends Command
 
         $targetStatuses = ['READY_TO_SHIP', 'UNPAID', 'PENDING', 'TO_SHIP', 'PROCESSED', 'PROCESSING', 'PROSES', 'RETRY_SHIP'];
 
+        // 🔒 Normalisasi otomatis: Kembalikan semua pesanan yang sempat berstatus PROSES/PROCESSED ke READY_TO_SHIP
+        $normalizedCnt = Order::query()
+            ->when($tenantId, fn($q) => $q->where('tenant_id', $tenantId))
+            ->whereIn(DB::raw('UPPER(order_status)'), ['PROCESSED', 'PROSES', 'PROCESSING'])
+            ->update(['order_status' => 'READY_TO_SHIP']);
+
+        if ($normalizedCnt > 0) {
+            $this->info("🔄 [NORMALISASI] {$normalizedCnt} pesanan dinormalkan statusnya tetap => READY_TO_SHIP.");
+        }
+
         // Ambil pesanan aktif yang belum selesai/batal dalam periode X hari terakhir
         $query = Order::query()
             ->whereNotNull('order_marketplace_id')
@@ -148,12 +158,21 @@ class SyncMarketplaceTracking extends Command
                                 }
                             }
 
+                            // 🔒 STATUS RESMI: Jangan pernah ubah status ke PROSES/PROCESSED. Tetap READY_TO_SHIP!
                             $spStatusRaw = strtoupper((string)($shopeeOrder['order_status'] ?? ''));
-                            if (!empty($spStatusRaw) && $spStatusRaw !== strtoupper($dbOrd->order_status)) {
-                                $dbOrd->order_status = $spStatusRaw;
-                                $changed = true;
-                                $this->line("   <comment>-> [STATUS] Order #{$sn}: Status diperbarui => {$spStatusRaw}</comment>");
-                                Log::info("[Cron:Tracking] Order Shopee {$sn} status diperbarui: {$spStatusRaw}");
+                            if (in_array($spStatusRaw, ['READY_TO_SHIP', 'PROCESSED', 'PROSES', 'PROCESSING', 'TO_SHIP', 'RETRY_SHIP', 'TO_RETRY_LOGISTICS', 'UNPAID'])) {
+                                if (strtoupper((string)$dbOrd->order_status) !== 'READY_TO_SHIP') {
+                                    $dbOrd->order_status = 'READY_TO_SHIP';
+                                    $changed = true;
+                                    $this->line("   <info>-> [STATUS] Order #{$sn}: Status distandarisasi tetap => READY_TO_SHIP</info>");
+                                }
+                            } elseif (in_array($spStatusRaw, ['SHIPPED', 'COMPLETED', 'CANCELLED'])) {
+                                if ($dbOrd->order_status !== $spStatusRaw) {
+                                    $dbOrd->order_status = $spStatusRaw;
+                                    $changed = true;
+                                    $this->line("   <comment>-> [STATUS] Order #{$sn}: Status diperbarui => {$spStatusRaw}</comment>");
+                                    Log::info("[Cron:Tracking] Order Shopee {$sn} status diperbarui: {$spStatusRaw}");
+                                }
                             }
 
                             if ($changed) {
@@ -200,12 +219,22 @@ class SyncMarketplaceTracking extends Command
                                 Log::info("[Cron:Tracking] Order TikTok {$oid} resi diperbarui: {$trackingNumber}");
                             }
 
+                            // 🔒 STATUS RESMI: Jangan pernah ubah status ke PROSES/PROCESSED. Tetap READY_TO_SHIP!
                             $ttStatus = strtoupper((string)($ttOrder['order_status'] ?? $ttOrder['status'] ?? ''));
-                            if (!empty($ttStatus) && $ttStatus !== strtoupper($dbOrd->order_status)) {
-                                $dbOrd->order_status = $ttStatus;
-                                $changed = true;
-                                $this->line("   <comment>-> [STATUS] Order #{$oid}: Status diperbarui => {$ttStatus}</comment>");
-                                Log::info("[Cron:Tracking] Order TikTok {$oid} status diperbarui: {$ttStatus}");
+                            if (in_array($ttStatus, ['READY_TO_SHIP', 'AWAITING_SHIPMENT', 'AWAITING_COLLECTION', '111', '112', 'PROCESSED', 'PROSES', 'PROCESSING'])) {
+                                if (strtoupper((string)$dbOrd->order_status) !== 'READY_TO_SHIP') {
+                                    $dbOrd->order_status = 'READY_TO_SHIP';
+                                    $changed = true;
+                                    $this->line("   <info>-> [STATUS] Order #{$oid}: Status distandarisasi tetap => READY_TO_SHIP</info>");
+                                }
+                            } elseif (in_array($ttStatus, ['SHIPPED', 'IN_TRANSIT', 'DELIVERED', 'COMPLETED', 'CANCELLED', '121', '122', '130', '140'])) {
+                                $mappedStatus = in_array($ttStatus, ['IN_TRANSIT', 'SHIPPED', '121']) ? 'SHIPPED' : (in_array($ttStatus, ['DELIVERED', 'COMPLETED', '122', '130']) ? 'COMPLETED' : 'CANCELLED');
+                                if ($dbOrd->order_status !== $mappedStatus) {
+                                    $dbOrd->order_status = $mappedStatus;
+                                    $changed = true;
+                                    $this->line("   <comment>-> [STATUS] Order #{$oid}: Status diperbarui => {$mappedStatus}</comment>");
+                                    Log::info("[Cron:Tracking] Order TikTok {$oid} status diperbarui: {$mappedStatus}");
+                                }
                             }
 
                             if ($changed) {

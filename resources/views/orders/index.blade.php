@@ -985,7 +985,9 @@
                                     {{-- Checkbox --}}
                                     <td style="text-align:center;">
                                         <input type="checkbox" name="order_ids[]" value="{{ $order->id }}"
-                                            class="order-checkbox form-check-input" style="cursor:pointer;">
+                                            class="order-checkbox form-check-input" style="cursor:pointer;"
+                                            data-order-number="{{ $order->invoice_number ?? $order->order_marketplace_id ?? ('#' . $order->id) }}"
+                                            data-tracking="{{ $order->tracking_number ?? '' }}">
                                     </td>
 
                                     {{-- Produk & Pesanan --}}
@@ -1275,6 +1277,42 @@
                 });
             }
 
+            /* ── Validasi & Notifikasi Cetak Massal ── */
+            if (form) {
+                form.addEventListener('submit', function(e) {
+                    const checked = document.querySelectorAll('.order-checkbox:checked');
+                    if (checked.length === 0) {
+                        e.preventDefault();
+                        if (typeof Swal !== 'undefined') {
+                            Swal.fire({
+                                icon: 'warning',
+                                title: 'Pilih Pesanan',
+                                text: 'Pilih minimal satu pesanan dengan mencentang kotak untuk dicetak.',
+                                confirmButtonColor: '#ee4d2d'
+                            });
+                        } else {
+                            alert('Pilih minimal satu pesanan dengan mencentang kotak untuk dicetak.');
+                        }
+                        return false;
+                    }
+
+                    let hasEmptyTracking = false;
+                    checked.forEach(cb => {
+                        const trk = (cb.dataset.tracking || '').trim();
+                        if (!trk || trk === '-') {
+                            hasEmptyTracking = true;
+                        }
+                    });
+
+                    if (hasEmptyTracking && typeof Toast !== 'undefined') {
+                        Toast.fire({
+                            icon: 'info',
+                            title: 'Mempersiapkan cetak resi... Sistem otomatis menarik resi dari marketplace untuk pesanan yang belum memiliki resi.'
+                        });
+                    }
+                });
+            }
+
             /* ── Tarik Resi Single ── */
             document.querySelectorAll('.btn-fetch-single-tracking').forEach(btn => {
                 btn.addEventListener('click', function(e) {
@@ -1316,6 +1354,13 @@
                                     <i class="fas fa-barcode me-1 text-secondary"></i>
                                     <span style="font-weight:600; color:#222;">${data.tracking_number}</span>
                                 </div>`;
+                                }
+                                const tr = $btn.closest('tr');
+                                if (tr) {
+                                    const cb = tr.querySelector('.order-checkbox');
+                                    if (cb && data.tracking_number) {
+                                        cb.dataset.tracking = data.tracking_number;
+                                    }
                                 }
                             } else {
                                 if (typeof Swal !== 'undefined') {

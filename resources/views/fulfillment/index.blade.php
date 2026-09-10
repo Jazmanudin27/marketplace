@@ -322,7 +322,9 @@
                                 @endphp
                                 <tr>
                                     <td class="ps-3 text-center">
-                                        <input type="checkbox" name="ids[]" value="{{ $order->id }}" class="form-check-input order-checkbox" style="cursor: pointer;">
+                                        <input type="checkbox" name="ids[]" value="{{ $order->id }}" class="form-check-input order-checkbox" style="cursor: pointer;"
+                                            data-order-number="{{ $order->invoice_number ?? $order->order_marketplace_id ?? ('#' . $order->id) }}"
+                                            data-tracking="{{ $order->tracking_number ?? '' }}">
                                     </td>
                                     <td>
                                         <div class="fw-bold text-dark font-monospace mb-1" style="font-size: 0.85rem;">
@@ -573,6 +575,14 @@
                                 </div>
                             `);
                         }
+
+                        const tr = $btn.closest('tr');
+                        if (tr.length && data.tracking_number) {
+                            const cb = tr.find('.order-checkbox');
+                            if (cb.length) {
+                                cb.attr('data-tracking', data.tracking_number);
+                            }
+                        }
                     } else {
                         if (typeof Swal !== 'undefined') {
                             Swal.fire({
@@ -626,12 +636,34 @@
             $('#btn-top-label').on('click', function() {
                 const checked = $('.order-checkbox:checked');
                 if (checked.length === 0) {
-                    if (!confirm(
-                            'Tidak ada pesanan yang diceklis. Apakah Anda ingin mencetak resi untuk SELURUH pesanan yang tampil di filter saat ini?'
-                        )) {
-                        return;
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Pilih Pesanan',
+                            text: 'Pilih minimal satu pesanan dengan mencentang kotak untuk cetak resi massal.',
+                            confirmButtonColor: '#0d6efd'
+                        });
+                    } else {
+                        alert('Pilih minimal satu pesanan dengan mencentang kotak untuk cetak resi massal.');
                     }
+                    return;
                 }
+
+                let hasEmptyTracking = false;
+                checked.each(function() {
+                    const trk = ($(this).attr('data-tracking') || '').trim();
+                    if (!trk || trk === '-') {
+                        hasEmptyTracking = true;
+                    }
+                });
+
+                if (hasEmptyTracking && typeof Toast !== 'undefined') {
+                    Toast.fire({
+                        icon: 'info',
+                        title: 'Mempersiapkan cetak resi... Sistem otomatis menarik resi dari marketplace untuk pesanan yang belum memiliki resi.'
+                    });
+                }
+
                 batchForm.attr('action', "{{ route('orders.mass_print') }}");
                 batchForm.attr('method', "POST");
                 batchForm.attr('target', "_blank");

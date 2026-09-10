@@ -719,6 +719,14 @@ class SecretRepairDashboardController extends Controller
             return implode("\n", $log);
         }
 
+        // 🔒 Normalisasi otomatis: Kembalikan semua pesanan yang sempat berstatus PROSES/PROCESSED ke READY_TO_SHIP
+        $normalizedCnt = Order::where('tenant_id', $tenantId)
+            ->whereIn(\DB::raw('UPPER(order_status)'), ['PROCESSED', 'PROSES', 'PROCESSING'])
+            ->update(['order_status' => 'READY_TO_SHIP']);
+        if ($normalizedCnt > 0) {
+            $log[] = "🔄 [NORMALISASI] {$normalizedCnt} pesanan dinormalkan statusnya tetap => READY_TO_SHIP.\n";
+        }
+
         $log[] = "🔍 Ditemukan {$activeOrders->count()} pesanan aktif untuk ditarik resi & statusnya...\n";
 
         $shopeeUpdated = 0;
@@ -784,11 +792,20 @@ class SecretRepairDashboardController extends Controller
                                 }
                             }
 
+                            // 🔒 STATUS RESMI: Jangan pernah ubah status ke PROSES/PROCESSED. Tetap READY_TO_SHIP!
                             $spStatusRaw = strtoupper((string)($shopeeOrder['order_status'] ?? ''));
-                            if (!empty($spStatusRaw) && $spStatusRaw !== strtoupper($dbOrd->order_status)) {
-                                $dbOrd->order_status = $spStatusRaw;
-                                $changed = true;
-                                $log[] = "   -> [STATUS] Order #{$sn}: Status diperbarui => {$spStatusRaw}";
+                            if (in_array($spStatusRaw, ['READY_TO_SHIP', 'PROCESSED', 'PROSES', 'PROCESSING', 'TO_SHIP', 'RETRY_SHIP', 'TO_RETRY_LOGISTICS', 'UNPAID'])) {
+                                if (strtoupper((string)$dbOrd->order_status) !== 'READY_TO_SHIP') {
+                                    $dbOrd->order_status = 'READY_TO_SHIP';
+                                    $changed = true;
+                                    $log[] = "   -> [STATUS] Order #{$sn}: Status distandarisasi tetap => READY_TO_SHIP";
+                                }
+                            } elseif (in_array($spStatusRaw, ['SHIPPED', 'COMPLETED', 'CANCELLED'])) {
+                                if ($dbOrd->order_status !== $spStatusRaw) {
+                                    $dbOrd->order_status = $spStatusRaw;
+                                    $changed = true;
+                                    $log[] = "   -> [STATUS] Order #{$sn}: Status diperbarui => {$spStatusRaw}";
+                                }
                             }
 
                             if ($changed) {
@@ -833,11 +850,21 @@ class SecretRepairDashboardController extends Controller
                                 $log[] = "   -> [RESI] Order #{$oid}: Resi TikTok berhasil ditarik: {$trackingNumber}";
                             }
 
+                            // 🔒 STATUS RESMI: Jangan pernah ubah status ke PROSES/PROCESSED. Tetap READY_TO_SHIP!
                             $ttStatus = strtoupper((string)($ttOrder['order_status'] ?? $ttOrder['status'] ?? ''));
-                            if (!empty($ttStatus) && $ttStatus !== strtoupper($dbOrd->order_status)) {
-                                $dbOrd->order_status = $ttStatus;
-                                $changed = true;
-                                $log[] = "   -> [STATUS] Order #{$oid}: Status diperbarui => {$ttStatus}";
+                            if (in_array($ttStatus, ['READY_TO_SHIP', 'AWAITING_SHIPMENT', 'AWAITING_COLLECTION', '111', '112', 'PROCESSED', 'PROSES', 'PROCESSING'])) {
+                                if (strtoupper((string)$dbOrd->order_status) !== 'READY_TO_SHIP') {
+                                    $dbOrd->order_status = 'READY_TO_SHIP';
+                                    $changed = true;
+                                    $log[] = "   -> [STATUS] Order #{$oid}: Status distandarisasi tetap => READY_TO_SHIP";
+                                }
+                            } elseif (in_array($ttStatus, ['SHIPPED', 'IN_TRANSIT', 'DELIVERED', 'COMPLETED', 'CANCELLED', '121', '122', '130', '140'])) {
+                                $mappedStatus = in_array($ttStatus, ['IN_TRANSIT', 'SHIPPED', '121']) ? 'SHIPPED' : (in_array($ttStatus, ['DELIVERED', 'COMPLETED', '122', '130']) ? 'COMPLETED' : 'CANCELLED');
+                                if ($dbOrd->order_status !== $mappedStatus) {
+                                    $dbOrd->order_status = $mappedStatus;
+                                    $changed = true;
+                                    $log[] = "   -> [STATUS] Order #{$oid}: Status diperbarui => {$mappedStatus}";
+                                }
                             }
 
                             if ($changed) {

@@ -10,8 +10,12 @@ use Illuminate\Support\Facades\Auth;
 
 class OrderPrintController extends Controller
 {
-    public function massPrint(Request $request, ShopeeService $shopeeService, TiktokService $tiktokService)
-    {
+    public function massPrint(
+        Request $request,
+        ShopeeService $shopeeService,
+        TiktokService $tiktokService,
+        \App\Services\OrderTrackingService $orderTrackingService
+    ) {
         $orderIds = $request->input('order_ids', $request->input('ids', []));
         
         if (empty($orderIds)) {
@@ -25,6 +29,40 @@ class OrderPrintController extends Controller
 
         if ($orders->isEmpty()) {
             return back()->with('error', 'Pesanan tidak ditemukan atau Anda tidak memiliki akses.');
+        }
+
+        // Otomatis tarik resi dari marketplace API jika belum ada atau kosong
+        foreach ($orders as $order) {
+            $tracking = trim((string) ($order->tracking_number ?? ''));
+            if ($tracking === '' || $tracking === '-') {
+                $fetched = $orderTrackingService->fetchTrackingNumber($order);
+                if ($fetched) {
+                    $order->tracking_number = $fetched;
+                    $order->save();
+                }
+            }
+        }
+
+        // Tolak cetak jika setelah dicoba ditarik masih ada pesanan tanpa resi
+        $ordersWithoutTracking = $orders->filter(function ($order) {
+            $tracking = trim((string) ($order->tracking_number ?? ''));
+            return $tracking === '' || $tracking === '-';
+        });
+
+        if ($ordersWithoutTracking->isNotEmpty()) {
+            $missingList = $ordersWithoutTracking->map(function ($o) {
+                return $o->invoice_number ?: ($o->order_marketplace_id ?: "#{$o->id}");
+            });
+            $count = $missingList->count();
+            $sample = $missingList->take(5)->implode(', ');
+            $extra = $count > 5 ? ' dan ' . ($count - 5) . ' pesanan lainnya' : '';
+            $errorMsg = "Cetak resi massal ditolak: Sistem telah mencoba menarik resi otomatis, namun terdapat {$count} pesanan yang nomor resinya belum diterbitkan oleh marketplace/kurir ({$sample}{$extra}). Pastikan pesanan sudah diproses di Seller Center sebelum mencetak.";
+
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json(['success' => false, 'message' => $errorMsg], 422);
+            }
+
+            return response()->view('orders.print_error', compact('ordersWithoutTracking'), 422);
         }
 
         // Tandai pesanan sebagai SUDAH DIPRINT
