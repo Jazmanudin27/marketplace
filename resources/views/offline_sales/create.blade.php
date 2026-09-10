@@ -327,7 +327,6 @@
                                 <option value="umum">Pelanggan Umum</option>
                                 <option value="biasa">Pelanggan Biasa</option>
                                 <option value="dropship">Pelanggan Dropship</option>
-                                <option value="marketplace">Pelanggan Marketplace</option>
                             </select>
                         </div>
                         <div class="mb-3">
@@ -503,8 +502,8 @@
                         btn.prop('disabled', false).html('Simpan & Pilih Pelanggan');
                         if (res.success && res.customer) {
                             const c = res.customer;
-                            const catLabels = { 'umum': 'Umum', 'biasa': 'Biasa', 'dropship': 'Dropship', 'marketplace': 'Marketplace' };
-                            const categoryLabel = catLabels[c.category] || 'Umum';
+                            const catLabels = { 'umum': 'Pelanggan Umum', 'biasa': 'Pelanggan Biasa', 'dropship': 'Pelanggan Dropship' };
+                            const categoryLabel = catLabels[c.category] || 'Pelanggan Umum';
                             const labelText = `[${categoryLabel}] ${c.name} ${c.phone ? '(' + c.phone + ')' : ''}`;
                             const newOption = new Option(labelText, c.id, true, true);
 

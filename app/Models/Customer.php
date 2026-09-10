@@ -46,6 +46,48 @@ class Customer extends Model
         return $this->hasMany(Order::class);
     }
 
+    public function offlineSales()
+    {
+        return $this->hasMany(OfflineSale::class);
+    }
+
+    /**
+     * Scope query to only include offline customers.
+     */
+    public function scopeOffline($query)
+    {
+        return $query->where(function ($q) {
+            $q->whereNull('category')
+              ->orWhere('category', '!=', 'marketplace');
+        })
+        ->where(function ($q) {
+            $q->whereNull('marketplace_username')
+              ->orWhere('marketplace_username', '');
+        })
+        ->where(function ($q) {
+            $q->whereDoesntHave('orders')
+              ->orWhereHas('offlineSales');
+        });
+    }
+
+    /**
+     * Scope query to only include marketplace customers.
+     */
+    public function scopeMarketplace($query)
+    {
+        return $query->where(function ($q) {
+            $q->where('category', 'marketplace')
+              ->orWhere(function ($q2) {
+                  $q2->whereNotNull('marketplace_username')
+                     ->where('marketplace_username', '!=', '');
+              })
+              ->orWhere(function ($q3) {
+                  $q3->whereHas('orders')
+                     ->whereDoesntHave('offlineSales');
+              });
+        });
+    }
+
     public function balanceTransactions()
     {
         return $this->hasMany(ResellerBalanceTransaction::class);

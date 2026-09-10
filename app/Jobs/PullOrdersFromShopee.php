@@ -221,8 +221,9 @@ class PullOrdersFromShopee implements ShouldQueue
                     'phone' => $buyerPhone ?: '0000000000',
                 ],
                 [
-                    'name' => $buyerName,
-                    'address' => $shopeeOrder['recipient_address']['full_address'] ?? null,
+                    'name'     => $buyerName,
+                    'category' => 'marketplace',
+                    'address'  => $shopeeOrder['recipient_address']['full_address'] ?? null,
                 ]
             );
             self::$customerCache[$cacheKey] = $customer;

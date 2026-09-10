@@ -109,6 +109,63 @@ class MasterProduct extends Model
                     ->withTimestamps();
     }
 
+    /**
+     * Scope query to only include non-bundle (single) products.
+     */
+    public function scopeNonBundle($query)
+    {
+        return $query->where(function ($q) {
+            $q->where('is_bundle', false)
+              ->orWhereNull('is_bundle');
+        })
+        ->where(function ($q) {
+            if (Schema::hasTable('master_product_bundles')) {
+                $q->whereDoesntHave('components');
+            }
+        })
+        ->where(function ($q) {
+            $q->where('sku', 'not like', 'SET-%')
+              ->where('sku', 'not like', 'PAKET-%')
+              ->where('sku', 'not like', 'BUNDLE-%')
+              ->where('name', 'not like', 'SET %')
+              ->where('name', 'not like', 'PAKET %')
+              ->where('name', 'not like', 'BUNDLE %')
+              ->where('name', 'not like', 'Set %')
+              ->where('name', 'not like', 'Paket %')
+              ->where('name', 'not like', 'Bundle %')
+              ->where('name', 'not like', '[SET]%')
+              ->where('name', 'not like', '[PAKET]%')
+              ->where('name', 'not like', '[BUNDLE]%');
+        });
+    }
+
+    /**
+     * Scope query to only include bundle products.
+     */
+    public function scopeBundle($query)
+    {
+        return $query->where(function ($q) {
+            $q->where('is_bundle', true);
+
+            if (Schema::hasTable('master_product_bundles')) {
+                $q->orWhereHas('components');
+            }
+
+            $q->orWhere('sku', 'like', 'SET-%')
+              ->orWhere('sku', 'like', 'PAKET-%')
+              ->orWhere('sku', 'like', 'BUNDLE-%')
+              ->orWhere('name', 'like', 'SET %')
+              ->orWhere('name', 'like', 'PAKET %')
+              ->orWhere('name', 'like', 'BUNDLE %')
+              ->orWhere('name', 'like', 'Set %')
+              ->orWhere('name', 'like', 'Paket %')
+              ->orWhere('name', 'like', 'Bundle %')
+              ->orWhere('name', 'like', '[SET]%')
+              ->orWhere('name', 'like', '[PAKET]%')
+              ->orWhere('name', 'like', '[BUNDLE]%');
+        });
+    }
+
     public function getEffectiveStockAttribute(): int
     {
         $dbStock = (int) ($this->attributes['stock'] ?? 0);

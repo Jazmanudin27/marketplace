@@ -79,22 +79,12 @@ class OfflineSaleController extends Controller
         $tenantId = Auth::user()->tenant_id;
         $products = MasterProduct::where('tenant_id', $tenantId)
             ->where('is_active', true)
-            ->where(function ($q) {
-                $q->where('is_bundle', false)
-                  ->orWhereNull('is_bundle');
-            })
+            ->nonBundle()
             ->orderBy('name')
             ->get();
 
         $customers = \App\Models\Customer::where('tenant_id', $tenantId)
-            ->where(function ($q) {
-                $q->whereNull('category')
-                  ->orWhere('category', '!=', 'marketplace');
-            })
-            ->where(function ($q) {
-                $q->whereNull('marketplace_username')
-                  ->orWhere('marketplace_username', '');
-            })
+            ->offline()
             ->orderBy('name')
             ->get();
 
@@ -236,6 +226,7 @@ class OfflineSaleController extends Controller
                     $customer = \App\Models\Customer::create([
                         'tenant_id' => $tenantId,
                         'name'      => $request->buyer_name,
+                        'category'  => 'umum',
                         'phone'     => $request->buyer_phone,
                         'address'   => $request->buyer_address,
                     ]);
