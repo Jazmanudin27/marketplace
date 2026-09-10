@@ -875,25 +875,11 @@
                         </div>
 
                         @php
-                            $initGrandMaterial = 0;
-                            $initGrandLabor = 0;
-                            $initGrandQty = 0;
-                            foreach ($spk->items as $it) {
-                                $initGrandQty += (int) $it->quantity;
-                                $itMat = 0;
-                                $itLabor = 0;
-                                foreach ($it->extras as $ex) {
-                                    $nom = (float) $ex->nominal;
-                                    if (str_contains($ex->keterangan, 'Bahan:')) {
-                                        $itMat += $nom;
-                                    } else {
-                                        $itLabor += $nom;
-                                    }
-                                }
-                                $initGrandMaterial += $itMat;
-                                $initGrandLabor += $itLabor;
-                            }
-                            $initGrandHpp = $initGrandMaterial + $initGrandLabor;
+                            $initGrandQty = (int) $spk->items->sum('quantity');
+                            $initTotalBahan = array_sum(array_column($spkBahanData, 'subtotal'));
+                            $initBiayaProduksi = (float) ($existingBiayaProduksi ?? 0);
+                            $initBiayaTambahan = (float) ($existingBiayaTambahan ?? 0);
+                            $initGrandHpp = $initTotalBahan + $initBiayaProduksi + $initBiayaTambahan;
                             $initAvgHpp = $initGrandQty > 0 ? round($initGrandHpp / $initGrandQty) : 0;
                         @endphp
 
@@ -902,170 +888,15 @@
                             <table class="table table-sm product-table-custom align-middle mb-0">
                                 <thead>
                                     <tr>
-                                        <th style="width: 22%;">SKU PRODUK / VARIAN</th>
-                                        <th style="width: 22%;">NAMA PRODUK</th>
-                                        <th style="width: 8%;" class="text-center">UKURAN</th>
-                                        <th style="width: 8%;" class="text-center">QTY</th>
-                                        <th style="width: 14%;" class="text-center">PAKAI BAHAN / REKAP</th>
-                                        <th style="width: 13%;" class="text-center">BIAYA PRODUKSI (RP)</th>
-                                        <th style="width: 13%;" class="text-center">ESTIMASI HPP</th>
-                                        <th style="width: 36px;"></th>
+                                        <th style="width: 32%;">SKU PRODUK / VARIAN</th>
+                                        <th style="width: 38%;">NAMA PRODUK</th>
+                                        <th style="width: 13%;" class="text-center">UKURAN</th>
+                                        <th style="width: 13%;" class="text-center">QTY</th>
+                                        <th style="width: 4%;" class="text-center"></th>
                                     </tr>
                                 </thead>
                                 <tbody id="product-tbody-{{ $rIdx }}">
                                     @foreach ($spk->items as $pIdx => $item)
-                                        @php
-                                            $materials = [];
-                                            $laborCost = 0;
-                                            $pemotongVal = $item->pemotong ?? '';
-                                            $penjahitVal = $item->penjahit ?? '';
-                                            $vendorKancingVal = $item->vendor_kancing ?? '';
-                                            $petugasQcVal = '';
-                                            $qtyPotongVal = $item->quantity;
-                                            $tarifPotongVal = 0;
-                                            $qtyJahitVal = $item->quantity;
-                                            $tarifJahitVal = 0;
-                                            $qtyKancingVal = 0;
-                                            $tarifKancingVal = 0;
-                                            $qcLolosVal = 0;
-                                            $qcRejectVal = 0;
-                                            $tarifQcVal = 0;
-                                            $qtyFinishingVal = 0;
-                                            $qtyFgoodVal = 0;
-                                            $petugasFinishingVal = '';
-                                            $tarifFinishingVal = 0;
-
-                                            foreach ($item->extras as $ex) {
-                                                $desc = $ex->keterangan;
-                                                if (str_contains($desc, 'Bahan:')) {
-                                                    $bName = trim(str_replace('Bahan:', '', $desc));
-                                                    $bQty = '1';
-                                                    if (preg_match('/^(.*?)\s*\(Qty:\s*([\d\.,]+)\)$/i', $bName, $mQ)) {
-                                                        $bName = trim($mQ[1]);
-                                                        $bQty = str_replace(['.', ','], '', $mQ[2]);
-                                                    }
-                                                    $materials[] = [
-                                                        'nama_bahan' => $bName,
-                                                        'qty_bahan' => $bQty,
-                                                        'harga' => (float) $ex->nominal / max(1, (float) $bQty),
-                                                        'subtotal' => (float) $ex->nominal,
-                                                    ];
-                                                } else {
-                                                    $laborCost += (float) $ex->nominal;
-                                                    if (str_contains($desc, 'Ongkos Potong:')) {
-                                                        if (preg_match('/Ongkos Potong:\s*(.*?)\s*\(/i', $desc, $m)) {
-                                                            $pemotongVal = trim($m[1]);
-                                                        }
-                                                        if (preg_match('/@ Rp\s*([\d\.,]+)/i', $desc, $mTar)) {
-                                                            $tarifPotongVal = (float) str_replace(
-                                                                ['.', ','],
-                                                                '',
-                                                                $mTar[1],
-                                                            );
-                                                        }
-                                                        if (preg_match('/\(\s*([\d\.,]+)\s*pcs/i', $desc, $mQty)) {
-                                                            $qtyPotongVal = (int) str_replace(['.', ','], '', $mQty[1]);
-                                                        }
-                                                    } elseif (str_contains($desc, 'Ongkos Jahit:')) {
-                                                        if (preg_match('/Ongkos Jahit:\s*(.*?)\s*\(/i', $desc, $m)) {
-                                                            $penjahitVal = trim($m[1]);
-                                                        }
-                                                        if (preg_match('/@ Rp\s*([\d\.,]+)/i', $desc, $mTar)) {
-                                                            $tarifJahitVal = (float) str_replace(
-                                                                ['.', ','],
-                                                                '',
-                                                                $mTar[1],
-                                                            );
-                                                        }
-                                                        if (preg_match('/\(\s*([\d\.,]+)\s*pcs/i', $desc, $mQty)) {
-                                                            $qtyJahitVal = (int) str_replace(['.', ','], '', $mQty[1]);
-                                                        }
-                                                    } elseif (str_contains($desc, 'Ongkos Kancing')) {
-                                                        if (
-                                                            preg_match(
-                                                                '/Ongkos Kancing\/LKPK:\s*(.*?)\s*\(/i',
-                                                                $desc,
-                                                                $m,
-                                                            )
-                                                        ) {
-                                                            $vendorKancingVal = trim($m[1]);
-                                                        }
-                                                        if (preg_match('/@ Rp\s*([\d\.,]+)/i', $desc, $mTar)) {
-                                                            $tarifKancingVal = (float) str_replace(
-                                                                ['.', ','],
-                                                                '',
-                                                                $mTar[1],
-                                                            );
-                                                        }
-                                                        if (preg_match('/\(\s*([\d\.,]+)\s*pcs/i', $desc, $mQty)) {
-                                                            $qtyKancingVal = (int) str_replace(
-                                                                ['.', ','],
-                                                                '',
-                                                                $mQty[1],
-                                                            );
-                                                        }
-                                                    } elseif (str_contains($desc, 'Ongkos QC:')) {
-                                                        if (preg_match('/Ongkos QC:\s*(.*?)\s*\(/i', $desc, $m)) {
-                                                            $petugasQcVal = trim($m[1]);
-                                                        }
-                                                        if (preg_match('/Lolos:\s*([\d\.,]+)/i', $desc, $mLol)) {
-                                                            $qcLolosVal = (int) str_replace(['.', ','], '', $mLol[1]);
-                                                        }
-                                                        if (preg_match('/Reject:\s*([\d\.,]+)/i', $desc, $mRej)) {
-                                                            $qcRejectVal = (int) str_replace(['.', ','], '', $mRej[1]);
-                                                        }
-                                                        if (preg_match('/@ Rp\s*([\d\.,]+)/i', $desc, $mTar)) {
-                                                            $tarifQcVal = (float) str_replace(['.', ','], '', $mTar[1]);
-                                                        }
-                                                    } elseif (str_contains($desc, 'Ongkos Finishing:')) {
-                                                        if (
-                                                            preg_match('/Ongkos Finishing:\s*(.*?)\s*\(/i', $desc, $m)
-                                                        ) {
-                                                            $petugasFinishingVal = trim($m[1]);
-                                                        }
-                                                        if (preg_match('/@ Rp\s*([\d\.,]+)/i', $desc, $mTar)) {
-                                                            $tarifFinishingVal = (float) str_replace(
-                                                                ['.', ','],
-                                                                '',
-                                                                $mTar[1],
-                                                            );
-                                                        }
-                                                        if (
-                                                            preg_match(
-                                                                '/([\d\.,]+)\s*pcs,\s*F.Good:\s*([\d\.,]+)/i',
-                                                                $desc,
-                                                                $mFin,
-                                                            )
-                                                        ) {
-                                                            $qtyFinishingVal = (int) str_replace(
-                                                                ['.', ','],
-                                                                '',
-                                                                $mFin[1],
-                                                            );
-                                                            $qtyFgoodVal = (int) str_replace(['.', ','], '', $mFin[2]);
-                                                        }
-                                                    }
-                                                }
-                                            }
-
-                                            $totalMaterialCost = array_sum(array_column($materials, 'subtotal'));
-                                            $itemQty = max(1, (int) $item->quantity);
-                                            $biayaProduksiPerUnit = $itemQty > 0 ? $laborCost / $itemQty : 0;
-                                            $materialCostPerUnit = $itemQty > 0 ? $totalMaterialCost / $itemQty : 0;
-
-                                            if ($item->hpp > 0) {
-                                                $hppPerUnit = (float) $item->hpp;
-                                                $totalHpp = $hppPerUnit * $itemQty;
-                                                if ($biayaProduksiPerUnit == 0 && $hppPerUnit > $materialCostPerUnit) {
-                                                    $biayaProduksiPerUnit = max(0, $hppPerUnit - $materialCostPerUnit);
-                                                    $laborCost = $biayaProduksiPerUnit * $itemQty;
-                                                }
-                                            } else {
-                                                $hppPerUnit = $materialCostPerUnit + $biayaProduksiPerUnit;
-                                                $totalHpp = $totalMaterialCost + $laborCost;
-                                            }
-                                        @endphp
-
                                         <tr id="product-row-{{ $rIdx }}-{{ $pIdx }}"
                                             data-r-idx="{{ $rIdx }}" data-p-idx="{{ $pIdx }}">
                                             <td>
@@ -1086,7 +917,9 @@
                                             <td>
                                                 <input type="text"
                                                     name="rincian[{{ $rIdx }}][produk][{{ $pIdx }}][ukuran]"
-                                                    class="form-control text-center row-ukuran" placeholder="S, M, L..."
+                                                    class="form-control text-center row-ukuran"
+                                                    list="ukuran_datalist"
+                                                    placeholder="S, M, L..."
                                                     value="{{ $item->ukuran }}">
                                             </td>
                                             <td>
@@ -1095,124 +928,10 @@
                                                     class="form-control text-center fw-bold row-qty-produksi"
                                                     min="1" value="{{ $item->quantity }}">
                                             </td>
-                                            <td>
-                                                <div
-                                                    class="hidden-bahan-container-{{ $rIdx }}-{{ $pIdx }}">
-                                                    @foreach ($materials as $bIdx => $mat)
-                                                        <div class="hidden-bahan-row hidden-bahan-{{ $bIdx }}">
-                                                            <input type="hidden"
-                                                                name="rincian[{{ $rIdx }}][produk][{{ $pIdx }}][bahan][{{ $bIdx }}][nama_bahan]"
-                                                                value="{{ $mat['nama_bahan'] }}">
-                                                            <input type="hidden"
-                                                                name="rincian[{{ $rIdx }}][produk][{{ $pIdx }}][bahan][{{ $bIdx }}][qty_bahan]"
-                                                                value="{{ $mat['qty_bahan'] }}">
-                                                            <input type="hidden"
-                                                                name="rincian[{{ $rIdx }}][produk][{{ $pIdx }}][bahan][{{ $bIdx }}][harga]"
-                                                                value="{{ $mat['harga'] }}">
-                                                            <input type="hidden"
-                                                                name="rincian[{{ $rIdx }}][produk][{{ $pIdx }}][bahan][{{ $bIdx }}][subtotal]"
-                                                                value="{{ $mat['subtotal'] }}">
-                                                        </div>
-                                                    @endforeach
-                                                </div>
-                                                <div class="hidden-tahap-container-{{ $rIdx }}-{{ $pIdx }}"
-                                                    style="display:none;">
-                                                    <input type="hidden" class="h-pemotong"
-                                                        name="rincian[{{ $rIdx }}][produk][{{ $pIdx }}][pemotong]"
-                                                        value="{{ $pemotongVal }}">
-                                                    <input type="hidden" class="h-qty-potong"
-                                                        name="rincian[{{ $rIdx }}][produk][{{ $pIdx }}][qty_potong]"
-                                                        value="{{ $qtyPotongVal }}">
-                                                    <input type="hidden" class="h-tarif-potong"
-                                                        name="rincian[{{ $rIdx }}][produk][{{ $pIdx }}][tarif_potong]"
-                                                        value="{{ $tarifPotongVal }}">
-
-                                                    <input type="hidden" class="h-penjahit"
-                                                        name="rincian[{{ $rIdx }}][produk][{{ $pIdx }}][penjahit]"
-                                                        value="{{ $penjahitVal }}">
-                                                    <input type="hidden" class="h-qty-jahit"
-                                                        name="rincian[{{ $rIdx }}][produk][{{ $pIdx }}][qty_jahit]"
-                                                        value="{{ $qtyJahitVal }}">
-                                                    <input type="hidden" class="h-tarif-jahit"
-                                                        name="rincian[{{ $rIdx }}][produk][{{ $pIdx }}][tarif_jahit]"
-                                                        value="{{ $tarifJahitVal }}">
-
-                                                    <input type="hidden" class="h-vendor-kancing"
-                                                        name="rincian[{{ $rIdx }}][produk][{{ $pIdx }}][vendor_kancing]"
-                                                        value="{{ $vendorKancingVal }}">
-                                                    <input type="hidden" class="h-qty-kancing"
-                                                        name="rincian[{{ $rIdx }}][produk][{{ $pIdx }}][qty_kancing]"
-                                                        value="{{ $qtyKancingVal }}">
-                                                    <input type="hidden" class="h-tarif-kancing"
-                                                        name="rincian[{{ $rIdx }}][produk][{{ $pIdx }}][tarif_kancing]"
-                                                        value="{{ $tarifKancingVal }}">
-
-                                                    <input type="hidden" class="h-petugas-qc"
-                                                        name="rincian[{{ $rIdx }}][produk][{{ $pIdx }}][petugas_qc]"
-                                                        value="{{ $petugasQcVal }}">
-                                                    <input type="hidden" class="h-qc-lolos"
-                                                        name="rincian[{{ $rIdx }}][produk][{{ $pIdx }}][qc_lolos]"
-                                                        value="{{ $qcLolosVal }}">
-                                                    <input type="hidden" class="h-qc-reject"
-                                                        name="rincian[{{ $rIdx }}][produk][{{ $pIdx }}][qc_reject]"
-                                                        value="{{ $qcRejectVal }}">
-                                                    <input type="hidden" class="h-tarif-qc"
-                                                        name="rincian[{{ $rIdx }}][produk][{{ $pIdx }}][tarif_qc]"
-                                                        value="{{ $tarifQcVal }}">
-                                                    <input type="hidden" class="h-petugas-finishing"
-                                                        name="rincian[{{ $rIdx }}][produk][{{ $pIdx }}][petugas_finishing]"
-                                                        value="{{ $petugasFinishingVal }}">
-                                                    <input type="hidden" class="h-qty-finishing"
-                                                        name="rincian[{{ $rIdx }}][produk][{{ $pIdx }}][qty_finishing]"
-                                                        value="{{ $qtyFinishingVal }}">
-                                                    <input type="hidden" class="h-tarif-finishing"
-                                                        name="rincian[{{ $rIdx }}][produk][{{ $pIdx }}][tarif_finishing]"
-                                                        value="{{ $tarifFinishingVal }}">
-                                                    <input type="hidden" class="h-qty-fgood"
-                                                        name="rincian[{{ $rIdx }}][produk][{{ $pIdx }}][qty_fgood]"
-                                                        value="{{ $qtyFgoodVal }}">
-                                                </div>
-                                                <button type="button"
-                                                    class="btn btn-sm {{ count($materials) > 0 ? 'btn-success-subtle text-success border border-success-subtle' : 'btn-outline-secondary' }} btn-bahan-trigger btn-open-bahan-modal"
-                                                    data-r-idx="{{ $rIdx }}" data-p-idx="{{ $pIdx }}">
-                                                    @if (count($materials) > 0)
-                                                        📦 {{ count($materials) }} Bahan (Rp
-                                                        {{ number_format($totalMaterialCost, 0, ',', '.') }})
-                                                    @else
-                                                        📦 Atur Bahan <span
-                                                            class="badge bg-secondary rounded-pill ms-1">0</span>
-                                                    @endif
+                                            <td class="text-center">
+                                                <button type="button" class="btn btn-sm btn-outline-danger border-0 btn-remove-product-row" title="Hapus Varian">
+                                                    <i class="fas fa-trash-alt"></i>
                                                 </button>
-                                            </td>
-                                            <td>
-                                                <div class="input-group input-group-sm">
-                                                    <span class="input-group-text px-1.5 py-0 bg-light text-muted"
-                                                        style="font-size: 11px;">Rp</span>
-                                                    <input type="text"
-                                                        name="rincian[{{ $rIdx }}][produk][{{ $pIdx }}][biaya_produksi]"
-                                                        class="form-control form-control-sm text-end fw-bold row-biaya-produksi numeric-dot-format"
-                                                        placeholder="0"
-                                                        value="{{ $biayaProduksiPerUnit > 0 ? number_format($biayaProduksiPerUnit, 0, ',', '.') : '' }}"
-                                                        autocomplete="off">
-                                                </div>
-                                                <div class="small text-muted text-end mt-1 row-biaya-produksi-total"
-                                                    style="font-size: 10px;">
-                                                    Total: Rp {{ number_format($laborCost, 0, ',', '.') }}
-                                                </div>
-                                            </td>
-                                            <td>
-                                                <div class="p-1.5 rounded bg-light border text-end row-hpp-box"
-                                                    style="min-width: 100px;">
-                                                    <div class="fw-extrabold text-success row-hpp-per-unit"
-                                                        style="font-size: 12px;">
-                                                        Rp {{ number_format($hppPerUnit, 0, ',', '.') }} <small
-                                                            class="text-muted fw-normal"
-                                                            style="font-size: 9px;">/pcs</small>
-                                                    </div>
-                                                    <div class="text-muted row-hpp-total" style="font-size: 9.5px;">
-                                                        Total: Rp {{ number_format($totalHpp, 0, ',', '.') }}
-                                                    </div>
-                                                </div>
                                             </td>
                                         </tr>
                                     @endforeach
@@ -1225,42 +944,254 @@
                                     <i class="fas fa-plus-circle me-1"></i> + Tambah Produk / Varian Baru
                                 </button>
                             </div>
-                            {{-- Ringkasan Akumulasi Biaya & HPP SPK --}}
-                            <div class="p-3 border-top" style="background: #f8fafc;">
-                                <div class="row g-2 text-center align-items-center">
-                                    <div class="col-md-2 col-6 border-end">
-                                        <span class="d-block text-muted text-uppercase fw-bold"
-                                            style="font-size: 10px; letter-spacing:.5px;">TOTAL QTY</span>
-                                        <span class="fw-extrabold fs-6 text-dark"
-                                            id="spkSummaryTotalQty">{{ number_format($initGrandQty, 0, ',', '.') }}
-                                            pcs</span>
+                        </div>
+
+                        {{-- ══════════════════════════════════════════════════════════════════
+                             KARTU BIAYA & ESTIMASI HPP LEVEL SPK
+                        ══════════════════════════════════════════════════════════════════ --}}
+                        <div class="card shadow-sm rounded-3 mb-3 border-0 overflow-hidden" style="background: #ffffff; border: 1px solid #e2e8f0 !important;">
+                            <div class="card-header py-3 px-4 d-flex justify-content-between align-items-center flex-wrap gap-2" style="background: linear-gradient(135deg, #1e293b, #0f172a); color: #ffffff;">
+                                <div>
+                                    <h6 class="m-0 fw-bold d-flex align-items-center gap-2 text-white" style="font-size: 14px; letter-spacing: 0.3px;">
+                                        <i class="fas fa-calculator text-warning"></i> BIAYA PRODUKSI &amp; ESTIMASI HPP (LEVEL SPK)
+                                    </h6>
+                                    <small class="text-white-50" style="font-size: 11px;">
+                                        Input bahan baku (BB-TH), biaya pengerjaan, dan biaya tambahan dihitung terpusat untuk SPK ini.
+                                    </small>
+                                </div>
+                                <span class="badge bg-warning text-dark fw-bold px-2.5 py-1.5 rounded-pill" style="font-size: 11px;">
+                                    SPK Level Costing
+                                </span>
+                            </div>
+                            <div class="card-body p-4" style="background: #f8fafc;">
+                                
+                                {{-- BAGIAN 1: PAKAI BAHAN SPK (BB-TH / BAHAN BAKU) --}}
+                                <div class="bg-white p-3 rounded-3 border mb-3 shadow-2xs">
+                                    <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+                                        <div>
+                                            <span class="fw-bold text-dark text-uppercase d-flex align-items-center gap-1.5" style="font-size: 12px;">
+                                                <i class="fas fa-layer-group text-primary"></i> 1. Pakai Bahan SPK (BB-TH / Bahan Baku)
+                                            </span>
+                                            <small class="text-muted d-block" style="font-size: 10.5px;">Bahan yang dialokasikan khusus untuk pengerjaan SPK ini</small>
+                                        </div>
+                                        <button type="button" class="btn btn-sm btn-outline-primary fw-bold px-2.5 py-1" onclick="addSpkBahanRow()">
+                                            <i class="fas fa-plus me-1"></i> Tambah Bahan
+                                        </button>
                                     </div>
-                                    <div class="col-md-2 col-6 border-end">
-                                        <span class="d-block text-muted text-uppercase fw-bold"
-                                            style="font-size: 10px; letter-spacing:.5px;">TOTAL BIAYA BAHAN</span>
-                                        <span class="fw-bold fs-6 text-primary" id="spkSummaryTotalBahan">Rp
-                                            {{ number_format($initGrandMaterial, 0, ',', '.') }}</span>
-                                    </div>
-                                    <div class="col-md-3 col-6 border-end">
-                                        <span class="d-block text-muted text-uppercase fw-bold"
-                                            style="font-size: 10px; letter-spacing:.5px;">TOTAL BIAYA PRODUKSI</span>
-                                        <span class="fw-bold fs-6 text-warning-emphasis"
-                                            id="spkSummaryTotalBiayaProduksi">Rp
-                                            {{ number_format($initGrandLabor, 0, ',', '.') }}</span>
-                                    </div>
-                                    <div class="col-md-3 col-6 border-end">
-                                        <span class="d-block text-muted text-uppercase fw-bold"
-                                            style="font-size: 10px; letter-spacing:.5px;">GRAND TOTAL HPP (BIAYA)</span>
-                                        <span class="fw-extrabold fs-5 text-success" id="spkSummaryGrandTotalHpp">Rp
-                                            {{ number_format($initGrandHpp, 0, ',', '.') }}</span>
-                                    </div>
-                                    <div class="col-md-2 col-12">
-                                        <span class="d-block text-muted text-uppercase fw-bold"
-                                            style="font-size: 10px; letter-spacing:.5px;">RATA-RATA HPP / PCS</span>
-                                        <span class="fw-extrabold fs-6 text-dark" id="spkSummaryAvgHpp">Rp
-                                            {{ number_format($initAvgHpp, 0, ',', '.') }} / pcs</span>
+                                    
+                                    <div class="table-responsive rounded-2 border">
+                                        <table class="table table-sm align-middle mb-0" style="font-size: 11.5px;">
+                                            <thead class="table-light text-uppercase fw-semibold" style="font-size: 10.5px; color: #475569;">
+                                                <tr>
+                                                    <th style="width: 34%;">Nama Bahan / Kain</th>
+                                                    <th style="width: 14%;" class="text-center">Qty Bahan</th>
+                                                    <th style="width: 14%;" class="text-center">Satuan</th>
+                                                    <th style="width: 18%;" class="text-end">Harga Satuan (Rp)</th>
+                                                    <th style="width: 16%;" class="text-end">Subtotal (Rp)</th>
+                                                    <th style="width: 4%;" class="text-center"></th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="spkBahanTableBody">
+                                                @forelse($spkBahanData as $bIdx => $bItem)
+                                                    <tr class="spk-bahan-row" data-b-idx="{{ $bIdx }}">
+                                                        <td>
+                                                            <input type="text" name="spk_bahan[{{ $bIdx }}][nama_bahan]" 
+                                                                   class="form-control form-control-sm fw-bold spk-bahan-nama" 
+                                                                   list="inventory_items_datalist" autocomplete="off"
+                                                                   placeholder="Contoh: BB-TH / Cotton Combed 30s..."
+                                                                   value="{{ $bItem['nama_bahan'] ?? 'BB-TH' }}">
+                                                        </td>
+                                                        <td>
+                                                            <input type="text" name="spk_bahan[{{ $bIdx }}][qty_bahan]" 
+                                                                   class="form-control form-control-sm text-center spk-bahan-qty" 
+                                                                   placeholder="1"
+                                                                   value="{{ $bItem['qty_bahan'] ?? 1 }}">
+                                                        </td>
+                                                        <td>
+                                                            <input type="text" name="spk_bahan[{{ $bIdx }}][satuan]" 
+                                                                   class="form-control form-control-sm text-center spk-bahan-satuan" 
+                                                                   placeholder="Roll / Kg / Mtr"
+                                                                   value="{{ $bItem['satuan'] ?? 'Roll' }}">
+                                                        </td>
+                                                        <td>
+                                                            <div class="input-group input-group-sm">
+                                                                <span class="input-group-text px-1 bg-light text-muted" style="font-size: 10px;">Rp</span>
+                                                                <input type="text" name="spk_bahan[{{ $bIdx }}][harga]" 
+                                                                       class="form-control form-control-sm text-end fw-bold spk-bahan-harga numeric-dot-format" 
+                                                                       placeholder="0"
+                                                                       value="{{ number_format($bItem['harga'] ?? 0, 0, ',', '.') }}">
+                                                            </div>
+                                                        </td>
+                                                        <td class="text-end">
+                                                            <input type="hidden" name="spk_bahan[{{ $bIdx }}][subtotal]" 
+                                                                   class="spk-bahan-subtotal-val" 
+                                                                   value="{{ $bItem['subtotal'] ?? 0 }}">
+                                                            <span class="fw-bold text-primary spk-bahan-subtotal-text">
+                                                                Rp {{ number_format($bItem['subtotal'] ?? 0, 0, ',', '.') }}
+                                                            </span>
+                                                        </td>
+                                                        <td class="text-center">
+                                                            <button type="button" class="btn btn-sm btn-link text-danger p-0 btn-remove-spk-bahan" title="Hapus Bahan">
+                                                                <i class="fas fa-times"></i>
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                @empty
+                                                    <tr class="spk-bahan-row" data-b-idx="0">
+                                                        <td>
+                                                            <input type="text" name="spk_bahan[0][nama_bahan]" 
+                                                                   class="form-control form-control-sm fw-bold spk-bahan-nama" 
+                                                                   list="inventory_items_datalist" autocomplete="off"
+                                                                   placeholder="Contoh: BB-TH..."
+                                                                   value="BB-TH">
+                                                        </td>
+                                                        <td>
+                                                            <input type="text" name="spk_bahan[0][qty_bahan]" 
+                                                                   class="form-control form-control-sm text-center spk-bahan-qty" 
+                                                                   placeholder="1" value="1">
+                                                        </td>
+                                                        <td>
+                                                            <input type="text" name="spk_bahan[0][satuan]" 
+                                                                   class="form-control form-control-sm text-center spk-bahan-satuan" 
+                                                                   placeholder="Roll / Kg" value="Roll">
+                                                        </td>
+                                                        <td>
+                                                            <div class="input-group input-group-sm">
+                                                                <span class="input-group-text px-1 bg-light text-muted" style="font-size: 10px;">Rp</span>
+                                                                <input type="text" name="spk_bahan[0][harga]" 
+                                                                       class="form-control form-control-sm text-end fw-bold spk-bahan-harga numeric-dot-format" 
+                                                                       placeholder="0" value="0">
+                                                            </div>
+                                                        </td>
+                                                        <td class="text-end">
+                                                            <input type="hidden" name="spk_bahan[0][subtotal]" 
+                                                                   class="spk-bahan-subtotal-val" value="0">
+                                                            <span class="fw-bold text-primary spk-bahan-subtotal-text">
+                                                                Rp 0
+                                                            </span>
+                                                        </td>
+                                                        <td class="text-center">
+                                                            <button type="button" class="btn btn-sm btn-link text-danger p-0 btn-remove-spk-bahan" title="Hapus Bahan">
+                                                                <i class="fas fa-times"></i>
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                @endforelse
+                                            </tbody>
+                                            <tfoot class="table-light">
+                                                <tr>
+                                                    <td colspan="4" class="text-end fw-bold text-muted py-2" style="font-size: 11px;">
+                                                        TOTAL BIAYA BAHAN SPK:
+                                                    </td>
+                                                    <td class="text-end fw-extrabold text-primary py-2" id="spkTotalBahanFooter" style="font-size: 12px;">
+                                                        Rp {{ number_format($initTotalBahan, 0, ',', '.') }}
+                                                    </td>
+                                                    <td></td>
+                                                </tr>
+                                            </tfoot>
+                                        </table>
                                     </div>
                                 </div>
+
+                                {{-- BAGIAN 2 & 3: BIAYA PRODUKSI & BIAYA TAMBAHAN SPK (SIDE BY SIDE) --}}
+                                <div class="row g-3 mb-3">
+                                    {{-- BIAYA PRODUKSI --}}
+                                    <div class="col-md-6">
+                                        <div class="bg-white p-3 rounded-3 border h-100 shadow-2xs">
+                                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                                <span class="fw-bold text-dark text-uppercase d-flex align-items-center gap-1.5" style="font-size: 12px;">
+                                                    <i class="fas fa-cut text-warning"></i> 2. Biaya Produksi SPK
+                                                </span>
+                                                <span class="badge bg-warning bg-opacity-10 text-warning-emphasis border border-warning-subtle" style="font-size: 10px;">
+                                                    Jasa / Ongkos
+                                                </span>
+                                            </div>
+                                            <label class="form-label text-muted small mb-1" style="font-size: 11px;">
+                                                Total Ongkos Jasa Produksi (Potong, Jahit, Sablon, Bordir, Finishing, dll.):
+                                            </label>
+                                            <div class="input-group input-group-sm mb-2">
+                                                <span class="input-group-text bg-light text-muted fw-bold">Rp</span>
+                                                <input type="text" name="spk_biaya_produksi" id="spk_biaya_produksi"
+                                                       class="form-control form-control-sm text-end fw-bold fs-6 numeric-dot-format input-spk-biaya-produksi"
+                                                       placeholder="0"
+                                                       value="{{ number_format($existingBiayaProduksi ?? 0, 0, ',', '.') }}">
+                                            </div>
+                                            <div class="small text-muted" style="font-size: 10.5px;">
+                                                💡 Biaya ini dicatat ke ongkos pengerjaan vendor dan dapat dibayarkan melalui menu <em>Bayar Ongkos Jasa</em>.
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {{-- BIAYA TAMBAHAN --}}
+                                    <div class="col-md-6">
+                                        <div class="bg-white p-3 rounded-3 border h-100 shadow-2xs">
+                                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                                <span class="fw-bold text-dark text-uppercase d-flex align-items-center gap-1.5" style="font-size: 12px;">
+                                                    <i class="fas fa-box-open text-info"></i> 3. Biaya Tambahan SPK
+                                                </span>
+                                                <span class="badge bg-info bg-opacity-10 text-info border border-info-subtle" style="font-size: 10px;">
+                                                    Aksesoris / Packing
+                                                </span>
+                                            </div>
+                                            <div class="row g-2 mb-2">
+                                                <div class="col-sm-5">
+                                                    <label class="form-label text-muted small mb-1" style="font-size: 11px;">Nominal (Rp):</label>
+                                                    <div class="input-group input-group-sm">
+                                                        <span class="input-group-text bg-light text-muted fw-bold">Rp</span>
+                                                        <input type="text" name="spk_biaya_tambahan" id="spk_biaya_tambahan"
+                                                               class="form-control form-control-sm text-end fw-bold fs-6 numeric-dot-format input-spk-biaya-tambahan"
+                                                               placeholder="0"
+                                                               value="{{ number_format($existingBiayaTambahan ?? 0, 0, ',', '.') }}">
+                                                    </div>
+                                                </div>
+                                                <div class="col-sm-7">
+                                                    <label class="form-label text-muted small mb-1" style="font-size: 11px;">Keterangan Biaya Tambahan:</label>
+                                                    <input type="text" name="spk_ket_tambahan" id="spk_ket_tambahan"
+                                                           class="form-control form-control-sm"
+                                                           placeholder="Contoh: Hangtag, Plastik OPP, Kancing..."
+                                                           value="{{ $existingKetTambahan ?? '' }}">
+                                                </div>
+                                            </div>
+                                            <div class="small text-muted" style="font-size: 10.5px;">
+                                                💡 Biaya ekstra selain bahan utama &amp; jasa jahit yang ikut dibebankan ke HPP produk.
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {{-- BAGIAN 4: RINGKASAN AKUMULASI BIAYA & ESTIMASI HPP SPK --}}
+                                <div class="p-3 rounded-3 border" style="background: linear-gradient(135deg, #ffffff, #f1f5f9);">
+                                    <div class="text-muted text-uppercase fw-bold mb-2 d-flex align-items-center gap-1.5" style="font-size: 10.5px; letter-spacing: 0.5px;">
+                                        <i class="fas fa-chart-pie text-success"></i> Ringkasan Akumulasi Biaya &amp; Estimasi HPP SPK
+                                    </div>
+                                    <div class="row g-2 text-center align-items-center">
+                                        <div class="col-md-2 col-6 border-end">
+                                            <span class="d-block text-muted text-uppercase fw-bold" style="font-size: 9.5px; letter-spacing:.5px;">TOTAL QTY SPK</span>
+                                            <span class="fw-extrabold fs-6 text-dark" id="spkSummaryTotalQty">{{ number_format($initGrandQty, 0, ',', '.') }} pcs</span>
+                                        </div>
+                                        <div class="col-md-2 col-6 border-end">
+                                            <span class="d-block text-muted text-uppercase fw-bold" style="font-size: 9.5px; letter-spacing:.5px;">TOTAL BIAYA BAHAN</span>
+                                            <span class="fw-bold fs-6 text-primary" id="spkSummaryTotalBahan">Rp {{ number_format($initTotalBahan, 0, ',', '.') }}</span>
+                                        </div>
+                                        <div class="col-md-2 col-6 border-end">
+                                            <span class="d-block text-muted text-uppercase fw-bold" style="font-size: 9.5px; letter-spacing:.5px;">BIAYA PRODUKSI</span>
+                                            <span class="fw-bold fs-6 text-warning-emphasis" id="spkSummaryTotalBiayaProduksi">Rp {{ number_format($initBiayaProduksi, 0, ',', '.') }}</span>
+                                        </div>
+                                        <div class="col-md-2 col-6 border-end">
+                                            <span class="d-block text-muted text-uppercase fw-bold" style="font-size: 9.5px; letter-spacing:.5px;">BIAYA TAMBAHAN</span>
+                                            <span class="fw-bold fs-6 text-info text-dark" id="spkSummaryTotalBiayaTambahan">Rp {{ number_format($initBiayaTambahan, 0, ',', '.') }}</span>
+                                        </div>
+                                        <div class="col-md-2 col-6 border-end">
+                                            <span class="d-block text-muted text-uppercase fw-bold" style="font-size: 9.5px; letter-spacing:.5px;">GRAND TOTAL HPP</span>
+                                            <span class="fw-extrabold fs-6 text-success" id="spkSummaryGrandTotalHpp">Rp {{ number_format($initGrandHpp, 0, ',', '.') }}</span>
+                                        </div>
+                                        <div class="col-md-2 col-12">
+                                            <span class="d-block text-muted text-uppercase fw-bold" style="font-size: 9.5px; letter-spacing:.5px;">ESTIMASI HPP / PCS</span>
+                                            <span class="fw-extrabold fs-6 text-success" id="spkSummaryAvgHpp">Rp {{ number_format($initAvgHpp, 0, ',', '.') }} / pcs</span>
+                                        </div>
+                                    </div>
+                                </div>
+
                             </div>
                         </div>
 
@@ -2047,96 +1978,113 @@
 
             const pIdx = tbody.querySelectorAll('tr').length;
             const tr = document.createElement('tr');
-            tr.id = `prod-row-${rIdx}-${pIdx}`;
+            tr.id = `product-row-${rIdx}-${pIdx}`;
             tr.dataset.rIdx = rIdx;
             tr.dataset.pIdx = pIdx;
 
             tr.innerHTML = `
             <td>
                 <input type="text" name="rincian[${rIdx}][produk][${pIdx}][sku_produk]" 
-                       class="form-control form-control-sm font-monospace fw-bold row-sku-produk input-sku-produk" 
+                       class="form-control font-monospace fw-bold row-sku-produk input-sku-produk" 
                        list="master_skus_datalist" autocomplete="off"
-                       placeholder="Contoh: BB-BR-BIRU-LPJ">
+                       placeholder="Pilih SKU...">
             </td>
             <td>
                 <input type="text" name="rincian[${rIdx}][produk][${pIdx}][nama_produk]" 
-                       class="form-control form-control-sm row-nama-produk input-nama-produk" 
-                       placeholder="Nama Produk / Varian" 
+                       class="form-control row-nama-produk input-nama-produk" 
+                       placeholder="Nama produk..." 
                        list="master_product_names_datalist" autocomplete="off">
             </td>
             <td>
                 <input type="text" name="rincian[${rIdx}][produk][${pIdx}][ukuran]" 
-                       class="form-control form-control-sm text-center fw-bold row-ukuran input-ukuran-produk" 
-                       placeholder="S, M, L, XL..." 
+                       class="form-control text-center row-ukuran input-ukuran-produk" 
+                       placeholder="S, M, L..." 
                        list="ukuran_datalist">
             </td>
             <td>
                 <input type="number" name="rincian[${rIdx}][produk][${pIdx}][qty_produksi]" 
-                       class="form-control form-control-sm text-center fw-bold row-qty-produksi input-qty-produksi" 
+                       class="form-control text-center fw-bold row-qty-produksi input-qty-produksi" 
                        value="1" min="1">
             </td>
             <td class="text-center">
-                <div class="hidden-bahan-container-${rIdx}-${pIdx}"></div>
-                <div class="hidden-op-inputs" style="display:none;">
-                    <input type="hidden" class="h-pemotong" name="rincian[${rIdx}][produk][${pIdx}][pemotong]" value="">
-                    <input type="hidden" class="h-qty-potong" name="rincian[${rIdx}][produk][${pIdx}][qty_potong]" value="0">
-                    <input type="hidden" class="h-tarif-potong" name="rincian[${rIdx}][produk][${pIdx}][tarif_potong]" value="0">
-                    <input type="hidden" class="h-penjahit" name="rincian[${rIdx}][produk][${pIdx}][penjahit]" value="">
-                    <input type="hidden" class="h-qty-jahit" name="rincian[${rIdx}][produk][${pIdx}][qty_jahit]" value="0">
-                    <input type="hidden" class="h-tarif-jahit" name="rincian[${rIdx}][produk][${pIdx}][tarif_jahit]" value="0">
-                    <input type="hidden" class="h-vendor-kancing" name="rincian[${rIdx}][produk][${pIdx}][vendor_kancing]" value="">
-                    <input type="hidden" class="h-qty-kancing" name="rincian[${rIdx}][produk][${pIdx}][qty_kancing]" value="0">
-                    <input type="hidden" class="h-tarif-kancing" name="rincian[${rIdx}][produk][${pIdx}][tarif_kancing]" value="0">
-                </div>
-                <button type="button" class="btn btn-sm btn-outline-secondary btn-bahan-trigger btn-open-bahan-modal" 
-                        data-r-idx="${rIdx}" data-p-idx="${pIdx}">
-                    📦 Atur Bahan
-                </button>
-            </td>
-            <td>
-                <div class="input-group input-group-sm">
-                    <span class="input-group-text px-1.5 py-0 bg-light text-muted" style="font-size: 11px;">Rp</span>
-                    <input type="text" 
-                           name="rincian[${rIdx}][produk][${pIdx}][biaya_produksi]" 
-                           class="form-control form-control-sm text-end fw-bold row-biaya-produksi numeric-dot-format" 
-                           placeholder="0" 
-                           value=""
-                           autocomplete="off">
-                </div>
-                <div class="small text-muted text-end mt-1 row-biaya-produksi-total" style="font-size: 10px;">
-                    Total: Rp 0
-                </div>
-            </td>
-            <td>
-                <div class="p-1.5 rounded bg-light border text-end row-hpp-box" style="min-width: 100px;">
-                    <div class="fw-extrabold text-success row-hpp-per-unit" style="font-size: 12px;">
-                        Rp 0 <small class="text-muted fw-normal" style="font-size: 9px;">/pcs</small>
-                    </div>
-                    <div class="text-muted row-hpp-total" style="font-size: 9.5px;">
-                        Total: Rp 0
-                    </div>
-                </div>
-            </td>
-            <td class="text-center">
-                <button type="button" class="btn btn-sm btn-link text-danger p-0" onclick="removeProductRow('${rIdx}-${pIdx}')" title="Hapus Varian">
-                    ❌
+                <button type="button" class="btn btn-sm btn-outline-danger border-0 btn-remove-product-row" onclick="removeProductRow('${rIdx}-${pIdx}')" title="Hapus Varian">
+                    <i class="fas fa-trash-alt"></i>
                 </button>
             </td>
         `;
 
             tbody.appendChild(tr);
-            if (window.recalculateRowHpp) {
-                window.recalculateRowHpp(tr);
+            if (window.recalculateSpkCosts) {
+                window.recalculateSpkCosts();
             }
         }
 
         function removeProductRow(rowId) {
-            const row = document.getElementById(`prod-row-${rowId}`);
+            const row = document.getElementById(`product-row-${rowId}`) || document.getElementById(`prod-row-${rowId}`);
             if (row) {
-                row.remove();
-                if (window.recalculateSpkGrandSummary) {
-                    window.recalculateSpkGrandSummary();
+                const tbody = row.closest('tbody');
+                if (tbody && tbody.querySelectorAll('tr').length <= 1) {
+                    alert('Minimal 1 varian produk harus ada dalam SPK.');
+                    return;
                 }
+                row.remove();
+                if (window.recalculateSpkCosts) {
+                    window.recalculateSpkCosts();
+                }
+            }
+        }
+
+        let spkBahanCounter = {{ max(count($spkBahanData ?? []), 1) }};
+
+        function addSpkBahanRow() {
+            const tbody = document.getElementById('spkBahanTableBody');
+            if (!tbody) return;
+            const bIdx = spkBahanCounter++;
+            const tr = document.createElement('tr');
+            tr.className = 'spk-bahan-row';
+            tr.dataset.bIdx = bIdx;
+            tr.innerHTML = `
+                <td>
+                    <input type="text" name="spk_bahan[${bIdx}][nama_bahan]" 
+                           class="form-control form-control-sm fw-bold spk-bahan-nama" 
+                           list="inventory_items_datalist" autocomplete="off"
+                           placeholder="Contoh: BB-TH / Cotton Combed 30s..."
+                           value="BB-TH">
+                </td>
+                <td>
+                    <input type="text" name="spk_bahan[${bIdx}][qty_bahan]" 
+                           class="form-control form-control-sm text-center spk-bahan-qty" 
+                           placeholder="1" value="1">
+                </td>
+                <td>
+                    <input type="text" name="spk_bahan[${bIdx}][satuan]" 
+                           class="form-control form-control-sm text-center spk-bahan-satuan" 
+                           placeholder="Roll / Kg / Mtr" value="Roll">
+                </td>
+                <td>
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text px-1 bg-light text-muted" style="font-size: 10px;">Rp</span>
+                        <input type="text" name="spk_bahan[${bIdx}][harga]" 
+                               class="form-control form-control-sm text-end fw-bold spk-bahan-harga numeric-dot-format" 
+                               placeholder="0" value="0">
+                    </div>
+                </td>
+                <td class="text-end">
+                    <input type="hidden" name="spk_bahan[${bIdx}][subtotal]" 
+                           class="spk-bahan-subtotal-val" value="0">
+                    <span class="fw-bold text-primary spk-bahan-subtotal-text">
+                        Rp 0
+                    </span>
+                </td>
+                <td class="text-center">
+                    <button type="button" class="btn btn-sm btn-link text-danger p-0 btn-remove-spk-bahan" title="Hapus Bahan">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+            if (window.recalculateSpkCosts) {
+                window.recalculateSpkCosts();
             }
         }
 
@@ -2221,28 +2169,68 @@
                 }
             }
 
-            const container = tr.querySelector(`.hidden-bahan-container-${rIdx}-${pIdx}`);
-            if (!container) return;
-
             if (recipe && recipe.items && recipe.items.length > 0) {
-                container.innerHTML = '';
-                let totalCost = 0;
-                recipe.items.forEach((item, bIdx) => {
-                    const rawQty = item.qty_unit * qtyProd;
-                    const calcQty = (rawQty % 1 === 0) ? Math.round(rawQty).toString() : Number(rawQty.toFixed(4))
-                        .toString();
-                    const subtotal = rawQty * item.harga;
-                    totalCost += subtotal;
-
-                    container.appendChild(createHiddenBahanRow(rIdx, pIdx, bIdx, {
-                        nama_bahan: item.nama_bahan + (item.unit ? ' (' + item.unit + ')' : ''),
-                        qty_bahan: calcQty,
-                        harga: item.harga,
-                        subtotal: subtotal
-                    }));
-                });
-
-                updateProductRowBahanButton(tr, recipe.items.length, totalCost, true);
+                // If SPK bahan table currently only has 1 empty/default row (e.g. price = 0 or name = BB-TH), populate with recipe
+                const currentBahanRows = document.querySelectorAll('#spkBahanTableBody tr');
+                const isOnlyDefaultBahan = currentBahanRows.length === 1 && (
+                    cleanNumberFromDots(currentBahanRows[0].querySelector('.spk-bahan-harga')?.value || '0') === 0
+                );
+                if (isOnlyDefaultBahan) {
+                    const tbody = document.getElementById('spkBahanTableBody');
+                    if (tbody) {
+                        tbody.innerHTML = '';
+                        recipe.items.forEach((item, bIdx) => {
+                            const trB = document.createElement('tr');
+                            trB.className = 'spk-bahan-row';
+                            trB.dataset.bIdx = bIdx;
+                            const calcQty = Number((item.qty_unit * qtyProd).toFixed(2));
+                            const subtotal = Math.round(calcQty * item.harga);
+                            trB.innerHTML = `
+                                <td>
+                                    <input type="text" name="spk_bahan[${bIdx}][nama_bahan]" 
+                                           class="form-control form-control-sm fw-bold spk-bahan-nama" 
+                                           list="inventory_items_datalist" autocomplete="off"
+                                           value="${escHtml(item.nama_bahan)}">
+                                </td>
+                                <td>
+                                    <input type="text" name="spk_bahan[${bIdx}][qty_bahan]" 
+                                           class="form-control form-control-sm text-center spk-bahan-qty" 
+                                           value="${calcQty}">
+                                </td>
+                                <td>
+                                    <input type="text" name="spk_bahan[${bIdx}][satuan]" 
+                                           class="form-control form-control-sm text-center spk-bahan-satuan" 
+                                           value="${escHtml(item.unit || 'Mtr')}">
+                                </td>
+                                <td>
+                                    <div class="input-group input-group-sm">
+                                        <span class="input-group-text px-1 bg-light text-muted" style="font-size: 10px;">Rp</span>
+                                        <input type="text" name="spk_bahan[${bIdx}][harga]" 
+                                               class="form-control form-control-sm text-end fw-bold spk-bahan-harga numeric-dot-format" 
+                                               value="${formatNumberWithDots(item.harga)}">
+                                    </div>
+                                </td>
+                                <td class="text-end">
+                                    <input type="hidden" name="spk_bahan[${bIdx}][subtotal]" 
+                                           class="spk-bahan-subtotal-val" value="${subtotal}">
+                                    <span class="fw-bold text-primary spk-bahan-subtotal-text">
+                                        ${formatRupiah(subtotal)}
+                                    </span>
+                                </td>
+                                <td class="text-center">
+                                    <button type="button" class="btn btn-sm btn-link text-danger p-0 btn-remove-spk-bahan" title="Hapus Bahan">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </td>
+                            `;
+                            tbody.appendChild(trB);
+                        });
+                        spkBahanCounter = recipe.items.length;
+                        if (window.recalculateSpkCosts) {
+                            window.recalculateSpkCosts();
+                        }
+                    }
+                }
             }
         }
 
@@ -2530,88 +2518,69 @@
                 return parseFloat(val.toString().replace(/\./g, '')) || 0;
             }
 
-            // Live HPP & Biaya Produksi calculation per row
-            window.recalculateRowHpp = function(tr) {
-                if (!tr) return;
-                const qtyInput = tr.querySelector('.row-qty-produksi');
-                const qty = Math.max(1, parseFloat(qtyInput ? qtyInput.value : 1) || 1);
-
-                let totalMaterial = 0;
-                tr.querySelectorAll('[name*="[bahan]"][name*="[subtotal]"]').forEach(subInput => {
-                    totalMaterial += parseFloat(subInput.value) || 0;
-                });
-
-                const bpInput = tr.querySelector('.row-biaya-produksi');
-                const bpUnit = bpInput ? cleanNumberFromDots(bpInput.value) : 0;
-                const totalBp = bpUnit * qty;
-
-                const bpTotalDisplay = tr.querySelector('.row-biaya-produksi-total');
-                if (bpTotalDisplay) {
-                    bpTotalDisplay.textContent = 'Total: ' + formatRupiah(totalBp);
-                }
-
-                const totalHpp = totalMaterial + totalBp;
-                const hppPerUnit = Math.round(totalHpp / qty);
-
-                const hppPerUnitDisplay = tr.querySelector('.row-hpp-per-unit');
-                if (hppPerUnitDisplay) {
-                    hppPerUnitDisplay.innerHTML =
-                        `${formatRupiah(hppPerUnit)} <small class="text-muted fw-normal" style="font-size: 9px;">/pcs</small>`;
-                }
-
-                const hppTotalDisplay = tr.querySelector('.row-hpp-total');
-                if (hppTotalDisplay) {
-                    hppTotalDisplay.textContent = 'Total: ' + formatRupiah(totalHpp);
-                }
-
-                if (window.recalculateSpkGrandSummary) {
-                    window.recalculateSpkGrandSummary();
-                }
-            };
-
-            // Live Grand Summary calculation across all rows
-            window.recalculateSpkGrandSummary = function() {
+            // Live SPK Cost and HPP calculation (Level SPK)
+            window.recalculateSpkCosts = function() {
+                // 1. Total Qty Produk
                 let grandQty = 0;
-                let grandMaterial = 0;
-                let grandLabor = 0;
-                let grandHpp = 0;
-
-                document.querySelectorAll('.product-table-custom tbody tr').forEach(tr => {
-                    const qtyInput = tr.querySelector('.row-qty-produksi');
-                    const qty = Math.max(1, parseFloat(qtyInput ? qtyInput.value : 1) || 1);
-                    grandQty += qty;
-
-                    let matCost = 0;
-                    tr.querySelectorAll('[name*="[bahan]"][name*="[subtotal]"]').forEach(subInput => {
-                        matCost += parseFloat(subInput.value) || 0;
-                    });
-                    grandMaterial += matCost;
-
-                    const bpInput = tr.querySelector('.row-biaya-produksi');
-                    const bpUnit = bpInput ? cleanNumberFromDots(bpInput.value) : 0;
-                    const laborCost = bpUnit * qty;
-                    grandLabor += laborCost;
-
-                    grandHpp += (matCost + laborCost);
+                document.querySelectorAll('.row-qty-produksi').forEach(input => {
+                    grandQty += Math.max(0, parseInt(input.value) || 0);
                 });
 
-                const avgHpp = grandQty > 0 ? Math.round(grandHpp / grandQty) : 0;
+                // 2. Total Biaya Bahan
+                let totalBahan = 0;
+                document.querySelectorAll('#spkBahanTableBody tr').forEach(tr => {
+                    const qtyStr = tr.querySelector('.spk-bahan-qty')?.value || '1';
+                    const cleanQty = parseFloat(qtyStr.toString().replace(/\./g, '').replace(',', '.')) || 1;
+                    const harga = cleanNumberFromDots(tr.querySelector('.spk-bahan-harga')?.value || '0');
+                    const subtotal = Math.round(cleanQty * harga);
+                    
+                    const subVal = tr.querySelector('.spk-bahan-subtotal-val');
+                    if (subVal) subVal.value = subtotal;
+                    
+                    const subText = tr.querySelector('.spk-bahan-subtotal-text');
+                    if (subText) subText.textContent = formatRupiah(subtotal);
+                    
+                    totalBahan += subtotal;
+                });
 
+                const footerBahan = document.getElementById('spkTotalBahanFooter');
+                if (footerBahan) footerBahan.textContent = formatRupiah(totalBahan);
+
+                // 3. Biaya Produksi
+                const bpInput = document.getElementById('spk_biaya_produksi');
+                const totalProduksi = bpInput ? cleanNumberFromDots(bpInput.value) : 0;
+
+                // 4. Biaya Tambahan
+                const btInput = document.getElementById('spk_biaya_tambahan');
+                const totalTambahan = btInput ? cleanNumberFromDots(btInput.value) : 0;
+
+                // 5. Grand Total & Estimasi HPP
+                const grandTotalHpp = totalBahan + totalProduksi + totalTambahan;
+                const avgHpp = grandQty > 0 ? Math.round(grandTotalHpp / grandQty) : 0;
+
+                // Update summary elements
                 const elQty = document.getElementById('spkSummaryTotalQty');
                 if (elQty) elQty.textContent = grandQty.toLocaleString('id-ID') + ' pcs';
 
                 const elMat = document.getElementById('spkSummaryTotalBahan');
-                if (elMat) elMat.textContent = formatRupiah(grandMaterial);
+                if (elMat) elMat.textContent = formatRupiah(totalBahan);
 
                 const elLabor = document.getElementById('spkSummaryTotalBiayaProduksi');
-                if (elLabor) elLabor.textContent = formatRupiah(grandLabor);
+                if (elLabor) elLabor.textContent = formatRupiah(totalProduksi);
+
+                const elTambahan = document.getElementById('spkSummaryTotalBiayaTambahan');
+                if (elTambahan) elTambahan.textContent = formatRupiah(totalTambahan);
 
                 const elHpp = document.getElementById('spkSummaryGrandTotalHpp');
-                if (elHpp) elHpp.textContent = formatRupiah(grandHpp);
+                if (elHpp) elHpp.textContent = formatRupiah(grandTotalHpp);
 
                 const elAvg = document.getElementById('spkSummaryAvgHpp');
                 if (elAvg) elAvg.textContent = formatRupiah(avgHpp) + ' / pcs';
             };
+
+            // Aliases for backwards compatibility
+            window.recalculateRowHpp = window.recalculateSpkCosts;
+            window.recalculateSpkGrandSummary = window.recalculateSpkCosts;
 
             // Auto-format numeric inputs with dots on typing
             document.addEventListener('input', function(e) {
@@ -3058,111 +3027,45 @@
                 el.addEventListener('change', calculateTotalPaySelected);
             });
 
-            // Handle Tambah Baris Varian / Produk
+            // Event delegation for removing product or bahan row
             document.addEventListener('click', function(e) {
-                const btnAddRow = e.target.closest('.btn-add-product-row');
-                if (btnAddRow) {
-                    const rIdx = btnAddRow.dataset.rIdx || '0';
-                    const tbody = document.getElementById(`product-tbody-${rIdx}`);
-                    if (tbody) {
-                        const nextPIdx = tbody.querySelectorAll('tr').length;
-                        const newRow = document.createElement('tr');
-                        newRow.id = `product-row-${rIdx}-${nextPIdx}`;
-                        newRow.innerHTML = `
-                        <td>
-                            <input type="text" name="rincian[${rIdx}][produk][${nextPIdx}][sku_produk]"
-                                class="form-control font-monospace fw-bold row-sku-produk"
-                                list="master_skus_datalist" autocomplete="off"
-                                placeholder="Pilih SKU...">
-                        </td>
-                        <td>
-                            <input type="text" name="rincian[${rIdx}][produk][${nextPIdx}][nama_produk]"
-                                class="form-control row-nama-produk"
-                                list="master_product_names_datalist" autocomplete="off"
-                                placeholder="Nama produk...">
-                        </td>
-                        <td>
-                            <input type="text" name="rincian[${rIdx}][produk][${nextPIdx}][ukuran]"
-                                class="form-control text-center row-ukuran"
-                                placeholder="S, M, L...">
-                        </td>
-                        <td>
-                            <input type="number" name="rincian[${rIdx}][produk][${nextPIdx}][qty_produksi]"
-                                class="form-control text-center fw-bold row-qty-produksi"
-                                min="1" value="1">
-                        </td>
-                        <td>
-                            <div class="hidden-bahan-container-${rIdx}-${nextPIdx}"></div>
-                            <div class="hidden-tahap-container-${rIdx}-${nextPIdx}" style="display:none;">
-                                <input type="hidden" class="h-pemotong" name="rincian[${rIdx}][produk][${nextPIdx}][pemotong]" value="">
-                                <input type="hidden" class="h-qty-potong" name="rincian[${rIdx}][produk][${nextPIdx}][qty_potong]" value="1">
-                                <input type="hidden" class="h-tarif-potong" name="rincian[${rIdx}][produk][${nextPIdx}][tarif_potong]" value="0">
-                                <input type="hidden" class="h-penjahit" name="rincian[${rIdx}][produk][${nextPIdx}][penjahit]" value="">
-                                <input type="hidden" class="h-qty-jahit" name="rincian[${rIdx}][produk][${nextPIdx}][qty_jahit]" value="1">
-                                <input type="hidden" class="h-tarif-jahit" name="rincian[${rIdx}][produk][${nextPIdx}][tarif_jahit]" value="0">
-                                <input type="hidden" class="h-vendor-kancing" name="rincian[${rIdx}][produk][${nextPIdx}][vendor_kancing]" value="">
-                                <input type="hidden" class="h-qty-kancing" name="rincian[${rIdx}][produk][${nextPIdx}][qty_kancing]" value="0">
-                                <input type="hidden" class="h-tarif-kancing" name="rincian[${rIdx}][produk][${nextPIdx}][tarif_kancing]" value="0">
-                                <input type="hidden" class="h-petugas-qc" name="rincian[${rIdx}][produk][${nextPIdx}][petugas_qc]" value="">
-                                <input type="hidden" class="h-qc-lolos" name="rincian[${rIdx}][produk][${nextPIdx}][qc_lolos]" value="0">
-                                <input type="hidden" class="h-qc-reject" name="rincian[${rIdx}][produk][${nextPIdx}][qc_reject]" value="0">
-                                <input type="hidden" class="h-tarif-qc" name="rincian[${rIdx}][produk][${nextPIdx}][tarif_qc]" value="0">
-                                <input type="hidden" class="h-petugas-finishing" name="rincian[${rIdx}][produk][${nextPIdx}][petugas_finishing]" value="">
-                                <input type="hidden" class="h-qty-finishing" name="rincian[${rIdx}][produk][${nextPIdx}][qty_finishing]" value="0">
-                                <input type="hidden" class="h-tarif-finishing" name="rincian[${rIdx}][produk][${nextPIdx}][tarif_finishing]" value="0">
-                                <input type="hidden" class="h-qty-fgood" name="rincian[${rIdx}][produk][${nextPIdx}][qty_fgood]" value="0">
-                            </div>
-                            <button type="button" class="btn btn-sm btn-outline-secondary btn-bahan-trigger btn-open-bahan-modal"
-                                data-r-idx="${rIdx}" data-p-idx="${nextPIdx}">
-                                📦 Atur Bahan <span class="badge bg-secondary rounded-pill ms-1">0</span>
-                            </button>
-                        </td>
-                        <td>
-                            <div class="input-group input-group-sm">
-                                <span class="input-group-text px-1.5 py-0 bg-light text-muted" style="font-size: 11px;">Rp</span>
-                                <input type="text" 
-                                       name="rincian[${rIdx}][produk][${nextPIdx}][biaya_produksi]" 
-                                       class="form-control form-control-sm text-end fw-bold row-biaya-produksi numeric-dot-format" 
-                                       placeholder="0" 
-                                       value=""
-                                       autocomplete="off">
-                            </div>
-                            <div class="small text-muted text-end mt-1 row-biaya-produksi-total" style="font-size: 10px;">
-                                Total: Rp 0
-                            </div>
-                        </td>
-                        <td>
-                            <div class="p-1.5 rounded bg-light border text-end row-hpp-box" style="min-width: 100px;">
-                                <div class="fw-extrabold text-success row-hpp-per-unit" style="font-size: 12px;">
-                                    Rp 0 <small class="text-muted fw-normal" style="font-size: 9px;">/pcs</small>
-                                </div>
-                                <div class="text-muted row-hpp-total" style="font-size: 9.5px;">
-                                    Total: Rp 0
-                                </div>
-                            </div>
-                        </td>
-                        <td style="width: 36px;" class="text-center">
-                            <button type="button" class="btn btn-sm btn-outline-danger border-0 btn-remove-product-row" title="Hapus Varian">
-                                🗑️
-                            </button>
-                        </td>
-                    `;
-                        tbody.appendChild(newRow);
-                        if (window.recalculateRowHpp) {
-                            window.recalculateRowHpp(newRow);
+                const btnRemoveBahan = e.target.closest('.btn-remove-spk-bahan');
+                if (btnRemoveBahan) {
+                    const tr = btnRemoveBahan.closest('tr');
+                    if (tr) {
+                        const tbody = tr.closest('tbody');
+                        if (tbody && tbody.querySelectorAll('tr').length > 1) {
+                            tr.remove();
+                        } else if (tr) {
+                            // Reset to default
+                            const nInp = tr.querySelector('.spk-bahan-nama');
+                            if (nInp) nInp.value = 'BB-TH';
+                            const qInp = tr.querySelector('.spk-bahan-qty');
+                            if (qInp) qInp.value = '1';
+                            const sInp = tr.querySelector('.spk-bahan-satuan');
+                            if (sInp) sInp.value = 'Roll';
+                            const hInp = tr.querySelector('.spk-bahan-harga');
+                            if (hInp) hInp.value = '0';
+                            const subVal = tr.querySelector('.spk-bahan-subtotal-val');
+                            if (subVal) subVal.value = '0';
+                            const subTxt = tr.querySelector('.spk-bahan-subtotal-text');
+                            if (subTxt) subTxt.textContent = 'Rp 0';
+                        }
+                        if (window.recalculateSpkCosts) {
+                            window.recalculateSpkCosts();
                         }
                     }
                 }
 
-                const btnRemoveRow = e.target.closest('.btn-remove-product-row');
-                if (btnRemoveRow) {
-                    const tr = btnRemoveRow.closest('tr');
+                const btnRemoveProd = e.target.closest('.btn-remove-product-row');
+                if (btnRemoveProd) {
+                    const tr = btnRemoveProd.closest('tr');
                     if (tr) {
                         const tbody = tr.closest('tbody');
-                        if (tbody.querySelectorAll('tr').length > 1) {
+                        if (tbody && tbody.querySelectorAll('tr').length > 1) {
                             tr.remove();
-                            if (window.recalculateSpkGrandSummary) {
-                                window.recalculateSpkGrandSummary();
+                            if (window.recalculateSpkCosts) {
+                                window.recalculateSpkCosts();
                             }
                         } else {
                             alert('Minimal 1 varian produk harus ada dalam SPK.');
@@ -3171,26 +3074,48 @@
                 }
             });
 
-            // Event delegation for live calculation on quantity / biaya produksi change
-            const rincianContainerEl = document.getElementById('rincianContainer');
-            if (rincianContainerEl) {
-                rincianContainerEl.addEventListener('input', function(e) {
-                    if (e.target.classList.contains('row-qty-produksi') || e.target.classList.contains(
-                            'row-biaya-produksi')) {
-                        const tr = e.target.closest('tr');
-                        if (tr && window.recalculateRowHpp) {
-                            window.recalculateRowHpp(tr);
+            // Auto-fill unit & cost price when choosing/typing raw material from inventory list
+            document.addEventListener('change', function(e) {
+                if (e.target.classList.contains('spk-bahan-nama')) {
+                    const tr = e.target.closest('tr');
+                    if (!tr) return;
+                    const valUpper = e.target.value.trim().toUpperCase();
+                    if (inventoryItemsMap && inventoryItemsMap[valUpper]) {
+                        const inv = inventoryItemsMap[valUpper];
+                        const sInp = tr.querySelector('.spk-bahan-satuan');
+                        if (sInp && (!sInp.value || sInp.value === 'Roll')) {
+                            sInp.value = inv.unit || 'Roll';
+                        }
+                        const hInp = tr.querySelector('.spk-bahan-harga');
+                        if (hInp && (cleanNumberFromDots(hInp.value) === 0)) {
+                            hInp.value = formatNumberWithDots(inv.cost_price);
+                        }
+                        if (window.recalculateSpkCosts) {
+                            window.recalculateSpkCosts();
                         }
                     }
-                });
-            }
-
-            // Initialize row HPP and summary on page load
-            document.querySelectorAll('.product-table-custom tbody tr').forEach(tr => {
-                if (window.recalculateRowHpp) {
-                    window.recalculateRowHpp(tr);
                 }
             });
+
+            // Live calculation on any SPK cost / qty input
+            document.addEventListener('input', function(e) {
+                if (
+                    e.target.classList.contains('row-qty-produksi') ||
+                    e.target.classList.contains('spk-bahan-qty') ||
+                    e.target.classList.contains('spk-bahan-harga') ||
+                    e.target.id === 'spk_biaya_produksi' ||
+                    e.target.id === 'spk_biaya_tambahan'
+                ) {
+                    if (window.recalculateSpkCosts) {
+                        window.recalculateSpkCosts();
+                    }
+                }
+            });
+
+            // Initial calculation on page load
+            if (window.recalculateSpkCosts) {
+                window.recalculateSpkCosts();
+            }
 
             const modalPayLaborEl = document.getElementById('modalPayLabor');
             if (modalPayLaborEl) {

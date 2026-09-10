@@ -917,13 +917,79 @@ class SpkController extends Controller
 
         $totalSpkLaborUnpaid = max(0, $totalSpkLaborCost - $totalSpkLaborPaid);
 
+        // Ekstrak Bahan SPK (BB-TH), Biaya Produksi, dan Biaya Tambahan untuk level SPK
+        $existingBahanList = [];
+        $existingBiayaProduksi = 0;
+        $existingBiayaTambahan = 0;
+        $existingKetTambahan = '';
+
+        foreach ($spk->items as $item) {
+            foreach ($item->extras as $extra) {
+                $nom = (float) $extra->nominal;
+                $ket = $extra->keterangan ?? '';
+                if (str_contains($ket, 'Bahan:')) {
+                    $bName = trim(str_replace('Bahan:', '', $ket));
+                    $bQty = 1;
+                    $bSatuan = '';
+                    if (preg_match('/^(.*?)\s*\(Qty:\s*([\d\.,]+)\s*(.*?)\)$/i', $bName, $mQ)) {
+                        $bName = trim($mQ[1]);
+                        $bQty = floatval(str_replace(['.', ','], '', $mQ[2])) ?: 1;
+                        $bSatuan = trim($mQ[3]);
+                    }
+                    $existingBahanList[] = [
+                        'nama_bahan' => $bName,
+                        'qty_bahan'  => $bQty,
+                        'satuan'     => $bSatuan,
+                        'harga'      => $nom > 0 && $bQty > 0 ? round($nom / $bQty, 2) : 0,
+                        'subtotal'   => $nom,
+                    ];
+                } elseif (str_contains($ket, 'Biaya Tambahan:') || str_contains($ket, 'Tambahan:')) {
+                    $existingBiayaTambahan += $nom;
+                    if (empty($existingKetTambahan)) {
+                        $existingKetTambahan = trim(str_replace(['Biaya Tambahan:', 'Tambahan:'], '', $ket));
+                        $existingKetTambahan = preg_replace('/\s*\(.*?\)$/', '', $existingKetTambahan);
+                    }
+                } else {
+                    $existingBiayaProduksi += $nom;
+                }
+            }
+        }
+
+        if (!empty($existingBahanList)) {
+            $groupedBahan = [];
+            foreach ($existingBahanList as $b) {
+                $n = $b['nama_bahan'];
+                if (!isset($groupedBahan[$n])) {
+                    $groupedBahan[$n] = $b;
+                } else {
+                    $groupedBahan[$n]['qty_bahan'] += $b['qty_bahan'];
+                    $groupedBahan[$n]['subtotal'] += $b['subtotal'];
+                    if ($groupedBahan[$n]['qty_bahan'] > 0) {
+                        $groupedBahan[$n]['harga'] = round($groupedBahan[$n]['subtotal'] / $groupedBahan[$n]['qty_bahan'], 2);
+                    }
+                }
+            }
+            $spkBahanData = array_values($groupedBahan);
+        } else {
+            $spkBahanData = [
+                [
+                    'nama_bahan' => $spk->sku_kain ?: 'BB-TH',
+                    'qty_bahan'  => 1,
+                    'satuan'     => 'Roll',
+                    'harga'      => 0,
+                    'subtotal'   => 0,
+                ]
+            ];
+        }
+
         return view('inventory.spks.show', compact(
             'spk', 'grouped', 'statusOptions', 'sizesHeader', 'progresMap',
             'products', 'tailors', 'pemotongList', 'penjahitList', 'vendorKancingList', 'petugasQcList',
             'laborServices', 'stores', 'existingNoProduksi', 'recipesMap',
             'inventoryItems', 'inventoryItemsMap', 'allMasterProductsList',
             'siblingSpks', 'bankAccounts', 'totalSpkLaborCost', 'totalSpkLaborPaid', 'totalSpkLaborUnpaid',
-            'laborBreakdown', 'spkExpenses'
+            'laborBreakdown', 'spkExpenses',
+            'spkBahanData', 'existingBiayaProduksi', 'existingBiayaTambahan', 'existingKetTambahan'
         ));
     }
 
@@ -1024,166 +1090,154 @@ class SpkController extends Controller
                 foreach ($rincianBlocks as $rIdx => $rBlock) {
                     $prodList = $rBlock['produk'] ?? [];
                     if (!empty($prodList) && is_array($prodList)) {
-                        // Build a flat array of item IDs in order (to map by pIdx)
                         $itemsOrdered = $spk->items->values();
+                        $savedItemIds = [];
 
                         foreach ($prodList as $pIdx => $pRow) {
-                            // Match item by position index
+                            $namaProduk = trim($pRow['nama_produk'] ?? '') ?: 'PRODUK BARU';
+                            $skuProduk  = trim($pRow['sku_produk'] ?? '');
+                            $ukuran     = trim($pRow['ukuran'] ?? '') ?: 'ALL SIZE';
+                            $qtyProd    = max(1, (int) ($pRow['qty_produksi'] ?? 1));
+
                             $spkItem = $itemsOrdered->get((int)$pIdx);
                             if (!$spkItem) {
-                                // Create new item if index exceeds existing count
                                 $spkItem = SpkItem::create([
-                                    'spk_id'         => $spk->id,
-                                    'nama_produk'    => trim($pRow['nama_produk'] ?? '') ?: 'PRODUK BARU',
-                                    'sku'            => trim($pRow['sku_produk'] ?? ''),
-                                    'ukuran'         => trim($pRow['ukuran'] ?? '') ?: 'ALL SIZE',
-                                    'quantity'       => max(1, (int) ($pRow['qty_produksi'] ?? 1)),
-                                    'pemotong'       => $pRow['pemotong'] ?? '',
-                                    'penjahit'       => $pRow['penjahit'] ?? '',
-                                    'vendor_kancing' => $pRow['vendor_kancing'] ?? '',
+                                    'spk_id'      => $spk->id,
+                                    'nama_produk' => $namaProduk,
+                                    'sku'         => $skuProduk,
+                                    'ukuran'      => $ukuran,
+                                    'quantity'    => $qtyProd,
+                                ]);
+                            } else {
+                                $spkItem->update([
+                                    'nama_produk' => $namaProduk,
+                                    'sku'         => $skuProduk,
+                                    'ukuran'      => $ukuran,
+                                    'quantity'    => $qtyProd,
                                 ]);
                             }
-                            if (!$spkItem) continue;
+                            $savedItemIds[] = $spkItem->id;
+                        }
 
-                            $namaProduk = trim($pRow['nama_produk'] ?? '') ?: $spkItem->nama_produk;
-                            $skuProduk  = trim($pRow['sku_produk'] ?? '') ?: $spkItem->sku;
-                            $ukuran     = trim($pRow['ukuran'] ?? '') ?: $spkItem->ukuran;
-                            $qtyProd    = max(1, (int) ($pRow['qty_produksi'] ?? $spkItem->quantity));
-
-                            $spkItem->update([
-                                'nama_produk'    => $namaProduk,
-                                'sku'            => $skuProduk,
-                                'ukuran'         => $ukuran,
-                                'quantity'       => $qtyProd,
-                                'pemotong'       => $pRow['pemotong'] ?? $spkItem->pemotong,
-                                'penjahit'       => $pRow['penjahit'] ?? $spkItem->penjahit,
-                                'vendor_kancing' => $pRow['vendor_kancing'] ?? $spkItem->vendor_kancing,
-                            ]);
-
-                                // Clean old extras for this item and rebuild
-                                SpkItemExtra::where('spk_item_id', $spkItem->id)->delete();
-
-                                $laborTotal = 0;
-
-                                // 1. Handle Direct Biaya Produksi per unit (if provided)
-                                $rawBp = $pRow['biaya_produksi'] ?? null;
-                                if ($rawBp !== null && $rawBp !== '') {
-                                    if (is_string($rawBp)) {
-                                        $rawBp = str_replace(['.', ','], '', $rawBp);
-                                    }
-                                    $bpUnit = floatval($rawBp);
-                                    $totalBp = $bpUnit * $qtyProd;
-                                    if ($totalBp > 0) {
-                                        $laborTotal += $totalBp;
-                                        SpkItemExtra::create([
-                                            'spk_item_id' => $spkItem->id,
-                                            'keterangan'  => "Biaya Produksi ({$qtyProd} pcs @ Rp " . number_format($bpUnit, 0, ',', '.') . ")",
-                                            'nominal'     => $totalBp,
-                                        ]);
-                                    }
-                                } else {
-                                    // Fallback: Pemotong
-                                    $pemotong = trim($pRow['pemotong'] ?? '');
-                                    if ($pemotong !== '') {
-                                        $this->processAutoSaveVendor($tenantId, $pemotong, 'Pemotong');
-                                    }
-                                    $qtyPotong = (int) ($pRow['qty_potong'] ?? 0);
-                                    $tarifPotong = floatval($pRow['tarif_potong'] ?? 0);
-                                    if ($pemotong !== '' || $qtyPotong > 0) {
-                                        $sub = $qtyPotong * $tarifPotong;
-                                        $laborTotal += $sub;
-                                        SpkItemExtra::create([
-                                            'spk_item_id' => $spkItem->id,
-                                            'keterangan'  => "Ongkos Potong: {$pemotong} ({$qtyPotong} pcs" . ($tarifPotong > 0 ? " @ Rp " . number_format($tarifPotong) : "") . ")",
-                                            'nominal'     => $sub,
-                                        ]);
-                                    }
-
-                                    // Penjahit
-                                    $penjahit = trim($pRow['penjahit'] ?? '');
-                                    if ($penjahit !== '') {
-                                        $this->processAutoSaveVendor($tenantId, $penjahit, 'Penjahit');
-                                    }
-                                    $qtyJahit = (int) ($pRow['qty_jahit'] ?? 0);
-                                    $tarifJahit = floatval($pRow['tarif_jahit'] ?? 0);
-                                    if ($penjahit !== '' || $qtyJahit > 0) {
-                                        $sub = $qtyJahit * $tarifJahit;
-                                        $laborTotal += $sub;
-                                        SpkItemExtra::create([
-                                            'spk_item_id' => $spkItem->id,
-                                            'keterangan'  => "Ongkos Jahit: {$penjahit} ({$qtyJahit} pcs" . ($tarifJahit > 0 ? " @ Rp " . number_format($tarifJahit) : "") . ")",
-                                            'nominal'     => $sub,
-                                        ]);
-                                    }
-
-                                    // Vendor Kancing
-                                    $vendorKancing = trim($pRow['vendor_kancing'] ?? '');
-                                    if ($vendorKancing !== '') {
-                                        $this->processAutoSaveVendor($tenantId, $vendorKancing, 'Vendor Kancing');
-                                    }
-                                    $qtyKancing = (int) ($pRow['qty_kancing'] ?? 0);
-                                    $tarifKancing = floatval($pRow['tarif_kancing'] ?? 0);
-                                    if ($vendorKancing !== '' || $qtyKancing > 0) {
-                                        $sub = $qtyKancing * $tarifKancing;
-                                        $laborTotal += $sub;
-                                        SpkItemExtra::create([
-                                            'spk_item_id' => $spkItem->id,
-                                            'keterangan'  => "Ongkos Kancing/LKPK: {$vendorKancing} ({$qtyKancing} pcs" . ($tarifKancing > 0 ? " @ Rp " . number_format($tarifKancing) : "") . ")",
-                                            'nominal'     => $sub,
-                                        ]);
-                                    }
-
-                                    // Petugas QC
-                                    $petugasQc = trim($pRow['petugas_qc'] ?? '');
-                                    if ($petugasQc !== '') {
-                                        $this->processAutoSaveVendor($tenantId, $petugasQc, 'Petugas QC');
-                                    }
-                                    $qcLolos = (int) ($pRow['qc_lolos'] ?? 0);
-                                    $qcReject = (int) ($pRow['qc_reject'] ?? 0);
-                                    $tarifQc = floatval($pRow['tarif_qc'] ?? 0);
-                                    if ($petugasQc !== '' || $qcLolos > 0 || $qcReject > 0) {
-                                        $sub = $qcLolos * $tarifQc;
-                                        $laborTotal += $sub;
-                                        SpkItemExtra::create([
-                                            'spk_item_id' => $spkItem->id,
-                                            'keterangan'  => "Ongkos QC: {$petugasQc} (Lolos: {$qcLolos} pcs, Reject: {$qcReject} pcs" . ($tarifQc > 0 ? " @ Rp " . number_format($tarifQc) : "") . ")",
-                                            'nominal'     => $sub,
-                                        ]);
-                                    }
-
-                                    // Finishing
-                                    $petugasFinishing = trim($pRow['petugas_finishing'] ?? '');
-                                    if ($petugasFinishing !== '') {
-                                        $this->processAutoSaveVendor($tenantId, $petugasFinishing, 'Finishing');
-                                    }
-                                    $qtyFinishing = (int) ($pRow['qty_finishing'] ?? 0);
-                                    $qtyFgood = (int) ($pRow['qty_fgood'] ?? 0);
-                                    $tarifFinishing = floatval($pRow['tarif_finishing'] ?? 0);
-                                    if ($petugasFinishing !== '' || $qtyFinishing > 0 || $qtyFgood > 0) {
-                                        $sub = $qtyFinishing * $tarifFinishing;
-                                        $laborTotal += $sub;
-                                        SpkItemExtra::create([
-                                            'spk_item_id' => $spkItem->id,
-                                            'keterangan'  => "Ongkos Finishing: {$petugasFinishing} ({$qtyFinishing} pcs, F.Good: {$qtyFgood} pcs" . ($tarifFinishing > 0 ? " @ Rp " . number_format($tarifFinishing) : "") . ")",
-                                            'nominal'     => $sub,
-                                        ]);
-                                    }
-                                }
-
-                                // Bahan List & Recipe
-                                $bahanList = $pRow['bahan'] ?? [];
-                                $totalMaterialCost = 0;
-                                if (!empty($bahanList) && is_array($bahanList)) {
-                                    $totalMaterialCost = $this->processAutoSaveBahanAndRecipe($tenantId, $namaProduk, $skuProduk, $qtyProd, $bahanList, $spkItem);
-                                }
-
-                                // 2. Calculate & update accurate HPP per unit = (Total Bahan + Total Biaya Produksi) / Qty
-                                $totalItemCost = $totalMaterialCost + $laborTotal;
-                                $hppPerUnit = $qtyProd > 0 ? round($totalItemCost / $qtyProd, 2) : 0;
-                                $spkItem->update(['hpp' => $hppPerUnit]);
-                        } // end foreach prodList
+                        // Hapus varian yang dihapus dari tabel jika ada
+                        if (!empty($savedItemIds)) {
+                            SpkItem::where('spk_id', $spk->id)
+                                ->whereNotIn('id', $savedItemIds)
+                                ->delete();
+                        }
                     }
                 }
+            }
+
+            // Reload fresh items to get updated quantities
+            $spk->load('items');
+            $totalSpkQty = (int) $spk->items->sum('quantity');
+            if ($totalSpkQty <= 0) $totalSpkQty = 1;
+
+            // 1. Process Bahan SPK (BB-TH)
+            $spkBahanInputs = $request->input('spk_bahan', []);
+            $cleanBahanList = [];
+            $totalBahanNominal = 0;
+
+            if (is_array($spkBahanInputs)) {
+                foreach ($spkBahanInputs as $b) {
+                    $rawNama = trim($b['nama_bahan'] ?? '');
+                    if (empty($rawNama)) continue;
+
+                    $qtyBahan   = floatval(str_replace(['.', ','], ['', '.'], $b['qty_bahan'] ?? 1)) ?: 1;
+                    $hargaBahan = floatval(str_replace(['.', ','], '', $b['harga'] ?? 0));
+                    $subtotal   = floatval(str_replace(['.', ','], '', $b['subtotal'] ?? ($qtyBahan * $hargaBahan)));
+
+                    if ($subtotal <= 0 && $hargaBahan > 0) {
+                        $subtotal = $qtyBahan * $hargaBahan;
+                    }
+
+                    $cleanBahanList[] = [
+                        'nama_bahan' => $rawNama,
+                        'qty_bahan'  => $qtyBahan,
+                        'satuan'     => trim($b['satuan'] ?? ''),
+                        'harga'      => $hargaBahan,
+                        'subtotal'   => $subtotal,
+                    ];
+                    $totalBahanNominal += $subtotal;
+                }
+            }
+
+            // 2. Process Biaya Produksi SPK
+            $rawBiayaProduksi = $request->input('spk_biaya_produksi', 0);
+            if (is_string($rawBiayaProduksi)) {
+                $rawBiayaProduksi = str_replace(['.', ','], '', $rawBiayaProduksi);
+            }
+            $biayaProduksiNominal = max(0, floatval($rawBiayaProduksi));
+
+            // 3. Process Biaya Tambahan SPK
+            $rawBiayaTambahan = $request->input('spk_biaya_tambahan', 0);
+            if (is_string($rawBiayaTambahan)) {
+                $rawBiayaTambahan = str_replace(['.', ','], '', $rawBiayaTambahan);
+            }
+            $biayaTambahanNominal = max(0, floatval($rawBiayaTambahan));
+            $ketTambahan = trim((string)$request->input('spk_ket_tambahan', ''));
+
+            // 4. Hitung Estimasi HPP SPK
+            $grandTotalCost = $totalBahanNominal + $biayaProduksiNominal + $biayaTambahanNominal;
+            $hppPerUnit = $totalSpkQty > 0 ? round($grandTotalCost / $totalSpkQty, 2) : 0;
+
+            // 5. Update HPP dan distribusikan SpkItemExtra ke masing-masing item
+            $firstItem = $spk->items->first();
+
+            // Clear old extras for all items in this SPK
+            SpkItemExtra::whereIn('spk_item_id', $spk->items->pluck('id'))->delete();
+
+            foreach ($spk->items as $item) {
+                $item->update(['hpp' => $hppPerUnit]);
+                $itemQty = max(1, (int)$item->quantity);
+                $ratio = $totalSpkQty > 0 ? ($itemQty / $totalSpkQty) : (1 / max(1, count($spk->items)));
+
+                // A. Extras Bahan
+                foreach ($cleanBahanList as $mat) {
+                    $itemMatNominal = round($mat['subtotal'] * $ratio, 2);
+                    $cleanQtyStr = ($mat['qty_bahan'] == (int)$mat['qty_bahan']) ? (int)$mat['qty_bahan'] : (float)$mat['qty_bahan'];
+                    $satuanStr = !empty($mat['satuan']) ? " " . $mat['satuan'] : "";
+                    SpkItemExtra::create([
+                        'spk_item_id' => $item->id,
+                        'keterangan'  => "Bahan: {$mat['nama_bahan']} (Qty: {$cleanQtyStr}{$satuanStr})",
+                        'nominal'     => $itemMatNominal,
+                    ]);
+                }
+
+                // B. Extras Biaya Produksi
+                if ($biayaProduksiNominal > 0) {
+                    $itemLaborNominal = round($biayaProduksiNominal * $ratio, 2);
+                    $bpUnit = round($biayaProduksiNominal / $totalSpkQty);
+                    SpkItemExtra::create([
+                        'spk_item_id' => $item->id,
+                        'keterangan'  => "Biaya Produksi ({$itemQty} pcs @ Rp " . number_format($bpUnit, 0, ',', '.') . ")",
+                        'nominal'     => $itemLaborNominal,
+                    ]);
+                }
+
+                // C. Extras Biaya Tambahan
+                if ($biayaTambahanNominal > 0) {
+                    $itemTambahanNominal = round($biayaTambahanNominal * $ratio, 2);
+                    $ketDesc = $ketTambahan ? "Biaya Tambahan: {$ketTambahan}" : "Biaya Tambahan";
+                    SpkItemExtra::create([
+                        'spk_item_id' => $item->id,
+                        'keterangan'  => "{$ketDesc} ({$itemQty} pcs)",
+                        'nominal'     => $itemTambahanNominal,
+                    ]);
+                }
+            }
+
+            // Auto-save bahan to Master Inventory / Recipe using first item as reference if available
+            if (!empty($cleanBahanList) && $firstItem) {
+                $this->processAutoSaveBahanAndRecipe(
+                    $tenantId, 
+                    $firstItem->nama_produk, 
+                    $firstItem->sku, 
+                    $totalSpkQty, 
+                    $cleanBahanList, 
+                    null
+                );
             }
         });
 
