@@ -131,13 +131,18 @@
                     </table>
                 </div>
 
-                <div class="d-flex justify-content-between align-items-center pt-2 border-top">
+                <div class="d-flex justify-content-between align-items-center pt-2 border-top flex-wrap gap-2">
                     <button type="button" class="btn btn-outline-secondary btn-sm" onclick="if(window.opener || window.history.length <= 1) { window.close(); } else { window.history.back(); }">
-                        <i class="fas fa-times me-1"></i> Tutup Jendela Ini
+                        <i class="fas fa-times me-1"></i> Tutup Jendela
                     </button>
-                    <a href="{{ route('orders.index') }}" class="btn btn-primary btn-sm px-3">
-                        <i class="fas fa-arrow-left me-1"></i> Kembali ke Daftar Pesanan
-                    </a>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-warning btn-sm text-dark fw-semibold" onclick="this.innerHTML='<i class=\'fas fa-spinner fa-spin me-1\'></i> Mencoba Ulang...'; window.location.reload();">
+                            <i class="fas fa-sync-alt me-1"></i> Coba Cetak Ulang
+                        </button>
+                        <a href="{{ route('orders.index') }}" class="btn btn-primary btn-sm px-3">
+                            <i class="fas fa-arrow-left me-1"></i> Kembali ke Pesanan
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>

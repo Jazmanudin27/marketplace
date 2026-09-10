@@ -192,31 +192,56 @@ class OrderTrackingService
                         Log::info("[OrderTrackingService] TikTok shipOrder attempt: " . $e->getMessage());
                     }
 
-                    // Ambil detail lagi setelah ship
-                    try {
-                        $detailData = $this->tiktokService->getOrderDetail(
-                            $accessToken,
-                            $shopCipher,
-                            [$order->order_marketplace_id]
-                        );
-                        $tOrders = $detailData['order_list'] ?? $detailData['orders'] ?? [];
-                        if (!empty($tOrders[0])) {
-                            $tOrder = $tOrders[0];
-                            $trackingNo = $tOrder['tracking_number'] ?? $tOrder['tracking_no'] ?? $tOrder['express_tracking_number'] ?? null;
-                            if (empty($trackingNo) && !empty($tOrder['packages'])) {
-                                foreach ($tOrder['packages'] as $pkg) {
-                                    $t = $pkg['tracking_number'] ?? $pkg['tracking_no'] ?? $pkg['express_tracking_number'] ?? null;
-                                    if (!empty($t)) {
-                                        $trackingNo = $t;
-                                        break;
+                    // Ambil detail setelah shipOrder dengan retry loop (coba hingga 4 kali dengan jeda agar TikTok 3PL selesai mengalokasikan AWB)
+                    for ($attempt = 0; $attempt < 4; $attempt++) {
+                        if (!empty($trackingNo)) break;
+
+                        // Jeda 1 detik agar TikTok memiliki waktu mengalokasikan kurir & nomor resi
+                        sleep(1);
+
+                        try {
+                            $detailData = $this->tiktokService->getOrderDetail(
+                                $accessToken,
+                                $shopCipher,
+                                [$order->order_marketplace_id]
+                            );
+                            $tOrders = $detailData['order_list'] ?? $detailData['orders'] ?? [];
+                            if (!empty($tOrders[0])) {
+                                $tOrder = $tOrders[0];
+                                $trackingNo = $tOrder['tracking_number'] ?? $tOrder['tracking_no'] ?? $tOrder['express_tracking_number'] ?? null;
+                                if (empty($trackingNo) && !empty($tOrder['packages'])) {
+                                    foreach ($tOrder['packages'] as $pkg) {
+                                        $t = $pkg['tracking_number'] ?? $pkg['tracking_no'] ?? $pkg['express_tracking_number'] ?? null;
+                                        if (!empty($t)) {
+                                            $trackingNo = $t;
+                                            break;
+                                        }
+                                        if (empty($order->package_id) && !empty($pkg['id'])) {
+                                            $order->package_id = (string) $pkg['id'];
+                                        }
                                     }
                                 }
                             }
+                        } catch (\Throwable $e) {
+                            Log::warning("[OrderTrackingService] TikTok getOrderDetail pasca ship attempt {$attempt}: " . $e->getMessage());
                         }
-                    } catch (\Throwable $e) {}
+
+                        // Coba juga via getShippingDocument jika trackingNo masih kosong
+                        if (empty($trackingNo) && !empty($order->package_id)) {
+                            try {
+                                $docRes = $this->tiktokService->getShippingDocument(
+                                    $accessToken,
+                                    $shopCipher,
+                                    $order->order_marketplace_id,
+                                    $order->package_id
+                                );
+                                $trackingNo = $docRes['tracking_number'] ?? $docRes['tracking_no'] ?? $docRes['express_tracking_number'] ?? null;
+                            } catch (\Throwable $e) {}
+                        }
+                    }
                 }
 
-                // 3. Fallback: getShippingDocument
+                // 3. Fallback: getShippingDocument jika belum terisi
                 if (empty($trackingNo)) {
                     try {
                         $docRes = $this->tiktokService->getShippingDocument(
