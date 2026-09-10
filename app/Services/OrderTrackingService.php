@@ -80,16 +80,22 @@ class OrderTrackingService
                         }
                     }
 
-                    // Ambil nomor resi setelah ship_order
-                    try {
-                        $response = $this->shopeeService->getTrackingNumber(
-                            $accessToken,
-                            $shopId,
-                            $orderSn
-                        );
-                        $trackingNo = $response['tracking_number'] ?? $response['package_list'][0]['tracking_number'] ?? null;
-                    } catch (\Throwable $e) {
-                        Log::warning("[OrderTrackingService] Shopee getTrackingNumber pasca shipOrder: " . $e->getMessage());
+                    // Ambil nomor resi setelah ship_order (coba hingga 3 kali dengan jeda jika kurir sedang mengalokasikan AWB)
+                    for ($attempt = 0; $attempt < 3; $attempt++) {
+                        if (!empty($trackingNo)) break;
+                        if ($attempt > 0) {
+                            sleep(1);
+                        }
+                        try {
+                            $response = $this->shopeeService->getTrackingNumber(
+                                $accessToken,
+                                $shopId,
+                                $orderSn
+                            );
+                            $trackingNo = $response['tracking_number'] ?? $response['package_list'][0]['tracking_number'] ?? null;
+                        } catch (\Throwable $e) {
+                            Log::warning("[OrderTrackingService] Shopee getTrackingNumber pasca shipOrder attempt {$attempt}: " . $e->getMessage());
+                        }
                     }
                 }
 
@@ -102,8 +108,12 @@ class OrderTrackingService
                             [$orderSn]
                         );
                         $ordersList = $shopeeOrder['order_list'] ?? [];
-                        if (!empty($ordersList[0]['package_list'][0]['tracking_number'])) {
-                            $trackingNo = $ordersList[0]['package_list'][0]['tracking_number'];
+                        if (!empty($ordersList[0])) {
+                            $firstShopee = $ordersList[0];
+                            $trackingNo = $firstShopee['package_list'][0]['tracking_number'] 
+                                ?? $firstShopee['tracking_number'] 
+                                ?? $firstShopee['tracking_no'] 
+                                ?? null;
                         }
                     } catch (\Throwable $e) {
                         Log::warning("[OrderTrackingService] Shopee getOrderDetail fallback: " . $e->getMessage());
