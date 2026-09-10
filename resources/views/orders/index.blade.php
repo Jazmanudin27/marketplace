@@ -1144,12 +1144,9 @@
                                                         style="font-weight:600; color:#222;">{{ $order->tracking_number }}</span>
                                                 </div>
                                             @else
-                                                <button type="button"
-                                                    class="btn-tbl btn-tbl-yellow btn-fetch-single-tracking"
-                                                    data-order-id="{{ $order->id }}"
-                                                    title="Tarik Resi dari Marketplace">
-                                                    <i class="fas fa-sync-alt"></i> Tarik Resi
-                                                </button>
+                                                <span class="text-muted small" style="font-size:0.68rem;" title="Nomor resi otomatis ditarik dari marketplace saat tombol Cetak Resi diklik">
+                                                    <i class="fas fa-bolt text-warning me-1"></i>Otomatis saat cetak
+                                                </span>
                                             @endif
                                         </div>
                                     </td>

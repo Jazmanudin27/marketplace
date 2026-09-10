@@ -185,4 +185,62 @@ class OrderThermalPrintTest extends TestCase
         $response->assertViewIs('orders.print_error');
         $this->assertFalse((bool) $order->fresh()->is_printed);
     }
+
+    public function test_order_tracking_service_auto_arranges_shipping_and_returns_tracking_number()
+    {
+        $tenant = Tenant::create([
+            'name' => 'Test Tenant',
+            'domain' => 'shopee.local',
+        ]);
+
+        $channel = Channel::create([
+            'code' => 'shopee',
+            'name' => 'Shopee',
+        ]);
+
+        $store = Store::create([
+            'tenant_id' => $tenant->id,
+            'channel_id' => $channel->id,
+            'store_name' => 'Shopee Official',
+            'marketplace_store_id' => '99887766',
+            'access_token' => 'dummy_shopee_token',
+            'status' => 'active',
+        ]);
+
+        $order = Order::create([
+            'tenant_id' => $tenant->id,
+            'store_id' => $store->id,
+            'order_marketplace_id' => '240910SHOPEE01',
+            'order_date' => now(),
+            'tracking_number' => null,
+            'courier' => 'SPX Standard',
+            'buyer_name' => 'Ani',
+            'total_amount' => 120000,
+            'order_status' => 'READY_TO_SHIP',
+        ]);
+
+        $shopeeMock = $this->mock(\App\Services\ShopeeService::class, function ($mock) {
+            // Cek awal gagal/kosong
+            $mock->shouldReceive('getTrackingNumber')
+                ->once()
+                ->andThrow(new \RuntimeException('Shopee API Error [logistics.tracking_number_not_found]'));
+
+            // Auto ship_order dipanggil
+            $mock->shouldReceive('shipOrder')
+                ->once()
+                ->andReturn([]);
+
+            // Cek pasca ship_order berhasil
+            $mock->shouldReceive('getTrackingNumber')
+                ->once()
+                ->andReturn(['tracking_number' => 'SPXID9988776655']);
+        });
+
+        $trackingService = app(OrderTrackingService::class);
+        $trackingNo = $trackingService->fetchTrackingNumber($order);
+
+        $this->assertEquals('SPXID9988776655', $trackingNo);
+        $this->assertEquals('SPXID9988776655', $order->fresh()->tracking_number);
+        $this->assertEquals(Order::STATUS_SHIPPED, $order->fresh()->order_status);
+    }
 }

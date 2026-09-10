@@ -391,13 +391,9 @@
                                                     <span>{{ $order->tracking_number }}</span>
                                                 </div>
                                             @else
-                                                <button type="button" 
-                                                    class="btn btn-xs btn-outline-warning text-dark border-warning rounded-2 py-0.5 px-2 fw-semibold btn-fetch-single-tracking shadow-xs"
-                                                    data-order-id="{{ $order->id }}"
-                                                    style="font-size: 0.68rem;"
-                                                    title="Tarik Resi dari Marketplace">
-                                                    <i class="fas fa-arrows-rotate me-1"></i>Tarik Resi
-                                                </button>
+                                                <span class="text-muted small" style="font-size:0.68rem;" title="Nomor resi otomatis ditarik dari marketplace saat tombol Cetak Resi diklik">
+                                                    <i class="fas fa-bolt text-warning me-1"></i>Otomatis saat cetak
+                                                </span>
                                             @endif
 
                                             @if (in_array($order->order_status, ['SHIPPED', 'DELIVERED', 'COMPLETED']))
