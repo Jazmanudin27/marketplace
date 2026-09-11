@@ -45,16 +45,10 @@ class OfflineSaleController extends Controller
         if ($request->filled('payment_status')) {
             if ($request->payment_status === 'lunas') {
                 $query->where('status', '!=', OfflineSale::STATUS_CANCELLED)
-                      ->where(function($q) {
-                          $q->where('payment_method', '!=', 'piutang')
-                            ->whereRaw('paid_amount >= grand_total');
-                      });
+                      ->whereRaw('paid_amount >= grand_total');
             } elseif ($request->payment_status === 'belum_lunas') {
                 $query->where('status', '!=', OfflineSale::STATUS_CANCELLED)
-                      ->where(function($q) {
-                          $q->where('payment_method', 'piutang')
-                            ->orWhereRaw('paid_amount < grand_total');
-                      });
+                      ->whereRaw('paid_amount < grand_total');
             }
         }
 
