@@ -107,19 +107,32 @@
 
             {{-- Banner Pesanan PO Produksi (SPK Sedang Diproses) --}}
             @if ($offlineSale->is_po && in_array($offlineSale->status, [\App\Models\OfflineSale::STATUS_PENDING_APPROVAL, \App\Models\OfflineSale::STATUS_SPK_PROCESSING]))
+                @php
+                    $firstSpk = $offlineSale->spks->first();
+                @endphp
                 <div class="alert alert-primary d-flex align-items-center justify-content-between gap-3 mb-3 py-3" style="background-color: #eff6ff; border-color: #93c5fd; color: #1e40af;">
                     <div class="d-flex align-items-center gap-3">
                         <i class="fas fa-industry fa-2x text-primary"></i>
                         <div>
-                            <strong class="fs-6">SPK Sedang Diproses Produksi</strong><br>
-                            <small>Pesanan PO ini sudah dibuatkan SPK dan sedang dalam proses pengerjaan oleh Tim Produksi. Bagian Gudang dapat melakukan Approval Pengeluaran Barang setelah Tim Produksi menyelesaikan setoran SPK ke stok gudang.</small>
+                            <div class="d-flex align-items-center gap-2 flex-wrap">
+                                <strong class="fs-6">SPK Sedang Diproses Produksi</strong>
+                                @if($firstSpk && $firstSpk->no_produksi)
+                                    <span class="badge bg-white text-primary border border-primary-subtle font-monospace">
+                                        <i class="fas fa-hashtag me-0.5"></i>Kode Produksi: {{ $firstSpk->no_produksi }}
+                                    </span>
+                                @endif
+                                <span class="badge bg-primary bg-opacity-10 text-primary">
+                                    {{ $offlineSale->spks->count() }} SPK Diterbitkan
+                                </span>
+                            </div>
+                            <small class="d-block mt-1">Pesanan PO ini memiliki <strong>{{ $offlineSale->spks->count() }} SPK Produksi</strong> di bawah Kode Produksi <strong>{{ $firstSpk?->no_produksi ?: '-' }}</strong> dan sedang dalam proses pengerjaan oleh Tim Produksi. Bagian Gudang dapat melakukan Approval Pengeluaran Barang setelah Tim Produksi menyelesaikan setoran SPK ke gudang.</small>
                         </div>
                     </div>
                     @if($offlineSale->spks && $offlineSale->spks->count() > 0)
-                        <div class="d-flex gap-1 flex-wrap">
+                        <div class="d-flex gap-1 flex-wrap justify-content-end">
                             @foreach($offlineSale->spks as $spkItem)
                                 <a href="{{ route('spks.show', $spkItem->id) }}" target="_blank" class="btn btn-sm btn-primary text-white text-nowrap">
-                                    <i class="fas fa-external-link-alt me-1"></i> Lihat SPK #{{ $spkItem->no_spk }}
+                                    <i class="fas fa-external-link-alt me-1"></i> SPK #{{ $spkItem->no_spk }} ({{ $spkItem->kategori ?: ($spkItem->items->first()?->nama_produk ?: 'Item') }})
                                 </a>
                             @endforeach
                         </div>
@@ -736,7 +749,7 @@
 @push('modals')
 @if($offlineSale->status === \App\Models\OfflineSale::STATUS_PENDING_SPK)
 <div class="modal fade" id="modalCreateSpkShow" tabindex="-1" aria-labelledby="modalCreateSpkShowLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content border-0 shadow">
             <div class="modal-header bg-warning bg-opacity-10 border-bottom">
                 <h6 class="modal-title fw-bold text-dark" id="modalCreateSpkShowLabel">
@@ -746,20 +759,96 @@
             </div>
             <form action="{{ route('offline_sales.create_spk', $offlineSale->id) }}" method="POST" class="m-0">
                 @csrf
-                <div class="modal-body p-3">
-                    <p class="mb-1 text-dark">Terbitkan SPK Produksi untuk transaksi PO:</p>
-                    <p class="fw-bold font-monospace text-primary mb-3">{{ $offlineSale->sale_number }}</p>
+                <div class="modal-body p-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3 p-3 bg-light rounded border">
+                        <div>
+                            <small class="text-muted d-block text-uppercase fw-semibold" style="font-size: 0.7rem;">Transaksi PO</small>
+                            <span class="fw-bold font-monospace text-primary fs-6">{{ $offlineSale->sale_number }}</span>
+                            <span class="text-muted ms-2">&bull; Pembeli: <strong>{{ $offlineSale->buyer_name ?: 'Pelanggan' }}</strong></span>
+                        </div>
+                        <span class="badge bg-primary bg-opacity-10 text-primary border border-primary-subtle py-1.5 px-2.5">
+                            <i class="fas fa-layer-group me-1"></i> 1 No. Produksi = Multi SPK Produk
+                        </span>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label for="show_spk_no_produksi" class="form-label fw-semibold small text-dark mb-1">
+                                <i class="fas fa-hashtag text-primary me-1"></i>Nomor / Kode Produksi <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" name="no_produksi" id="show_spk_no_produksi" class="form-control form-control-sm font-monospace fw-bold"
+                                value="{{ \App\Models\Spk::generateNoProduksi() }}" required>
+                            <div class="form-text text-muted" style="font-size: 0.75rem;">
+                                Satu kode produksi ini akan menaungi seluruh SPK pesanan ini.
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="show_spk_tahap_saat_ini" class="form-label fw-semibold small text-dark mb-1">
+                                <i class="fas fa-tasks text-primary me-1"></i>Tahap Awal Produksi <span class="text-danger">*</span>
+                            </label>
+                            <select name="tahap_saat_ini" id="show_spk_tahap_saat_ini" class="form-select form-select-sm fw-semibold" required>
+                                <option value="Antrian &amp; Sampling" selected>⏳ Antrian &amp; Sampling (Langsung Antrian)</option>
+                                <option value="Perencanaan">📋 Perencanaan / Pesanan Baru</option>
+                                <option value="Tahap Pemotongan">✂️ Tahap Pemotongan</option>
+                                <option value="Tahap Jahit">🪡 Tahap Jahit</option>
+                            </select>
+                            <div class="form-text text-success" style="font-size: 0.75rem;">
+                                <i class="fas fa-check-circle me-1"></i>SPK langsung masuk antrian aktif (bukan Draft).
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="mb-3">
                         <label for="show_spk_deadline" class="form-label fw-semibold small text-dark mb-1">
-                            <i class="fas fa-calendar-alt text-primary me-1"></i>Deadline SPK Produksi <span class="text-danger">*</span>
+                            <i class="fas fa-calendar-alt text-primary me-1"></i>Target Deadline SPK Produksi <span class="text-danger">*</span>
                         </label>
                         <input type="date" name="deadline" id="show_spk_deadline" class="form-control form-control-sm" value="{{ now()->addDays(7)->format('Y-m-d') }}" required>
-                        <div class="form-text text-muted small">Target selesai pengerjaan pesanan ini oleh tim produksi.</div>
+                        <div class="form-text text-muted" style="font-size: 0.75rem;">Target tanggal selesai pengerjaan oleh tim produksi.</div>
+                    </div>
+
+                    {{-- Rincian SPK yang akan dibuat --}}
+                    <div class="border rounded p-3 bg-light">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <label class="form-label fw-bold small text-dark mb-0">
+                                <i class="fas fa-boxes me-1 text-primary"></i>Rincian SPK yang Akan Diterbitkan:
+                            </label>
+                            <span class="badge bg-secondary small">{{ $offlineSale->items->count() }} SPK Produk</span>
+                        </div>
+                        <div class="small text-muted mb-2" style="font-size: 0.75rem;">
+                            Setiap jenis produk di bawah ini akan otomatis dibuatkan <strong>1 SPK tersendiri</strong> di bawah Kode Produksi yang sama:
+                        </div>
+                        <div class="table-responsive bg-white rounded border">
+                            <table class="table table-sm table-hover mb-0" style="font-size: 0.8rem;">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>#</th>
+                                        <th>PRODUK / SPK</th>
+                                        <th class="text-center">QTY</th>
+                                        <th>STATUS AWAL</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($offlineSale->items as $idx => $item)
+                                        <tr>
+                                            <td class="text-muted">{{ $idx + 1 }}</td>
+                                            <td class="fw-semibold text-dark">
+                                                <i class="fas fa-clipboard-check text-primary me-1"></i> SPK: {{ $item->product_name }}
+                                                @if($item->sku)
+                                                    <span class="text-muted font-monospace small">({{ $item->sku }})</span>
+                                                @endif
+                                            </td>
+                                            <td class="text-center fw-bold font-monospace">{{ $item->quantity }} Pcs</td>
+                                            <td><span class="badge bg-primary bg-opacity-10 text-primary">Antrian & Sampling</span></td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Tutup</button>
-                    <button type="submit" class="btn btn-primary btn-sm px-4">
+                    <button type="submit" class="btn btn-primary btn-sm px-4 fw-semibold">
                         <i class="fas fa-hammer me-1"></i> Terbitkan SPK Sekarang
                     </button>
                 </div>

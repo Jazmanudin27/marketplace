@@ -858,38 +858,74 @@ class OfflineSaleController extends Controller
         abort_unless($offlineSale->tenant_id === Auth::user()->tenant_id, 403);
 
         $tenantId = Auth::user()->tenant_id;
-        $offlineSale->load('items');
+        $offlineSale->load('items.masterProduct');
 
-        $noSpk = null;
-        DB::transaction(function () use ($offlineSale, $tenantId, $request, &$noSpk) {
+        $request->validate([
+            'no_produksi'    => 'nullable|string|max:100',
+            'tahap_saat_ini' => 'nullable|string|max:100',
+            'deadline'       => 'nullable|date',
+        ]);
+
+        $noProduksi = trim((string) $request->input('no_produksi'));
+        if (empty($noProduksi)) {
+            $noProduksi = \App\Models\Spk::generateNoProduksi();
+        }
+
+        $tahapSaatIni = $request->input('tahap_saat_ini', 'Antrian & Sampling');
+        if (empty($tahapSaatIni) || strtoupper($tahapSaatIni) === 'DRAFT') {
+            $tahapSaatIni = 'Antrian & Sampling';
+        }
+
+        $deadline = $request->filled('deadline') ? $request->deadline : now()->addDays(7);
+        $createdSpkSummaries = [];
+
+        DB::transaction(function () use ($offlineSale, $tenantId, $noProduksi, $tahapSaatIni, $deadline, &$createdSpkSummaries) {
             $today = date('Ymd');
-            $countToday = \App\Models\Spk::where('tenant_id', $tenantId)
-                ->whereDate('tanggal', date('Y-m-d'))
-                ->count();
-            $noSpk = 'SPK-PO-' . $today . '-' . sprintf('%03d', $countToday + 1);
+            $countToday = \App\Models\Spk::where('no_spk', 'like', "SPK-{$today}-%")->count();
 
-            $spk = \App\Models\Spk::create([
-                'tenant_id'     => $tenantId,
-                'no_spk'        => $noSpk,
-                'no_pesanan'    => $offlineSale->sale_number,
-                'tanggal'       => now(),
-                'deadline'      => $request->filled('deadline') ? $request->deadline : now()->addDays(7),
-                'pemesan'       => $offlineSale->buyer_name ?: 'Pelanggan PO',
-                'no_hp_pemesan' => $offlineSale->buyer_phone ?: '',
-                'instansi'      => 'Penjualan PO #' . $offlineSale->sale_number,
-                'penginput_id'  => Auth::id(),
-            ]);
+            // Kelompokkan item pesanan: masing-masing jenis produk dibuatkan 1 SPK di bawah No. Produksi yang sama
+            $groupedItems = $offlineSale->items->groupBy(function ($item) {
+                return $item->master_product_id ?: $item->product_name;
+            });
 
-            foreach ($offlineSale->items as $itemData) {
-                \App\Models\SpkItem::create([
-                    'spk_id'            => $spk->id,
-                    'master_product_id' => $itemData->master_product_id,
-                    'nama_produk'       => $itemData->product_name,
-                    'sku'               => $itemData->sku,
-                    'quantity'          => $itemData->quantity,
-                    'hpp'               => $itemData->unit_price,
-                    'status'            => 'Pending',
+            $spkCounter = 0;
+            foreach ($groupedItems as $group) {
+                $spkCounter++;
+                $firstItem = $group->first();
+                $kategori = $firstItem->product_name ?: 'Produk SPK';
+
+                $noSpk = 'SPK-' . $today . '-' . sprintf('%04d', $countToday + $spkCounter);
+
+                $spk = \App\Models\Spk::create([
+                    'tenant_id'      => $tenantId,
+                    'no_produksi'    => $noProduksi,
+                    'no_spk'         => $noSpk,
+                    'no_pesanan'     => $offlineSale->sale_number,
+                    'tipe_spk'       => 'pesanan_pelanggan',
+                    'kategori'       => $kategori,
+                    'tahap_saat_ini' => $tahapSaatIni,
+                    'tanggal'        => now(),
+                    'deadline'       => $deadline,
+                    'pemesan'        => $offlineSale->buyer_name ?: 'Pelanggan PO',
+                    'no_hp_pemesan'  => $offlineSale->buyer_phone ?: '',
+                    'instansi'       => $offlineSale->institution_name ?: ('Penjualan PO #' . $offlineSale->sale_number),
+                    'nama_pic'       => Auth::user()->name,
+                    'penginput_id'   => Auth::id(),
                 ]);
+
+                foreach ($group as $itemData) {
+                    \App\Models\SpkItem::create([
+                        'spk_id'            => $spk->id,
+                        'master_product_id' => $itemData->master_product_id,
+                        'nama_produk'       => $itemData->product_name,
+                        'sku'               => $itemData->sku,
+                        'quantity'          => $itemData->quantity,
+                        'hpp'               => $itemData->unit_price,
+                        'status'            => 'Pending',
+                    ]);
+                }
+
+                $createdSpkSummaries[] = "{$kategori} (#{$noSpk})";
             }
 
             // Setelah SPK dibuat, status penjualan offline PO menjadi SPK Sedang Diproses
@@ -898,6 +934,9 @@ class OfflineSaleController extends Controller
             ]);
         });
 
-        return back()->with('success', "✅ SPK Produksi ({$noSpk}) berhasil diterbitkan! Status transaksi kini: SPK Sedang Diproses.");
+        $totalSpk = count($createdSpkSummaries);
+        $summaryText = implode(', ', $createdSpkSummaries);
+
+        return back()->with('success', "✅ Berhasil menerbitkan {$totalSpk} SPK Produksi ({$summaryText}) di bawah Kode Produksi {$noProduksi} dengan status: {$tahapSaatIni}. Status transaksi kini: SPK Sedang Diproses.");
     }
 }

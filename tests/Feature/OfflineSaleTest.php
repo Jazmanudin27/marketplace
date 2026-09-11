@@ -603,6 +603,11 @@ class OfflineSaleTest extends TestCase
         $spkResponse->assertSessionHas('success');
 
         $this->assertEquals(1, \App\Models\Spk::where('tenant_id', $this->tenant->id)->count());
+        $spk = \App\Models\Spk::where('tenant_id', $this->tenant->id)->first();
+        $this->assertNotNull($spk->no_produksi);
+        $this->assertEquals('Antrian & Sampling', $spk->tahap_saat_ini);
+        $this->assertNotEquals('DRAFT', strtoupper($spk->tahap_saat_ini));
+
         $sale->refresh();
         $this->assertEquals(OfflineSale::STATUS_SPK_PROCESSING, $sale->status);
         $this->assertEquals('SPK Sedang Diproses', $sale->status_label);
@@ -749,7 +754,96 @@ class OfflineSaleTest extends TestCase
         $saleNoDp->refresh();
         $this->assertEquals(OfflineSale::STATUS_CANCELLED, $saleNoDp->status);
     }
+
+    public function test_po_offline_sale_creates_multiple_spks_under_shared_no_produksi_with_antrian_stage(): void
+    {
+        // 1. Buat pesanan offline PO dengan 3 jenis item berbeda: Baju Olahraga, Batik, Topi
+        $sale = OfflineSale::create([
+            'tenant_id'       => $this->tenant->id,
+            'user_id'         => $this->user->id,
+            'sale_number'     => 'SL-PO-MULTI-SPK',
+            'status'          => OfflineSale::STATUS_PENDING_SPK,
+            'buyer_name'      => 'SMP Nusantara',
+            'buyer_phone'     => '081122334455',
+            'institution_name'=> 'SMP Nusantara',
+            'payment_method'  => 'transfer',
+            'total_amount'    => 5000000,
+            'grand_total'     => 5000000,
+            'paid_amount'     => 2000000, // Ada DP
+            'sold_at'         => now(),
+            'is_po'           => true,
+        ]);
+
+        \App\Models\OfflineSaleItem::create([
+            'offline_sale_id'   => $sale->id,
+            'master_product_id' => null,
+            'product_name'      => 'Baju Olahraga',
+            'sku'               => 'BJ-OLR-01',
+            'quantity'          => 100,
+            'unit_price'        => 25000,
+            'subtotal'          => 2500000,
+        ]);
+
+        \App\Models\OfflineSaleItem::create([
+            'offline_sale_id'   => $sale->id,
+            'master_product_id' => null,
+            'product_name'      => 'Batik Siswa',
+            'sku'               => 'BTK-SIS-01',
+            'quantity'          => 100,
+            'unit_price'        => 20000,
+            'subtotal'          => 2000000,
+        ]);
+
+        \App\Models\OfflineSaleItem::create([
+            'offline_sale_id'   => $sale->id,
+            'master_product_id' => null,
+            'product_name'      => 'Topi Bordir',
+            'sku'               => 'TOP-BRD-01',
+            'quantity'          => 100,
+            'unit_price'        => 5000,
+            'subtotal'          => 500000,
+        ]);
+
+        // 2. Terbitkan SPK
+        $response = $this->actingAs($this->user)
+            ->post(route('offline_sales.create_spk', $sale), [
+                'no_produksi'    => 'JN2609999',
+                'tahap_saat_ini' => 'Antrian & Sampling',
+                'deadline'       => now()->addDays(14)->toDateString(),
+            ]);
+
+        $response->assertRedirect();
+        $response->assertSessionHas('success');
+
+        // 3. Verifikasi: 3 SPK terbuat di bawah No. Produksi yang SAMA
+        $spks = \App\Models\Spk::where('tenant_id', $this->tenant->id)
+            ->where('no_pesanan', 'SL-PO-MULTI-SPK')
+            ->orderBy('id')
+            ->get();
+
+        $this->assertCount(3, $spks);
+
+        // Verifikasi semua SPK memiliki no_produksi yang sama
+        foreach ($spks as $spk) {
+            $this->assertEquals('JN2609999', $spk->no_produksi);
+            $this->assertEquals('Antrian & Sampling', $spk->tahap_saat_ini);
+            $this->assertNotEquals('DRAFT', strtoupper($spk->tahap_saat_ini));
+            $this->assertEquals('SMP Nusantara', $spk->pemesan);
+        }
+
+        // Verifikasi kategori produk masing-masing
+        $categories = $spks->pluck('kategori')->toArray();
+        $this->assertContains('Baju Olahraga', $categories);
+        $this->assertContains('Batik Siswa', $categories);
+        $this->assertContains('Topi Bordir', $categories);
+
+        // Verifikasi status penjualan offline berubah ke SPK Sedang Diproses
+        $sale->refresh();
+        $this->assertEquals(OfflineSale::STATUS_SPK_PROCESSING, $sale->status);
+        $this->assertEquals('SPK Sedang Diproses', $sale->status_label);
+    }
 }
+
 
 
 
