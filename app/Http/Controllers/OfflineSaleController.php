@@ -642,8 +642,10 @@ class OfflineSaleController extends Controller
         $tenantId    = Auth::user()->tenant_id;
         $payAmount   = (float) $payment->amount;
         $paymentDest = $payment->payment_destination;
+        $revertedToWaitingDp = false;
 
-        DB::transaction(function () use ($offlineSale, $payment, $tenantId, $payAmount, $paymentDest) {
+        DB::transaction(function () use ($offlineSale, $payment, $tenantId, $payAmount, $paymentDest, &$revertedToWaitingDp) {
+            // 1. Kurangi saldo rekening jika cocok
             if ($paymentDest) {
                 $bank = \App\Models\BankAccount::where('tenant_id', $tenantId)
                     ->where(function($q) use ($paymentDest) {
@@ -651,24 +653,62 @@ class OfflineSaleController extends Controller
                           ->orWhere('id', $paymentDest);
                     })->first();
 
-                if ($bank && $bank->current_balance >= $payAmount) {
-                    $bank->decrement('current_balance', $payAmount);
+                if ($bank) {
+                    $bank->decrement('current_balance', min((float)$bank->current_balance, $payAmount));
                 }
             }
 
+            // 1b. Kembalikan saldo reseller jika pembayaran menggunakan reseller balance
+            if ($payment->payment_method === 'reseller_balance' && $offlineSale->customer_id) {
+                $cust = \App\Models\Customer::where('tenant_id', $tenantId)->find($offlineSale->customer_id);
+                if ($cust) {
+                    $cust->adjustBalance($payAmount, 'in', "Rollback Pembayaran Penjualan Offline #{$offlineSale->sale_number} ({$payment->payment_number})", Auth::id());
+                }
+            }
+
+            // 2. Hapus data Income di Keuangan (Mutasi Masuk & Keluar)
             if ($payment->income_id) {
                 \App\Models\Income::where('id', $payment->income_id)->where('tenant_id', $tenantId)->delete();
             }
 
-            $newPaid = max(0, (float) $offlineSale->paid_amount - $payAmount);
-            $offlineSale->update([
-                'paid_amount' => $newPaid,
-            ]);
+            // Fallback: hapus Income jika income_id tidak tersimpan/null (berdasarkan nomor transaksi & nomor pembayaran)
+            \App\Models\Income::where('tenant_id', $tenantId)
+                ->where(function ($q) use ($offlineSale, $payment) {
+                    $q->where('title', 'like', "%#{$offlineSale->sale_number}%")
+                      ->where(function ($sub) use ($payment) {
+                          $sub->where('title', 'like', "%{$payment->payment_number}%")
+                              ->orWhere('description', 'like', "%{$payment->payment_number}%");
+                      });
+                })
+                ->delete();
 
+            // 3. Update nominal pembayaran transaksi
+            $newPaid = max(0, (float) $offlineSale->paid_amount - $payAmount);
+            $updateData = [
+                'paid_amount' => $newPaid,
+            ];
+
+            // 4. Jika transaksi berstatus "Belum dibuat SPK" (atau PO) dan pembayarannya menjadi 0 (DP dihapus),
+            // kembalikan status transaksi menjadi "Menunggu DP Masuk"
+            if ($offlineSale->status === OfflineSale::STATUS_PENDING_SPK && $newPaid <= 0) {
+                $updateData['status'] = OfflineSale::STATUS_WAITING_DP;
+                $revertedToWaitingDp = true;
+            } elseif ($offlineSale->is_po && $newPaid <= 0 && in_array($offlineSale->status, [OfflineSale::STATUS_PENDING_SPK, OfflineSale::STATUS_WAITING_DP])) {
+                $updateData['status'] = OfflineSale::STATUS_WAITING_DP;
+                $revertedToWaitingDp = true;
+            }
+
+            $offlineSale->update($updateData);
+
+            // 5. Hapus riwayat pembayaran
             $payment->delete();
         });
 
-        return back()->with('success', '✅ Riwayat pembayaran cicilan berhasil dihapus.');
+        $msg = $revertedToWaitingDp
+            ? '✅ Riwayat pembayaran DP berhasil dihapus & mutasi keuangan ditarik. Status transaksi dikembalikan ke "Menunggu DP Masuk".'
+            : '✅ Riwayat pembayaran cicilan berhasil dihapus & mutasi keuangan ditarik.';
+
+        return back()->with('success', $msg);
     }
 
     public function markPaid(Request $request, OfflineSale $offlineSale)
@@ -737,11 +777,6 @@ class OfflineSaleController extends Controller
                     }
                 }
 
-                // Reversi Pemasukan Keuangan & saldo bank jika ada
-                \App\Models\Income::where('tenant_id', $offlineSale->tenant_id)
-                    ->where('title', 'like', "%#{$offlineSale->sale_number}%")
-                    ->delete();
-
                 if ($offlineSale->payment_destination) {
                     $bank = \App\Models\BankAccount::where('tenant_id', $offlineSale->tenant_id)
                         ->where(function($q) use ($offlineSale) {
@@ -754,7 +789,12 @@ class OfflineSaleController extends Controller
                     }
                 }
             }
-            // Jika status masih pending_approval, stok belum dikurangi → tidak perlu dikembalikan
+
+            // Reversi Pemasukan Keuangan (baik dari approval maupun cicilan/DP)
+            \App\Models\Income::where('tenant_id', $offlineSale->tenant_id)
+                ->where('title', 'like', "%#{$offlineSale->sale_number}%")
+                ->delete();
+
             $offlineSale->update([
                 'status'              => OfflineSale::STATUS_CANCELLED,
                 'cancellation_reason' => $request->cancellation_reason,

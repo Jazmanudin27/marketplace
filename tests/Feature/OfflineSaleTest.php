@@ -607,6 +607,96 @@ class OfflineSaleTest extends TestCase
         $this->assertEquals(OfflineSale::STATUS_PENDING_APPROVAL, $sale->status);
         $this->assertEquals('Menunggu Approval', $sale->status_label);
     }
+
+    public function test_delete_dp_payment_reverts_status_to_waiting_dp_and_deletes_income(): void
+    {
+        $bank = \App\Models\BankAccount::create([
+            'tenant_id'       => $this->tenant->id,
+            'bank_name'       => 'Mandiri PO',
+            'account_number'  => '9876543210',
+            'account_name'    => 'Tenant Mandiri',
+            'current_balance' => 0,
+            'is_active'       => true,
+        ]);
+
+        $sale = OfflineSale::create([
+            'tenant_id'       => $this->tenant->id,
+            'user_id'         => $this->user->id,
+            'sale_number'     => 'SL-PO-DP-DEL-01',
+            'status'          => OfflineSale::STATUS_WAITING_DP,
+            'buyer_name'      => 'Customer Hapus DP',
+            'payment_method'  => 'piutang',
+            'total_amount'    => 200000,
+            'grand_total'     => 200000,
+            'paid_amount'     => 0,
+            'change_amount'   => 0,
+            'sold_at'         => now(),
+            'is_po'           => true,
+            'follow_up_date'  => now()->addDays(2)->toDateString(),
+        ]);
+
+        $this->assertEquals(OfflineSale::STATUS_WAITING_DP, $sale->status);
+
+        // 1. Input Pembayaran DP
+        $payResponse = $this->actingAs($this->user)
+            ->post(route('offline_sales.payments.store', $sale), [
+                'amount'              => 50000,
+                'payment_method'      => 'transfer',
+                'payment_destination' => 'Mandiri PO',
+                'payment_date'        => now()->toDateString(),
+                'notes'               => 'Pembayaran DP',
+            ]);
+
+        $payResponse->assertRedirect();
+        $payResponse->assertSessionHas('success');
+
+        $sale->refresh();
+        $this->assertEquals(OfflineSale::STATUS_PENDING_SPK, $sale->status);
+        $this->assertEquals('Belum dibuat SPK', $sale->status_label);
+        $this->assertEquals(50000, (float)$sale->paid_amount);
+
+        $bank->refresh();
+        $this->assertEquals(50000, (float)$bank->current_balance);
+
+        $payment = $sale->payments()->first();
+        $this->assertNotNull($payment);
+        $this->assertNotNull($payment->income_id);
+
+        $this->assertDatabaseHas('incomes', [
+            'id'                  => $payment->income_id,
+            'tenant_id'           => $this->tenant->id,
+            'amount'              => 50000,
+            'payment_destination' => 'Mandiri PO',
+        ]);
+
+        // 2. Hapus Pembayaran DP
+        $delResponse = $this->actingAs($this->user)
+            ->delete(route('offline_sales.payments.destroy', [$sale, $payment]));
+
+        $delResponse->assertRedirect();
+        $delResponse->assertSessionHas('success');
+
+        $sale->refresh();
+        // Verifikasi: Status kembali ke Menunggu DP Masuk
+        $this->assertEquals(OfflineSale::STATUS_WAITING_DP, $sale->status);
+        $this->assertEquals('Menunggu DP Masuk', $sale->status_label);
+        $this->assertEquals(0, (float)$sale->paid_amount);
+
+        // Verifikasi: Record pembayaran terhapus
+        $this->assertDatabaseMissing('offline_sale_payments', [
+            'id' => $payment->id,
+        ]);
+
+        // Verifikasi: Mutasi keuangan (incomes) terhapus
+        $this->assertDatabaseMissing('incomes', [
+            'id' => $payment->income_id,
+        ]);
+
+        // Verifikasi: Saldo bank berkurang kembali
+        $bank->refresh();
+        $this->assertEquals(0, (float)$bank->current_balance);
+    }
 }
+
 
 
