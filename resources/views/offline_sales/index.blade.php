@@ -84,6 +84,7 @@
                                 <option value="menunggu_dp" {{ request('status') === 'menunggu_dp' ? 'selected' : '' }}>Menunggu DP Masuk</option>
                                 <option value="perlu_follow_up" {{ request('status') === 'perlu_follow_up' ? 'selected' : '' }}>⚠️ Perlu Follow Up (Overdue DP)</option>
                                 <option value="belum_spk" {{ request('status') === 'belum_spk' ? 'selected' : '' }}>Belum dibuat SPK</option>
+                                <option value="spk_diproses" {{ request('status') === 'spk_diproses' ? 'selected' : '' }}>SPK Sedang Diproses</option>
                                 <option value="pending_approval" {{ request('status') === 'pending_approval' ? 'selected' : '' }}>Menunggu Approval</option>
                                 <option value="completed" {{ request('status') === 'completed' ? 'selected' : '' }}>Selesai</option>
                                 <option value="cancelled" {{ request('status') === 'cancelled' ? 'selected' : '' }}>Dibatalkan</option>
@@ -241,6 +242,7 @@
                                             'danger' => 'bg-danger',
                                             'warning' => 'bg-warning text-dark',
                                             'info' => 'bg-info text-dark',
+                                            'primary' => 'bg-primary text-white',
                                             default => 'bg-secondary',
                                         };
                                     @endphp
@@ -271,7 +273,7 @@
                                             <i class="fas fa-print"></i>
                                         </a>
                                         @if (
-                                            $sale->status === \App\Models\OfflineSale::STATUS_PENDING_APPROVAL &&
+                                            in_array($sale->status, [\App\Models\OfflineSale::STATUS_PENDING_APPROVAL, \App\Models\OfflineSale::STATUS_SPK_PROCESSING]) &&
                                                 (auth()->user()->canDo('offline-sales.approve') ||
                                                     auth()->user()->isAdmin() ||
                                                     auth()->user()->isOwner() ||

@@ -36,6 +36,7 @@ class OfflineSale extends Model
     const STATUS_PENDING          = 'pending';
     const STATUS_WAITING_DP       = 'menunggu_dp';
     const STATUS_PENDING_SPK      = 'belum_spk';
+    const STATUS_SPK_PROCESSING   = 'spk_diproses';
     const STATUS_PENDING_APPROVAL = 'pending_approval';
 
     const PAYMENT_METHODS = [
@@ -80,6 +81,11 @@ class OfflineSale extends Model
         return $this->hasMany(OfflineSaleReturn::class);
     }
 
+    public function spks(): HasMany
+    {
+        return $this->hasMany(Spk::class, 'no_pesanan', 'sale_number');
+    }
+
     public function getTotalReturnedAmountAttribute(): float
     {
         return (float) $this->returns()->sum('total_return_amount');
@@ -96,8 +102,9 @@ class OfflineSale extends Model
             self::STATUS_COMPLETED        => 'success',
             self::STATUS_CANCELLED        => 'danger',
             self::STATUS_WAITING_DP       => 'info',
-            self::STATUS_PENDING_SPK      => 'warning text-dark',
-            self::STATUS_PENDING_APPROVAL => 'primary',
+            self::STATUS_PENDING_SPK      => 'warning',
+            self::STATUS_SPK_PROCESSING   => 'primary',
+            self::STATUS_PENDING_APPROVAL => $this->is_po ? 'primary' : 'secondary',
             default                       => 'secondary',
         };
     }
@@ -109,7 +116,8 @@ class OfflineSale extends Model
             self::STATUS_CANCELLED        => 'Dibatalkan',
             self::STATUS_WAITING_DP       => 'Menunggu DP Masuk',
             self::STATUS_PENDING_SPK      => 'Belum dibuat SPK',
-            self::STATUS_PENDING_APPROVAL => 'Menunggu Approval',
+            self::STATUS_SPK_PROCESSING   => 'SPK Sedang Diproses',
+            self::STATUS_PENDING_APPROVAL => $this->is_po ? 'SPK Sedang Diproses' : 'Menunggu Approval',
             default                       => ucfirst($this->status),
         };
     }

@@ -27,7 +27,7 @@
                         class="btn btn-primary btn-sm px-3 text-white">
                         <i class="fas fa-print me-1"></i> Cetak Struk
                     </a>
-                    @if ($offlineSale->status === \App\Models\OfflineSale::STATUS_PENDING_APPROVAL && (auth()->user()->canDo('offline-sales.approve') || auth()->user()->isAdmin() || auth()->user()->isOwner() || in_array(auth()->user()->role, ['admin', 'owner', 'warehouse', 'gudang'])))
+                    @if (in_array($offlineSale->status, [\App\Models\OfflineSale::STATUS_PENDING_APPROVAL, \App\Models\OfflineSale::STATUS_SPK_PROCESSING]) && (auth()->user()->canDo('offline-sales.approve') || auth()->user()->isAdmin() || auth()->user()->isOwner() || in_array(auth()->user()->role, ['admin', 'owner', 'warehouse', 'gudang'])))
                         <button type="button" class="btn btn-success btn-sm px-3" data-bs-toggle="modal" data-bs-target="#modalApproveShow">
                             <i class="fas fa-check-circle me-1"></i> Setujui (Approve)
                         </button>
@@ -105,19 +105,30 @@
                 </div>
             @endif
 
-            {{-- Banner Pesanan PO Produksi --}}
-            @if ($offlineSale->is_po && $offlineSale->status === \App\Models\OfflineSale::STATUS_PENDING_APPROVAL)
-                <div class="alert alert-info d-flex align-items-center gap-3 mb-3 py-3" style="background-color: #f3e8ff; border-color: #c084fc; color: #581c87;">
-                    <i class="fas fa-hammer fa-lg"></i>
-                    <div>
-                        <strong>Pesanan Pre-Order / PO Produksi (Dalam SPK)</strong><br>
-                        <small>Pesanan ini telah diterbitkan otomatis ke <strong>SPK Produksi</strong>. Gudang dapat melakukan Approval Pengeluaran Barang setelah Tim Produksi menyelesaikan setoran SPK ke stok gudang.</small>
+            {{-- Banner Pesanan PO Produksi (SPK Sedang Diproses) --}}
+            @if ($offlineSale->is_po && in_array($offlineSale->status, [\App\Models\OfflineSale::STATUS_PENDING_APPROVAL, \App\Models\OfflineSale::STATUS_SPK_PROCESSING]))
+                <div class="alert alert-primary d-flex align-items-center justify-content-between gap-3 mb-3 py-3" style="background-color: #eff6ff; border-color: #93c5fd; color: #1e40af;">
+                    <div class="d-flex align-items-center gap-3">
+                        <i class="fas fa-industry fa-2x text-primary"></i>
+                        <div>
+                            <strong class="fs-6">SPK Sedang Diproses Produksi</strong><br>
+                            <small>Pesanan PO ini sudah dibuatkan SPK dan sedang dalam proses pengerjaan oleh Tim Produksi. Bagian Gudang dapat melakukan Approval Pengeluaran Barang setelah Tim Produksi menyelesaikan setoran SPK ke stok gudang.</small>
+                        </div>
                     </div>
+                    @if($offlineSale->spks && $offlineSale->spks->count() > 0)
+                        <div class="d-flex gap-1 flex-wrap">
+                            @foreach($offlineSale->spks as $spkItem)
+                                <a href="{{ route('spks.show', $spkItem->id) }}" target="_blank" class="btn btn-sm btn-primary text-white text-nowrap">
+                                    <i class="fas fa-external-link-alt me-1"></i> Lihat SPK #{{ $spkItem->no_spk }}
+                                </a>
+                            @endforeach
+                        </div>
+                    @endif
                 </div>
             @endif
 
-            {{-- Banner Menunggu Approval --}}
-            @if ($offlineSale->status === \App\Models\OfflineSale::STATUS_PENDING_APPROVAL)
+            {{-- Banner Menunggu Approval (Khusus Non-PO) --}}
+            @if (!$offlineSale->is_po && $offlineSale->status === \App\Models\OfflineSale::STATUS_PENDING_APPROVAL)
                 <div class="alert alert-warning d-flex align-items-center gap-3 mb-4 py-3">
                     <i class="fas fa-hourglass-half fa-lg text-warning"></i>
                     <div>
@@ -557,7 +568,7 @@
 
 {{-- Modal Konfirmasi Approve --}}
 @push('modals')
-@if($offlineSale->status === \App\Models\OfflineSale::STATUS_PENDING_APPROVAL && (auth()->user()->canDo('offline-sales.approve') || auth()->user()->isAdmin() || auth()->user()->isOwner() || in_array(auth()->user()->role, ['admin', 'owner', 'warehouse', 'gudang'])))
+@if(in_array($offlineSale->status, [\App\Models\OfflineSale::STATUS_PENDING_APPROVAL, \App\Models\OfflineSale::STATUS_SPK_PROCESSING]) && (auth()->user()->canDo('offline-sales.approve') || auth()->user()->isAdmin() || auth()->user()->isOwner() || in_array(auth()->user()->role, ['admin', 'owner', 'warehouse', 'gudang'])))
 <div class="modal fade" id="modalApproveShow" tabindex="-1" aria-labelledby="modalApproveShowLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 shadow">
@@ -917,7 +928,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const btn = event.relatedTarget;
             const status = btn ? btn.getAttribute('data-status') : '';
             const noteEl = document.getElementById('show-cancel-note');
-            if (status === 'pending_approval') {
+            if (['pending_approval', 'spk_diproses', 'menunggu_dp', 'belum_spk'].includes(status)) {
                 noteEl.innerHTML = '<i class="fas fa-info-circle me-1"></i> Transaksi belum diapprove. Stok <strong>tidak akan</strong> berubah.';
                 noteEl.className = 'alert alert-info py-2 mb-3 small';
             } else {

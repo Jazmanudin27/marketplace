@@ -604,8 +604,8 @@ class OfflineSaleTest extends TestCase
 
         $this->assertEquals(1, \App\Models\Spk::where('tenant_id', $this->tenant->id)->count());
         $sale->refresh();
-        $this->assertEquals(OfflineSale::STATUS_PENDING_APPROVAL, $sale->status);
-        $this->assertEquals('Menunggu Approval', $sale->status_label);
+        $this->assertEquals(OfflineSale::STATUS_SPK_PROCESSING, $sale->status);
+        $this->assertEquals('SPK Sedang Diproses', $sale->status_label);
     }
 
     public function test_delete_dp_payment_reverts_status_to_waiting_dp_and_deletes_income(): void

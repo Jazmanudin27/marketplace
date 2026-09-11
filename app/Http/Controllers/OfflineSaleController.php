@@ -34,6 +34,17 @@ class OfflineSaleController extends Controller
                       ->where('paid_amount', '<=', 0)
                       ->whereNotNull('follow_up_date')
                       ->whereDate('follow_up_date', '<', now()->toDateString());
+            } elseif ($request->status === 'spk_diproses') {
+                $query->where(function($q) {
+                    $q->where('status', OfflineSale::STATUS_SPK_PROCESSING)
+                      ->orWhere(function($sub) {
+                          $sub->where('status', OfflineSale::STATUS_PENDING_APPROVAL)
+                              ->where('is_po', true);
+                      });
+                });
+            } elseif ($request->status === 'pending_approval') {
+                $query->where('status', OfflineSale::STATUS_PENDING_APPROVAL)
+                      ->where('is_po', false);
             } else {
                 $query->where('status', $request->status);
             }
@@ -328,8 +339,8 @@ class OfflineSaleController extends Controller
         abort_unless($offlineSale->tenant_id === Auth::user()->tenant_id, 403);
         abort_unless(Auth::user()->canDo('offline-sales.approve') || Auth::user()->isAdmin() || Auth::user()->isOwner() || in_array(Auth::user()->role, ['admin', 'owner', 'warehouse', 'gudang']), 403);
 
-        if ($offlineSale->status !== OfflineSale::STATUS_PENDING_APPROVAL) {
-            return back()->with('error', 'Transaksi ini tidak dalam status menunggu approval.');
+        if (!in_array($offlineSale->status, [OfflineSale::STATUS_PENDING_APPROVAL, OfflineSale::STATUS_SPK_PROCESSING])) {
+            return back()->with('error', 'Transaksi ini tidak dalam status menunggu approval atau proses SPK.');
         }
 
         $request->validate([
@@ -881,12 +892,12 @@ class OfflineSaleController extends Controller
                 ]);
             }
 
-            // Setelah SPK dibuat, status penjualan offline naik menjadi Menunggu Approval Gudang
+            // Setelah SPK dibuat, status penjualan offline PO menjadi SPK Sedang Diproses
             $offlineSale->update([
-                'status' => OfflineSale::STATUS_PENDING_APPROVAL,
+                'status' => OfflineSale::STATUS_SPK_PROCESSING,
             ]);
         });
 
-        return back()->with('success', "✅ SPK Produksi ({$noSpk}) berhasil diterbitkan! Status transaksi kini Menunggu Approval Gudang.");
+        return back()->with('success', "✅ SPK Produksi ({$noSpk}) berhasil diterbitkan! Status transaksi kini: SPK Sedang Diproses.");
     }
 }
