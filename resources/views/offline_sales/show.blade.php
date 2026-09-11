@@ -685,142 +685,170 @@
 </div>
 @endif
 
-{{-- Modal Terbitkan SPK Produksi --}}
+{{-- Modal Terbitkan SPK Produksi (Full Screen) --}}
 @if($offlineSale->status === \App\Models\OfflineSale::STATUS_PENDING_SPK || ($offlineSale->is_po && $offlineSale->spks->isEmpty() && (float) $offlineSale->paid_amount > 0 && $offlineSale->status !== \App\Models\OfflineSale::STATUS_CANCELLED))
 <div class="modal fade" id="modalCreateSpkShow" tabindex="-1" aria-labelledby="modalCreateSpkShowLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
-        <div class="modal-content border-0 shadow">
-            <div class="modal-header bg-warning bg-opacity-10 border-bottom">
-                <h6 class="modal-title fw-bold text-dark" id="modalCreateSpkShowLabel">
-                    <i class="fas fa-hammer me-2 text-warning"></i>Terbitkan SPK Produksi
-                </h6>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+    <div class="modal-dialog modal-fullscreen modal-dialog-scrollable">
+        <div class="modal-content border-0">
+            <div class="modal-header bg-warning bg-opacity-10 border-bottom px-4 py-3">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="rounded-circle bg-warning bg-opacity-25 p-2 text-warning d-flex align-items-center justify-content-center" style="width: 38px; height: 38px;">
+                        <i class="fas fa-hammer fs-6 text-dark"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title fw-bold text-dark mb-0" id="modalCreateSpkShowLabel">
+                            Terbitkan SPK Produksi
+                        </h5>
+                        <small class="text-muted" style="font-size: 0.75rem;">Konfigurasi Nomor Produksi, Tahap Awal, dan Pembagian SPK Pesanan Offline PO</small>
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
             </div>
-            <form action="{{ route('offline_sales.create_spk', $offlineSale->id) }}" method="POST" class="m-0">
+            <form action="{{ route('offline_sales.create_spk', $offlineSale->id) }}" method="POST" class="m-0 d-flex flex-column flex-grow-1">
                 @csrf
-                <div class="modal-body p-4">
-                    <div class="d-flex justify-content-between align-items-center mb-3 p-3 bg-light rounded border">
-                        <div>
-                            <small class="text-muted d-block text-uppercase fw-semibold" style="font-size: 0.7rem;">Transaksi PO</small>
-                            <span class="fw-bold font-monospace text-primary fs-6">{{ $offlineSale->sale_number }}</span>
-                            <span class="text-muted ms-2">&bull; Pembeli: <strong>{{ $offlineSale->buyer_name ?: 'Pelanggan' }}</strong></span>
-                        </div>
-                        <span class="badge bg-primary bg-opacity-10 text-primary border border-primary-subtle py-1.5 px-2.5">
-                            <i class="fas fa-layer-group me-1"></i> 1 No. Produksi = Multi SPK Produk
-                        </span>
-                    </div>
-
-                    <div class="row g-3 mb-3">
-                        <div class="col-md-6">
-                            <label for="show_spk_no_produksi" class="form-label fw-semibold small text-dark mb-1">
-                                <i class="fas fa-hashtag text-primary me-1"></i>Nomor / Kode Produksi <span class="text-danger">*</span>
-                            </label>
-                            <input type="text" name="no_produksi" id="show_spk_no_produksi" class="form-control form-control-sm font-monospace fw-bold"
-                                value="{{ \App\Models\Spk::generateNoProduksi() }}" required>
-                            <div class="form-text text-muted" style="font-size: 0.75rem;">
-                                Satu kode produksi ini akan menaungi seluruh SPK pesanan ini.
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <label for="show_spk_tahap_saat_ini" class="form-label fw-semibold small text-dark mb-1">
-                                <i class="fas fa-tasks text-primary me-1"></i>Tahap Awal Produksi <span class="text-danger">*</span>
-                            </label>
-                            <select name="tahap_saat_ini" id="show_spk_tahap_saat_ini" class="form-select form-select-sm fw-semibold" required>
-                                <option value="Antrian &amp; Sampling" selected>⏳ Antrian &amp; Sampling (Langsung Antrian)</option>
-                                <option value="Perencanaan">📋 Perencanaan / Pesanan Baru</option>
-                                <option value="Tahap Pemotongan">✂️ Tahap Pemotongan</option>
-                                <option value="Tahap Jahit">🪡 Tahap Jahit</option>
-                            </select>
-                            <div class="form-text text-success" style="font-size: 0.75rem;">
-                                <i class="fas fa-check-circle me-1"></i>SPK langsung masuk antrian aktif (bukan Draft).
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="show_spk_deadline" class="form-label fw-semibold small text-dark mb-1">
-                            <i class="fas fa-calendar-alt text-primary me-1"></i>Target Deadline SPK Produksi <span class="text-danger">*</span>
-                        </label>
-                        <input type="date" name="deadline" id="show_spk_deadline" class="form-control form-control-sm" value="{{ now()->addDays(7)->format('Y-m-d') }}" required>
-                        <div class="form-text text-muted" style="font-size: 0.75rem;">Target tanggal selesai pengerjaan oleh tim produksi.</div>
-                    </div>
-
-                    {{-- Rincian SPK & Pembagian Kelompok SPK --}}
-                    <div class="border rounded p-3 bg-light">
-                        <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+                <div class="modal-body p-4 flex-grow-1">
+                    <div class="container-fluid px-lg-3 py-1">
+                        {{-- Info Banner PO --}}
+                        <div class="d-flex justify-content-between align-items-center mb-3 p-3 bg-light rounded border flex-wrap gap-2">
                             <div>
-                                <label class="form-label fw-bold small text-dark mb-0">
-                                    <i class="fas fa-layer-group me-1 text-primary"></i>Tentukan Pembagian SPK:
+                                <small class="text-muted d-block text-uppercase fw-semibold" style="font-size: 0.7rem;">Transaksi PO</small>
+                                <span class="fw-bold font-monospace text-primary fs-5">{{ $offlineSale->sale_number }}</span>
+                                <span class="text-muted ms-2">&bull; Pembeli: <strong>{{ $offlineSale->buyer_name ?: 'Pelanggan' }}</strong></span>
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="badge bg-primary bg-opacity-10 text-primary border border-primary-subtle py-2 px-3 fs-7">
+                                    <i class="fas fa-layer-group me-1"></i> 1 No. Produksi = Multi SPK Produk
+                                </span>
+                            </div>
+                        </div>
+
+                        {{-- Parameter Utama SPK: 3 Kolom Sejajar --}}
+                        <div class="row g-3 mb-4">
+                            <div class="col-lg-4 col-md-6">
+                                <label for="show_spk_no_produksi" class="form-label fw-semibold small text-dark mb-1">
+                                    <i class="fas fa-hashtag text-primary me-1"></i>Nomor / Kode Produksi <span class="text-danger">*</span>
                                 </label>
-                                <div class="small text-muted" style="font-size: 0.72rem;">
-                                    Pilih SPK tujuan untuk masing-masing item (contoh: Item A &amp; B masuk SPK 1, Item C masuk SPK 2).
+                                <input type="text" name="no_produksi" id="show_spk_no_produksi" class="form-control form-control-sm font-monospace fw-bold"
+                                    value="{{ \App\Models\Spk::generateNoProduksi() }}" required>
+                                <div class="form-text text-muted" style="font-size: 0.75rem;">
+                                    Satu kode produksi ini akan menaungi seluruh SPK pesanan ini.
                                 </div>
                             </div>
-                            <div class="btn-group btn-group-sm">
-                                <button type="button" class="btn btn-outline-primary btn-sm py-1 px-2 fw-semibold" id="btn-quick-combine-show" title="Semua item dijadikan 1 SPK">
-                                    <i class="fas fa-link me-1"></i>Gabung Semua (1 SPK)
-                                </button>
-                                <button type="button" class="btn btn-outline-secondary btn-sm py-1 px-2 fw-semibold" id="btn-quick-split-show" title="Pisahkan tiap item menjadi SPK sendiri-sendiri">
-                                    <i class="fas fa-cut me-1"></i>Pisah Masing-masing
-                                </button>
+                            <div class="col-lg-4 col-md-6">
+                                <label for="show_spk_tahap_saat_ini" class="form-label fw-semibold small text-dark mb-1">
+                                    <i class="fas fa-tasks text-primary me-1"></i>Tahap Awal Produksi <span class="text-danger">*</span>
+                                </label>
+                                <select name="tahap_saat_ini" id="show_spk_tahap_saat_ini" class="form-select form-select-sm fw-semibold" required>
+                                    <option value="Antrian &amp; Sampling" selected>⏳ Antrian &amp; Sampling (Langsung Antrian)</option>
+                                    <option value="Perencanaan">📋 Perencanaan / Pesanan Baru</option>
+                                    <option value="Tahap Pemotongan">✂️ Tahap Pemotongan</option>
+                                    <option value="Tahap Jahit">🪡 Tahap Jahit</option>
+                                </select>
+                                <div class="form-text text-success" style="font-size: 0.75rem;">
+                                    <i class="fas fa-check-circle me-1"></i>SPK langsung masuk antrian aktif (bukan Draft).
+                                </div>
+                            </div>
+                            <div class="col-lg-4 col-md-12">
+                                <label for="show_spk_deadline" class="form-label fw-semibold small text-dark mb-1">
+                                    <i class="fas fa-calendar-alt text-primary me-1"></i>Target Deadline SPK Produksi <span class="text-danger">*</span>
+                                </label>
+                                <input type="date" name="deadline" id="show_spk_deadline" class="form-control form-control-sm" value="{{ now()->addDays(7)->format('Y-m-d') }}" required>
+                                <div class="form-text text-muted" style="font-size: 0.75rem;">Target tanggal selesai pengerjaan oleh tim produksi.</div>
                             </div>
                         </div>
 
-                        <div class="table-responsive bg-white rounded border mb-3" style="max-height: 220px; overflow-y: auto;">
-                            <table class="table table-sm table-hover align-middle mb-0" style="font-size: 0.8rem;">
-                                <thead class="table-light sticky-top">
-                                    <tr>
-                                        <th style="width: 35px;" class="text-center">#</th>
-                                        <th>PRODUK / ITEM PESANAN</th>
-                                        <th class="text-center" style="width: 70px;">QTY</th>
-                                        <th style="width: 170px;">PILIH SPK TUJUAN</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach($offlineSale->items as $idx => $item)
-                                        <tr>
-                                            <td class="text-center text-muted">{{ $idx + 1 }}</td>
-                                            <td>
-                                                <div class="fw-semibold text-dark">{{ $item->product_name }}</div>
-                                                @if($item->sku)
-                                                    <small class="text-muted font-monospace">{{ $item->sku }}</small>
-                                                @endif
-                                            </td>
-                                            <td class="text-center fw-bold font-monospace">{{ $item->quantity }} Pcs</td>
-                                            <td>
-                                                <select name="spk_group[{{ $item->id }}]" class="form-select form-select-sm fw-bold spk-group-select-show"
-                                                    data-item-id="{{ $item->id }}" data-item-name="{{ $item->product_name }}" data-item-qty="{{ $item->quantity }}">
-                                                    <option value="1" selected>📦 Masuk ke SPK 1</option>
-                                                    <option value="2">📦 Masuk ke SPK 2</option>
-                                                    <option value="3">📦 Masuk ke SPK 3</option>
-                                                    <option value="4">📦 Masuk ke SPK 4</option>
-                                                    <option value="5">📦 Masuk ke SPK 5</option>
-                                                    <option value="6">📦 Masuk ke SPK 6</option>
-                                                    <option value="7">📦 Masuk ke SPK 7</option>
-                                                    <option value="8">📦 Masuk ke SPK 8</option>
-                                                    <option value="0">❌ Lewati (Jangan Buat SPK)</option>
-                                                </select>
-                                            </td>
-                                        </tr>
-                                    @endforeach
-                                </tbody>
-                            </table>
-                        </div>
+                        {{-- Layout 2 Kolom: Kiri (Tabel Pembagian Item) | Kanan (Ringkasan Real-Time) --}}
+                        <div class="row g-4">
+                            {{-- Kolom Kiri: Tabel Pembagian SPK --}}
+                            <div class="col-lg-7">
+                                <div class="border rounded p-3 bg-light shadow-sm h-100">
+                                    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                                        <div>
+                                            <label class="form-label fw-bold text-dark mb-0 fs-6">
+                                                <i class="fas fa-layer-group me-1 text-primary"></i>Tentukan Pembagian SPK (SPK 1 - SPK 5)
+                                            </label>
+                                            <div class="text-muted small" style="font-size: 0.75rem;">
+                                                Pilih SPK tujuan untuk masing-masing item (contoh: Item A &amp; B masuk SPK 1, Item C masuk SPK 2).
+                                            </div>
+                                        </div>
+                                        <div class="btn-group btn-group-sm">
+                                            <button type="button" class="btn btn-outline-primary btn-sm py-1 px-2.5 fw-semibold" id="btn-quick-combine-show" title="Semua item dijadikan 1 SPK">
+                                                <i class="fas fa-link me-1"></i>Gabung Semua (1 SPK)
+                                            </button>
+                                            <button type="button" class="btn btn-outline-secondary btn-sm py-1 px-2.5 fw-semibold" id="btn-quick-split-show" title="Pisahkan tiap item menjadi SPK sendiri-sendiri">
+                                                <i class="fas fa-cut me-1"></i>Pisah Masing-masing
+                                            </button>
+                                        </div>
+                                    </div>
 
-                        {{-- Ringkasan Hasil SPK yang Akan Diterbitkan --}}
-                        <div class="p-3 bg-white rounded border shadow-sm">
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <strong class="text-dark small"><i class="fas fa-clipboard-list me-1 text-primary"></i>Ringkasan SPK yang Akan Diterbitkan:</strong>
-                                <span class="badge bg-primary px-2 py-1" id="modal-spk-summary-badge-show">0 SPK</span>
+                                    <div class="table-responsive bg-white rounded border mb-0" style="max-height: 480px; overflow-y: auto;">
+                                        <table class="table table-sm table-hover align-middle mb-0" style="font-size: 0.85rem;">
+                                            <thead class="table-light sticky-top">
+                                                <tr>
+                                                    <th style="width: 40px;" class="text-center">#</th>
+                                                    <th>PRODUK / ITEM PESANAN</th>
+                                                    <th class="text-center" style="width: 80px;">QTY</th>
+                                                    <th style="width: 210px;">PILIH SPK TUJUAN</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach($offlineSale->items as $idx => $item)
+                                                    <tr>
+                                                        <td class="text-center text-muted">{{ $idx + 1 }}</td>
+                                                        <td>
+                                                            <div class="fw-semibold text-dark">{{ $item->product_name }}</div>
+                                                            @if($item->sku)
+                                                                <small class="text-muted font-monospace">{{ $item->sku }}</small>
+                                                            @endif
+                                                        </td>
+                                                        <td class="text-center fw-bold font-monospace">{{ $item->quantity }} Pcs</td>
+                                                        <td>
+                                                            <select name="spk_group[{{ $item->id }}]" class="form-select form-select-sm fw-bold spk-group-select-show"
+                                                                data-item-id="{{ $item->id }}" data-item-name="{{ $item->product_name }}" data-item-qty="{{ $item->quantity }}">
+                                                                <option value="1" selected>📦 Masuk ke SPK 1</option>
+                                                                <option value="2">📦 Masuk ke SPK 2</option>
+                                                                <option value="3">📦 Masuk ke SPK 3</option>
+                                                                <option value="4">📦 Masuk ke SPK 4</option>
+                                                                <option value="5">📦 Masuk ke SPK 5</option>
+                                                                <option value="0">❌ Lewati (Jangan Buat SPK)</option>
+                                                            </select>
+                                                        </td>
+                                                    </tr>
+                                                @endforeach
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
                             </div>
-                            <div id="modal-spk-summary-list-show" class="d-flex flex-column gap-2" style="font-size: 0.78rem;">
+
+                            {{-- Kolom Kanan: Pratinjau Real-Time SPK yang Akan Dibuat --}}
+                            <div class="col-lg-5">
+                                <div class="p-3 bg-white rounded border shadow-sm h-100 d-flex flex-column" style="position: sticky; top: 1rem;">
+                                    <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+                                        <div>
+                                            <h6 class="fw-bold text-dark mb-0">
+                                                <i class="fas fa-clipboard-list me-1 text-primary"></i>Ringkasan SPK yang Terbit
+                                            </h6>
+                                            <small class="text-muted" style="font-size: 0.72rem;">Pratinjau otomatis SPK yang akan dibentuk</small>
+                                        </div>
+                                        <span class="badge bg-primary px-2.5 py-1.5 fs-7" id="modal-spk-summary-badge-show">0 SPK</span>
+                                    </div>
+                                    <div id="modal-spk-summary-list-show" class="d-flex flex-column gap-2 flex-grow-1" style="font-size: 0.82rem; max-height: 440px; overflow-y: auto;">
+                                    </div>
+                                    <div class="mt-3 pt-2 border-top text-muted small" style="font-size: 0.75rem;">
+                                        <i class="fas fa-info-circle text-primary me-1"></i>
+                                        Setiap SPK akan memiliki nomor unik di modul SPK (misal <code>SPK-...-0001</code>, <code>SPK-...-0002</code>) di bawah No. Produksi yang sama.
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Tutup</button>
-                    <button type="submit" class="btn btn-primary btn-sm px-4 fw-semibold">
+                <div class="modal-footer px-4 py-3 bg-light border-top">
+                    <button type="button" class="btn btn-secondary btn-sm px-3" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i> Tutup
+                    </button>
+                    <button type="submit" class="btn btn-primary btn-sm px-4 fw-semibold shadow-sm">
                         <i class="fas fa-hammer me-1"></i> Terbitkan SPK Sekarang
                     </button>
                 </div>
@@ -1139,7 +1167,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (btnSplitShow) {
             btnSplitShow.addEventListener('click', function() {
                 modalCreateSpkShow.querySelectorAll('.spk-group-select-show').forEach((sel, idx) => {
-                    sel.value = String(idx + 1);
+                    sel.value = String(Math.min(idx + 1, 5));
                 });
                 renderSpkSummaryShow();
             });
