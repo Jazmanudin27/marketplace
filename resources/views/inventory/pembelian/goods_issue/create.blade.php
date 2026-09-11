@@ -192,6 +192,12 @@ $(document).ready(function () {
         const stock = parseInt(el.getAttribute('data-stock') || 0);
         const cat   = el.getAttribute('data-category') || '';
 
+        // Cek stok
+        if (stock <= 0) {
+            Swal.fire({ icon:'warning', title:'Stok Kosong', text:'Barang ini memiliki stok 0 dan tidak dapat dikeluarkan.', timer:2500, showConfirmButton:false });
+            return;
+        }
+
         // Cek duplikat
         if (document.querySelector(`#row-item-${id}`)) {
             Swal.fire({ icon:'warning', title:'Duplikat', text:'Barang ini sudah ada di daftar.', timer:2000, showConfirmButton:false });

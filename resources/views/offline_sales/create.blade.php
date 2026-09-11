@@ -535,10 +535,11 @@
             const resellerPrice = parseFloat($(this).data('reseller-price'));
             const stock = parseInt($(this).data('stock'));
             const isPoMode = $('#is-po-switch').is(':checked');
+            const isPreorder = parseInt($(this).data('is-po')) === 1;
 
             const activePrice = isDropshipCustomer ? resellerPrice : normalPrice;
 
-            if (!isPoMode && stock <= 0) {
+            if (!isPoMode && !isPreorder && stock <= 0) {
                 Swal.fire({
                     icon: 'warning',
                     title: 'Stok Produk Habis!',
@@ -550,7 +551,7 @@
             }
 
             if (cartItems[id]) {
-                if (!isPoMode && cartItems[id].qty >= stock) {
+                if (!isPoMode && !isPreorder && cartItems[id].qty >= stock) {
                     Swal.fire({
                         icon: 'warning',
                         title: 'Stok Tidak Mencukupi!',
@@ -570,6 +571,7 @@
                     normal_price: normalPrice,
                     dropship_price: resellerPrice,
                     stock,
+                    is_po: isPreorder,
                     qty: 1,
                     discount_type: 'fixed',
                     discount_value: 0,
@@ -674,7 +676,23 @@
             recalculate();
         });
 
-        $('#offline-form').on('submit', function() {
+        $('#offline-form').on('submit', function(e) {
+            const isPoMode = $('#is-po-switch').is(':checked');
+            if (!isPoMode) {
+                for (const item of Object.values(cartItems)) {
+                    if (!item.is_po && item.qty > item.stock) {
+                        e.preventDefault();
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Stok Tidak Mencukupi!',
+                            html: `Jumlah pesanan untuk <strong>${item.name}</strong> (${item.qty} Pcs) melebihi stok yang tersedia (${item.stock} Pcs).<br><br>Aktifkan switch <strong>Pre-Order / PO Produksi (SPK)</strong> jika transaksi ini adalah pesanan PO!`,
+                            confirmButtonColor: '#fd7e14'
+                        });
+                        return false;
+                    }
+                }
+            }
+
             const discType = $('#global-discount-type').val();
             let discVal = 0;
             if (discType === 'percentage') {
@@ -695,7 +713,8 @@
                 return;
             }
             const isPoMode = $('#is-po-switch').is(':checked');
-            if (!isPoMode && newQty > cartItems[id].stock) {
+            const isPreorder = cartItems[id] && cartItems[id].is_po;
+            if (!isPoMode && !isPreorder && newQty > cartItems[id].stock) {
                 Swal.fire({
                     icon: 'warning',
                     title: 'Stok Tidak Mencukupi!',
@@ -716,7 +735,8 @@
                 return;
             }
             const isPoMode = $('#is-po-switch').is(':checked');
-            if (!isPoMode && qty > cartItems[id].stock) {
+            const isPreorder = cartItems[id] && cartItems[id].is_po;
+            if (!isPoMode && !isPreorder && qty > cartItems[id].stock) {
                 Swal.fire({
                     icon: 'warning',
                     title: 'Stok Tidak Mencukupi!',
@@ -844,7 +864,7 @@
                     <td class="text-center align-middle">
                         <div class="input-group input-group-sm mx-auto" style="width: 100px;">
                             <button type="button" class="btn btn-outline-secondary btn-minus" data-id="${item.id}">-</button>
-                            <input type="number" class="form-control text-center p-1 qty-input" data-id="${item.id}" value="${item.qty}" min="1" max="${item.stock}">
+                            <input type="number" class="form-control text-center p-1 qty-input" data-id="${item.id}" value="${item.qty}" min="1">
                             <button type="button" class="btn btn-outline-secondary btn-plus" data-id="${item.id}">+</button>
                         </div>
                     </td>
@@ -894,6 +914,7 @@
             } else {
                 $('#po-deadline-container').slideUp(200);
             }
+            recalculate();
         });
 
         triggerCustomerSelectChange();
