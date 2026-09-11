@@ -1428,6 +1428,7 @@ class SpkController extends Controller
                             $skuProduk  = trim($pRow['sku_produk'] ?? '');
                             $ukuran     = trim($pRow['ukuran'] ?? '') ?: 'ALL SIZE';
                             $qtyProd    = max(1, (int) ($pRow['qty_produksi'] ?? 1));
+                            $estKain    = (float) ($pRow['est_kain'] ?? 0);
 
                             $spkItem = $itemsOrdered->get((int)$pIdx);
                             if (!$spkItem) {
@@ -1437,6 +1438,7 @@ class SpkController extends Controller
                                     'sku'         => $skuProduk,
                                     'ukuran'      => $ukuran,
                                     'quantity'    => $qtyProd,
+                                    'est_kain'    => $estKain,
                                 ]);
                             } else {
                                 $spkItem->update([
@@ -1444,6 +1446,7 @@ class SpkController extends Controller
                                     'sku'         => $skuProduk,
                                     'ukuran'      => $ukuran,
                                     'quantity'    => $qtyProd,
+                                    'est_kain'    => $estKain,
                                 ]);
                             }
                             $savedItemIds[] = $spkItem->id;
